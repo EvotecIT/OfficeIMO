@@ -55,6 +55,78 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void AssessComplianceIncludesNamedFontResourcesInEmbeddedCoverage() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = CreatePdfA3GroundworkOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "HelveticaAudit")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Named Compliance", fontData));
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily("Named Compliance")
+                .Text("Named font coverage is included in generated evidence."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
+    public void AssessComplianceIncludesNamedPageTextAndListMarkerResourcesInEmbeddedCoverage() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = CreatePdfA3GroundworkOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "HelveticaAudit")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Named Surface Compliance", fontData));
+        options.ShowHeader = true;
+        options.HeaderFormat = "Named header";
+        options.HeaderFontFamily = "Named Surface Compliance";
+        options.ShowPageNumbers = true;
+        options.FooterFormat = "Named footer";
+        options.FooterFontFamily = "Named Surface Compliance";
+        var listStyle = new PdfListStyle {
+            MarkerFontFamily = "Named Surface Compliance"
+        };
+        PdfDocument document = PdfDocument.Create(options)
+            .RichNumbered(
+                new[] { new PdfListItem("Embedded body font coverage.", marker: "1.") },
+                style: listStyle);
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
+    public void AssessComplianceRejectsInvalidNamedFontResources() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = CreatePdfA3GroundworkOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "HelveticaAudit")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Broken Named Compliance", new byte[] { 1 }));
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily("Broken Named Compliance")
+                .Text("Invalid named font coverage."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+
+        PdfComplianceRequirement requirement = AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Missing);
+        Assert.Contains("broken named compliance", requirement.Diagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void AssessComplianceUsesConfiguredProfileWhenNoProfileIsSupplied() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

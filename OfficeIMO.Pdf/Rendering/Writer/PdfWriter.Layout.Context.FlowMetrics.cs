@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderListItem(System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
+        private void RenderListItem(System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, PdfNamedFontFace? markerNamedFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
@@ -161,8 +161,26 @@ internal static partial class PdfWriter {
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
                     int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                    MarkSimpleFont(markerFont);
-                    WriteLinesInternal(GetStandardFontResourceName(markerFont, ChooseNormal(currentOpts.DefaultFont)), markerSize, leading, markerX, markerWidth, baselineY, markerLines, markerAlign, markerColor ?? color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
+                    if (markerNamedFont.HasValue) {
+                        currentPage!.UsedNamedFonts.Add(markerNamedFont.Value);
+                    } else {
+                        MarkSimpleFont(markerFont);
+                    }
+
+                    WriteLinesInternal(
+                        GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
+                        markerSize,
+                        leading,
+                        markerX,
+                        markerWidth,
+                        baselineY,
+                        markerLines,
+                        markerAlign,
+                        markerColor ?? color,
+                        applyBaselineTweak: true,
+                        structureType: "Lbl",
+                        markedContentId: labelMarkedContentId,
+                        namedFont: markerNamedFont);
                 }
 
                 pageDirty = true;
@@ -325,12 +343,13 @@ internal static partial class PdfWriter {
             double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
             PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
+            PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(listStyle, currentOpts);
             const string bulletGlyph = "•";
             double estimatedBulletWidth = bullets.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, markerSize, currentOpts)
-                : bullets.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, markerSize, currentOpts));
+                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, markerNamedFont, markerSize, currentOpts)
+                : bullets.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, markerNamedFont, markerSize, currentOpts));
             double bulletWidth = GetListMarkerWidth(listStyle, estimatedBulletWidth);
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerSize, currentOpts);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - bulletWidth - markerGap;
             double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
@@ -352,15 +371,16 @@ internal static partial class PdfWriter {
             double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
             PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
+            PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(listStyle, currentOpts);
             int lastNumber = numbered.StartNumber + Math.Max(0, numbered.RichItems.Count - 1);
             string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
             double estimatedMarkerWidth = numbered.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, markerSize, currentOpts)
+                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, markerNamedFont, markerSize, currentOpts)
                 : numbered.RichItems
                     .Select((item, itemIndex) => item.Marker ?? ((numbered.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
-                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, markerSize, currentOpts));
+                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts));
             double markerWidth = GetListMarkerWidth(listStyle, estimatedMarkerWidth);
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerSize, currentOpts);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - markerWidth - markerGap;
             double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
@@ -702,4 +722,3 @@ internal static partial class PdfWriter {
 
     }
 }
-

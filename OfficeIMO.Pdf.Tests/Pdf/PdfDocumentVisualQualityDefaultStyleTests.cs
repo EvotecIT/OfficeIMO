@@ -16,6 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ListStyle_ClonePreservesPageFlowSettings() {
         var style = new PdfListStyle {
+            MarkerFontFamily = "Premium Marker",
             KeepTogether = true,
             KeepWithNext = true
         };
@@ -24,7 +25,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         style.KeepTogether = false;
         style.KeepWithNext = false;
+        style.MarkerFontFamily = "Changed Marker";
 
+        Assert.Equal("Premium Marker", clone.MarkerFontFamily);
         Assert.True(clone.KeepTogether);
         Assert.True(clone.KeepWithNext);
     }

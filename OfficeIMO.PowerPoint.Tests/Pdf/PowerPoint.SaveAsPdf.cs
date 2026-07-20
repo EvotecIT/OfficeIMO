@@ -61,6 +61,64 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_Reports_Unavailable_Font_Substitution() {
+        const string unavailableFamily = "OfficeIMO Missing Font 7F0C9D";
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Unavailable font marker", 20, 24, 180, 40);
+        textBox.FontName = unavailableFamily;
+
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+        });
+
+        Assert.Contains(
+            result.Warnings,
+            warning => warning.Code == "font-family-substitution" &&
+                       warning.Message.Contains(unavailableFamily, StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Portable font marker", 20, 24, 180, 40);
+        textBox.FontName = "Arial";
+
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            result.Warnings,
+            item => item.Code == "font-family-substitution");
+        Assert.Equal("Arial", warning.Details["fontFamily"]);
+        Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_Does_Not_Report_Unused_Theme_Font() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointTextBox first = slide.AddTextBoxPoints("First explicit family", 20, 24, 180, 40);
+        first.FontName = "Helvetica";
+        PowerPointTextBox second = slide.AddTextBoxPoints("Second explicit family", 20, 74, 180, 40);
+        second.FontName = "Helvetica";
+
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        _ = result.ToBytes();
+
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "font-family-substitution");
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTextRunHyperlinks() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -1008,6 +1066,30 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void ToPdfDocument_PowerPointPresentation_Uses_Theme_Default_Text_Typography() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Theme default", 30, 34, 180, 46);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument();
+
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
+        PdfCore.PdfCanvasTextBoxItem textItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTextBoxItem>());
+        Assert.Equal(18D, textItem.Style.FontSize);
+
+        string expectedThemeFont = presentation.GetThemeLatinFonts().MinorLatin!;
+        Assert.False(string.IsNullOrWhiteSpace(expectedThemeFont));
+        Assert.All(textItem.Runs, run => Assert.Equal(expectedThemeFont, run.FontFamily));
+
+        byte[] bytes = pdfDocument.ToBytes();
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.InRange(AverageLetterFontSize(pdf.GetPage(1), "Theme"), 17.5D, 18.5D);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersTablesThroughSharedPdfCanvasTable() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -1056,6 +1138,52 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains("Metric", text, StringComparison.Ordinal);
         Assert.Contains("Quality", text, StringComparison.Ordinal);
         Assert.Contains("99", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_Uses_Theme_Table_Style_And_Default_Typography() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        table.FirstRow = true;
+        table.BandedRows = true;
+        table.GetCell(0, 0).Text = "Header";
+        table.GetCell(0, 1).Text = "State";
+        table.GetCell(1, 0).Text = "Body";
+        table.GetCell(1, 1).Text = "Ready";
+
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument();
+
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
+        PdfCore.PdfCanvasTableItem tableItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>());
+        PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(tableItem.Block.Style);
+        Assert.Equal(18D, style.FontSize);
+        Assert.Equal(18D, style.HeaderFontSize);
+
+        Assert.NotNull(style.CellFills);
+        PdfCore.PdfColor headerFill = style.CellFills![(0, 0)];
+        PdfCore.PdfColor bodyFill = style.CellFills[(1, 0)];
+        Assert.NotEqual(headerFill, bodyFill);
+        Assert.NotEqual(PdfCore.PdfColor.White, headerFill);
+
+        Assert.NotNull(style.CellBorders);
+        PdfCore.PdfCellBorder headerBorder = style.CellBorders![(0, 0)];
+        Assert.NotNull(headerBorder.BottomBorder);
+        Assert.True(headerBorder.BottomBorder!.Width >= 1D);
+
+        string expectedThemeFont = presentation.GetThemeLatinFonts().MinorLatin!;
+        Assert.False(string.IsNullOrWhiteSpace(expectedThemeFont));
+        foreach (PdfCore.PdfTableCell cell in tableItem.Block.Cells.SelectMany(row => row)) {
+            Assert.All(cell.Runs, run => Assert.Equal(expectedThemeFont, run.FontFamily));
+        }
+
+        byte[] bytes = pdfDocument.ToBytes();
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        double headerSize = AverageLetterFontSize(pdf.GetPage(1), "Header");
+        double bodySize = AverageLetterFontSize(pdf.GetPage(1), "Body");
+        Assert.InRange(headerSize, 17.5D, 18.5D);
+        Assert.InRange(bodySize, 17.5D, 18.5D);
     }
 
     [Fact]
@@ -1222,7 +1350,7 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         AssertRawPdfContainsAnyBaseFont(raw, "Times");
-        Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
+        AssertRawPdfContainsAnyBaseFont(raw, "Georgia");
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));

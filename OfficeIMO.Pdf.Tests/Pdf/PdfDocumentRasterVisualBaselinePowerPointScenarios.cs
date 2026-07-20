@@ -29,18 +29,18 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         background.FillColor = "F6FAFC";
         background.OutlineColor = "F6FAFC";
 
-        PowerPointAutoShape panel = slide.AddShapePoints(ShapeTypeValues.RoundRectangle, 14, 14, 132, 62);
+        PowerPointAutoShape panel = slide.AddShapePoints(ShapeTypeValues.RoundRectangle, 14, 14, 132, 72);
         panel.FillColor = "FFFFFF";
         panel.OutlineColor = "B9D7EA";
         panel.OutlineWidthPoints = 1.2D;
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("PowerPoint PDF Visual Gate", 22, 22, 122, 24);
+        PowerPointTextBox title = slide.AddTextBoxPoints("PowerPoint PDF Visual Gate", 22, 20, 122, 32);
         title.FontName = "Georgia";
         title.FontSize = 12;
         title.Color = "123456";
         title.FillTransparency = 100;
 
-        PowerPointTextBox body = slide.AddTextBoxPoints(string.Empty, 22, 48, 118, 36);
+        PowerPointTextBox body = slide.AddTextBoxPoints(string.Empty, 22, 52, 118, 30);
         body.FontSize = 8;
         body.Color = "334155";
         body.FillTransparency = 100;
@@ -49,6 +49,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         slide.AddPicture(new MemoryStream(CreatePowerPointVisualGatePng()), ImagePartType.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
+        table.ApplyToCells(cell => cell.FontSize = 8);
         table.SetColumnWidthsPoints(70, 50);
         table.SetRowHeightsPoints(20, 28);
         PowerPointTableCell metric = table.GetCell(0, 0);
@@ -88,6 +89,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 3)
         };
 
+        presentation.Save();
+        WriteReviewArtifact("native-powerpoint-slide.pptx", stream.ToArray());
         return presentation.ToPdf(options);
     }
 
@@ -152,6 +155,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 4)
         };
 
+        presentation.Save();
+        WriteReviewArtifact("native-powerpoint-dense-layout.pptx", stream.ToArray());
         return presentation.ToPdf(options);
     }
 

@@ -90,6 +90,7 @@ public partial class Excel {
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
+                WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 PdfOptions = new PdfCore.PdfOptions {
                     DefaultTableStyle = configuredStyle
                 }
@@ -132,6 +133,7 @@ public partial class Excel {
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
+                WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 PdfOptions = new PdfCore.PdfOptions {
                     DefaultFontSize = 9D
                 }

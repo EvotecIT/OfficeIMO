@@ -54,6 +54,12 @@ namespace OfficeIMO.Excel.Pdf {
         public PdfCore.PageMargins? Margins { get; set; }
 
         /// <summary>
+        /// Controls whether sheets preserve worksheet coordinates or are reflowed as report tables.
+        /// Defaults to <see cref="ExcelPdfWorksheetLayoutMode.WorksheetCanvas"/>.
+        /// </summary>
+        public ExcelPdfWorksheetLayoutMode WorksheetLayout { get; set; } = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
+
+        /// <summary>
         /// Optional workbook sheet names to export. When null or empty, all workbook sheets are exported in workbook order.
         /// </summary>
         public IReadOnlyList<string>? SheetNames { get; set; }
@@ -109,7 +115,8 @@ namespace OfficeIMO.Excel.Pdf {
         public bool UseWorksheetHyperlinks { get; set; } = true;
 
         /// <summary>
-        /// When true, supported worksheet drawing images are exported as PDF flow images in anchor order. Defaults to true.
+        /// When true, supported worksheet drawing images are exported at worksheet coordinates
+        /// in canvas mode or as flow images in compatibility mode. Defaults to true.
         /// </summary>
         public bool UseWorksheetImages { get; set; } = true;
 
@@ -192,6 +199,7 @@ namespace OfficeIMO.Excel.Pdf {
         public ExcelPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
             switch (profile) {
                 case PdfCore.PdfExportProfile.Faithful:
+                    WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
                     RespectWorkbookSheetVisibility = true;
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
@@ -210,6 +218,7 @@ namespace OfficeIMO.Excel.Pdf {
                     IncludeSheetHeadings = false;
                     break;
                 case PdfCore.PdfExportProfile.Lightweight:
+                    WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable;
                     RespectWorkbookSheetVisibility = true;
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
@@ -228,6 +237,7 @@ namespace OfficeIMO.Excel.Pdf {
                     IncludeSheetHeadings = false;
                     break;
                 case PdfCore.PdfExportProfile.PrintReady:
+                    WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas;
                     RespectWorkbookSheetVisibility = true;
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
@@ -246,6 +256,7 @@ namespace OfficeIMO.Excel.Pdf {
                     IncludeSheetHeadings = false;
                     break;
                 case PdfCore.PdfExportProfile.TextOnly:
+                    WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable;
                     RespectWorkbookSheetVisibility = true;
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;

@@ -101,9 +101,11 @@ public sealed partial class PdfDocument {
             underline: heading.LinkUri != null || heading.LinkDestinationName != null,
             color: color,
             fontSize: fontSize,
+            font: heading.Style?.Font,
             linkUri: heading.LinkUri,
             linkContents: heading.LinkContents,
-            linkDestinationName: heading.LinkDestinationName));
+            linkDestinationName: heading.LinkDestinationName,
+            fontFamily: heading.Style?.FontFamily));
     }
 
     private static void AppendPanelListRuns(System.Collections.Generic.List<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfListItem> items, int? startNumber, ref bool wroteContent) {

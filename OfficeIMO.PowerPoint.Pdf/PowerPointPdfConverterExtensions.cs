@@ -521,7 +521,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options, bool suppressFrame = false) {
-        PdfCore.PdfCanvasTextBoxStyle style = CreateTextBoxStyle(textBox);
+        PdfCore.PdfCanvasTextBoxStyle style = CreateTextBoxStyle(textBox, options);
         if (!TryFitTextBoxPadding(style, width, height, out bool adjustedPadding)) {
             AddWarning(options, slideNumber, "invalid-text-box-bounds", "Skipped a PowerPoint text box because its margins leave no renderable PDF text area.");
             return;
@@ -773,14 +773,15 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static IReadOnlyList<PdfCore.TextRun> CreateParagraphRuns(PptCore.PowerPointParagraph paragraph, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options, ref int numberIndex) {
         var runs = new List<PdfCore.TextRun>();
+        string? fontFamily = ResolveTextBoxFontFamily(textBox, options);
         string prefix = CreateListPrefix(paragraph, ref numberIndex);
         if (!string.IsNullOrEmpty(prefix)) {
-            runs.Add(PdfCore.TextRun.Normal(prefix, ParsePdfColor(textBox.Color), textBox.FontSize, font: MapFont(textBox.FontName)));
+            runs.Add(new PdfCore.TextRun(prefix, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
         IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
         if (paragraphRuns.Count == 0 && !paragraph.Paragraph.ChildElements.Any(child => child is A.Break or A.Field)) {
-            runs.Add(new PdfCore.TextRun(paragraph.Text));
+            runs.Add(new PdfCore.TextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
             return runs;
         }
 
@@ -803,7 +804,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
                     if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(PdfCore.TextRun.Normal(fieldText, ParsePdfColor(textBox.Color), textBox.FontSize, font: MapFont(textBox.FontName)));
+                        runs.Add(new PdfCore.TextRun(fieldText, color: ParsePdfColor(textBox.Color), fontSize: textBox.FontSize, font: MapFont(fontFamily), fontFamily: fontFamily));
                         hasInlineContent = true;
                     }
 
@@ -812,7 +813,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (!hasInlineContent) {
-            runs.Add(new PdfCore.TextRun(paragraph.Text));
+            runs.Add(new PdfCore.TextRun(paragraph.Text, font: MapFont(fontFamily), fontFamily: fontFamily));
         }
 
         return runs;
@@ -838,7 +839,8 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.TextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
         string text = run.Text ?? string.Empty;
         PdfCore.PdfColor? color = ParsePdfColor(run.Color ?? textBox.Color);
-        PdfCore.PdfStandardFont? font = MapFont(run.FontName ?? textBox.FontName);
+        string? fontFamily = run.FontName ?? ResolveTextBoxFontFamily(textBox, options);
+        PdfCore.PdfStandardFont? font = MapFont(fontFamily);
         double? fontSize = run.FontSize ?? textBox.FontSize;
         Uri? hyperlink = run.Hyperlink;
         string? linkUri = hyperlink != null && hyperlink.IsAbsoluteUri && !string.IsNullOrEmpty(text) ? hyperlink.AbsoluteUri : null;
@@ -854,12 +856,24 @@ public static partial class PowerPointPdfConverterExtensions {
             italic: run.Italic,
             fontSize: fontSize,
             font: font,
-            linkUri: linkUri);
+            linkUri: linkUri,
+            fontFamily: fontFamily);
     }
 
-    private static PdfCore.PdfCanvasTextBoxStyle CreateTextBoxStyle(PptCore.PowerPointTextBox textBox) {
+    private static string? ResolveTextBoxFontFamily(PptCore.PowerPointTextBox textBox, PowerPointPdfSaveOptions options) {
+        if (!string.IsNullOrWhiteSpace(textBox.FontName)) {
+            return textBox.FontName;
+        }
+
+        return string.IsNullOrWhiteSpace(options.FontFamily)
+            ? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide)
+            : null;
+    }
+
+    private static PdfCore.PdfCanvasTextBoxStyle CreateTextBoxStyle(PptCore.PowerPointTextBox textBox, PowerPointPdfSaveOptions options) {
         PdfCore.PdfColor? fill = ParsePdfColor(textBox.FillColor);
         PdfCore.PdfColor? outline = ParsePdfColor(textBox.OutlineColor);
+        string? fontFamily = ResolveTextBoxFontFamily(textBox, options);
         return new PdfCore.PdfCanvasTextBoxStyle {
             Background = textBox.FillTransparency == 100 ? null : fill,
             BackgroundOpacity = textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100
@@ -873,8 +887,8 @@ public static partial class PowerPointPdfConverterExtensions {
             PaddingTop = textBox.TextMarginTopPoints ?? 3.6D,
             PaddingBottom = textBox.TextMarginBottomPoints ?? 3.6D,
             TextColor = ParsePdfColor(textBox.Color),
-            FontSize = textBox.FontSize,
-            Font = MapFont(textBox.FontName),
+            FontSize = textBox.FontSize ?? PptCore.PowerPointTextDefaults.DefaultFontSizePoints,
+            Font = MapFont(fontFamily),
             Align = MapAlign(textBox.Paragraphs.FirstOrDefault()?.Alignment),
             VerticalAlign = MapTextVerticalAlign(textBox.TextVerticalAlignment)
         };

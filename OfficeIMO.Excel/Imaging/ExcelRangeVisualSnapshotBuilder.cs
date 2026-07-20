@@ -436,6 +436,7 @@ namespace OfficeIMO.Excel {
                 Italic = format.FontItalic ?? style.Italic,
                 Underline = format.FontUnderline ?? style.Underline,
                 FontName = string.IsNullOrWhiteSpace(format.FontName) ? style.FontName : format.FontName,
+                IsFontFamilyExplicit = !string.IsNullOrWhiteSpace(format.FontName) || style.IsFontFamilyExplicit,
                 FontSize = format.FontSize ?? style.FontSize,
                 TextRotation = style.TextRotation,
                 FontColorArgb = string.IsNullOrWhiteSpace(format.FontColorArgb) ? style.FontColorArgb : format.FontColorArgb,

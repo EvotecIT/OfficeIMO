@@ -123,8 +123,22 @@ internal static partial class PdfComplianceAnalyzer {
 
         for (int i = 0; i < generatedFontUsages.Length; i++) {
             PdfGeneratedFontComplianceEvidence usage = generatedFontUsages[i];
+            if (usage.NamedFont.HasValue) {
+                if (!usage.Options.TryGetNamedFontData(usage.NamedFont.Value, out byte[]? namedData, out string? namedFontName) ||
+                    namedData == null ||
+                    !TryParseEmbeddedFont(namedData, namedFontName, out _)) {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (!usage.StandardFont.HasValue) {
+                return false;
+            }
+
             IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = usage.Options.EmbeddedFonts;
-            if (!embeddedFonts.TryGetValue(usage.Font, out PdfEmbeddedFont? embeddedFont)) {
+            if (!embeddedFonts.TryGetValue(usage.StandardFont.Value, out PdfEmbeddedFont? embeddedFont)) {
                 return false;
             }
 

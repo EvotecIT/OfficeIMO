@@ -316,7 +316,7 @@ namespace OfficeIMO.PowerPoint {
                 ?? ResolveTableStyleFillColor(table, row, column, tableStyle, colorScheme)
                 ?? OfficeColor.White;
 
-        internal static OfficeColor ResolveTableCellFillColorForBinary(
+        internal static OfficeColor ResolveTableCellFillColorForExport(
             PowerPointTable table, int row, int column) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
                 ? null
@@ -326,7 +326,7 @@ namespace OfficeIMO.PowerPoint {
                 ResolveTableStyle(table), colorScheme);
         }
 
-        internal static OfficeBorderBox ResolveTableCellBordersForBinary(
+        internal static OfficeBorderBox ResolveTableCellBordersForExport(
             PowerPointTable table, int row, int column) {
             A.ColorScheme? colorScheme = table.OwnerSlide == null
                 ? null
@@ -335,6 +335,14 @@ namespace OfficeIMO.PowerPoint {
                 table.GetCell(row, column), row, column, 1, 1,
                 ResolveTableStyle(table), colorScheme);
         }
+
+        internal static OfficeColor ResolveTableCellFillColorForBinary(
+            PowerPointTable table, int row, int column) =>
+            ResolveTableCellFillColorForExport(table, row, column);
+
+        internal static OfficeBorderBox ResolveTableCellBordersForBinary(
+            PowerPointTable table, int row, int column) =>
+            ResolveTableCellBordersForExport(table, row, column);
 
         private static OfficeBorderBox ResolveTableCellBorders(PowerPointTable table, PowerPointTableCell cell, int row, int column, int rowSpan, int columnSpan, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) {
             A.TableCellProperties? properties = cell.Cell.TableCellProperties;

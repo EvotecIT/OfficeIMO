@@ -10,6 +10,7 @@ public sealed class PdfListStyle {
     private double? _markerGap;
     private double? _markerWidth;
     private double? _markerFontSize;
+    private string? _markerFontFamily;
     private PdfAlign? _markerAlign;
     private double _spacingBefore;
     private double? _spacingAfter;
@@ -104,6 +105,17 @@ public sealed class PdfListStyle {
     }
     /// <summary>Optional standard font family used for list markers. When null the writer uses the current default font.</summary>
     public PdfStandardFont? MarkerFont { get; set; }
+    /// <summary>Optional registered named font family used for list markers. When null, <see cref="MarkerFont"/> is used.</summary>
+    public string? MarkerFontFamily {
+        get => _markerFontFamily;
+        set {
+            if (value != null) {
+                Guard.NotNullOrWhiteSpace(value, nameof(MarkerFontFamily));
+            }
+
+            _markerFontFamily = value?.Trim();
+        }
+    }
     /// <summary>Optional marker font size in points. When null the marker uses the list font size.</summary>
     public double? MarkerFontSize {
         get => _markerFontSize;
@@ -136,6 +148,7 @@ public sealed class PdfListStyle {
             MarkerColor = MarkerColor,
             MarkerAlign = MarkerAlign,
             MarkerFont = MarkerFont,
+            MarkerFontFamily = MarkerFontFamily,
             MarkerFontSize = MarkerFontSize,
             MarkerBold = MarkerBold,
             MarkerItalic = MarkerItalic,

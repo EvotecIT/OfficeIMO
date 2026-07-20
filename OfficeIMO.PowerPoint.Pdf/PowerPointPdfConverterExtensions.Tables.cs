@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;
@@ -14,6 +15,9 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
+        string? fallbackFontFamily = string.IsNullOrWhiteSpace(options.FontFamily)
+            ? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(table.OwnerSlide)
+            : null;
         var rows = new List<PdfCore.PdfTableCell[]>();
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             var pdfCells = new List<PdfCore.PdfTableCell>();
@@ -23,7 +27,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     continue;
                 }
 
-                pdfCells.Add(CreatePdfTableCell(cell));
+                pdfCells.Add(CreatePdfTableCell(cell, fallbackFontFamily));
             }
 
             rows.Add(pdfCells.ToArray());
@@ -68,12 +72,12 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.PdfTableCell CreatePdfTableCell(PptCore.PowerPointTableCell cell) {
+    private static PdfCore.PdfTableCell CreatePdfTableCell(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
         (int rowSpan, int columnSpan) = cell.Merge;
-        return PdfCore.PdfTableCell.Merge(CreatePdfTableCellRuns(cell), Math.Max(1, columnSpan), Math.Max(1, rowSpan));
+        return PdfCore.PdfTableCell.Merge(CreatePdfTableCellRuns(cell, fallbackFontFamily), Math.Max(1, columnSpan), Math.Max(1, rowSpan));
     }
 
-    private static IReadOnlyList<PdfCore.TextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell) {
+    private static IReadOnlyList<PdfCore.TextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
         var runs = new List<PdfCore.TextRun>();
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody != null) {
@@ -83,24 +87,24 @@ public static partial class PowerPointPdfConverterExtensions {
                     runs.Add(PdfCore.TextRun.LineBreak());
                 }
 
-                AppendPdfTableCellParagraphRuns(runs, paragraph, cell);
+                AppendPdfTableCellParagraphRuns(runs, paragraph, cell, fallbackFontFamily);
                 hasParagraph = true;
             }
         }
 
         if (runs.Count == 0) {
-            runs.Add(CreatePdfTableCellTextRun(cell, cell.Text ?? string.Empty));
+            runs.Add(CreatePdfTableCellTextRun(cell, cell.Text ?? string.Empty, fallbackFontFamily));
         }
 
         return runs;
     }
 
-    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.TextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell) {
+    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.TextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell, string? fallbackFontFamily) {
         foreach (OpenXmlElement child in paragraph.ChildElements) {
             switch (child) {
                 case A.Run run:
                     foreach (A.Text text in run.Elements<A.Text>()) {
-                        runs.Add(CreatePdfTableCellTextRun(cell, run, text.Text ?? string.Empty));
+                        runs.Add(CreatePdfTableCellTextRun(cell, run, text.Text ?? string.Empty, fallbackFontFamily));
                     }
 
                     break;
@@ -110,7 +114,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
                     if (!string.IsNullOrEmpty(fieldText)) {
-                        runs.Add(CreatePdfTableCellTextRun(cell, fieldText));
+                        runs.Add(CreatePdfTableCellTextRun(cell, fieldText, fallbackFontFamily));
                     }
 
                     break;
@@ -118,25 +122,28 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text) {
+    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text, string? fallbackFontFamily) {
+        string? fontFamily = cell.FontName ?? fallbackFontFamily;
         return new PdfCore.TextRun(
             text,
             bold: cell.Bold,
             italic: cell.Italic,
             color: ParsePdfColor(cell.Color),
             fontSize: cell.FontSize,
-            font: MapFont(cell.FontName));
+            font: MapFont(fontFamily),
+            fontFamily: fontFamily);
     }
 
     private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table, PowerPointPdfSaveOptions options) {
         PdfCore.PdfTableStyle style = CreateBaseTableStyle(options);
+        bool includePresentationTableStyle = options.PdfOptions?.HasExplicitDefaultTableStyle != true;
         style.HeaderRowCount = table.FirstRow ? 1 : 0;
         style.RepeatHeaderRowCount = style.HeaderRowCount == 0 ? 0 : style.HeaderRowCount;
         style.FooterRowCount = table.LastRow ? 1 : 0;
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
         style.ColumnWidthPoints = CreateColumnWidths(table, table.WidthPoints);
         style.RowMinHeights = CreateRowHeights(table, table.HeightPoints);
-        Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table);
+        Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
         if (cellFills != null) {
             style.CellFills = MergeTableCellMap(style.CellFills, cellFills);
         }
@@ -156,7 +163,7 @@ public static partial class PowerPointPdfConverterExtensions {
             style.CellVerticalAlignments = MergeTableCellMap(style.CellVerticalAlignments, cellVerticalAlignments);
         }
 
-        Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateTableCellBorders(table);
+        Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateTableCellBorders(table, includePresentationTableStyle);
         if (cellBorders != null) {
             style.CellBorders = MergeTableCellMap(style.CellBorders, cellBorders);
         }
@@ -172,7 +179,12 @@ public static partial class PowerPointPdfConverterExtensions {
             return configuredStyle.Clone();
         }
 
-        return PdfCore.TableStyles.Light().Clone();
+        PdfCore.PdfTableStyle style = PdfCore.TableStyles.Light().Clone();
+        style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
+        style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
+        style.CellPaddingX = 3.6D;
+        style.CellPaddingY = 1.8D;
+        return style;
     }
 
     private static Dictionary<(int Row, int Column), T> MergeTableCellMap<T>(Dictionary<(int Row, int Column), T>? baseline, Dictionary<(int Row, int Column), T> overlay) {
@@ -208,12 +220,21 @@ public static partial class PowerPointPdfConverterExtensions {
         return heights;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateTableCellFills(PptCore.PowerPointTable table) {
+    private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateTableCellFills(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
         var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfColor? fill = ParsePdfColor(cell.FillColor);
-            if (fill.HasValue) {
-                fills[(row, column)] = fill.Value;
+            if (includePresentationTableStyle) {
+                OfficeColor fill = PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column);
+                if (fill.A > 0) {
+                    fills[(row, column)] = PdfCore.PdfColor.FromOfficeColor(fill);
+                }
+
+                return;
+            }
+
+            PdfCore.PdfColor? directFill = ParsePdfColor(cell.FillColor);
+            if (directFill.HasValue) {
+                fills[(row, column)] = directFill.Value;
             }
         });
 
@@ -260,19 +281,56 @@ public static partial class PowerPointPdfConverterExtensions {
         return alignments.Count == 0 ? null : alignments;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateTableCellBorders(PptCore.PowerPointTable table) {
+    private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateTableCellBorders(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
         var borders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfColor? borderColor = ParsePdfColor(cell.BorderColor);
-            if (borderColor.HasValue) {
+            if (includePresentationTableStyle) {
+                OfficeBorderBox border = PptCore.PowerPointSlideImageRenderer.ResolveTableCellBordersForExport(table, row, column);
+                borders[(row, column)] = CreatePdfTableCellBorder(border);
+                return;
+            }
+
+            PdfCore.PdfColor? directBorder = ParsePdfColor(cell.BorderColor);
+            if (directBorder.HasValue) {
                 borders[(row, column)] = new PdfCore.PdfCellBorder {
-                    Color = borderColor.Value,
+                    Color = directBorder.Value,
                     Width = 0.75D
                 };
             }
         });
 
         return borders.Count == 0 ? null : borders;
+    }
+
+    private static PdfCore.PdfCellBorder CreatePdfTableCellBorder(OfficeBorderBox border) {
+        return new PdfCore.PdfCellBorder {
+            Color = null,
+            Width = 0D,
+            LeftBorder = CreatePdfTableCellBorderSide(border.Left),
+            TopBorder = CreatePdfTableCellBorderSide(border.Top),
+            RightBorder = CreatePdfTableCellBorderSide(border.Right),
+            BottomBorder = CreatePdfTableCellBorderSide(border.Bottom),
+            DiagonalDownBorder = CreatePdfTableCellBorderSide(border.DiagonalDown),
+            DiagonalUpBorder = CreatePdfTableCellBorderSide(border.DiagonalUp),
+            DiagonalDown = border.DiagonalDown.HasValue,
+            DiagonalUp = border.DiagonalUp.HasValue
+        };
+    }
+
+    private static PdfCore.PdfCellBorderSide? CreatePdfTableCellBorderSide(OfficeBorderSide? side) {
+        if (!side.HasValue) {
+            return null;
+        }
+
+        OfficeBorderSide value = side.Value;
+        return new PdfCore.PdfCellBorderSide {
+            Color = value.IsVisible ? PdfCore.PdfColor.FromOfficeColor(value.Color) : null,
+            Width = value.Width,
+            DashStyle = value.DashStyle,
+            LineStyle = value.LineKind == OfficeBorderLineKind.Double
+                ? PdfCore.PdfCellBorderLineStyle.TwoLine
+                : PdfCore.PdfCellBorderLineStyle.Standard
+        };
     }
 
     private static void ForEachTableAnchorCell(PptCore.PowerPointTable table, Action<int, int, PptCore.PowerPointTableCell> action) {

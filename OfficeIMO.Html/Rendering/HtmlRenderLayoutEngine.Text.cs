@@ -134,6 +134,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (IsFormControlElement(tag)) {
+            ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double controlOffsetX, out double controlOffsetY);
+            double outerWidth = ResolveFormControlOuterWidth(element, style, width);
+            HtmlRenderFlowBlock control = LayoutFormControl(element, outerWidth, style);
+            runs.Add(new HtmlInlineRun(
+                control,
+                style,
+                link,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                inheritedPaintOffsetX + controlOffsetX,
+                inheritedPaintOffsetY + controlOffsetY,
+                element,
+                isReplacedImage: true));
+            return;
+        }
+
         if (tag != "img" && style.Display == "inline-block") {
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
@@ -153,18 +169,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
         double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;
 
-        AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
+        List<HtmlInlineRun>? semanticRuns = HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
+            ? new List<HtmlInlineRun>()
+            : null;
+        ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
         if (tag == "img") {
-            AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, runs);
+            AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
+            AppendSemanticInlineRuns(element, style, semanticRuns, runs);
             return;
         }
 
         foreach (INode child in element.ChildNodes) {
-            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, runs);
+            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, targetRuns);
         }
 
-        AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
+        AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
+        AppendSemanticInlineRuns(element, style, semanticRuns, runs);
+    }
+
+    private void AppendSemanticInlineRuns(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        IReadOnlyList<HtmlInlineRun>? semanticRuns,
+        ICollection<HtmlInlineRun> destination) {
+        if (semanticRuns == null) return;
+        int nodeId = GetSemanticNodeId(element);
+        foreach (HtmlInlineRun run in semanticRuns) {
+            run.AssignSemanticNode(style.SemanticRole, nodeId);
+            destination.Add(run);
+        }
     }
 
     private void ReportUnsupportedBidi(IText textNode, HtmlRenderBoxStyle style) {
@@ -234,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 double measured = MeasureText(normalizedToken, run.Style.Font);
-                if (!whitespace && measured > width) {
+                if (!whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
                     AddBrokenToken(lines, ref line, run, normalizedToken, normalizedLogicalToken, width);
                     continue;
                 }
@@ -254,6 +289,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer);
     }
+
+    private static bool AllowsEmergencyTokenBreak(HtmlRenderBoxStyle style) =>
+        style.OverflowWrap == "anywhere"
+        || style.OverflowWrap == "break-word"
+        || style.WordBreak == "break-all"
+        || style.WordBreak == "break-word";
 
     private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
         var merged = new List<InlineSegment>(segments.Count);

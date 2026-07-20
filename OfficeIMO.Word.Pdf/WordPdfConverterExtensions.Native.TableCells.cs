@@ -614,7 +614,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontSize: previous.FontSize,
                 font: previous.Font,
                 baseline: previous.Baseline,
-                backgroundColor: previous.BackgroundColor);
+                backgroundColor: previous.BackgroundColor,
+                fontFamily: previous.FontFamily);
         }
 
         private static bool CanMergeNativeCellTextRuns(PdfCore.TextRun left, PdfCore.TextRun right) =>
@@ -636,6 +637,7 @@ namespace OfficeIMO.Word.Pdf {
             left.Strike == right.Strike &&
             NullableDoubleEquals(left.FontSize, right.FontSize) &&
             left.Font == right.Font &&
+            string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             left.Baseline == right.Baseline &&
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
@@ -652,7 +654,8 @@ namespace OfficeIMO.Word.Pdf {
                 fontSize: style.FontSize,
                 font: style.Font,
                 baseline: style.Baseline,
-                backgroundColor: style.BackgroundColor);
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily);
         }
 
         private static PdfCore.TextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
@@ -678,7 +681,8 @@ namespace OfficeIMO.Word.Pdf {
                 linkContents: contents,
                 baseline: style.Baseline,
                 linkDestinationName: destinationName,
-                backgroundColor: style.BackgroundColor);
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily);
         }
 
         private static PdfCore.TextRun CreateNativeCellTabRun(IReadOnlyList<WordTabStop> tabStops, int tabIndex) {

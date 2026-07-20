@@ -65,7 +65,15 @@ namespace OfficeIMO.Excel.Pdf {
                     int columns = styles.GetLength(1);
                     for (int row = 0; row < rows; row++) {
                         for (int column = 0; column < columns; column++) {
-                            RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
+                            ExcelCellStyleSnapshot? style = styles[row, column];
+                            RegisterWorksheetFontCandidate(
+                                style?.FontName,
+                                pdfOptions,
+                                registeredFamilies,
+                                registeredFontSlots,
+                                options,
+                                plan.SheetName,
+                                reportSubstitution: style?.IsFontFamilyExplicit == true || !preserveConfiguredFontSlots);
                         }
                     }
                 }
@@ -91,7 +99,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 foreach (string? text in EnumerateHeaderFooterTextZones(headerFooter)) {
-                    RegisterWorksheetHeaderFooterFontCandidate(text, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
+                    RegisterWorksheetHeaderFooterFontCandidate(text, pdfOptions, registeredFamilies, registeredFontSlots, options, plan.SheetName);
                 }
             }
         }
@@ -122,7 +130,8 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfOptions pdfOptions,
             HashSet<string> registeredFamilies,
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
-            bool embedSystemFont) {
+            ExcelPdfSaveOptions options,
+            string sheetName) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
@@ -142,14 +151,52 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 string familyName = token.Split(new[] { ',' }, 2)[0];
-                RegisterWorksheetFontCandidate(familyName, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+                RegisterWorksheetFontCandidate(familyName, pdfOptions, registeredFamilies, registeredFontSlots, options, sheetName);
                 i = endIndex;
             }
         }
 
-        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
+        private static void RegisterWorksheetFontCandidate(
+            string? familyName,
+            PdfCore.PdfOptions pdfOptions,
+            HashSet<string> registeredFamilies,
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
+            ExcelPdfSaveOptions options,
+            string sheetName,
+            bool reportSubstitution = true) {
             if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
-                pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, embedSystemFont, out _);
+                bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding;
+                if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {
+                    return;
+                }
+
+                bool mapped = pdfOptions.TryRegisterMappedOfficeFontFamily(
+                    trimmedFamilyName,
+                    registeredFontSlots,
+                    embedSystemFont,
+                    out PdfCore.PdfStandardFont fallback);
+                bool representedExactly =
+                    mapped &&
+                    (pdfOptions.EmbeddedFontFamilySlotMatches(fallback, trimmedFamilyName) ||
+                     (!pdfOptions.HasEmbeddedStandardFontFamily(fallback) &&
+                      PdfCore.PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(trimmedFamilyName, fallback)));
+                if (reportSubstitution &&
+                    !representedExactly) {
+                    PdfCore.PdfStandardFont reportedFallback = mapped
+                        ? fallback
+                        : PdfCore.PdfStandardFont.Helvetica;
+                    PdfCore.PdfStandardFont normalizedFallback = PdfCore.PdfStandardFontMapper.GetFontFamily(reportedFallback);
+                    options.Report.Add(new PdfCore.PdfConversionWarning(
+                        "OfficeIMO.Excel.Pdf",
+                        "WorksheetFontFamilySubstituted",
+                        sheetName,
+                        "The source font family '" + trimmedFamilyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedFallback + ".",
+                        details: new Dictionary<string, string> {
+                            ["sheetName"] = sheetName,
+                            ["fontFamily"] = trimmedFamilyName,
+                            ["fallbackSlot"] = normalizedFallback.ToString()
+                        }));
+                }
             }
         }
 
@@ -166,6 +213,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? workbookSheet?.GetPageSetup() : null;
                 ExcelSheet.HeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? workbookSheet?.GetHeaderFooter() : null;
                 string exportRange = GetExportRange(sheet, workbookSheet, options);
+                string normalizedExportRange = NormalizeA1Range(exportRange);
                 SheetExportData exportData = ReadSheetExportData(sheet, workbookSheet, exportRange, options, defaultFontFamily);
                 IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && workbookSheet != null
                     ? workbookSheet.GetManualRowPageBreaks()
@@ -198,6 +246,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                bool hasPrintArea = HasWorksheetPrintArea(workbookSheet, options) && !ContainsMultiplePrintAreas(GetWorksheetPrintArea(workbookSheet, options)!);
                 plans.Add(new WorksheetPdfExportPlan(
                     sheetName,
                     pageSetup,
@@ -209,10 +258,26 @@ namespace OfficeIMO.Excel.Pdf {
                     exportedRows,
                     manualRowBreaks,
                     manualColumnBreaks,
-                    CreateSheetBookmarkName(sheetName, plans.Count + 1)));
+                    CreateSheetBookmarkName(sheetName, plans.Count + 1),
+                    CreateWorksheetGeometry(workbookSheet, normalizedExportRange, options),
+                    hasPrintArea || options.MaxRowsPerSheet.HasValue));
             }
 
             return plans;
+        }
+
+        private static WorksheetGeometryData CreateWorksheetGeometry(ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfSaveOptions options) {
+            A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn);
+            return new WorksheetGeometryData(
+                Math.Max(1, firstRow),
+                Math.Max(1, firstColumn),
+                Math.Max(Math.Max(1, firstRow), lastRow),
+                Math.Max(Math.Max(1, firstColumn), lastColumn),
+                workbookSheet?.DefaultColumnWidth is double defaultColumnWidth && defaultColumnWidth > 0D ? defaultColumnWidth : 8.43D,
+                workbookSheet?.DefaultRowHeight is double defaultRowHeight && defaultRowHeight > 0D ? defaultRowHeight : 15D,
+                workbookSheet?.GetColumnDefinitions() ?? Array.Empty<ExcelColumnSnapshot>(),
+                workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowSnapshot>(),
+                options.RespectWorksheetHiddenRowsAndColumns);
         }
 
         private static IReadOnlyDictionary<string, string> BuildSheetDestinationMap(IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {

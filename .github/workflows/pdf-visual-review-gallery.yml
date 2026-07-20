@@ -200,6 +200,7 @@ jobs:
           retention-days: 14
           path: |
             ${{ env.GALLERY_PATH }}/index.md
+            ${{ env.GALLERY_PATH }}/pdf-conversion-support-matrix.md
             ${{ env.GALLERY_PATH }}/*.json
             ${{ env.GALLERY_PATH }}/*.pdf
             ${{ env.GALLERY_PATH }}/*.html

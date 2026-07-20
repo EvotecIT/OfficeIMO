@@ -33,6 +33,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_ResolvesPercentageHeightsAgainstADefiniteParentHeight() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <div id="chart" style="display:flex;align-items:flex-end;width:300px;height:110px">
+              <div id="bar" style="width:40px;height:42%;background:#2563eb"></div>
+            </div>
+            """, 320D);
+
+        HtmlRenderShape bar = FindFlexShape(rendered, "div#bar");
+
+        Assert.Equal(46.2D, bar.Height, 3);
+        Assert.Equal(63.8D, bar.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlPercentageHeight_RemainsContentDrivenWhenTheParentHeightIsIndefinite() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <div style="width:300px">
+              <div id="content-height" style="height:50%;background:#2563eb">Marker</div>
+            </div>
+            """, 320D);
+
+        HtmlRenderShape child = FindFlexShape(rendered, "div#content-height");
+        Assert.True(child.Height < 40D);
+        Assert.True(child.Height > 10D);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DistributesGrowAndShrinkFromTheFlexBasis() {
         const string html = """
             <div style="display:flex;width:300px">

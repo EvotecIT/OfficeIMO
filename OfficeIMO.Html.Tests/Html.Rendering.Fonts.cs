@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_DirectRenderer_ReservesStandardFontSlotsBeforeEmbeddingWebFonts() {
+    public void HtmlPdf_DirectRenderer_EmbedsWebFontsWithoutConsumingStandardFontSlots() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
             || string.IsNullOrWhiteSpace(fontPath)
@@ -231,7 +231,51 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
+        Assert.Contains("/BaseFont /WebOne-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /WebTwo-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
+    }
+
+    [Fact]
+    public void HtmlPdf_DirectRenderer_EmbedsMoreThanThreeActiveWebFontFamilies() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null ||
+            string.IsNullOrWhiteSpace(fontPath) ||
+            !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) return;
+        string encoded = Convert.ToBase64String(fontData);
+        string[] families = { "WebAlpha", "WebBravo", "WebCharlie", "WebDelta", "WebEcho" };
+        var html = new StringBuilder("<style>");
+        foreach (string family in families) {
+            html.Append("@font-face{font-family:")
+                .Append(family)
+                .Append(";src:url('data:font/ttf;base64,")
+                .Append(encoded)
+                .Append("')}");
+        }
+        html.Append("</style>");
+        foreach (string family in families) {
+            html.Append("<p style='font-family:")
+                .Append(family)
+                .Append("'>")
+                .Append(family)
+                .Append("</p>");
+        }
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html.ToString()).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        byte[] pdf = result.ToBytes();
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+
+        foreach (string family in families) {
+            Assert.Contains("/BaseFont /" + family + "-Regular", rawPdf, StringComparison.Ordinal);
+            Assert.Contains(family, extracted, StringComparison.Ordinal);
+        }
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
     private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {

@@ -59,6 +59,7 @@ public sealed partial class PdfOptions {
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
+            _namedFontFamilies = CloneNamedFontFamilies(_namedFontFamilies),
             _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
             Portfolio = _portfolio?.Clone(),
             ShowHeader = ShowHeader,
@@ -68,6 +69,7 @@ public sealed partial class PdfOptions {
             DifferentOddAndEvenPagesHeaderFooter = DifferentOddAndEvenPagesHeaderFooter,
             EvenPageHeaderFormat = EvenPageHeaderFormat,
             HeaderFont = HeaderFont,
+            HeaderFontFamily = HeaderFontFamily,
             HeaderFontSize = HeaderFontSize,
             HeaderTextColor = HeaderTextColor,
             HeaderAlign = HeaderAlign,
@@ -77,6 +79,7 @@ public sealed partial class PdfOptions {
             FirstPageFooterFormat = FirstPageFooterFormat,
             EvenPageFooterFormat = EvenPageFooterFormat,
             FooterFont = FooterFont,
+            FooterFontFamily = FooterFontFamily,
             FooterFontSize = FooterFontSize,
             FooterTextColor = FooterTextColor,
             FooterAlign = FooterAlign,
@@ -168,6 +171,19 @@ public sealed partial class PdfOptions {
         }
 
         var clone = new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+        foreach (var font in fonts) {
+            clone[font.Key] = font.Value.Clone();
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? CloneNamedFontFamilies(System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? fonts) {
+        if (fonts == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>(System.StringComparer.Ordinal);
         foreach (var font in fonts) {
             clone[font.Key] = font.Value.Clone();
         }

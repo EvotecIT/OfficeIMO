@@ -119,6 +119,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
             public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
+            public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }
             public int NextMarkedContentId { get; set; }
             public bool UsedBold { get; set; }
@@ -350,4 +351,3 @@ internal static partial class PdfWriter {
         public int ObjectId { get; set; }
     }
 }
-

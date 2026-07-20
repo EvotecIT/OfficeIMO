@@ -711,7 +711,8 @@ internal static partial class PdfWriter {
                 run.LinkDestinationName,
                 run.TabLeader,
                 run.TabAlignment,
-                run.BackgroundColor));
+                run.BackgroundColor,
+                run.FontFamily));
         }
 
         return scaledRuns.AsReadOnly();

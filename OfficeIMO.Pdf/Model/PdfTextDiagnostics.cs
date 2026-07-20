@@ -168,8 +168,37 @@ internal static class PdfTextDiagnostics {
                 continue;
             }
 
+            string runLocation = AppendRunLocation(location, runIndex);
+            if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
+                if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
+                    namedFontProgram != null) {
+                    diagnostics.AddRange(AnalyzeEmbeddedFontText(
+                        run.Text,
+                        namedFontProgram,
+                        source,
+                        runLocation,
+                        runIndex,
+                        options.TextShapingModeSnapshot));
+                    runIndex++;
+                    continue;
+                }
+
+                if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
+                    namedCffFontProgram != null) {
+                    diagnostics.AddRange(AnalyzeEmbeddedFontText(
+                        run.Text,
+                        namedCffFontProgram,
+                        source,
+                        runLocation,
+                        runIndex,
+                        options.TextShapingModeSnapshot));
+                    runIndex++;
+                    continue;
+                }
+            }
+
             PdfStandardFont runFont = ResolveRunFont(font, run);
-            diagnostics.AddRange(AnalyzeGeneratedTextCore(run.Text, options, runFont, source, AppendRunLocation(location, runIndex), runIndex));
+            diagnostics.AddRange(AnalyzeGeneratedTextCore(run.Text, options, runFont, source, runLocation, runIndex));
             runIndex++;
         }
 

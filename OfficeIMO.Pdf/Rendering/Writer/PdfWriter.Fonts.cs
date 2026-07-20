@@ -92,6 +92,9 @@ internal static partial class PdfWriter {
         return GetIndependentStandardFontResourceName(font);
     }
 
+    private static string GetFontResourceName(PdfStandardFont fallbackFont, PdfNamedFontFace? namedFont, PdfStandardFont defaultNormalFont) =>
+        namedFont?.ResourceName ?? GetStandardFontResourceName(fallbackFont, defaultNormalFont);
+
     private static string GetIndependentStandardFontResourceName(PdfStandardFont font) => font switch {
         PdfStandardFont.Helvetica => "F11",
         PdfStandardFont.HelveticaBold => "F12",
@@ -227,6 +230,63 @@ internal static partial class PdfWriter {
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
+    }
+
+    private static double EstimateSimpleTextWidthForOptions(
+        string? text,
+        PdfStandardFont fallbackFont,
+        PdfNamedFontFace? namedFont,
+        double fontSize,
+        PdfOptions? options) {
+        if (!string.IsNullOrEmpty(text) && text!.Any(character => character == '\r' || character == '\n')) {
+            return text!
+                .Split(LayoutLineSeparators, StringSplitOptions.None)
+                .Max(line => EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options));
+        }
+
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            string value = text ?? string.Empty;
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram),
+                    value,
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+            }
+
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+            options.AddTextDiagnostics(diagnostics);
+            if (diagnostics.Count > 0) {
+                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            }
+
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+        }
+
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            string value = text ?? string.Empty;
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram),
+                    value,
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+            }
+
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+            options.AddTextDiagnostics(diagnostics);
+            if (diagnostics.Count > 0) {
+                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            }
+
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
+        }
+
+        return EstimateSimpleTextWidthForOptions(text, fallbackFont, fontSize, options);
     }
 
     internal static double EstimateSimpleTextWidth1000(string? text, PdfStandardFont font) =>
@@ -717,6 +777,24 @@ internal static partial class PdfWriter {
         return GetDescender(font, fontSize);
     }
 
+    private static double GetDescenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options) {
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.GetDescender(fontSize);
+        }
+
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return cffFontProgram.GetDescender(fontSize);
+        }
+
+        return GetDescenderForOptions(font, fontSize, options);
+    }
+
     private static double GetAscender(PdfStandardFont font, double fontSize) => font switch {
         PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => fontSize * 0.72,
         PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBoldOblique => fontSize * 0.74,
@@ -738,6 +816,24 @@ internal static partial class PdfWriter {
         }
 
         return GetAscender(font, fontSize);
+    }
+
+    private static double GetAscenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options) {
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.GetAscender(fontSize);
+        }
+
+        if (namedFont.HasValue &&
+            options != null &&
+            options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return cffFontProgram.GetAscender(fontSize);
+        }
+
+        return GetAscenderForOptions(font, fontSize, options);
     }
 
     private static PdfStandardFont ThrowUnsupportedStandardFont(PdfStandardFont font) {

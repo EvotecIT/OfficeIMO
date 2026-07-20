@@ -317,7 +317,11 @@ Zażółć gęślą jaźń
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        Assert.False(result.HasWarnings);
+        Assert.False(
+            result.HasWarnings,
+            string.Join(
+                Environment.NewLine,
+                result.Warnings.Select(static warning => warning.Code + ": " + warning.Message)));
         return pdf;
     }
 

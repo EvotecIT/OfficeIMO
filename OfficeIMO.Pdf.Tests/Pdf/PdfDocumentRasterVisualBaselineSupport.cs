@@ -13,18 +13,22 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
+        WriteReviewArtifact(scenarioName + ".pdf", pdfBytes);
+    }
+
+    private static void WriteReviewArtifact(string fileName, byte[] bytes) {
         string? outputDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT");
         if (string.IsNullOrWhiteSpace(outputDirectory)) {
             return;
         }
 
         Directory.CreateDirectory(outputDirectory);
-        string safeName = scenarioName;
+        string safeName = fileName;
         foreach (char invalidChar in Path.GetInvalidFileNameChars()) {
             safeName = safeName.Replace(invalidChar, '-');
         }
 
-        File.WriteAllBytes(Path.Combine(outputDirectory, safeName + ".pdf"), pdfBytes);
+        File.WriteAllBytes(Path.Combine(outputDirectory, safeName), bytes);
     }
 
     private static void AssertRasterBaseline(string baselineName, string actualPath) {

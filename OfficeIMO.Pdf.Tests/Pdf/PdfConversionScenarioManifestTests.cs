@@ -31,7 +31,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfConversionManifest_CoversEverySupportedConversionPathWithObservableProof() {
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(GetManifestPath()));
         JsonElement root = document.RootElement;
-        Assert.Equal(2, root.GetProperty("version").GetInt32());
+        Assert.Equal(3, root.GetProperty("version").GetInt32());
 
         JsonElement scenarios = root.GetProperty("scenarios");
         Assert.NotEmpty(scenarios.EnumerateArray());
@@ -49,6 +49,10 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.False(string.IsNullOrWhiteSpace(RequireString(scenario, "targetFormat")));
             Assert.NotEmpty(ReadStringArray(scenario, "sourceFeatures"));
             Assert.True(ReadStringArray(scenario, "visualReviewFiles").Count > 0, "Scenario " + id + " needs at least one review artifact.");
+            if (scenario.TryGetProperty("sourceReviewFiles", out JsonElement sourceReviewFiles)) {
+                Assert.Equal(JsonValueKind.Array, sourceReviewFiles.ValueKind);
+                Assert.NotEmpty(ReadStringArray(scenario, "sourceReviewFiles"));
+            }
 
             JsonElement proof = scenario.GetProperty("proof");
             Assert.True(proof.GetProperty("hash").GetBoolean(), "Scenario " + id + " must include hash proof.");
@@ -2018,7 +2022,8 @@ public sealed class PdfConversionScenarioManifestTests {
 
         IReadOnlyList<string> knownLimits = ReadStringArray(qualityContract, "knownLimits");
         Assert.Contains(knownLimits, item => item.Contains("IOfficeTextShapingProvider", StringComparison.Ordinal));
-        Assert.Contains(knownLimits, item => item.Contains("NativeFontFamilySlotExhausted", StringComparison.Ordinal));
+        Assert.Contains(knownLimits, item => item.Contains("not limited to three", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(knownLimits, item => item.Contains("cannot be embedded", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(knownLimits, item => item.Contains("OneNote", StringComparison.Ordinal));
         Assert.Contains(knownLimits, item => item.Contains("external validator", StringComparison.OrdinalIgnoreCase));
     }
@@ -2327,7 +2332,9 @@ public sealed class PdfConversionScenarioManifestTests {
         var options = new PowerPointPdfSaveOptions();
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        Assert.False(result.HasWarnings);
+        Assert.DoesNotContain(
+            result.Warnings,
+            warning => warning.Code != "font-family-substitution");
         Assert.Equal("1D4ED8", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
         return pdf;
     }

@@ -32,6 +32,11 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
+                    AddWorksheetCanvasPages(pdf, document, plan, options, sheetDestinations, cellDestinations, defaultFontFamily);
+                    continue;
+                }
+
                 object?[,] values = plan.ExportData.Values;
                 int columns = values.GetLength(1);
 

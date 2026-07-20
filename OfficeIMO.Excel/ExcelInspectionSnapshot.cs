@@ -936,6 +936,11 @@ namespace OfficeIMO.Excel {
         public string? FontName { get; internal set; }
 
         /// <summary>
+        /// Whether the font family comes from a non-default cell font or a conditional-format override.
+        /// </summary>
+        public bool IsFontFamilyExplicit { get; internal set; }
+
+        /// <summary>
         /// Font size in points, when specified by the resolved style.
         /// </summary>
         public double? FontSize { get; internal set; }

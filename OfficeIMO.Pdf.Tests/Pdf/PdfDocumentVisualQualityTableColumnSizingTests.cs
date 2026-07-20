@@ -375,6 +375,70 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_AutoFitUsesPreferredWidthForCompactContent() {
+        var style = TableStyles.Minimal();
+        style.AutoFitColumns = true;
+        style.PreferredWidth = 160;
+        style.PreserveWidth = true;
+        style.HeaderFill = new PdfColor(0.17, 0.27, 0.37);
+        style.BorderColor = null;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Table(new[] {
+                new[] { "ID", "State" }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        double renderedWidth = ExtractPaintedRectangles(content, "0.17 0.27 0.37 rg", "f").Sum(rectangle => rectangle.W);
+
+        Assert.InRange(renderedWidth, 159.5D, 160.5D);
+    }
+
+    [Fact]
+    public void RowColumnTable_AutoFitCanExpandPastPreferredWidthWithinMaximumWidth() {
+        var style = TableStyles.Minimal();
+        style.AutoFitColumns = true;
+        style.PreferredWidth = 80;
+        style.MaxWidth = 150;
+        style.PreserveWidth = true;
+        style.HeaderFill = new PdfColor(0.18, 0.28, 0.38);
+        style.BorderColor = null;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] { "MMMMMMMMMMMMMMMMMMMMMMMM", "State" }
+                                }, style: style))))))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        double renderedWidth = ExtractPaintedRectangles(content, "0.18 0.28 0.38 rg", "f").Sum(rectangle => rectangle.W);
+
+        Assert.InRange(renderedWidth, 100D, 150.5D);
+    }
+
+    [Fact]
     public void Table_AutoFitsTechnicalValuesUsingBreakAwarePreferredWidths() {
         var options = new PdfOptions {
             PageWidth = 612,

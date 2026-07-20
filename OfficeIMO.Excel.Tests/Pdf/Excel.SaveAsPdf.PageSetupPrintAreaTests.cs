@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using System.Globalization;
@@ -169,6 +170,24 @@ public partial class Excel {
         Assert.DoesNotContain("Outside Chart", text);
         Assert.DoesNotContain("OutsideData", text);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(bytes));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(
+            PdfCore.PdfPageImageRenderer.RenderPage(bytes),
+            new OfficeDrawingRasterRenderOptions {
+                Background = OfficeColor.White
+            });
+        int chartInkBelowCellRange = 0;
+        for (int y = 60; y < 145; y++) {
+            for (int x = 24; x < 210; x++) {
+                if (raster.GetPixel(x, y) != OfficeColor.White) {
+                    chartInkBelowCellRange++;
+                }
+            }
+        }
+
+        Assert.True(
+            chartInkBelowCellRange > 100,
+            "Expected the complete chart anchored inside the print area to remain visible below the final exported cell row.");
     }
 
     [Fact]
@@ -295,6 +314,7 @@ public partial class Excel {
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
+                WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 PageSize = new PdfCore.PageSize(220, 144),
                 Margins = PdfCore.PageMargins.Uniform(18)
             });

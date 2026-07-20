@@ -15,7 +15,9 @@ public class PdfHeaderCompose {
     /// <summary>Sets header text color.</summary>
     public PdfHeaderCompose Color(PdfColor color) { _opts.HeaderTextColor = color; return this; }
     /// <summary>Sets header font.</summary>
-    public PdfHeaderCompose Font(PdfStandardFont font) { _opts.HeaderFont = font; return this; }
+    public PdfHeaderCompose Font(PdfStandardFont font) { _opts.HeaderFont = font; _opts.HeaderFontFamily = null; return this; }
+    /// <summary>Uses a registered named font family for header text.</summary>
+    public PdfHeaderCompose FontFamily(string familyName) { _opts.HeaderFontFamily = familyName; return this; }
     /// <summary>Sets header font size in points.</summary>
     public PdfHeaderCompose FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.HeaderFontSize = size; return this; }
     /// <summary>Sets header baseline offset above the top margin in points.</summary>

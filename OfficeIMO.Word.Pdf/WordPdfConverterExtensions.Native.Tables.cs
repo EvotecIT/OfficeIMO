@@ -314,7 +314,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalBorders(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
-            ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
+            ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
         }
@@ -589,10 +589,15 @@ namespace OfficeIMO.Word.Pdf {
                 : null;
         }
 
-        private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
+        private static void ApplyNativeTableLayoutOptions(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableProperties? properties = table._tableProperties;
             if (ShouldUseNativeAutoFitTableLayout(table, properties, tableStyleDefaults)) {
                 style.AutoFitColumns = true;
+            }
+
+            double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing) ?? tableStyleDefaults.CellSpacing;
+            if (cellSpacing.HasValue) {
+                style.CellSpacing = cellSpacing.Value;
             }
 
             double? maxWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
@@ -600,6 +605,12 @@ namespace OfficeIMO.Word.Pdf {
             if (maxWidth.HasValue) {
                 style.MaxWidth = maxWidth.Value;
                 style.PreserveWidth = true;
+            } else {
+                double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
+                if (preferredWidth.HasValue) {
+                    style.PreferredWidth = preferredWidth.Value;
+                    style.PreserveWidth = true;
+                }
             }
 
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
@@ -609,10 +620,24 @@ namespace OfficeIMO.Word.Pdf {
                 style.LeftIndent = leftIndent.Value;
             }
 
-            double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing) ?? tableStyleDefaults.CellSpacing;
-            if (cellSpacing.HasValue) {
-                style.CellSpacing = cellSpacing.Value;
+        }
+
+        private static double? GetNativeAutoFitGridPreferredWidth(W.TableProperties? properties, TableLayout layout, double? contentWidth, double cellSpacing) {
+            if (!IsNativeTableAutoFitToContents(properties) ||
+                layout.ColumnWidths.Length == 0 ||
+                !layout.ColumnWidths.All(width => width > 0F)) {
+                return null;
             }
+
+            double gridWidth = layout.ColumnWidths.Sum(width => (double)width) +
+                Math.Max(0, layout.ColumnWidths.Length - 1) * cellSpacing;
+            if (gridWidth <= 0D || double.IsNaN(gridWidth) || double.IsInfinity(gridWidth)) {
+                return null;
+            }
+
+            return contentWidth.HasValue && contentWidth.Value > 0D
+                ? Math.Min(gridWidth, contentWidth.Value)
+                : gridWidth;
         }
 
         private static bool HasNativeTableAuthoredFixedCellWidths(WordTable table) {

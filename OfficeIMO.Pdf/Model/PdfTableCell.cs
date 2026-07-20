@@ -155,6 +155,12 @@ public sealed class PdfTableCell {
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
     public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap);
 
+    /// <summary>
+    /// Returns a copy that keeps each cell paragraph on one visual line. When the containing
+    /// table enables text shrinking, the renderer reduces the font before clipping.
+    /// </summary>
+    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap);
+
     internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap);
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {

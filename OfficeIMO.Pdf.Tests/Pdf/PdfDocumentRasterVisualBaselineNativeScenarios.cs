@@ -96,12 +96,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PageSize(612, 792),
-                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
+                    IncludePageNumbers = false
                 });
             }
 
+            WriteReviewArtifact("native-word-report.docx", File.ReadAllBytes(docPath));
             return File.ReadAllBytes(pdfPath);
         } finally {
             TryDeleteDirectory(workDir);
@@ -208,6 +207,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 });
             }
 
+            WriteReviewArtifact("native-word-daily-layout.docx", File.ReadAllBytes(docPath));
             return File.ReadAllBytes(pdfPath);
         } finally {
             TryDeleteDirectory(workDir);
@@ -243,6 +243,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 });
             }
 
+            WriteReviewArtifact("native-word-table-cell-picture-control.docx", File.ReadAllBytes(docPath));
             return File.ReadAllBytes(pdfPath);
         } finally {
             TryDeleteDirectory(workDir);
@@ -334,6 +335,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 });
             }
 
+            WriteReviewArtifact("native-excel-daily-workbook.xlsx", File.ReadAllBytes(workbookPath));
             return File.ReadAllBytes(pdfPath);
         } finally {
             TryDeleteDirectory(workDir);

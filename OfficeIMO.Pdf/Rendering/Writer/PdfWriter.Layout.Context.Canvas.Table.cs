@@ -58,6 +58,42 @@ internal static partial class PdfWriter {
                 DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
 
                 var cells = GetTableCellLayouts(table, rowIndex, columns);
+                DrawTableCellDataBars(
+                    sb,
+                    style,
+                    cells,
+                    rowIndex,
+                    columns,
+                    xOrigin,
+                    rowTop,
+                    rowBottom,
+                    rowHeights[rowIndex],
+                    columnWidths,
+                    columnGap,
+                    rowHeights,
+                    rowGap,
+                    wholeRowSegment: true,
+                    startLine: 0,
+                    rowFillSkips,
+                    artifact: true);
+                DrawTableCellIcons(
+                    sb,
+                    style,
+                    cells,
+                    rowIndex,
+                    columns,
+                    xOrigin,
+                    rowTop,
+                    rowBottom,
+                    rowHeights[rowIndex],
+                    columnWidths,
+                    columnGap,
+                    rowHeights,
+                    rowGap,
+                    wholeRowSegment: true,
+                    startLine: 0,
+                    rowFillSkips,
+                    artifact: true);
                 for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                     TableCellLayout cell = cells[cellIndex];
                     double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
