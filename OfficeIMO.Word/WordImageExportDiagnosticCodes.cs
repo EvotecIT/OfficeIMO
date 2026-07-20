@@ -33,6 +33,9 @@ namespace OfficeIMO.Word {
         /// <summary>Header or footer content that overflowed measurement was omitted.</summary>
         public const string UnsupportedHeaderFooterMeasurementOverflow = "unsupported-word-header-footer-measurement-overflow";
 
+        /// <summary>An unsupported element encountered while measuring header or footer content was omitted.</summary>
+        public const string UnsupportedHeaderFooterElement = "unsupported-word-header-footer-element";
+
         /// <summary>An unsupported header element was omitted.</summary>
         public const string UnsupportedHeaderElement = "unsupported-word-header-element";
 

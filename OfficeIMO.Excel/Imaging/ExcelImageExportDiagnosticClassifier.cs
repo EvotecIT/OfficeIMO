@@ -29,14 +29,12 @@ namespace OfficeIMO.Excel {
                     return OfficeImageExportLossKind.None;
 
                 case ExcelImageExportDiagnosticCodes.CellTextRotationApproximation:
-                case ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing:
                 case ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported:
                 case ExcelImageExportDiagnosticCodes.CellTextRotationUnsupported:
                 case ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation:
                 case ExcelImageExportDiagnosticCodes.FillPatternApproximation:
                 case ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation:
                 case ExcelImageExportDiagnosticCodes.ConditionalFormulaThresholdApproximation:
-                case ExcelImageExportDiagnosticCodes.ImageFormatUnknown:
                 case ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation:
                 case ExcelImageExportDiagnosticCodes.ThreadedCommentBodyApproximation:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation:
@@ -69,6 +67,7 @@ namespace OfficeIMO.Excel {
                     return OfficeImageExportLossKind.Approximation;
 
                 case ExcelImageExportDiagnosticCodes.CellTextClipped:
+                case ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing:
                 case ExcelImageExportDiagnosticCodes.FillGradientUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported:
@@ -82,6 +81,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.ConditionalTimePeriodUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported:
                 case ExcelImageExportDiagnosticCodes.ImageBytesMissing:
+                case ExcelImageExportDiagnosticCodes.ImageFormatUnknown:
                 case ExcelImageExportDiagnosticCodes.ImageAnchorHidden:
                 case ExcelImageExportDiagnosticCodes.ChartAnchorHidden:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeAnchorHidden:

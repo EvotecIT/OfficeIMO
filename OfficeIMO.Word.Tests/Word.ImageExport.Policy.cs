@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
@@ -22,6 +23,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(WordImageExportDiagnosticCodes.LimitedSmartArt, OfficeImageExportLossKind.Approximation)]
         [InlineData(WordImageExportDiagnosticCodes.UnsupportedShape, OfficeImageExportLossKind.Omission)]
+        [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement, OfficeImageExportLossKind.Omission)]
         [InlineData(WordImageExportDiagnosticCodes.UnsupportedHeaderElement, OfficeImageExportLossKind.Omission)]
         public void WordImageExportDiagnosticClassifier_SeparatesApproximationsFromOmissions(
             string code,
@@ -62,6 +64,31 @@ namespace OfficeIMO.Tests {
                 exception.Diagnostics,
                 diagnostic =>
                     diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedImage &&
+                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+        }
+
+        [Fact]
+        public void WordDocument_StrictOmissionPolicyHandlesUnsupportedHeaderDuringMeasurement() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.HeaderDefaultOrCreate._header!.Append(
+                new BookmarkStart {
+                    Name = "UnsupportedHeaderMarker",
+                    Id = "1"
+                });
+            document.AddParagraph("Body");
+
+            OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+                document.ExportImage(
+                    OfficeImageExportFormat.Svg,
+                    new WordImageExportOptions {
+                        Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                    }));
+
+            Assert.Contains(
+                exception.Diagnostics,
+                diagnostic =>
+                    diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedHeaderElement &&
                     diagnostic.LossKind == OfficeImageExportLossKind.Omission);
         }
 

@@ -26,6 +26,47 @@ namespace OfficeIMO.Tests {
                     ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported));
         }
 
+        [Theory]
+        [InlineData(ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing)]
+        [InlineData(ExcelImageExportDiagnosticCodes.ImageFormatUnknown)]
+        public void ExcelImageExportDiagnosticClassifier_TreatsDroppedVisualContentAsOmission(string code) {
+            Assert.Equal(
+                OfficeImageExportLossKind.Omission,
+                ExcelImageExportDiagnosticClassifier.Classify(code));
+        }
+
+        [Fact]
+        public void ExcelRange_StrictOmissionPolicyRejectsTextSuppressedByDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("AnchorOverlay");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
+            sheet.AddImage(
+                1,
+                1,
+                CreateSolidPng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
+                "image/png",
+                widthPixels: 120,
+                heightPixels: 32,
+                name: "AnchorOverlay");
+
+            OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+                sheet.Range("A1:A1").ExportImage(
+                    OfficeImageExportFormat.Svg,
+                    new ExcelImageExportOptions {
+                        ShowGridlines = false,
+                        Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                    }));
+
+            Assert.Contains(
+                exception.Diagnostics,
+                diagnostic =>
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing &&
+                    diagnostic.LossKind == OfficeImageExportLossKind.Omission);
+        }
+
         [Fact]
         public void ExcelRange_StrictOmissionPolicyRejectsUnrenderedCommentBody() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

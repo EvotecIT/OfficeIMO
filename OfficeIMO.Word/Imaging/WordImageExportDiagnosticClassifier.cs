@@ -35,6 +35,7 @@ namespace OfficeIMO.Word {
                 case WordImageExportDiagnosticCodes.UnsupportedFloatingImage:
                 case WordImageExportDiagnosticCodes.UnsupportedFooterElement:
                 case WordImageExportDiagnosticCodes.UnsupportedFooterOverflow:
+                case WordImageExportDiagnosticCodes.UnsupportedHeaderFooterElement:
                 case WordImageExportDiagnosticCodes.UnsupportedHeaderFooterMeasurementOverflow:
                 case WordImageExportDiagnosticCodes.UnsupportedHeaderElement:
                 case WordImageExportDiagnosticCodes.UnsupportedHeaderOverflow:
