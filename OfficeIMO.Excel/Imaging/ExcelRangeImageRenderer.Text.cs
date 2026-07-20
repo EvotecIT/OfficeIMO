@@ -914,7 +914,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (value < 0 || value > 180) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.CellTextRotationUnsupported,
                     "The cell uses an unsupported text rotation value and is rendered without rotation.",
@@ -926,7 +926,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddRotatedTextApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextRotationApproximation,
                 "Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.",
@@ -940,7 +940,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextClipped,
                 "Cell text was clipped or ellipsized during image export because it does not fit the rendered cell bounds.",
@@ -952,7 +952,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextClipped,
                 "Cell rich text was clipped or ellipsized during image export because it does not fit the rendered cell bounds.",
@@ -960,7 +960,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddCellTextOccludedByDrawingDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing,
                 "Cell text was suppressed because its text anchor is covered by a later drawing layer in the exported range.",
@@ -968,7 +968,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddRichTextLayoutApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation,
                 "Cell rich text runs were detected, but this layout path cannot render the runs exactly yet; the cell was rendered as plain styled text.",

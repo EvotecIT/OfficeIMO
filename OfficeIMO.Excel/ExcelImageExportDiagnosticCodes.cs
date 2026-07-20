@@ -54,6 +54,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting formula expression.</summary>
     public const string ConditionalFormulaUnsupported = "ExcelConditionalFormulaUnsupported";
 
+    /// <summary>Conditional formatting formula thresholds used deterministic fallback positions.</summary>
+    public const string ConditionalFormulaThresholdApproximation = "ExcelConditionalFormulaThresholdApproximation";
+
     /// <summary>Unsupported conditional formatting top/bottom variant.</summary>
     public const string ConditionalTopBottomUnsupported = "ExcelConditionalTopBottomUnsupported";
 

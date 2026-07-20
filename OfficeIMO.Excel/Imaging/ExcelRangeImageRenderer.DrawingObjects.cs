@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics.Add(new OfficeImageExportDiagnostic(
+            diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation,
                 "Worksheet drawing object text is rendered through shared Drawing rotation without Excel-exact text-box metrics.",
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics.Add(new OfficeImageExportDiagnostic(
+            diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported,
                 "Worksheet drawing object text requested a non-horizontal orientation; image export renders it as horizontal text inside the authored shape bounds.",
@@ -211,7 +211,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics.Add(new OfficeImageExportDiagnostic(
+            diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.DrawingShapeTextAutoFitUnsupported,
                 "Worksheet drawing object text requested resizing the shape to fit text; image export keeps the authored shape bounds and renders text inside them.",

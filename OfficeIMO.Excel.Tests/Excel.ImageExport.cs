@@ -2772,7 +2772,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(
                 2,
-                png.Diagnostics.Count(diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported));
+                png.Diagnostics.Count(diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalFormulaThresholdApproximation));
         }
 
         [Fact]

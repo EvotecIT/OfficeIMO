@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.FillGradientUnsupported,
                 "Excel gradient cell fill is not rendered by the dependency-free image exporter yet.",
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddPatternApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, string pattern, List<OfficeImageExportDiagnostic>? diagnostics) {
-            diagnostics?.Add(new OfficeImageExportDiagnostic(
+            diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Info,
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation,
                 "Excel pattern cell fill '" + pattern + "' is rendered as a deterministic hatch approximation.",

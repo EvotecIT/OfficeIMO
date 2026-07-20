@@ -283,7 +283,7 @@ namespace OfficeIMO.Excel {
         private static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
                     "Worksheet chart type is not supported by the shared image renderer yet.",
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (approximation != null) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     approximation,
@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
             if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
                 series.ChartType.Value != snapshot.ChartType &&
                 (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     "Excel combo chart includes a series type that is rendered through a fallback chart kind.",

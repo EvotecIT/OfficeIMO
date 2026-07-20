@@ -691,7 +691,7 @@ namespace OfficeIMO.Excel {
             string source = GetImageExportSource();
             WorkbookPart workbookPart = _document.WorkbookPartRoot;
             if (chartSpace.Descendants<C.Trendline>().Any()) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported,
                     "Worksheet chart trendlines are not rendered by the shared image renderer yet.",
@@ -699,7 +699,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (chartSpace.Descendants<C.DataLabel>().Any()) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelPointOverridesApproximated,
                     "Worksheet chart point-level data-label overrides are approximated as chart-level data labels in image export.",
@@ -707,7 +707,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (chartSpace.Descendants<C.LeaderLines>().Any()) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported,
                     "Worksheet chart data-label leader lines are not rendered by the shared image renderer yet.",
@@ -715,7 +715,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportGridlineStyle(chartSpace, workbookPart)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartGridlineStyleApproximation,
                     "Worksheet chart gridline styling is only partially represented by the shared image renderer.",
@@ -723,7 +723,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportAxisStyle(chartSpace, workbookPart)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisStyleApproximation,
                     "Worksheet chart axis line styling is only partially represented by the shared image renderer.",
@@ -731,7 +731,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportAxisTickLabelPosition(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisTickLabelPositionApproximation,
                     "Worksheet chart axis tick-label positions outside next-to, high, low, or none are approximated by the shared image renderer.",
@@ -739,7 +739,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasApproximatedImageExportAxisMinorTickMarks(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisMinorTickMarkPlacementApproximation,
                     "Worksheet chart minor axis tick mark placement is approximated by the shared image renderer.",
@@ -747,7 +747,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportAxisCrossing(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisCrossingApproximation,
                     "Worksheet chart custom axis crossing is only partially positioned by the shared image renderer.",
@@ -755,7 +755,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportAxisScale(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisScaleApproximation,
                     "Worksheet chart custom axis scale, units, or reverse-order settings are not applied by the shared image renderer yet.",
@@ -763,7 +763,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportAxisNumberFormat(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation,
                     "Worksheet chart axis number formatting is only partially represented by the shared image renderer.",
@@ -771,7 +771,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportCategoryAxisNumberFormat(chartSpace)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported,
                     "Worksheet chart category or date axis number formats are not rendered by the shared image renderer yet.",
@@ -779,7 +779,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportTextStyle(chartSpace, workbookPart)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTextStyleApproximation,
                     "Worksheet chart text styling is only partially represented by the shared image renderer.",
@@ -787,7 +787,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasUnsupportedImageExportChartAreaStyle(chartSpace, workbookPart)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartAreaStyleApproximation,
                     "Worksheet chart or plot area styling is only partially represented by the shared image renderer.",
@@ -795,7 +795,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (chartSpace.Descendants<C.ChartShapeProperties>().Any(properties => IsUnsupportedImageExportSeriesOrMarkerShapeProperties(properties, workbookPart))) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation,
                     "Worksheet chart series, marker, or data-label shape styling is only partially represented by the shared image renderer.",

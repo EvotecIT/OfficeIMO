@@ -408,8 +408,11 @@ namespace OfficeIMO.PowerPoint {
                 return preset;
             }
 
-            AddUnsupportedShapeDiagnostic(diagnostics, textBox,
-                "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.");
+            AddUnsupportedShapeDiagnostic(
+                diagnostics,
+                textBox,
+                "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.",
+                OfficeImageExportLossKind.Approximation);
             return OfficeShape.Rectangle(width, height);
         }
 
@@ -930,7 +933,11 @@ namespace OfficeIMO.PowerPoint {
                 drawing.AddImage(bytes, contentType, projection, source);
             } catch (ArgumentOutOfRangeException) {
                 if (shape == null) {
-                    AddDiagnostic(diagnostics, "unsupported-powerpoint-image-bounds", "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.");
+                    AddDiagnostic(
+                        diagnostics,
+                        PowerPointImageExportDiagnosticCodes.ImageBoundsUnsupported,
+                        "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.",
+                        OfficeImageExportLossKind.Omission);
                 } else {
                     AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.");
                 }
@@ -946,21 +953,33 @@ namespace OfficeIMO.PowerPoint {
                     if (TryParseOfficeColor(background.Color, out OfficeColor color)) {
                         AddBackgroundRectangle(drawing, color, fillGradient: null);
                     } else {
-                        AddDiagnostic(diagnostics, "invalid-slide-background-color", "Used the configured fallback background because the PowerPoint slide background color could not be parsed.");
+                        AddDiagnostic(
+                            diagnostics,
+                            PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundColor,
+                            "Used the configured fallback background because the PowerPoint slide background color could not be parsed.",
+                            OfficeImageExportLossKind.Approximation);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.LinearGradient:
                     if (TryCreateGradient(background, out OfficeLinearGradient? gradient)) {
                         AddBackgroundRectangle(drawing, gradient!.Stops[0].Color, gradient);
                     } else {
-                        AddDiagnostic(diagnostics, "invalid-slide-background-gradient", "Used the configured fallback background because the PowerPoint slide background gradient colors could not be parsed.");
+                        AddDiagnostic(
+                            diagnostics,
+                            PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundGradient,
+                            "Used the configured fallback background because the PowerPoint slide background gradient colors could not be parsed.",
+                            OfficeImageExportLossKind.Approximation);
                     }
                     return;
                 case PowerPointSlideBackgroundKind.Image:
                     AddBackgroundImage(drawing, background, diagnostics);
                     return;
                 case PowerPointSlideBackgroundKind.Unsupported:
-                    AddDiagnostic(diagnostics, "unsupported-slide-background", "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."));
+                    AddDiagnostic(
+                        diagnostics,
+                        PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground,
+                        "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."),
+                        OfficeImageExportLossKind.Approximation);
                     return;
             }
         }
@@ -968,7 +987,11 @@ namespace OfficeIMO.PowerPoint {
         private static void AddBackgroundImage(OfficeDrawing drawing, PowerPointSlideBackground background, List<OfficeImageExportDiagnostic> diagnostics) {
             byte[]? bytes = background.ImageBytes;
             if (bytes == null || bytes.Length == 0) {
-                AddDiagnostic(diagnostics, "invalid-slide-background-image", "Used the configured fallback background because the PowerPoint slide background image bytes could not be read.");
+                AddDiagnostic(
+                    diagnostics,
+                    PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
+                    "Used the configured fallback background because the PowerPoint slide background image bytes could not be read.",
+                    OfficeImageExportLossKind.Approximation);
                 return;
             }
 
@@ -1044,23 +1067,33 @@ namespace OfficeIMO.PowerPoint {
         private static int UnscaledHeight(OfficeDrawing drawing) =>
             Math.Max(1, (int)Math.Ceiling(drawing.Height));
 
-        private static void AddDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, string code, string message) {
+        private static void AddDiagnostic(
+            List<OfficeImageExportDiagnostic> diagnostics,
+            string code,
+            string message,
+            OfficeImageExportLossKind lossKind) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 code,
                 message,
-                "PowerPoint slide"));
+                "PowerPoint slide",
+                lossKind));
         }
 
         private static string DescribeShape(PowerPointShape shape) =>
             string.IsNullOrWhiteSpace(shape.Name) ? "PowerPoint shape" : "PowerPoint shape '" + shape.Name + "'";
 
-        private static void AddUnsupportedShapeDiagnostic(List<OfficeImageExportDiagnostic> diagnostics, PowerPointShape shape, string message) {
+        private static void AddUnsupportedShapeDiagnostic(
+            List<OfficeImageExportDiagnostic> diagnostics,
+            PowerPointShape shape,
+            string message,
+            OfficeImageExportLossKind lossKind = OfficeImageExportLossKind.Omission) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
-                "unsupported-powerpoint-shape",
+                PowerPointImageExportDiagnosticCodes.UnsupportedShape,
                 message,
-                DescribeShape(shape)));
+                DescribeShape(shape),
+                lossKind));
         }
 
         private readonly struct PowerPointShapeBoundsMapping {

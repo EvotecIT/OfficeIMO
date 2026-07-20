@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                     .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
                     .ToList();
                 if (candidates.Count == 0) {
-                    diagnostics.Add(new OfficeImageExportDiagnostic(
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported,
                         "Conditional formatting icon set could not be rendered because no numeric cells were found in the formatted range.",

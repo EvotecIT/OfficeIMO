@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
             ExcelSheetPageSetup pageSetup,
             List<OfficeImageExportDiagnostic> diagnostics) {
             if (!pageSetup.PaperSizeCode.HasValue) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Info,
                     ExcelImageExportDiagnosticCodes.PageSetupPaperSizeDefaulted,
                     "Worksheet image page output used default Letter paper size because no worksheet paper size is configured.",
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!ExcelPageSetupGeometry.TryResolvePageSize(pageSetup.PaperSize, out _)) {
-                diagnostics.Add(new OfficeImageExportDiagnostic(
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupPaperSizeUnsupported,
                     "Worksheet image page output used default Letter paper size because paper size code " + pageSetup.PaperSizeCode.Value + " is not supported yet.",
