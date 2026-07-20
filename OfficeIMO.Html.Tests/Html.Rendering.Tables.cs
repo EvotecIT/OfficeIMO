@@ -10,6 +10,38 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTableCell_StacksBlockDescendantsAndRetainsHeadingSemantics() {
+        const string html = """
+            <table style="width:320px;border-collapse:collapse">
+              <tr><td style="padding:12px">
+                <h1 style="margin:0 0 8px">Action Required</h1>
+                <p style="margin:0 0 8px">Review the deployment package.</p>
+                <div style="padding:8px;background:#fff4d6">Two checks need attention.</div>
+              </td></tr>
+            </table>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { ViewportWidth = 340D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Action Required");
+        HtmlRenderText paragraph = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Review the deployment", StringComparison.Ordinal));
+        HtmlRenderText notice = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Two checks", StringComparison.Ordinal));
+
+        Assert.True(heading.Y < paragraph.Y);
+        Assert.True(paragraph.Y < notice.Y);
+        HtmlRenderHeading outline = Assert.Single(rendered.Headings);
+        Assert.Equal("Action Required", outline.Text);
+        Assert.Equal(1, outline.Level);
+
+        string pdfText = PdfCore.PdfReadDocument.Open(
+            HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions())).ExtractText();
+        Assert.Contains("Action", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Review", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Two", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlTable_PaginatesInsideOneOversizedCellAtLineBoundaries() {
         const string html = """
             <table style="width:100px;border-collapse:collapse"><tbody><tr><td style="font-size:12px;line-height:20px">

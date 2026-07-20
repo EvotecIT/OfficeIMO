@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Reports_When_Distinct_Mapped_Font_Slots_Are_Exhausted() {
+        public void SaveAsPdf_OfficeIMOEngine_PreservesMoreThanThreeDistinctMappedFontsWithoutSlotExhaustion() {
             IReadOnlyList<string> fontFamilies = FindMappedEmbeddableSansFontFamilies(4);
             if (fontFamilies.Count < 4) {
                 return;
@@ -222,15 +222,55 @@ namespace OfficeIMO.Tests {
                 IncludePageNumbers = false
             });
 
-            PdfConversionWarning[] warnings = result.Warnings
-                .Where(item => item.Code == "NativeFontFamilySlotExhausted")
-                .ToArray();
-            Assert.NotEmpty(warnings);
-            Assert.Contains(warnings, warning => warning.Details["fontFamily"] == fontFamilies[fontFamilies.Count - 1]);
-            Assert.All(warnings, warning => Assert.Contains(warning.Details["fontFamily"], fontFamilies));
-            Assert.All(warnings, warning => Assert.Equal(fontFamilies[0], warning.Details["occupyingFontFamily"]));
-            Assert.All(warnings, warning => Assert.Equal(PdfStandardFont.Helvetica.ToString(), warning.Details["fallbackSlot"]));
+            string content = Encoding.ASCII.GetString(result.ToBytes());
+            Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeFontFamilySlotExhausted");
+            Assert.All(
+                fontFamilies,
+                fontFamily => Assert.Contains(
+                    "/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily),
+                    content,
+                    StringComparison.Ordinal));
+            result.Report.RequireNoLoss();
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reports_Unavailable_Source_Font_Substitution() {
+            const string unavailableFamily = "OfficeIMO Missing Font 7F0C9D";
+            Assert.False(PdfEmbeddedFontFamily.TryFromSystem(unavailableFamily, out _));
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnavailableFontDiagnostic.docx");
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddParagraph().AddText("Unavailable font marker").SetFontFamily(unavailableFamily);
+            document.Save();
+
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
+            });
+
+            PdfConversionWarning warning = Assert.Single(
+                result.Warnings,
+                item => item.Code == "NativeFontFamilySubstituted");
+            Assert.Equal(unavailableFamily, warning.Details["fontFamily"]);
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativePortableFontDiagnostic.docx");
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddParagraph().AddText("Portable font marker").SetFontFamily("Arial");
+            document.Save();
+
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+            });
+
+            PdfConversionWarning warning = Assert.Single(
+                result.Warnings,
+                item => item.Code == "NativeFontFamilySubstituted");
+            Assert.Equal("Arial", warning.Details["fontFamily"]);
+            Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
         }
 
         [Fact]

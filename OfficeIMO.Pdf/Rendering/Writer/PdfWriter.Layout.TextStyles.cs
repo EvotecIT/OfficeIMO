@@ -23,7 +23,8 @@ internal static partial class PdfWriter {
                 baseline: run.Baseline,
                 tabLeader: run.TabLeader,
                 tabAlignment: run.TabAlignment,
-                backgroundColor: run.BackgroundColor));
+                backgroundColor: run.BackgroundColor,
+                fontFamily: run.FontFamily));
         }
 
         return stripped;
@@ -102,7 +103,8 @@ internal static partial class PdfWriter {
                 heading.Text,
                 bold: GetHeadingBold(style),
                 color: color,
-                font: style?.Font)
+                font: style?.Font,
+                fontFamily: style?.FontFamily)
         });
 
     private static string GetHeadingFontResource(PdfHeadingStyle? style) {
@@ -152,6 +154,15 @@ internal static partial class PdfWriter {
         }
 
         return normalFont;
+    }
+
+    private static PdfNamedFontFace? GetListMarkerNamedFont(PdfListStyle? style, PdfOptions options) {
+        if (style == null ||
+            !options.TryResolveNamedFontFace(style.MarkerFontFamily, style.MarkerBold, style.MarkerItalic, out PdfNamedFontFace namedFont)) {
+            return null;
+        }
+
+        return namedFont;
     }
 
     private static PdfAlign GetBulletMarkerAlign(PdfListStyle? style) {

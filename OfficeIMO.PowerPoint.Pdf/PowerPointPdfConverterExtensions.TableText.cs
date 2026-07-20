@@ -6,8 +6,9 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, A.Run run, string text) {
+    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, A.Run run, string text, string? fallbackFontFamily) {
         A.RunProperties? properties = run.RunProperties;
+        string? fontFamily = ReadRunFontName(properties) ?? cell.FontName ?? fallbackFontFamily;
         return new PdfCore.TextRun(
             text,
             bold: properties?.Bold?.Value ?? cell.Bold,
@@ -15,7 +16,8 @@ public static partial class PowerPointPdfConverterExtensions {
             color: ParsePdfColor(ReadRunColor(properties) ?? cell.Color),
             italic: properties?.Italic?.Value ?? cell.Italic,
             fontSize: ReadRunFontSize(properties) ?? cell.FontSize,
-            font: MapFont(ReadRunFontName(properties) ?? cell.FontName));
+            font: MapFont(fontFamily),
+            fontFamily: fontFamily);
     }
 
     private static string? ReadRunColor(A.RunProperties? properties) =>

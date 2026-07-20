@@ -95,7 +95,22 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                images.Add(new WorksheetImageExportData(bytes, PixelsToPoints(image.WidthPixels), PixelsToPoints(image.HeightPixels), A1.CellReference(image.RowIndex, image.ColumnIndex), image.RotationDegrees));
+                string? alternativeText = string.IsNullOrWhiteSpace(image.Description)
+                    ? string.IsNullOrWhiteSpace(image.Title) ? null : image.Title
+                    : image.Description;
+                images.Add(new WorksheetImageExportData(
+                    bytes,
+                    PixelsToPoints(image.WidthPixels),
+                    PixelsToPoints(image.HeightPixels),
+                    A1.CellReference(image.RowIndex, image.ColumnIndex),
+                    image.RowIndex,
+                    image.ColumnIndex,
+                    PixelsToPoints(image.OffsetXPixels),
+                    PixelsToPoints(image.OffsetYPixels),
+                    image.RotationDegrees,
+                    image.FlipHorizontal,
+                    image.FlipVertical,
+                    alternativeText));
             }
 
             return images;

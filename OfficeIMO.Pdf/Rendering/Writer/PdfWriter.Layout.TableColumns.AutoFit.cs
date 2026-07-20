@@ -68,8 +68,11 @@ internal static partial class PdfWriter {
             var cells = GetTableCellLayouts(table, rowIndex, cols);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];
+                double measuredTextWidth = cols == 1
+                    ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
+                    : MeasureAutoFitPreferredTextWidth(cell.Text, value => measurer.MeasureWidth(value, measurementStyle) * 72D / measurementStyle.Dpi);
                 double measuredPoints = System.Math.Max(
-                    MeasureAutoFitPreferredTextWidth(cell.Text, value => measurer.MeasureWidth(value, measurementStyle) * 72D / measurementStyle.Dpi),
+                    measuredTextWidth,
                     MeasureTableCellObjectWidth(cell));
                 double requestedWidth = Math.Max(1D, measuredPoints + GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column));
                 double requestedPerColumn = requestedWidth / cell.ColumnSpan;

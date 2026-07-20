@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "purpose": "Pinned external-reference distance gates for first-party OfficeIMO Office-to-PDF converters. These budgets measure improvement against Microsoft Office output; they do not claim pixel equivalence.",
+  "rasterizer": {
+    "name": "Poppler pdftoppm",
+    "dpi": 72
+  },
+  "producerEnvironment": {
+    "suite": "Microsoft 365 for Mac",
+    "shortVersion": "16.109",
+    "bundleVersion": "16.109.26051019",
+    "operatingSystem": "macOS 26.5",
+    "operatingSystemBuild": "25F71"
+  },
+  "scenarios": [
+    {
+      "id": "word-native-report",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "exportPreset": "best-for-printing",
+      "sourcePath": "native-word-report.docx",
+      "sourceSha256": "578a8a82bbfb877bad9cf0aacf7febc61d1d9c118c6af67f3a21dadc9e9b4547",
+      "referencePdfPath": "microsoft-word-16.109-native-word-report.pdf",
+      "referencePdfSha256": "721efc4f1a37826bbe920a8c886a2a52f9169cb4d125523af379008624e0fc0d",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.1091,
+          "measuredMeanAbsoluteError": 6.783,
+          "measuredRootMeanSquareError": 32.066,
+          "measuredMeanLuminanceError": 9.013
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.12,
+      "maximumMeanAbsoluteError": 7.5,
+      "maximumRootMeanSquareError": 35.0,
+      "maximumMeanLuminanceError": 10.0
+    },
+    {
+      "id": "excel-native-daily-workbook",
+      "converterId": "excel",
+      "producer": "Microsoft Excel",
+      "exportPreset": "entire-workbook-best-for-electronic-distribution",
+      "sourcePath": "native-excel-daily-workbook.xlsx",
+      "sourceSha256": "aac56f6202d075c099c4c0e38df363566ad413d9c1c15b54fd283f9beea0b922",
+      "referencePdfPath": "microsoft-excel-16.109-native-excel-daily-workbook.pdf",
+      "referencePdfSha256": "fa7e5e0a11c557c3d954af8b9a9addf6336e7483f096b0711c5e74afcfd66d2d",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 792.0,
+          "heightPoints": 612.0,
+          "rasterWidth": 792,
+          "rasterHeight": 612,
+          "measuredDifferentPixelRatio": 0.0763,
+          "measuredMeanAbsoluteError": 3.068,
+          "measuredRootMeanSquareError": 21.745,
+          "measuredMeanLuminanceError": 4.101
+        },
+        {
+          "number": 2,
+          "widthPoints": 595.32,
+          "heightPoints": 841.92,
+          "rasterWidth": 596,
+          "rasterHeight": 842,
+          "measuredDifferentPixelRatio": 0.0047,
+          "measuredMeanAbsoluteError": 0.347,
+          "measuredRootMeanSquareError": 7.294,
+          "measuredMeanLuminanceError": 0.465
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.085,
+      "maximumMeanAbsoluteError": 3.5,
+      "maximumRootMeanSquareError": 24.0,
+      "maximumMeanLuminanceError": 4.6
+    },
+    {
+      "id": "powerpoint-native-dense-layout",
+      "converterId": "powerpoint",
+      "producer": "Microsoft PowerPoint",
+      "exportPreset": "best-for-electronic-distribution",
+      "sourcePath": "native-powerpoint-dense-layout.pptx",
+      "sourceSha256": "cec3af6f7c452ec3d84b354dd7fb4eefcc9d7390daa2aad7ff97a3416842994c",
+      "referencePdfPath": "microsoft-powerpoint-16.109-native-powerpoint-dense-layout.pdf",
+      "referencePdfSha256": "800150437c6df0df2081c4f08e5e3beca80e7b7d629ec1a2558c4ac4aa25e19f",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 319.68,
+          "heightPoints": 180.0,
+          "rasterWidth": 320,
+          "rasterHeight": 180,
+          "measuredDifferentPixelRatio": 0.305,
+          "measuredMeanAbsoluteError": 12.855,
+          "measuredRootMeanSquareError": 42.627,
+          "measuredMeanLuminanceError": 16.815
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.335,
+      "maximumMeanAbsoluteError": 14.2,
+      "maximumRootMeanSquareError": 47.0,
+      "maximumMeanLuminanceError": 18.5
+    }
+  ]
+}

@@ -363,8 +363,26 @@ internal static partial class PdfWriter {
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };
                                 int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                                MarkSimpleFont(listItem.MarkerFont);
-                                WriteLinesInternal(GetStandardFontResourceName(listItem.MarkerFont, ChooseNormal(currentOpts.DefaultFont)), listItem.MarkerSize, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.MarkerColor ?? listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
+                                if (listItem.MarkerNamedFont.HasValue) {
+                                    currentPage!.UsedNamedFonts.Add(listItem.MarkerNamedFont.Value);
+                                } else {
+                                    MarkSimpleFont(listItem.MarkerFont);
+                                }
+
+                                WriteLinesInternal(
+                                    GetFontResourceName(listItem.MarkerFont, listItem.MarkerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
+                                    listItem.MarkerSize,
+                                    leading,
+                                    xCol + listItem.MarkerXOffset,
+                                    listItem.MarkerWidth,
+                                    baselineY,
+                                    markerLines,
+                                    listItem.MarkerAlign,
+                                    listItem.MarkerColor ?? listItem.Color,
+                                    applyBaselineTweak: true,
+                                    structureType: "Lbl",
+                                    markedContentId: labelMarkedContentId,
+                                    namedFont: listItem.MarkerNamedFont);
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null

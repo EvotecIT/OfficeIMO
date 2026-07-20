@@ -69,12 +69,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             ListStyleType = ResolveListStyleType(computed),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
             Direction = direction,
+            OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
+            WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
 
         if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
         ApplyBoxValues(computed, containingWidth, fontSize, style);
-        ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
+        ApplyDimensions(element, computed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(computed, style);
         ApplyOverflow(computed, style);
@@ -86,6 +88,20 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyTable(computed, style);
         ApplyBreaks(computed, style);
         return style;
+    }
+
+    private static string ResolveOverflowWrap(string value, string? inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "normal";
+        if (normalized == "normal" || normalized == "break-word" || normalized == "anywhere") return normalized;
+        return "normal";
+    }
+
+    private static string ResolveWordBreak(string value, string? inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "normal";
+        if (normalized == "normal" || normalized == "break-all" || normalized == "keep-all" || normalized == "break-word") return normalized;
+        return "normal";
     }
 
     private static bool ResolvePaintVisibility(string value, HtmlRenderBoxStyle? parent) {
@@ -398,13 +414,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (!string.IsNullOrWhiteSpace(value)) target = string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
     }
 
-    private void ApplyDimensions(IElement element, HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style, bool includeAttributes) {
+    private void ApplyDimensions(
+        IElement element,
+        HtmlComputedStyle computed,
+        double reference,
+        double fontSize,
+        HtmlRenderBoxStyle? parent,
+        HtmlRenderBoxStyle style,
+        bool includeAttributes) {
         style.ExplicitWidth = ReadLength(computed.GetValue("width"), includeAttributes ? element.GetAttribute("width") : null, reference, fontSize);
-        style.ExplicitHeight = ReadLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, fontSize);
+        double? parentContentHeight = ResolveDefiniteContentHeight(parent);
+        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, parentContentHeight, fontSize);
         style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
         style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, reference, fontSize);
-        style.MinHeight = ReadLength(computed.GetValue("min-height"), null, reference, fontSize);
-        style.MaxHeight = ReadLength(computed.GetValue("max-height"), null, reference, fontSize);
+        style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, reference, parentContentHeight, fontSize);
+        style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, reference, parentContentHeight, fontSize);
     }
 
     private void ApplyPaint(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
@@ -893,6 +917,39 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double? ReadLength(string cssValue, string? attributeValue, double reference, double fontSize) {
         string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
         return HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed) && parsed >= 0D ? parsed : null;
+    }
+
+    private double? ReadVerticalLength(
+        string cssValue,
+        string? attributeValue,
+        double fallbackReference,
+        double? parentContentHeight,
+        double fontSize) {
+        string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (!parentContentHeight.HasValue
+                || !double.TryParse(
+                    normalized.Substring(0, normalized.Length - 1),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double percentage)
+                || percentage < 0D
+                || double.IsNaN(percentage)
+                || double.IsInfinity(percentage)) {
+                return null;
+            }
+            return parentContentHeight.Value * percentage / 100D;
+        }
+
+        return ReadLength(cssValue, attributeValue, fallbackReference, fontSize);
+    }
+
+    private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) {
+        if (style == null || !style.ExplicitHeight.HasValue) return null;
+        return style.BorderBox
+            ? Math.Max(0D, style.ExplicitHeight.Value - style.VerticalInsets)
+            : style.ExplicitHeight.Value;
     }
 
     private static HtmlPageBreakTarget ResolvePageBreakTarget(string value) {

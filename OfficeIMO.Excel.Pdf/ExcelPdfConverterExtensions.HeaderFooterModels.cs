@@ -40,6 +40,8 @@ namespace OfficeIMO.Excel.Pdf {
 
             internal PdfCore.PdfStandardFont? FontFamily { get; set; }
 
+            internal string? FontFamilyName { get; set; }
+
             internal bool Bold { get; set; }
 
             internal bool Italic { get; set; }
@@ -58,7 +60,10 @@ namespace OfficeIMO.Excel.Pdf {
             internal bool HasAnyStyle {
                 get {
                     PdfCore.PdfStandardFont? font = Font;
-                    return FontSize.HasValue || Color.HasValue || (font.HasValue && font.Value != PdfCore.PdfStandardFont.Helvetica);
+                    return FontSize.HasValue
+                           || Color.HasValue
+                           || !string.IsNullOrWhiteSpace(FontFamilyName)
+                           || (font.HasValue && font.Value != PdfCore.PdfStandardFont.Helvetica);
                 }
             }
 
@@ -73,7 +78,8 @@ namespace OfficeIMO.Excel.Pdf {
 
                 return Nullable.Equals(left.FontSize, right.FontSize)
                        && Nullable.Equals(left.Color, right.Color)
-                       && Nullable.Equals(left.Font, right.Font);
+                       && Nullable.Equals(left.Font, right.Font)
+                       && string.Equals(left.FontFamilyName, right.FontFamilyName, StringComparison.OrdinalIgnoreCase);
             }
         }
 

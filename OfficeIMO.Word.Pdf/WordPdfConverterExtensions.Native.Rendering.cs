@@ -792,6 +792,9 @@ namespace OfficeIMO.Word.Pdf {
 
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
             string? headingFontFamily = ResolveNativeParagraphStyleFontFamily(paragraph._document, paragraph.StyleId);
+            if (nativeFontMap.TryGetNamedFontFamily(headingFontFamily, out string? registeredHeadingFamily)) {
+                style.FontFamily = registeredHeadingFamily;
+            }
             if (nativeFontMap.TryGetFontSlot(headingFontFamily, out PdfCore.PdfStandardFont headingFont)) {
                 style.Font = headingFont;
             }
@@ -931,6 +934,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTextBaseline Baseline,
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
+            string? FontFamily,
             PdfCore.PdfColor? Color,
             PdfCore.PdfColor? BackgroundColor);
 
@@ -965,7 +969,9 @@ namespace OfficeIMO.Word.Pdf {
                 builder.FontSize(style.FontSize.Value);
             }
 
-            if (style.Font.HasValue) {
+            if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
+                builder.FontFamily(style.FontFamily!);
+            } else if (style.Font.HasValue) {
                 builder.Font(style.Font.Value);
             }
 
@@ -1011,6 +1017,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? paragraph.FontSize.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
             PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
+            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
@@ -1019,7 +1026,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? directBackground
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
-            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, baseline, fontSize, font, color, background);
+            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, baseline, fontSize, font, fontFamily, color, background);
         }
 
         private static PdfCore.PdfTextBaseline MapNativeTextBaseline(W.VerticalPositionValues? baseline) =>
@@ -1055,6 +1062,40 @@ namespace OfficeIMO.Word.Pdf {
         private static bool TryResolveNativeMappedFont(string? familyName, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
             (nativeFontMap != null && nativeFontMap.TryGetFontSlot(familyName, out font)) ||
             PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out font);
+
+        private static string? ResolveNativeTextRunFontFamily(
+            WordParagraph paragraph,
+            WordParagraph? fallback,
+            NativeCharacterStyleDefaults characterStyleDefaults,
+            NativeParagraphStyleDefaults styleDefaults,
+            NativeTableRunStyleDefaults tableRunStyleDefaults,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap? nativeFontMap) {
+            if (nativeFontMap == null) {
+                return null;
+            }
+
+            foreach (string? familyName in new[] {
+                paragraph.FontFamily,
+                paragraph.FontFamilyHighAnsi,
+                paragraph.FontFamilyEastAsia,
+                paragraph.FontFamilyComplexScript,
+                fallback?.FontFamily,
+                fallback?.FontFamilyHighAnsi,
+                fallback?.FontFamilyEastAsia,
+                fallback?.FontFamilyComplexScript,
+                characterStyleDefaults.FontFamily,
+                styleDefaults.FontFamily,
+                tableRunStyleDefaults.FontFamily,
+                nativeFontMap.UsePdfDefaultForDocumentDefaultFont ? null : nativeDefaults.FontFamily
+            }) {
+                if (nativeFontMap.TryGetNamedFontFamily(familyName, out string? registeredFamilyName)) {
+                    return registeredFamilyName;
+                }
+            }
+
+            return null;
+        }
 
         private static bool TryGetNativeRunColor(W.RunProperties? runProperties, out PdfCore.PdfColor? color) {
             W.Color? value = runProperties?.GetFirstChild<W.Color>();
@@ -1211,7 +1252,8 @@ namespace OfficeIMO.Word.Pdf {
                 linkContents: contents,
                 baseline: style.Baseline,
                 linkDestinationName: bookmarkName,
-                backgroundColor: style.BackgroundColor);
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily);
 
         private static string? GetNativeHyperLinkContents(WordHyperLink hyperlink) =>
             string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;

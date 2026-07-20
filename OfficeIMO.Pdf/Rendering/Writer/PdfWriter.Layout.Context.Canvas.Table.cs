@@ -64,9 +64,54 @@ internal static partial class PdfWriter {
                     double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                     double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
                     double cellBottom = rowTop - cellHeight;
-                    bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
 
                     DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
+                }
+
+                DrawTableCellDataBars(
+                    sb,
+                    style,
+                    cells,
+                    rowIndex,
+                    columns,
+                    xOrigin,
+                    rowTop,
+                    rowBottom,
+                    rowHeights[rowIndex],
+                    columnWidths,
+                    columnGap,
+                    rowHeights,
+                    rowGap,
+                    wholeRowSegment: true,
+                    startLine: 0,
+                    rowFillSkips,
+                    artifact: true);
+                DrawTableCellIcons(
+                    sb,
+                    style,
+                    cells,
+                    rowIndex,
+                    columns,
+                    xOrigin,
+                    rowTop,
+                    rowBottom,
+                    rowHeights[rowIndex],
+                    columnWidths,
+                    columnGap,
+                    rowHeights,
+                    rowGap,
+                    wholeRowSegment: true,
+                    startLine: 0,
+                    rowFillSkips,
+                    artifact: true);
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                    TableCellLayout cell = cells[cellIndex];
+                    double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
+                    double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+                    double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
+                    double cellBottom = rowTop - cellHeight;
+                    bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
+
                     RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                     DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
                 }

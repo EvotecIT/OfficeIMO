@@ -35,7 +35,8 @@ public partial class Word {
 
         Assert.True(autoFitStyle.AutoFitColumns);
         Assert.Null(autoFitStyle.MaxWidth);
-        Assert.False(autoFitStyle.PreserveWidth);
+        Assert.Equal(240D, autoFitStyle.PreferredWidth);
+        Assert.True(autoFitStyle.PreserveWidth);
 
         WordTable spaced = document.AddTable(1, 2);
         spaced.StyleDetails!.CellSpacing = 240;
@@ -73,7 +74,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Treats_Auto_Width_Table_With_Omitted_Layout_As_Autofit() {
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Grid_As_Autofit_Preferred_Width() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutoWidthOmittedLayout.docx"));
 
         WordTable table = document.AddTable(1, 2);
@@ -89,6 +90,8 @@ public partial class Word {
 
         Assert.True(style.AutoFitColumns);
         Assert.Null(style.MaxWidth);
+        Assert.Equal(240D, style.PreferredWidth);
+        Assert.True(style.PreserveWidth);
     }
 
     [Fact]

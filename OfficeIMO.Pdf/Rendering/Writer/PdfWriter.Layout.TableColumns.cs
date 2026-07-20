@@ -41,6 +41,32 @@ internal static partial class PdfWriter {
         return frameWidth;
     }
 
+    private static double ResolveTableLayoutWidth(
+        PdfTableStyle style,
+        double containerWidth,
+        double[]? autoFitPreferredWidths,
+        double[]? autoFitMinimumWidths,
+        int columnCount,
+        double columnGap) {
+        double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
+        if (!style.PreferredWidth.HasValue) {
+            return availableWidth;
+        }
+
+        double preferredWidth = Math.Min(availableWidth, style.PreferredWidth.Value);
+        double measuredContentWidth = 0D;
+        if (autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
+            measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
+        }
+
+        if (autoFitMinimumWidths != null && autoFitMinimumWidths.Length > 0) {
+            measuredContentWidth = Math.Max(measuredContentWidth, autoFitMinimumWidths.Sum());
+        }
+
+        measuredContentWidth += Math.Max(0, columnCount - 1) * columnGap;
+        return Math.Min(availableWidth, Math.Max(preferredWidth, measuredContentWidth));
+    }
+
     private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth) {
         if (fixedWidthTotal <= availableWidth + 0.001D) {
             return fixedWidthTotal;
@@ -165,7 +191,7 @@ internal static partial class PdfWriter {
             ? MeasureAutoFitColumnMinimumWidths(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
             : null;
         double columnGap = GetTableCellSpacing(style);
-        double tableWidth = ResolveTableAvailableWidth(style, frameWidth);
+        double tableWidth = ResolveTableLayoutWidth(style, frameWidth, autoFitWeights, autoFitMinimumWidths, columns, columnGap);
         double tableInnerWidth = tableWidth - (columns - 1) * columnGap;
         if (tableInnerWidth <= 0.001 || double.IsNaN(tableInnerWidth) || double.IsInfinity(tableInnerWidth)) {
             throw new ArgumentException("Table cell spacing must leave a positive table width.");

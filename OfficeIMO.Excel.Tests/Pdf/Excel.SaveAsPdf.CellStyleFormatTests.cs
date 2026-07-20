@@ -91,7 +91,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void SaveAsPdf_ExcelWorkbook_DoesNotOverwriteSameFamilyCellFontSlot() {
+    public void SaveAsPdf_ExcelWorkbook_PreservesDistinctSerifCellFontsWithoutSlotCollisions() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameFamilyFontSlot.xlsx");
 
         byte[] bytes;
@@ -102,6 +102,7 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
+                PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -116,7 +117,58 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
-        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Reports_Unavailable_Cell_Font_Substitution() {
+        const string unavailableFamily = "OfficeIMO Missing Font 7F0C9D";
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfUnavailableCellFont.xlsx");
+        PdfCore.PdfDocumentConversionResult result;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            document.Sheets[0]
+                .CellAt(1, 1)
+                .SetValue("Unavailable font marker")
+                .SetFontName(unavailableFamily);
+            document.Save();
+
+            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+            });
+        }
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            result.Warnings,
+            item => item.Code == "WorksheetFontFamilySubstituted");
+        Assert.Equal("Fonts", warning.Source);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPortableCellFont.xlsx");
+        PdfCore.PdfDocumentConversionResult result;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            document.Sheets[0]
+                .CellAt(1, 1)
+                .SetValue("Portable font marker")
+                .SetFontName("Arial");
+            document.Save();
+
+            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+            });
+        }
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            result.Warnings,
+            item => item.Code == "WorksheetFontFamilySubstituted");
+        Assert.Equal("Arial", warning.Details["fontFamily"]);
+        Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
     }
 
     [Fact]
@@ -131,6 +183,7 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
+                PdfOptions = CreateNamedGeorgiaPdfOptions(),
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -146,8 +199,14 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
-        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
+
+    private static PdfCore.PdfOptions CreateNamedGeorgiaPdfOptions() =>
+        new PdfCore.PdfOptions()
+            .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                "Georgia",
+                OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Conditional_ColorScale_Fills() {
@@ -196,15 +255,6 @@ public partial class Excel {
         Assert.True(
             fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
             "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts) + ". Actual BaseFont names: " + string.Join(", ", baseFonts));
-    }
-
-    private static void AssertRawPdfBaseFontsDoNotContain(string rawPdf, string fontNamePart) {
-        string[] baseFonts = Regex.Matches(rawPdf, @"/BaseFont /([^\s/<>\[\]()]+)")
-            .Cast<Match>()
-            .Select(match => match.Groups[1].Value)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        Assert.DoesNotContain(baseFonts, baseFont => baseFont.Contains(fontNamePart, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -363,7 +413,7 @@ public partial class Excel {
 
         double rightAlignedX = FindWordStartX(page, "ZZ");
         double sameColumnLeftX = FindWordStartX(page, "LeftInColumn");
-        Assert.True(rightAlignedX > sameColumnLeftX + 70D, $"Expected right-aligned cell text to move toward the cell's right edge. Right x: {rightAlignedX:0.##}, left-reference x: {sameColumnLeftX:0.##}.");
+        Assert.True(rightAlignedX > sameColumnLeftX + 20D, $"Expected right-aligned cell text to move toward the authored worksheet column's right edge. Right x: {rightAlignedX:0.##}, left-reference x: {sameColumnLeftX:0.##}.");
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Contains("0.267 0.333 0.4 RG", rawPdf, StringComparison.Ordinal);

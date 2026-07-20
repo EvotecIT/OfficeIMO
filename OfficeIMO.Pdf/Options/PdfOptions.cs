@@ -47,6 +47,8 @@ public sealed partial class PdfOptions {
     private PdfStandardFont _defaultFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _headerFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _footerFont = PdfStandardFont.Helvetica;
+    private string? _headerFontFamily;
+    private string? _footerFontFamily;
     private bool _hasExplicitDefaultFont;
     private bool _hasExplicitHeaderFont;
     private bool _hasExplicitFooterFont;
@@ -97,6 +99,10 @@ public sealed partial class PdfOptions {
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? _embeddedFonts;
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>? _embeddedFontPrograms;
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfOpenTypeCffFontProgram>? _embeddedOpenTypeCffFontPrograms;
+    private System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? _namedFontFamilies;
+    private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfTrueTypeFontProgram>? _namedFontPrograms;
+    private System.Collections.Generic.Dictionary<PdfNamedFontFace, PdfOpenTypeCffFontProgram>? _namedOpenTypeCffFontPrograms;
+    private System.Collections.Generic.HashSet<PdfNamedFontFace>? _namedFontProgramFailures;
     private System.Collections.Generic.HashSet<PdfStandardFont>? _usedEmbeddedFallbackFontSlots;
     private System.Collections.Generic.HashSet<PdfStandardFont>? _embeddedFontProgramFailures;
     private System.Collections.Generic.HashSet<string>? _reportedEmbeddedFontProgramFailures;

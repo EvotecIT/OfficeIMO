@@ -96,6 +96,27 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfStandardFontMapper.GetStyledFont(resolvedFamily, bold, italic);
         }
 
+        private static string? ResolveNativeHeaderFooterFontFamily(NativeFontMap nativeFontMap, params WordHeaderFooter?[] headerFooters) {
+            string? resolvedFamily = null;
+            foreach (WordHeaderFooter? headerFooter in headerFooters) {
+                foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
+                    if (!nativeFontMap.TryGetNamedFontFamily(familyName, out string? namedFamily) ||
+                        string.IsNullOrWhiteSpace(namedFamily)) {
+                        continue;
+                    }
+
+                    if (resolvedFamily != null &&
+                        !string.Equals(resolvedFamily, namedFamily, StringComparison.OrdinalIgnoreCase)) {
+                        return null;
+                    }
+
+                    resolvedFamily = namedFamily;
+                }
+            }
+
+            return resolvedFamily;
+        }
+
         private static PdfCore.PdfColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
             PdfCore.PdfColor? resolvedColor = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {

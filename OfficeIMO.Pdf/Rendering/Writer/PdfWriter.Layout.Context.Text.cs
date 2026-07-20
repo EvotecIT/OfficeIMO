@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null) {
+        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null) {
             EnsurePage();
             pageDirty = true;
             AppendMarkedContentBegin(sb, structureType, markedContentId);
@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
             var lineFont = ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont));
             double yStart2 = startY;
             if (applyBaselineTweak) {
-                yStart2 -= GetDescenderForOptions(lineFont, fontSize, currentOpts) * 0.0;
+                yStart2 -= GetDescenderForOptions(lineFont, namedFont, fontSize, currentOpts) * 0.0;
             }
             content.TextMatrix(x, yStart2);
             var effectiveColor = color ?? currentOpts.DefaultTextColor ?? PdfColor.Black;
@@ -24,11 +24,11 @@ internal static partial class PdfWriter {
             for (int i = 0; i < lines.Count; i++) {
                 string line = lines[i];
                 double dx = 0;
-                double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, fontSize, currentOpts);
+                double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, namedFont, fontSize, currentOpts);
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
-                content.ShowText(EncodeTextShowCommand(line, lineFont, currentOpts), fontSize);
+                content.ShowText(EncodeTextShowCommand(line, lineFont, namedFont, currentOpts), fontSize);
                 if (Math.Abs(dx) > 0.0001) content.MoveText(-dx, 0);
                 if (i != lines.Count - 1) content.NextTextLine();
             }
@@ -135,7 +135,11 @@ internal static partial class PdfWriter {
                         : run.Italic
                             ? ChooseItalic(runBaseFont)
                             : runBaseFont;
-                currentPage!.UsedFonts.Add(runFont);
+                if (currentOpts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFont)) {
+                    currentPage!.UsedNamedFonts.Add(namedFont);
+                } else {
+                    currentPage!.UsedFonts.Add(runFont);
+                }
             }
 
             if (effectiveRuns.Any(r => r.Bold)) { currentPage!.UsedBold = true; usedBold = true; }
@@ -161,5 +165,3 @@ internal static partial class PdfWriter {
 
     }
 }
-
-

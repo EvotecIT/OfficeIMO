@@ -45,6 +45,7 @@ public class PdfTableStyle {
     private double _captionSpacingAfter = 4;
     private double _spacingAfter;
     private double _rowBaselineOffset;
+    private double? _preferredWidth;
     private double? _maxWidth;
     private double _leftIndent;
     private double? _fontSize;
@@ -506,6 +507,17 @@ public class PdfTableStyle {
             _maxWidth = value;
         }
     }
+    /// <summary>
+    /// Optional preferred rendered table width, in points. Auto-fit tables may expand beyond this width
+    /// to satisfy measured content, up to <see cref="MaxWidth"/> or the available frame width.
+    /// </summary>
+    public double? PreferredWidth {
+        get => _preferredWidth;
+        set {
+            ValidateOptionalPositiveFiniteValue(value, nameof(PreferredWidth), "Table preferred width must be a positive finite value.");
+            _preferredWidth = value;
+        }
+    }
     /// <summary>When true, the resolved table frame width is preserved even if measured columns would otherwise shrink to their content.</summary>
     public bool PreserveWidth { get; set; }
     /// <summary>When true, table rows can reduce their font size to keep cell text within the resolved cell width.</summary>
@@ -647,6 +659,7 @@ public class PdfTableStyle {
             CaptionSpacingAfter = CaptionSpacingAfter,
             SpacingAfter = SpacingAfter,
             RowBaselineOffset = RowBaselineOffset,
+            PreferredWidth = PreferredWidth,
             MaxWidth = MaxWidth,
             PreserveWidth = PreserveWidth,
             ShrinkTextToFit = ShrinkTextToFit,
@@ -768,4 +781,3 @@ public class PdfTableStyle {
         }
     }
 }
-

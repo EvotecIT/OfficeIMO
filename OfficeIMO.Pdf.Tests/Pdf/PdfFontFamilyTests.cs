@@ -12,6 +12,134 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontFamilyTests {
     [Fact]
+    public void ExplicitDefaultFontResource_IsPreservedAlongsideNamedRuns() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        }
+            .UseFontFamily(new PdfEmbeddedFontFamily("Configured Default", fontData))
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Visible Named", fontData));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily("Visible Named")
+                .Text("Only the named family paints text."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /ConfiguredDefault-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /VisibleNamed-Regular", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NamedFontOnlyPage_DoesNotEmitUnusedStandardFontResources() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string familyName = "Named Only";
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily(familyName)
+                .Text("Only the registered family is used."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /NamedOnly-Regular", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Helvetica", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NamedFontFamilies_RenderPageTextAndListMarkersAcrossFlowPaths() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string familyName = "Premium Named";
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = new PdfOptions {
+            CompressContentStreams = false,
+            ShowHeader = true,
+            HeaderFormat = "Header",
+            HeaderFontFamily = familyName,
+            ShowPageNumbers = true,
+            FooterFormat = "Footer",
+            FooterFontFamily = familyName
+        }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, fontData));
+        var listStyle = new PdfListStyle {
+            MarkerFontFamily = familyName
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .RichNumbered(new[] { new PdfListItem("Top item", marker: "1.") }, style: listStyle)
+            .Row(row => row.Column(100, column =>
+                column.RichBullets(new[] { new PdfListItem("Column item", marker: "*") }, style: listStyle)))
+            .ToBytes();
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        foreach (string glyph in new[] { "H", "F", "1", "*" }) {
+            Assert.Contains(
+                page.Letters,
+                letter =>
+                    letter.Value == glyph &&
+                    letter.FontName.Contains("PremiumNamed", StringComparison.OrdinalIgnoreCase));
+        }
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /PremiumNamed-Regular", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NamedFontFamilies_RenderMoreThanThreeFamiliesOnOnePageWithoutSlotCollisions() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        string[] families = { "Named Alpha", "Named Bravo", "Named Charlie", "Named Delta", "Named Echo" };
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        };
+        foreach (string family in families) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData));
+        }
+
+        PdfOptions clone = options.Clone();
+        var runs = families
+            .Select((family, index) => new TextRun(
+                (index == 0 ? string.Empty : " ") + family,
+                bold: index == 1,
+                italic: index == 2,
+                fontFamily: family))
+            .ToArray();
+        byte[] bytes = PdfDocument.Create(clone)
+            .Paragraph(paragraph => paragraph.Runs(runs))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Open(bytes).ExtractText();
+
+        Assert.Equal(families.Length, clone.NamedFontFamilies.Count);
+        Assert.Equal(families.Length * 2, Regex.Matches(raw, @"/BaseFont /Named(?:Alpha|Bravo|Charlie|Delta|Echo)-(?:Regular|Bold|Italic)").Count);
+        Assert.Equal(string.Join(" ", families), text.Trim());
+        Assert.DoesNotContain("/BaseFont /Times-Roman", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Courier", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_SnapshotsFaceBytesForReusableRegistration() {
         byte[] regular = { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         byte[] bold = { 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 };

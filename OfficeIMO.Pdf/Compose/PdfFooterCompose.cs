@@ -15,7 +15,9 @@ public class PdfFooterCompose {
     /// <summary>Sets footer text color.</summary>
     public PdfFooterCompose Color(PdfColor color) { _opts.FooterTextColor = color; return this; }
     /// <summary>Sets footer font.</summary>
-    public PdfFooterCompose Font(PdfStandardFont font) { _opts.FooterFont = font; return this; }
+    public PdfFooterCompose Font(PdfStandardFont font) { _opts.FooterFont = font; _opts.FooterFontFamily = null; return this; }
+    /// <summary>Uses a registered named font family for footer text.</summary>
+    public PdfFooterCompose FontFamily(string familyName) { _opts.FooterFontFamily = familyName; return this; }
     /// <summary>Sets footer font size in points.</summary>
     public PdfFooterCompose FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.FooterFontSize = size; return this; }
     /// <summary>Sets footer baseline offset below the bottom margin in points.</summary>

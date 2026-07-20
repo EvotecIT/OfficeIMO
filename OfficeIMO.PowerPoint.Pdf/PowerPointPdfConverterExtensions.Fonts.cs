@@ -68,11 +68,136 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             int slideNumber = slideIndex + 1;
-            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options, groupDepth: 0);
+            IReadOnlyList<PptCore.PowerPointShape> inheritedShapes = slide.GetInheritedShapesForExport();
+            bool usesThemeFont =
+                ContainsPresentationThemeFontUsage(inheritedShapes, options, groupDepth: 0) ||
+                ContainsPresentationThemeFontUsage(slide.Shapes, options, groupDepth: 0);
+
+            RegisterPresentationShapesFonts(inheritedShapes, slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options, groupDepth: 0);
             RegisterPresentationShapesFonts(slide.Shapes, slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options, groupDepth: 0);
+            if (usesThemeFont) {
+                RegisterPresentationFontCandidate(
+                    PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(slide),
+                    pdfOptions,
+                    registeredFamilies,
+                    registeredFontSlots,
+                    options,
+                    slideNumber,
+                    reportSubstitution: !preserveConfiguredFontSlots);
+            }
         }
 
         return registeredFontSlots;
+    }
+
+    private static bool ContainsPresentationThemeFontUsage(
+        IReadOnlyList<PptCore.PowerPointShape> shapes,
+        PowerPointPdfSaveOptions options,
+        int groupDepth) {
+        if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+            return false;
+        }
+
+        foreach (PptCore.PowerPointShape shape in shapes) {
+            if (shape.Hidden) {
+                continue;
+            }
+            if (options.IncludeTextBoxes &&
+                shape is PptCore.PowerPointTextBox textBox &&
+                TextBoxUsesPresentationThemeFont(textBox)) {
+                    return true;
+            }
+            if (options.IncludeTables &&
+                shape is PptCore.PowerPointTable table &&
+                TableUsesPresentationThemeFont(table)) {
+                    return true;
+            }
+            if (shape is PptCore.PowerPointGroupShape groupShape &&
+                groupShape.OwnerSlide != null &&
+                (options.MaxGroupShapeDepth < 0 || groupDepth < options.MaxGroupShapeDepth) &&
+                ContainsPresentationThemeFontUsage(
+                    groupShape.OwnerSlide.GetGroupChildren(groupShape),
+                    options,
+                    groupDepth + 1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TextBoxUsesPresentationThemeFont(PptCore.PowerPointTextBox textBox) {
+        if (string.IsNullOrWhiteSpace(textBox.Text) ||
+            !string.IsNullOrWhiteSpace(textBox.FontName)) {
+            return false;
+        }
+
+        foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
+            if (!string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered) {
+                return true;
+            }
+
+            IReadOnlyList<PptCore.PowerPointTextRun> runs = paragraph.Runs;
+            if (runs.Count == 0 && !string.IsNullOrWhiteSpace(paragraph.Text)) {
+                return true;
+            }
+
+            foreach (PptCore.PowerPointTextRun run in runs) {
+                if (!string.IsNullOrEmpty(run.Text) && string.IsNullOrWhiteSpace(run.FontName)) {
+                    return true;
+                }
+            }
+
+            foreach (A.Field field in paragraph.Paragraph.Elements<A.Field>()) {
+                if (!string.IsNullOrWhiteSpace(field.Text?.Text ?? field.InnerText)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TableUsesPresentationThemeFont(PptCore.PowerPointTable table) {
+        for (int row = 0; row < table.Rows; row++) {
+            for (int column = 0; column < table.Columns; column++) {
+                PptCore.PowerPointTableCell cell = table.GetCell(row, column);
+                if (cell.IsMergedCell ||
+                    string.IsNullOrWhiteSpace(cell.Text) ||
+                    !string.IsNullOrWhiteSpace(cell.FontName)) {
+                    continue;
+                }
+
+                A.TextBody? textBody = cell.Cell.TextBody;
+                if (textBody == null) {
+                    return true;
+                }
+
+                bool hasTextRun = false;
+                foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+                    foreach (A.Run run in paragraph.Elements<A.Run>()) {
+                        if (!string.IsNullOrWhiteSpace(run.InnerText)) {
+                            hasTextRun = true;
+                            if (string.IsNullOrWhiteSpace(ReadRunFontName(run.RunProperties))) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    foreach (A.Field field in paragraph.Elements<A.Field>()) {
+                        if (!string.IsNullOrWhiteSpace(field.Text?.Text ?? field.InnerText)) {
+                            return true;
+                        }
+                    }
+                }
+
+                if (!hasTextRun) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options, int groupDepth) {
@@ -92,14 +217,14 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointTextBox textBox) {
             if (options.IncludeTextBoxes) {
-                RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
+                RegisterPresentationTextBoxFonts(textBox, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options);
             }
             return;
         }
 
         if (shape is PptCore.PowerPointTable table) {
             if (options.IncludeTables) {
-                RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies, registeredFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
+                RegisterPresentationTableFonts(table, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options);
             }
             return;
         }
@@ -111,28 +236,28 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
-        RegisterPresentationFontCandidate(textBox.FontName, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+    private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+        RegisterPresentationFontCandidate(textBox.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
             foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
-                RegisterPresentationFontCandidate(run.FontName, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+                RegisterPresentationFontCandidate(run.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             }
         }
     }
 
-    private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
+    private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
         for (int row = 0; row < table.Rows; row++) {
             for (int column = 0; column < table.Columns; column++) {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (!cell.IsMergedCell) {
-                    RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
-                    RegisterPresentationTableCellRunFonts(cell, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+                    RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+                    RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options);
                 }
             }
         }
     }
 
-    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
+    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
         A.TextBody? textBody = cell.Cell.TextBody;
         if (textBody == null) {
             return;
@@ -140,14 +265,55 @@ public static partial class PowerPointPdfConverterExtensions {
 
         foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
             foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                RegisterPresentationFontCandidate(ReadRunFontName(run.RunProperties), pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+                RegisterPresentationFontCandidate(ReadRunFontName(run.RunProperties), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             }
         }
     }
 
-    private static void RegisterPresentationFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
+    private static void RegisterPresentationFontCandidate(
+        string? familyName,
+        PdfCore.PdfOptions pdfOptions,
+        HashSet<string> registeredFamilies,
+        HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
+        PowerPointPdfSaveOptions options,
+        int slideNumber,
+        bool reportSubstitution = true) {
         if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
-            pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, embedSystemFont, out _);
+            if (pdfOptions.HasNamedFontFamily(trimmedFamilyName)) {
+                return;
+            }
+
+            bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding;
+            if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {
+                return;
+            }
+
+            bool mapped = pdfOptions.TryRegisterMappedOfficeFontFamily(
+                trimmedFamilyName,
+                registeredFontSlots,
+                embedSystemFont,
+                out PdfCore.PdfStandardFont fallback);
+            bool representedExactly =
+                mapped &&
+                (pdfOptions.EmbeddedFontFamilySlotMatches(fallback, trimmedFamilyName) ||
+                 (!pdfOptions.HasEmbeddedStandardFontFamily(fallback) &&
+                  PdfCore.PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(trimmedFamilyName, fallback)));
+            if (reportSubstitution && !representedExactly) {
+                PdfCore.PdfStandardFont reportedFallback = mapped
+                    ? fallback
+                    : PdfCore.PdfStandardFont.Helvetica;
+                PdfCore.PdfStandardFont normalizedFallback = PdfCore.PdfStandardFontMapper.GetFontFamily(reportedFallback);
+                options.Report.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    "font-family-substitution",
+                    "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "The source font family '" + trimmedFamilyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedFallback + ".",
+                    details: new Dictionary<string, string> {
+                        ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["fontFamily"] = trimmedFamilyName,
+                        ["fallbackSlot"] = normalizedFallback.ToString()
+                    }));
+            }
         }
     }
 }

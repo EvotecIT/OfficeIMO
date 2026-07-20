@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "OfficeIMO PDF conversion proof scenarios. The manifest is consumed by tests and the PDF visual review gallery so converter coverage stays observable.",
   "converterCatalog": [
     {
@@ -11,7 +11,22 @@
       "optionsType": "OfficeIMO.Word.Pdf.PdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Word.Pdf.WordPdfConverterExtensions" ],
       "scenarioIds": [ "word-native-report" ],
-      "conversionMode": "native-paged"
+      "conversionMode": "native-paged",
+      "fidelityStatus": "candidate",
+      "referencePolicy": "microsoft-office-plus-officeimo-regression",
+      "referenceEvidenceIds": [ "microsoft-word-16.109-native-report" ],
+      "capabilityClaims": [
+        {
+          "capability": "semantic-text-headings-lists-and-tables",
+          "level": "exact",
+          "evidenceScenarioIds": [ "word-native-report" ]
+        },
+        {
+          "capability": "advanced-word-layout-and-drawing-objects",
+          "level": "supported-with-approximation",
+          "evidenceScenarioIds": [ "word-native-report" ]
+        }
+      ]
     },
     {
       "id": "excel",
@@ -22,7 +37,22 @@
       "optionsType": "OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions" ],
       "scenarioIds": [ "excel-native-daily-workbook", "excel-dashboard-report" ],
-      "conversionMode": "native-paged"
+      "conversionMode": "native-paged",
+      "fidelityStatus": "candidate",
+      "referencePolicy": "microsoft-excel-plus-officeimo-regression",
+      "referenceEvidenceIds": [ "microsoft-excel-16.109-native-workbook" ],
+      "capabilityClaims": [
+        {
+          "capability": "worksheet-values-formats-links-and-basic-pagination",
+          "level": "exact",
+          "evidenceScenarioIds": [ "excel-native-daily-workbook" ]
+        },
+        {
+          "capability": "worksheet-canvas-drawings-charts-and-dashboard-layout",
+          "level": "supported-with-approximation",
+          "evidenceScenarioIds": [ "excel-native-daily-workbook", "excel-dashboard-report" ]
+        }
+      ]
     },
     {
       "id": "powerpoint",
@@ -33,7 +63,22 @@
       "optionsType": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions" ],
       "scenarioIds": [ "powerpoint-native-dense-layout", "powerpoint-layout-theme-groups" ],
-      "conversionMode": "native-slide-canvas"
+      "conversionMode": "native-slide-canvas",
+      "fidelityStatus": "candidate",
+      "referencePolicy": "microsoft-powerpoint-plus-officeimo-regression",
+      "referenceEvidenceIds": [ "microsoft-powerpoint-16.109-native-dense-layout" ],
+      "capabilityClaims": [
+        {
+          "capability": "slide-geometry-basic-text-images-and-tables",
+          "level": "exact",
+          "evidenceScenarioIds": [ "powerpoint-native-dense-layout" ]
+        },
+        {
+          "capability": "advanced-theme-drawingml-smartart-and-chart-layout",
+          "level": "supported-with-approximation",
+          "evidenceScenarioIds": [ "powerpoint-layout-theme-groups" ]
+        }
+      ]
     },
     {
       "id": "markdown",
@@ -44,7 +89,9 @@
       "optionsType": "OfficeIMO.Markdown.Pdf.MarkdownPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions" ],
       "scenarioIds": [ "markdown-technical-document", "markdown-invoice-statement" ],
-      "conversionMode": "semantic-document"
+      "conversionMode": "semantic-document",
+      "fidelityStatus": "regression-proven",
+      "referencePolicy": "officeimo-regression"
     },
     {
       "id": "html",
@@ -54,8 +101,28 @@
       "ownerPaths": [ "OfficeIMO.Html/**", "OfficeIMO.Html.Pdf/**" ],
       "optionsType": "OfficeIMO.Html.Pdf.HtmlPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions" ],
-      "scenarioIds": [ "html-document-profile", "html-css-resource-policy", "html-pdf-roundtrip-profile-contract" ],
-      "conversionMode": "declared-html-layout-subset"
+      "scenarioIds": [ "html-document-profile", "html-static-market-corpus", "html-css-resource-policy", "html-pdf-roundtrip-profile-contract" ],
+      "conversionMode": "native-static-paged",
+      "fidelityStatus": "candidate",
+      "referencePolicy": "standards-corpus-plus-officeimo-regression",
+      "referenceEvidenceIds": [ "html-static-market-standards-corpus" ],
+      "capabilityClaims": [
+        {
+          "capability": "static-business-html-shared-png-svg-and-searchable-pdf-scene",
+          "level": "exact",
+          "evidenceScenarioIds": [ "html-static-market-corpus" ]
+        },
+        {
+          "capability": "advanced-css-fragmentation-typography-and-svg-effects",
+          "level": "supported-with-approximation",
+          "evidenceScenarioIds": [ "html-static-market-corpus", "html-css-resource-policy" ]
+        },
+        {
+          "capability": "javascript-and-interactive-browser-state",
+          "level": "unsupported",
+          "evidenceScenarioIds": [ "html-css-resource-policy" ]
+        }
+      ]
     },
     {
       "id": "rtf",
@@ -66,7 +133,9 @@
       "optionsType": "OfficeIMO.Rtf.Pdf.RtfPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions" ],
       "scenarioIds": [ "rtf-pdf-roundtrip" ],
-      "conversionMode": "semantic-document"
+      "conversionMode": "semantic-document",
+      "fidelityStatus": "regression-proven",
+      "referencePolicy": "officeimo-regression"
     },
     {
       "id": "onenote",
@@ -77,7 +146,9 @@
       "optionsType": "OfficeIMO.OneNote.Pdf.OneNotePdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.OneNote.Pdf.OneNoteSectionPdfConverterExtensions", "OfficeIMO.OneNote.Pdf.OneNoteNotebookPdfConverterExtensions" ],
       "scenarioIds": [ "onenote-semantic-document" ],
-      "conversionMode": "explicit-semantic-document"
+      "conversionMode": "explicit-semantic-document",
+      "fidelityStatus": "accepted-degradation",
+      "referencePolicy": "semantic-contract"
     },
     {
       "id": "asciidoc",
@@ -88,7 +159,9 @@
       "optionsType": "OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfConverterExtensions" ],
       "scenarioIds": [ "asciidoc-direct-semantic-document" ],
-      "conversionMode": "loss-aware-semantic-document"
+      "conversionMode": "loss-aware-semantic-document",
+      "fidelityStatus": "accepted-degradation",
+      "referencePolicy": "semantic-contract"
     },
     {
       "id": "latex",
@@ -99,7 +172,40 @@
       "optionsType": "OfficeIMO.Latex.Pdf.LatexPdfSaveOptions",
       "extensionTypes": [ "OfficeIMO.Latex.Pdf.LatexPdfConverterExtensions" ],
       "scenarioIds": [ "latex-direct-semantic-document" ],
-      "conversionMode": "loss-aware-semantic-document"
+      "conversionMode": "loss-aware-semantic-document",
+      "fidelityStatus": "accepted-degradation",
+      "referencePolicy": "semantic-contract"
+    }
+  ],
+  "referenceEvidence": [
+    {
+      "id": "microsoft-word-16.109-native-report",
+      "kind": "external-office-reference",
+      "scenarioId": "word-native-report",
+      "producer": "Microsoft Word 16.109",
+      "metadataPath": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/reference-corpus.json"
+    },
+    {
+      "id": "microsoft-excel-16.109-native-workbook",
+      "kind": "external-office-reference",
+      "scenarioId": "excel-native-daily-workbook",
+      "producer": "Microsoft Excel 16.109",
+      "metadataPath": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/reference-corpus.json"
+    },
+    {
+      "id": "microsoft-powerpoint-16.109-native-dense-layout",
+      "kind": "external-office-reference",
+      "scenarioId": "powerpoint-native-dense-layout",
+      "producer": "Microsoft PowerPoint 16.109",
+      "metadataPath": "OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/reference-corpus.json"
+    },
+    {
+      "id": "html-static-market-standards-corpus",
+      "kind": "standards-corpus",
+      "scenarioId": "html-static-market-corpus",
+      "producer": "OfficeIMO static HTML market corpus",
+      "sourcePath": "OfficeIMO.TestAssets/HtmlRenderingCorpus.cs",
+      "baselineDirectory": "OfficeIMO.Pdf.Tests/Pdf/VisualBaselines"
     }
   ],
   "compositionRoutes": [
@@ -167,6 +273,21 @@
       "engine-owner",
       "thin-adapter-boundary"
     ],
+    "fidelityLevels": [
+      "exact",
+      "supported-with-approximation",
+      "rasterized",
+      "omitted",
+      "unsupported"
+    ],
+    "fidelityStatuses": [
+      "candidate",
+      "regression-proven",
+      "externally-verified",
+      "accepted-degradation"
+    ],
+    "premiumClaimRule": "A converter can be marked externally-verified only when its declared reference policy has stable source artifacts, producer/version metadata, page geometry, visual comparison results, text/link/structure proof, and no unexpected conversion warnings.",
+    "exactScopeRule": "The exact fidelity level applies only to the named capability semantics and invariants. It never means whole-document pixel equivalence; visual distance and known approximations remain governed by the declared reference evidence.",
     "fidelityTiers": [
       "premium-core",
       "premium-adapter",
@@ -202,8 +323,14 @@
       {
         "id": "html-document-profile",
         "tier": "premium-adapter",
-        "owner": "OfficeIMO.Html.Pdf over Word/Markdown HTML adapters and OfficeIMO.Pdf",
-        "closureFocus": [ "declared-html-subset", "resource-policy", "page-breaks", "tables", "diagnostics" ]
+        "owner": "OfficeIMO.Html.Pdf over the OfficeIMO.Html shared render scene and OfficeIMO.Pdf",
+        "closureFocus": [ "native-static-html", "resource-policy", "page-breaks", "tables", "diagnostics" ]
+      },
+      {
+        "id": "html-static-market-corpus",
+        "tier": "premium-adapter",
+        "owner": "OfficeIMO.Html.Pdf over the shared OfficeIMO.Html and OfficeIMO.Drawing scene",
+        "closureFocus": [ "shared-png-svg-pdf-scene", "approved-poppler-baselines", "paged-and-continuous-layout", "multilingual-text", "warning-contract" ]
       },
       {
         "id": "html-css-resource-policy",
@@ -358,7 +485,7 @@
     ],
     "knownLimits": [
       "complex-script shaping beyond built-in scalar and Latin-ligature handling requires a caller-supplied IOfficeTextShapingProvider from OfficeIMO.Drawing",
-      "Word documents that require more than three simultaneously distinct mapped embedded font families report NativeFontFamilySlotExhausted with the requested family, occupying embedded family, and logical PDF slot",
+      "Office source fonts that are unavailable or cannot be embedded fall back to a mapped PDF font and retain an explicit conversion warning; available embeddable families are not limited to three compatibility slots",
       "OneNote PDF is an explicit semantic-document projection and reports free-form canvas flattening and unresolved binary assets",
       "formal PDF/A, PDF/UA, Factur-X, and ZUGFeRD claims require the external validator workflow for the exact artifact"
     ]
@@ -386,7 +513,14 @@
       ],
       "expectedWarnings": [],
       "visualReviewFiles": [
-        "native-word-report.pdf"
+        "native-word-report.pdf",
+        "native-word-daily-layout.pdf",
+        "native-word-table-cell-picture-control.pdf"
+      ],
+      "sourceReviewFiles": [
+        "native-word-report.docx",
+        "native-word-daily-layout.docx",
+        "native-word-table-cell-picture-control.docx"
       ],
       "proof": {
         "hash": true,
@@ -400,7 +534,7 @@
           "links",
           "form-fields"
         ],
-        "visualPages": 1,
+        "visualPages": 3,
         "validatorEvidence": [
           "PdfInspector",
           "PdfLogicalDocument",
@@ -431,6 +565,9 @@
       "expectedWarnings": [],
       "visualReviewFiles": [
         "native-excel-daily-workbook.pdf"
+      ],
+      "sourceReviewFiles": [
+        "native-excel-daily-workbook.xlsx"
       ],
       "proof": {
         "hash": true,
@@ -561,7 +698,7 @@
         "document-profile"
       ],
       "expectedSimplifications": [
-        "document profile follows the Word HTML bridge and is not a browser/CSS renderer"
+        "the direct renderer implements a deterministic static HTML and paged-CSS contract rather than browser scripting or interactive state"
       ],
       "expectedWarnings": [],
       "visualReviewFiles": [
@@ -588,6 +725,69 @@
       }
     },
     {
+      "id": "html-static-market-corpus",
+      "path": "html-static-market-corpus-to-pdf",
+      "converter": "OfficeIMO.Html.Pdf",
+      "sourceFormat": "html",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "invoices-and-statements",
+        "business-reports-and-letters",
+        "certificates-and-catalogs",
+        "contracts-and-email-like-html",
+        "dashboard-grid-layout",
+        "multilingual-bidi",
+        "shared-png-svg-pdf-scene"
+      ],
+      "expectedSimplifications": [
+        "static rendering does not execute JavaScript or reproduce interactive browser state",
+        "unsupported local resources remain visible through alternative text and stable diagnostics"
+      ],
+      "expectedWarnings": [
+        "ImageResourceRejectedByPolicy",
+        "HyperlinkRejectedByPolicy"
+      ],
+      "visualReviewFiles": [
+        "native-html-invoice.pdf",
+        "native-html-account-statement.pdf",
+        "native-html-quarterly-report.pdf",
+        "native-html-business-letter.pdf",
+        "native-html-certificate.pdf",
+        "native-html-product-catalog.pdf",
+        "native-html-legal-contract.pdf",
+        "native-html-email-render.pdf",
+        "native-html-dashboard-print.pdf",
+        "native-html-multilingual-bidi.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Invoice INV-1042",
+          "Account Statement",
+          "Operations Dashboard",
+          "Multilingual Summary"
+        ],
+        "logicalSignals": [
+          "shared-render-scene",
+          "page-count",
+          "headings",
+          "links",
+          "tables",
+          "resource-policy-diagnostics"
+        ],
+        "visualPages": 11,
+        "validatorEvidence": [
+          "HtmlRenderDocument",
+          "OfficeDrawingRasterRenderer",
+          "OfficeDrawingSvgExporter",
+          "PdfInspector",
+          "PdfReadDocument",
+          "Poppler raster baselines"
+        ]
+      }
+    },
+    {
       "id": "html-css-resource-policy",
       "path": "html-css-resource-policy-to-pdf",
       "converter": "OfficeIMO.Html.Pdf",
@@ -603,7 +803,7 @@
         "table"
       ],
       "expectedSimplifications": [
-        "HTML conversion follows the Word HTML bridge and reports blocked resources instead of acting as a browser renderer"
+        "HTML conversion uses the native static render scene and reports blocked resources instead of executing browser scripting"
       ],
       "expectedWarnings": [
         "StylesheetResourceRejectedByPolicy"
@@ -1183,6 +1383,8 @@
         "text-boxes",
         "bullets",
         "tables",
+        "theme-table-styles",
+        "theme-typography",
         "images",
         "charts",
         "backgrounds"
@@ -1190,9 +1392,16 @@
       "expectedSimplifications": [
         "unsupported slide shapes and overflowing text boxes record converter warnings"
       ],
-      "expectedWarnings": [],
+      "expectedWarnings": [
+        "table-cell-overflow"
+      ],
       "visualReviewFiles": [
-        "native-powerpoint-dense-layout.pdf"
+        "native-powerpoint-dense-layout.pdf",
+        "native-powerpoint-slide.pdf"
+      ],
+      "sourceReviewFiles": [
+        "native-powerpoint-dense-layout.pptx",
+        "native-powerpoint-slide.pptx"
       ],
       "proof": {
         "hash": true,
@@ -1203,9 +1412,10 @@
         "logicalSignals": [
           "page-geometry",
           "text",
+          "theme-style",
           "images"
         ],
-        "visualPages": 1,
+        "visualPages": 2,
         "validatorEvidence": [
           "PdfInspector",
           "PdfReadDocument",

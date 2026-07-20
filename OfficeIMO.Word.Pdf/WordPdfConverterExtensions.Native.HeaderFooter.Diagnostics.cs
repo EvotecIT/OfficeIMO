@@ -86,6 +86,16 @@ namespace OfficeIMO.Word.Pdf {
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
+            string? headerFontFamily = ResolveNativeHeaderFooterFontFamily(
+                nativeFontMap,
+                section.Header?.Default,
+                section.DifferentFirstPage ? section.Header?.First : null,
+                section.DifferentOddAndEvenPages ? section.Header?.Even : null);
+            string? footerFontFamily = ResolveNativeHeaderFooterFontFamily(
+                nativeFontMap,
+                section.Footer?.Default,
+                section.DifferentFirstPage ? section.Footer?.First : null,
+                section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
             PdfCore.PdfColor? headerColor = ResolveNativeHeaderFooterColor(
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
@@ -117,6 +127,10 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (headerFont.HasValue) {
                         header.Font(headerFont.Value);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(headerFontFamily)) {
+                        header.FontFamily(headerFontFamily!);
                     }
 
                     if (headerColor.HasValue) {
@@ -166,6 +180,10 @@ namespace OfficeIMO.Word.Pdf {
                 footer.Offset(GetNativeFooterOffset(options));
                 if (footerFont.HasValue) {
                     footer.Font(footerFont.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(footerFontFamily)) {
+                    footer.FontFamily(footerFontFamily!);
                 }
 
                 if (footerColor.HasValue) {

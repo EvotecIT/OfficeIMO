@@ -22,6 +22,8 @@ public sealed class TextRun {
     public double? FontSize { get; }
     /// <summary>Optional standard PDF font for this run. When null, the paragraph/document font is used.</summary>
     public PdfStandardFont? Font { get; }
+    /// <summary>Optional registered embedded font family for this run. This does not consume a standard-font compatibility slot; <see cref="Font"/> remains the fallback when the family is unavailable.</summary>
+    public string? FontFamily { get; }
     /// <summary>Optional hyperlink URI associated with this run.</summary>
     public string? LinkUri { get; }
     /// <summary>Optional named destination associated with this run.</summary>
@@ -53,7 +55,8 @@ public sealed class TextRun {
     /// <param name="tabLeader">Leader fill to render when the run text is a tab character.</param>
     /// <param name="tabAlignment">Alignment to use when the run text is a tab character.</param>
     /// <param name="backgroundColor">Optional run background color.</param>
-    public TextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null) {
+    /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> is used as its fallback.</param>
+    public TextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null) {
         Guard.NotNull(text, nameof(text));
         Guard.TextBaseline(baseline, nameof(baseline));
         Guard.TabLeaderStyle(tabLeader, nameof(tabLeader));
@@ -63,6 +66,9 @@ public sealed class TextRun {
         }
         if (font.HasValue) {
             Guard.StandardFont(font.Value, nameof(font), "Text run font must be one of the supported standard PDF fonts.");
+        }
+        if (fontFamily != null) {
+            Guard.NotNullOrWhiteSpace(fontFamily, nameof(fontFamily));
         }
         if (linkUri != null && linkDestinationName != null) {
             throw new System.ArgumentException("A text run link can target either a URI or a bookmark, not both.", nameof(linkDestinationName));
@@ -100,6 +106,7 @@ public sealed class TextRun {
         BackgroundColor = backgroundColor;
         FontSize = fontSize;
         Font = font;
+        FontFamily = fontFamily?.Trim();
         LinkUri = linkUri;
         LinkDestinationName = linkDestinationName;
         LinkContents = hasLinkTarget ? linkContents ?? text : null;
@@ -115,7 +122,7 @@ public sealed class TextRun {
     }
 
     /// <summary>Create a normal (unstyled) run.</summary>
-    public static TextRun Normal(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun Normal(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create an explicit line-break run.</summary>
     public static TextRun LineBreak() => new TextRun("\n", bold: false, underline: false, color: null, italic: false, strike: false);
     /// <summary>Create an explicit paragraph tab run.</summary>
@@ -123,21 +130,21 @@ public sealed class TextRun {
     /// <summary>Create a fixed-size inline visual run.</summary>
     public static TextRun Inline(PdfInlineElement element) => new TextRun(element);
     /// <summary>Create a bold run.</summary>
-    public static TextRun Bolded(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: true, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun Bolded(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: true, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create an underlined run.</summary>
-    public static TextRun Underlined(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: true, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun Underlined(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: true, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create an italic run.</summary>
-    public static TextRun Italicized(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: true, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun Italicized(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: false, color: color, italic: true, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a bold and underlined run.</summary>
-    public static TextRun BoldUnderlined(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: true, underline: true, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun BoldUnderlined(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: true, underline: true, color: color, italic: false, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a bold and italic run.</summary>
-    public static TextRun BoldItalic(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: true, underline: false, color: color, italic: true, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun BoldItalic(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: true, underline: false, color: color, italic: true, strike: false, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a strikethrough run.</summary>
-    public static TextRun Strikethrough(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: true, fontSize: fontSize, font: font, backgroundColor: backgroundColor);
+    public static TextRun Strikethrough(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: true, fontSize: fontSize, font: font, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a superscript run.</summary>
-    public static TextRun Superscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Superscript, backgroundColor: backgroundColor);
+    public static TextRun Superscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Superscript, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a subscript run.</summary>
-    public static TextRun Subscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Subscript, backgroundColor: backgroundColor);
+    public static TextRun Subscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Subscript, backgroundColor: backgroundColor, fontFamily: fontFamily);
     /// <summary>Create a hyperlink run that points to a URI.</summary>
     /// <param name="text">Link text.</param>
     /// <param name="uri">Absolute URI or catalog-base-relative URI.</param>
@@ -148,9 +155,10 @@ public sealed class TextRun {
     /// <param name="fontSize">Optional run font size in points.</param>
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="font">Optional standard font family for this run.</param>
-    public static TextRun Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) {
+    /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> remains its fallback.</param>
+    public static TextRun Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) {
         Guard.UriAction(uri, nameof(uri));
-        return new TextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor);
+        return new TextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor, fontFamily: fontFamily);
     }
     /// <summary>Create a hyperlink run that points to a document bookmark.</summary>
     /// <param name="text">Link text.</param>
@@ -162,8 +170,9 @@ public sealed class TextRun {
     /// <param name="fontSize">Optional run font size in points.</param>
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="font">Optional standard font family for this run.</param>
-    public static TextRun LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) {
+    /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> remains its fallback.</param>
+    public static TextRun LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null, string? fontFamily = null) {
         Guard.NotNullOrWhiteSpace(bookmarkName, nameof(bookmarkName));
-        return new TextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkContents: contents, baseline: baseline, linkDestinationName: bookmarkName, backgroundColor: backgroundColor);
+        return new TextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkContents: contents, baseline: baseline, linkDestinationName: bookmarkName, backgroundColor: backgroundColor, fontFamily: fontFamily);
     }
 }

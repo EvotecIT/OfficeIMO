@@ -104,6 +104,59 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Canvas_Honors_Disabled_Worksheet_Dimensions() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDisabledDimensions.xlsx");
+
+        byte[] authoredBytes;
+        byte[] uniformBytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Dimensions")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "A1");
+            sheet.Cell(1, 2, "B1");
+            sheet.Cell(1, 3, "C1");
+            sheet.Cell(2, 1, "A2");
+            sheet.Cell(3, 1, "A3");
+            sheet.SetColumnWidth(2, 32);
+            sheet.SetRowHeight(2, 60);
+            document.Save();
+
+            var commonOptions = new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(600, 500),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            };
+            authoredBytes = document.ToPdf(commonOptions);
+
+            commonOptions.UseWorksheetColumnWidths = false;
+            commonOptions.UseWorksheetRowHeights = false;
+            uniformBytes = document.ToPdf(commonOptions);
+        }
+
+        using PdfPigDocument authoredPdf = PdfPigDocument.Open(new MemoryStream(authoredBytes));
+        var authoredPage = authoredPdf.GetPage(1);
+        double authoredColumnOneX = FindWordStartX(authoredPage, "A1");
+        double authoredColumnTwoX = FindWordStartX(authoredPage, "B1");
+        double authoredColumnThreeX = FindWordStartX(authoredPage, "C1");
+        double authoredRowOneY = FindWordStartY(authoredPage, "A1");
+        double authoredRowTwoY = FindWordStartY(authoredPage, "A2");
+        double authoredRowThreeY = FindWordStartY(authoredPage, "A3");
+        Assert.True(authoredColumnThreeX - authoredColumnTwoX > (authoredColumnTwoX - authoredColumnOneX) * 2D);
+        Assert.True(authoredRowTwoY - authoredRowThreeY > (authoredRowOneY - authoredRowTwoY) * 2D);
+
+        using PdfPigDocument uniformPdf = PdfPigDocument.Open(new MemoryStream(uniformBytes));
+        var uniformPage = uniformPdf.GetPage(1);
+        double uniformColumnOneX = FindWordStartX(uniformPage, "A1");
+        double uniformColumnTwoX = FindWordStartX(uniformPage, "B1");
+        double uniformColumnThreeX = FindWordStartX(uniformPage, "C1");
+        double uniformRowOneY = FindWordStartY(uniformPage, "A1");
+        double uniformRowTwoY = FindWordStartY(uniformPage, "A2");
+        double uniformRowThreeY = FindWordStartY(uniformPage, "A3");
+        Assert.InRange(Math.Abs((uniformColumnTwoX - uniformColumnOneX) - (uniformColumnThreeX - uniformColumnTwoX)), 0D, 0.5D);
+        Assert.InRange(Math.Abs((uniformRowOneY - uniformRowTwoY) - (uniformRowTwoY - uniformRowThreeY)), 0D, 0.5D);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Omits_Hidden_Rows_And_Columns() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHiddenRowsColumns.xlsx");
 

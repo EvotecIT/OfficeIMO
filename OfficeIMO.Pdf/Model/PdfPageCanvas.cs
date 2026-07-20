@@ -402,7 +402,8 @@ public sealed class PdfPageCanvas {
                 run.LinkDestinationName,
                 run.TabLeader,
                 run.TabAlignment,
-                run.BackgroundColor));
+                run.BackgroundColor,
+                run.FontFamily));
         }
 
         return styled.AsReadOnly();

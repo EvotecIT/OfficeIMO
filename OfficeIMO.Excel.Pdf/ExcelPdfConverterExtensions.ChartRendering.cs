@@ -50,6 +50,10 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options) {
+            return CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: false);
+        }
+
+        private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options, bool preserveWorksheetLegend) {
             if (HasMixedSeriesChartTypes(snapshot)) {
                 throw new NotSupportedException("Excel chart '" + GetChartDisplayName(snapshot) + "' uses mixed per-series chart types, which are not supported by the shared OfficeIMO chart renderer yet.");
             }
@@ -69,8 +73,8 @@ namespace OfficeIMO.Excel.Pdf {
                 data,
                 PixelsToPoints(snapshot.WidthPixels),
                 PixelsToPoints(snapshot.HeightPixels),
-                options.ChartStyle,
-                options.ChartLayout ?? DefaultExcelPdfChartLayout);
+                options.ChartStyle ?? snapshot.Style,
+                options.ChartLayout ?? (preserveWorksheetLegend ? snapshot.Layout ?? new OfficeChartLayout() : DefaultExcelPdfChartLayout));
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {

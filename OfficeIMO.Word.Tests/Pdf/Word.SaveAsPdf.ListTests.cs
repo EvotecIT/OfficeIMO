@@ -46,6 +46,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_UsesBodyFontForNormalizedLegacySymbolBullet() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddCustomList();
+                bulletList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
+                bulletList.AddItem("Normalized legacy bullet");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica",
+                    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            var markerLetter = Assert.Single(page.Letters, letter => letter.Value == "•" || letter.Value == "·");
+
+            Assert.Contains("Helvetica", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Normalized legacy bullet", page.Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Uses_Word_List_Hanging_Indent_In_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.pdf");
@@ -646,15 +672,17 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = ReadPdfPageContent(bytes);
             var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
                 .SelectMany(page => page.ListItems)
                 .ToList();
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            var page = pdf.GetPage(1);
+            var markerLetter = Assert.Single(page.Letters, letter => letter.Value == "1");
+            var bodyLetter = Assert.Single(page.Letters, letter => letter.Value == "S");
 
             Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "StyledListMarkerFont");
-            Assert.True(
-                Regex.Matches(content, @"/F19\s+11\s+Tf").Count >= 2,
-                "Expected paragraph style font family to be emitted for both the list marker and the list item text.");
+            Assert.Contains("Courier", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Courier", bodyLetter.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -682,10 +710,12 @@ namespace OfficeIMO.Tests {
             var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
                 .SelectMany(page => page.ListItems)
                 .ToList();
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            var markerLetter = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "1");
 
             Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "LevelMarkerRunPropertiesBody");
             Assert.Equal(1, CountOccurrences(content, "0.753 0 0 rg"));
-            Assert.Equal(1, Regex.Matches(content, @"/F19\s+11\s+Tf").Count);
+            Assert.Contains("Courier", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

@@ -204,7 +204,8 @@ internal static partial class PdfWriter {
                     color: color,
                     italic: text.Font.IsItalic,
                     fontSize: size,
-                    font: baseFont)
+                    font: baseFont,
+                    fontFamily: text.Font.FamilyName)
             };
             var block = new RichParagraphBlock(runs, MapDrawingTextAlignment(text.Alignment), color);
             var wrap = WrapRichRunsCore(runs, text.Width, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
@@ -364,5 +365,4 @@ internal static partial class PdfWriter {
 
     }
 }
-
 

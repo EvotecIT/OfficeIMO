@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel {
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
                 FontName = font?.FontName?.Val?.Value,
+                IsFontFamilyExplicit = (format.FontId?.Value ?? 0U) != 0U,
                 FontSize = font?.FontSize?.Val?.Value,
                 FontColorArgb = ExcelThemeColorResolver.Resolve(font?.Color, workbookPart),
                 FillColorArgb = GetFillArgb(fill, workbookPart),

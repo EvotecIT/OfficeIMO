@@ -421,6 +421,7 @@ namespace OfficeIMO.Excel {
                 Underline = font?.Underline != null,
                 Strikethrough = font?.Strike != null,
                 FontName = font?.FontName?.Val?.Value,
+                IsFontFamilyExplicit = (cellFormat.FontId?.Value ?? 0U) != 0U,
                 FontSize = font?.FontSize?.Val?.Value,
                 FontColorArgb = context.GetColorArgb(font?.Color),
                 FillColorArgb = context.GetFillColorArgb(fill),

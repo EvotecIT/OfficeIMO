@@ -30,28 +30,22 @@ internal static partial class PdfWriter {
             PdfOptions pageOptions = page.Options ?? options;
             PdfStandardFont normalFont = ChooseNormal(pageOptions.DefaultFont);
 
-            fonts.Add(normalFont);
-            AddGeneratedFontUsage(fontUsages, normalFont, pageOptions);
-            if (page.UsedBold) {
-                PdfStandardFont boldFont = ChooseBold(normalFont);
-                fonts.Add(boldFont);
-                AddGeneratedFontUsage(fontUsages, boldFont, pageOptions);
+            if (pageOptions.HasExplicitDefaultFont) {
+                fonts.Add(normalFont);
+                AddGeneratedFontUsage(fontUsages, normalFont, pageOptions);
             }
 
-            if (page.UsedItalic) {
-                PdfStandardFont italicFont = ChooseItalic(normalFont);
-                fonts.Add(italicFont);
-                AddGeneratedFontUsage(fontUsages, italicFont, pageOptions);
-            }
-
-            if (page.UsedBoldItalic) {
-                PdfStandardFont boldItalicFont = ChooseBoldItalic(normalFont);
-                fonts.Add(boldItalicFont);
-                AddGeneratedFontUsage(fontUsages, boldItalicFont, pageOptions);
-            }
+            AddLayoutStandardFontUsage("F1", normalFont);
+            AddLayoutStandardFontUsage("F2", ChooseBold(normalFont));
+            AddLayoutStandardFontUsage("F3", ChooseItalic(normalFont));
+            AddLayoutStandardFontUsage("F4", ChooseBoldItalic(normalFont));
 
             foreach (PdfStandardFont usedFont in page.UsedFonts) {
                 fonts.Add(usedFont);
+                AddGeneratedFontUsage(fontUsages, usedFont, pageOptions);
+            }
+
+            foreach (PdfNamedFontFace usedFont in page.UsedNamedFonts) {
                 AddGeneratedFontUsage(fontUsages, usedFont, pageOptions);
             }
 
@@ -64,13 +58,21 @@ internal static partial class PdfWriter {
             }
 
             if (pageOptions.HasHeaderTextContentForPage(variantPageNumber)) {
-                fonts.Add(pageOptions.HeaderFont);
-                AddGeneratedFontUsage(fontUsages, pageOptions.HeaderFont, pageOptions);
+                if (TryResolvePageTextNamedFont(pageOptions, pageOptions.HeaderFontFamily, pageOptions.HeaderFont, out PdfNamedFontFace headerNamedFont)) {
+                    AddGeneratedFontUsage(fontUsages, headerNamedFont, pageOptions);
+                } else {
+                    fonts.Add(pageOptions.HeaderFont);
+                    AddGeneratedFontUsage(fontUsages, pageOptions.HeaderFont, pageOptions);
+                }
             }
 
             if (pageOptions.HasFooterTextContentForPage(variantPageNumber)) {
-                fonts.Add(pageOptions.FooterFont);
-                AddGeneratedFontUsage(fontUsages, pageOptions.FooterFont, pageOptions);
+                if (TryResolvePageTextNamedFont(pageOptions, pageOptions.FooterFontFamily, pageOptions.FooterFont, out PdfNamedFontFace footerNamedFont)) {
+                    AddGeneratedFontUsage(fontUsages, footerNamedFont, pageOptions);
+                } else {
+                    fonts.Add(pageOptions.FooterFont);
+                    AddGeneratedFontUsage(fontUsages, pageOptions.FooterFont, pageOptions);
+                }
             }
 
             if (page.FormFields.Count > 0) {
@@ -110,6 +112,15 @@ internal static partial class PdfWriter {
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
+
+            void AddLayoutStandardFontUsage(string resourceName, PdfStandardFont font) {
+                if (!UsesLayoutFontResource(layout, page, resourceName)) {
+                    return;
+                }
+
+                fonts.Add(font);
+                AddGeneratedFontUsage(fontUsages, font, pageOptions);
+            }
         }
 
         PdfStandardFont[] fontSnapshot = fonts
@@ -118,10 +129,36 @@ internal static partial class PdfWriter {
         return new PdfGeneratedDocumentComplianceEvidence(fontSnapshot, fontUsages.ToArray(), images.ToArray(), drawings.ToArray(), forms.ToArray());
     }
 
+    private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, string resourceName) {
+        string qualifiedName = "/" + resourceName;
+        if (UsesPdfResource(layout.ReadContent(page.Content), qualifiedName)) {
+            return true;
+        }
+
+        foreach (PageEffectGroup effect in page.EffectGroups) {
+            if (UsesPdfResource(layout.ReadContent(effect.Content), qualifiedName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfStandardFont font, PdfOptions options) {
         for (int i = 0; i < usages.Count; i++) {
             PdfGeneratedFontComplianceEvidence usage = usages[i];
-            if (usage.Font == font && object.ReferenceEquals(usage.Options, options)) {
+            if (usage.StandardFont == font && !usage.NamedFont.HasValue && object.ReferenceEquals(usage.Options, options)) {
+                return;
+            }
+        }
+
+        usages.Add(new PdfGeneratedFontComplianceEvidence(font, options));
+    }
+
+    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfNamedFontFace font, PdfOptions options) {
+        for (int i = 0; i < usages.Count; i++) {
+            PdfGeneratedFontComplianceEvidence usage = usages[i];
+            if (usage.NamedFont == font && !usage.StandardFont.HasValue && object.ReferenceEquals(usage.Options, options)) {
                 return;
             }
         }

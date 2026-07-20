@@ -48,6 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingCorpus.cs" Link="Shared\HtmlRenderingCorpus.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
   </ItemGroup>
 

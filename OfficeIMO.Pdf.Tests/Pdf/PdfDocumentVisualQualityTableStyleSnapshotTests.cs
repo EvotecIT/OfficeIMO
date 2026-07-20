@@ -246,6 +246,7 @@ public partial class PdfDocumentVisualQualityTests {
             [(0, 0)] = PdfCellVerticalAlign.Bottom
         };
         style.CellSpacing = 11;
+        style.PreferredWidth = 160;
         style.RowMinHeights = new List<double?> { 16, null, 48 };
         style.RowAllowBreakAcrossPages = new List<bool?> { false, null, true };
 
@@ -260,6 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(clone.KeepTogether);
         Assert.True(clone.KeepWithNext);
         Assert.False(clone.AllowRowBreakAcrossPages);
+        Assert.Equal(160, clone.PreferredWidth);
         Assert.Equal(180, clone.MaxWidth);
         Assert.Equal(24, clone.LeftIndent);
         Assert.Equal(7, clone.CellPaddingLeft);

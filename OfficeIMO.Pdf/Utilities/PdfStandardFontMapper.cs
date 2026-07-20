@@ -74,6 +74,36 @@ public static class PdfStandardFontMapper {
         };
     }
 
+    /// <summary>
+    /// Reports whether the first recognized family in an Office/CSS family list names the selected
+    /// built-in PDF family directly rather than merely mapping to it as an approximation.
+    /// </summary>
+    public static bool IsStandardPdfFamilyEquivalent(string? fontFamily, PdfStandardFont font) {
+        Guard.StandardFont(font, nameof(font), "PDF font must be one of the supported standard PDF fonts.");
+        if (string.IsNullOrWhiteSpace(fontFamily)) {
+            return false;
+        }
+
+        PdfStandardFont expectedFamily = GetFontFamily(font);
+        foreach (string candidate in EnumerateNormalizedFamilies(fontFamily!)) {
+            if (!TryMapNormalizedFamily(candidate, out PdfStandardFont mapped)) {
+                continue;
+            }
+
+            if (GetFontFamily(mapped) != expectedFamily) {
+                return false;
+            }
+
+            return expectedFamily switch {
+                PdfStandardFont.TimesRoman => candidate is "times" or "timesroman" or "serif",
+                PdfStandardFont.Courier => candidate is "courier" or "monospace",
+                _ => candidate is "helvetica" or "sans" or "sansserif"
+            };
+        }
+
+        return false;
+    }
+
     private static IEnumerable<string> EnumerateNormalizedFamilies(string fontFamily) {
         foreach (string family in fontFamily.Split(FamilySeparators)) {
             string normalized = NormalizeSingleFontFamily(family);

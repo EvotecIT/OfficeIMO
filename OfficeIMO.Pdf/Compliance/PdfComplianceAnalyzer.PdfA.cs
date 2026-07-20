@@ -115,28 +115,48 @@ internal static partial class PdfComplianceAnalyzer {
             return;
         }
 
-        if (generatedStandardFonts.Length == 0) {
+        if (generatedStandardFonts.Length == 0 && (generatedFontUsages == null || generatedFontUsages.Length == 0)) {
             requirements.Add(new PdfComplianceRequirement(
                 "embedded-font-coverage",
                 "Embedded font coverage",
                 PdfComplianceRequirementStatus.Satisfied,
-                "No generated standard-font resources were reported for this document."));
+                "No generated font resources were reported for this document."));
             return;
         }
 
-        var missingFonts = new List<PdfStandardFont>();
+        var missingFonts = new List<string>();
         var invalidFonts = new List<string>();
         if (generatedFontUsages != null && generatedFontUsages.Length > 0) {
             for (int i = 0; i < generatedFontUsages.Length; i++) {
                 PdfGeneratedFontComplianceEvidence usage = generatedFontUsages[i];
+                if (usage.NamedFont.HasValue) {
+                    if (!usage.Options.TryGetNamedFontData(usage.NamedFont.Value, out byte[]? namedData, out string? namedFontName) ||
+                        namedData == null) {
+                        AddMissingFont(missingFonts, usage.DisplayName);
+                        continue;
+                    }
+
+                    if (!TryParseEmbeddedFont(namedData, namedFontName, out string? namedInvalidReason)) {
+                        AddInvalidFont(invalidFonts, usage.DisplayName, namedInvalidReason);
+                    }
+
+                    continue;
+                }
+
+                if (!usage.StandardFont.HasValue) {
+                    AddMissingFont(missingFonts, usage.DisplayName);
+                    continue;
+                }
+
+                PdfStandardFont standardFont = usage.StandardFont.Value;
                 IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> scopedEmbeddedFonts = usage.Options.EmbeddedFonts;
-                if (!scopedEmbeddedFonts.TryGetValue(usage.Font, out PdfEmbeddedFont? embeddedFont)) {
-                    AddMissingFont(missingFonts, usage.Font);
+                if (!scopedEmbeddedFonts.TryGetValue(standardFont, out PdfEmbeddedFont? embeddedFont)) {
+                    AddMissingFont(missingFonts, standardFont.ToBaseFontName());
                     continue;
                 }
 
                 if (!TryParseEmbeddedFont(embeddedFont, out string? invalidReason)) {
-                    AddInvalidFont(invalidFonts, usage.Font, invalidReason);
+                    AddInvalidFont(invalidFonts, standardFont.ToBaseFontName(), invalidReason);
                 }
             }
         } else {
@@ -144,12 +164,12 @@ internal static partial class PdfComplianceAnalyzer {
             for (int i = 0; i < generatedStandardFonts.Length; i++) {
                 PdfStandardFont font = generatedStandardFonts[i];
                 if (!embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont)) {
-                    AddMissingFont(missingFonts, font);
+                    AddMissingFont(missingFonts, font.ToBaseFontName());
                     continue;
                 }
 
                 if (!TryParseEmbeddedFont(embeddedFont, out string? invalidReason)) {
-                    AddInvalidFont(invalidFonts, font, invalidReason);
+                    AddInvalidFont(invalidFonts, font.ToBaseFontName(), invalidReason);
                 }
             }
         }
@@ -159,13 +179,13 @@ internal static partial class PdfComplianceAnalyzer {
                 "embedded-font-coverage",
                 "Embedded font coverage",
                 PdfComplianceRequirementStatus.Satisfied,
-                "Every generated standard-font resource has a parseable embedded TrueType or OpenType/CFF mapping."));
+                "Every generated font resource has a parseable embedded TrueType or OpenType/CFF mapping."));
             return;
         }
 
         var diagnostics = new List<string>();
         if (missingFonts.Count > 0) {
-            diagnostics.Add("embed TrueType or OpenType/CFF mappings for generated standard-font resources: " + string.Join(", ", missingFonts.Select(font => font.ToBaseFontName()).ToArray()));
+            diagnostics.Add("embed TrueType or OpenType/CFF mappings for generated font resources: " + string.Join(", ", missingFonts.ToArray()));
         }
 
         if (invalidFonts.Count > 0) {
@@ -179,25 +199,29 @@ internal static partial class PdfComplianceAnalyzer {
             char.ToUpperInvariant(diagnostics[0][0]) + diagnostics[0].Substring(1) + (diagnostics.Count > 1 ? "; " + string.Join("; ", diagnostics.Skip(1).ToArray()) : string.Empty) + "."));
     }
 
-    private static void AddMissingFont(List<PdfStandardFont> missingFonts, PdfStandardFont font) {
+    private static void AddMissingFont(List<string> missingFonts, string font) {
         if (!missingFonts.Contains(font)) {
             missingFonts.Add(font);
         }
     }
 
-    private static void AddInvalidFont(List<string> invalidFonts, PdfStandardFont font, string? invalidReason) {
-        string diagnostic = font.ToBaseFontName() + " (" + invalidReason + ")";
+    private static void AddInvalidFont(List<string> invalidFonts, string font, string? invalidReason) {
+        string diagnostic = font + " (" + invalidReason + ")";
         if (!invalidFonts.Contains(diagnostic)) {
             invalidFonts.Add(diagnostic);
         }
     }
 
     private static bool TryParseEmbeddedFont(PdfEmbeddedFont embeddedFont, out string? invalidReason) {
+        return TryParseEmbeddedFont(embeddedFont.Data, embeddedFont.FontName, out invalidReason);
+    }
+
+    private static bool TryParseEmbeddedFont(byte[] data, string? fontName, out string? invalidReason) {
         try {
-            if (IsOpenTypeCffFontData(embeddedFont.Data)) {
-                PdfOpenTypeCffFontProgram.Parse(embeddedFont.Data, embeddedFont.FontName);
+            if (IsOpenTypeCffFontData(data)) {
+                PdfOpenTypeCffFontProgram.Parse(data, fontName);
             } else {
-                PdfTrueTypeFontProgram.Parse(embeddedFont.Data, embeddedFont.FontName);
+                PdfTrueTypeFontProgram.Parse(data, fontName);
             }
 
             invalidReason = null;

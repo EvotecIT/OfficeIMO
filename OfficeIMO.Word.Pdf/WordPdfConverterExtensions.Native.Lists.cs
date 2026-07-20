@@ -120,7 +120,7 @@ namespace OfficeIMO.Word.Pdf {
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.Color;
-            style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle);
+            style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle, nativeFontMap);
             return true;
         }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, DocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults, NativeResolvedTextStyle markerTextStyle) {
+        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, DocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
             const double defaultLevelTextIndent = 36D;
             const double defaultHangingIndent = 18D;
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -167,7 +167,8 @@ namespace OfficeIMO.Word.Pdf {
                 LeftIndent = markerIndent,
                 MarkerGap = markerGap,
                 MarkerWidth = markerWidth,
-                MarkerFont = ResolveNativeListMarkerFont(info, markerTextStyle),
+                MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
+                MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize,
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification),
@@ -299,6 +300,7 @@ namespace OfficeIMO.Word.Pdf {
                    left.MarkerColor.Equals(right.MarkerColor) &&
                    left.MarkerAlign == right.MarkerAlign &&
                    left.MarkerFont == right.MarkerFont &&
+                   string.Equals(left.MarkerFontFamily, right.MarkerFontFamily, StringComparison.OrdinalIgnoreCase) &&
                    NullableDoubleEquals(left.MarkerFontSize, right.MarkerFontSize) &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
@@ -318,10 +320,32 @@ namespace OfficeIMO.Word.Pdf {
         private static bool DoubleEquals(double left, double right) =>
             Math.Abs(left - right) < 0.001D;
 
-        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(DocumentTraversal.ListInfo info, NativeResolvedTextStyle markerTextStyle) {
+        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(DocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle) {
+            if (ShouldUseNativeListTextFontForNormalizedMarker(info, marker)) {
+                return markerTextStyle.Font;
+            }
+
             return PdfCore.PdfStandardFontMapper.TryMapFontFamily(info.MarkerFontFamily, out PdfCore.PdfStandardFont markerFont)
                 ? markerFont
                 : markerTextStyle.Font;
+        }
+
+        private static string? ResolveNativeListMarkerFontFamily(DocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle, NativeFontMap nativeFontMap) {
+            if (ShouldUseNativeListTextFontForNormalizedMarker(info, marker)) {
+                return markerTextStyle.FontFamily;
+            }
+
+            if (nativeFontMap.TryGetNamedFontFamily(info.MarkerFontFamily, out string? markerFamily)) {
+                return markerFamily;
+            }
+
+            return markerTextStyle.FontFamily;
+        }
+
+        private static bool ShouldUseNativeListTextFontForNormalizedMarker(DocumentTraversal.ListInfo info, string marker) {
+            return string.Equals(marker, "•", StringComparison.Ordinal) &&
+                   !string.IsNullOrWhiteSpace(info.MarkerFontFamily) &&
+                   string.Equals(NormalizeNativeFontFamily(info.MarkerFontFamily!), "symbol", StringComparison.OrdinalIgnoreCase);
         }
 
         private static PdfCore.PdfAlign? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {

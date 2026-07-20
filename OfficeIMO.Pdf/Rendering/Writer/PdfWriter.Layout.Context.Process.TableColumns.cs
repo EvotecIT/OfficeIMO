@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
             double[]? autoFitMinimumWidths = style.AutoFitColumns
                 ? MeasureAutoFitColumnMinimumWidths(table, currentOpts, style, fontSize, headerRowCount, footerStartRowIndex)
                 : null;
-            double tableWidth = ResolveTableAvailableWidth(style, availableWidth);
+            double tableWidth = ResolveTableLayoutWidth(style, availableWidth, autoFitWeights, autoFitMinimumWidths, columns, columnGap);
             double[] columnWidths = new double[columns];
             double[] columnWeights = new double[columns];
             bool[] fixedColumns = new bool[columns];

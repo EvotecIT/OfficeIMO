@@ -8,6 +8,7 @@ public sealed class PdfHeadingStyle {
     private double? _lineHeight;
     private double _spacingBefore;
     private double? _spacingAfter;
+    private string? _fontFamily;
 
     /// <summary>Heading font size in points. When null the writer uses the built-in size for the heading level.</summary>
     public double? FontSize {
@@ -51,6 +52,18 @@ public sealed class PdfHeadingStyle {
     /// <summary>Heading font slot. When null the writer uses the document default font family.</summary>
     public PdfStandardFont? Font { get; set; }
 
+    /// <summary>Optional registered embedded family used by heading text. <see cref="Font"/> remains its fallback.</summary>
+    public string? FontFamily {
+        get => _fontFamily;
+        set {
+            if (value != null) {
+                Guard.NotNullOrWhiteSpace(value, nameof(FontFamily));
+            }
+
+            _fontFamily = value?.Trim();
+        }
+    }
+
     /// <summary>When true, headings use the bold variant of the document font.</summary>
     public bool Bold { get; set; } = true;
 
@@ -69,6 +82,7 @@ public sealed class PdfHeadingStyle {
             SpacingAfter = SpacingAfter,
             Color = Color,
             Font = Font,
+            FontFamily = FontFamily,
             Bold = Bold,
             ApplySpacingBeforeAtTop = ApplySpacingBeforeAtTop,
             KeepWithNext = KeepWithNext

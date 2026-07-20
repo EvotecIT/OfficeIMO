@@ -7,7 +7,8 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeFontMap {
             private readonly Dictionary<string, PdfCore.PdfStandardFont> _fontSlots = new(StringComparer.OrdinalIgnoreCase);
-            private readonly HashSet<string> _reportedSlotExhaustion = new(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, string> _namedFontFamilies = new(StringComparer.OrdinalIgnoreCase);
+            private readonly HashSet<string> _reportedFontSubstitution = new(StringComparer.OrdinalIgnoreCase);
             private readonly PdfCore.PdfConversionReport? _report;
 
             public NativeFontMap() : this(null) { }
@@ -35,9 +36,23 @@ namespace OfficeIMO.Word.Pdf {
                     _fontSlots.TryGetValue(NormalizeNativeFontFamily(familyName!), out fontSlot);
             }
 
+            public void RegisterNamed(string familyName, string registeredFamilyName) {
+                if (string.IsNullOrWhiteSpace(familyName) || string.IsNullOrWhiteSpace(registeredFamilyName)) {
+                    return;
+                }
+
+                _namedFontFamilies[NormalizeNativeFontFamily(familyName)] = registeredFamilyName.Trim();
+            }
+
+            public bool TryGetNamedFontFamily(string? familyName, out string? registeredFamilyName) {
+                registeredFamilyName = null;
+                return !string.IsNullOrWhiteSpace(familyName) &&
+                       _namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out registeredFamilyName);
+            }
+
             public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string occupyingFontFamily) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
-                if (_report == null || !_reportedSlotExhaustion.Add(normalizedFamily)) {
+                if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
                 }
 
@@ -53,6 +68,24 @@ namespace OfficeIMO.Word.Pdf {
                         ["occupyingFontFamily"] = occupyingFontFamily
                     }));
             }
+
+            public void ReportFontSubstitution(string familyName, PdfCore.PdfStandardFont fallbackSlot) {
+                string normalizedFamily = NormalizeNativeFontFamily(familyName);
+                if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
+                    return;
+                }
+
+                PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(fallbackSlot);
+                _report.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.Word.Pdf",
+                    "NativeFontFamilySubstituted",
+                    "word:font[" + familyName + "]",
+                    "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedSlot + ".",
+                    details: new Dictionary<string, string> {
+                        ["fontFamily"] = familyName,
+                        ["fallbackSlot"] = normalizedSlot.ToString()
+                    }));
+            }
         }
 
         private static void RegisterNativeThemeStyleFonts(
@@ -61,45 +94,23 @@ namespace OfficeIMO.Word.Pdf {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
             bool allowSystemFontEmbedding,
             NativeFontMap nativeFontMap) {
-            if (!allowSystemFontEmbedding) {
-                return;
-            }
-
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string styleId in new[] { "Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "Heading7", "Heading8", "Heading9" }) {
-                string? familyName = ResolveNativeParagraphStyleFontFamily(document, styleId);
-                if (!PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, NormalizeNativeFontFamily, out string trimmedFamilyName)) {
-                    continue;
-                }
+            foreach (WordSection section in document.Sections) {
+                foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
+                    if (element is not WordParagraph paragraph ||
+                        GetNativeTableOfContentsHeadingLevel(paragraph) <= 0) {
+                        continue;
+                    }
 
-                PdfCore.PdfStandardFont slot = SelectNativeAdditionalFontSlot(trimmedFamilyName, pdfOptions, registeredFontSlots);
-                bool slotAlreadyEmbedded = pdfOptions.HasEmbeddedStandardFontFamily(slot);
-                if (!slotAlreadyEmbedded) {
-                    pdfOptions.RegisterOfficeFontFamily(trimmedFamilyName, slot, embedSystemFont: true);
-                }
-
-                if (slotAlreadyEmbedded || pdfOptions.HasEmbeddedStandardFontFamily(slot)) {
-                    registeredFontSlots.Add(slot);
-                    nativeFontMap.Register(trimmedFamilyName, slot);
-                    continue;
-                }
-
-                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont)) {
-                    PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
-                    registeredFontSlots.Add(mappedFamily);
-                    nativeFontMap.Register(trimmedFamilyName, mappedFamily);
+                    RegisterNativeFontCandidate(
+                        ResolveNativeParagraphStyleFontFamily(document, paragraph.StyleId),
+                        pdfOptions,
+                        registeredFamilies,
+                        registeredFontSlots,
+                        allowSystemFontEmbedding,
+                        nativeFontMap);
                 }
             }
-        }
-
-        private static PdfCore.PdfStandardFont SelectNativeAdditionalFontSlot(string familyName, PdfCore.PdfOptions pdfOptions, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
-            if (PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont fontSlot)) {
-                return fontSlot;
-            }
-
-            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)
-                ? PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)
-                : PdfCore.PdfStandardFont.Helvetica;
         }
 
         private static string? ResolveNativeParagraphStyleFontFamily(WordDocument? document, string? styleId) {

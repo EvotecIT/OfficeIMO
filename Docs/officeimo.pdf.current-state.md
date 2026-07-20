@@ -42,10 +42,22 @@ control fidelity and content selection; they do not silently change trust. Zero-
 Excel output also do not inject page numbers or worksheet-name headings that
 were absent from the source.
 
-Word conversion embeds distinct mapped document and run fonts while a PDF
-family slot is available. The current writer has three such standard-family
-slots; documents needing more receive a `NativeFontFamilySlotExhausted` loss
-warning with the exact font and substitution instead of a silent alias.
+Generated PDF text can use any number of registered named TrueType or
+OpenType/CFF families without consuming the three standard-font compatibility
+slots. Word, Excel, PowerPoint, HTML, headings, tables, lists, headers, and
+footers preserve named-family selection when an embeddable font is available.
+Unavailable or non-embeddable source fonts fall back to a mapped PDF font and
+retain an explicit conversion warning rather than a silent alias.
+
+Word, Excel, and PowerPoint fidelity is measured against pinned PDFs exported
+by Microsoft 365 for Mac 16.109 from the same checked-in source fixtures. The
+gate verifies source and reference hashes, producer/version provenance, page
+count and geometry, then compares 72-DPI rasters within recorded distance
+budgets. These adapters remain `candidate`: an `exact` capability claim is
+scoped to the named semantic invariant and does not mean whole-document pixel
+equivalence. Static HTML uses a standards-oriented market corpus and approved
+OfficeIMO regression baselines instead of pretending that one browser snapshot
+defines HTML/CSS correctness.
 
 OneNote conversion is deliberately named as a semantic-document projection.
 It preserves hierarchy and reading-order content, reports canvas flattening and
@@ -84,7 +96,7 @@ PDF primitive exists somewhere in the codebase.
 | Serialize generated PDFs | Bounded payload streaming | `PdfOptions.PageContentMemoryLimitBytes` bounds completed page/effect content retained during layout, and `PdfOptions.ObjectBufferMemoryLimitBytes` bounds completed indirect-object bytes during serialization. Both stores spill excess payloads to indexed temporary files; large stream objects are spooled without a duplicate combined buffer, and final stream assembly copies spilled objects in bounded chunks for plain and encrypted saves. Spill files are removed on disposal. | Per-page metadata and the authored block model remain proportional to document size, the active page is materialized while it is processed, and `ToBytes()` necessarily buffers the final artifact. Fully forward-only layout/output needs a deeper writer contract and representative memory gates. |
 | Text and layout extraction | Broad, strategy-driven | The fast heuristic remains the default. A pluggable six-stage understanding pipeline provides confidence/evidence and stable JSON, Markdown, ALTO, hOCR, and PAGE XML. The built-in advanced profile adds rotation/arbitrary-baseline grouping, spatial and non-rectangular regions, multi-column/spanning-band order, tables, captions, headers/footers, and footnotes. | Refine advanced heuristics from real mixed-layout corpora and use provider stages for domain-specific reconstruction rather than hard-coding every document family. |
 | PDF to Office/HTML/data | Partial by design | PDF-to-HTML review output, table export, Reader chunks, and limited PowerPoint table import use the shared logical model. | Improve the logical model and confidence/proof first. Do not promise general editable reconstruction from a presentation format. |
-| Office/HTML/Markdown/RTF/OneNote/AsciiDoc/LaTeX to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. HTML uses the shared render scene; OneNote, AsciiDoc, and LaTeX use explicit loss-aware semantic projections with combined diagnostics. | Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, HTML, or semantic-projection owner. |
+| Office/HTML/Markdown/RTF/OneNote/AsciiDoc/LaTeX to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. Word and PowerPoint preserve source font families and richer table/list/header/footer geometry; Excel uses a worksheet scene with authored row/column geometry, print areas, titles, breaks, charts, images, and conditional formatting; static HTML uses the shared paged render scene with market-corpus raster gates, tables, forms, word breaking, and searchable text. OneNote, AsciiDoc, and LaTeX use explicit loss-aware semantic projections with combined diagnostics. | Browser-executed HTML is outside the current scope. Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, HTML, or semantic-projection owner. |
 | PDF/A, PDF/UA, and e-invoices | Exact-artifact proof available for declared profiles | PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD generation gates combine internal readiness with external validator evidence bound to validator name/version/profile, SHA-256, byte length, result, and validation time. A report cannot be claimable while an effective requirement remains missing or unsupported. | Keep validator versions and profile fixtures current; do not broaden claims beyond exact artifacts that pass both internal and external proof. |
 
 ## Current Architecture To Keep
@@ -333,6 +345,18 @@ any repair is explicit, reproducible, and validated before save.
 - [x] Add line-balanced columns, configurable paragraph widow/orphan counts,
   keep-with-next across block types, table tail-row control, and multipage
   decorated containers through the shared block-flow engine.
+- [x] Add a machine-readable cross-format fidelity corpus and generated support
+  matrix with source artifacts, hashes, text/logical proof, strict Poppler
+  baselines, and explicit accepted-degradation policies.
+- [x] Remove the three-family ceiling for embeddable generated text by adding
+  shared named-font resources and carrying family selection through Word,
+  Excel, PowerPoint, HTML, headings, tables, lists, headers, and footers.
+- [x] Move Excel PDF fidelity to an authored worksheet scene and expand the
+  static HTML renderer with a reusable market corpus, paged visual baselines,
+  form controls, table layout, and word-breaking coverage.
+- [x] Pin Microsoft Word, Excel, and PowerPoint 16.109 reference exports with
+  source/reference hashes, producer provenance, page geometry, recorded visual
+  distance results, and runtime-independent comparison gates.
 - [ ] Keep HTML/CSS fidelity work in the canonical HTML/PDF/image plan. The PDF
   package should only add missing PDF-native primitives or writer support.
 - [ ] Add reusable typed report components and recipes only after repeated real

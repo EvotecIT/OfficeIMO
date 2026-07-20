@@ -290,7 +290,9 @@ public sealed partial class PdfOptions {
     public PdfOptions UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
         UseDefaultTextFontFamily(fontFamily);
         HeaderFont = PdfStandardFont.Helvetica;
+        HeaderFontFamily = null;
         FooterFont = PdfStandardFont.Helvetica;
+        FooterFontFamily = null;
         return this;
     }
 
@@ -947,6 +949,8 @@ public sealed partial class PdfOptions {
                 program.ResetGlyphUsage();
             }
         }
+
+        ResetNamedFontProgramUsage();
     }
 
     private static bool IsOpenTypeCffFontData(byte[] fontData) =>

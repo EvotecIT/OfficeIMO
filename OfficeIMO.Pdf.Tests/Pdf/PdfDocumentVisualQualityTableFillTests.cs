@@ -443,5 +443,58 @@ public partial class PdfDocumentVisualQualityTests {
         }
     }
 
+    [Fact]
+    public void CanvasTable_RendersCellIndicatorsAfterOpaqueFillsAndBeforeText() {
+        var style = TableStyles.Minimal();
+        style.HeaderFill = null;
+        style.RowStripeFill = null;
+        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
+            [(0, 0)] = new PdfColor(0.42, 0.18, 0.66)
+        };
+        style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
+            [(0, 0)] = new PdfCellDataBar {
+                Color = new PdfColor(0.12, 0.34, 0.56),
+                Ratio = 0.5
+            }
+        };
+        style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
+            [(0, 0)] = new PdfCellIcon {
+                Kind = PdfCellIconKind.TriangleUp,
+                Color = new PdfColor(0.75, 0.25, 0.1),
+                Size = 8
+            }
+        };
+        style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
+            [(0, 0)] = new PdfCellPadding {
+                Left = 16
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "FixedIndicatorText" }
+            }, 24, 24, 160, 60, style))
+            .ToBytes();
+
+        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        int fill = content.IndexOf("0.42 0.18 0.66 rg", StringComparison.Ordinal);
+        int dataBar = content.IndexOf("0.12 0.34 0.56 rg", StringComparison.Ordinal);
+        int icon = content.IndexOf("0.75 0.25 0.1 rg", StringComparison.Ordinal);
+        int text = content.IndexOf("<4669786564496E64696361746F7254657874>", StringComparison.Ordinal);
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            Assert.Contains("FixedIndicatorText", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        Assert.True(fill >= 0, "Expected the configured opaque cell fill in the page content stream.");
+        Assert.True(dataBar > fill, "Expected the data bar to be painted after the opaque cell fill.");
+        Assert.True(icon > dataBar, "Expected the cell icon to be painted after the opaque cell fill and data bar.");
+        Assert.True(text > icon, "Expected cell text to be painted after cell indicators.");
+    }
+
 
 }

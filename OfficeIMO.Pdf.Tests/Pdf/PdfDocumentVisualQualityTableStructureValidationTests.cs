@@ -99,6 +99,13 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table minimum row height must be a non-negative finite value.", invalidMinimumRowHeightException.Message, StringComparison.Ordinal);
 
+        var invalidPreferredWidth = TableStyles.Minimal();
+
+        var invalidPreferredWidthException = Assert.Throws<ArgumentException>(() =>
+            invalidPreferredWidth.PreferredWidth = double.PositiveInfinity);
+
+        Assert.Contains("Table preferred width must be a positive finite value.", invalidPreferredWidthException.Message, StringComparison.Ordinal);
+
         var invalidRowMinimumHeights = TableStyles.Minimal();
 
         var invalidRowMinimumHeightsException = Assert.Throws<ArgumentException>(() =>

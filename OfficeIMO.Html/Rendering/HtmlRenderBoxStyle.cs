@@ -128,6 +128,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string ListStyleType = string.Empty;
     internal string TextTransform = "none";
     internal string Direction = "ltr";
+    internal string OverflowWrap = "normal";
+    internal string WordBreak = "normal";
     internal string OverflowX = "visible";
     internal string OverflowY = "visible";
     internal string OverflowClipMarginBox = "padding-box";

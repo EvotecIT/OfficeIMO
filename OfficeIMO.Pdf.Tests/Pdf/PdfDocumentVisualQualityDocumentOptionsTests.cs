@@ -236,6 +236,12 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.False(PdfStandardFontMapper.TryMapFontFamily("Unmapped Display Face", out PdfStandardFont fallback));
         Assert.Equal(PdfStandardFont.Helvetica, fallback);
 
+        Assert.True(PdfStandardFontMapper.IsStandardPdfFamilyEquivalent("Helvetica, sans-serif", PdfStandardFont.Helvetica));
+        Assert.True(PdfStandardFontMapper.IsStandardPdfFamilyEquivalent("serif", PdfStandardFont.TimesRoman));
+        Assert.True(PdfStandardFontMapper.IsStandardPdfFamilyEquivalent("monospace", PdfStandardFont.Courier));
+        Assert.False(PdfStandardFontMapper.IsStandardPdfFamilyEquivalent("Arial, sans-serif", PdfStandardFont.Helvetica));
+        Assert.False(PdfStandardFontMapper.IsStandardPdfFamilyEquivalent("Times New Roman, serif", PdfStandardFont.TimesRoman));
+
         Assert.Equal(PdfStandardFont.TimesBold, PdfStandardFontMapper.GetStyledFont(PdfStandardFont.TimesItalic, bold: true, italic: false));
     }
 

@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private sealed class WorksheetPdfExportPlan {
-            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.HeaderFooterSnapshot? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName) {
+            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.HeaderFooterSnapshot? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName, WorksheetGeometryData geometry, bool clipToExportRange) {
                 SheetName = sheetName;
                 PageSetup = pageSetup;
                 HeaderFooter = headerFooter;
@@ -16,6 +16,8 @@ namespace OfficeIMO.Excel.Pdf {
                 ManualRowBreaks = manualRowBreaks;
                 ManualColumnBreaks = manualColumnBreaks;
                 BookmarkName = bookmarkName;
+                Geometry = geometry;
+                ClipToExportRange = clipToExportRange;
             }
 
             public string SheetName { get; }
@@ -29,6 +31,8 @@ namespace OfficeIMO.Excel.Pdf {
             public IReadOnlyList<int> ManualRowBreaks { get; }
             public IReadOnlyList<int> ManualColumnBreaks { get; }
             public string BookmarkName { get; }
+            public WorksheetGeometryData Geometry { get; }
+            public bool ClipToExportRange { get; }
         }
 
         private sealed class SheetExportData {
@@ -92,19 +96,72 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class WorksheetImageExportData {
-            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference, double rotationDegrees) {
+            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference, int rowIndex, int columnIndex, double offsetXPoints, double offsetYPoints, double rotationDegrees, bool horizontalFlip, bool verticalFlip, string? alternativeText) {
                 Bytes = bytes;
                 WidthPoints = widthPoints;
                 HeightPoints = heightPoints;
                 CellReference = cellReference;
+                RowIndex = rowIndex;
+                ColumnIndex = columnIndex;
+                OffsetXPoints = offsetXPoints;
+                OffsetYPoints = offsetYPoints;
                 RotationDegrees = rotationDegrees;
+                HorizontalFlip = horizontalFlip;
+                VerticalFlip = verticalFlip;
+                AlternativeText = alternativeText;
             }
 
             public byte[] Bytes { get; }
             public double WidthPoints { get; }
             public double HeightPoints { get; }
             public string CellReference { get; }
+            public int RowIndex { get; }
+            public int ColumnIndex { get; }
+            public double OffsetXPoints { get; }
+            public double OffsetYPoints { get; }
             public double RotationDegrees { get; }
+            public bool HorizontalFlip { get; }
+            public bool VerticalFlip { get; }
+            public string? AlternativeText { get; }
+        }
+
+        private sealed class WorksheetGeometryData {
+            public WorksheetGeometryData(
+                int firstRow,
+                int firstColumn,
+                int lastRow,
+                int lastColumn,
+                double defaultColumnWidth,
+                double defaultRowHeight,
+                IReadOnlyList<ExcelColumnSnapshot> columns,
+                IReadOnlyList<ExcelRowSnapshot> rows,
+                bool useWorksheetColumnWidths,
+                bool useWorksheetRowHeights,
+                bool respectHiddenRowsAndColumns) {
+                FirstRow = firstRow;
+                FirstColumn = firstColumn;
+                LastRow = lastRow;
+                LastColumn = lastColumn;
+                DefaultColumnWidth = defaultColumnWidth;
+                DefaultRowHeight = defaultRowHeight;
+                Columns = columns;
+                Rows = rows;
+                UseWorksheetColumnWidths = useWorksheetColumnWidths;
+                UseWorksheetRowHeights = useWorksheetRowHeights;
+                RespectHiddenRowsAndColumns = respectHiddenRowsAndColumns;
+            }
+
+            public int FirstRow { get; }
+            public int FirstColumn { get; }
+            public int LastRow { get; }
+            public int LastColumn { get; }
+            public double DefaultColumnWidth { get; }
+            public double DefaultRowHeight { get; }
+            public IReadOnlyList<ExcelColumnSnapshot> Columns { get; }
+            public IReadOnlyList<ExcelRowSnapshot> Rows { get; }
+            public bool UseWorksheetColumnWidths { get; }
+            public bool UseWorksheetRowHeights { get; }
+            public bool RespectHiddenRowsAndColumns { get; }
         }
 
         private sealed class WorksheetChartExportData {

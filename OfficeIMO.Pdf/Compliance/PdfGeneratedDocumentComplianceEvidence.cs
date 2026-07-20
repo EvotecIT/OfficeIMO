@@ -29,11 +29,21 @@ internal sealed class PdfGeneratedFontComplianceEvidence {
     public PdfGeneratedFontComplianceEvidence(PdfStandardFont font, PdfOptions options) {
         Guard.StandardFont(font, nameof(font), "Generated standard-font usage contains an unsupported PDF font.");
         Guard.NotNull(options, nameof(options));
-        Font = font;
+        StandardFont = font;
         Options = options;
     }
 
-    public PdfStandardFont Font { get; }
+    public PdfGeneratedFontComplianceEvidence(PdfNamedFontFace font, PdfOptions options) {
+        Guard.NotNull(options, nameof(options));
+        NamedFont = font;
+        Options = options;
+    }
+
+    public PdfStandardFont? StandardFont { get; }
+
+    public PdfNamedFontFace? NamedFont { get; }
+
+    public string DisplayName => NamedFont?.FaceKey ?? StandardFont?.ToBaseFontName() ?? "unknown";
 
     public PdfOptions Options { get; }
 }
