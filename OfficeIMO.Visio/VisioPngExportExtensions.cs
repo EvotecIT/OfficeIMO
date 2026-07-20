@@ -138,6 +138,8 @@ namespace OfficeIMO.Visio {
                 FontFaceName = resolved.FontFaceName,
                 FontCollectionIndex = resolved.FontCollectionIndex,
                 Fonts = resolved.Fonts.Clone(),
+                TextShapingProvider = resolved.TextShapingProvider,
+                TextShapingLanguage = resolved.TextShapingLanguage,
                 RenderStencilArtwork = resolved.RenderStencilArtwork,
                 RenderConnectorLabels = resolved.RenderConnectorLabels,
                 ResolveConnectorLabelOverlaps = resolved.ResolveConnectorLabelOverlaps,

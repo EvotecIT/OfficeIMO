@@ -66,6 +66,10 @@ public static partial class HtmlImageExportExtensions {
                 Scale = plan.Limit.Scale,
                 Background = options.BackgroundColor,
                 ImageCodec = fallbackCodec,
+                TextShapingProvider = options.TextShapingProvider,
+                TextShapingLanguage = options.TextShapingLanguage,
+                DiagnosticSink = exportDiagnostics,
+                DiagnosticSource = source,
                 CancellationToken = cancellationToken
             });
             bytes = OfficeRasterImageEncoder.Encode(

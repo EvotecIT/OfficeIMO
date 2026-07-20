@@ -8,6 +8,8 @@ OfficeIMO now has one dependency-free image-export contract across Drawing, Exce
 
 The work did not add an output format or a runtime dependency. It concentrated on correctness and production use: encoded bytes must match their declared format and dimensions, saves return the path actually committed, large batches can stream without retaining every payload, aggregate limits stop runaway work, and fidelity loss can be accepted or rejected through structured policy.
 
+The raster text path also has one complex-script contract. Callers can attach an `IOfficeTextShapingProvider` and optional language hint to the shared image options used by Word, Excel, PowerPoint, HTML, OneNote, Visio, and loaded PDF pages. Without a provider, Drawing applies a bounded core-Arabic and bidirectional fallback. That fallback is useful, but it is not presented as full OpenType shaping: `IMAGE_TEXT_SHAPING_FALLBACK` records an approximation and strict policies can reject it.
+
 ## Conversion Matrix
 
 | Source | Single image | Batch images | Visual owner | Important contract |
@@ -48,6 +50,9 @@ All rows produce the existing PNG, JPEG, TIFF, SVG, or WebP formats where their 
 14. **OpenDocument, EPUB, and email had no direct visual bridge.** ODT/ODS/ODP reuse their existing Office conversion owners, while EPUB and email reuse HTML. Conversion and fallback diagnostics remain attached to the image result.
 15. **Batch filenames varied by operating system.** Shared batch export emits bounded, unique, Windows-portable names and protects reserved device names on every host.
 16. **Visual tolerances could hide a severe small-area regression.** Shared comparisons now report and gate mean absolute, root-mean-square, and luminance error in addition to changed pixels. Binary PowerPoint fixtures compare against LibreOffice output.
+17. **Complex-script behavior stopped at the PDF writer.** The shared text-shaping provider, language hint, and cooperative cancellation now reach direct raster export in Word, Excel, PowerPoint, HTML, OneNote, Visio, and loaded PDF pages, including nested Drawing effects/patterns, package-backed Visio SVG previews, and OneNote visual-PDF rasterization.
+18. **Common TIFF source pictures required an application codec.** Drawing now reads classic 8-bit chunky grayscale, palette, RGB/RGBA, and DeviceCMYK strips with no compression, PackBits, or Deflate, including horizontal prediction. The same decoder is used by every document renderer.
+19. **PDF annotations without appearance streams disappeared from page images.** Supported free-text, text-markup, shape, line, ink, path, stamp, and caret annotations now reuse the existing bounded appearance synthesizer. The result carries `render.annotation.appearance-synthesized` as an approximation; unsupported annotation kinds remain diagnosed omissions.
 
 ## Intentionally Retained Low-Level APIs
 
@@ -59,13 +64,14 @@ Visio also retains its embedded-SVG interpreter. Stencil artwork needs linked im
 
 - Word output is an OfficeIMO pagination estimate. Exact Microsoft Word pagination requires Word's layout engine.
 - Arbitrary PDFs can contain operators, fonts, transparency, forms, annotations, and producer-specific constructs outside the first-party projection. Per-page diagnostics and the capability manifest remain the coverage contract.
-- TIFF input support is bounded to chunky RGB/RGBA strips with no compression or PackBits. WebP input support is limited to the literal-lossless form OfficeIMO emits.
+- TIFF input support is bounded to classic 8-bit chunky grayscale, palette, RGB/RGBA, and DeviceCMYK strips with no compression, PackBits, or Deflate. LZW/JPEG compression, tiles, planar data, floating-point samples, BigTIFF pixels, and multi-page TIFF remain caller-codec cases. WebP input support is limited to the literal-lossless form OfficeIMO emits.
 - GIF input uses the first frame. Animated output and multi-frame TIFF are outside the static-image contract.
 - ICC conversion, color-management parity, EXIF preservation, and CMYK workflows are not implemented.
 - SVG raster input accepts the bounded Drawing subset. Complex filters, scripts, external documents, and unsupported SVG features require a caller codec or produce a diagnosed visible fallback.
 - EPUB fidelity depends on loading with raw chapter HTML and resource bytes retained. Encrypted or incomplete packages remain diagnostic-driven.
 - ODT/ODS/ODP visuals inherit the fidelity of both the OpenDocument conversion and the target Word/Excel/PowerPoint renderer. The combined diagnostics make that explicit.
 - Font parity requires callers to provide the intended TrueType faces when platform fonts are not deterministic.
+- The built-in complex-text fallback covers core Arabic contextual forms and bounded bidirectional reordering. Full OpenType substitutions/positioning, the complete Unicode bidi algorithm, and scripts such as Indic or Southeast Asian families require a caller `IOfficeTextShapingProvider`.
 
 ## Release Gate
 

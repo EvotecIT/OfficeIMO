@@ -67,7 +67,7 @@ using OfficeIMO.Drawing;
 var image = new OfficeRasterImage(320, 180, OfficeColor.White);
 var options = new OfficeRasterEncodingOptions {
     Jpeg = new OfficeJpegEncodeOptions { Quality = 90 },
-    Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
+    Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.Deflate }
 };
 
 byte[] jpeg = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Jpeg, options);
@@ -75,9 +75,11 @@ byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tif
 byte[] webp = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp, options);
 ```
 
-WebP output is deterministic, lossless VP8L. TIFF output is a single-page baseline RGBA image with uncompressed or PackBits strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
+WebP output is deterministic, lossless VP8L. TIFF output is a single-page classic RGBA image with uncompressed, PackBits, or Deflate strips. JPEG uses the existing managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 
-`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG, JPEG, baseline chunky RGB/RGBA TIFF, uncompressed BMP, first-frame GIF, and OfficeIMO literal-lossless WebP decoders enforce encoded-payload and source-pixel guards; the TIFF and WebP readers intentionally reject variants outside those bounded profiles. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG, JPEG, classic 8-bit chunky grayscale/palette/RGB/RGBA/DeviceCMYK TIFF, uncompressed BMP, first-frame GIF, and OfficeIMO literal-lossless WebP decoders enforce encoded-payload and source-pixel guards. TIFF accepts uncompressed, PackBits, and Deflate strips with horizontal prediction; LZW/JPEG, tiled, planar, floating-point, BigTIFF pixel data, and multi-page images remain outside the bounded profile. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+
+For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on any shared image-export options or use `WithTextShaping(...)` on a fluent builder. Drawing passes the selected TrueType font bytes, base direction, language, cancellation token, and Unicode source mapping to the provider, and caches the resolved run for measurement and painting. If no provider accepts a complex run, the managed core-Arabic and bounded bidirectional fallback keeps common text visible and adds `IMAGE_TEXT_SHAPING_FALLBACK` as an approximation. Set `Policy.RequireNoLoss = true` when that fallback is not acceptable.
 
 ### Deterministic text measurement
 
@@ -219,7 +221,7 @@ if (font != null) {
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
 - `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.
 - `OfficePngReader`, `OfficePngWriter`, and `OfficeJpegCodec` for PNG/JPEG paths that should not be reimplemented by document packages.
-- `OfficeTiffCodec`, `OfficeWebpCodec`, and `OfficeRasterImageEncoder` for shared baseline TIFF, lossless WebP, and format-neutral raster output.
+- `OfficeTiffCodec`, `OfficeWebpCodec`, and `OfficeRasterImageEncoder` for shared bounded TIFF, lossless WebP, and format-neutral raster output.
 - Shared SVG formatting, primitive writing, image projection, text-block rendering, hatch-pattern, data-bar, and sparkline helpers.
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 

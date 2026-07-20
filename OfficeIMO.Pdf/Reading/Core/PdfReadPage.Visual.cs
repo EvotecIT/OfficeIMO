@@ -1017,6 +1017,7 @@ public sealed partial class PdfReadPage {
         if (annotations == null) {
             return;
         }
+        EnsureAnnotationBudget(annotations);
 
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         Dictionary<string, Func<byte[], string>> pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
@@ -1028,7 +1029,7 @@ public sealed partial class PdfReadPage {
             if (annotation == null ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
                 IsHiddenAnnotation(annotation) ||
-                !TryGetNormalAppearanceStream(annotation, out PdfStream appearanceStream)) {
+                !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _)) {
                 continue;
             }
 
@@ -1084,6 +1085,19 @@ public sealed partial class PdfReadPage {
                 AddDrawingElementCore(drawing, pageHeight, elements[elementIndex]);
             }
         }
+    }
+
+    private bool TryGetRenderableAnnotationAppearanceStream(
+        PdfDictionary annotation,
+        out PdfStream stream,
+        out bool synthesized) {
+        if (TryGetNormalAppearanceStream(annotation, out stream)) {
+            synthesized = false;
+            return true;
+        }
+
+        synthesized = PdfAnnotationFlattener.TryCreateSyntheticAppearanceStream(_objects, annotation, out stream);
+        return synthesized;
     }
 
     private bool TryGetNormalAppearanceStream(PdfDictionary annotation, out PdfStream stream) {

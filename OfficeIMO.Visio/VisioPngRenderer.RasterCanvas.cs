@@ -20,16 +20,39 @@ namespace OfficeIMO.Visio {
                 int supersampling,
                 Color? background,
                 OfficeTrueTypeFont? outlineFont,
-                OfficeFontFaceCollection? fonts) {
+                OfficeFontFaceCollection? fonts,
+                IOfficeTextShapingProvider? textShapingProvider,
+                string? textShapingLanguage,
+                ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
+                string? diagnosticSource,
+                System.Threading.CancellationToken cancellationToken) {
                 Supersampling = supersampling;
                 Scale = supersampling;
                 _target = new OfficeRasterRenderTarget(width, height, supersampling, background);
-                _canvas = new OfficeRasterCanvas(_target, outlineFont, fonts);
+                _canvas = new OfficeRasterCanvas(
+                    _target,
+                    outlineFont,
+                    fonts,
+                    textShapingProvider,
+                    textShapingLanguage,
+                    diagnosticSink,
+                    diagnosticSource,
+                    cancellationToken);
             }
 
             internal double Scale { get; set; }
 
             internal int Supersampling { get; }
+
+            internal OfficeTrueTypeFont? OutlineFont => _canvas.OutlineFont;
+
+            internal OfficeFontFaceCollection? Fonts => _canvas.Fonts;
+
+            internal IOfficeTextShapingProvider? TextShapingProvider => _canvas.TextShapingProvider;
+
+            internal string? TextShapingLanguage => _canvas.TextShapingLanguage;
+
+            internal System.Threading.CancellationToken CancellationToken => _canvas.CancellationToken;
 
             internal void FillPolygon(IReadOnlyList<(double X, double Y)> points, Color color) {
                 _canvas.FillPolygon(points, color);

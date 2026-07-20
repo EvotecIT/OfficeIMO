@@ -71,6 +71,22 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>
+    /// Determines whether text contains an Indic, Southeast Asian, or related script whose glyph
+    /// selection or mark positioning requires a full shaping engine.
+    /// </summary>
+    public static bool ContainsShapingRequiredScript(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length; index++) {
+            int scalar = value[index];
+            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) {
+                scalar = char.ConvertToUtf32(value[index], value[++index]);
+            }
+            if (IsShapingRequiredScriptScalar(scalar)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Determines whether text contains explicit Unicode bidi embedding, override, or isolate controls.</summary>
     public static bool ContainsBidiControl(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
@@ -137,6 +153,25 @@ public static class OfficeTextElements {
         || IsInRange(scalar, 0xFB50, 0xFDFF)
         || IsInRange(scalar, 0xFE70, 0xFEFF)
         || IsInRange(scalar, 0x1EE00, 0x1EEFF);
+
+    private static bool IsShapingRequiredScriptScalar(int scalar) =>
+        IsInRange(scalar, 0x0900, 0x0DFF) // Indic scripts
+        || IsInRange(scalar, 0x0E00, 0x0FFF) // Thai, Lao, Tibetan
+        || IsInRange(scalar, 0x1000, 0x109F) // Myanmar
+        || IsInRange(scalar, 0x1780, 0x17FF) // Khmer
+        || IsInRange(scalar, 0x1800, 0x18AF) // Mongolian
+        || IsInRange(scalar, 0x1900, 0x197F) // Limbu and Tai Le
+        || IsInRange(scalar, 0x1980, 0x19DF) // New Tai Lue
+        || IsInRange(scalar, 0x1A00, 0x1A1F) // Buginese
+        || IsInRange(scalar, 0x1A20, 0x1AAF) // Tai Tham
+        || IsInRange(scalar, 0x1B00, 0x1C4F) // Balinese through Lepcha
+        || IsInRange(scalar, 0xA800, 0xA87F) // Syloti Nagri and Phags-pa
+        || IsInRange(scalar, 0xA880, 0xA8FF) // Saurashtra and Devanagari Extended
+        || IsInRange(scalar, 0xA900, 0xA95F) // Kayah Li and Rejang
+        || IsInRange(scalar, 0xA980, 0xAA7F) // Javanese, Myanmar extensions, Cham
+        || IsInRange(scalar, 0xAA80, 0xAADF) // Tai Viet
+        || IsInRange(scalar, 0xABC0, 0xABFF) // Meetei Mayek
+        || IsInRange(scalar, 0x11000, 0x11FFF); // Supplementary Brahmic scripts
 
     private static bool IsStrongLeftToRightCategory(UnicodeCategory category) =>
         IsLetterCategory(category);

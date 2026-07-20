@@ -1,6 +1,34 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationFlattener {
+    internal static bool TryCreateSyntheticAppearanceStream(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        out PdfStream stream) {
+        stream = null!;
+        string? subtype = TryReadName(objects, annotation, "Subtype");
+        if (subtype == null ||
+            !IsSupportedVisualAnnotation(subtype) ||
+            !TryReadRectCoordinates(objects, annotation, out double x, out double y, out double width, out double height)) {
+            return false;
+        }
+
+        try {
+            stream = BuildSyntheticAppearanceStream(objects, annotation, subtype, x, y, width, height);
+            return true;
+        } catch (ArgumentException) {
+            return false;
+        } catch (FormatException) {
+            return false;
+        } catch (InvalidOperationException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
     internal static int RegenerateNormalAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
         string subtype = TryReadName(objects, annotation, "Subtype") ?? throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
         if (!IsSupportedVisualAnnotation(subtype) || !TryReadRectCoordinates(objects, annotation, out double x, out double y, out double width, out double height)) {
@@ -21,6 +49,20 @@ internal static partial class PdfAnnotationFlattener {
         double width,
         double height,
         ref int nextObjectNumber) {
+        PdfStream stream = BuildSyntheticAppearanceStream(objects, annotation, subtype, x, y, width, height);
+        int appearanceObjectNumber = nextObjectNumber++;
+        objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, stream);
+        return new PdfReference(appearanceObjectNumber, 0);
+    }
+
+    private static PdfStream BuildSyntheticAppearanceStream(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        string subtype,
+        double x,
+        double y,
+        double width,
+        double height) {
         string content;
         IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources;
         double? opacity = TryReadAnnotationOpacity(objects, annotation);
@@ -60,12 +102,7 @@ internal static partial class PdfAnnotationFlattener {
             content = ApplyAnnotationOpacity(content);
         }
 
-        int appearanceObjectNumber = nextObjectNumber++;
-        objects[appearanceObjectNumber] = new PdfIndirectObject(
-            appearanceObjectNumber,
-            0,
-            CreateSyntheticAppearanceStream(width, height, content, fontResources, usesHighlightBlendMode, opacity));
-        return new PdfReference(appearanceObjectNumber, 0);
+        return CreateSyntheticAppearanceStream(width, height, content, fontResources, usesHighlightBlendMode, opacity);
     }
 
     private static string BuildSyntheticFreeTextAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources) {

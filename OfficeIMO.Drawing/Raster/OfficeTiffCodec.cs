@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -9,10 +10,13 @@ public enum OfficeTiffCompression {
     None = 1,
 
     /// <summary>Uses the TIFF PackBits run-length encoding.</summary>
-    PackBits = 32773
+    PackBits = 32773,
+
+    /// <summary>Uses the Adobe Deflate compression method.</summary>
+    Deflate = 8
 }
 
-/// <summary>Settings for baseline TIFF encoding.</summary>
+/// <summary>Settings for bounded classic TIFF encoding.</summary>
 public sealed class OfficeTiffEncodeOptions {
     /// <summary>Strip compression. PackBits is dependency-free and broadly supported.</summary>
     public OfficeTiffCompression Compression { get; set; } = OfficeTiffCompression.PackBits;
@@ -25,9 +29,9 @@ public sealed class OfficeTiffEncodeOptions {
 }
 
 /// <summary>
-/// Dependency-free baseline TIFF encoder for single-page RGBA images.
+/// Dependency-free classic TIFF encoder for single-page RGBA images.
 /// </summary>
-public static class OfficeTiffCodec {
+public static partial class OfficeTiffCodec {
     private const int EntryCount = 15;
 
     /// <summary>Returns whether the payload starts with a TIFF byte-order marker and magic value.</summary>
@@ -43,9 +47,11 @@ public static class OfficeTiffCodec {
         ValidateOptions(effective);
 
         byte[] pixels = image.GetPixels();
-        byte[] strip = effective.Compression == OfficeTiffCompression.PackBits
-            ? EncodePackBits(pixels)
-            : pixels;
+        byte[] strip = effective.Compression switch {
+            OfficeTiffCompression.PackBits => EncodePackBits(pixels),
+            OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(pixels),
+            _ => pixels
+        };
 
         const int ifdOffset = 8;
         int ifdLength = 2 + (EntryCount * 12) + 4;
@@ -91,9 +97,9 @@ public static class OfficeTiffCodec {
     }
 
     /// <summary>
-    /// Attempts to decode a classic baseline chunky RGB/RGBA TIFF using uncompressed or PackBits strips.
-    /// BigTIFF, palette, tiled, planar, CMYK, floating-point, and compressed photographic variants are
-    /// intentionally left to an optional caller codec.
+    /// Attempts to decode a classic baseline chunky grayscale, palette, RGB, RGBA, or CMYK TIFF using
+    /// uncompressed, PackBits, or Deflate strips. Tiled, planar, floating-point, JPEG-compressed, and
+    /// BigTIFF pixel payloads are intentionally left to an optional caller codec.
     /// </summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) {
         image = null;
@@ -129,17 +135,29 @@ public static class OfficeTiffCodec {
             if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
                 !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
                 !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, 3, out int samples) ||
                 !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
-                !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration)) {
+                !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
+                !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
                 return false;
             }
-            if ((compression != (int)OfficeTiffCompression.None && compression != (int)OfficeTiffCompression.PackBits) ||
-                photometric != 2 ||
+            if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
+                !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {
+                return false;
+            }
+            if (photometric == 5 &&
+                (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) ||
+                 inkSet != 1)) {
+                return false;
+            }
+            if ((compression != (int)OfficeTiffCompression.None &&
+                 compression != (int)OfficeTiffCompression.PackBits &&
+                 compression != (int)OfficeTiffCompression.Deflate &&
+                 compression != 32946) ||
                 orientation < 1 || orientation > 4 ||
-                (samples != 3 && samples != 4) ||
+                (samples != baseSamples && samples != baseSamples + 1) ||
                 rowsPerStrip < 1 ||
-                planarConfiguration != 1) {
+                planarConfiguration != 1 ||
+                (predictor != 1 && predictor != 2)) {
                 return false;
             }
 
@@ -151,8 +169,14 @@ public static class OfficeTiffCodec {
                 return false;
             }
 
+            int[]? colorMap = null;
+            if (photometric == 3 &&
+                !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out colorMap)) {
+                return false;
+            }
+
             int alphaKind = 2;
-            if (samples == 4) {
+            if (samples == baseSamples + 1) {
                 if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
                     (extraSamples[0] != 1 && extraSamples[0] != 2)) {
                     return false;
@@ -173,10 +197,23 @@ public static class OfficeTiffCodec {
                 int offset = stripOffsets[strip];
                 int count = stripByteCounts[strip];
                 if (count < 0 || !HasBytes(encodedBytes, offset, count)) return false;
-                bool decoded = compression == (int)OfficeTiffCompression.None
-                    ? CopyExact(encodedBytes, offset, count, source, destinationOffset, expected)
-                    : TryDecodePackBits(encodedBytes, offset, count, source, destinationOffset, expected);
+                bool decoded = TryDecodeStrip(
+                    encodedBytes,
+                    offset,
+                    count,
+                    compression,
+                    source,
+                    destinationOffset,
+                    expected);
                 if (!decoded) return false;
+                if (predictor == 2) {
+                    ReverseHorizontalPredictor(
+                        source,
+                        destinationOffset,
+                        rows,
+                        width,
+                        samples);
+                }
                 destinationOffset += expected;
             }
             if (destinationOffset != source.Length) return false;
@@ -188,16 +225,22 @@ public static class OfficeTiffCodec {
                     int targetX = orientation == 2 || orientation == 3 ? width - 1 - x : x;
                     int targetY = orientation == 3 || orientation == 4 ? height - 1 - y : y;
                     int targetPixel = ((targetY * width) + targetX) * 4;
-                    byte alpha = samples == 4 ? source[sourcePixel + 3] : (byte)255;
-                    rgba[targetPixel] = samples == 4 && alphaKind == 1
-                        ? Unpremultiply(source[sourcePixel], alpha)
-                        : source[sourcePixel];
-                    rgba[targetPixel + 1] = samples == 4 && alphaKind == 1
-                        ? Unpremultiply(source[sourcePixel + 1], alpha)
-                        : source[sourcePixel + 1];
-                    rgba[targetPixel + 2] = samples == 4 && alphaKind == 1
-                        ? Unpremultiply(source[sourcePixel + 2], alpha)
-                        : source[sourcePixel + 2];
+                    byte alpha = samples == baseSamples + 1
+                        ? source[sourcePixel + baseSamples]
+                        : (byte)255;
+                    ConvertPixel(
+                        source,
+                        sourcePixel,
+                        photometric,
+                        alphaKind,
+                        alpha,
+                        colorMap,
+                        out byte red,
+                        out byte green,
+                        out byte blue);
+                    rgba[targetPixel] = red;
+                    rgba[targetPixel + 1] = green;
+                    rgba[targetPixel + 2] = blue;
                     rgba[targetPixel + 3] = alpha;
                 }
             }
@@ -214,7 +257,9 @@ public static class OfficeTiffCodec {
     }
 
     private static void ValidateOptions(OfficeTiffEncodeOptions options) {
-        if (options.Compression != OfficeTiffCompression.None && options.Compression != OfficeTiffCompression.PackBits) {
+        if (options.Compression != OfficeTiffCompression.None &&
+            options.Compression != OfficeTiffCompression.PackBits &&
+            options.Compression != OfficeTiffCompression.Deflate) {
             throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
 
@@ -317,6 +362,87 @@ public static class OfficeTiffCodec {
     private static byte Unpremultiply(byte value, byte alpha) {
         if (alpha == 0) return 0;
         return (byte)Math.Min(255, (value * 255 + alpha / 2) / alpha);
+    }
+
+    private static bool TryGetBaseSampleCount(int photometric, out int samples) {
+        samples = photometric switch {
+            0 => 1,
+            1 => 1,
+            2 => 3,
+            3 => 1,
+            5 => 4,
+            _ => 0
+        };
+        return samples != 0;
+    }
+
+    private static void ConvertPixel(
+        byte[] source,
+        int offset,
+        int photometric,
+        int alphaKind,
+        byte alpha,
+        int[]? colorMap,
+        out byte red,
+        out byte green,
+        out byte blue) {
+        byte Component(int componentOffset) =>
+            alphaKind == 1
+                ? Unpremultiply(source[offset + componentOffset], alpha)
+                : source[offset + componentOffset];
+
+        switch (photometric) {
+            case 0:
+            case 1:
+                byte luminance = Component(0);
+                if (photometric == 0) luminance = (byte)(255 - luminance);
+                red = luminance;
+                green = luminance;
+                blue = luminance;
+                return;
+            case 2:
+                red = Component(0);
+                green = Component(1);
+                blue = Component(2);
+                return;
+            case 3:
+                int paletteIndex = source[offset];
+                red = ColorMapByte(colorMap![paletteIndex]);
+                green = ColorMapByte(colorMap[256 + paletteIndex]);
+                blue = ColorMapByte(colorMap[512 + paletteIndex]);
+                return;
+            case 5:
+                int cyan = Component(0);
+                int magenta = Component(1);
+                int yellow = Component(2);
+                int black = Component(3);
+                red = (byte)(255 - Math.Min(255, cyan + black));
+                green = (byte)(255 - Math.Min(255, magenta + black));
+                blue = (byte)(255 - Math.Min(255, yellow + black));
+                return;
+            default:
+                red = green = blue = 0;
+                return;
+        }
+    }
+
+    private static byte ColorMapByte(int value) =>
+        (byte)Math.Min(255, (value + 128) / 257);
+
+    private static void ReverseHorizontalPredictor(
+        byte[] pixels,
+        int offset,
+        int rows,
+        int width,
+        int samples) {
+        int rowBytes = checked(width * samples);
+        for (int row = 0; row < rows; row++) {
+            int rowOffset = checked(offset + row * rowBytes);
+            int rowEnd = checked(rowOffset + rowBytes);
+            for (int index = rowOffset + samples; index < rowEnd; index++) {
+                pixels[index] = unchecked((byte)(pixels[index] + pixels[index - samples]));
+            }
+        }
     }
 
     private static bool TryReadScalar(

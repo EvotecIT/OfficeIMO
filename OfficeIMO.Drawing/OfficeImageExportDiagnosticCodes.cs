@@ -13,4 +13,7 @@ public static class OfficeImageExportDiagnosticCodes {
 
     /// <summary>A requested font face was unavailable and a deterministic fallback was selected.</summary>
     public const string FontSubstituted = "IMAGE_FONT_SUBSTITUTED";
+
+    /// <summary>Complex text used the bounded managed fallback because no complete host shaping result was available.</summary>
+    public const string TextShapingFallback = "IMAGE_TEXT_SHAPING_FALLBACK";
 }

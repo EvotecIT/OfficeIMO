@@ -50,6 +50,10 @@ internal static class OneNotePageImageRenderer {
                 Scale = plan.Limit.Scale,
                 Background = effective.BackgroundColor,
                 ImageCodec = fallbackCodec,
+                TextShapingProvider = effective.TextShapingProvider,
+                TextShapingLanguage = effective.TextShapingLanguage,
+                DiagnosticSink = diagnostics,
+                DiagnosticSource = source ?? "OneNote page",
                 CancellationToken = cancellationToken
             });
             byte[] bytes = OfficeRasterImageEncoder.Encode(

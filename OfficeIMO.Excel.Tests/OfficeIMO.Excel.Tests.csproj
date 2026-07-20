@@ -48,6 +48,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\OfficeInteroperabilityCorpusManifest.cs" Link="OfficeInteroperabilityCorpusManifest.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\PdfTestFontAssets.cs" Link="PdfTestFontAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

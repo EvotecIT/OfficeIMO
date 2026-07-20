@@ -37,7 +37,78 @@ public sealed class OfficeTextShapingRequest {
         bool isOpenTypeCff,
         int unitsPerEm,
         OfficeTextDirection direction = OfficeTextDirection.Auto,
-        string? language = null) {
+        string? language = null)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            default,
+            fontCollectionIndex: null,
+            cloneFontData: true) {
+    }
+
+    /// <summary>Creates an immutable text-shaping request with cooperative cancellation.</summary>
+    public OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        System.Threading.CancellationToken cancellationToken)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            cancellationToken,
+            fontCollectionIndex: null,
+            cloneFontData: true) {
+    }
+
+    /// <summary>Creates an immutable text-shaping request for a selected face in a font collection.</summary>
+    public OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        System.Threading.CancellationToken cancellationToken,
+        int? fontCollectionIndex)
+        : this(
+            text,
+            fontName,
+            fontData,
+            isOpenTypeCff,
+            unitsPerEm,
+            direction,
+            language,
+            cancellationToken,
+            fontCollectionIndex,
+            cloneFontData: true) {
+    }
+
+    internal OfficeTextShapingRequest(
+        string text,
+        string fontName,
+        byte[] fontData,
+        bool isOpenTypeCff,
+        int unitsPerEm,
+        OfficeTextDirection direction,
+        string? language,
+        System.Threading.CancellationToken cancellationToken,
+        int? fontCollectionIndex,
+        bool cloneFontData) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
             throw new ArgumentNullException(nameof(fontData));
@@ -50,13 +121,18 @@ public sealed class OfficeTextShapingRequest {
             direction != OfficeTextDirection.RightToLeft) {
             throw new ArgumentOutOfRangeException(nameof(direction), "Text shaping direction must be Auto, LeftToRight, or RightToLeft.");
         }
+        if (fontCollectionIndex < 0) {
+            throw new ArgumentOutOfRangeException(nameof(fontCollectionIndex), "Font collection indexes cannot be negative.");
+        }
 
         FontName = fontName ?? string.Empty;
-        _fontData = (byte[])fontData.Clone();
+        _fontData = cloneFontData ? (byte[])fontData.Clone() : fontData;
         IsOpenTypeCff = isOpenTypeCff;
         UnitsPerEm = unitsPerEm;
+        FontCollectionIndex = fontCollectionIndex;
         Direction = direction;
         Language = string.IsNullOrWhiteSpace(language) ? null : language;
+        CancellationToken = cancellationToken;
     }
 
     /// <summary>Original UTF-16 text to shape.</summary>
@@ -74,11 +150,17 @@ public sealed class OfficeTextShapingRequest {
     /// <summary>Font design units per em used by glyph advances and offsets.</summary>
     public int UnitsPerEm { get; }
 
+    /// <summary>Selected zero-based face when <see cref="FontData"/> contains a TrueType collection.</summary>
+    public int? FontCollectionIndex { get; }
+
     /// <summary>Resolved base direction of the run.</summary>
     public OfficeTextDirection Direction { get; }
 
     /// <summary>Optional BCP 47 language hint.</summary>
     public string? Language { get; }
+
+    /// <summary>Cancellation observed by cooperative host shapers.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; }
 }
 
 /// <summary>A shaped glyph run in visual write order.</summary>

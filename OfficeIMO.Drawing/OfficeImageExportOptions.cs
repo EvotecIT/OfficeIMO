@@ -59,6 +59,19 @@ public class OfficeImageExportOptions {
     /// <summary>Caller-supplied deterministic TrueType faces used before platform fallback.</summary>
     public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
 
+    /// <summary>
+    /// Optional host text shaper used for deterministic complex-script raster output.
+    /// </summary>
+    /// <remarks>
+    /// Hosts can adapt HarfBuzz, DirectWrite, Core Text, or another shaping engine without adding
+    /// that dependency to OfficeIMO. When batch concurrency is enabled, the provider must be safe
+    /// for concurrent calls. Returning <see langword="null"/> keeps the managed fallback path.
+    /// </remarks>
+    public IOfficeTextShapingProvider? TextShapingProvider { get; set; }
+
+    /// <summary>Optional BCP 47 language hint passed to <see cref="TextShapingProvider"/>.</summary>
+    public string? TextShapingLanguage { get; set; }
+
     /// <summary>Diagnostic acceptance policy applied before an export is returned or committed.</summary>
     public OfficeImageExportPolicy Policy { get; set; } = new OfficeImageExportPolicy();
 
@@ -116,6 +129,8 @@ public class OfficeImageExportOptions {
         target.ImageCodec = ImageCodec;
         target.TargetDpi = TargetDpi;
         target.Fonts = Fonts?.Clone() ?? new OfficeFontFaceCollection();
+        target.TextShapingProvider = TextShapingProvider;
+        target.TextShapingLanguage = TextShapingLanguage;
         target.Policy = Policy?.Clone() ?? new OfficeImageExportPolicy();
         target.Progress = Progress;
         target.MaximumOutputCount = MaximumOutputCount;
@@ -162,6 +177,9 @@ public class OfficeImageExportOptions {
         ValidateDpi(RasterEncoding.DpiX, nameof(RasterEncoding.DpiX));
         ValidateDpi(RasterEncoding.DpiY, nameof(RasterEncoding.DpiY));
         if (Fonts == null) throw new InvalidOperationException("Font collection cannot be null.");
+        TextShapingLanguage = string.IsNullOrWhiteSpace(TextShapingLanguage)
+            ? null
+            : TextShapingLanguage!.Trim();
         if (Policy == null) throw new InvalidOperationException("Image export policy cannot be null.");
         if (MaximumOutputCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumOutputCount));
         if (MaximumTotalRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumTotalRasterPixels));

@@ -34,7 +34,7 @@ public sealed partial class OfficeRasterCanvas {
 
         OfficeTrueTypeFont? font = ResolveTextFont(text!, fontFamily, style);
         double measured = font != null
-            ? font.Measure(text!, size)
+            ? MeasureResolvedText(text!, font, size)
             : MeasureFallbackText(text!, size);
         if (cache.Count >= MaxTextMeasurementCacheEntries) {
             cache.Clear();
@@ -101,19 +101,19 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
-            double measured = font.Measure(value, size);
+            double measured = MeasureResolvedText(value, font, size);
             double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
                     value = OfficeTextElements.RemoveLast(value);
                     if (value.Length == 0) break;
-                    measured = font.Measure(value + "...", size);
+                    measured = MeasureResolvedText(value + "...", font, size);
                 }
 
-                if (value.Length == 0 && font.Measure("...", size) > availableWidth) return;
+                if (value.Length == 0 && MeasureResolvedText("...", font, size) > availableWidth) return;
                 if (!string.Equals(value, text, StringComparison.Ordinal)) {
                     value += "...";
-                    measured = font.Measure(value, size);
+                    measured = MeasureResolvedText(value, font, size);
                 }
             }
 
@@ -122,7 +122,7 @@ public sealed partial class OfficeRasterCanvas {
                 : measured;
             double top = y + Math.Max(1D, (height - font.LineHeight(size)) / 2D);
             double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
-            List<List<OfficePoint>> contours = font.GetTextContours(value, textX, top, size);
+            List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size);
             if (measured > 0D && Math.Abs(resolvedAdvance - measured) > 0.0001D) {
                 ScaleContoursX(contours, textX, resolvedAdvance / measured);
             }
@@ -212,7 +212,7 @@ public sealed partial class OfficeRasterCanvas {
         if (font != null) {
             double bottom = top + fontHeight;
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                font.GetTextContours(value, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, top, fontHeight),
                 bottom,
                 simulateItalic,
                 rotationRadians,
@@ -223,7 +223,7 @@ public sealed partial class OfficeRasterCanvas {
             FillContours(contours, color, OfficeFillRule.EvenOdd);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
+                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     bottom,
                     simulateItalic,
                     rotationRadians,
@@ -285,14 +285,14 @@ public sealed partial class OfficeRasterCanvas {
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
-                font.GetTextContours(value, x, top, fontHeight),
+                GetResolvedTextContours(value, font, x, top, fontHeight),
                 top + fontHeight,
                 simulateItalic,
                 transform);
             FillContours(contours, color, OfficeFillRule.EvenOdd);
             if (simulateBold) {
                 contours = TransformTextContours(
-                    font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
+                    GetResolvedTextContours(value, font, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);

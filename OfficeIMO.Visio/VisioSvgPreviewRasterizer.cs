@@ -13,7 +13,33 @@ namespace OfficeIMO.Visio {
         internal static bool TryRasterize(byte[]? data, out OfficeRasterImage? image) =>
             TryRasterize(data, null, out image);
 
-        internal static bool TryRasterize(byte[]? data, Func<string, byte[]?>? imageResolver, out OfficeRasterImage? image) {
+        internal static bool TryRasterize(
+            byte[]? data,
+            Func<string, byte[]?>? imageResolver,
+            out OfficeRasterImage? image) =>
+            TryRasterize(
+                data,
+                imageResolver,
+                outlineFont: null,
+                fonts: null,
+                textShapingProvider: null,
+                textShapingLanguage: null,
+                diagnosticSink: null,
+                diagnosticSource: null,
+                cancellationToken: default,
+                out image);
+
+        internal static bool TryRasterize(
+            byte[]? data,
+            Func<string, byte[]?>? imageResolver,
+            OfficeTrueTypeFont? outlineFont,
+            OfficeFontFaceCollection? fonts,
+            IOfficeTextShapingProvider? textShapingProvider,
+            string? textShapingLanguage,
+            ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
+            string? diagnosticSource,
+            System.Threading.CancellationToken cancellationToken,
+            out OfficeRasterImage? image) {
             image = null;
             if (data == null || data.Length == 0) {
                 return false;
@@ -38,7 +64,15 @@ namespace OfficeIMO.Visio {
             }
 
             OfficeRasterImage raster = new(width, height, OfficeColor.Transparent);
-            OfficeRasterCanvas canvas = new(raster);
+            OfficeRasterCanvas canvas = new(
+                raster,
+                outlineFont,
+                fonts,
+                textShapingProvider,
+                textShapingLanguage,
+                diagnosticSink,
+                diagnosticSource,
+                cancellationToken);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
@@ -54,7 +88,7 @@ namespace OfficeIMO.Visio {
             OfficeRasterImage? rootLayer = null;
             if (useRootOpacityLayer) {
                 rootLayer = new OfficeRasterImage(width, height, OfficeColor.Transparent);
-                targetCanvas = new OfficeRasterCanvas(rootLayer);
+                targetCanvas = CreateLayerCanvas(canvas, rootLayer);
             }
 
             bool rendered = RenderChildren(targetCanvas, root, inherited, transform, context);
@@ -73,6 +107,7 @@ namespace OfficeIMO.Visio {
         private static bool RenderChildren(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
             bool rendered = false;
             foreach (XElement child in element.Elements()) {
+                canvas.CancellationToken.ThrowIfCancellationRequested();
                 if (RenderElement(canvas, child, inherited, transform, context)) {
                     rendered = true;
                 }
@@ -82,6 +117,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool RenderElement(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            canvas.CancellationToken.ThrowIfCancellationRequested();
             string name = element.Name.LocalName;
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
@@ -113,7 +149,7 @@ namespace OfficeIMO.Visio {
 
             if (useElementOpacityLayer) {
                 OfficeRasterImage layer = new(canvas.Width, canvas.Height, OfficeColor.Transparent);
-                OfficeRasterCanvas layerCanvas = new(layer);
+                OfficeRasterCanvas layerCanvas = CreateLayerCanvas(canvas, layer);
                 bool rendered = RenderElementCore(layerCanvas, element, name, paint, localTransform, context);
                 if (!rendered) {
                     return false;
@@ -127,6 +163,19 @@ namespace OfficeIMO.Visio {
             using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
             return RenderElementCore(canvas, element, name, paint, localTransform, context);
         }
+
+        private static OfficeRasterCanvas CreateLayerCanvas(
+            OfficeRasterCanvas parent,
+            OfficeRasterImage image) =>
+            new(
+                image,
+                parent.OutlineFont,
+                parent.Fonts,
+                parent.TextShapingProvider,
+                parent.TextShapingLanguage,
+                parent.DiagnosticSink,
+                parent.DiagnosticSource,
+                parent.CancellationToken);
 
         private static bool CanApplyElementOpacity(string name) =>
             string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||

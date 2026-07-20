@@ -48,6 +48,10 @@ namespace OfficeIMO.PowerPoint {
                     Scale = plan.Limit.Scale,
                     Background = options.BackgroundColor,
                     ImageCodec = fallbackCodec,
+                    TextShapingProvider = options.TextShapingProvider,
+                    TextShapingLanguage = options.TextShapingLanguage,
+                    DiagnosticSink = diagnostics,
+                    DiagnosticSource = source,
                     CancellationToken = cancellationToken
                 });
                 byte[] bytes = OfficeRasterImageEncoder.Encode(

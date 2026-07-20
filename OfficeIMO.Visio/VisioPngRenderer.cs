@@ -31,7 +31,18 @@ namespace OfficeIMO.Visio {
 
             int width = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * options.PixelsPerInch));
             int height = Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * options.PixelsPerInch));
-            RasterCanvas canvas = new(width, height, options.Supersampling, options.BackgroundColor, ResolveTextFont(options), options.Fonts);
+            RasterCanvas canvas = new(
+                width,
+                height,
+                options.Supersampling,
+                options.BackgroundColor,
+                ResolveTextFont(options),
+                options.Fonts,
+                options.TextShapingProvider,
+                options.TextShapingLanguage,
+                options.ImageDiagnostics,
+                options.ImageDiagnosticSource,
+                options.CancellationToken);
             canvas.Scale = options.PixelsPerInch * options.Supersampling;
 
             foreach (VisioShape shape in page.Shapes) {
