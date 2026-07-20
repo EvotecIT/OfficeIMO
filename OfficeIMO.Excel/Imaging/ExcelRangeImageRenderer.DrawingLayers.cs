@@ -3,12 +3,18 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterDrawingLayers(OfficeRasterCanvas canvas, ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void RenderRasterDrawingLayers(
+            OfficeRasterCanvas canvas,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            System.Threading.CancellationToken cancellationToken) {
             foreach (ExcelVisualDrawingLayer layer in snapshot.DrawingLayers) {
+                cancellationToken.ThrowIfCancellationRequested();
                 switch (layer.Kind) {
                     case ExcelVisualDrawingLayerKind.DrawingObject:
                         if (layer.DrawingObject != null) {
-                            RenderRasterDrawingObject(canvas, layer.DrawingObject, options, diagnostics);
+                            RenderRasterDrawingObject(canvas, layer.DrawingObject, options, diagnostics, cancellationToken);
                         }
 
                         break;
@@ -20,7 +26,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case ExcelVisualDrawingLayerKind.Chart:
                         if (layer.Chart != null) {
-                            RenderRasterChart(canvas, snapshot, layer.Chart, options, diagnostics);
+                            RenderRasterChart(canvas, snapshot, layer.Chart, options, diagnostics, cancellationToken);
                         }
 
                         break;

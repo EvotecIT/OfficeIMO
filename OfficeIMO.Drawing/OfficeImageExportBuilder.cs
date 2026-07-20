@@ -157,6 +157,13 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Uses a host shaping engine for complex-script raster text.</summary>
+    public TBuilder WithTextShaping(IOfficeTextShapingProvider provider, string? language = null) {
+        Options.TextShapingProvider = provider ?? throw new ArgumentNullException(nameof(provider));
+        Options.TextShapingLanguage = string.IsNullOrWhiteSpace(language) ? null : language!.Trim();
+        return This;
+    }
+
     /// <summary>Configures diagnostic acceptance before results are returned or committed.</summary>
     public TBuilder WithPolicy(Action<OfficeImageExportPolicy> configure) {
         if (configure == null) throw new ArgumentNullException(nameof(configure));

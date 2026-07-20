@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="TestAssets\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

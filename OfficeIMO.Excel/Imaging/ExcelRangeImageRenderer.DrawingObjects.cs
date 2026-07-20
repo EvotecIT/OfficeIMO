@@ -1,11 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeImageRenderer {
-        private static void RenderRasterDrawingObject(OfficeRasterCanvas canvas, ExcelVisualDrawingObject drawingObject, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void RenderRasterDrawingObject(
+            OfficeRasterCanvas canvas,
+            ExcelVisualDrawingObject drawingObject,
+            ExcelImageExportOptions options,
+            List<OfficeImageExportDiagnostic>? diagnostics,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddRotatedTextApproximationDiagnostic(drawingObject, diagnostics);
             AddTextAutoFitUnsupportedDiagnostic(drawingObject, diagnostics);
             AddTextVerticalOrientationUnsupportedDiagnostic(drawingObject, diagnostics);
@@ -20,7 +27,20 @@ namespace OfficeIMO.Excel {
                 nestedOptions,
                 drawingObject.Source);
             if (plan.Diagnostic != null) diagnostics?.Add(plan.Diagnostic);
-            OfficeRasterImage drawingImage = OfficeDrawingRasterRenderer.Render(scene.Drawing, plan.Limit.Scale);
+            scene.Drawing.Fonts.AddRange(options.Fonts);
+            scene.Drawing.AppendFontDiagnostics(
+                diagnostics ?? new List<OfficeImageExportDiagnostic>(),
+                drawingObject.Source);
+            OfficeRasterImage drawingImage = OfficeDrawingRasterRenderer.Render(
+                scene.Drawing,
+                new OfficeDrawingRasterRenderOptions {
+                    Scale = plan.Limit.Scale,
+                    TextShapingProvider = options.TextShapingProvider,
+                    TextShapingLanguage = options.TextShapingLanguage,
+                    DiagnosticSink = diagnostics,
+                    DiagnosticSource = drawingObject.Source,
+                    CancellationToken = cancellationToken
+                });
             canvas.DrawImage(
                 drawingImage,
                 (drawingObject.X * scale) - scene.OffsetX,
