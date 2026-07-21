@@ -109,6 +109,25 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void HeaderFooterRichText_ResetsBaselineShiftAcrossLines() {
+            byte[] bytes = PdfDocument.Create()
+                .Header(header => header.Text(text => text
+                    .Text("NormalOne\nNormalTwo")
+                    .Run(TextRun.Superscript("Raised\n"))
+                    .Text("NormalThree")))
+                .Paragraph(paragraph => paragraph.Text("Body"))
+                .ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var letters = pdf.GetPage(1).Letters;
+            double firstBaseline = letters.First(letter => letter.Value == "N").StartBaseLine.Y;
+            double secondBaseline = letters.Where(letter => letter.Value == "N").Skip(1).First().StartBaseLine.Y;
+            double thirdBaseline = letters.Where(letter => letter.Value == "N").Skip(2).First().StartBaseLine.Y;
+
+            Assert.InRange(Math.Abs((firstBaseline - secondBaseline) - (secondBaseline - thirdBaseline)), 0D, 0.05D);
+        }
+
+        [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = TextRun.Link("Link", "https://example.com");
             var inline = TextRun.Inline(new PdfInlineBox(12, 8));

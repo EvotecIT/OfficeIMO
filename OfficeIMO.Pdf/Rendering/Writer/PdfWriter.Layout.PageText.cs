@@ -451,6 +451,7 @@ internal static partial class PdfWriter {
             .FillColor(ResolvePageTextColor(color, opts))
             .TextLeading(fontSize * 1.2D);
 
+        double currentTextRise = 0D;
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             System.Collections.Generic.IReadOnlyList<TextRun> line = lines[lineIndex];
             double dx = 0D;
@@ -463,8 +464,11 @@ internal static partial class PdfWriter {
                 }
             }
 
+            if (lineIndex > 0 && Math.Abs(currentTextRise) > 0.0001D) {
+                content.TextRise(0D);
+                currentTextRise = 0D;
+            }
             content.TextMatrix(x + dx, baselines[lineIndex]);
-            double currentTextRise = 0D;
             foreach (TextRun run in line) {
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
@@ -488,6 +492,10 @@ internal static partial class PdfWriter {
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(EncodeTextShowCommand(text, runFont, namedFont, opts), runFontSize);
             }
+        }
+
+        if (Math.Abs(currentTextRise) > 0.0001D) {
+            content.TextRise(0D);
         }
 
         content.EndText();
