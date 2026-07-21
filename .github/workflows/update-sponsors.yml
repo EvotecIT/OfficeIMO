@@ -1,0 +1,21 @@
+name: Update Sponsors
+
+on:
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-sponsors-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  sponsors:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-content.yml@3660eec007084d755cd286c1af622d5d1814db96
+    with:
+      config_path: .powerforge/github-content.json
+    secrets:
+      github_token: ${{ secrets.SPONSORS_TOKEN }}
