@@ -120,6 +120,9 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
+    private static bool HasDirectTableCells(IElement table) =>
+        EnumerateDirectTableRows(table).Any(row => row.Children.Any(IsTableCell));
+
     private static bool IsTableCell(IElement element) => IsElement(element, "th") || IsElement(element, "td");
 
     private static int ReadSpan(

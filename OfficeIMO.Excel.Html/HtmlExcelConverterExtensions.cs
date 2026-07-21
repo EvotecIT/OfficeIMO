@@ -177,6 +177,8 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
+        if (!HasDirectTableCells(table)) return;
+
         if (!budget.TryReserveTable(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Sheet '" + sheet.Name + "' table was omitted because the shared import limit was reached.",

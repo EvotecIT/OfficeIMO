@@ -16,16 +16,10 @@ public static partial class HtmlExcelConverterExtensions {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (tables.Count > 0) {
             for (int index = 0; index < tables.Count; index++) {
-                if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
+                if (!budget.TryReserveSemanticContainerWithTable(out string tableContainerLimit)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Additional HTML tables were omitted because the shared worksheet limit was reached.",
-                        HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: containerLimit);
-                    break;
-                }
-                if (!budget.TryReserveTable(out string tableLimit)) {
-                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Additional HTML tables were omitted because the shared table limit was reached.",
-                        HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: tableLimit);
+                        "Additional HTML tables were omitted because the shared worksheet or table limit was reached.",
+                        HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: tableContainerLimit);
                     break;
                 }
 

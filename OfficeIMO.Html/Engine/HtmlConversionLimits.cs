@@ -85,9 +85,6 @@ public sealed class HtmlConversionLimits {
         ValidatePositive(MaxSelectorEvaluations, nameof(MaxSelectorEvaluations));
         ValidatePositive(MaxResponsiveImageCandidates, nameof(MaxResponsiveImageCandidates));
         ValidatePositive(MaxSemanticMetadataCharacters, nameof(MaxSemanticMetadataCharacters));
-        if (MaxCssBytes.HasValue && MaxTotalCssBytes.HasValue && MaxTotalCssBytes.Value < MaxCssBytes.Value) {
-            throw new ArgumentOutOfRangeException(nameof(MaxTotalCssBytes), "The total CSS byte limit cannot be smaller than the per-stylesheet limit.");
-        }
     }
 
     private static void ValidatePositive(long? value, string name) {

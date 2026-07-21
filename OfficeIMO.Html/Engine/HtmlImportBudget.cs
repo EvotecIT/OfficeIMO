@@ -25,6 +25,18 @@ internal sealed class HtmlImportBudget {
     internal bool TryReserveTable(out string detail) =>
         TryIncrement(ref _tables, _limits.MaxTables, nameof(HtmlImportLimits.MaxTables), out detail);
 
+    internal bool TryReserveSemanticContainerWithTable(out string detail) {
+        if (!CanIncrement(_containers, _limits.MaxSemanticContainers, nameof(HtmlImportLimits.MaxSemanticContainers), out detail)
+            || !CanIncrement(_tables, _limits.MaxTables, nameof(HtmlImportLimits.MaxTables), out detail)) {
+            return false;
+        }
+
+        _containers++;
+        _tables++;
+        detail = string.Empty;
+        return true;
+    }
+
     internal bool TryReserveTableWithShape(out string detail) {
         if (!CanIncrement(_tables, _limits.MaxTables, nameof(HtmlImportLimits.MaxTables), out detail)
             || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) {

@@ -95,6 +95,20 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlConversionDocument_AllowsTotalCssBudgetBelowPerStylesheetBudget() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 64;
+        limits.MaxTotalCssBytes = 8;
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlConversionDocument.Parse("<style>.a{color:red}</style>", new HtmlConversionDocumentOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssTotalSizeLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxTotalCssBytes), exception.LimitSource);
+        Assert.Equal(8L, exception.Limit);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_EnforcesSharedDomAndCssLimitsInsideSrcDoc() {
         const string html = "<iframe srcdoc=\"<style>.a{color:red}</style><main><p>x</p></main>\"></iframe>";
         HtmlDomLimitException nodeException = Assert.Throws<HtmlDomLimitException>(() =>

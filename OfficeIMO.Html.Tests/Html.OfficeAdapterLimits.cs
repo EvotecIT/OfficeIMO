@@ -197,6 +197,54 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void ExcelHtml_SemanticEmptyTableDoesNotConsumeTableBudget() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-schema-version="1">
+              <section class="officeimo-sheet" data-officeimo-sheet="Empty"><table></table></section>
+              <section class="officeimo-sheet" data-officeimo-sheet="Data"><table><tr><td>value</td></tr></table></section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+        limits.MaxSemanticContainers = 2;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Semantic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(2, result.Sheets);
+        Assert.Equal(1, result.Cells);
+        Assert.True(workbook.Sheets[1].TryGetCellText(1, 1, out string text));
+        Assert.Equal("value", text);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+                && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericRejectedTableDoesNotConsumeNarrativeWorksheetBudget() {
+        const string html = """
+            <table><tr><td>first</td></tr></table>
+            <table><tr><td>rejected</td></tr></table>
+            <p>Narrative retained</p>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+        limits.MaxSemanticContainers = 2;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(2, result.Sheets);
+        Assert.Contains(workbook.Sheets,
+            sheet => Enumerable.Range(1, 4).Any(row => sheet.CellAt(row, 1).GetValue<string>() == "Narrative retained"));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+                && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
     public void ExcelHtml_OmitsTextBeyondTheNativeCellLimitWithDiagnostics() {
         string html = "<main class='officeimo-document' data-officeimo-source='excel' data-officeimo-schema-version='1'>"
             + "<section class='officeimo-sheet' data-officeimo-sheet='Data'><table><tr><td>"
