@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>PDF adapter for OfficeIMO.Reader using OfficeIMO.Pdf logical read model.</Description>
+    <Description>PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.</Description>
     <AssemblyName>OfficeIMO.Reader.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Pdf</AssemblyTitle>
     <VersionPrefix>3.0.0</VersionPrefix>
@@ -25,6 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
   </ItemGroup>

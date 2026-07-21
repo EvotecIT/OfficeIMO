@@ -50,44 +50,68 @@ internal static class OfficeManagedTextShaper {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
         string withoutControls = RemoveBidiControls(value!, cancellationToken);
-        var groups = new List<DirectionalGroup>();
-        var current = new StringBuilder();
+        IReadOnlyList<string> elements = new List<string>(OfficeTextElements.Enumerate(withoutControls));
+        IReadOnlyList<string> visualElements = ToVisualOrder(elements, static element => element, cancellationToken);
+        var visual = new StringBuilder(withoutControls.Length);
+        foreach (string element in visualElements) visual.Append(element);
+        return visual.ToString();
+    }
+
+    internal static IReadOnlyList<T> ToVisualOrder<T>(
+        IReadOnlyList<T> elements,
+        Func<T, string> textSelector,
+        System.Threading.CancellationToken cancellationToken = default) {
+        return ToVisualOrder(elements, textSelector, OfficeTextDirection.Auto, cancellationToken);
+    }
+
+    internal static IReadOnlyList<T> ToVisualOrder<T>(
+        IReadOnlyList<T> elements,
+        Func<T, string> textSelector,
+        OfficeTextDirection requestedDirection,
+        System.Threading.CancellationToken cancellationToken = default) {
+        if (elements.Count == 0) return Array.Empty<T>();
+
+        var completeText = new StringBuilder();
+        foreach (T element in elements) completeText.Append(textSelector(element));
+        var groups = new List<DirectionalElementGroup<T>>();
+        var current = new List<T>();
         TextElementDirection? direction = null;
-        OfficeTextDirection baseDirection = OfficeTextElements.ResolveBaseDirection(withoutControls);
+        OfficeTextDirection baseDirection = requestedDirection == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(completeText.ToString())
+            : requestedDirection;
         TextElementDirection neutralDefault =
             baseDirection == OfficeTextDirection.RightToLeft
                 ? TextElementDirection.RightToLeft
                 : TextElementDirection.LeftToRight;
         int elementIndex = 0;
-        foreach (string element in OfficeTextElements.Enumerate(withoutControls)) {
+        foreach (T element in elements) {
             if ((elementIndex++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            TextElementDirection resolved = ResolveDirection(element);
+            TextElementDirection resolved = ResolveDirection(textSelector(element));
             if (resolved == TextElementDirection.Neutral) {
                 resolved = direction ?? neutralDefault;
             }
             if (direction.HasValue && direction.Value != resolved) {
-                groups.Add(new DirectionalGroup(current.ToString(), direction.Value));
+                groups.Add(new DirectionalElementGroup<T>(current.ToArray(), direction.Value));
                 current.Clear();
             }
             direction = resolved;
-            current.Append(element);
+            current.Add(element);
         }
-        if (current.Length > 0) {
-            groups.Add(new DirectionalGroup(current.ToString(), direction ?? neutralDefault));
+        if (current.Count > 0) {
+            groups.Add(new DirectionalElementGroup<T>(current.ToArray(), direction ?? neutralDefault));
         }
 
         if (baseDirection == OfficeTextDirection.RightToLeft) groups.Reverse();
-        var visual = new StringBuilder(withoutControls.Length);
-        foreach (DirectionalGroup group in groups) {
+        var visual = new List<T>(elements.Count);
+        foreach (DirectionalElementGroup<T> group in groups) {
             cancellationToken.ThrowIfCancellationRequested();
             if (group.Direction == TextElementDirection.RightToLeft) {
-                var elements = new List<string>(OfficeTextElements.Enumerate(group.Text));
-                for (int index = elements.Count - 1; index >= 0; index--) visual.Append(elements[index]);
+                for (int index = group.Elements.Count - 1; index >= 0; index--) visual.Add(group.Elements[index]);
             } else {
-                visual.Append(group.Text);
+                visual.AddRange(group.Elements);
             }
         }
-        return visual.ToString();
+        return visual;
     }
 
     private static string RemoveBidiControls(
@@ -142,13 +166,13 @@ internal static class OfficeManagedTextShaper {
         RightToLeft
     }
 
-    private readonly struct DirectionalGroup {
-        internal DirectionalGroup(string text, TextElementDirection direction) {
-            Text = text;
+    private readonly struct DirectionalElementGroup<T> {
+        internal DirectionalElementGroup(IReadOnlyList<T> elements, TextElementDirection direction) {
+            Elements = elements;
             Direction = direction;
         }
 
-        internal string Text { get; }
+        internal IReadOnlyList<T> Elements { get; }
         internal TextElementDirection Direction { get; }
     }
 }

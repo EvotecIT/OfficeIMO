@@ -128,8 +128,8 @@ public sealed class PdfPublicApiContractTests {
                 BindingFlags.Static |
                 BindingFlags.DeclaredOnly).Length);
 
-        Assert.InRange(exportedTypes.Length, 1, 480);
-        Assert.InRange(publicMemberCount, 1, 9500);
+        Assert.InRange(exportedTypes.Length, 1, 500);
+        Assert.InRange(publicMemberCount, 1, 9700);
 
         string[] officeReferences = assembly.GetReferencedAssemblies()
             .Select(reference => reference.Name)

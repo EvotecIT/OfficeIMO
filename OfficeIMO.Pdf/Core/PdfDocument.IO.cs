@@ -130,10 +130,10 @@ public sealed partial class PdfDocument {
     public PdfSaveResult Save(Stream stream) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         ThrowIfTextEncodingPreflightFails();
-        (long bytesWritten, PdfArtifactSnapshot output) = RenderToStreamWithEvidence(stream);
+        (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = RenderToStreamWithEvidence(stream);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
-        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline);
+        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline, serialization);
     }
 
     /// <summary>
@@ -162,14 +162,15 @@ public sealed partial class PdfDocument {
         ThrowIfTextEncodingPreflightFails();
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
+        PdfSerializationReport? serialization = null;
         OfficeFileCommit.Write(fullPath, stream => {
             using var hashingStream = new PdfPipelineHashingStream(stream);
-            (bytesWritten, int? pageCount) = WritePdfCore(hashingStream);
+            (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream);
             output = hashingStream.Complete(pageCount);
         });
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
-        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline);
+        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline, serialization);
     }
 
     /// <summary>
@@ -195,10 +196,10 @@ public sealed partial class PdfDocument {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfTextEncodingPreflightFails();
-        (long bytesWritten, PdfArtifactSnapshot output) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
+        (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
-        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline);
+        return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline, serialization);
     }
 
     /// <summary>
@@ -229,17 +230,18 @@ public sealed partial class PdfDocument {
         ThrowIfTextEncodingPreflightFails();
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
+        PdfSerializationReport? serialization = null;
         await OfficeFileCommit.WriteAsync(
             fullPath,
             stream => {
                 using var hashingStream = new PdfPipelineHashingStream(stream);
-                (bytesWritten, int? pageCount) = WritePdfCore(hashingStream);
+                (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream);
                 output = hashingStream.Complete(pageCount);
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
-        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline);
+        return PdfSaveResult.Success(fullPath, bytesWritten, pipeline, serialization);
     }
 
     /// <summary>
@@ -268,16 +270,16 @@ public sealed partial class PdfDocument {
         return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
     }
 
-    private (long BytesWritten, int? PageCount) RenderToStreamCore(Stream stream) {
-        (long BytesWritten, int? PageCount) output = default;
+    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) RenderToStreamCore(Stream stream) {
+        (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) output = default;
         OfficeStreamWriter.Write(stream, destination => output = WritePdfCore(destination));
         return output;
     }
 
-    private async System.Threading.Tasks.Task<(long BytesWritten, int? PageCount)> RenderToStreamCoreAsync(
+    private async System.Threading.Tasks.Task<(long BytesWritten, int? PageCount, PdfSerializationReport Serialization)> RenderToStreamCoreAsync(
         Stream stream,
         System.Threading.CancellationToken cancellationToken) {
-        (long BytesWritten, int? PageCount) output = default;
+        (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) output = default;
         await OfficeStreamWriter.WriteAsync(
             stream,
             destination => output = WritePdfCore(destination),
@@ -285,26 +287,40 @@ public sealed partial class PdfDocument {
         return output;
     }
 
-    private (long BytesWritten, PdfArtifactSnapshot Output) RenderToStreamWithEvidence(Stream stream) {
+    private (long BytesWritten, PdfArtifactSnapshot Output, PdfSerializationReport Serialization) RenderToStreamWithEvidence(Stream stream) {
         using var hashingStream = new PdfPipelineHashingStream(stream);
-        (long bytesWritten, int? pageCount) = RenderToStreamCore(hashingStream);
+        (long bytesWritten, int? pageCount, PdfSerializationReport serialization) = RenderToStreamCore(hashingStream);
         PdfArtifactSnapshot output = hashingStream.Complete(pageCount);
-        return (bytesWritten, output);
+        return (bytesWritten, output, serialization);
     }
 
-    private async System.Threading.Tasks.Task<(long BytesWritten, PdfArtifactSnapshot Output)> RenderToStreamWithEvidenceAsync(
+    private async System.Threading.Tasks.Task<(long BytesWritten, PdfArtifactSnapshot Output, PdfSerializationReport Serialization)> RenderToStreamWithEvidenceAsync(
         Stream stream,
         System.Threading.CancellationToken cancellationToken) {
         using var hashingStream = new PdfPipelineHashingStream(stream);
-        (long bytesWritten, int? pageCount) = await RenderToStreamCoreAsync(hashingStream, cancellationToken).ConfigureAwait(false);
+        (long bytesWritten, int? pageCount, PdfSerializationReport serialization) = await RenderToStreamCoreAsync(hashingStream, cancellationToken).ConfigureAwait(false);
         PdfArtifactSnapshot output = hashingStream.Complete(pageCount);
-        return (bytesWritten, output);
+        return (bytesWritten, output, serialization);
     }
 
-    private (long BytesWritten, int? PageCount) WritePdfCore(Stream stream) {
+    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) WritePdfCore(Stream stream) {
         if (_source is not null) {
             stream.Write(_source.Bytes, 0, _source.Bytes.Length);
-            return (_source.Bytes.LongLength, _pipeline.Output?.PageCount);
+            int? sourcePageCount = _pipeline.Output?.PageCount;
+            return (
+                _source.Bytes.LongLength,
+                sourcePageCount,
+                new PdfSerializationReport(
+                    sourcePageCount,
+                    _source.Bytes.LongLength,
+                    0L,
+                    0L,
+                    0L,
+                    0L,
+                    pageContentSpilled: false,
+                    objectBufferSpilled: false,
+                    finalArtifactBuffered: false,
+                    sourcePassthrough: true));
         }
 
         long bytesWritten = PdfWriter.Write(
@@ -316,8 +332,9 @@ public sealed partial class PdfDocument {
             _author,
             _subject,
             _keywords,
-            out int pageCount);
-        return (bytesWritten, pageCount);
+            out int pageCount,
+            out PdfSerializationReport serializationReport);
+        return (bytesWritten, pageCount, serializationReport);
     }
 
     private void ThrowIfTextEncodingPreflightFails() {

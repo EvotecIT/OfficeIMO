@@ -7,6 +7,42 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfPngTestImages {
+    internal static byte[] CreateTwoFrameApng() {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 6, 0, 0, 0
+        });
+        WritePngChunk(ms, "acTL", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 0
+        });
+        byte[] frameControl = {
+            0, 0, 0, 0,
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 1,
+            0, 100,
+            0,
+            0
+        };
+        WritePngChunk(ms, "fcTL", frameControl);
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 255, 0, 0, 255 }));
+
+        frameControl[3] = 1;
+        WritePngChunk(ms, "fcTL", frameControl);
+        byte[] secondFrame = BuildStoredZlib(new byte[] { 0, 0, 255, 0, 255 });
+        byte[] frameData = new byte[secondFrame.Length + 4];
+        frameData[3] = 2;
+        Buffer.BlockCopy(secondFrame, 0, frameData, 4, secondFrame.Length);
+        WritePngChunk(ms, "fdAT", frameData);
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
     internal static byte[] Create16BitRgbPng(bool includeTransparency = false) {
         using var ms = CreatePng();
         WritePngChunk(ms, "IHDR", new byte[] {

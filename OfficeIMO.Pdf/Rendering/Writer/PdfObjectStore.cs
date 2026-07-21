@@ -10,6 +10,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
     private readonly List<Entry> _entries = new List<Entry>();
     private readonly long _memoryLimitBytes;
     private long _memoryBytes;
+    private long _peakMemoryBytes;
     private FileStream? _spillStream;
     private string? _spillPath;
     private byte[]? _copyBuffer;
@@ -23,6 +24,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
     internal bool IsSpilled => _spillStream != null;
     internal string? SpillPath => _spillPath;
     internal long RetainedMemoryBytes => _memoryBytes;
+    internal long PeakRetainedMemoryBytes => _peakMemoryBytes;
     public int Count => _entries.Count;
     public bool IsReadOnly => false;
 
@@ -49,6 +51,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
             if (_spillStream == null && _memoryBytes - previous.Length + value.LongLength <= _memoryLimitBytes) {
                 _entries[index] = Entry.InMemory(value);
                 _memoryBytes = _memoryBytes - previous.Length + value.LongLength;
+                _peakMemoryBytes = Math.Max(_peakMemoryBytes, _memoryBytes);
                 return;
             }
 
@@ -63,6 +66,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         if (_spillStream == null && _memoryBytes + item.LongLength <= _memoryLimitBytes) {
             _entries.Add(Entry.InMemory(item));
             _memoryBytes += item.LongLength;
+            _peakMemoryBytes = Math.Max(_peakMemoryBytes, _memoryBytes);
             return;
         }
 
@@ -91,6 +95,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
             }
             _entries.Add(Entry.InMemory(bytes));
             _memoryBytes += totalLength;
+            _peakMemoryBytes = Math.Max(_peakMemoryBytes, _memoryBytes);
             return;
         }
 
@@ -132,6 +137,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         ThrowIfDisposed();
         _entries.Clear();
         _memoryBytes = 0L;
+        _peakMemoryBytes = 0L;
         if (_spillStream != null) {
             _spillStream.SetLength(0L);
             _spillStream.Position = 0L;
@@ -173,6 +179,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         _disposed = true;
         _entries.Clear();
         _memoryBytes = 0L;
+        _peakMemoryBytes = 0L;
         _copyBuffer = null;
         _spillStream?.Dispose();
         _spillStream = null;

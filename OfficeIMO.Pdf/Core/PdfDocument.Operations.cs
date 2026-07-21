@@ -87,6 +87,37 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Assesses several mutation families against one shared preflight snapshot.
+    /// </summary>
+    /// <remarks>
+    /// This is a portfolio view over the existing mutation planner, not a second capability table.
+    /// It is useful for deciding which annotation, navigation, form, appearance, security, and page
+    /// workflows can be offered for one input before any mutation is attempted.
+    /// </remarks>
+    public PdfMutationPortfolioReport AssessMutations(
+        IEnumerable<PdfMutationOperation>? operations = null,
+        IEnumerable<string>? fieldNames = null,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        PdfMutationOperation[] requested;
+        if (operations != null) {
+            requested = operations.Distinct().OrderBy(static operation => operation).ToArray();
+        } else {
+#pragma warning disable CA2263 // Generic Enum.GetValues is unavailable on netstandard2.0 and net472.
+            requested = Enum.GetValues(typeof(PdfMutationOperation)).Cast<PdfMutationOperation>().OrderBy(static operation => operation).ToArray();
+#pragma warning restore CA2263
+        }
+        if (requested.Length == 0) throw new ArgumentException("At least one mutation operation is required.", nameof(operations));
+        string[]? requestedFieldNames = fieldNames?.ToArray();
+        PdfDocumentPreflight preflight = Preflight(options);
+        var plans = new PdfMutationPlan[requested.Length];
+        for (int index = 0; index < requested.Length; index++) {
+            plans[index] = PdfMutationPlanner.Plan(preflight, requested[index], requestedFieldNames, executionPreference);
+        }
+        return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
+    }
+
+    /// <summary>
     /// Validates signature structure, byte ranges, and preservation markers for this PDF.
     /// </summary>
     public PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) {
@@ -106,6 +137,25 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfReadOptions? options = null) {
         return PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(Inspect(options).Security);
+    }
+
+    /// <summary>
+    /// Assesses managed page-render fidelity without rasterizing or writing image artifacts.
+    /// </summary>
+    /// <remarks>
+    /// The result uses the same per-page capability diagnostics consumed by PNG/SVG export, keeping
+    /// Type 3/CFF substitution, ICC, pattern, annotation-appearance, blend, mask, and resource gaps
+    /// tied to one registry rather than a duplicate compatibility table.
+    /// </remarks>
+    public PdfRenderCompatibilityReport AssessRenderCompatibility(PdfReadOptions? options = null) {
+        var snapshot = GetReadSnapshot(options);
+        var pages = new PdfRenderCompatibilityPage[snapshot.Document.Pages.Count];
+        for (int index = 0; index < pages.Length; index++) {
+            pages[index] = new PdfRenderCompatibilityPage(
+                index + 1,
+                snapshot.Document.Pages[index].GetRenderCapabilityDiagnostics());
+        }
+        return new PdfRenderCompatibilityReport(Array.AsReadOnly(pages));
     }
 
     /// <summary>

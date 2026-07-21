@@ -240,6 +240,53 @@ internal static class OfficeDocumentModelTraversal {
         ?? location?.NormalizedStartLine
         ?? int.MaxValue;
 
+    internal static string BuildBlockIdentity(OfficeDocumentBlock block) {
+        if (!string.IsNullOrWhiteSpace(block.Id)) return "id:" + block.Id;
+        string? anchor = block.Location?.BlockAnchor;
+        if (!string.IsNullOrWhiteSpace(anchor)) return "anchor:" + anchor;
+        return BuildLocatedIdentity(block, block.Location, block.Kind, block.Text);
+    }
+
+    internal static string BuildAssetIdentity(OfficeDocumentAsset asset) {
+        if (!string.IsNullOrWhiteSpace(asset.Id)) return "id:" + asset.Id;
+        if (!string.IsNullOrWhiteSpace(asset.SourceObjectId)) return "source:" + asset.SourceObjectId;
+        if (!string.IsNullOrWhiteSpace(asset.PayloadHash)) return "hash:" + asset.PayloadHash;
+        string? anchor = asset.Location?.BlockAnchor;
+        if (!string.IsNullOrWhiteSpace(anchor)) return "anchor:" + anchor;
+        return BuildLocatedIdentity(asset, asset.Location, asset.FileName, asset.MediaType, asset.Kind);
+    }
+
+    internal static string BuildLinkIdentity(OfficeDocumentLink link) {
+        if (!string.IsNullOrWhiteSpace(link.Id)) return "id:" + link.Id;
+        string? anchor = link.Location?.BlockAnchor;
+        if (!string.IsNullOrWhiteSpace(anchor)) return "anchor:" + anchor;
+        return BuildLocatedIdentity(link, link.Location, link.Uri, link.DestinationName, link.RemoteFile, link.Text);
+    }
+
+    internal static string BuildFormIdentity(OfficeDocumentFormField form) {
+        if (!string.IsNullOrWhiteSpace(form.Id)) return "id:" + form.Id;
+        string? anchor = form.Location?.BlockAnchor;
+        if (!string.IsNullOrWhiteSpace(anchor)) return "anchor:" + anchor;
+        return BuildLocatedIdentity(form, form.Location, form.Name, form.Kind);
+    }
+
+    private static string BuildLocatedIdentity<T>(T instance, ReaderLocation? location, params string?[] values) where T : class {
+        var builder = new StringBuilder();
+        AppendLocationIdentity(builder, location, null, null);
+        bool hasLocation = location != null && (
+            !string.IsNullOrWhiteSpace(location.Path) ||
+            !string.IsNullOrWhiteSpace(location.Sheet) ||
+            location.Page.HasValue ||
+            location.Slide.HasValue ||
+            location.BlockIndex.HasValue ||
+            location.SourceBlockIndex.HasValue ||
+            location.StartLine.HasValue ||
+            location.TableIndex.HasValue);
+        if (!hasLocation) return "reference:" + RuntimeHelpers.GetHashCode(instance).ToString(CultureInfo.InvariantCulture);
+        for (int index = 0; index < values.Length; index++) AppendIdentity(builder, values[index]);
+        return builder.ToString();
+    }
+
     private static int IncrementIdentity(IDictionary<string, int> counts, string identity) {
         counts.TryGetValue(identity, out int count);
         count++;
@@ -247,7 +294,7 @@ internal static class OfficeDocumentModelTraversal {
         return count;
     }
 
-    private static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback, int? fallbackTableIndex) {
+    internal static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback = null, int? fallbackTableIndex = null) {
         var builder = new StringBuilder();
         AppendIdentity(builder, table.PayloadHash);
         AppendIdentity(builder, table.CallId);
@@ -259,6 +306,9 @@ internal static class OfficeDocumentModelTraversal {
         AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
         return builder.ToString();
     }
+
+    internal static string BuildTableIdentity(ReaderTable table, OfficeDocumentPage page, int tableIndex) =>
+        BuildTableIdentity(WithPageLocationFallback(table, page, tableIndex));
 
     private static ReaderTable WithPageLocationFallback(ReaderTable table, OfficeDocumentPage page, int tableIndex) {
         ReaderLocation fallback = BuildPageLocation(page);

@@ -7,6 +7,7 @@ internal sealed class PdfPageContentStore : IDisposable {
     private readonly List<Entry> _entries = new List<Entry>();
     private readonly long _memoryLimitBytes;
     private long _memoryBytes;
+    private long _peakMemoryBytes;
     private FileStream? _spillStream;
     private string? _spillPath;
     private bool _disposed;
@@ -21,6 +22,7 @@ internal sealed class PdfPageContentStore : IDisposable {
     internal bool IsSpilled => _spillStream != null;
     internal string? SpillPath => _spillPath;
     internal long RetainedMemoryBytes => _memoryBytes;
+    internal long PeakRetainedMemoryBytes => _peakMemoryBytes;
 
     internal PdfPageContentHandle Store(string content) {
         ThrowIfDisposed();
@@ -29,6 +31,7 @@ internal sealed class PdfPageContentStore : IDisposable {
         if (_spillStream == null && _memoryBytes + bytes.LongLength <= _memoryLimitBytes) {
             _entries.Add(Entry.InMemory(bytes));
             _memoryBytes += bytes.LongLength;
+            _peakMemoryBytes = Math.Max(_peakMemoryBytes, _memoryBytes);
         } else {
             EnsureSpillStorage();
             _entries.Add(AppendToSpill(bytes));
@@ -53,6 +56,7 @@ internal sealed class PdfPageContentStore : IDisposable {
         _disposed = true;
         _entries.Clear();
         _memoryBytes = 0L;
+        _peakMemoryBytes = 0L;
         _spillStream?.Dispose();
         _spillStream = null;
         if (_spillPath != null) {

@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) =>
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _)!;
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _, out _, out _, out _)!;
 
     internal static (byte[] Bytes, PdfGeneratedDocumentComplianceEvidence ComplianceEvidence) WriteComplianceArtifact(
         PdfDocument doc,
@@ -27,12 +27,13 @@ internal static partial class PdfWriter {
             outputStream: null,
             out _,
             out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
+            out _,
             out _)!;
         return (bytes, complianceEvidence);
     }
 
     public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
-        return Write(destination, doc, blocks, opts, title, author, subject, keywords, out _);
+        return Write(destination, doc, blocks, opts, title, author, subject, keywords, out _, out _);
     }
 
     internal static long Write(
@@ -44,9 +45,10 @@ internal static partial class PdfWriter {
         string? author,
         string? subject,
         string? keywords,
-        out int pageCount) {
+        out int pageCount,
+        out PdfSerializationReport serializationReport) {
         Guard.NotNull(destination, nameof(destination));
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _, out pageCount);
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten, out _, out pageCount, out serializationReport);
         return bytesWritten;
     }
 
@@ -61,7 +63,8 @@ internal static partial class PdfWriter {
         Stream? outputStream,
         out long bytesWritten,
         out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
-        out int pageCount) {
+        out int pageCount,
+        out PdfSerializationReport serializationReport) {
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
@@ -900,14 +903,51 @@ internal static partial class PdfWriter {
             effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf15);
         }
         if (outputStream != null) {
-            bytesWritten = PdfFileAssembler.Assemble(outputStream, objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot, opts.ObjectBufferMemoryLimitBytes);
+            bytesWritten = PdfFileAssembler.AssembleWithEvidence(
+                outputStream,
+                objects,
+                catalogId,
+                infoId,
+                effectiveFileVersion,
+                opts.EncryptionSnapshot,
+                opts.ObjectBufferMemoryLimitBytes,
+                trailerIdEntry: null,
+                out PdfFileAssemblyBufferEvidence bufferEvidence);
+            serializationReport = CreateSerializationReport(layout, bufferEvidence, opts, pageCount, bytesWritten, finalArtifactBuffered: false);
             return null;
         }
 
-        byte[] bytes = PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot, opts.ObjectBufferMemoryLimitBytes);
+        byte[] bytes = PdfFileAssembler.AssembleWithEvidence(
+            objects,
+            catalogId,
+            infoId,
+            effectiveFileVersion,
+            opts.EncryptionSnapshot,
+            opts.ObjectBufferMemoryLimitBytes,
+            out PdfFileAssemblyBufferEvidence inMemoryBufferEvidence);
         bytesWritten = bytes.LongLength;
+        serializationReport = CreateSerializationReport(layout, inMemoryBufferEvidence, opts, pageCount, bytesWritten, finalArtifactBuffered: true);
         return bytes;
     }
+
+    private static PdfSerializationReport CreateSerializationReport(
+        LayoutResult layout,
+        PdfFileAssemblyBufferEvidence bufferEvidence,
+        PdfOptions options,
+        int pageCount,
+        long bytesWritten,
+        bool finalArtifactBuffered) =>
+        new PdfSerializationReport(
+            pageCount,
+            bytesWritten,
+            options.PageContentMemoryLimitBytes,
+            options.ObjectBufferMemoryLimitBytes,
+            layout.PeakRetainedPageContentBytes,
+            bufferEvidence.PeakRetainedObjectBytes,
+            layout.PageContentSpilled,
+            bufferEvidence.ObjectBufferSpilled,
+            finalArtifactBuffered,
+            sourcePassthrough: false);
 
     private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {
         if (string.IsNullOrEmpty(content) || images.Count == 0) {

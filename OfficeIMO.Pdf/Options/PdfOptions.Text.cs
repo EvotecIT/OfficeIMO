@@ -170,6 +170,18 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
+    /// Uses the shared dependency-light Drawing provider for bounded Arabic joining and bidirectional text.
+    /// </summary>
+    /// <remarks>
+    /// The provider declines scripts and font programs outside its proven managed subset, allowing the
+    /// normal PDF fallback and shaping diagnostics to remain authoritative.
+    /// </remarks>
+    public PdfOptions UseManagedTextShaping() {
+        TextShapingProvider = OfficeManagedTextShapingProvider.Instance;
+        return this;
+    }
+
+    /// <summary>
     /// Records generated text diagnostics encountered while writing PDF content.
     /// </summary>
     /// <param name="report">Mutable conversion report that receives text encoding, missing-glyph, shaping, and embedded-font diagnostics.</param>

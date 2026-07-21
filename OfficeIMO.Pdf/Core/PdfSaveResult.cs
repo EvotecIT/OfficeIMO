@@ -10,7 +10,8 @@ public sealed class PdfSaveResult {
         IReadOnlyList<string> diagnostics,
         Exception? exception,
         PdfConversionReport? report = null,
-        PdfPipelineReport? pipeline = null) {
+        PdfPipelineReport? pipeline = null,
+        PdfSerializationReport? serialization = null) {
         OutputPath = outputPath;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
@@ -19,6 +20,7 @@ public sealed class PdfSaveResult {
         Report = Snapshot(report);
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
         Pipeline = pipeline ?? PdfPipelineReport.Empty();
+        Serialization = serialization;
     }
 
     /// <summary>True when the save operation completed.</summary>
@@ -44,6 +46,9 @@ public sealed class PdfSaveResult {
 
     /// <summary>End-to-end create/open, mutation, and output evidence for this save attempt.</summary>
     public PdfPipelineReport Pipeline { get; }
+
+    /// <summary>Bounded serialization evidence for a successful save, when available.</summary>
+    public PdfSerializationReport? Serialization { get; }
 
     /// <summary>Source-conversion and structured output warnings for this save attempt.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
@@ -83,8 +88,9 @@ public sealed class PdfSaveResult {
     internal static PdfSaveResult Success(
         string? outputPath,
         long bytesWritten,
-        PdfPipelineReport? pipeline = null) {
-        return new PdfSaveResult(outputPath, bytesWritten, Array.Empty<string>(), null, pipeline: pipeline);
+        PdfPipelineReport? pipeline = null,
+        PdfSerializationReport? serialization = null) {
+        return new PdfSaveResult(outputPath, bytesWritten, Array.Empty<string>(), null, pipeline: pipeline, serialization: serialization);
     }
 
     internal static PdfSaveResult Failed(
@@ -97,7 +103,7 @@ public sealed class PdfSaveResult {
     }
 
     internal PdfSaveResult WithReport(PdfConversionReport report) {
-        return new PdfSaveResult(OutputPath, BytesWritten, Diagnostics, Exception, report, Pipeline);
+        return new PdfSaveResult(OutputPath, BytesWritten, Diagnostics, Exception, report, Pipeline, Serialization);
     }
 
     private static PdfConversionReport Snapshot(PdfConversionReport? report) {

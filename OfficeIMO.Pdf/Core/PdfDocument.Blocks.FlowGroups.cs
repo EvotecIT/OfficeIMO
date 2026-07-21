@@ -12,6 +12,24 @@ public sealed partial class PdfDocument {
         return Flow(component.Compose, options, capture);
     }
 
+    /// <summary>
+    /// Adds a reusable page-aware component through the existing deferred-flow replay path.
+    /// </summary>
+    /// <remarks>
+    /// The component does not introduce a separate measurement or layout engine. It is materialized
+    /// by <see cref="Deferred"/> and may be invoked more than once while pagination stabilizes.
+    /// </remarks>
+    public PdfDocument Component(
+        IPdfContextComponent component,
+        PdfFlowOptions? options = null,
+        PdfLayoutPositionCapture? capture = null) {
+        Guard.NotNull(component, nameof(component));
+        return Deferred(
+            context => content => component.Compose(content, context),
+            options,
+            capture);
+    }
+
     /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
     public PdfDocument Flow(
         Action<PdfItemCompose> compose,
