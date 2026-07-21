@@ -424,6 +424,44 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Blocked image", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("rules", HtmlConversionDiagnosticCodes.CssRuleLimitExceeded, nameof(HtmlConversionLimits.MaxCssRules))]
+    [InlineData("declarations", HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded, nameof(HtmlConversionLimits.MaxCssDeclarations))]
+    [InlineData("selectors", HtmlConversionDiagnosticCodes.CssSelectorEvaluationLimitExceeded, nameof(HtmlConversionLimits.MaxSelectorEvaluations))]
+    public void WordHtml_PreparedDocumentCssComplexityLimitsRemainAuthoritative(
+        string limitKind,
+        string expectedCode,
+        string expectedSource) {
+        HtmlConversionLimits limits = HtmlConversionLimits.CreateTrustedProfile();
+        string html;
+        switch (limitKind) {
+            case "rules":
+                limits.MaxCssRules = 1;
+                html = "<style>p { color:red } strong { color:blue }</style><p>text</p>";
+                break;
+            case "declarations":
+                limits.MaxCssDeclarations = 1;
+                html = "<style>p { color:red; font-weight:bold }</style><p>text</p>";
+                break;
+            default:
+                limits.MaxSelectorEvaluations = 1;
+                html = "<style>p { color:red } strong { color:blue }</style><p>text</p>";
+                break;
+        }
+
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Trust = HtmlInputTrust.Trusted,
+            Limits = limits
+        });
+        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+
+        HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+            () => source.ToWordDocumentResult(permissiveOptions));
+
+        Assert.Equal(expectedCode, exception.Code);
+        Assert.Equal(expectedSource, exception.LimitSource);
+    }
+
     [Fact]
     public void PowerPointHtml_RejectsNonFiniteGeometryWithAVisibleFallbackDiagnostic() {
         const string html = """

@@ -22,9 +22,11 @@ public static partial class HtmlPowerPointConverterExtensions {
     /// </summary>
     public static HtmlToPowerPointResult ToPowerPointPresentationResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
+        const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
+        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
+        HtmlSemanticDocument semanticDocument = document.CreateSemanticDocumentForConversion(mediaContext);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
-        return ImportDocument(adapterDocument, document.SemanticDocument, document.Trust, resolved, document.Diagnostics);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, document.Diagnostics);
     }
 
     private static HtmlToPowerPointResult ImportDocument(

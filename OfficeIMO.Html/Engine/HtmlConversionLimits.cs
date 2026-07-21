@@ -74,6 +74,26 @@ public sealed class HtmlConversionLimits {
         MaxSemanticMetadataCharacters = MaxSemanticMetadataCharacters
     };
 
+    /// <summary>
+    /// Combines two shared limit sets without allowing either boundary to be relaxed.
+    /// </summary>
+    internal static HtmlConversionLimits Intersect(HtmlConversionLimits? first, HtmlConversionLimits? second) {
+        HtmlConversionLimits left = first ?? CreateTrustedProfile();
+        HtmlConversionLimits right = second ?? CreateTrustedProfile();
+        return new HtmlConversionLimits {
+            MaxInputCharacters = Minimum(left.MaxInputCharacters, right.MaxInputCharacters),
+            MaxHtmlNodes = Minimum(left.MaxHtmlNodes, right.MaxHtmlNodes),
+            MaxHtmlDepth = Minimum(left.MaxHtmlDepth, right.MaxHtmlDepth),
+            MaxCssBytes = Minimum(left.MaxCssBytes, right.MaxCssBytes),
+            MaxTotalCssBytes = Minimum(left.MaxTotalCssBytes, right.MaxTotalCssBytes),
+            MaxCssRules = Minimum(left.MaxCssRules, right.MaxCssRules),
+            MaxCssDeclarations = Minimum(left.MaxCssDeclarations, right.MaxCssDeclarations),
+            MaxSelectorEvaluations = Minimum(left.MaxSelectorEvaluations, right.MaxSelectorEvaluations),
+            MaxResponsiveImageCandidates = Minimum(left.MaxResponsiveImageCandidates, right.MaxResponsiveImageCandidates),
+            MaxSemanticMetadataCharacters = Minimum(left.MaxSemanticMetadataCharacters, right.MaxSemanticMetadataCharacters)
+        };
+    }
+
     internal void Validate() {
         ValidatePositive(MaxInputCharacters, nameof(MaxInputCharacters));
         ValidatePositive(MaxHtmlNodes, nameof(MaxHtmlNodes));
@@ -91,5 +111,17 @@ public sealed class HtmlConversionLimits {
         if (value.HasValue && value.Value <= 0L) {
             throw new ArgumentOutOfRangeException(name, "HTML conversion limits must be positive when configured.");
         }
+    }
+
+    private static int? Minimum(int? first, int? second) {
+        if (!first.HasValue) return second;
+        if (!second.HasValue) return first;
+        return Math.Min(first.Value, second.Value);
+    }
+
+    private static long? Minimum(long? first, long? second) {
+        if (!first.HasValue) return second;
+        if (!second.HasValue) return first;
+        return Math.Min(first.Value, second.Value);
     }
 }

@@ -23,9 +23,11 @@ public static partial class HtmlExcelConverterExtensions {
     /// </summary>
     public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
+        const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
+        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(mediaContext);
+        HtmlSemanticDocument semanticDocument = document.CreateSemanticDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
-        return ImportDocument(adapterDocument, document.SemanticDocument, document.Trust, resolved, document.Diagnostics);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, document.Diagnostics);
     }
 
     private static HtmlToExcelResult ImportDocument(

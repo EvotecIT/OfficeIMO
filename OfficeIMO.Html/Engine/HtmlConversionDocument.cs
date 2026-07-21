@@ -89,6 +89,16 @@ public sealed partial class HtmlConversionDocument {
     }
 
     /// <summary>
+    /// Builds the shared semantic projection in the media context requested by a native target adapter.
+    /// </summary>
+    internal HtmlSemanticDocument CreateSemanticDocumentForConversion(HtmlCssMediaContext mediaContext) {
+        if (!Enum.IsDefined(typeof(HtmlCssMediaContext), mediaContext)) throw new ArgumentOutOfRangeException(nameof(mediaContext));
+        if (mediaContext == _mediaContext) return _semanticDocument.Value;
+        IHtmlDocument document = CreateDocumentForConversion(mediaContext);
+        return AnalyzeSource(() => HtmlSemanticDocumentBuilder.FromDocument(document, mediaContext, _options.Limits));
+    }
+
+    /// <summary>
     /// Creates an independent clone of the canonical source DOM for adapters that must apply
     /// their own element filters before URL resolution. Parsing remains owned by OfficeIMO.Html.
     /// </summary>

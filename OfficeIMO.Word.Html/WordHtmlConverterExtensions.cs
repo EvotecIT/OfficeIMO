@@ -89,6 +89,7 @@ namespace OfficeIMO.Word.Html {
             HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
             resolved.HyperlinkUrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, resolved.HyperlinkUrlPolicy);
             resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, resolved.ResourceUrlPolicy);
+            resolved.Limits = HtmlConversionLimits.Intersect(document.Limits, resolved.Limits);
             return resolved;
         }
 

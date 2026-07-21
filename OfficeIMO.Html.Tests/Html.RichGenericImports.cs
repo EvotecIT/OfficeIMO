@@ -45,6 +45,36 @@ public class HtmlRichGenericImports {
     }
 
     [Fact]
+    public void GenericScreenAdaptersBuildSemanticsInTheirTargetMediaContext() {
+        const string html = """
+            <style>
+              @media print { p { font-weight: normal; } }
+              @media screen { p { font-weight: bold; } }
+            </style>
+            <p>Screen target</p>
+            """;
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.HighFidelityPrint
+        });
+
+        HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = excelResult.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        ExcelCell excelCell = Assert.Single(Enumerable.Range(1, 4)
+            .Select(row => sheet.CellAt(row, 1)), cell => cell.GetValue<string>() == "Screen target");
+        Assert.True(Assert.Single(excelCell.GetRichText()).Bold);
+
+        HtmlToPowerPointResult powerPointResult = source.ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = powerPointResult.Value;
+        PowerPointTextBox textBox = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            candidate => candidate.Text == "Screen target");
+        PowerPointTextRun powerPointRun = Assert.Single(Assert.Single(textBox.Paragraphs).Runs);
+        Assert.True(powerPointRun.Bold);
+    }
+
+    [Fact]
     public void GenericNativeAdaptersPreserveMixedInlineContainerAsOneLinkedBlock() {
         const string html = "<div>Read <a href='https://example.test/report'>the report</a> now.</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
