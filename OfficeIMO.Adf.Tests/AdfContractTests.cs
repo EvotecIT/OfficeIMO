@@ -1,5 +1,7 @@
+using System.Linq;
 using System.Text.Json;
 using OfficeIMO.Adf;
+using OfficeIMO.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Adf.Tests;
@@ -95,5 +97,57 @@ public sealed class AdfContractTests {
 
         Assert.Contains("[details](https://example.com/details 'Ready \"now\"')", result.Value);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
+    }
+
+    [Fact]
+    public void CodeBlockProjection_UsesFenceThatCannotCollideWithContent() {
+        const string content = "before\n```\n# still code\nafter";
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("codeBlock") { Content = { AdfNode.TextNode(content) } });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.StartsWith(MarkdownFence.BuildSafeFence(content), markdown.Value);
+        AdfNode codeBlock = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal("codeBlock", codeBlock.Type);
+        Assert.Equal(content, Assert.Single(codeBlock.Content).Text);
+    }
+
+    [Theory]
+    [InlineData("# Heading")]
+    [InlineData("> quote")]
+    [InlineData("- item")]
+    [InlineData("1. item")]
+    public void ParagraphProjection_EscapesLineLeadingBlockSyntax(string text) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode(text) } });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        AdfNode paragraph = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal("paragraph", paragraph.Type);
+        Assert.Equal(text, string.Concat(paragraph.Content.Select(node => node.Text)));
+    }
+
+    [Fact]
+    public void InlineCodeProjection_PreservesBackticksAndCombinedMarksRegardlessOfOrder() {
+        const string content = "value`tick";
+        foreach (AdfMark[] marks in new[] {
+                     new[] { new AdfMark("strong"), new AdfMark("code") },
+                     new[] { new AdfMark("code"), new AdfMark("strong") },
+                 }) {
+            var document = new AdfDocument();
+            document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode(content, marks) } });
+
+            AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+            AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+            AdfNode text = Assert.Single(Assert.Single(roundTrip.Value.Content).Content);
+            Assert.Equal(content, text.Text);
+            Assert.Contains(text.Marks, mark => mark.Type == "strong");
+            Assert.Contains(text.Marks, mark => mark.Type == "code");
+        }
     }
 }

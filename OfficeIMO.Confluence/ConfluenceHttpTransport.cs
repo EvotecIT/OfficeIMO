@@ -103,7 +103,7 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
     }
 
     internal Task<ConfluenceHttpResponse> SendMultipartAsync(string relativeUri, Func<HttpContent> contentFactory, CancellationToken cancellationToken) =>
-        SendAsync(HttpMethod.Put, relativeUri, contentFactory, request => request.Headers.TryAddWithoutValidation("X-Atlassian-Token", "nocheck"), ConfluenceRequestSafety.NonIdempotent, cancellationToken);
+        SendAsync(HttpMethod.Post, relativeUri, contentFactory, request => request.Headers.TryAddWithoutValidation("X-Atlassian-Token", "nocheck"), ConfluenceRequestSafety.NonIdempotent, cancellationToken);
 
     public void Dispose() {
         if (_disposed) return;
@@ -112,19 +112,43 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
     }
 
     private async Task SendToStreamCoreAsync(HttpMethod method, string relativeUri, Stream destination, CancellationToken cancellationToken) {
-        await SendAsync(
-                method,
-                relativeUri,
-                null,
-                null,
-                ConfluenceRequestSafety.SafeToRetry,
-                cancellationToken,
-                async (response, token) => {
-                    using Stream source = await ReadAsStreamAsync(response.Content, token).ConfigureAwait(false);
-                    await source.CopyToAsync(destination, 81920, token).ConfigureAwait(false);
-                    return true;
-                })
-            .ConfigureAwait(false);
+        string bufferPath = Path.Combine(Path.GetTempPath(), "officeimo-confluence-" + Guid.NewGuid().ToString("N") + ".tmp");
+        try {
+            using (var buffer = new FileStream(
+                       bufferPath,
+                       FileMode.CreateNew,
+                       FileAccess.ReadWrite,
+                       FileShare.None,
+                       81920,
+                       FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                await SendAsync(
+                        method,
+                        relativeUri,
+                        null,
+                        null,
+                        ConfluenceRequestSafety.SafeToRetry,
+                        cancellationToken,
+                        async (response, token) => {
+                            buffer.Position = 0;
+                            buffer.SetLength(0);
+                            using Stream source = await ReadAsStreamAsync(response.Content, token).ConfigureAwait(false);
+                            await source.CopyToAsync(buffer, 81920, token).ConfigureAwait(false);
+                            return true;
+                        })
+                    .ConfigureAwait(false);
+
+                buffer.Position = 0;
+                await buffer.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
+            }
+        } finally {
+            try {
+                File.Delete(bufferPath);
+            } catch (IOException) {
+                // The completed operation is more useful than surfacing best-effort temp cleanup.
+            } catch (UnauthorizedAccessException) {
+                // The completed operation is more useful than surfacing best-effort temp cleanup.
+            }
+        }
     }
 
     private async Task<ConfluenceHttpResponse> SendAsync(
@@ -224,9 +248,11 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
 
     private Uri ResolveUri(string relativeUri) {
         if (string.IsNullOrWhiteSpace(relativeUri)) throw new ArgumentException("Confluence request URI is required.", nameof(relativeUri));
-        Uri resolved = Uri.TryCreate(relativeUri, UriKind.Absolute, out Uri? absolute)
-            ? absolute
-            : new Uri(_session.ApiBaseUri, relativeUri.TrimStart('/'));
+        Uri resolved = relativeUri.StartsWith("/", StringComparison.Ordinal)
+            ? new Uri(_session.ApiBaseUri, relativeUri.TrimStart('/'))
+            : Uri.TryCreate(relativeUri, UriKind.Absolute, out Uri? absolute)
+                ? absolute
+                : new Uri(_session.ApiBaseUri, relativeUri);
         ValidateResolvedUri(resolved);
         return resolved;
     }

@@ -184,7 +184,7 @@ public sealed class ConfluenceContractTests {
     [Fact]
     public async Task AttachmentUpload_UsesMultipartAndXsrfHeader() {
         var handler = new RecordingHandler(request => {
-            Assert.Equal(HttpMethod.Put, request.Method);
+            Assert.Equal(HttpMethod.Post, request.Method);
             Assert.True(request.Headers.Contains("X-Atlassian-Token"));
             Assert.NotNull(request.Content);
             Assert.StartsWith("multipart/form-data", request.Content!.Headers.ContentType!.MediaType);
@@ -239,6 +239,28 @@ public sealed class ConfluenceContractTests {
         Assert.Equal("download-ready", Encoding.UTF8.GetString(destination.ToArray()));
     }
 
+    [Fact]
+    public async Task AttachmentDownload_RetryDoesNotAppendToPartialDestination() {
+        int attempt = 0;
+        var handler = new RecordingHandler(_ => ++attempt == 1
+            ? new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StreamContent(new PartialReadFailureStream(Encoding.UTF8.GetBytes("partial"))),
+            }
+            : new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("complete")),
+            });
+        using ConfluenceClient client = CreateClient(handler, configure: options => {
+            options.RetryBaseDelay = TimeSpan.Zero;
+            options.RetryMaxDelay = TimeSpan.Zero;
+        });
+        using var destination = new MemoryStream();
+
+        await client.DownloadAttachmentAsync("123", "a1", destination);
+
+        Assert.Equal(2, attempt);
+        Assert.Equal("complete", Encoding.UTF8.GetString(destination.ToArray()));
+    }
+
     private static ConfluenceClient CreateClient(RecordingHandler handler, IConfluenceCredentialSource? credential = null, Action<ConfluenceSessionOptions>? configure = null) {
         var options = new ConfluenceSessionOptions {
             SiteUri = new Uri("https://example.atlassian.net/"),
@@ -260,6 +282,41 @@ public sealed class ConfluenceContractTests {
             length = 0;
             return false;
         }
+    }
+
+    private sealed class PartialReadFailureStream : Stream {
+        private readonly byte[] _prefix;
+        private int _position;
+
+        internal PartialReadFailureStream(byte[] prefix) => _prefix = prefix;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => _position; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (_position >= _prefix.Length) throw new HttpRequestException("transient partial response body failure");
+            int copied = Math.Min(count, _prefix.Length - _position);
+            Array.Copy(_prefix, _position, buffer, offset, copied);
+            _position += copied;
+            return copied;
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult(Read(buffer, offset, count));
+            } catch (Exception exception) {
+                return Task.FromException<int>(exception);
+            }
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     private sealed class RecordingHandler : HttpMessageHandler {

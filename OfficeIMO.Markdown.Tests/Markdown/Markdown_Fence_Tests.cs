@@ -68,6 +68,25 @@ public class Markdown_Fence_Tests {
         Assert.Equal("````", fence);
     }
 
+    [Theory]
+    [InlineData("a`b", "``a`b``")]
+    [InlineData("`edge`", "`` `edge` ``")]
+    [InlineData("`edge", "`` `edge ``")]
+    [InlineData("edge`", "`` edge` ``")]
+    [InlineData(" edge ", "`  edge  `")]
+    [InlineData(" edge", "` edge`")]
+    [InlineData("edge ", "`edge `")]
+    [InlineData("   ", "`   `")]
+    public void BuildSafeCodeSpan_PreservesDelimiterContent(string content, string expected) {
+        var span = MarkdownFence.BuildSafeCodeSpan(content);
+
+        Assert.Equal(expected, span);
+        var document = MarkdownReader.Parse(span, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var code = Assert.IsType<CodeSpanInline>(Assert.Single(paragraph.Inlines.Nodes));
+        Assert.Equal(content, code.Text);
+    }
+
     [Fact]
     public void ApplyTransformOutsideFencedCodeBlocks_PreservesQuotedFenceBodies() {
         var markdown = """

@@ -100,6 +100,27 @@ public static class MarkdownFence {
     }
 
     /// <summary>
+    /// Builds a complete inline-code span whose delimiter cannot collide with backtick runs in
+    /// <paramref name="content"/>.
+    /// </summary>
+    /// <param name="content">Literal inline-code content.</param>
+    /// <returns>A CommonMark-compatible inline-code span.</returns>
+    public static string BuildSafeCodeSpan(string? content) {
+        var value = content ?? string.Empty;
+        var fence = new string('`', LongestRun(value, '`') + 1);
+        bool padBothSides = value.StartsWith("`", StringComparison.Ordinal) || value.EndsWith("`", StringComparison.Ordinal);
+        if (!padBothSides && value.Length > 1 && value[0] == ' ' && value[value.Length - 1] == ' ') {
+            for (int i = 0; i < value.Length; i++) {
+                if (value[i] == ' ') continue;
+                padBothSides = true;
+                break;
+            }
+        }
+        string padding = padBothSides ? " " : string.Empty;
+        return fence + padding + value + padding + fence;
+    }
+
+    /// <summary>
     /// Applies a text transformation only to segments outside fenced code blocks while preserving
     /// container-aware fence boundaries such as blockquoted or indented fences.
     /// </summary>

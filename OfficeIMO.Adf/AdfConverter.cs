@@ -10,18 +10,18 @@ public static class AdfConverter {
     public static AdfConversionResult<MarkdownDoc> ToMarkdownDocument(
         AdfDocument document,
         AdfConversionOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        var diagnostics = new List<AdfConversionDiagnostic>();
-        string markdown = AdfToMarkdownConverter.Convert(document, options ?? new AdfConversionOptions(), diagnostics);
-        return new AdfConversionResult<MarkdownDoc>(MarkdownReader.Parse(markdown), diagnostics);
+        AdfConversionResult<string> result = ToMarkdown(document, options);
+        return new AdfConversionResult<MarkdownDoc>(MarkdownReader.Parse(result.Value), result.Report.Diagnostics);
     }
 
     /// <summary>Converts an ADF document to Markdown text.</summary>
     public static AdfConversionResult<string> ToMarkdown(
         AdfDocument document,
         AdfConversionOptions? options = null) {
-        AdfConversionResult<MarkdownDoc> result = ToMarkdownDocument(document, options);
-        return new AdfConversionResult<string>(result.Value.ToMarkdown(), result.Report.Diagnostics);
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        var diagnostics = new List<AdfConversionDiagnostic>();
+        string markdown = AdfToMarkdownConverter.Convert(document, options ?? new AdfConversionOptions(), diagnostics);
+        return new AdfConversionResult<string>(markdown, diagnostics);
     }
 
     /// <summary>Converts an ADF document to an HTML fragment through OfficeIMO.Markdown.</summary>

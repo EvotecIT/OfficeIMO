@@ -393,6 +393,8 @@ _Dependency footprint:_ Google authentication libraries plus OfficeIMO GoogleWor
 
 _Dependency footprint:_ only OfficeIMO GoogleWorkspace and Drive.
 
+### Conversion and cloud bridges
+
 #### [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md)
 
 - [x] Confluence Cloud v2 page read, cursor listing, create, update, dry-run request plans, and optimistic version contracts
@@ -400,8 +402,6 @@ _Dependency footprint:_ only OfficeIMO GoogleWorkspace and Drive.
 - [x] ADF, Markdown, HTML, and storage conversion with fidelity reports and marker-delimited managed-section replacement
 
 _Dependency footprint:_ only OfficeIMO ADF and Markdown plus platform HTTP and `System.Text.Json` on compatibility targets; no Atlassian SDK.
-
-### Conversion and cloud bridges
 
 #### [OfficeIMO.Word.Html](OfficeIMO.Word.Html/README.md)
 

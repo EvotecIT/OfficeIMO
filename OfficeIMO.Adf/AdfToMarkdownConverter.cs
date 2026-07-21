@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Adf;
 
@@ -25,10 +26,12 @@ internal static class AdfToMarkdownConverter {
                 break;
             case "codeBlock":
                 string language = node.GetStringAttribute("language") ?? string.Empty;
-                builder.Append("```").Append(language).AppendLine();
-                builder.Append(ExtractPlainText(node));
+                string code = ExtractPlainText(node);
+                string fence = MarkdownFence.BuildSafeFence(code);
+                builder.Append(fence).Append(language).AppendLine();
+                builder.Append(code);
                 if (builder.Length > 0 && builder[builder.Length - 1] != '\n') builder.AppendLine();
-                builder.Append("```");
+                builder.Append(fence);
                 break;
             case "blockquote":
                 var quote = new StringBuilder();
@@ -66,7 +69,7 @@ internal static class AdfToMarkdownConverter {
             default:
                 diagnostics.Add(Warning("ADF_UNSUPPORTED_NODE", path, "ADF node '" + node.Type + "' is retained in the ADF model but has no exact Markdown projection."));
                 if (node.Content.Count > 0) AppendChildrenAsBlocks(builder, node, path, options, diagnostics, listDepth);
-                else if (!string.IsNullOrEmpty(node.Text)) builder.Append(EscapeText(node.Text!));
+                else if (!string.IsNullOrEmpty(node.Text)) builder.Append(MarkdownEscaper.EscapeTextAndLineStarts(node.Text!));
                 else if (options.EmitUnsupportedPlaceholders) builder.Append("[Unsupported ADF node: ").Append(node.Type).Append(']');
                 break;
         }
@@ -148,17 +151,20 @@ internal static class AdfToMarkdownConverter {
         }
         if (node.Type != "text") {
             diagnostics.Add(Warning("ADF_UNSUPPORTED_INLINE", path, "ADF inline node '" + node.Type + "' was flattened to text."));
-            builder.Append(EscapeText(ExtractPlainText(node)));
+            builder.Append(MarkdownEscaper.EscapeTextAndLineStarts(ExtractPlainText(node)));
             return;
         }
 
-        string value = EscapeText(node.Text ?? string.Empty);
-        foreach (AdfMark mark in node.Marks) {
+        string rawText = node.Text ?? string.Empty;
+        bool hasCode = node.Marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        string value = hasCode
+            ? MarkdownFence.BuildSafeCodeSpan(rawText)
+            : MarkdownEscaper.EscapeTextAndLineStarts(rawText);
+        foreach (AdfMark mark in node.Marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
                 case "strong": value = "**" + value + "**"; break;
                 case "em": value = "*" + value + "*"; break;
                 case "strike": value = "~~" + value + "~~"; break;
-                case "code": value = "`" + (node.Text ?? string.Empty).Replace("`", "\\`") + "`"; break;
                 case "link":
                     string? href = mark.GetStringAttribute("href");
                     string? title = mark.GetStringAttribute("title");
@@ -166,9 +172,7 @@ internal static class AdfToMarkdownConverter {
                         diagnostics.Add(Warning("ADF_LINK_ATTRIBUTES_DROPPED", path, "ADF link attributes other than href and title cannot be represented in Markdown."));
                     }
                     if (!string.IsNullOrWhiteSpace(href)) {
-                        string renderedTitle = string.IsNullOrEmpty(title)
-                            ? string.Empty
-                            : " \"" + title!.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                        string renderedTitle = MarkdownEscaper.FormatOptionalTitle(title);
                         value = "[" + value + "](" + href!.Replace(")", "\\)") + renderedTitle + ")";
                     }
                     break;
@@ -186,9 +190,6 @@ internal static class AdfToMarkdownConverter {
         foreach (AdfNode child in node.Content) builder.Append(ExtractPlainText(child));
         return builder.ToString();
     }
-
-    private static string EscapeText(string value) => (value ?? string.Empty)
-        .Replace("\\", "\\\\").Replace("*", "\\*").Replace("_", "\\_").Replace("[", "\\[").Replace("]", "\\]");
 
     private static bool EndsWithBlankLine(StringBuilder builder) => builder.Length >= 2 && builder[builder.Length - 1] == '\n' && builder[builder.Length - 2] == '\n';
     private static AdfConversionDiagnostic Warning(string code, string path, string message) => new AdfConversionDiagnostic(code, path, message, AdfConversionSeverity.Warning);
