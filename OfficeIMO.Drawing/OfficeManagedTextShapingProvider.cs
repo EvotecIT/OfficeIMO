@@ -41,6 +41,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
             request.Text,
             contextual,
+            request.Direction,
             request.CancellationToken);
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
@@ -57,6 +58,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     private static IReadOnlyList<VisualTextElement> MapVisualElements(
         string logical,
         string contextual,
+        OfficeTextDirection direction,
         System.Threading.CancellationToken cancellationToken) {
         var logicalElements = new List<VisualTextElement>();
         int logicalIndex = 0;
@@ -73,6 +75,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         return OfficeManagedTextShaper.ToVisualOrder(
             logicalElements,
             static element => element.VisualText,
+            direction,
             cancellationToken);
     }
 

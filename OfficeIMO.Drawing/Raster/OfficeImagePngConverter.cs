@@ -11,6 +11,7 @@ public static class OfficeImagePngConverter {
     public static bool TryConvertToPng(byte[]? imageBytes, OfficeRasterDecodeOptions? options, out byte[] pngBytes, out OfficeRasterDecodeInfo decodeInfo) {
         pngBytes = System.Array.Empty<byte>();
         if (!OfficeRasterImageDecoder.TryDecode(imageBytes, options, out OfficeRasterImage? image, out decodeInfo)) {
+            if ((options?.FrameIndex ?? 0) != 0) return false;
             if (!OfficeDibReader.TryDecode(imageBytes, out image)) return false;
             decodeInfo = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 1, 0, succeeded: true, diagnostic: null);
         }

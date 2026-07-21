@@ -52,6 +52,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImagePngConverter_RejectsNonzeroFrameForDibFallback() {
+            byte[] bmp = CreateBmp24(1, 1, new[] { OfficeColor.Red });
+            byte[] dib = bmp.Skip(14).ToArray();
+            var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+            Assert.False(OfficeImagePngConverter.TryConvertToPng(
+                dib,
+                options,
+                out byte[] png,
+                out OfficeRasterDecodeInfo decodeInfo));
+            Assert.Empty(png);
+            Assert.False(decodeInfo.Succeeded);
+            Assert.Equal(1, decodeInfo.SelectedFrameIndex);
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesTopDownBmp24RowsThroughSharedRasterPath() {
             byte[] bmp = CreateBmp24(
                 2,

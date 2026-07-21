@@ -61,6 +61,14 @@ internal static class OfficeManagedTextShaper {
         IReadOnlyList<T> elements,
         Func<T, string> textSelector,
         System.Threading.CancellationToken cancellationToken = default) {
+        return ToVisualOrder(elements, textSelector, OfficeTextDirection.Auto, cancellationToken);
+    }
+
+    internal static IReadOnlyList<T> ToVisualOrder<T>(
+        IReadOnlyList<T> elements,
+        Func<T, string> textSelector,
+        OfficeTextDirection requestedDirection,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (elements.Count == 0) return Array.Empty<T>();
 
         var completeText = new StringBuilder();
@@ -68,7 +76,9 @@ internal static class OfficeManagedTextShaper {
         var groups = new List<DirectionalElementGroup<T>>();
         var current = new List<T>();
         TextElementDirection? direction = null;
-        OfficeTextDirection baseDirection = OfficeTextElements.ResolveBaseDirection(completeText.ToString());
+        OfficeTextDirection baseDirection = requestedDirection == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(completeText.ToString())
+            : requestedDirection;
         TextElementDirection neutralDefault =
             baseDirection == OfficeTextDirection.RightToLeft
                 ? TextElementDirection.RightToLeft
