@@ -134,6 +134,9 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static string RenderCell(AdfNode cell, string path, List<AdfConversionDiagnostic> diagnostics) {
+        if (cell.Attributes.Count > 0 || cell.ExtensionData.Count > 0) {
+            diagnostics.Add(Warning("ADF_TABLE_CELL_ATTRIBUTES_DROPPED", path, "ADF table-cell attributes cannot be represented in Markdown and were omitted."));
+        }
         var builder = new StringBuilder();
         for (int i = 0; i < cell.Content.Count; i++) {
             if (i > 0) builder.Append("<br/>");

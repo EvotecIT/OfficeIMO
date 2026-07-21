@@ -100,6 +100,69 @@ public sealed class AdfContractTests {
         Assert.Contains(result.Issues, item => item.Code == "ADF_TASK_ITEM_PARENT");
     }
 
+    [Theory]
+    [InlineData("paragraph", "paragraph")]
+    [InlineData("table", "paragraph")]
+    [InlineData("codeBlock", "hardBreak")]
+    [InlineData("mediaGroup", "paragraph")]
+    [InlineData("rule", "text")]
+    public void Validation_RejectsKnownInvalidParentChildPairs(string parentType, string childType) {
+        var parent = new AdfNode(parentType);
+        parent.Content.Add(childType == "text" ? AdfNode.TextNode("invalid") : new AdfNode(childType));
+        var document = new AdfDocument(new[] { parent });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, item => item.Code == "ADF_NODE_CHILD" && item.Path == "$.content[0].content[0]");
+    }
+
+    [Theory]
+    [InlineData("paragraph", "text")]
+    [InlineData("heading", "hardBreak")]
+    [InlineData("codeBlock", "text")]
+    [InlineData("blockquote", "paragraph")]
+    [InlineData("bulletList", "listItem")]
+    [InlineData("listItem", "paragraph")]
+    [InlineData("taskList", "taskItem")]
+    [InlineData("taskItem", "text")]
+    [InlineData("table", "tableRow")]
+    [InlineData("tableRow", "tableCell")]
+    [InlineData("tableCell", "paragraph")]
+    [InlineData("mediaSingle", "media")]
+    [InlineData("mediaGroup", "media")]
+    [InlineData("panel", "paragraph")]
+    [InlineData("bodiedExtension", "paragraph")]
+    public void Validation_AcceptsKnownParentChildPairs(string parentType, string childType) {
+        var parent = new AdfNode(parentType);
+        parent.Content.Add(childType == "text" ? AdfNode.TextNode("valid") : new AdfNode(childType));
+        var document = new AdfDocument(new[] { parent });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.DoesNotContain(result.Issues, item => item.Code == "ADF_NODE_CHILD" && item.Path == "$.content[0].content[0]");
+        Assert.DoesNotContain(result.Issues, item => item.Code == "ADF_LIST_CHILD" && item.Path == "$.content[0].content[0]");
+        Assert.DoesNotContain(result.Issues, item => item.Code == "ADF_TASK_LIST_CHILD" && item.Path == "$.content[0].content[0]");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Validation_RequiresStringHrefOnLinkMarks(bool addNonStringHref) {
+        var link = new AdfMark("link");
+        if (addNonStringHref) link.SetAttribute("href", 42);
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode("broken", new[] { link }) }
+        });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == "ADF_LINK_HREF_REQUIRED");
+        Assert.Equal("$.content[0].content[0].marks[0].attrs.href", issue.Path);
+    }
+
     [Fact]
     public void LinkProjection_PreservesTitleAndReportsUnsupportedAttributes() {
         var link = new AdfMark("link")
@@ -285,6 +348,28 @@ public sealed class AdfContractTests {
             text => Assert.Equal("right", text.Text),
             hardBreak => Assert.Equal("hardBreak", hardBreak.Type),
             text => Assert.Equal("next", text.Text));
+    }
+
+    [Fact]
+    public void TableProjection_ReportsDroppedCellAttributes() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("table") {
+            Content = {
+                new AdfNode("tableRow") {
+                    Content = {
+                        new AdfNode("tableHeader") {
+                            Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode("Header") } } }
+                        }.SetAttribute("colspan", 2).SetAttribute("colwidth", new[] { 120, 120 })
+                    }
+                }
+            }
+        });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_ATTRIBUTES_DROPPED");
+        Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
     }
 
     [Fact]

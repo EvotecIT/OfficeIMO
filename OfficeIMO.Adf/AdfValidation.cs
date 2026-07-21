@@ -43,6 +43,40 @@ internal static class AdfValidator {
         "bodiedExtension", "panel",
     };
 
+    private static readonly HashSet<string> InlineNodes = Nodes(
+        "text", "hardBreak", "mention", "emoji", "inlineCard", "inlineExtension");
+
+    // Relationships for node types this library recognizes follow Atlassian's full ADF schema.
+    // Unknown node types stay warning-only so newer vendor nodes can still round-trip.
+    private static readonly IReadOnlyDictionary<string, HashSet<string>> AllowedKnownChildren =
+        new Dictionary<string, HashSet<string>>(StringComparer.Ordinal) {
+            ["paragraph"] = InlineNodes,
+            ["heading"] = InlineNodes,
+            ["codeBlock"] = Nodes("text"),
+            ["blockquote"] = Nodes("paragraph", "orderedList", "bulletList", "codeBlock", "mediaSingle", "mediaGroup", "extension"),
+            ["bulletList"] = Nodes("listItem"),
+            ["orderedList"] = Nodes("listItem"),
+            ["listItem"] = Nodes("paragraph", "bulletList", "orderedList", "taskList", "mediaSingle", "codeBlock", "extension"),
+            ["taskList"] = Nodes("taskItem", "taskList"),
+            ["taskItem"] = InlineNodes,
+            ["table"] = Nodes("tableRow"),
+            ["tableRow"] = Nodes("tableCell", "tableHeader"),
+            ["tableCell"] = Nodes(
+                "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
+                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
+            ["tableHeader"] = Nodes(
+                "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
+                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
+            ["mediaSingle"] = Nodes("media"),
+            ["mediaGroup"] = Nodes("media"),
+            ["panel"] = Nodes(
+                "paragraph", "heading", "bulletList", "orderedList", "blockCard", "mediaGroup",
+                "mediaSingle", "codeBlock", "taskList", "rule", "extension"),
+            ["bodiedExtension"] = Nodes(
+                "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
+                "codeBlock", "mediaGroup", "mediaSingle", "taskList", "table", "blockCard", "extension"),
+        };
+
     private static readonly HashSet<string> KnownMarks = new HashSet<string>(StringComparer.Ordinal) {
         "strong", "em", "code", "strike", "link", "subsup", "textColor", "backgroundColor", "annotation",
     };
@@ -83,19 +117,32 @@ internal static class AdfValidator {
             AdfMark mark = node.Marks[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
+            if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && mark.GetStringAttribute("href") == null) {
+                issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a string href attribute."));
+            }
         }
         for (int i = 0; i < node.Content.Count; i++) {
             AdfNode child = node.Content[i];
-            if ((string.Equals(node.Type, "bulletList", StringComparison.Ordinal) || string.Equals(node.Type, "orderedList", StringComparison.Ordinal)) &&
-                !string.Equals(child.Type, "listItem", StringComparison.Ordinal)) {
-                issues.Add(Error("ADF_LIST_CHILD", path + ".content[" + i + "]", "ADF bulletList and orderedList nodes may contain only listItem nodes."));
-            }
-            if (string.Equals(node.Type, "taskList", StringComparison.Ordinal) && !string.Equals(child.Type, "taskItem", StringComparison.Ordinal)) {
-                issues.Add(Error("ADF_TASK_LIST_CHILD", path + ".content[" + i + "]", "ADF taskList nodes may contain only taskItem nodes."));
-            }
-            ValidateNode(child, path + ".content[" + i + "]", node.Type, issues);
+            string childPath = path + ".content[" + i + "]";
+            ValidateKnownChild(node, child, childPath, issues);
+            ValidateNode(child, childPath, node.Type, issues);
         }
     }
+
+    private static void ValidateKnownChild(AdfNode parent, AdfNode child, string path, List<AdfValidationIssue> issues) {
+        if (!KnownNodes.Contains(parent.Type) || !KnownNodes.Contains(child.Type)) return;
+        if (AllowedKnownChildren.TryGetValue(parent.Type, out HashSet<string>? allowed) && allowed.Contains(child.Type)) return;
+
+        if (string.Equals(parent.Type, "bulletList", StringComparison.Ordinal) || string.Equals(parent.Type, "orderedList", StringComparison.Ordinal)) {
+            issues.Add(Error("ADF_LIST_CHILD", path, "ADF bulletList and orderedList nodes may contain only listItem nodes."));
+        } else if (string.Equals(parent.Type, "taskList", StringComparison.Ordinal)) {
+            issues.Add(Error("ADF_TASK_LIST_CHILD", path, "ADF taskList nodes may contain only taskItem or nested taskList nodes."));
+        } else {
+            issues.Add(Error("ADF_NODE_CHILD", path, "ADF node '" + parent.Type + "' cannot contain known child node '" + child.Type + "'."));
+        }
+    }
+
+    private static HashSet<string> Nodes(params string[] nodeTypes) => new HashSet<string>(nodeTypes, StringComparer.Ordinal);
 
     private static AdfValidationIssue Error(string code, string path, string message) => new AdfValidationIssue(code, path, message, AdfValidationSeverity.Error);
     private static AdfValidationIssue Warning(string code, string path, string message) => new AdfValidationIssue(code, path, message, AdfValidationSeverity.Warning);
