@@ -8,9 +8,6 @@ public enum PdfMutationPermissionCheck {
     /// <summary>The document security permissions must allow general modification.</summary>
     ModifyDocument,
 
-    /// <summary>The document security permissions must allow content copying or extraction.</summary>
-    CopyContents,
-
     /// <summary>The document security permissions must allow document assembly.</summary>
     AssembleDocument,
 
@@ -33,5 +30,8 @@ public enum PdfMutationPermissionCheck {
     FillSignatureContentsReservation,
 
     /// <summary>The operation requires owner-level authorization for encryption changes.</summary>
-    OwnerAuthorization
+    OwnerAuthorization,
+
+    /// <summary>The document security permissions must allow content copying or extraction.</summary>
+    CopyContents
 }

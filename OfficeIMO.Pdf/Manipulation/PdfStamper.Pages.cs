@@ -61,7 +61,6 @@ internal static partial class PdfStamper {
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var reservedGraphicsStateResourceNames = new HashSet<string>(StringComparer.Ordinal);
-        var stampedPageNumbers = new HashSet<int>();
         PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
@@ -131,11 +130,10 @@ internal static partial class PdfStamper {
             if (graphicsStateResourceName != null) reservedGraphicsStateResourceNames.Add(graphicsStateResourceName);
 
             IReadOnlyList<int> selectedPages = options.TargetPages?.Resolve(target.Pages.Count) ?? Enumerable.Range(1, target.Pages.Count).ToArray();
+            var selectedPageNumbers = new HashSet<int>();
             for (int selectedIndex = 0; selectedIndex < selectedPages.Count; selectedIndex++) {
                 int pageNumber = selectedPages[selectedIndex];
-                if (!stampedPageNumbers.Add(pageNumber)) {
-                    throw new InvalidOperationException("A page can only receive one generated canvas stamp in a single rewrite.");
-                }
+                if (!selectedPageNumbers.Add(pageNumber)) continue;
 
                 PdfReadPage targetPage = target.Pages[pageNumber - 1];
                 (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
@@ -151,7 +149,10 @@ internal static partial class PdfStamper {
                     graphicsStateResourceName,
                     graphicsStateObjectNumber,
                     stampObjectNumber,
-                    options.BehindContent);
+                    options.BehindContent,
+                    overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? existingOverride)
+                        ? existingOverride
+                        : null);
             }
 
             PdfFileVersion sourceVersion = PdfPageExtractor.GetSourceFileVersion(sourcePdf);
@@ -275,10 +276,17 @@ internal static partial class PdfStamper {
         string? graphicsStateResourceName,
         int graphicsStateObjectNumber,
         int stampObjectNumber,
-        bool behindContent) {
+        bool behindContent,
+        Dictionary<string, PdfObject>? existingOverride = null) {
         PdfDictionary page = (PdfDictionary)objects[pageObjectNumber].Value;
-        PdfArray contents = BuildContentsArray(objects, page.Items.TryGetValue("Contents", out PdfObject? existing) ? existing : null, stampObjectNumber, behindContent);
-        PdfDictionary resources = CloneDictionary(ResolveDictionary(objects, GetInheritedPageValue(objects, page, "Resources")));
+        PdfObject? existingContents = existingOverride != null && existingOverride.TryGetValue("Contents", out PdfObject? overriddenContents)
+            ? overriddenContents
+            : page.Items.TryGetValue("Contents", out PdfObject? pageContents) ? pageContents : null;
+        PdfArray contents = BuildContentsArray(objects, existingContents, stampObjectNumber, behindContent);
+        PdfObject? existingResources = existingOverride != null && existingOverride.TryGetValue("Resources", out PdfObject? overriddenResources)
+            ? overriddenResources
+            : GetInheritedPageValue(objects, page, "Resources");
+        PdfDictionary resources = CloneDictionary(ResolveDictionary(objects, existingResources));
         PdfDictionary xObjects = CloneDictionary(ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObject) ? xObject : null));
         xObjects.Items[formResourceName] = new PdfReference(formObjectNumber, 0);
         resources.Items["XObject"] = xObjects;

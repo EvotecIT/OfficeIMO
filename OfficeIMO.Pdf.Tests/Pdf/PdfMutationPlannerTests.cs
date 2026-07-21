@@ -5,6 +5,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMutationPlannerTests {
     [Fact]
+    public void PermissionCheckEnumPreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)PdfMutationPermissionCheck.ReadDocument);
+        Assert.Equal(1, (int)PdfMutationPermissionCheck.ModifyDocument);
+        Assert.Equal(2, (int)PdfMutationPermissionCheck.AssembleDocument);
+        Assert.Equal(3, (int)PdfMutationPermissionCheck.ModifyAnnotations);
+        Assert.Equal(4, (int)PdfMutationPermissionCheck.FillForms);
+        Assert.Equal(5, (int)PdfMutationPermissionCheck.DocMdp);
+        Assert.Equal(6, (int)PdfMutationPermissionCheck.FieldMdp);
+        Assert.Equal(7, (int)PdfMutationPermissionCheck.AppendRevision);
+        Assert.Equal(8, (int)PdfMutationPermissionCheck.FillSignatureContentsReservation);
+        Assert.Equal(9, (int)PdfMutationPermissionCheck.OwnerAuthorization);
+        Assert.Equal(10, (int)PdfMutationPermissionCheck.CopyContents);
+    }
+
+    [Fact]
     public void Plan_ChoosesFullRewriteForOrdinaryMetadataMutation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Planner metadata source"))

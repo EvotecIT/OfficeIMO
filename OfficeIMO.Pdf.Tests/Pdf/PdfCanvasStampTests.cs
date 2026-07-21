@@ -79,6 +79,29 @@ public class PdfCanvasStampTests {
     }
 
     [Fact]
+    public void ContentPreservesRepeatedPageSelectorLayersInOneRewrite() {
+        byte[] target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Existing body"))
+            .ToBytes();
+        int callbackCount = 0;
+
+        byte[] stamped = PdfDocument.Open(target).Stamp.Content(
+            (canvas, _) => {
+                callbackCount++;
+                canvas.Text("Layer " + callbackCount, 30D, 30D + (callbackCount * 30D), 140D, 24D);
+            },
+            new PdfCanvasStampOptions {
+                TargetPages = PdfPageSelector.Parse("1,1")
+            }).ToBytes();
+
+        string text = PdfReadDocument.Open(stamped).Pages[0].ExtractText();
+        Assert.Equal(2, callbackCount);
+        Assert.Contains("Existing body", text, StringComparison.Ordinal);
+        Assert.Contains("Layer 1", text, StringComparison.Ordinal);
+        Assert.Contains("Layer 2", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ContentRejectsInteractiveAnnotationsBecauseItIsVisualOnly() {
         PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
 

@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageOverlayTests {
     [Fact]
+    public void RepeatedTargetPageSelectorIsDeduplicatedForOneOverlayRequest() {
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay once")).ToBytes();
+
+        byte[] result = PdfStamper.StampPage(target, source, new PdfPageOverlayOptions {
+            TargetPages = PdfPageSelector.Parse("1,1")
+        });
+
+        string text = PdfReadDocument.Open(result).Pages[0].ExtractText();
+        Assert.Contains("Overlay once", text, StringComparison.Ordinal);
+        Assert.Equal(text.IndexOf("Overlay once", StringComparison.Ordinal), text.LastIndexOf("Overlay once", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OverlayPage_ImportsSelectedSourcePageAsFormOnSelectedTargetPages() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Source page one"))
