@@ -9,10 +9,18 @@
   --ocx-muted: #5c6b82;
   --ocx-blue: #2563eb;
   --ocx-blue-dark: #1d4ed8;
+  --ocx-action-bg: #2563eb;
+  --ocx-action-hover: #1d4ed8;
+  --ocx-action-text: #ffffff;
   --ocx-cyan: #0891b2;
   --ocx-focus: #1d4ed8;
   --ocx-green: #059669;
   --ocx-red: #dc2626;
+  --ocx-code-bg: #f3f6fb;
+  --ocx-code-border: #c7d1df;
+  --ocx-code-text: #172033;
+  --ocx-code-muted: #596579;
+  --ocx-code-accent: #075985;
   --ocx-shadow: 0 18px 48px rgba(20, 33, 58, 0.1);
 }
 
@@ -27,10 +35,18 @@
   --ocx-muted: #a6b3c7;
   --ocx-blue: #6da6ff;
   --ocx-blue-dark: #91bcff;
+  --ocx-action-bg: #2563eb;
+  --ocx-action-hover: #1d4ed8;
+  --ocx-action-text: #ffffff;
   --ocx-cyan: #57c7dd;
   --ocx-focus: #91bcff;
   --ocx-green: #34d399;
   --ocx-red: #fb7185;
+  --ocx-code-bg: #0b1730;
+  --ocx-code-border: #2b4061;
+  --ocx-code-text: #e6edf7;
+  --ocx-code-muted: #9aa9bd;
+  --ocx-code-accent: #7dd3fc;
   --ocx-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
 }
 
@@ -89,7 +105,7 @@
   padding: 0.4rem 0.62rem;
   border-radius: 7px;
   color: var(--ocx-muted);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 680;
 }
 .ocx-appbar nav a:hover { color: var(--ocx-text); background: var(--ocx-bg-alt); }
@@ -116,7 +132,7 @@
 .ocx-eyebrow {
   margin: 0 0 0.7rem;
   color: var(--ocx-blue);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 820;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -126,7 +142,7 @@
   margin: 0 0 0.85rem;
   color: var(--ocx-text);
   font-size: clamp(2.55rem, 4.1vw, 4.15rem);
-  line-height: 0.98;
+  line-height: 1.04;
   letter-spacing: -0.055em;
 }
 
@@ -135,8 +151,8 @@
   max-width: 690px;
   margin: 0 auto;
   color: var(--ocx-muted);
-  font-size: 0.9rem;
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 .ocx-converter {
@@ -161,7 +177,7 @@
   display: block;
   margin: 0 0 0.42rem;
   color: var(--ocx-muted);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -190,7 +206,7 @@
   background: #eaf1ff;
   color: #2563eb;
   font-style: normal;
-  font-size: 0.57rem;
+  font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.04em;
 }
@@ -208,8 +224,8 @@
 [data-theme="dark"] .ocx-format-field i,
 [data-theme="dark"] .ocx-route-card__formats i { background: rgba(109, 166, 255, 0.12); color: #91bcff; }
 
-.ocx-format-field strong { min-width: 0; font-size: 0.82rem; }
-.ocx-format-field small { color: var(--ocx-muted); font-size: 0.62rem; }
+.ocx-format-field strong { min-width: 0; font-size: 0.9rem; }
+.ocx-format-field small { color: var(--ocx-muted); font-size: 0.75rem; line-height: 1.45; }
 .ocx-route-arrow {
   display: grid;
   place-items: center;
@@ -231,7 +247,7 @@
   border-bottom: 1px solid #cde8dc;
   background: #eefaf4;
   color: #28624c;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 [data-theme="dark"] .ocx-local-banner { border-color: #214b40; background: #102a25; color: #a7e7d0; }
@@ -240,7 +256,7 @@
   margin-left: auto;
   overflow: hidden;
   color: var(--ocx-muted);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -272,8 +288,8 @@
   margin-bottom: 0.85rem;
 }
 .ocx-panel-heading p { margin-bottom: 0.16rem; }
-.ocx-panel-heading h2 { margin: 0; font-size: 0.98rem; letter-spacing: -0.025em; }
-.ocx-panel-heading > span { color: var(--ocx-muted); font-size: 0.6rem; }
+.ocx-panel-heading h2 { margin: 0; font-size: 1.08rem; line-height: 1.25; letter-spacing: -0.025em; }
+.ocx-panel-heading > span { color: var(--ocx-muted); font-size: 0.75rem; }
 
 .ocx-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .ocx-dropzone {
@@ -331,9 +347,17 @@
 .ocx-dropzone__icon.ocx-route-card--powerpoint { color: #c83c50; }
 .ocx-dropzone__icon.ocx-route-card--markdown { color: #6d28d9; }
 .ocx-dropzone__icon.ocx-route-card--html { color: #c2410c; }
+[data-theme="dark"] .ocx-dropzone__icon {
+  border-color: var(--ocx-border-strong);
+  background: var(--ocx-panel);
+}
+[data-theme="dark"] .ocx-dropzone__icon::before {
+  border-color: var(--ocx-border-strong);
+  background: var(--ocx-bg-alt);
+}
 
-.ocx-dropzone > strong { font-size: 0.9rem; }
-.ocx-dropzone > small { margin: 0.3rem 0 0.9rem; color: var(--ocx-muted); font-size: 0.66rem; }
+.ocx-dropzone > strong { font-size: 1rem; }
+.ocx-dropzone > small { margin: 0.35rem 0 1rem; color: var(--ocx-muted); font-size: 0.8rem; line-height: 1.5; }
 .ocx-button {
   display: inline-flex;
   align-items: center;
@@ -344,12 +368,12 @@
   border-radius: 8px;
   background: var(--ocx-panel);
   color: var(--ocx-text);
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 760;
   cursor: pointer;
 }
 .ocx-button:hover { background: var(--ocx-bg-alt); }
-.ocx-button--primary { border-color: var(--ocx-blue-dark); background: var(--ocx-blue); color: #fff; }
+.ocx-button--primary { border-color: var(--ocx-action-hover); background: var(--ocx-action-bg); color: var(--ocx-action-text); }
 
 .ocx-input-actions {
   display: flex;
@@ -358,14 +382,14 @@
   gap: 1rem;
   margin-top: 0.7rem;
 }
-.ocx-text-action { padding: 0; border: 0; background: transparent; color: var(--ocx-blue); font-size: 0.66rem; font-weight: 730; cursor: pointer; }
-.ocx-toggle { display: flex; align-items: center; gap: 0.45rem; color: var(--ocx-muted); font-size: 0.62rem; }
+.ocx-text-action { padding: 0; border: 0; background: transparent; color: var(--ocx-blue); font-size: 0.78rem; font-weight: 730; cursor: pointer; }
+.ocx-toggle { display: flex; align-items: center; gap: 0.45rem; color: var(--ocx-muted); font-size: 0.76rem; }
 .ocx-toggle input { accent-color: var(--ocx-blue); }
 
-.ocx-editor-shell { overflow: hidden; border: 1px solid var(--ocx-border); border-radius: 10px; background: #0b1730; }
-.ocx-editor-shell__bar { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0.7rem; border-bottom: 1px solid #263b5a; color: #9fb0c8; font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.ocx-editor-shell__bar button { padding: 0; border: 0; background: transparent; color: #80c9ff; font: inherit; cursor: pointer; }
-.ocx-textarea { display: block; width: 100%; min-height: 286px; padding: 0.85rem; resize: vertical; border: 0; outline: 0; background: transparent; color: #dceaff; font: 400 0.7rem/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.ocx-editor-shell { overflow: hidden; border: 1px solid var(--ocx-code-border); border-radius: 10px; background: var(--ocx-code-bg); }
+.ocx-editor-shell__bar { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--ocx-code-border); color: var(--ocx-code-muted); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.ocx-editor-shell__bar button { padding: 0; border: 0; background: transparent; color: var(--ocx-code-accent); font: inherit; cursor: pointer; }
+.ocx-textarea { display: block; width: 100%; min-height: 286px; padding: 1rem; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--ocx-code-text); font: 400 0.875rem/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; }
 
 .ocx-convert-button {
   display: flex;
@@ -374,16 +398,16 @@
   width: 100%;
   margin-top: 0.75rem;
   padding: 0.78rem 0.9rem;
-  border: 1px solid var(--ocx-blue-dark);
+  border: 1px solid var(--ocx-action-hover);
   border-radius: 8px;
-  background: var(--ocx-blue);
-  color: #fff;
-  font-size: 0.72rem;
+  background: var(--ocx-action-bg);
+  color: var(--ocx-action-text);
+  font-size: 0.85rem;
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 7px 16px rgba(37, 99, 235, 0.18);
 }
-.ocx-convert-button:hover { background: var(--ocx-blue-dark); }
+.ocx-convert-button:hover { background: var(--ocx-action-hover); }
 .ocx-convert-button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
 .ocx-preview-stage {
@@ -411,24 +435,24 @@
 }
 .ocx-empty-state__files i:last-child { color: #c92a2a; transform: rotate(2deg); }
 .ocx-empty-state__files b { color: var(--ocx-muted); }
-.ocx-empty-state > strong { font-size: 0.82rem; }
-.ocx-empty-state p { margin: 0.3rem 0 0; color: var(--ocx-muted); font-size: 0.65rem; }
+.ocx-empty-state > strong { font-size: 0.95rem; }
+.ocx-empty-state p { margin: 0.35rem 0 0; color: var(--ocx-muted); font-size: 0.8rem; line-height: 1.5; }
 .ocx-spinner { width: 30px; height: 30px; margin-bottom: 0.8rem; border: 3px solid rgba(37, 99, 235, 0.15); border-top-color: var(--ocx-blue); border-radius: 50%; animation: ocx-spin 0.75s linear infinite; }
 @keyframes ocx-spin { to { transform: rotate(360deg); } }
 .ocx-pdf-preview,
 .ocx-html-preview { display: block; width: 100%; height: 500px; border: 0; background: #fff; }
-.ocx-text-output { min-height: 360px; max-height: 500px; margin: 0; padding: 0.9rem; overflow: auto; white-space: pre-wrap; color: #dceaff; background: #0b1730; font: 400 0.68rem/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.ocx-text-output { min-height: 360px; max-height: 500px; margin: 0; padding: 1rem; overflow: auto; white-space: pre-wrap; color: var(--ocx-code-text); background: var(--ocx-code-bg); font: 400 0.875rem/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; }
 
 .ocx-output-summary { display: grid; grid-template-columns: 1.5fr 0.7fr 0.7fr; gap: 0.5rem; margin-top: 0.6rem; }
 .ocx-output-summary span { display: grid; gap: 0.12rem; min-width: 0; padding: 0.48rem 0.58rem; border: 1px solid var(--ocx-border); border-radius: 7px; background: var(--ocx-panel); }
-.ocx-output-summary small { color: var(--ocx-muted); font-size: 0.46rem; font-weight: 850; letter-spacing: 0.09em; }
-.ocx-output-summary strong { overflow: hidden; color: var(--ocx-text); font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
+.ocx-output-summary small { color: var(--ocx-muted); font-size: 0.68rem; font-weight: 850; letter-spacing: 0.08em; }
+.ocx-output-summary strong { overflow: hidden; color: var(--ocx-text); font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .ocx-diagnostics { display: grid; gap: 0.4rem; margin-top: 0.6rem; }
 .ocx-diagnostic { display: flex; gap: 0.6rem; padding: 0.5rem 0.58rem; border: 1px solid var(--ocx-border); border-radius: 7px; background: var(--ocx-panel); }
 .ocx-diagnostic > div { display: grid; gap: 0.1rem; }
-.ocx-diagnostic strong { font-size: 0.6rem; }
-.ocx-diagnostic span:not(.ocx-dot) { color: var(--ocx-muted); font-size: 0.56rem; line-height: 1.4; }
+.ocx-diagnostic strong { font-size: 0.75rem; }
+.ocx-diagnostic span:not(.ocx-dot) { color: var(--ocx-muted); font-size: 0.72rem; line-height: 1.5; }
 .ocx-dot { flex: 0 0 auto; width: 6px; height: 6px; margin-top: 0.24rem; border-radius: 50%; background: #64748b; }
 .ocx-dot--good { background: var(--ocx-green); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1); }
 .ocx-dot--warn { background: #d97706; }
@@ -439,7 +463,7 @@
 .ocx-section-heading .ocx-eyebrow { margin-bottom: 0.25rem; }
 .ocx-section-heading h2,
 .ocx-developer h2 { margin: 0; font-size: 1.45rem; letter-spacing: -0.035em; }
-.ocx-section-heading > span { color: var(--ocx-muted); font-size: 0.62rem; }
+.ocx-section-heading > span { color: var(--ocx-muted); font-size: 0.8rem; }
 .ocx-route-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; }
 .ocx-route-card {
   display: grid;
@@ -458,10 +482,10 @@
 .ocx-route-card:hover { transform: translateY(-2px); border-color: var(--ocx-border-strong); box-shadow: 0 8px 20px rgba(20, 33, 58, 0.07); }
 .ocx-route-card.is-active { border-color: var(--ocx-blue); box-shadow: 0 0 0 1px var(--ocx-blue); }
 .ocx-route-card__formats { grid-row: 1 / span 2; display: flex; align-items: center; gap: 0.25rem; }
-.ocx-route-card__formats i { min-width: 30px; min-height: 24px; font-size: 0.48rem; }
-.ocx-route-card__formats b { color: var(--ocx-muted); font-size: 0.58rem; }
-.ocx-route-card > strong { align-self: end; font-size: 0.75rem; }
-.ocx-route-card > small { color: var(--ocx-muted); font-size: 0.59rem; line-height: 1.45; }
+.ocx-route-card__formats i { min-width: 32px; min-height: 26px; font-size: 0.62rem; }
+.ocx-route-card__formats b { color: var(--ocx-muted); font-size: 0.7rem; }
+.ocx-route-card > strong { align-self: end; font-size: 0.88rem; line-height: 1.3; }
+.ocx-route-card > small { color: var(--ocx-muted); font-size: 0.74rem; line-height: 1.5; }
 
 .ocx-developer {
   display: grid;
@@ -471,14 +495,14 @@
   padding: 3rem 0 4.5rem;
   border-top: 1px solid var(--ocx-border);
 }
-.ocx-developer > div:first-child > p:not(.ocx-eyebrow) { margin: 0.7rem 0 0; color: var(--ocx-muted); font-size: 0.78rem; line-height: 1.65; }
+.ocx-developer > div:first-child > p:not(.ocx-eyebrow) { margin: 0.75rem 0 0; color: var(--ocx-muted); font-size: 0.9rem; line-height: 1.7; }
 .ocx-developer__links { display: flex; gap: 1rem; margin-top: 1rem; }
-.ocx-developer__links a { color: var(--ocx-blue); font-size: 0.7rem; font-weight: 760; }
-.ocx-code-card { overflow: hidden; border: 1px solid #263b5a; border-radius: 10px; background: #0b1730; box-shadow: 0 14px 32px rgba(20, 33, 58, 0.16); }
-.ocx-code-card > div { display: flex; align-items: center; justify-content: space-between; padding: 0.62rem 0.78rem; border-bottom: 1px solid #263b5a; color: #80c9ff; font-size: 0.58rem; }
-.ocx-code-card > div small { color: #9fb0c8; }
-.ocx-code-card code { display: block; padding: 1rem 0.85rem; overflow-x: auto; color: #dceaff; font: 400 0.68rem/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; }
-.ocx-code-card p { margin: 0; padding: 0.7rem 0.85rem; border-top: 1px solid #263b5a; color: #9fb0c8; font-size: 0.58rem; line-height: 1.55; }
+.ocx-developer__links a { color: var(--ocx-blue); font-size: 0.8rem; font-weight: 760; }
+.ocx-code-card { overflow: hidden; border: 1px solid var(--ocx-code-border); border-radius: 10px; background: var(--ocx-code-bg); box-shadow: 0 14px 32px rgba(20, 33, 58, 0.16); }
+.ocx-code-card > div { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.85rem; border-bottom: 1px solid var(--ocx-code-border); color: var(--ocx-code-accent); font-size: 0.7rem; }
+.ocx-code-card > div small { color: var(--ocx-code-muted); }
+.ocx-code-card code { display: block; padding: 1rem; overflow-x: auto; color: var(--ocx-code-text); font: 400 0.84rem/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.ocx-code-card p { margin: 0; padding: 0.75rem 1rem; border-top: 1px solid var(--ocx-code-border); color: var(--ocx-code-muted); font-size: 0.72rem; line-height: 1.55; }
 
 .officeimo-converter-standalone :where(a, button, input, textarea):focus-visible { outline: 3px solid var(--ocx-focus); outline-offset: 3px; }
 .ocx-dropzone:focus-within,
