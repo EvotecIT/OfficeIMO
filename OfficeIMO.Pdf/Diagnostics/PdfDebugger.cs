@@ -11,6 +11,7 @@ internal static class PdfDebugger {
         effectiveOptions.Validate();
         PdfReadOptions effectiveReadOptions = PdfReadOptions.Resolve(readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        document.DemandContentExtraction("debug object");
         var (objects, _) = PdfSyntax.ParseObjects(pdf, effectiveReadOptions);
         HashSet<int> reachable = GetReachableObjectNumbers(objects, document.Security);
         var objectReports = objects.Values

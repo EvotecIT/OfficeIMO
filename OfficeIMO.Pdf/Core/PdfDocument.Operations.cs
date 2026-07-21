@@ -28,6 +28,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfAnalysisReport Analyze(PdfComplianceProfile complianceProfile = PdfComplianceProfile.None) {
         var snapshot = GetReadSnapshot();
+        snapshot.Document.DemandContentExtraction("analysis report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,
@@ -164,6 +165,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDiagnosticReport Diagnostics(PdfReadOptions? options = null) {
         var snapshot = GetReadSnapshot(options);
+        snapshot.Document.DemandContentExtraction("diagnostic report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,

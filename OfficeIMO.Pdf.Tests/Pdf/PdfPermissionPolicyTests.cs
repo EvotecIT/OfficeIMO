@@ -132,7 +132,12 @@ public class PdfPermissionPolicyTests {
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetLinkAnnotations());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetAnnotations());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetPageActions());
-        Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Open(pdf, enforced).Inspect());
+        PdfDocument restrictedDocument = PdfDocument.Open(pdf, enforced);
+        Assert.Throws<PdfPermissionDeniedException>(() => restrictedDocument.Inspect());
+        Assert.Throws<PdfPermissionDeniedException>(() => restrictedDocument.Analyze());
+        Assert.Throws<PdfPermissionDeniedException>(() => restrictedDocument.Diagnostics());
+        Assert.Throws<PdfPermissionDeniedException>(() => restrictedDocument.AnalyzeOptimization());
+        Assert.Throws<PdfPermissionDeniedException>(() => restrictedDocument.Debug());
 
         var ignored = new PdfReadOptions {
             Password = "direct-open",
@@ -148,7 +153,12 @@ public class PdfPermissionPolicyTests {
         Assert.NotEmpty(authorized.Pages[0].GetLinkAnnotations());
         Assert.NotEmpty(authorized.Pages[0].GetAnnotations());
         Assert.Empty(authorized.Pages[0].GetPageActions());
-        Assert.Equal("Ada", Assert.Single(PdfDocument.Open(pdf, ignored).Inspect().FormFields).Value);
+        PdfDocument authorizedDocument = PdfDocument.Open(pdf, ignored);
+        Assert.Equal("Ada", Assert.Single(authorizedDocument.Inspect().FormFields).Value);
+        Assert.Equal("Ada", Assert.Single(authorizedDocument.Analyze().Info.FormFields).Value);
+        Assert.Equal("Direct title", authorizedDocument.Diagnostics().Info?.Metadata.Title);
+        Assert.Equal("Direct title", authorizedDocument.AnalyzeOptimization().Diagnostics.Info?.Metadata.Title);
+        Assert.NotEmpty(authorizedDocument.Debug().Objects);
     }
 
     [Fact]
