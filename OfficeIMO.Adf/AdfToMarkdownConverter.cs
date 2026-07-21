@@ -180,7 +180,7 @@ internal static class AdfToMarkdownConverter {
                     }
                     if (!string.IsNullOrWhiteSpace(href)) {
                         string renderedTitle = MarkdownEscaper.FormatOptionalTitle(title);
-                        value = "[" + value + "](" + href!.Replace(")", "\\)") + renderedTitle + ")";
+                        value = "[" + value + "](" + MarkdownEscaper.EscapeLinkUrl(href) + renderedTitle + ")";
                     }
                     break;
                 default:

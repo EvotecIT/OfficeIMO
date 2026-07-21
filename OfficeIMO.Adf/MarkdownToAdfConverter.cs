@@ -149,8 +149,10 @@ internal static class MarkdownToAdfConverter {
                     else target.Add(AdfNode.TextNode(link.Text, AddMark(inheritedMarks, linkMark)));
                     break;
                 case HardBreakInline:
-                case SoftBreakInline:
                     target.Add(new AdfNode("hardBreak"));
+                    break;
+                case SoftBreakInline:
+                    target.Add(AdfNode.TextNode("\n"));
                     break;
                 default:
                     diagnostics.Add(Warning("MARKDOWN_UNSUPPORTED_INLINE", inlinePath, "Markdown inline '" + inline.GetType().Name + "' has no exact ADF mapping and was omitted."));

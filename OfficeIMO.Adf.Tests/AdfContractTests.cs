@@ -100,6 +100,42 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void LinkProjection_EscapesAndRoundTripsDestinationDelimiters() {
+        const string href = "https://example.test/a(b)/docs\\[one]|two";
+        var link = new AdfMark("link").SetAttribute("href", href);
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode("details", new[] { link }) }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        AdfNode text = Assert.Single(Assert.Single(roundTrip.Value.Content).Content);
+        AdfMark roundTripLink = Assert.Single(text.Marks, mark => mark.Type == "link");
+        Assert.Equal(href, roundTripLink.GetStringAttribute("href"));
+    }
+
+    [Fact]
+    public void MarkdownDocumentSoftBreak_StaysTextInsteadOfBecomingHardBreak() {
+        var markdown = MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence().Text("first").SoftBreak().Text("second")));
+
+        AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
+        AdfConversionResult<string> roundTrip = AdfConverter.ToMarkdown(adf.Value);
+
+        AdfNode paragraph = Assert.Single(adf.Value.Content);
+        Assert.Collection(
+            paragraph.Content,
+            first => Assert.Equal("first", first.Text),
+            newline => Assert.Equal("\n", newline.Text),
+            second => Assert.Equal("second", second.Text));
+        Assert.True(adf.Value.Validate().IsValid);
+        Assert.DoesNotContain(paragraph.Content, node => node.Type == "hardBreak");
+        Assert.Equal("first\nsecond", roundTrip.Value.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
     public void CodeBlockProjection_UsesFenceThatCannotCollideWithContent() {
         const string content = "before\n```\n# still code\nafter";
         var document = new AdfDocument();
