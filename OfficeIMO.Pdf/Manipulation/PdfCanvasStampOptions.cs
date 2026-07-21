@@ -27,6 +27,7 @@ public sealed class PdfCanvasStampOptions {
     /// Generated-PDF rendering options used for the temporary visual overlay.
     /// The value is cloned on assignment and retrieval. Page geometry, margins, and encryption are controlled by the stamping operation.
     /// Use this to carry registered embedded fonts, text shaping, image handling, and other visual rendering configuration into canvas content.
+    /// Tagged structure mode must remain disabled because a visual page import cannot merge the temporary document's structure tree into the target.
     /// </summary>
     public PdfOptions? RenderingOptions {
         get => _renderingOptions?.Clone();

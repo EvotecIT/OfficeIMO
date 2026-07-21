@@ -315,6 +315,21 @@ public class PdfPermissionPolicyTests {
         PdfOperationResult<PdfDocument> explicitDuplicateOptions = PdfDocument.Open(source).Pages.TryDuplicate(PdfPageSelection.From(1), options);
         Assert.True(explicitDuplicateOptions.Succeeded, string.Join(Environment.NewLine, explicitDuplicateOptions.Diagnostics));
         Assert.Equal(4, explicitDuplicateOptions.RequireValue().Inspect().PageCount);
+
+        PdfOperationResult<PdfDocument>[] selectorResults = {
+            PdfDocument.Open(source).Pages.TryDelete(PdfPageSelector.Parse("last"), options),
+            PdfDocument.Open(source).Pages.TryReorder(PdfPageSelector.Parse("last..1"), options),
+            PdfDocument.Open(source).Pages.TryDuplicate(PdfPageSelector.Parse("1"), options),
+            PdfDocument.Open(source).Pages.TryMove(1, PdfPageSelector.Parse("last"), options),
+            PdfDocument.Open(source).Pages.TryRotate(270, PdfPageSelector.Parse("2"), options)
+        };
+
+        Assert.All(selectorResults, result => Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics)));
+        Assert.Equal(2, selectorResults[0].RequireValue().Inspect().PageCount);
+        Assert.StartsWith("Page three", selectorResults[1].RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(4, selectorResults[2].RequireValue().Inspect().PageCount);
+        Assert.StartsWith("Page three", selectorResults[3].RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(270, selectorResults[4].RequireValue().Inspect().Pages[1].RotationDegrees);
     }
 
     [Fact]
@@ -368,6 +383,15 @@ public class PdfPermissionPolicyTests {
 
         Assert.True(report.Original.Security.HasEncryption);
         Assert.True(report.Rewritten.Security.HasEncryption);
+
+        var enforcedSourceOptions = new PdfReadOptions { Password = "owner-open" };
+        var enforcedRewrittenOptions = new PdfReadOptions { Password = "rewrite-open" };
+        Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Open(source, enforcedSourceOptions).AssessRewritePreservation(
+                PdfDocument.Open(rewrittenBytes, rewrittenOptions)));
+        Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Open(source, options).AssessRewritePreservation(
+                PdfDocument.Open(rewrittenBytes, enforcedRewrittenOptions)));
     }
 
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) =>

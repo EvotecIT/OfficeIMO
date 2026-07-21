@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Stamps arbitrary visual <see cref="PdfPageCanvas"/> content onto selected existing pages.
-    /// Annotations and form fields remain separate editor concerns and are rejected by this visual-only operation.
+    /// Annotations, form fields, interactive metadata, outlines, and tagged structure remain separate editor concerns
+    /// and are rejected by this visual-only operation.
     /// </summary>
     public PdfDocument Content(
         Action<PdfPageCanvas, PdfStampPageContext> build,

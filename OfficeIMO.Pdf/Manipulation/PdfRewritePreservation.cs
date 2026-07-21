@@ -32,8 +32,8 @@ public static partial class PdfRewritePreservation {
         options ??= new PdfRewritePreservationOptions();
         PdfReadOptions? effectiveOriginalReadOptions = options.OriginalReadOptions ?? originalReadOptions;
         PdfReadOptions? effectiveRewrittenReadOptions = options.RewrittenReadOptions ?? rewrittenReadOptions;
-        PdfDocumentInfo original = PdfInspector.Inspect(originalPdf, effectiveOriginalReadOptions);
-        PdfDocumentInfo rewritten = PdfInspector.Inspect(rewrittenPdf, effectiveRewrittenReadOptions);
+        PdfDocumentInfo original = InspectReportInput(originalPdf, effectiveOriginalReadOptions, "original");
+        PdfDocumentInfo rewritten = InspectReportInput(rewrittenPdf, effectiveRewrittenReadOptions, "rewritten");
         var issues = new List<PdfRewritePreservationIssue>();
 
         CompareCounts(issues, "PageCount", original.PageCount, rewritten.PageCount, options.PreservePageCount);
@@ -66,6 +66,12 @@ public static partial class PdfRewritePreservation {
         CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers, effectiveRewrittenReadOptions);
 
         return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly());
+    }
+
+    private static PdfDocumentInfo InspectReportInput(byte[] pdf, PdfReadOptions? readOptions, string inputName) {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        document.DemandContentExtraction(inputName + " rewrite-preservation report");
+        return PdfInspector.Inspect(pdf, document);
     }
 
     /// <summary>

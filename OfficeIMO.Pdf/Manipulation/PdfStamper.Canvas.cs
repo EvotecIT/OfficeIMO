@@ -9,6 +9,10 @@ internal static partial class PdfStamper {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(build, nameof(build));
         PdfCanvasStampOptions effective = options ?? new PdfCanvasStampOptions();
+        PdfOptions? renderingOptions = effective.RenderingOptionsSnapshot;
+        if (renderingOptions is not null && renderingOptions.TaggedStructureMode != PdfTaggedStructureMode.None) {
+            throw new NotSupportedException("Existing-page canvas stamping is visual-only and cannot preserve a generated tagged structure tree. Use untagged rendering options or a document authoring path that owns the target structure tree.");
+        }
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
 
         PdfReadDocument target = PdfReadDocument.Open(pdf, readOptions);
@@ -28,7 +32,7 @@ internal static partial class PdfStamper {
             build(canvas, context);
             RejectNonVisualCanvasItems(canvas.Items);
 
-            PdfOptions overlayOptions = effective.RenderingOptionsSnapshot ?? new PdfOptions();
+            PdfOptions overlayOptions = renderingOptions?.Clone() ?? new PdfOptions();
             overlayOptions.PageWidth = width;
             overlayOptions.PageHeight = height;
             overlayOptions.MarginLeft = 0D;
@@ -74,14 +78,14 @@ internal static partial class PdfStamper {
                 throw new NotSupportedException("Existing-page canvas stamping accepts visual content only. Links, named destinations, and form controls require their dedicated document editors.");
             }
 
+            if (item is PdfCanvasFigureItem || item is PdfCanvasStructureItem) {
+                throw new NotSupportedException("Existing-page canvas stamping is visual-only and cannot preserve canvas figure or structure-tree semantics. Use ordinary visual canvas items or a document authoring path that owns the target structure tree.");
+            }
+
             if (item is PdfCanvasClipItem clip) {
                 RejectNonVisualCanvasItems(clip.Items);
             } else if (item is PdfCanvasEffectItem effect) {
                 RejectNonVisualCanvasItems(effect.Items);
-            } else if (item is PdfCanvasFigureItem figure) {
-                RejectNonVisualCanvasItems(figure.Items);
-            } else if (item is PdfCanvasStructureItem structure) {
-                RejectNonVisualCanvasItems(structure.Items);
             } else if (item is PdfCanvasActualTextItem actualText) {
                 RejectNonVisualCanvasItems(actualText.Items);
             }

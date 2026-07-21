@@ -136,6 +136,26 @@ public class PdfCanvasStampTests {
     }
 
     [Fact]
+    public void ContentRejectsTaggedStructureThatVisualImportCannotPreserve() {
+        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
+        var taggedOptions = new PdfCanvasStampOptions().UseRenderingOptions(
+            new PdfOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
+
+        NotSupportedException renderingException = Assert.Throws<NotSupportedException>(() =>
+            target.Stamp.Content(canvas => canvas.Text("Tagged text", 10D, 10D, 120D, 30D), taggedOptions));
+        NotSupportedException figureException = Assert.Throws<NotSupportedException>(() =>
+            target.Stamp.Content(canvas => canvas.Figure("Tagged figure", nested =>
+                nested.Text("Figure", 10D, 10D, 120D, 30D))));
+        NotSupportedException structureException = Assert.Throws<NotSupportedException>(() =>
+            target.Stamp.Content(canvas => canvas.Structure(PdfCanvasStructureRole.Paragraph, nested =>
+                nested.Text("Structured paragraph", 10D, 10D, 180D, 30D))));
+
+        Assert.Contains("structure", renderingException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("structure", figureException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("structure", structureException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void OverlayPageReadsEncryptedSourceWithItsOwnPasswordPolicy() {
         byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target page")).ToBytes();
         byte[] source = CreateRestrictedPdf("source-open", "source-owner", "Encrypted overlay source");
