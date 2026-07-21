@@ -394,6 +394,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
         }
+        if (!IsSupportedExcelImage(dataUri, result, image.GetAttribute("src"))) return;
 
         if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,

@@ -20,11 +20,11 @@ public partial class Html {
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
         }
-        Assert.Equal(Enum.GetValues<HtmlConversionTarget>().Length, HtmlTargetCapabilityContracts.All.Count);
+        Assert.Equal(Enum.GetValues(typeof(HtmlConversionTarget)).Length, HtmlTargetCapabilityContracts.All.Count);
         foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All) {
             Assert.Contains("| " + contract.Target + " |", first, StringComparison.Ordinal);
-            foreach (HtmlSemanticFeature feature in Enum.GetValues<HtmlSemanticFeature>()) {
-                Assert.True(Enum.IsDefined(contract.GetSupport(feature)));
+            foreach (HtmlSemanticFeature feature in (HtmlSemanticFeature[])Enum.GetValues(typeof(HtmlSemanticFeature))) {
+                Assert.True(Enum.IsDefined(typeof(HtmlCapabilitySupportLevel), contract.GetSupport(feature)));
             }
         }
         foreach (HtmlDiagnosticDefinition definition in HtmlDiagnosticCatalog.Ordered) {

@@ -167,7 +167,7 @@ public static partial class HtmlRoundTripScorer {
                 + "|" + resource.AttributeName.ToLowerInvariant() + "|" + NormalizeResourceIdentity(source)
                 + "|" + (resource.IsAllowed ? "allowed" : "blocked"));
         }
-        foreach (HtmlSemanticResource resource in document.SemanticDocument.Resources) {
+        foreach (HtmlSemanticResource resource in document.SemanticDocument.ResourceOccurrences) {
             signatures.Add("semantic|" + resource.Kind + "|" + NormalizeResourceIdentity(resource.Source)
                 + "|" + resource.MediaType.Trim().ToLowerInvariant()
                 + "|" + NormalizeText(resource.AlternateText));

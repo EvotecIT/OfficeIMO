@@ -51,6 +51,56 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void ExcelHtml_SemanticUnsupportedImageDoesNotConsumeImageBudget() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-profile="ExcelSemanticTables" data-officeimo-schema-version="1">
+              <section class="officeimo-sheet" data-officeimo-sheet="Data" data-officeimo-range="A1">
+                <table><tbody><tr><td>value</td></tr></tbody></table>
+                <section class="officeimo-images"><ul>
+                  <li><img src="data:image/webp;base64,AA=="></li>
+                  <li><img src="data:image/png;base64,AQID"></li>
+                </ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        limits.MaxShapes = 1;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(1, result.Images);
+        Assert.Single(workbook.Sheets[0].Images);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
+                && diagnostic.Detail == "mediaType=image/webp");
+    }
+
+    [Fact]
+    public void ExcelHtml_GenericUnsupportedImageDoesNotConsumeImageBudget() {
+        const string html = """
+            <img src="data:image/webp;base64,AA==" alt="Unsupported">
+            <img src="data:image/png;base64,AQID" alt="Accepted">
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        limits.MaxShapes = 1;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
+        Assert.Equal("Accepted", image.Description);
+        Assert.Equal(1, result.Images);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
+                && diagnostic.Detail == "mediaType=image/webp");
+    }
+
+    [Fact]
     public void ExcelHtml_UsesOneFormulaDecisionForCellMetadataAndCompatibilityInventory() {
         const string html = """
             <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-profile="ExcelSemanticTables" data-officeimo-schema-version="1">

@@ -491,12 +491,16 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
+        var documentOptions = new HtmlConversionDocumentOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
+        };
         PdfCore.PdfDocumentConversionResult result = await HtmlConversionDocument.Parse($"""
             <a href="{dataUri}">Blocked data link</a>
             <a href="{fileUri}">Blocked file link</a>
             <img src="{dataUri}" width="40" height="25" alt="data image">
             <img src="{fileUri}" width="25" height="40" alt="file image">
-            """).ToPdfDocumentResultAsync(options);
+            """, documentOptions).ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
@@ -672,7 +676,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.Equal(0, hostResolverCalls);
-        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Contains(result.Warnings, warning => warning.Code == "ImageResourceRejectedByPolicy");
     }
 
     [Fact]

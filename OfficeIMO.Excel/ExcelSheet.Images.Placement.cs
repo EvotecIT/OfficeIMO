@@ -447,20 +447,41 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Determines whether an image content type can be stored in an Excel image part.</summary>
+        /// <param name="contentType">The MIME content type to inspect.</param>
+        /// <returns><see langword="true"/> when the content type maps to an Excel image part; otherwise <see langword="false"/>.</returns>
+        public static bool IsSupportedImageContentType(string? contentType) =>
+            TryGetImagePartType(contentType, out _);
+
         private static PartTypeInfo ToImagePartType(string? contentType) {
-            return (contentType ?? string.Empty).ToLowerInvariant() switch {
-                "image/png" => ImagePartType.Png,
-                "image/jpeg" or "image/jpg" => ImagePartType.Jpeg,
-                "image/gif" => ImagePartType.Gif,
-                "image/bmp" => ImagePartType.Bmp,
-                "image/tiff" or "image/tif" => ImagePartType.Tiff,
-                "image/svg+xml" or "image/svg" => ImagePartType.Svg,
-                "image/x-emf" or "image/emf" => ImagePartType.Emf,
-                "image/x-wmf" or "image/wmf" => ImagePartType.Wmf,
-                "image/x-icon" or "image/vnd.microsoft.icon" or "image/ico" => ImagePartType.Icon,
-                "image/x-pcx" or "image/pcx" => ImagePartType.Pcx,
-                _ => throw new NotSupportedException($"Image content type '{contentType}' is not supported by Excel image parts.")
-            };
+            if (TryGetImagePartType(contentType, out PartTypeInfo imagePartType)) return imagePartType;
+            throw new NotSupportedException($"Image content type '{contentType}' is not supported by Excel image parts.");
+        }
+
+        private static bool TryGetImagePartType(string? contentType, out PartTypeInfo imagePartType) {
+            switch ((contentType ?? string.Empty).Trim().ToLowerInvariant()) {
+                case "image/png": imagePartType = ImagePartType.Png; return true;
+                case "image/jpeg":
+                case "image/jpg": imagePartType = ImagePartType.Jpeg; return true;
+                case "image/gif": imagePartType = ImagePartType.Gif; return true;
+                case "image/bmp": imagePartType = ImagePartType.Bmp; return true;
+                case "image/tiff":
+                case "image/tif": imagePartType = ImagePartType.Tiff; return true;
+                case "image/svg+xml":
+                case "image/svg": imagePartType = ImagePartType.Svg; return true;
+                case "image/x-emf":
+                case "image/emf": imagePartType = ImagePartType.Emf; return true;
+                case "image/x-wmf":
+                case "image/wmf": imagePartType = ImagePartType.Wmf; return true;
+                case "image/x-icon":
+                case "image/vnd.microsoft.icon":
+                case "image/ico": imagePartType = ImagePartType.Icon; return true;
+                case "image/x-pcx":
+                case "image/pcx": imagePartType = ImagePartType.Pcx; return true;
+                default:
+                    imagePartType = default!;
+                    return false;
+            }
         }
 
         private static string ContentTypeFromExtension(string path) {

@@ -75,7 +75,7 @@ internal static class HtmlConversionPreflightAnalyzer {
             case HtmlSemanticFeature.Css:
                 return Evidence(document.StyleSummary.StyledElementCount, blocks.FirstOrDefault(block => block.Style?.Properties.Count > 0));
             case HtmlSemanticFeature.Resources:
-                return new FeatureEvidence(document.ResourceManifest.Resources.Count, semantic.Resources.FirstOrDefault()?.SourceLocation);
+                return new FeatureEvidence(document.ResourceManifest.Resources.Count, semantic.ResourceOccurrences.FirstOrDefault()?.SourceLocation);
             case HtmlSemanticFeature.PagedLayout:
                 return ElementEvidence(HtmlSemanticFeatureLocator.FindPagedLayout(dom));
             default:
@@ -111,7 +111,7 @@ internal static class HtmlConversionPreflightAnalyzer {
     }
 
     private static FeatureEvidence ResourceEvidence(HtmlSemanticDocument document, HtmlResourceKind kind) {
-        IReadOnlyList<HtmlSemanticResource> resources = document.Resources.Where(resource => resource.Kind == kind).ToList();
+        IReadOnlyList<HtmlSemanticResource> resources = document.ResourceOccurrences.Where(resource => resource.Kind == kind).ToList();
         return new FeatureEvidence(resources.Count, resources.FirstOrDefault()?.SourceLocation);
     }
 

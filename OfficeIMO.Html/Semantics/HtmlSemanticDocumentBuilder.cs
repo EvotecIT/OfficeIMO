@@ -28,6 +28,7 @@ internal static class HtmlSemanticDocumentBuilder {
             HtmlSemanticSourceLocation? location = blocks.FirstOrDefault()?.SourceLocation;
             sections.Add(new HtmlSemanticSection(projection.Title, blocks.AsReadOnly(), location));
         }
+        IReadOnlyList<HtmlSemanticResource> resourceOccurrences = resources.ToList().AsReadOnly();
 
         var rootTables = new List<HtmlSemanticBlock>();
         int tableIndex = 0;
@@ -49,6 +50,7 @@ internal static class HtmlSemanticDocumentBuilder {
             metadata,
             sections.AsReadOnly(),
             rootTables.AsReadOnly(),
+            resourceOccurrences,
             DeduplicateResources(resources));
     }
 

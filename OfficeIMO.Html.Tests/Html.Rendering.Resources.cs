@@ -122,10 +122,43 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public async Task HtmlRender_UsesItsResourcePolicyWithoutLeakingConversionManifestDecisions() {
+    public async Task HtmlRender_IntersectsRenderPoliciesWithUntrustedDocumentPolicies() {
         const string source = "file:///approved/image.png";
         byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
-        HtmlConversionDocument document = HtmlConversionDocument.Parse("<img src='" + source + "' width='2' height='2'>");
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<a href='file:///secret/report.pdf'>Local report</a><img src='" + source + "' width='2' height='2'>");
+        var resourcePolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+        resourcePolicy.DisallowFileUrls = false;
+        int resolverCalls = 0;
+        var options = new HtmlRenderOptions {
+            UrlPolicy = resourcePolicy,
+            ResourceUrlPolicy = resourcePolicy,
+            ResourceResolver = (request, cancellationToken) => {
+                resolverCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png"));
+            },
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToList();
+        Assert.Equal(0, resolverCalls);
+        Assert.Empty(visuals.OfType<HtmlRenderImage>());
+        Assert.DoesNotContain(visuals.OfType<HtmlRenderText>(), text =>
+            text.LinkUri?.StartsWith("file:", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
+    }
+
+    [Fact]
+    public async Task HtmlRender_TrustedDocumentAllowsExplicitFileResourcePolicy() {
+        const string source = "file:///approved/image.png";
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<img src='" + source + "' width='2' height='2'>",
+            HtmlConversionDocumentOptions.CreateTrustedProfile());
         var resourcePolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
         resourcePolicy.DisallowFileUrls = false;
         var options = new HtmlRenderOptions {

@@ -38,12 +38,14 @@ public sealed class HtmlSemanticDocument {
         IReadOnlyDictionary<string, string> metadata,
         IReadOnlyList<HtmlSemanticSection> sections,
         IReadOnlyList<HtmlSemanticBlock> rootTables,
+        IReadOnlyList<HtmlSemanticResource> resourceOccurrences,
         IReadOnlyList<HtmlSemanticResource> resources) {
         Title = title;
         Language = language;
         Metadata = metadata;
         Sections = sections;
         RootTables = rootTables;
+        ResourceOccurrences = resourceOccurrences;
         Resources = resources;
     }
 
@@ -62,7 +64,10 @@ public sealed class HtmlSemanticDocument {
     /// <summary>Top-level tables, excluding tables nested in another table.</summary>
     public IReadOnlyList<HtmlSemanticBlock> RootTables { get; }
 
-    /// <summary>Resources referenced by retained semantic blocks in source order.</summary>
+    /// <summary>Every resource occurrence referenced by retained semantic blocks in source order.</summary>
+    public IReadOnlyList<HtmlSemanticResource> ResourceOccurrences { get; }
+
+    /// <summary>Deduplicated resource inventory keyed by kind and source.</summary>
     public IReadOnlyList<HtmlSemanticResource> Resources { get; }
 }
 

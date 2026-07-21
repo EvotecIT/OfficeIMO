@@ -114,13 +114,14 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlToExcelResult result,
         HtmlImportBudget budget,
         ref int row) {
-        foreach (HtmlSemanticResource resource in document.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {
+        foreach (HtmlSemanticResource resource in document.ResourceOccurrences.Where(item => item.Kind == HtmlResourceKind.Image)) {
             if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
                     "A generic worksheet image was omitted because synchronous native import currently requires a bounded image data URI.",
                     lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
                 continue;
             }
+            if (!IsSupportedExcelImage(dataUri, result, resource.Source)) continue;
             if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "An embedded generic worksheet image was omitted because the shared image limit was reached.",

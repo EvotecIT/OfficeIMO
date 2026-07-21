@@ -75,6 +75,23 @@ public class HtmlRichGenericImports {
     }
 
     [Fact]
+    public void ExcelHtml_GenericImportPreservesRepeatedImageOccurrences() {
+        string html = "<img src='" + PixelPng + "' alt='First'><img src='" + PixelPng + "' alt='Second'>";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+
+        Assert.Single(source.SemanticDocument.Resources);
+        Assert.Equal(2, source.SemanticDocument.ResourceOccurrences.Count);
+
+        HtmlToExcelResult result = source.ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelImage[] images = Assert.Single(workbook.Sheets).Images.ToArray();
+
+        Assert.Equal(2, result.Images);
+        Assert.Equal(new[] { "First", "Second" }, images.Select(image => image.Description));
+    }
+
+    [Fact]
     public void PowerPointHtml_GenericImportPreservesRichRunsLinksAndNestedLists() {
         const string html = """
             <section>

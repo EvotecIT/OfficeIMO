@@ -28,6 +28,7 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.BaseUri ??= document.BaseUri;
+        ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
         HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
         cancellationToken.ThrowIfCancellationRequested();
@@ -115,6 +116,7 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.BaseUri ??= document.BaseUri;
+        ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
         HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
         IHtmlDocument renderDocument = document.CreateDocumentForRendering();
@@ -188,6 +190,13 @@ public static class HtmlRenderEngine {
 
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
+
+    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
+        HtmlUrlPolicy requestedHyperlinkPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        HtmlUrlPolicy requestedResourcePolicy = options.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
+        options.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
+        options.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
+    }
 
     private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
