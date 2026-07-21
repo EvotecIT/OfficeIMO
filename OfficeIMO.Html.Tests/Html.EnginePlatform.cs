@@ -341,6 +341,7 @@ public partial class Html {
 
         string markdown = conversion.ToMarkdown();
         Assert.Contains("# Canonical Contract", markdown);
+        Assert.DoesNotContain("file:///secret", markdown, StringComparison.OrdinalIgnoreCase);
         HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
         Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
         Assert.False(sharedWordDefaults.AllowDocumentStylesheetLinks);
@@ -701,6 +702,10 @@ public partial class Html {
             "<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-alpha</p></main>",
             "<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-beta</p></main>");
         Assert.InRange(htmlScore.Metrics["text"], 0D, 0.99D);
+        HtmlRoundTripScore retainedDocumentScore = HtmlRoundTripScorer.Compare(
+            HtmlConversionDocument.Parse("<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-alpha</p></main>"),
+            HtmlConversionDocument.Parse("<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-beta</p></main>"));
+        Assert.Equal(htmlScore.Score, retainedDocumentScore.Score, 12);
 
         HtmlRoundTripScore appendedTextScore = HtmlRoundTripScorer.Compare(
             "<main><p>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu</p></main>",

@@ -82,13 +82,10 @@ internal static partial class HtmlReaderAdapter {
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
         string projectedHtml = html;
         ReaderHtmlOptions chunkHtmlOptions = effectiveHtmlOptions;
-        HtmlConversionDocument conversionDocument = HtmlConversionDocument.Parse(
+        HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
-            new HtmlConversionDocumentOptions {
-                BaseUri = projectionOptions.BaseUri,
-                UseBodyContentsOnly = false,
-                IncludeNormalizedHtml = false
-            });
+            effectiveHtmlOptions,
+            projectionOptions.BaseUri);
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
             conversionDocument.CreateDocumentForConversion(HtmlCssMediaContext.Screen),
             projectionOptions);

@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Html;
@@ -8,7 +9,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         IElement section,
         PptCore.PowerPointSlide slide,
         HtmlToPowerPointOptions options,
-        HtmlToPowerPointResult result) {
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget) {
         var items = new List<PowerPointSemanticImportItem>();
         int fallbackOrder = 0;
 
@@ -38,18 +40,25 @@ public static partial class HtmlPowerPointConverterExtensions {
         foreach (PowerPointSemanticImportItem item in items
             .OrderBy(item => item.LayerIndex ?? item.FallbackOrder)
             .ThenBy(item => item.FallbackOrder)) {
+            if (!budget.TryReserveShape(out string shapeLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Additional slide shapes were omitted because the shared import limit was reached.",
+                    lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
+                break;
+            }
+
             switch (item.Kind) {
                 case PowerPointSemanticImportKind.TextBox:
-                    contentTop = ImportSemanticTextBox(item.Element, slide, contentTop, result);
+                    contentTop = ImportSemanticTextBox(item.Element, slide, contentTop, result, budget);
                     break;
                 case PowerPointSemanticImportKind.Table:
-                    contentTop = ImportTable(item.Element, slide, contentTop, options, result);
+                    contentTop = ImportTable(item.Element, slide, contentTop, result, budget);
                     break;
                 case PowerPointSemanticImportKind.Picture:
-                    ImportPicture(item.Element, slide, result, ref pictureTop);
+                    ImportPicture(item.Element, slide, result, budget, ref pictureTop);
                     break;
                 case PowerPointSemanticImportKind.Chart:
-                    ImportChart(item.Element, slide, result, ref chartTop);
+                    ImportChart(item.Element, slide, result, budget, ref chartTop);
                     break;
             }
         }
@@ -65,16 +74,35 @@ public static partial class HtmlPowerPointConverterExtensions {
         IElement paragraph,
         PptCore.PowerPointSlide slide,
         double fallbackTop,
-        HtmlToPowerPointResult result) {
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget) {
         string text = PreserveText(paragraph.TextContent);
+        return ImportTextBox(paragraph, text, slide, fallbackTop, result, budget, 48D);
+    }
+
+    private static double ImportTextBox(
+        IElement source,
+        string text,
+        PptCore.PowerPointSlide slide,
+        double fallbackTop,
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget,
+        double fallbackHeight) {
         if (text.Length == 0) {
             return fallbackTop;
         }
 
-        ReadSemanticShapeGeometry(paragraph, 64D, fallbackTop, 620D, 48D,
+        if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                "A slide text block was omitted because it exceeded the shared field limit.",
+                lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+            return fallbackTop;
+        }
+
+        ReadSemanticShapeGeometry(source, 64D, fallbackTop, 620D, fallbackHeight, budget, result,
             out double left, out double top, out double width, out double height);
         PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
-        ApplyShapeTransforms(paragraph, textBox);
+        ApplyShapeTransforms(source, textBox, budget, result);
         result.TextBoxes++;
         return Math.Max(fallbackTop + 58D, top + height + 10D);
     }
@@ -85,14 +113,16 @@ public static partial class HtmlPowerPointConverterExtensions {
         double fallbackTop,
         double fallbackWidth,
         double fallbackHeight,
+        HtmlImportBudget budget,
+        HtmlToPowerPointResult result,
         out double left,
         out double top,
         out double width,
         out double height) {
-        left = ReadOptionalDoubleAttribute(element, "data-officeimo-left") ?? fallbackLeft;
-        top = ReadOptionalDoubleAttribute(element, "data-officeimo-top") ?? fallbackTop;
-        width = Math.Max(1D, ReadOptionalDoubleAttribute(element, "data-officeimo-width") ?? fallbackWidth);
-        height = Math.Max(1D, ReadOptionalDoubleAttribute(element, "data-officeimo-height") ?? fallbackHeight);
+        left = NormalizeGeometry(ReadOptionalDoubleAttribute(element, "data-officeimo-left") ?? fallbackLeft, fallbackLeft, -budget.Limits.MaxAbsoluteGeometry, budget, result, "shape left");
+        top = NormalizeGeometry(ReadOptionalDoubleAttribute(element, "data-officeimo-top") ?? fallbackTop, fallbackTop, -budget.Limits.MaxAbsoluteGeometry, budget, result, "shape top");
+        width = NormalizeGeometry(ReadOptionalDoubleAttribute(element, "data-officeimo-width") ?? fallbackWidth, fallbackWidth, 1D, budget, result, "shape width");
+        height = NormalizeGeometry(ReadOptionalDoubleAttribute(element, "data-officeimo-height") ?? fallbackHeight, fallbackHeight, 1D, budget, result, "shape height");
     }
 
     private sealed class PowerPointSemanticImportItem {

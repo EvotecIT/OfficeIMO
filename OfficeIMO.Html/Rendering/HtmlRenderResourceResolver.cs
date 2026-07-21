@@ -57,6 +57,13 @@ public sealed class HtmlResolvedResource {
     /// <summary>Resolved resource bytes.</summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
 
+    // First-party consumers share the immutable snapshot instead of repeatedly cloning large
+    // image, font, and stylesheet payloads. The public boundary remains defensive.
+    internal byte[] EncodedBytes => _bytes;
+
+    /// <summary>Resolved resource length in bytes.</summary>
+    public long Length => _bytes.LongLength;
+
     /// <summary>Declared media type.</summary>
     public string ContentType { get; }
 }

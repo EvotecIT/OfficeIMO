@@ -28,6 +28,22 @@ public sealed class HtmlUrlPolicy {
     };
 
     /// <summary>
+    /// Creates an offline resource policy that accepts bounded embedded data while rejecting file and network schemes.
+    /// </summary>
+    public static HtmlUrlPolicy CreateEmbeddedResourceProfile() {
+        var policy = new HtmlUrlPolicy {
+            DisallowFileUrls = true,
+            AllowMailtoUrls = false,
+            AllowDataUrls = true,
+            AllowProtocolRelativeUrls = false,
+            RestrictUrlSchemes = true
+        };
+        policy.AllowedUrlSchemes.Clear();
+        policy.AllowedUrlSchemes.Add("data");
+        return policy;
+    }
+
+    /// <summary>
     /// When true, script-like URL schemes such as <c>javascript:</c> and <c>vbscript:</c> are rejected.
     /// </summary>
     public bool DisallowScriptUrls { get; set; } = true;

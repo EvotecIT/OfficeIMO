@@ -30,6 +30,9 @@ public sealed class HtmlPdfResourcePolicySummary {
     /// <summary>Maximum duration allowed for one resource request.</summary>
     public TimeSpan ResourceTimeout { get; private set; }
 
+    /// <summary>Maximum asynchronous resource resolver concurrency.</summary>
+    public int MaxConcurrentResourceLoads { get; private set; }
+
     /// <summary>Maximum bytes accepted from one resource.</summary>
     public long MaxResourceBytes { get; private set; }
 
@@ -38,6 +41,9 @@ public sealed class HtmlPdfResourcePolicySummary {
 
     /// <summary>Maximum external resource count accepted by one conversion.</summary>
     public int MaxResourceCount { get; private set; }
+
+    /// <summary>Maximum resolver invocations, including misses and failures.</summary>
+    public int MaxResourceRequests { get; private set; }
 
     /// <summary>Maximum recursive stylesheet import depth.</summary>
     public int MaxStylesheetImportDepth { get; private set; }
@@ -57,9 +63,11 @@ public sealed class HtmlPdfResourcePolicySummary {
             AllowDataUris = options.ResourcePolicy.AllowDataUris,
             AllowEmbeddedPackageResources = options.ResourcePolicy.AllowEmbeddedPackageResources,
             ResourceTimeout = options.ResourceTimeout,
+            MaxConcurrentResourceLoads = options.MaxConcurrentResourceLoads,
             MaxResourceBytes = options.MaxResourceBytes,
             MaxTotalResourceBytes = options.MaxTotalResourceBytes,
             MaxResourceCount = options.MaxResourceCount,
+            MaxResourceRequests = options.MaxResourceRequests,
             MaxStylesheetImportDepth = options.MaxStylesheetImportDepth,
             AllowedUrlSchemes = urlPolicy.RestrictUrlSchemes
                 ? CopySorted(urlPolicy.AllowedUrlSchemes)

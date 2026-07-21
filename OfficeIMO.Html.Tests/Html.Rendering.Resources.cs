@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Tests.Pdf;
@@ -8,6 +9,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public async Task HtmlRender_ResolvesResourcesConcurrentlyWithinTheConfiguredBound() {
+        int active = 0;
+        int maximumActive = 0;
+        int calls = 0;
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        var options = new HtmlRenderOptions {
+            MaxConcurrentResourceLoads = 2,
+            ResourceResolver = async (request, cancellationToken) => {
+                Interlocked.Increment(ref calls);
+                int current = Interlocked.Increment(ref active);
+                int observed;
+                do {
+                    observed = maximumActive;
+                    if (observed >= current) break;
+                } while (Interlocked.CompareExchange(ref maximumActive, current, observed) != observed);
+                await Task.Delay(30, cancellationToken);
+                Interlocked.Decrement(ref active);
+                return new HtmlResolvedResource(png, "image/png");
+            },
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        await HtmlRenderTestDriver.RenderAsync(
+            string.Concat(Enumerable.Range(1, 4).Select(index => "<img src='https://assets.example.test/" + index + ".png' width='2' height='2'>")),
+            options);
+
+        Assert.Equal(4, calls);
+        Assert.InRange(maximumActive, 2, options.MaxConcurrentResourceLoads);
+    }
+
+    [Fact]
+    public async Task HtmlRender_BoundsResolverMissesWithTheRequestBudget() {
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            MaxConcurrentResourceLoads = 2,
+            MaxResourceCount = 1,
+            MaxResourceRequests = 2,
+            ResourceResolver = (request, cancellationToken) => {
+                Interlocked.Increment(ref calls);
+                return Task.FromResult<HtmlResolvedResource?>(null);
+            },
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<img src='https://assets.example.test/1.png'><img src='https://assets.example.test/2.png'><img src='https://assets.example.test/3.png'>",
+            options);
+
+        Assert.Equal(2, calls);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceRequestLimitExceeded);
+    }
+
     [Fact]
     public void HtmlRender_DataImagesHonorTheConfiguredUrlPolicy() {
         string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
@@ -26,6 +82,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visuals.OfType<HtmlRenderImagePattern>());
         Assert.Empty(visuals.OfType<HtmlRenderDrawing>());
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+    }
+
+    [Fact]
+    public async Task HtmlRender_UsesItsResourcePolicyWithoutLeakingConversionManifestDecisions() {
+        const string source = "file:///approved/image.png";
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("<img src='" + source + "' width='2' height='2'>");
+        var resourcePolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+        resourcePolicy.DisallowFileUrls = false;
+        var options = new HtmlRenderOptions {
+            ResourceUrlPolicy = resourcePolicy,
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(png, "image/png")),
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderImage);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
     }
 
     [Fact]

@@ -108,14 +108,32 @@ public static class HtmlRoundTripScorer {
     /// Compares source HTML with target HTML and returns a structural score.
     /// </summary>
     public static HtmlRoundTripScore Compare(string sourceHtml, string targetHtml) {
-        HtmlLogicalDocument source = BuildLogicalDocumentForScoring(sourceHtml);
-        HtmlLogicalDocument target = BuildLogicalDocumentForScoring(targetHtml);
-        IReadOnlyList<string> sourceFormOwners = ExtractFormOwnerSignatures(sourceHtml);
-        IReadOnlyList<string> targetFormOwners = ExtractFormOwnerSignatures(targetHtml);
+        return Compare(HtmlConversionDocument.Parse(sourceHtml), HtmlConversionDocument.Parse(targetHtml));
+    }
+
+    /// <summary>
+    /// Compares retained conversion documents without reparsing either HTML source.
+    /// </summary>
+    public static HtmlRoundTripScore Compare(HtmlConversionDocument sourceDocument, HtmlConversionDocument targetDocument) {
+        if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
+        if (targetDocument == null) throw new ArgumentNullException(nameof(targetDocument));
+
+        AngleSharp.Html.Dom.IHtmlDocument sourceScoringDocument = PrepareDocumentForScoring(sourceDocument);
+        AngleSharp.Html.Dom.IHtmlDocument targetScoringDocument = PrepareDocumentForScoring(targetDocument);
+        HtmlLogicalDocument source = HtmlLogicalDocumentBuilder.FromDocument(sourceScoringDocument);
+        HtmlLogicalDocument target = HtmlLogicalDocumentBuilder.FromDocument(targetScoringDocument);
+        IReadOnlyList<string> sourceFormOwners = ExtractFormOwnerSignatures(sourceScoringDocument);
+        IReadOnlyList<string> targetFormOwners = ExtractFormOwnerSignatures(targetScoringDocument);
         double? formOwnerSimilarity = sourceFormOwners.Count == 0 && targetFormOwners.Count == 0
             ? (double?)null
             : SignatureSimilarity(targetFormOwners, sourceFormOwners);
-        return Compare(source, target, TextSimilarityFromText(ExtractVisibleTextFromHtml(sourceHtml), ExtractVisibleTextFromHtml(targetHtml)), formOwnerSimilarity);
+        return Compare(
+            source,
+            target,
+            TextSimilarityFromText(
+                ExtractVisibleTextFromHtml(sourceDocument.CreateSourceDocumentForConversion()),
+                ExtractVisibleTextFromHtml(targetDocument.CreateSourceDocumentForConversion())),
+            formOwnerSimilarity);
     }
 
     /// <summary>
@@ -244,13 +262,13 @@ public static class HtmlRoundTripScorer {
         return signatures;
     }
 
-    private static HtmlLogicalDocument BuildLogicalDocumentForScoring(string html) {
-        var document = HtmlDocumentParser.ParseDocument(html);
+    private static AngleSharp.Html.Dom.IHtmlDocument PrepareDocumentForScoring(HtmlConversionDocument source) {
+        AngleSharp.Html.Dom.IHtmlDocument document = source.CreateSourceDocumentForConversion();
         ResolveResourceSourceAttributes(document);
         SynthesizeImplicitSelectedOptions(document);
         PropagateFieldsetDisabledState(document);
         PruneHiddenStructure(document);
-        return HtmlLogicalDocumentBuilder.FromDocument(document);
+        return document;
     }
 
     private static void PruneHiddenStructure(AngleSharp.Html.Dom.IHtmlDocument document) {
@@ -325,12 +343,7 @@ public static class HtmlRoundTripScorer {
         }
     }
 
-    private static IReadOnlyList<string> ExtractFormOwnerSignatures(string html) {
-        var document = HtmlDocumentParser.ParseDocument(html);
-        ResolveResourceSourceAttributes(document);
-        SynthesizeImplicitSelectedOptions(document);
-        PropagateFieldsetDisabledState(document);
-        PruneHiddenStructure(document);
+    private static IReadOnlyList<string> ExtractFormOwnerSignatures(AngleSharp.Html.Dom.IHtmlDocument document) {
         var signatures = new List<string>();
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
             var parts = new List<string> {
@@ -961,13 +974,8 @@ public static class HtmlRoundTripScorer {
         return CountWindowIntersection(sourceWindows, targetWindows) / (double)unionCount;
     }
 
-    private static string ExtractVisibleTextFromHtml(string html) {
-        if (string.IsNullOrWhiteSpace(html)) {
-            return string.Empty;
-        }
-
+    private static string ExtractVisibleTextFromHtml(AngleSharp.Html.Dom.IHtmlDocument document) {
         var parts = new List<string>();
-        var document = HtmlDocumentParser.ParseDocument(html);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
         INode? root = document.Body ?? (INode?)document.DocumentElement;
         if (root != null) {

@@ -18,7 +18,7 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetText.TryDecode(resource.Bytes, out string css)) {
+            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -88,7 +88,8 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         var resourceOptions = new HtmlResourcePipelineOptions {
-            UrlPolicy = options.GetResourceUrlPolicy().Clone(),
+            ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
+            MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
             MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
@@ -105,7 +106,7 @@ internal static class HtmlRenderStylesheetApplier {
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
-                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.Bytes, out string importedCss)) {
+                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
                     replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles);
                 } else {
                     diagnostics.Add(

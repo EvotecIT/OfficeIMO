@@ -295,9 +295,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_ExposesSharedRenderResourcePolicy() {
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
         options.ResourceTimeout = TimeSpan.FromSeconds(5D);
+        options.MaxConcurrentResourceLoads = 3;
         options.MaxResourceBytes = 1024L;
         options.MaxTotalResourceBytes = 4096L;
         options.MaxResourceCount = 12;
+        options.MaxResourceRequests = 24;
         options.MaxStylesheetImportDepth = 4;
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         options.ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null);
@@ -311,9 +313,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(summary.AllowDataUris);
         Assert.True(summary.AllowEmbeddedPackageResources);
         Assert.Equal(TimeSpan.FromSeconds(5D), summary.ResourceTimeout);
+        Assert.Equal(3, summary.MaxConcurrentResourceLoads);
         Assert.Equal(1024L, summary.MaxResourceBytes);
         Assert.Equal(4096L, summary.MaxTotalResourceBytes);
         Assert.Equal(12, summary.MaxResourceCount);
+        Assert.Equal(24, summary.MaxResourceRequests);
         Assert.Equal(4, summary.MaxStylesheetImportDepth);
         Assert.Contains("https", summary.AllowedUrlSchemes);
     }

@@ -456,6 +456,8 @@ public sealed class ReaderHtmlModularTests {
         Assert.NotNull(untrustedProfile.HtmlToMarkdownOptions);
         Assert.NotNull(untrustedProfile.HtmlToMarkdownOptions.MarkdownWriteOptions);
         Assert.Equal(64, untrustedProfile.HtmlToMarkdownOptions.MaxInputCharacters);
+        Assert.NotNull(untrustedProfile.ConversionOptions);
+        Assert.Equal(64, untrustedProfile.ConversionOptions.Limits.MaxInputCharacters);
 
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => ReaderHtmlOptions.CreateUntrustedHtmlProfile(0));
         Assert.Equal("maxInputCharacters", exception.ParamName);
@@ -475,11 +477,17 @@ public sealed class ReaderHtmlModularTests {
         Assert.Equal(options.HtmlToMarkdownOptions.MaxInputCharacters, clone.HtmlToMarkdownOptions.MaxInputCharacters);
         Assert.NotNull(clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
         Assert.NotSame(options.HtmlToMarkdownOptions.MarkdownWriteOptions, clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
+        Assert.NotNull(clone.ConversionOptions);
+        Assert.NotSame(options.ConversionOptions, clone.ConversionOptions);
+        Assert.NotSame(options.ConversionOptions!.Limits, clone.ConversionOptions.Limits);
 
         clone.HtmlToMarkdownOptions.MaxInputCharacters = 128;
+        clone.ConversionOptions.Limits.MaxInputCharacters = 128;
 
         Assert.Equal(64, options.HtmlToMarkdownOptions.MaxInputCharacters);
         Assert.Equal(128, clone.HtmlToMarkdownOptions.MaxInputCharacters);
+        Assert.Equal(64, options.ConversionOptions.Limits.MaxInputCharacters);
+        Assert.Equal(128, clone.ConversionOptions.Limits.MaxInputCharacters);
     }
 
     [Fact]

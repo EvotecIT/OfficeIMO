@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.Html {
     /// Options controlling HTML to Word conversion.
     /// </summary>
     public class HtmlToWordOptions {
+        private HtmlConversionLimits _limits = HtmlConversionLimits.CreateTrustedProfile();
         /// <summary>
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
@@ -249,25 +250,43 @@ namespace OfficeIMO.Word.Html {
         /// Optional maximum number of parsed HTML nodes allowed for a conversion operation.
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public int? MaxHtmlNodes { get; set; }
+        public int? MaxHtmlNodes {
+            get => Limits.MaxHtmlNodes;
+            set => Limits.MaxHtmlNodes = value;
+        }
 
         /// <summary>
         /// Optional maximum parsed HTML tree depth allowed for a conversion operation.
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public int? MaxHtmlDepth { get; set; }
+        public int? MaxHtmlDepth {
+            get => Limits.MaxHtmlDepth;
+            set => Limits.MaxHtmlDepth = value;
+        }
 
         /// <summary>
         /// Optional maximum UTF-8 byte count allowed for each stylesheet before parsing.
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public long? MaxCssBytes { get; set; }
+        public long? MaxCssBytes {
+            get => Limits.MaxCssBytes;
+            set => Limits.MaxCssBytes = value;
+        }
 
         /// <summary>
         /// Optional maximum UTF-8 byte count allowed across all stylesheets in a single import operation.
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public long? MaxTotalCssBytes { get; set; }
+        public long? MaxTotalCssBytes {
+            get => Limits.MaxTotalCssBytes;
+            set => Limits.MaxTotalCssBytes = value;
+        }
+
+        /// <summary>Shared HTML parsing and CSS limits used by the core engine and Word adapter.</summary>
+        public HtmlConversionLimits Limits {
+            get => _limits;
+            set => _limits = value ?? HtmlConversionLimits.CreateTrustedProfile();
+        }
 
         /// <summary>
         /// Optional maximum number of Word table cells allowed for a single imported HTML table.
@@ -377,10 +396,7 @@ namespace OfficeIMO.Word.Html {
                 MaxImageSourceCandidates = MaxImageSourceCandidates,
                 ValidateImageContentTypes = ValidateImageContentTypes,
                 ValidateStylesheetContentTypes = ValidateStylesheetContentTypes,
-                MaxHtmlNodes = MaxHtmlNodes,
-                MaxHtmlDepth = MaxHtmlDepth,
-                MaxCssBytes = MaxCssBytes,
-                MaxTotalCssBytes = MaxTotalCssBytes,
+                Limits = Limits.Clone(),
                 MaxTableCells = MaxTableCells,
                 StyleMissingHandler = StyleMissingHandler,
                 EnableAccessibilityDiagnostics = EnableAccessibilityDiagnostics,

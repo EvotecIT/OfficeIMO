@@ -256,7 +256,7 @@ public static class EmailImageExportExtensions {
     }
 
     private static string ExtractHtmlBody(string html) {
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html);
         string styles = string.Concat(
             document.Head?.QuerySelectorAll("style")
                 .Select(element => element.OuterHtml) ??

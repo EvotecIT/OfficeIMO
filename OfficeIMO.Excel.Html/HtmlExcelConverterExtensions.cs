@@ -8,6 +8,9 @@ namespace OfficeIMO.Excel.Html;
 /// Extension methods for importing semantic OfficeIMO Excel HTML.
 /// </summary>
 public static partial class HtmlExcelConverterExtensions {
+    private const int ExcelCellTextCharacterLimit = 32_767;
+    private const int ExcelFormulaCharacterLimit = 8_192;
+
     /// <summary>
     /// Imports a prepared shared HTML conversion document into a native workbook without reparsing its adapter DOM.
     /// </summary>
@@ -20,14 +23,48 @@ public static partial class HtmlExcelConverterExtensions {
     /// </summary>
     public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ImportDocument(document.CreateDocumentForConversion(HtmlCssMediaContext.Screen), options ?? new HtmlToExcelOptions());
+        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
+        HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
+        return ImportDocument(adapterDocument, resolved, document.Diagnostics);
     }
 
-    private static HtmlToExcelResult ImportDocument(IHtmlDocument document, HtmlToExcelOptions options) {
+    private static HtmlToExcelResult ImportDocument(
+        IHtmlDocument document,
+        HtmlToExcelOptions options,
+        IEnumerable<HtmlDiagnostic>? initialDiagnostics = null) {
+        options.Limits.Validate();
+        if (!Enum.IsDefined(typeof(HtmlImportMode), options.Mode)) throw new ArgumentOutOfRangeException(nameof(options.Mode));
         ExcelDocument workbook = ExcelDocument.Create();
         var result = new HtmlToExcelResult(workbook);
+        if (initialDiagnostics != null) {
+            foreach (HtmlDiagnostic diagnostic in initialDiagnostics) result.AddImportDiagnostic(diagnostic);
+        }
+        var budget = new HtmlImportBudget(options.Limits);
+        OfficeHtmlSemanticEnvelopeInfo envelope = OfficeHtmlSemanticEnvelope.Inspect(document, "excel");
+        IReadOnlyList<IElement> sheetSections = OfficeHtmlSemanticEnvelope
+            .SelectOwnedContainers(document, envelope, "section.officeimo-sheet");
+        bool useSemantic = options.Mode != HtmlImportMode.Generic
+            && (options.Mode == HtmlImportMode.Semantic || envelope.IsPresent || sheetSections.Count > 0);
+        if (useSemantic && !envelope.IsSupported) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticSchemaUnsupported,
+                "The semantic HTML envelope does not use a supported Excel source and schema version.",
+                HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure,
+                detail: "source=" + envelope.ActualSource + "; version=" + envelope.SchemaVersion);
+            workbook.AddWorksheet("Imported");
+            return result;
+        }
 
-        List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();
+        if (!useSemantic) {
+            ImportGenericDocument(document, workbook, result, options, budget);
+            return result;
+        }
+
+        if (envelope.IsPresent && envelope.IsLegacy) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticSchemaLegacy,
+                "Legacy Excel semantic HTML without an explicit schema version was imported using version 1 compatibility rules.",
+                HtmlDiagnosticSeverity.Info);
+        }
+
         if (sheetSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
                 "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
@@ -37,19 +74,27 @@ public static partial class HtmlExcelConverterExtensions {
 
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement section in sheetSections) {
+            if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Additional semantic worksheets were omitted because the shared import limit was reached.",
+                    HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Omission, detail: containerLimit);
+                break;
+            }
+
             ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(GetSheetName(section), usedNames));
+            var importedFormulaCells = new HashSet<long>();
             result.Sheets++;
-            ImportTable(section, sheet, result, options);
+            ImportTable(section, sheet, result, options, budget, importedFormulaCells);
             if (options.ImportFormulas) {
-                ImportFormulas(section, sheet, result);
+                ImportFormulas(section, sheet, result, budget, importedFormulaCells);
             }
 
             if (options.ImportComments) {
-                ImportComments(section, sheet, result);
+                ImportComments(section, sheet, result, budget);
             }
 
             if (options.ImportImages || options.ImportChartInventory) {
-                ImportDrawings(section, sheet, options, result);
+                ImportDrawings(section, sheet, options, result, budget);
             }
 
             ApplySheetVisibility(section, sheet);
@@ -78,7 +123,13 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ImportTable(IElement section, ExcelSheet sheet, HtmlToExcelResult result, HtmlToExcelOptions options) {
+    private static void ImportTable(
+        IElement section,
+        ExcelSheet sheet,
+        HtmlToExcelResult result,
+        HtmlToExcelOptions options,
+        HtmlImportBudget budget,
+        HashSet<long> importedFormulaCells) {
         IElement? table = section.Children.FirstOrDefault(child => IsElement(child, "table"));
         if (table == null) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticBlockMissing,
@@ -86,8 +137,15 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
+        if (!budget.TryReserveTable(out string tableLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "Sheet '" + sheet.Name + "' table was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
+            return;
+        }
+
         ReadRangeOrigin(section.GetAttribute("data-officeimo-range"), out int firstRow, out int firstColumn);
-        ImportTableGrid(table, sheet, result, options, firstRow, firstColumn);
+        ImportTableGrid(table, sheet, result, options, budget, firstRow, firstColumn, importedFormulaCells, useSemanticValues: true);
     }
 
     private static void ReadRangeOrigin(string? range, out int row, out int column) {
@@ -104,9 +162,21 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ImportFormulas(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
+    private static void ImportFormulas(
+        IElement section,
+        ExcelSheet sheet,
+        HtmlToExcelResult result,
+        HtmlImportBudget budget,
+        HashSet<long> importedFormulaCells) {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-formulas li[data-officeimo-cell]")) {
-            if (!TryParseCellReference(item.GetAttribute("data-officeimo-cell"), out int row, out int column)) {
+            string? reference = item.GetAttribute("data-officeimo-cell");
+            if (!TryParseCellReference(reference, out int row, out int column)) {
+                AddInvalidCellCoordinateDiagnostic(result, reference, "formula");
+                continue;
+            }
+
+            long cellKey = GetImportCellKey(row, column);
+            if (importedFormulaCells.Contains(cellKey)) {
                 continue;
             }
 
@@ -115,23 +185,60 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
 
+            string annotationLimit = string.Empty;
+            if (!IsWithinExcelFieldLimit(formula, budget, ExcelFormulaCharacterLimit, "ExcelFormulaCharacterLimit", out string metadataLimit)
+                || !budget.TryReserveAnnotation(out annotationLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                    "A formula was omitted because the shared semantic metadata limit was reached.",
+                    lossKind: HtmlConversionLossKind.Omission,
+                    detail: metadataLimit.Length > 0 ? metadataLimit : annotationLimit);
+                continue;
+            }
+
             sheet.CellFormula(row, column, formula);
+            importedFormulaCells.Add(cellKey);
             result.Formulas++;
         }
     }
 
-    private static void SetCellValue(ExcelSheet sheet, int row, int column, IElement cell, string fallbackText, HtmlToExcelResult result) {
+    private static bool SetCellValue(
+        ExcelSheet sheet,
+        int row,
+        int column,
+        IElement cell,
+        string fallbackText,
+        HtmlToExcelResult result,
+        HtmlToExcelOptions options,
+        HtmlImportBudget budget,
+        HashSet<long>? importedFormulaCells,
+        bool useSemanticValues) {
         string? kind = cell.GetAttribute("data-officeimo-value-kind");
         string? rawValue = cell.GetAttribute("data-officeimo-value");
-        if (string.IsNullOrWhiteSpace(kind) || rawValue == null) {
-            sheet.CellValue(row, column, fallbackText);
-            return;
+        if (!useSemanticValues || string.IsNullOrWhiteSpace(kind) || rawValue == null) {
+            return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
+        }
+
+        bool isFormula = kind!.Equals("formula", StringComparison.OrdinalIgnoreCase);
+        if (isFormula && options.ImportFormulas) {
+            // The table cell is the canonical formula source for current envelopes. Remember the
+            // coordinate even when a budget rejects it so the compatibility inventory cannot make
+            // a second, conflicting decision for the same cell.
+            importedFormulaCells?.Add(GetImportCellKey(row, column));
+        }
+
+        if (!budget.IsMetadataWithinLimit(rawValue, out string metadataLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                "Cell " + BuildCellReference(row, column) + " semantic value exceeded the shared metadata limit and was imported from visible text.",
+                lossKind: HtmlConversionLossKind.Approximation, detail: metadataLimit);
+            return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
         }
 
         if (kind!.Equals("number", StringComparison.OrdinalIgnoreCase)) {
-            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                && !double.IsNaN(number)
+                && !double.IsInfinity(number)) {
                 sheet.CellValue(row, column, number);
-                return;
+                return true;
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
@@ -139,44 +246,60 @@ public static partial class HtmlExcelConverterExtensions {
         } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
             if (rawValue.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
                 sheet.CellValue(row, column, true);
-                return;
+                return true;
             }
 
             if (rawValue.Equals("0", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("false", StringComparison.OrdinalIgnoreCase)) {
                 sheet.CellValue(row, column, false);
-                return;
+                return true;
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
                 "Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
         } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
-            sheet.CellValue(row, column, rawValue);
-            return;
+            return TrySetCellTextValue(sheet, row, column, rawValue, result, budget);
         } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
             if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dateTime)) {
                 sheet.CellValue(row, column, dateTime);
-                return;
+                return true;
             }
 
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
                 "Cell " + BuildCellReference(row, column) + " contained a semantic date/time value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
-        } else if (kind.Equals("formula", StringComparison.OrdinalIgnoreCase)) {
+        } else if (isFormula) {
+            if (!options.ImportFormulas) {
+                return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
+            }
+
+            string formulaLimit = string.Empty;
+            string annotationLimit = string.Empty;
+            if (!IsWithinExcelFieldLimit(rawValue, budget, ExcelFormulaCharacterLimit, "ExcelFormulaCharacterLimit", out formulaLimit)
+                || !budget.TryReserveAnnotation(out annotationLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                    "Cell " + BuildCellReference(row, column) + " formula was omitted because a semantic or native formula limit was reached.",
+                    lossKind: HtmlConversionLossKind.Omission, detail: formulaLimit.Length > 0 ? formulaLimit : annotationLimit);
+                return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
+            }
+
             sheet.CellFormula(row, column, rawValue);
-            return;
+            result.Formulas++;
+            return true;
         } else if (kind.Equals("error", StringComparison.OrdinalIgnoreCase)) {
             sheet.CellError(row, column, rawValue);
-            return;
+            return true;
         }
 
-        sheet.CellValue(row, column, fallbackText);
+        return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
     }
 
     private static bool IsSemanticEmptyCell(IElement cell) =>
         string.Equals(cell.GetAttribute("data-officeimo-empty"), "true", StringComparison.OrdinalIgnoreCase);
 
-    private static void ImportComments(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
+    private static void ImportComments(IElement section, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget) {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-comments li[data-officeimo-cell]")) {
-            if (!TryParseCellReference(item.GetAttribute("data-officeimo-cell"), out int row, out int column)) {
+            string? reference = item.GetAttribute("data-officeimo-cell");
+            if (!TryParseCellReference(reference, out int row, out int column)) {
+                AddInvalidCellCoordinateDiagnostic(result, reference, "comment");
                 continue;
             }
 
@@ -185,12 +308,22 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
 
+            string annotationLimit = string.Empty;
+            if (!IsWithinExcelFieldLimit(text, budget, ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out string metadataLimit)
+                || !budget.TryReserveAnnotation(out annotationLimit)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                    "A cell comment was omitted because the shared semantic metadata limit was reached.",
+                    lossKind: HtmlConversionLossKind.Omission,
+                    detail: metadataLimit.Length > 0 ? metadataLimit : annotationLimit);
+                continue;
+            }
+
             sheet.SetComment(row, column, text, ReadAuthor(item));
             result.Comments++;
         }
     }
 
-    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result) {
+    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result, HtmlImportBudget budget) {
         var drawings = new List<ExcelDrawingImportItem>();
         int fallbackOrder = 0;
         if (options.ImportImages) {
@@ -209,16 +342,26 @@ public static partial class HtmlExcelConverterExtensions {
         int chartIndex = 0;
         foreach (ExcelDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
             if (drawing.Kind == ExcelDrawingImportKind.Image) {
-                ImportImage(drawing.Element, sheet, result);
+                ImportImage(drawing.Element, sheet, result, budget);
             } else {
-                ImportChart(drawing.Element, sheet, result, range, ref chartIndex);
+                ImportChart(drawing.Element, sheet, result, budget, range, ref chartIndex);
             }
         }
     }
 
-    private static void ImportImage(IElement item, ExcelSheet sheet, HtmlToExcelResult result) {
+    private static void ImportImage(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget) {
         IElement? image = item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
+            return;
+        }
+
+        string imageLimit = string.Empty;
+        if (!budget.TryReserveShape(out string shapeLimit)
+            || !budget.TryReserveImage(dataUri, out imageLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "An embedded worksheet image was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission,
+                detail: shapeLimit.Length > 0 ? shapeLimit : imageLimit);
             return;
         }
 
@@ -228,7 +371,7 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
-        ReadImagePlacement(item, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
+        ReadImagePlacement(item, budget, result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
         string name = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         string description = NormalizeText(item.QuerySelector("p")?.TextContent);
         if (description.Length == 0) {
@@ -237,18 +380,21 @@ public static partial class HtmlExcelConverterExtensions {
 
         ExcelImage importedImage;
         if (IsAbsoluteImageAnchor(item) && TryReadIntAttribute(item, "data-officeimo-x", out int xPixels) && TryReadIntAttribute(item, "data-officeimo-y", out int yPixels)) {
+            int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
+            xPixels = NormalizeImportInt(xPixels, 0, -maxGeometry, maxGeometry, budget, result, "image x position");
+            yPixels = NormalizeImportInt(yPixels, 0, -maxGeometry, maxGeometry, budget, result, "image y position");
             importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                 "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: HtmlConversionLossKind.Approximation);
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsTwoCellImageAnchor(item)) {
-            importedImage = AddTwoCellImage(item, sheet, result, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
+            importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
         } else {
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         }
 
-        ApplyImageTransforms(item, importedImage);
+        ApplyImageTransforms(item, importedImage, budget, result);
         result.Images++;
     }
 
@@ -256,6 +402,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement item,
         ExcelSheet sheet,
         HtmlToExcelResult result,
+        HtmlImportBudget budget,
         byte[] bytes,
         string contentType,
         int row,
@@ -268,10 +415,13 @@ public static partial class HtmlExcelConverterExtensions {
         string description) {
         if (TryReadIntAttribute(item, "data-officeimo-to-row", out int toRow)
             && TryReadIntAttribute(item, "data-officeimo-to-column", out int toColumn)) {
+            toRow = NormalizeImportInt(toRow, Math.Min(A1.MaxRows, row + 1), 1, A1.MaxRows, budget, result, "image ending row");
+            toColumn = NormalizeImportInt(toColumn, Math.Min(A1.MaxColumns, column + 1), 1, A1.MaxColumns, budget, result, "image ending column");
             int endRow = Math.Max(row, toRow - 1);
             int endColumn = Math.Max(column, toColumn - 1);
-            int endOffsetX = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0);
-            int endOffsetY = Math.Max(0, ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0);
+            int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
+            int endOffsetX = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0, 0, 0, maxGeometry, budget, result, "image ending x offset");
+            int endOffsetY = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0, 0, 0, maxGeometry, budget, result, "image ending y offset");
             ExcelImage importedImage = sheet.AddImageToRange(
                 BuildRangeReference(row, column, endRow, endColumn),
                 bytes,
@@ -294,10 +444,20 @@ public static partial class HtmlExcelConverterExtensions {
         return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
     }
 
-    private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, string range, ref int chartIndex) {
+    private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget, string range, ref int chartIndex) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
+        ReadChartDimensions(item, out int seriesCount, out int categoryCount);
+        string chartLimit = string.Empty;
+        if (!budget.TryReserveShape(out string shapeLimit)
+            || !budget.TryReserveChart(seriesCount, categoryCount, out chartLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission,
+                detail: shapeLimit.Length > 0 ? shapeLimit : chartLimit);
+            return;
+        }
         ExcelChartType type = ReadExcelChartType(item);
-        ReadChartPlacement(item, chartIndex, out int row, out int column, out int width, out int height);
+        ReadChartPlacement(item, chartIndex, budget, result, out int row, out int column, out int width, out int height);
         try {
             if (TryReadChartData(item, out ExcelChartData? chartData) && chartData != null) {
                 sheet.AddChart(chartData, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
@@ -316,6 +476,21 @@ public static partial class HtmlExcelConverterExtensions {
                 "Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message,
                 lossKind: HtmlConversionLossKind.Omission, detail: ex.GetType().Name);
         }
+    }
+
+    private static void ReadChartDimensions(IElement item, out int series, out int categories) {
+        IElement? table = item.QuerySelector("table.officeimo-chart-data");
+        if (table == null) {
+            series = 1;
+            categories = 1;
+            return;
+        }
+
+        List<IElement> rows = table.QuerySelectorAll("tr").ToList();
+        series = Math.Max(1, rows.Count - 1);
+        categories = rows.Count == 0
+            ? 1
+            : Math.Max(1, rows[0].Children.Count(child => IsElement(child, "th") || IsElement(child, "td")) - 1);
     }
 
     private static bool TryReadChartData(IElement item, out ExcelChartData? chartData) {
@@ -358,13 +533,18 @@ public static partial class HtmlExcelConverterExtensions {
             var xValues = new double[pointCount];
             for (int i = 0; i < pointCount; i++) {
                 IElement valueCell = cells[i + 1];
-                if (!double.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
+                if (!double.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
+                    || double.IsNaN(values[i])
+                    || double.IsInfinity(values[i])) {
                     return false;
                 }
 
                 if (hasXValues) {
                     string? rawXValue = valueCell.GetAttribute("data-officeimo-x");
-                    if (rawXValue == null || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])) {
+                    if (rawXValue == null
+                        || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])
+                        || double.IsNaN(xValues[i])
+                        || double.IsInfinity(xValues[i])) {
                         return false;
                     }
                 }
@@ -390,40 +570,6 @@ public static partial class HtmlExcelConverterExtensions {
         return true;
     }
 
-    private static string GetSheetName(IElement section) {
-        string? name = section.GetAttribute("data-officeimo-sheet");
-        if (!string.IsNullOrWhiteSpace(name)) {
-            return name!.Trim();
-        }
-
-        return NormalizeText(section.QuerySelector("h2")?.TextContent) is { Length: > 0 } heading
-            ? heading
-            : "Sheet";
-    }
-
-    private static string GetUniqueSheetName(string name, HashSet<string> usedNames) {
-        string baseName = SanitizeSheetName(name);
-        string candidate = baseName;
-        int suffix = 2;
-        while (!usedNames.Add(candidate)) {
-            string suffixText = " " + suffix.ToString(CultureInfo.InvariantCulture);
-            int maxBaseLength = Math.Max(1, 31 - suffixText.Length);
-            candidate = baseName.Length > maxBaseLength ? baseName.Substring(0, maxBaseLength) + suffixText : baseName + suffixText;
-            suffix++;
-        }
-
-        return candidate;
-    }
-
-    private static string SanitizeSheetName(string name) {
-        string value = string.IsNullOrWhiteSpace(name) ? "Sheet" : name.Trim();
-        foreach (char invalid in new[] { ':', '\\', '/', '?', '*', '[', ']' }) {
-            value = value.Replace(invalid, '-');
-        }
-
-        return value.Length > 31 ? value.Substring(0, 31) : value;
-    }
-
     private static ExcelChartType ReadExcelChartType(IElement item) {
         string? chartTypeAttribute = item.GetAttribute("data-officeimo-chart-type");
         if (!string.IsNullOrWhiteSpace(chartTypeAttribute) &&
@@ -444,7 +590,7 @@ public static partial class HtmlExcelConverterExtensions {
         return ExcelChartType.ColumnClustered;
     }
 
-    private static void ReadChartPlacement(IElement item, int chartIndex, out int row, out int column, out int width, out int height) {
+    private static void ReadChartPlacement(IElement item, int chartIndex, HtmlImportBudget budget, HtmlToExcelResult result, out int row, out int column, out int width, out int height) {
         row = 1 + chartIndex * 12;
         column = 6;
         width = 320;
@@ -475,9 +621,14 @@ public static partial class HtmlExcelConverterExtensions {
         if (TryReadIntAttribute(item, "data-officeimo-column", out int attributeColumn)) column = Math.Max(1, attributeColumn);
         if (TryReadIntAttribute(item, "data-officeimo-width", out int attributeWidth)) width = Math.Max(1, attributeWidth);
         if (TryReadIntAttribute(item, "data-officeimo-height", out int attributeHeight)) height = Math.Max(1, attributeHeight);
+        row = NormalizeImportInt(row, 1, 1, A1.MaxRows, budget, result, "chart row");
+        column = NormalizeImportInt(column, 6, 1, A1.MaxColumns, budget, result, "chart column");
+        int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
+        width = NormalizeImportInt(width, 320, 1, maxGeometry, budget, result, "chart width");
+        height = NormalizeImportInt(height, 180, 1, maxGeometry, budget, result, "chart height");
     }
 
-    private static void ReadImagePlacement(IElement item, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY) {
+    private static void ReadImagePlacement(IElement item, HtmlImportBudget budget, HtmlToExcelResult result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY) {
         row = 1;
         column = 1;
         width = 96;
@@ -520,11 +671,23 @@ public static partial class HtmlExcelConverterExtensions {
         if (TryReadIntAttribute(item, "data-officeimo-height", out int attributeHeight)) height = Math.Max(1, attributeHeight);
         if (TryReadIntAttribute(item, "data-officeimo-offset-x", out int attributeOffsetX)) offsetX = Math.Max(0, attributeOffsetX);
         if (TryReadIntAttribute(item, "data-officeimo-offset-y", out int attributeOffsetY)) offsetY = Math.Max(0, attributeOffsetY);
+        row = NormalizeImportInt(row, 1, 1, A1.MaxRows, budget, result, "image row");
+        column = NormalizeImportInt(column, 1, 1, A1.MaxColumns, budget, result, "image column");
+        int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
+        width = NormalizeImportInt(width, 96, 1, maxGeometry, budget, result, "image width");
+        height = NormalizeImportInt(height, 32, 1, maxGeometry, budget, result, "image height");
+        offsetX = NormalizeImportInt(offsetX, 0, 0, maxGeometry, budget, result, "image x offset");
+        offsetY = NormalizeImportInt(offsetY, 0, 0, maxGeometry, budget, result, "image y offset");
     }
 
-    private static void ApplyImageTransforms(IElement item, ExcelImage image) {
+    private static void ApplyImageTransforms(IElement item, ExcelImage image, HtmlImportBudget budget, HtmlToExcelResult result) {
         if (TryReadDoubleAttribute(item, "data-officeimo-rotation", out double rotation)) {
-            image.SetRotation(rotation);
+            if (budget.TryNormalizeRange(rotation, 0D, -budget.Limits.MaxAbsoluteGeometry, budget.Limits.MaxAbsoluteGeometry, out double normalizedRotation)) {
+                image.SetRotation(normalizedRotation);
+            } else {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+                    "Invalid image rotation used the neutral fallback.", lossKind: HtmlConversionLossKind.Approximation);
+            }
         }
 
         bool hasHorizontalFlip = TryReadBoolAttribute(item, "data-officeimo-flip-horizontal", out bool horizontalFlip);
@@ -533,13 +696,38 @@ public static partial class HtmlExcelConverterExtensions {
             image.SetFlip(hasHorizontalFlip && horizontalFlip, hasVerticalFlip && verticalFlip);
         }
 
-        double left = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-left") ?? 0D;
-        double top = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-top") ?? 0D;
-        double right = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-right") ?? 0D;
-        double bottom = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-bottom") ?? 0D;
+        double left = NormalizeCrop(item, "data-officeimo-crop-left", budget, result);
+        double top = NormalizeCrop(item, "data-officeimo-crop-top", budget, result);
+        double right = NormalizeCrop(item, "data-officeimo-crop-right", budget, result);
+        double bottom = NormalizeCrop(item, "data-officeimo-crop-bottom", budget, result);
         if (left > 0D || top > 0D || right > 0D || bottom > 0D) {
             image.SetCropRatio(left, top, right, bottom);
         }
+    }
+
+    private static double NormalizeCrop(IElement item, string attributeName, HtmlImportBudget budget, HtmlToExcelResult result) {
+        double value = ReadOptionalDoubleAttribute(item, attributeName) ?? 0D;
+        if (budget.TryNormalizeRange(value, 0D, 0D, 1D, out double normalized)) return normalized;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+            "Invalid image crop metadata used the zero fallback.", lossKind: HtmlConversionLossKind.Approximation, source: attributeName);
+        return 0D;
+    }
+
+    private static int NormalizeImportInt(
+        int value,
+        int fallback,
+        int minimum,
+        int maximum,
+        HtmlImportBudget budget,
+        HtmlToExcelResult result,
+        string source) {
+        if (value >= minimum && value <= maximum) return value;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+            "Invalid " + source + " metadata used a bounded fallback.",
+            lossKind: HtmlConversionLossKind.Approximation,
+            source: source,
+            detail: "value=" + value.ToString(CultureInfo.InvariantCulture) + "; maximum=" + maximum.ToString(CultureInfo.InvariantCulture));
+        return fallback;
     }
 
     private static bool IsAbsoluteImageAnchor(IElement item) =>
@@ -609,14 +797,70 @@ public static partial class HtmlExcelConverterExtensions {
         int index = 0;
         string reference = value!;
         while (index < reference.Length && char.IsLetter(reference[index])) {
-            column = column * 26 + (char.ToUpperInvariant(reference[index]) - 'A' + 1);
+            int letter = char.ToUpperInvariant(reference[index]) - 'A' + 1;
+            if (letter < 1 || letter > 26 || column > (A1.MaxColumns - letter) / 26) {
+                row = 0;
+                column = 0;
+                return false;
+            }
+            column = column * 26 + letter;
             index++;
         }
 
+        for (int digitIndex = index; digitIndex < reference.Length; digitIndex++) {
+            if (reference[digitIndex] < '0' || reference[digitIndex] > '9') return false;
+        }
+
         return column > 0
+            && column <= A1.MaxColumns
             && index < reference.Length
             && int.TryParse(reference.Substring(index), NumberStyles.Integer, CultureInfo.InvariantCulture, out row)
-            && row > 0;
+            && row > 0
+            && row <= A1.MaxRows;
+    }
+
+    private static bool TrySetCellTextValue(
+        ExcelSheet sheet,
+        int row,
+        int column,
+        string text,
+        HtmlToExcelResult result,
+        HtmlImportBudget budget) {
+        if (!IsWithinExcelFieldLimit(text, budget, ExcelCellTextCharacterLimit, "ExcelCellTextCharacterLimit", out string detail)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                "Cell " + BuildCellReference(row, column) + " text was omitted because a semantic or native Excel field limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: detail);
+            return false;
+        }
+
+        sheet.CellValue(row, column, text);
+        return true;
+    }
+
+    private static bool IsWithinExcelFieldLimit(
+        string? value,
+        HtmlImportBudget budget,
+        int nativeLimit,
+        string nativeLimitName,
+        out string detail) {
+        if (!budget.IsMetadataWithinLimit(value, out detail)) return false;
+        int length = value?.Length ?? 0;
+        if (length <= nativeLimit) return true;
+        detail = nativeLimitName + ": Actual=" + length.ToString(CultureInfo.InvariantCulture)
+            + "; Limit=" + nativeLimit.ToString(CultureInfo.InvariantCulture);
+        return false;
+    }
+
+    private static void AddInvalidCellCoordinateDiagnostic(
+        HtmlToExcelResult result,
+        string? reference,
+        string contentKind) {
+        if (string.IsNullOrWhiteSpace(reference)) return;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+            "The " + contentKind + " coordinate '" + reference + "' was outside the Excel worksheet grid and was omitted.",
+            lossKind: HtmlConversionLossKind.Omission,
+            detail: "Rows=1-" + A1.MaxRows.ToString(CultureInfo.InvariantCulture)
+                + "; Columns=1-" + A1.MaxColumns.ToString(CultureInfo.InvariantCulture));
     }
 
     private static string BuildCellReference(int row, int column) {

@@ -35,7 +35,8 @@ public static class HtmlRenderEngine {
         return RenderDocument(
             renderDocument,
             resolved,
-            document.ResourceManifest.Diagnostics,
+            initialDiagnostics: null,
+            document.Limits,
             cancellationToken);
     }
 
@@ -52,6 +53,7 @@ public static class HtmlRenderEngine {
             renderDocument,
             resolved,
             initialDiagnostics: null,
+            HtmlConversionLimits.CreateUntrustedProfile(),
             CancellationToken.None);
     }
 
@@ -59,13 +61,18 @@ public static class HtmlRenderEngine {
         IHtmlDocument document,
         HtmlRenderOptions resolved,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics,
+        HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
+        resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
-            UrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
+            UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
+            Limits = limits.Clone(),
+            MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
@@ -85,7 +92,7 @@ public static class HtmlRenderEngine {
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
-        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlRenderLayoutEngine(
             document,
@@ -112,7 +119,8 @@ public static class HtmlRenderEngine {
         return await RenderDocumentAsync(
             renderDocument,
             resolved,
-            document.ResourceManifest.Diagnostics,
+            initialDiagnostics: null,
+            document.Limits,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -129,20 +137,30 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
         HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return await RenderDocumentAsync(renderDocument, resolved, initialDiagnostics: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return await RenderDocumentAsync(
+            renderDocument,
+            resolved,
+            initialDiagnostics: null,
+            HtmlConversionLimits.CreateUntrustedProfile(),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<HtmlRenderDocument> RenderDocumentAsync(
         IHtmlDocument document,
         HtmlRenderOptions resolved,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics,
+        HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
+        resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
-            UrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
+            UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
+            Limits = limits.Clone(),
+            MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
@@ -158,7 +176,7 @@ public static class HtmlRenderEngine {
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
-        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
     }

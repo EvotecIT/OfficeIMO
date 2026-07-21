@@ -77,7 +77,7 @@ internal static class HtmlRenderFontFaceLoader {
             byte[]? bytes = null;
             string contentType = string.Empty;
             if (resources.TryGet(source, resolved, out HtmlResolvedResource cached)) {
-                bytes = cached.Bytes;
+                bytes = cached.EncodedBytes;
                 contentType = cached.ContentType;
             } else if (resolved.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
                 if (!HtmlDataUri.TryParse(resolved, out HtmlDataUri dataUri)) {

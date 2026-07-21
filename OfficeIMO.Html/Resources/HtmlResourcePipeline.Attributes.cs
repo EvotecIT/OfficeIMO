@@ -138,7 +138,7 @@ public static partial class HtmlResourcePipeline {
     private static void AddRaw(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, string source, Uri? baseUri, HtmlResourcePipelineOptions options) {
         HtmlUrlPolicy? policy = kind == HtmlResourceKind.Hyperlink
             ? options.UrlPolicy
-            : HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+            : GetResourceUrlPolicy(options);
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
         bool isAllowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(kind, resolved);
         manifest.Add(new HtmlResourceReference(

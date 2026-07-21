@@ -9,7 +9,6 @@ namespace OfficeIMO.Html;
 /// Shared resource discovery and policy planning for OfficeIMO HTML workflows.
 /// </summary>
 public static partial class HtmlResourcePipeline {
-    private const int MaxSrcDocDepth = 8;
     private const int MaxCustomPropertyResolutionDepth = 8;
     private const string ResourceSelector = "image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-original], [data-original-src], [data-lazy-src], [data-srcset], [data-original-srcset], [data-lazy-srcset], [poster], [data-poster], [action], [formaction], [background], [cite], [srcdoc], [imagesrcset]";
     private const string CssCustomPropertyNamePattern = "--(?:\\\\[0-9A-Fa-f]{1,6}\\s?|\\\\[^\\r\\n\\f]|[\\p{L}\\p{N}_-]|[^\\x00-\\x7F])+";
@@ -22,8 +21,11 @@ public static partial class HtmlResourcePipeline {
     /// Parses raw HTML and builds a resource manifest.
     /// </summary>
     public static HtmlResourceManifest BuildManifest(string html, HtmlResourcePipelineOptions? options = null) {
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
-        return BuildManifest(document, options);
+        HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        limits.Validate();
+        IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html, limits);
+        return BuildManifest(document, resolved);
     }
 
     /// <summary>
@@ -35,6 +37,9 @@ public static partial class HtmlResourcePipeline {
         }
 
         options = options ?? new HtmlResourcePipelineOptions();
+        HtmlConversionLimits limits = options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        limits.Validate();
+        HtmlConversionInputGuard.ValidateDocument(document, limits);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
         foreach (IElement element in document.QuerySelectorAll(ResourceSelector)) {
@@ -44,5 +49,8 @@ public static partial class HtmlResourcePipeline {
         AddCssResources(manifest, document, baseUri, options);
         return manifest;
     }
+
+    private static HtmlUrlPolicy GetResourceUrlPolicy(HtmlResourcePipelineOptions options) =>
+        options.ResourceUrlPolicy ?? HtmlResourceUrlPolicy.Create(options.UrlPolicy);
 
 }

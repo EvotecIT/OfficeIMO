@@ -200,7 +200,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _resourceUrlPolicy);
         string extension = string.Empty;
         if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {
-            bytes = resolvedResource.Bytes;
+            bytes = resolvedResource.EncodedBytes;
             contentType = NormalizeImageContentType(resolvedResource.ContentType);
             extension = OfficeImageInfo.GetDefaultExtension(OfficeImageInfo.FromMimeType(contentType));
         } else if (resolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
@@ -219,7 +219,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (withinBudget && dataUri.TryDecodeBytes(out byte[] decoded)) {
                 var inlineResource = new HtmlResolvedResource(decoded, dataUri.MediaType);
                 _resources.AddInline(resolvedSource, inlineResource);
-                bytes = inlineResource.Bytes;
+                bytes = inlineResource.EncodedBytes;
                 contentType = NormalizeImageContentType(inlineResource.ContentType);
                 extension = dataUri.FileExtension;
             } else if (!withinBudget && diagnosticCode.Length > 0) {

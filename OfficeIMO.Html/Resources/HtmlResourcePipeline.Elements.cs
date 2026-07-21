@@ -286,7 +286,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool HasAllowedPictureSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
-        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
         foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
             foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(element.GetAttribute(attribute))) {
                 if (IsAllowedResourceCandidate(HtmlResourceKind.Image, candidate.Url, baseUri, resourcePolicy)) {
@@ -305,7 +305,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool HasAllowedMediaSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
-        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
         foreach (string attribute in new[] { "src", "data-src" }) {
             if (IsAllowedResourceCandidate(HtmlResourceKind.Media, element.GetAttribute(attribute), baseUri, resourcePolicy)) {
                 return true;
@@ -474,7 +474,7 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
-        if (srcDocDepth >= MaxSrcDocDepth) {
+        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
             return;
         }
 

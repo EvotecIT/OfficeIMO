@@ -25,7 +25,10 @@ public class HtmlRenderingStageBenchmarks {
         _html = HtmlBenchmarkCorpus.BuildReport(RowCount);
         _document = HtmlDocumentParser.ParseDocument(_html);
         _options = HtmlBenchmarkCorpus.CreateContinuousOptions();
-        _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(_document, _options);
+        _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
+            _document,
+            _options,
+            HtmlConversionLimits.CreateUntrustedProfile());
         _fonts = new OfficeFontFaceCollection();
         _pageRules = new HtmlCssPageRuleSet();
         _resources = new HtmlRenderResourceSet();

@@ -4,6 +4,7 @@
 
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, HTML-to/from-RTF, and HTML-backed PDF workflows:
 
+- trust-aware parsing profiles and shared source, DOM, CSS, selector, responsive-image, and semantic-metadata limits
 - URL policy evaluation and base URI resolution
 - AngleSharp document parsing helpers
 - DOM traversal facts and node/depth limit tracking
@@ -14,6 +15,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - dependency-free HTML layout for continuous and paged output
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model
+- ordinary HTML section, block, table, and title projection shared by Excel, PowerPoint, and OneNote importers
 
 Markdown, Word, Excel, PowerPoint, RTF, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `ToWordDocument()` and a `MarkdownDoc` through `ToMarkdownDocument()`.
 
@@ -117,21 +119,28 @@ string href = HtmlUrlPolicyEvaluator.ResolveUrl(
 ## Parsing And Base URIs
 
 ```csharp
-var document = HtmlDocumentParser.ParseDocument(html);
-Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(
-    document,
-    new Uri("https://example.com/articles/"));
+HtmlConversionDocument document = HtmlConversionDocument.Parse(
+    html,
+    new HtmlConversionDocumentOptions {
+        BaseUri = new Uri("https://example.com/articles/")
+    });
+Uri? baseUri = document.BaseUri;
 ```
 
-## Traversal Limits
+## Trust and conversion limits
 
 ```csharp
-HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(
-    maxHtmlNodes: 10000,
-    maxHtmlDepth: 64);
+var options = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+options.Limits.MaxInputCharacters = 2_000_000;
+options.Limits.MaxHtmlNodes = 50_000;
+options.Limits.MaxSelectorEvaluations = 1_000_000;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html, options);
 ```
 
-Converter packages use these primitives to keep bounded HTML ingestion behavior consistent while still reporting converter-specific diagnostics.
+The untrusted profile is the default. It rejects local-file navigation, does not fetch external resources by itself, and applies one shared set of limits before adapters allocate native Office objects. Embedded `data:` resources remain available through the separate resource policy and are still subject to renderer or adapter byte budgets. Use `CreateTrustedProfile()` only when the caller controls the HTML and resource locations.
+
+`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
 
 ## Shared Diagnostics And Gallery Contracts
 
@@ -165,13 +174,15 @@ var resources = conversion.ResourcePlan.GetSummary(HtmlResourceKind.Image);
 var styles = conversion.StyleSummary;
 ```
 
-`HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It parses once and keeps the source DOM, policy-normalized adapter DOM, logical document model, computed-style summary, resource manifest, resource dependency plan, normalized HTML, profile contract, and caller-assigned trust boundary.
+`HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It parses once and retains one source DOM. Adapter DOMs, logical structure, computed styles, resources, and normalized output are created lazily when requested, then reused. This avoids paying for visual analysis during a semantic-only conversion and avoids retaining multiple eager document copies.
 
-Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, PDF, PNG, JPEG, TIFF, SVG, and WebP without reparsing it for every adapter. Excel and PowerPoint accept prepared documents when the HTML contains their semantic sheet or slide envelopes.
+Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, Excel, PowerPoint, OneNote, PDF, PNG, JPEG, TIFF, SVG, and WebP without inventing adapter-specific parsing rules. Excel and PowerPoint default to their versioned semantic envelopes for round trips and expose generic import mode for ordinary HTML. OneNote imports ordinary document sections directly.
+
+Reuse the same document for analysis too: `HtmlComputedStyleEngine.Compute(conversion)` and `HtmlRoundTripScorer.Compare(source, target)` accept retained conversion documents. Their string overloads enter through the same bounded parser, so low-level helpers do not create competing trust or limit defaults.
 
 Conversion profile and trust are separate decisions. A `Document` or `HighFidelityPrint` profile does not make external resources trusted. Leave `Trust` as `Untrusted` for user-supplied HTML; set it to `Trusted` only when the caller controls the document and resource locations.
 
-Normalized HTML output is policy-aware: URL-bearing attributes are resolved against the configured base URI, disallowed URLs are removed, boolean attributes are normalized, event-handler attributes are stripped by default, and non-document executable elements are skipped. It is intended for clean review, gallery proof, and downstream adapter input selection, not for pretending OfficeIMO is a browser layout engine.
+Normalized HTML output is policy-aware: hyperlink and resource URLs are evaluated separately, URL-bearing attributes are resolved against the configured base URI, disallowed URLs are removed, boolean attributes are normalized, event-handler attributes are stripped by default, and non-document executable elements are skipped. External bytes are loaded only through a caller-supplied bounded resolver. Normalized output is intended for clean review, gallery proof, and downstream adapter input selection, not as a browser sandbox.
 
 ## Image Sources
 

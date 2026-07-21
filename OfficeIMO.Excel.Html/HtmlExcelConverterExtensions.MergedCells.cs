@@ -9,11 +9,12 @@ public static partial class HtmlExcelConverterExtensions {
         ExcelSheet sheet,
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
+        HtmlImportBudget budget,
         int firstRow,
-        int firstColumn) {
-        if (options.MaxTableCells <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells), "MaxTableCells must be greater than zero.");
-        }
+        int firstColumn,
+        HashSet<long>? importedFormulaCells,
+        bool useSemanticValues) {
+        int maxTableCells = budget.Limits.MaxTableCells;
 
         var occupiedCells = new HashSet<long>();
         int rowOffset = 0;
@@ -61,8 +62,8 @@ public static partial class HtmlExcelConverterExtensions {
                 int rowSpan = ReadSpan(cell, "rowspan", cellRow, A1.MaxRows, cellRow, cellColumn, result);
                 int columnSpan = ReadSpan(cell, "colspan", cellColumn, A1.MaxColumns, cellRow, cellColumn, result);
                 long spanArea = (long)rowSpan * columnSpan;
-                if (spanArea > options.MaxTableCells - occupiedCells.Count) {
-                    if (occupiedCells.Count >= options.MaxTableCells) {
+                if (spanArea > maxTableCells - occupiedCells.Count) {
+                    if (occupiedCells.Count >= maxTableCells) {
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                             "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: HtmlConversionLossKind.Omission);
                         return;
@@ -85,8 +86,9 @@ public static partial class HtmlExcelConverterExtensions {
 
                 string text = NormalizeText(cell.TextContent);
                 if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
-                    SetCellValue(sheet, cellRow, cellColumn, cell, text, result);
-                    result.Cells++;
+                    if (SetCellValue(sheet, cellRow, cellColumn, cell, text, result, options, budget, importedFormulaCells, useSemanticValues)) {
+                        result.Cells++;
+                    }
                 }
 
                 if (rowSpan > 1 || columnSpan > 1) {

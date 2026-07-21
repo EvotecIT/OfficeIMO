@@ -39,16 +39,17 @@ public static class HtmlMarkdownConverterExtensions {
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
         operation.BaseUri ??= document.FallbackBaseUri;
         var converter = new HtmlToMarkdownConverter();
-        AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument;
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
-            HtmlActiveMediaFilter.Filter(sourceDocument, HtmlCssMediaContext.Print);
+            sourceDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Print);
         } else {
+            sourceDocument = document.CreatePolicyNormalizedDocumentForConversion();
             HtmlActiveMediaFilter.FilterUnsupportedPictureSources(sourceDocument);
         }
         MarkdownDoc value = converter.ConvertToDocument(
             sourceDocument,
             operation);
-        return new HtmlToMarkdownResult(value);
+        return new HtmlToMarkdownResult(value, document.Diagnostics);
     }
 
     /// <summary>Saves converted Markdown text to a path.</summary>

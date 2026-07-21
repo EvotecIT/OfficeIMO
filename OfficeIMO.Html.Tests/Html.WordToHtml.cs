@@ -13,6 +13,17 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class HtmlWordToHtml {
         [Fact]
+        public void Test_WordToHtml_ExposesSharedTextResultContract() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Result contract");
+
+            HtmlTextConversionResult result = doc.ToHtmlResult();
+
+            Assert.True(result.Succeeded);
+            Assert.Contains("Result contract", result.RequireValue(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_WordToHtml_HeadingsAndFormatting() {
             using var doc = WordDocument.Create();
             doc.BuiltinDocumentProperties.Title = "Test Document";
@@ -1160,4 +1171,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

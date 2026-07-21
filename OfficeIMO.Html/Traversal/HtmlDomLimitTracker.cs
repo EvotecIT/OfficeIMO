@@ -44,7 +44,7 @@ public sealed class HtmlDomLimitTracker {
         RecordNodeCount();
         if (_maxHtmlDepth.HasValue && depth > _maxHtmlDepth.Value) {
             throw new HtmlDomLimitException(
-                "HtmlDepthLimitExceeded",
+                HtmlConversionDiagnosticCodes.HtmlDepthLimitExceeded,
                 "HTML nesting depth exceeded the configured conversion limit.",
                 "MaxHtmlDepth",
                 depth,

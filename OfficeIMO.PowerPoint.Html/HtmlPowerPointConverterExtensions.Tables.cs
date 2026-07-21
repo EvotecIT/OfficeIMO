@@ -9,20 +9,23 @@ public static partial class HtmlPowerPointConverterExtensions {
         IElement tableElement,
         PptCore.PowerPointSlide slide,
         double top,
-        HtmlToPowerPointOptions options,
-        HtmlToPowerPointResult result) {
-        if (options.MaxTableCells <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells), "MaxTableCells must be greater than zero.");
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget) {
+        if (!budget.TryReserveTable(out string tableLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "A slide table was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
+            return top;
         }
 
-        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, options.MaxTableCells, result);
+        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, budget, result);
         if (grid.Rows == 0 || grid.Columns == 0) {
             return top;
         }
 
         double fallbackWidth = Math.Max(240D, grid.Columns * 150D);
         double fallbackHeight = Math.Max(70D, grid.Rows * 34D);
-        ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight,
+        ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight, budget, result,
             out double left, out double tableTop, out double width, out double height);
         PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
@@ -33,12 +36,13 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
 
-        ApplyShapeTransforms(tableElement, table);
+        ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
         return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
     }
 
-    private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, int maxTableCells, HtmlToPowerPointResult result) {
+    private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, HtmlImportBudget budget, HtmlToPowerPointResult result) {
+        int maxTableCells = budget.Limits.MaxTableCells;
         var cells = new List<PowerPointHtmlTableCell>();
         var occupied = new HashSet<long>();
         int rowIndex = 0;
@@ -86,12 +90,19 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
 
                 ReservePowerPointSpan(occupied, rowIndex, columnIndex, rowSpan, columnSpan);
+                string text = PreserveText(element.TextContent);
+                if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                        "A slide table cell was imported without text because it exceeded the shared field limit.",
+                        lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+                    text = string.Empty;
+                }
                 cells.Add(new PowerPointHtmlTableCell(
                     rowIndex,
                     columnIndex,
                     rowSpan,
                     columnSpan,
-                    PreserveText(element.TextContent)));
+                    text));
                 rowExtent = Math.Max(rowExtent, rowIndex + rowSpan);
                 columnExtent = Math.Max(columnExtent, columnIndex + columnSpan);
                 columnIndex += columnSpan;

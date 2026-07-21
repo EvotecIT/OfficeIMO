@@ -8,7 +8,7 @@ public static partial class HtmlRtfConverterExtensions {
         RtfDocument rtfDocument = RtfHtmlReader.Read(document.CreateDocumentForConversion(), resolved);
         return new HtmlToRtfResult(
             rtfDocument,
-            document.ResourceManifest.Diagnostics.Concat(resolved.HtmlDiagnostics),
+            document.Diagnostics.Concat(document.ResourceManifest.Diagnostics).Concat(resolved.HtmlDiagnostics),
             resolved.Diagnostics.AsReadOnly(),
             resolved.ConversionReport);
     }

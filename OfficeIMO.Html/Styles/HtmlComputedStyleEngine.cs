@@ -187,39 +187,60 @@ public static partial class HtmlComputedStyleEngine {
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
     /// </summary>
     public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
-        return ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false).Elements;
+        return ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false, limits: null).Elements;
     }
 
-    internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options) =>
+    internal static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(
+        IHtmlDocument document,
+        HtmlCssMediaContext mediaContext,
+        HtmlConversionLimits limits) =>
+        ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false, limits).Elements;
+
+    internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options, HtmlConversionLimits limits) =>
         ComputeStyleSet(
             document,
             new MediaEnvironment(
                 options.MediaContext,
                 options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
                 options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D),
-            true);
+            true,
+            limits);
 
-    private static HtmlComputedStyleSet ComputeStyleSet(IHtmlDocument document, MediaEnvironment environment, bool includePseudoElements) {
+    private static HtmlComputedStyleSet ComputeStyleSet(
+        IHtmlDocument document,
+        MediaEnvironment environment,
+        bool includePseudoElements,
+        HtmlConversionLimits? limits) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
-        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment);
+        var budget = new HtmlCssProcessingBudget(limits);
+        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
+        var ruleIndex = new StyleRuleIndex(rules);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
-            ComputeElement(root, null, rules, computed, pseudoElements, includePseudoElements);
+            ComputeElement(root, null, ruleIndex, computed, pseudoElements, includePseudoElements, budget);
         }
 
         return new HtmlComputedStyleSet(computed, pseudoElements);
     }
 
     /// <summary>
-    /// Parses raw HTML and computes styles for matching elements.
+    /// Parses raw HTML through the bounded shared conversion document and computes styles for matching elements.
     /// </summary>
     public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(string html, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
-        return Compute(HtmlDocumentParser.ParseDocument(html), mediaContext);
+        return Compute(HtmlConversionDocument.Parse(html), mediaContext);
+    }
+
+    /// <summary>Computes styles from a retained conversion document without reparsing its HTML source.</summary>
+    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(
+        HtmlConversionDocument document,
+        HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return Compute(document.CreateSourceDocumentForConversion(), mediaContext, document.Limits);
     }
 
     /// <summary>
@@ -268,10 +289,11 @@ public static partial class HtmlComputedStyleEngine {
     private static void ComputeElement(
         IElement element,
         HtmlComputedStyle? parent,
-        IReadOnlyList<StyleRule> rules,
+        StyleRuleIndex rules,
         IDictionary<IElement, HtmlComputedStyle> computed,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
-        bool includePseudoElements) {
+        bool includePseudoElements,
+        HtmlCssProcessingBudget budget) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
             foreach (var pair in parent.Properties) {
@@ -287,7 +309,8 @@ public static partial class HtmlComputedStyleEngine {
             properties["direction"] = new CascadedProperty(directionAttribute!.ToLowerInvariant(), false, Specificity.PresentationalHint, -1);
         }
 
-        foreach (StyleRule rule in rules) {
+        foreach (StyleRule rule in rules.GetCandidates(element)) {
+            budget.RecordSelectorEvaluation();
             if (!TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
@@ -299,20 +322,21 @@ public static partial class HtmlComputedStyleEngine {
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
         var style = new HtmlComputedStyle(ResolveComputedProperties(properties, parent?.Properties));
         computed[element] = style;
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget);
 
         foreach (IElement child in element.Children) {
-            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements);
+            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget);
         }
     }
 
     private static void ComputePseudoElementStyles(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        IReadOnlyList<StyleRule> rules,
-        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After);
+        StyleRuleIndex rules,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        HtmlCssProcessingBudget budget) {
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before, budget);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After, budget);
         if (before == null && after == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after };
     }
@@ -320,8 +344,9 @@ public static partial class HtmlComputedStyleEngine {
     private static HtmlComputedStyle? ComputePseudoElementStyle(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        IReadOnlyList<StyleRule> rules,
-        HtmlPseudoElementKind kind) {
+        StyleRuleIndex rules,
+        HtmlPseudoElementKind kind,
+        HtmlCssProcessingBudget budget) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, string> pair in originatingStyle.Properties) {
             if (IsInheritedProperty(pair.Key)) {
@@ -330,7 +355,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         bool matched = false;
-        foreach (StyleRule rule in rules) {
+        foreach (StyleRule rule in rules.GetCandidates(element)) {
+            budget.RecordSelectorEvaluation();
             if (!TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
                 || ruleKind != kind
                 || !MatchesSelector(element, hostSelector)) {

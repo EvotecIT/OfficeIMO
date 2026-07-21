@@ -32,4 +32,10 @@ public sealed class ExcelHtmlSaveOptions {
 
     /// <summary>Options used by the existing Excel SVG visual export lane.</summary>
     public ExcelWorkbookImageExportOptions? VisualOptions { get; set; }
+
+    internal void Validate() {
+        if (MaxRowsPerSheet.HasValue && MaxRowsPerSheet.Value <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxRowsPerSheet), "Maximum rows per worksheet must be positive when configured.");
+        }
+    }
 }

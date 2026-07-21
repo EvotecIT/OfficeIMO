@@ -1,3 +1,4 @@
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using System;
 
@@ -38,11 +39,19 @@ public sealed class ReaderHtmlOptions {
 
         var options = HtmlToMarkdownOptions.CreatePortableProfile();
         options.MaxInputCharacters = maxInputCharacters;
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        conversionOptions.Limits.MaxInputCharacters = maxInputCharacters;
 
         return new ReaderHtmlOptions {
+            ConversionOptions = conversionOptions,
             HtmlToMarkdownOptions = options
         };
     }
+
+    /// <summary>
+    /// Shared parsing, trust, URL-policy, and complexity options applied before the reader projects HTML.
+    /// </summary>
+    public HtmlConversionDocumentOptions? ConversionOptions { get; set; }
 
     /// <summary>
     /// Options passed to HTML-to-Markdown conversion stage.
@@ -54,6 +63,7 @@ public sealed class ReaderHtmlOptions {
     /// </summary>
     /// <returns>A new <see cref="ReaderHtmlOptions"/> with cloned nested HTML-to-Markdown options.</returns>
     public ReaderHtmlOptions Clone() => new ReaderHtmlOptions {
+        ConversionOptions = ConversionOptions?.Clone(),
         HtmlToMarkdownOptions = HtmlToMarkdownOptions?.Clone(),
         ChunkByHeadings = ChunkByHeadings
     };
