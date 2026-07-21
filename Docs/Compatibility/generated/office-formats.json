@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "families": [
+    {
+      "id": "Word",
+      "formats": [
+        {
+          "id": "Word.Doc",
+          "extension": ".doc",
+          "family": "Word",
+          "documentKind": "Document",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Word.Dot",
+          "extension": ".dot",
+          "family": "Word",
+          "documentKind": "Template",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Word.Docx",
+          "extension": ".docx",
+          "family": "Word",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "Word.Docm",
+          "extension": ".docm",
+          "family": "Word",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Word.Dotx",
+          "extension": ".dotx",
+          "family": "Word",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "Word.Dotm",
+          "extension": ".dotm",
+          "family": "Word",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        }
+      ]
+    },
+    {
+      "id": "Excel",
+      "formats": [
+        {
+          "id": "Excel.Xls",
+          "extension": ".xls",
+          "family": "Excel",
+          "documentKind": "Document",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xlt",
+          "extension": ".xlt",
+          "family": "Excel",
+          "documentKind": "Template",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xla",
+          "extension": ".xla",
+          "family": "Excel",
+          "documentKind": "AddIn",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xlm",
+          "extension": ".xlm",
+          "family": "Excel",
+          "documentKind": "Document",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xlw",
+          "extension": ".xlw",
+          "family": "Excel",
+          "documentKind": "Workspace",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "Excel.Xlsx",
+          "extension": ".xlsx",
+          "family": "Excel",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "Excel.Xlsm",
+          "extension": ".xlsm",
+          "family": "Excel",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xltx",
+          "extension": ".xltx",
+          "family": "Excel",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "Excel.Xltm",
+          "extension": ".xltm",
+          "family": "Excel",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xlam",
+          "extension": ".xlam",
+          "family": "Excel",
+          "documentKind": "AddIn",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "Excel.Xlsb",
+          "extension": ".xlsb",
+          "family": "Excel",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "BinaryOpenXml",
+          "isMacroEnabled": true
+        }
+      ]
+    },
+    {
+      "id": "PowerPoint",
+      "formats": [
+        {
+          "id": "PowerPoint.Ppt",
+          "extension": ".ppt",
+          "family": "PowerPoint",
+          "documentKind": "Document",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pot",
+          "extension": ".pot",
+          "family": "PowerPoint",
+          "documentKind": "Template",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pps",
+          "extension": ".pps",
+          "family": "PowerPoint",
+          "documentKind": "SlideShow",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppa",
+          "extension": ".ppa",
+          "family": "PowerPoint",
+          "documentKind": "AddIn",
+          "generation": "Legacy",
+          "encoding": "CompoundBinary",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pptx",
+          "extension": ".pptx",
+          "family": "PowerPoint",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Pptm",
+          "extension": ".pptm",
+          "family": "PowerPoint",
+          "documentKind": "Document",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Potx",
+          "extension": ".potx",
+          "family": "PowerPoint",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Potm",
+          "extension": ".potm",
+          "family": "PowerPoint",
+          "documentKind": "Template",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppsx",
+          "extension": ".ppsx",
+          "family": "PowerPoint",
+          "documentKind": "SlideShow",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Ppsm",
+          "extension": ".ppsm",
+          "family": "PowerPoint",
+          "documentKind": "SlideShow",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppam",
+          "extension": ".ppam",
+          "family": "PowerPoint",
+          "documentKind": "AddIn",
+          "generation": "Modern",
+          "encoding": "OpenXml",
+          "isMacroEnabled": true
+        }
+      ]
+    }
+  ]
+}

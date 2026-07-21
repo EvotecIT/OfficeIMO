@@ -446,7 +446,7 @@ namespace OfficeIMO.PowerPoint {
                     document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
-                presentation.MarkLoadedFromOpenXml();
+                presentation.MarkLoadedFromOpenXml(bytes);
                 return presentation;
             } catch {
                 packageStream.Dispose();

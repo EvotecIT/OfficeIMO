@@ -408,7 +408,9 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsLegacyDocPath(string? filePath) {
-            return string.Equals(Path.GetExtension(filePath), ".doc", StringComparison.OrdinalIgnoreCase);
+            string? extension = Path.GetExtension(filePath);
+            return string.Equals(extension, ".doc", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".dot", StringComparison.OrdinalIgnoreCase);
         }
 
         private void SaveLegacyDocFile(string filePath, bool updateFilePath = true, WordSaveOptions? options = null) {
@@ -474,7 +476,10 @@ namespace OfficeIMO.Word {
         private byte[] CreateLegacyDocBytesAfterPreflight(string filePath, WordSaveOptions? options) {
             EnsureDestinationFileWritable(filePath);
 
-            return LegacyDocWriter.WriteDocument(this, options);
+            return LegacyDocWriter.WriteDocument(
+                this,
+                options,
+                isTemplate: string.Equals(Path.GetExtension(filePath), ".dot", StringComparison.OrdinalIgnoreCase));
         }
 
         private byte[] CreatePathBytesAfterPreflight(string filePath, WordSaveOptions? options) {

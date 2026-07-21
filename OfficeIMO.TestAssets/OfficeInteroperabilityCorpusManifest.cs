@@ -5,6 +5,29 @@ namespace OfficeIMO.TestAssets;
 
 internal static class OfficeInteroperabilityCorpusManifestLoader {
     private const string ManifestRelativePath = "OfficeInteroperabilityCorpus/corpus-manifest.json";
+    private static readonly IReadOnlyDictionary<string, string> FormatIds =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["doc"] = "Word.Doc",
+            ["xls"] = "Excel.Xls",
+            ["xlsb"] = "Excel.Xlsb",
+            ["ppt"] = "PowerPoint.Ppt"
+        };
+    private static readonly HashSet<string> Directions = new(StringComparer.OrdinalIgnoreCase) {
+        "legacy-import",
+        "new-legacy-write",
+        "legacy-roundtrip",
+        "modern-to-legacy",
+        "legacy-to-modern"
+    };
+    private static readonly HashSet<string> Oracles = new(StringComparer.OrdinalIgnoreCase) {
+        "structural",
+        "semantic",
+        "diagnostic",
+        "visual",
+        "microsoft-office-open",
+        "libreoffice-open",
+        "libreoffice-render"
+    };
 
     internal static OfficeInteroperabilityCorpusManifest Load() {
         string manifestPath = Path.Combine(
@@ -19,8 +42,8 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
 
     internal static IReadOnlyList<string> Validate(OfficeInteroperabilityCorpusManifest manifest) {
         var errors = new List<string>();
-        if (manifest.SchemaVersion != 1) {
-            errors.Add($"Unsupported schemaVersion {manifest.SchemaVersion}; expected 1.");
+        if (manifest.SchemaVersion != 2) {
+            errors.Add($"Unsupported schemaVersion {manifest.SchemaVersion}; expected 2.");
         }
         if (manifest.Collections.Count == 0) {
             errors.Add("The manifest does not contain any collections.");
@@ -55,8 +78,10 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
             errors.Add($"{label}: root must be a safe relative path: {collection.Root}");
             return;
         }
-        if (collection.Format is not ("doc" or "xls" or "xlsb")) {
+        if (!FormatIds.TryGetValue(collection.Format, out string? expectedFormatId)) {
             errors.Add($"{label}: unsupported format '{collection.Format}'.");
+        } else if (!string.Equals(collection.FormatId, expectedFormatId, StringComparison.Ordinal)) {
+            errors.Add($"{label}: formatId must be '{expectedFormatId}' for format '{collection.Format}'.");
         }
         if (collection.Role is not ("compatibility" or "diagnostic")) {
             errors.Add($"{label}: unsupported role '{collection.Role}'.");
@@ -64,6 +89,8 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
         if (string.IsNullOrWhiteSpace(collection.Producer)) {
             errors.Add($"{label}: producer is required.");
         }
+        ValidateStringSet(label, "direction", collection.Directions, Directions, errors);
+        ValidateStringSet(label, "oracle", collection.Oracles, Oracles, errors);
         if (!IsSafeRelativePath(collection.Provenance)) {
             errors.Add($"{label}: provenance must be a safe relative path: {collection.Provenance}");
         } else if (!File.Exists(ResolveDocumentPath(CombineRelative(collection.Root, collection.Provenance)))) {
@@ -96,6 +123,29 @@ internal static class OfficeInteroperabilityCorpusManifestLoader {
         }
         if (missingFromDisk.Length > 0) {
             errors.Add($"{label}: declared artifacts missing from disk: {string.Join(", ", missingFromDisk)}");
+        }
+    }
+
+    private static void ValidateStringSet(
+        string label,
+        string kind,
+        IReadOnlyList<string> values,
+        ISet<string> allowed,
+        ICollection<string> errors) {
+        if (values.Count == 0) {
+            errors.Add($"{label}: at least one {kind} is required.");
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string value in values) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                errors.Add($"{label}: {kind} values cannot be empty.");
+            } else if (!allowed.Contains(value)) {
+                errors.Add($"{label}: unsupported {kind} '{value}'.");
+            } else if (!seen.Add(value)) {
+                errors.Add($"{label}: duplicate {kind} '{value}'.");
+            }
         }
     }
 
@@ -209,10 +259,13 @@ internal sealed class OfficeInteroperabilityCorpusManifest {
 internal sealed class OfficeInteroperabilityCorpusCollection {
     public string Id { get; set; } = string.Empty;
     public string Format { get; set; } = string.Empty;
+    public string FormatId { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string Root { get; set; } = string.Empty;
     public string Producer { get; set; } = string.Empty;
     public string Provenance { get; set; } = string.Empty;
+    public List<string> Directions { get; set; } = new();
+    public List<string> Oracles { get; set; } = new();
     public List<OfficeInteroperabilityCorpusArtifact> Artifacts { get; set; } = new();
 }
 

@@ -1,6 +1,10 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.Word;
 using System.Text;
 using Xunit;
 
@@ -35,12 +39,23 @@ public sealed partial class ReaderRegistryTests {
                 item.Id == "officeimo.reader.powerpoint.binary");
 
         Assert.Equal(ReaderInputKind.PowerPoint, openXml.Kind);
-        Assert.Equal(new[] { ".pptm", ".pptx" }, openXml.Extensions);
+        Assert.Equal(
+            PowerPointFormatCatalog.All
+                .Where(format => format.Generation == OfficeFormatGeneration.Modern)
+                .Select(format => format.Extension)
+                .OrderBy(extension => extension, StringComparer.Ordinal)
+                .ToArray(),
+            openXml.Extensions);
         Assert.True(openXml.SupportsPath);
         Assert.True(openXml.SupportsStream);
         Assert.Null(openXml.DefaultMaxInputBytes);
         Assert.Equal(ReaderInputKind.PowerPoint, binary.Kind);
-        Assert.Equal(new[] { ".pot", ".pps", ".ppt" },
+        Assert.Equal(
+            PowerPointFormatCatalog.All
+                .Where(format => format.Generation == OfficeFormatGeneration.Legacy)
+                .Select(format => format.Extension)
+                .OrderBy(extension => extension, StringComparer.Ordinal)
+                .ToArray(),
             binary.Extensions);
         Assert.True(binary.SupportsPath);
         Assert.True(binary.SupportsStream);
@@ -51,6 +66,21 @@ public sealed partial class ReaderRegistryTests {
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes(
                 "deck.ppt"));
+    }
+
+    [Fact]
+    public void DocumentReader_WordAndExcelCapabilitiesMatchFormatCatalogs() {
+        ReaderHandlerCapability word = Assert.Single(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), item => item.Id == "officeimo.reader.word");
+        ReaderHandlerCapability excel = Assert.Single(
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), item => item.Id == "officeimo.reader.excel");
+
+        Assert.Equal(
+            WordFormatCatalog.All.Select(format => format.Extension).OrderBy(extension => extension, StringComparer.Ordinal).ToArray(),
+            word.Extensions);
+        Assert.Equal(
+            ExcelFormatCatalog.All.Select(format => format.Extension).OrderBy(extension => extension, StringComparer.Ordinal).ToArray(),
+            excel.Extensions);
     }
 
     [Fact]

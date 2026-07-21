@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word.LegacyDoc;
 
 namespace OfficeIMO.Word {
@@ -53,12 +54,22 @@ namespace OfficeIMO.Word {
             WordConversionDiagnosticCategory category,
             WordConversionDiagnosticSeverity severity,
             string message,
-            bool representsDataLoss) {
+            bool representsDataLoss,
+            OfficeCompatibilityState? compatibilityState = null,
+            OfficeCompatibilityImpact compatibilityImpact = OfficeCompatibilityImpact.None,
+            string? sourceLocation = null,
+            string? fallbackArtifact = null) {
             Code = code;
             Category = category;
             Severity = severity;
             Message = message;
             RepresentsDataLoss = representsDataLoss;
+            CompatibilityState = compatibilityState ?? InferCompatibilityState(category, representsDataLoss);
+            CompatibilityImpact = compatibilityImpact == OfficeCompatibilityImpact.None && representsDataLoss
+                ? OfficeCompatibilityImpact.Semantic | OfficeCompatibilityImpact.Carrier
+                : compatibilityImpact;
+            SourceLocation = sourceLocation;
+            FallbackArtifact = fallbackArtifact;
         }
 
         /// <summary>Gets the stable diagnostic code.</summary>
@@ -75,6 +86,25 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets whether the diagnostic describes content that will not survive conversion.</summary>
         public bool RepresentsDataLoss { get; }
+
+        /// <summary>Gets the shared feature-level representation state.</summary>
+        public OfficeCompatibilityState CompatibilityState { get; }
+
+        /// <summary>Gets the fidelity dimensions affected by the finding.</summary>
+        public OfficeCompatibilityImpact CompatibilityImpact { get; }
+
+        /// <summary>Gets the related source part, story, range, or other location.</summary>
+        public string? SourceLocation { get; }
+
+        /// <summary>Gets the generated fallback artifact, when one exists.</summary>
+        public string? FallbackArtifact { get; }
+
+        private static OfficeCompatibilityState InferCompatibilityState(
+            WordConversionDiagnosticCategory category,
+            bool representsDataLoss) {
+            if (category == WordConversionDiagnosticCategory.DestinationFormat) return OfficeCompatibilityState.Blocked;
+            return representsDataLoss ? OfficeCompatibilityState.Dropped : OfficeCompatibilityState.Equivalent;
+        }
     }
 
     /// <summary>Represents the destination artifact and report produced by a Word file conversion.</summary>
@@ -84,7 +114,10 @@ namespace OfficeIMO.Word {
             string destinationPath,
             WordFileFormat sourceFormat,
             WordFileFormat destinationFormat,
+            OfficeFormatDescriptor sourceDescriptor,
+            OfficeFormatDescriptor destinationDescriptor,
             IReadOnlyList<WordConversionDiagnostic> diagnostics,
+            OfficeCompatibilityMode compatibilityMode,
             bool outputCreated,
             bool replacedExistingFile) {
             Value = outputCreated ? destinationPath : null;
@@ -93,7 +126,10 @@ namespace OfficeIMO.Word {
                 destinationPath,
                 sourceFormat,
                 destinationFormat,
+                sourceDescriptor,
+                destinationDescriptor,
                 diagnostics,
+                compatibilityMode,
                 replacedExistingFile);
         }
 
@@ -124,13 +160,23 @@ namespace OfficeIMO.Word {
             string destinationPath,
             WordFileFormat sourceFormat,
             WordFileFormat destinationFormat,
+            OfficeFormatDescriptor sourceDescriptor,
+            OfficeFormatDescriptor destinationDescriptor,
             IReadOnlyList<WordConversionDiagnostic> diagnostics,
+            OfficeCompatibilityMode compatibilityMode,
             bool replacedExistingFile) {
             SourcePath = sourcePath;
             DestinationPath = destinationPath;
             SourceFormat = sourceFormat;
             DestinationFormat = destinationFormat;
+            SourceFormatDescriptor = sourceDescriptor;
+            DestinationFormatDescriptor = destinationDescriptor;
             Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+            Compatibility = new OfficeCompatibilityReport(
+                sourceDescriptor,
+                destinationDescriptor,
+                compatibilityMode,
+                Diagnostics.Select(CreateCompatibilityFinding));
             ReplacedExistingFile = replacedExistingFile;
         }
 
@@ -146,8 +192,17 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the requested destination physical format.</summary>
         public WordFileFormat DestinationFormat { get; }
 
+        /// <summary>Gets the concrete source format and document kind.</summary>
+        public OfficeFormatDescriptor SourceFormatDescriptor { get; }
+
+        /// <summary>Gets the concrete destination format and document kind.</summary>
+        public OfficeFormatDescriptor DestinationFormatDescriptor { get; }
+
         /// <summary>Gets a snapshot of conversion diagnostics.</summary>
         public IReadOnlyList<WordConversionDiagnostic> Diagnostics { get; }
+
+        /// <summary>Gets the shared feature-level fidelity assessment for this conversion.</summary>
+        public OfficeCompatibilityReport Compatibility { get; }
 
         /// <summary>Gets whether the conversion reported known content loss.</summary>
         public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.RepresentsDataLoss);
@@ -157,7 +212,26 @@ namespace OfficeIMO.Word {
 
         /// <summary>Throws when the conversion reported known content loss.</summary>
         public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidOperationException("Word conversion reported one or more lossy mappings.");
+            Compatibility.RequireNoLoss();
+        }
+
+        private static OfficeCompatibilityFinding CreateCompatibilityFinding(WordConversionDiagnostic diagnostic) {
+            OfficeCompatibilityState state = diagnostic.CompatibilityState;
+            OfficeCompatibilitySeverity severity = diagnostic.Severity switch {
+                WordConversionDiagnosticSeverity.Warning => OfficeCompatibilitySeverity.Warning,
+                WordConversionDiagnosticSeverity.Error => OfficeCompatibilitySeverity.Error,
+                _ => OfficeCompatibilitySeverity.Information
+            };
+            return new OfficeCompatibilityFinding(
+                diagnostic.Code,
+                diagnostic.Category.ToString(),
+                diagnostic.Message,
+                state,
+                severity,
+                diagnostic.CompatibilityImpact,
+                diagnostic.RepresentsDataLoss,
+                diagnostic.SourceLocation,
+                diagnostic.FallbackArtifact);
         }
     }
 
@@ -199,6 +273,19 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets how known conversion loss is handled. The default is to block it.</summary>
         public WordConversionLossPolicy LossPolicy { get; set; } = WordConversionLossPolicy.Block;
+
+        /// <summary>
+        /// Gets or sets the requested fidelity strategy. Existing <see cref="LossPolicy"/> behavior remains
+        /// authoritative until a format-specific fallback is selected by the conversion planner.
+        /// </summary>
+        public OfficeCompatibilityMode CompatibilityMode { get; set; } = OfficeCompatibilityMode.StrictNative;
+
+        /// <summary>
+        /// Gets or sets whether a lossy conversion retains the complete original source in an inert,
+        /// hash-verified OfficeIMO compatibility carrier. This may retain macros, hidden content, and
+        /// other source bytes, so it is disabled unless explicitly requested or preservation-only mode is selected.
+        /// </summary>
+        public bool EmbedSourceWhenLossy { get; set; }
 
         /// <summary>Gets or sets whether OfficeIMO should override styles while loading DOCX sources.</summary>
         public bool OverrideStyles { get; set; }

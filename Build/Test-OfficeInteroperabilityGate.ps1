@@ -4,7 +4,8 @@ param(
     [ValidateSet("Full", "Corpus", "Safety")]
     [string] $Suite = "Full",
     [switch] $NoRestore,
-    [switch] $NoBuild
+    [switch] $NoBuild,
+    [switch] $MicrosoftOffice
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,9 +13,39 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')
 $projects = @{
+    CompatibilityCatalog = Join-Path $repoRoot 'Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj'
     Drawing = Join-Path $repoRoot 'OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj'
     Excel = Join-Path $repoRoot 'OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj'
+    PowerPoint = Join-Path $repoRoot 'OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj'
     Word = Join-Path $repoRoot 'OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj'
+}
+
+function Test-CompatibilityCatalogArtifacts {
+    Write-Host ""
+    Write-Host "== Generated Office format and capability contracts ==" -ForegroundColor Cyan
+    $arguments = @(
+        'run',
+        '--project', $projects.CompatibilityCatalog,
+        '--configuration', $Configuration,
+        '--framework', $Framework
+    )
+    if ($NoRestore) {
+        $arguments += '--no-restore'
+    }
+    if ($NoBuild) {
+        $arguments += '--no-build'
+    }
+    $arguments += @('--', '--output', (Join-Path $repoRoot 'Docs/Compatibility/generated'), '--verify')
+
+    Push-Location $repoRoot
+    try {
+        & dotnet @arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "Generated Office compatibility contract verification failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        Pop-Location
+    }
 }
 
 foreach ($project in $projects.GetEnumerator()) {
@@ -107,6 +138,8 @@ $wordAdvancedFilter = @(
 
 Write-Host "Office interoperability gate suite: $Suite" -ForegroundColor Yellow
 
+Test-CompatibilityCatalogArtifacts
+
 if ($Suite -in @('Full', 'Corpus')) {
     Invoke-InteroperabilityGateStep `
         -Name 'Excel corpus manifest identity and load contract' `
@@ -116,6 +149,11 @@ if ($Suite -in @('Full', 'Corpus')) {
     Invoke-InteroperabilityGateStep `
         -Name 'Word corpus manifest identity and load contract' `
         -Project $projects.Word `
+        -Filter 'Category=OfficeInteroperability'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'PowerPoint corpus identity, preflight, conversion, and reopen contract' `
+        -Project $projects.PowerPoint `
         -Filter 'Category=OfficeInteroperability'
 
     Invoke-InteroperabilityGateStep `
@@ -132,6 +170,11 @@ if ($Suite -in @('Full', 'Corpus')) {
         -Name 'Legacy DOC approved import reports' `
         -Project $projects.Word `
         -Filter 'FullyQualifiedName=OfficeIMO.Tests.Word.LegacyDoc_CorpusImportReports_MatchCheckedInBaselines'
+
+    Invoke-InteroperabilityGateStep `
+        -Name 'PowerPoint binary visual baselines' `
+        -Project $projects.PowerPoint `
+        -Filter 'FullyQualifiedName=OfficeIMO.Tests.PowerPointLegacyPptTests.ShapeImport_MatchesLibreOfficeVisualReferenceWithinDocumentedTolerance|FullyQualifiedName=OfficeIMO.Tests.PowerPointLegacyPptTests.MicrosoftAuthoredImport_DoesNotRenderMasterPlaceholderPrompts'
 }
 
 if ($Suite -in @('Full', 'Safety')) {
@@ -149,6 +192,41 @@ if ($Suite -in @('Full', 'Safety')) {
         -Name 'Word compound payload, macro, preflight, and batch-render contract' `
         -Project $projects.Word `
         -Filter $wordAdvancedFilter
+}
+
+if ($MicrosoftOffice) {
+    if (-not [Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [Runtime.InteropServices.OSPlatform]::Windows)) {
+        throw 'The Microsoft Office interoperability lane requires Windows and desktop Word, Excel, and PowerPoint.'
+    }
+
+    $previousDocCom = $env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION
+    $previousXlsCom = $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION
+    $previousPptCom = $env:OFFICEIMO_RUN_LEGACY_PPT_COM_VALIDATION
+    try {
+        $env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = '1'
+        $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = '1'
+        $env:OFFICEIMO_RUN_LEGACY_PPT_COM_VALIDATION = '1'
+
+        Invoke-InteroperabilityGateStep `
+            -Name 'Microsoft Word desktop source and generated conversion oracle' `
+            -Project $projects.Word `
+            -Filter 'Category=MicrosoftOfficeInteroperability'
+
+        Invoke-InteroperabilityGateStep `
+            -Name 'Microsoft Excel desktop corpus source and conversion oracle' `
+            -Project $projects.Excel `
+            -Filter 'Category=MicrosoftOfficeInteroperability'
+
+        Invoke-InteroperabilityGateStep `
+            -Name 'Microsoft PowerPoint desktop corpus source and conversion oracle' `
+            -Project $projects.PowerPoint `
+            -Filter 'Category=MicrosoftOfficeInteroperability'
+    } finally {
+        $env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = $previousDocCom
+        $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = $previousXlsCom
+        $env:OFFICEIMO_RUN_LEGACY_PPT_COM_VALIDATION = $previousPptCom
+    }
 }
 
 Write-Host ""

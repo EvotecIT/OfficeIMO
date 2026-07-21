@@ -70,13 +70,15 @@ namespace OfficeIMO.PowerPoint {
             string extension = Path.GetExtension(filePath);
             return string.Equals(extension, ".ppt", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(extension, ".pot", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".pps", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(extension, ".pps", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".ppa", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static PowerPointFileFormat GetFormat(string? filePath, bool legacyDefault = false) {
             string extension = string.IsNullOrWhiteSpace(filePath) ? string.Empty : Path.GetExtension(filePath);
             if (string.Equals(extension, ".pot", StringComparison.OrdinalIgnoreCase)) return PowerPointFileFormat.Pot;
             if (string.Equals(extension, ".pps", StringComparison.OrdinalIgnoreCase)) return PowerPointFileFormat.Pps;
+            if (string.Equals(extension, ".ppa", StringComparison.OrdinalIgnoreCase)) return PowerPointFileFormat.Ppt;
             if (string.Equals(extension, ".ppt", StringComparison.OrdinalIgnoreCase)) return PowerPointFileFormat.Ppt;
             return legacyDefault ? PowerPointFileFormat.Ppt : PowerPointFileFormat.Pptx;
         }

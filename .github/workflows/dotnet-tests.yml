@@ -380,6 +380,36 @@ jobs:
           OFFICEIMO_LEGACY_PPT_INTEROP_INPUT: ${{ runner.temp }}/officeimo-binary-powerpoint-libreoffice/roundtrip
         run: dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=LegacyPptLibreOfficeReopen
 
+  office-corpus-libreoffice:
+    name: 'Office binary corpus and LibreOffice'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install LibreOffice Writer, Calc, and Impress
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
+
+      - name: Open, convert, and render declared corpus artifacts
+        shell: pwsh
+        run: ./Build/Test-OfficeCorpusLibreOffice.ps1 -OutputDirectory '${{ runner.temp }}/officeimo-corpus-libreoffice'
+
+      - name: Upload LibreOffice oracle report and artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: officeimo-corpus-libreoffice
+          path: ${{ runner.temp }}/officeimo-corpus-libreoffice
+          if-no-files-found: error
+
   test-windows:
     name: '.NET Framework 4.7.2 / ${{ matrix.name }}'
     runs-on: windows-latest
@@ -1084,7 +1114,7 @@ jobs:
         run: ./Build/Test-ExcelImageVisualGate.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }} -Framework net8.0 -Suite Smoke -NoRestore -NoBuild
 
   office-interoperability-gate:
-    name: 'Word and Excel interoperability gate'
+    name: 'Office interoperability gate'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -1106,17 +1136,21 @@ jobs:
 
       - name: Restore interoperability test dependencies
         run: |
+          dotnet restore Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj
           dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
           dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
           dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
 
       - name: Build interoperability test projects
         run: |
+          dotnet build Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
           dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
           dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+          dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
           dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
 
-      - name: Run Word and Excel interoperability gate
+      - name: Run Office interoperability gate
         shell: pwsh
         run: ./Build/Test-OfficeInteroperabilityGate.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }} -Framework net8.0 -Suite Full -NoRestore -NoBuild
 
@@ -1128,6 +1162,7 @@ jobs:
       - excel-image-visual-gate
       - office-interoperability-gate
       - binary-powerpoint-libreoffice
+      - office-corpus-libreoffice
     if: always()
     steps:
       - name: Check Ubuntu test matrix
@@ -1141,11 +1176,15 @@ jobs:
             exit 1
           fi
           if [ "${{ needs.office-interoperability-gate.result }}" != "success" ]; then
-            echo "Word and Excel interoperability gate result: ${{ needs.office-interoperability-gate.result }}"
+            echo "Office interoperability gate result: ${{ needs.office-interoperability-gate.result }}"
             exit 1
           fi
           if [ "${{ needs.binary-powerpoint-libreoffice.result }}" != "success" ]; then
             echo "Binary PowerPoint LibreOffice gate result: ${{ needs.binary-powerpoint-libreoffice.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.office-corpus-libreoffice.result }}" != "success" ]; then
+            echo "Office corpus LibreOffice gate result: ${{ needs.office-corpus-libreoffice.result }}"
             exit 1
           fi
           echo "Ubuntu test matrix passed."

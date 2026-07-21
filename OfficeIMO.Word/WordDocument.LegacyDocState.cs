@@ -1,6 +1,7 @@
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -10,11 +11,17 @@ namespace OfficeIMO.Word {
         private LegacyDocCompoundFeature[] _legacyDocCompoundFeatures = Array.Empty<LegacyDocCompoundFeature>();
         private OfficeCompoundFile? _legacyDocSourceCompoundFile;
         private string? _legacyDocSourcePath;
+        private byte[]? _openXmlOriginalPackageBytes;
 
         /// <summary>
         /// Gets the detected physical format of the document source.
         /// </summary>
         public WordFileFormat SourceFormat { get; private set; } = WordFileFormat.Docx;
+
+        /// <summary>Gets the concrete source format, including modern template and macro variants.</summary>
+        public OfficeFormatDescriptor SourceFormatDescriptor => SourceFormat == WordFileFormat.Doc
+            ? WordFormatCatalog.GetDescriptor(SourceFormat, _legacyDocSourcePath)
+            : WordFormatCatalog.GetDescriptor(_wordprocessingDocument.DocumentType);
 
         /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
         public string? SourcePath => SourceFormat == WordFileFormat.Doc
@@ -41,6 +48,29 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<LegacyDocCompoundFeature> LegacyDocCompoundFeatures => _legacyDocCompoundFeatures;
 
+        /// <summary>Tries to read an original source retained by a compatibility conversion.</summary>
+        public bool TryGetCompatibilitySourcePayload(
+            out OfficeCompatibilitySourcePayload? payload,
+            out string? error) {
+            if (SourceFormat == WordFileFormat.Doc) {
+                return OfficeCompatibilitySourceCarrier.TryRead(
+                    _legacyDocSourceCompoundFile,
+                    out payload,
+                    out error);
+            }
+
+            if (_openXmlOriginalPackageBytes != null) {
+                return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                    _openXmlOriginalPackageBytes,
+                    out payload,
+                    out error);
+            }
+
+            payload = null;
+            error = null;
+            return false;
+        }
+
         internal OfficeCompoundFile? LegacyDocSourceCompoundFile => _legacyDocSourceCompoundFile;
 
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
@@ -51,6 +81,7 @@ namespace OfficeIMO.Word {
             _legacyDocCompoundFeatures = document.CompoundFeatures.ToArray();
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             _legacyDocSourceCompoundFile = document.SourceCompoundFile;
+            _openXmlOriginalPackageBytes = null;
             FilePath = attachSourcePathForSave && sourcePath != null
                 ? sourcePath
                 : null;

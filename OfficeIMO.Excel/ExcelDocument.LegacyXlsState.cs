@@ -6,6 +6,7 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,12 +22,21 @@ namespace OfficeIMO.Excel {
         private string? _legacyXlsSourcePath;
         private string? _xlsbSourcePath;
         private byte[]? _xlsbOriginalPackageBytes;
+        private byte[]? _openXmlOriginalPackageBytes;
+        private bool _legacyXlsWasEncryptedSource;
         private XlsbWorkbook? _xlsbAdvancedWorkbook;
         private XlsbImportDiagnostic[] _xlsbImportDiagnostics = Array.Empty<XlsbImportDiagnostic>();
         private XlsbPreservedRecordInfo[] _xlsbPreservedRecords = Array.Empty<XlsbPreservedRecordInfo>();
 
         /// <summary>Gets the detected physical format of the workbook source.</summary>
         public ExcelFileFormat SourceFormat { get; private set; } = ExcelFileFormat.Xlsx;
+
+        /// <summary>Gets the concrete source format, including modern template, add-in, macro, and XLSB variants.</summary>
+        public OfficeFormatDescriptor SourceFormatDescriptor => SourceFormat switch {
+            ExcelFileFormat.Xls => ExcelFormatCatalog.GetDescriptor(SourceFormat, _legacyXlsSourcePath),
+            ExcelFileFormat.Xlsb => ExcelFormatCatalog.GetDescriptor(SourceFormat, _xlsbSourcePath),
+            _ => ExcelFormatCatalog.GetDescriptor(_spreadSheetDocument.DocumentType)
+        };
 
         /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
         public string? SourcePath => SourceFormat switch {
@@ -69,6 +79,48 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<LegacyXlsCompoundFeatureRecord> LegacyXlsCompoundFeatures => _legacyXlsCompoundFeatures;
 
+        /// <summary>Tries to read an original source retained by a compatibility conversion.</summary>
+        public bool TryGetCompatibilitySourcePayload(
+            out OfficeCompatibilitySourcePayload? payload,
+            out string? error) {
+            if (SourceFormat == ExcelFileFormat.Xls) {
+                return OfficeCompatibilitySourceCarrier.TryRead(
+                    _legacyXlsSourceCompoundFile,
+                    out payload,
+                    out error);
+            }
+
+            if (SourceFormat == ExcelFileFormat.Xlsb && _xlsbOriginalPackageBytes != null) {
+                return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                    _xlsbOriginalPackageBytes,
+                    out payload,
+                    out error);
+            }
+
+            try {
+                if (_openXmlOriginalPackageBytes != null) {
+                    return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                        _openXmlOriginalPackageBytes,
+                        out payload,
+                        out error);
+                }
+
+                using var snapshot = new MemoryStream();
+                using (_spreadSheetDocument.Clone(snapshot)) { }
+                return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                    snapshot.ToArray(),
+                    out payload,
+                    out error);
+            } catch (Exception exception) when (
+                exception is IOException
+                || exception is InvalidDataException
+                || exception is NotSupportedException) {
+                payload = null;
+                error = exception.Message;
+                return false;
+            }
+        }
+
         internal OfficeCompoundFile? LegacyXlsSourceCompoundFile => _legacyXlsSourceCompoundFile;
 
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook) {
@@ -83,6 +135,8 @@ namespace OfficeIMO.Excel {
             _legacyXlsChartSheets = workbook.ChartSheets.ToArray();
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
             _legacyXlsSourceCompoundFile = workbook.SourceCompoundFile;
+            _legacyXlsWasEncryptedSource = workbook.WasEncryptedSource;
+            _openXmlOriginalPackageBytes = null;
 
             if (!string.IsNullOrEmpty(sourcePath)) {
                 FilePath = sourcePath!;
@@ -95,6 +149,8 @@ namespace OfficeIMO.Excel {
             SourceFormat = ExcelFileFormat.Xlsb;
             _xlsbSourcePath = sourcePath;
             _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
+            _legacyXlsWasEncryptedSource = false;
+            _openXmlOriginalPackageBytes = null;
             _xlsbAdvancedWorkbook = workbook;
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
