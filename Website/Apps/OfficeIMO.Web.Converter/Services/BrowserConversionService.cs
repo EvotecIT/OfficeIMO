@@ -53,7 +53,7 @@ public sealed class BrowserConversionService {
             IncludePageNumbers = true
         };
         var conversion = document.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.Value.ToBytes();
+        byte[] bytes = conversion.ToBytes();
         return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
     }
 
@@ -66,7 +66,7 @@ public sealed class BrowserConversionService {
             });
         var options = new ExcelPdfSaveOptions { MaxRowsPerSheet = limitRowsPerSheet ? 250 : null };
         var conversion = document.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.Value.ToBytes();
+        byte[] bytes = conversion.ToBytes();
         return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
     }
 
@@ -79,7 +79,7 @@ public sealed class BrowserConversionService {
             });
         var options = new PowerPointPdfSaveOptions { WarnOnPictureAspectRatioDistortion = true };
         var conversion = presentation.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.Value.ToBytes();
+        byte[] bytes = conversion.ToBytes();
         return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
     }
 
