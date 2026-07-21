@@ -26,8 +26,8 @@ public sealed partial class ConfluenceClient : IDisposable {
         query ??= new ConfluencePageQuery();
         if (query.Limit < 1 || query.Limit > 250) throw new ArgumentOutOfRangeException(nameof(query), "Limit must be between 1 and 250.");
         string relativeUri = BuildPageQuery(query);
-        CollectionResponse<ConfluencePage> response = await _transport.SendJsonAsync<CollectionResponse<ConfluencePage>>(HttpMethod.Get, relativeUri, null, ConfluenceRequestSafety.SafeToRetry, cancellationToken).ConfigureAwait(false);
-        return new ConfluencePageBatch(response.Results, response.Links?.Next);
+        ConfluenceJsonResponse<CollectionResponse<ConfluencePage>> response = await _transport.SendJsonWithHeadersAsync<CollectionResponse<ConfluencePage>>(HttpMethod.Get, relativeUri, null, ConfluenceRequestSafety.SafeToRetry, cancellationToken).ConfigureAwait(false);
+        return new ConfluencePageBatch(response.Value.Results, ConfluencePagination.Next(response.Value.Links?.Next, response.Headers));
     }
 
     /// <summary>Creates a page. Non-idempotent writes are never retried automatically.</summary>
@@ -42,6 +42,12 @@ public sealed partial class ConfluenceClient : IDisposable {
         ConfluencePageWritePlan plan = PlanUpdatePage(request);
         using JsonDocument payload = JsonDocument.Parse(plan.Payload);
         return _transport.SendJsonAsync<ConfluencePage>(HttpMethod.Put, plan.RelativeUri, payload.RootElement.Clone(), ConfluenceRequestSafety.NonIdempotent, cancellationToken);
+    }
+
+    /// <summary>Deletes a page. This non-idempotent operation is never retried automatically.</summary>
+    public async Task DeletePageAsync(string pageId, bool purge = false, bool draft = false, CancellationToken cancellationToken = default) {
+        ConfluencePageWritePlan plan = PlanDeletePage(pageId, purge, draft);
+        await _transport.SendRawAsync(HttpMethod.Delete, plan.RelativeUri, ConfluenceRequestSafety.NonIdempotent, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Builds the exact create request without contacting Confluence.</summary>
@@ -75,6 +81,16 @@ public sealed partial class ConfluenceClient : IDisposable {
             version = new { number = request.VersionNumber, message = request.VersionMessage },
         };
         return new ConfluencePageWritePlan("PUT", "/wiki/api/v2/pages/" + Encode(request.PageId), JsonSerializer.Serialize(payload, ConfluenceHttpTransport.JsonOptions));
+    }
+
+    /// <summary>Builds the exact delete request without contacting Confluence.</summary>
+    public static ConfluencePageWritePlan PlanDeletePage(string pageId, bool purge = false, bool draft = false) {
+        ValidateId(pageId, nameof(pageId));
+        var query = new List<string>();
+        if (purge) query.Add("purge=true");
+        if (draft) query.Add("draft=true");
+        string relativeUri = "/wiki/api/v2/pages/" + Encode(pageId) + (query.Count == 0 ? string.Empty : "?" + string.Join("&", query));
+        return new ConfluencePageWritePlan("DELETE", relativeUri, string.Empty);
     }
 
     public void Dispose() => _transport.Dispose();

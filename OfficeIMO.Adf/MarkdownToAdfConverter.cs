@@ -56,9 +56,16 @@ internal static class MarkdownToAdfConverter {
         if (type == "orderedList" && order != 1) list.SetAttribute("order", order);
         for (int i = 0; i < items.Count; i++) {
             ListItem sourceItem = items[i];
-            var item = new AdfNode(sourceItem.IsTask ? "taskItem" : "listItem");
-            if (sourceItem.IsTask) item.SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
-            item.Content.Add(WithInlines(new AdfNode("paragraph"), sourceItem.Content, path + ".items[" + i + "]", diagnostics));
+            var item = new AdfNode("listItem");
+            AdfNode listParagraph = WithInlines(new AdfNode("paragraph"), sourceItem.Content, path + ".items[" + i + "]", diagnostics);
+            if (sourceItem.IsTask) {
+                listParagraph.Content.Insert(0, AdfNode.TextNode(sourceItem.Checked ? "[x] " : "[ ] "));
+                diagnostics.Add(Warning(
+                    "MARKDOWN_TASK_LIST_FALLBACK",
+                    path + ".items[" + i + "]",
+                    "Markdown task state is preserved as a visible marker because ADF taskItem nodes require a taskList parent."));
+            }
+            item.Content.Add(listParagraph);
             foreach (InlineSequence paragraph in sourceItem.AdditionalParagraphs) {
                 item.Content.Add(WithInlines(new AdfNode("paragraph"), paragraph, path + ".items[" + i + "]", diagnostics));
             }

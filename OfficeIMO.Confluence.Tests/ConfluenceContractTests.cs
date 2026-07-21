@@ -32,6 +32,20 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task PageBatch_UsesLinkHeaderWhenBodyDoesNotContainNextLink() {
+        var handler = new RecordingHandler(_ => {
+            HttpResponseMessage response = Response(HttpStatusCode.OK, "{\"results\":[]}");
+            response.Headers.TryAddWithoutValidation("Link", "<https://example.atlassian.net/wiki/api/v2/pages?limit=25&cursor=header%2Bcursor>; rel=\"next\"");
+            return response;
+        });
+        using ConfluenceClient client = CreateClient(handler);
+
+        ConfluencePageBatch batch = await client.GetPagesAsync();
+
+        Assert.Equal("header+cursor", batch.NextCursor);
+    }
+
+    [Fact]
     public async Task GetPage_UsesV2BodyFormatAndCallerCredentialSource() {
         string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "page-adf.json"));
         var handler = new RecordingHandler(_ => Response(HttpStatusCode.OK, fixture));
@@ -42,6 +56,29 @@ public sealed class ConfluenceContractTests {
         Assert.Equal("Status", page.Title);
         Assert.Equal("/wiki/api/v2/pages/123?body-format=atlas_doc_format", handler.Requests.Single().RequestUri!.PathAndQuery);
         Assert.Equal("Basic", handler.Requests.Single().Headers.Authorization!.Scheme);
+    }
+
+    [Fact]
+    public async Task OAuthSession_UsesCloudGatewayAndDefensiveOptionsSnapshot() {
+        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "page-adf.json"));
+        var handler = new RecordingHandler(_ => Response(HttpStatusCode.OK, fixture));
+        var options = new ConfluenceSessionOptions {
+            SiteUri = new Uri("https://example.atlassian.net/"),
+            CloudId = "cloud-123",
+            HttpClient = new HttpClient(handler),
+        };
+        var session = new ConfluenceSession(new ConfluenceBearerCredentialSource("token"), options);
+        options.SiteUri = new Uri("https://attacker.invalid/");
+        ConfluenceSessionOptions exposed = session.Options;
+        exposed.CloudId = "changed";
+        using ConfluenceClient client = session.CreateClient();
+
+        await client.GetPageAsync("123");
+
+        Uri requestUri = handler.Requests.Single().RequestUri!;
+        Assert.Equal("api.atlassian.com", requestUri.Host);
+        Assert.Equal("/ex/confluence/cloud-123/wiki/api/v2/pages/123?body-format=atlas_doc_format", requestUri.PathAndQuery);
+        Assert.Equal("Bearer", handler.Requests.Single().Headers.Authorization!.Scheme);
     }
 
     [Fact]
@@ -90,6 +127,33 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task SafeRead_RetriesTransportFailure() {
+        int attempt = 0;
+        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "page-adf.json"));
+        var handler = new RecordingHandler(_ => ++attempt == 1 ? throw new HttpRequestException("transient") : Response(HttpStatusCode.OK, fixture));
+        using ConfluenceClient client = CreateClient(handler, configure: options => { options.RetryBaseDelay = TimeSpan.Zero; options.RetryMaxDelay = TimeSpan.Zero; });
+
+        ConfluencePage page = await client.GetPageAsync("123");
+
+        Assert.Equal("123", page.Id);
+        Assert.Equal(2, attempt);
+    }
+
+    [Fact]
+    public async Task DeletePage_IsPlannableAndNotRetried() {
+        var handler = new RecordingHandler(_ => Response(HttpStatusCode.ServiceUnavailable, "{\"message\":\"later\"}"));
+        using ConfluenceClient client = CreateClient(handler);
+
+        ConfluencePageWritePlan plan = ConfluenceClient.PlanDeletePage("123", purge: true, draft: true);
+        await Assert.ThrowsAsync<ConfluenceApiException>(() => client.DeletePageAsync("123", purge: true, draft: true));
+
+        Assert.Equal("DELETE", plan.Method);
+        Assert.Equal("/wiki/api/v2/pages/123?purge=true&draft=true", plan.RelativeUri);
+        Assert.Empty(plan.Payload);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
     public void ManagedSection_ReplacesOnlyMarkedContentAndProducesHashes() {
         string original = "<p>Owner content</p>\n<!-- officeimo:section:report:start -->\nold\n<!-- officeimo:section:report:end -->\n<p>Tail</p>";
 
@@ -125,6 +189,39 @@ public sealed class ConfluenceContractTests {
         Assert.Equal("text/plain", attachment.MediaType);
         Assert.Equal(5, attachment.FileSize);
         Assert.Equal("/download/attachments/123/report.txt", attachment.DownloadLink);
+    }
+
+    [Fact]
+    public async Task AttachmentStreamingUpload_LeavesCallerStreamOpen() {
+        string? uploaded = null;
+        var handler = new RecordingHandler(request => {
+            uploaded = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Response(HttpStatusCode.OK, "{\"results\":[]}");
+        });
+        using ConfluenceClient client = CreateClient(handler);
+        using var content = new MemoryStream(Encoding.UTF8.GetBytes("stream-ready"));
+
+        await client.UploadAttachmentAsync("123", new ConfluenceAttachmentStreamUpload {
+            FileName = "report.txt",
+            ContentType = "text/plain",
+            Content = content,
+        });
+
+        Assert.True(content.CanRead);
+        Assert.Contains("stream-ready", uploaded);
+    }
+
+    [Fact]
+    public async Task AttachmentDownload_StreamsToCallerDestination() {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new ByteArrayContent(Encoding.UTF8.GetBytes("download-ready")),
+        });
+        using ConfluenceClient client = CreateClient(handler);
+        using var destination = new MemoryStream();
+
+        await client.DownloadAttachmentAsync("123", "a1", destination);
+
+        Assert.Equal("download-ready", Encoding.UTF8.GetString(destination.ToArray()));
     }
 
     private static ConfluenceClient CreateClient(RecordingHandler handler, IConfluenceCredentialSource? credential = null, Action<ConfluenceSessionOptions>? configure = null) {

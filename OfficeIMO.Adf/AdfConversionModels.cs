@@ -9,7 +9,11 @@ public enum AdfConversionSeverity {
 
 /// <summary>A conversion decision recorded for fidelity review.</summary>
 public sealed class AdfConversionDiagnostic {
-    internal AdfConversionDiagnostic(string code, string path, string message, AdfConversionSeverity severity) {
+    /// <summary>Creates an operation-scoped conversion diagnostic.</summary>
+    public AdfConversionDiagnostic(string code, string path, string message, AdfConversionSeverity severity) {
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("A diagnostic code is required.", nameof(code));
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("A diagnostic message is required.", nameof(message));
         Code = code;
         Path = path;
         Message = message;
@@ -27,6 +31,8 @@ public sealed class AdfConversionReport {
     /// <summary>Creates a report from operation-scoped diagnostics.</summary>
     public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) =>
         Diagnostics = diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics));
+    /// <summary>An empty report for identity conversions that do not project content.</summary>
+    public static AdfConversionReport Empty { get; } = new AdfConversionReport(Array.Empty<AdfConversionDiagnostic>());
     public IReadOnlyList<AdfConversionDiagnostic> Diagnostics { get; }
     public bool IsLossless => Diagnostics.All(item => item.Severity == AdfConversionSeverity.Information);
     public bool HasErrors => Diagnostics.Any(item => item.Severity == AdfConversionSeverity.Error);

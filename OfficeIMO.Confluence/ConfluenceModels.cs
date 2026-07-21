@@ -82,6 +82,27 @@ internal static class ConfluenceCursor {
     }
 }
 
+internal static class ConfluencePagination {
+    internal static string? Next(string? responseLink, IReadOnlyDictionary<string, IReadOnlyList<string>> headers) {
+        if (!string.IsNullOrWhiteSpace(responseLink)) return responseLink;
+        if (!headers.TryGetValue("Link", out IReadOnlyList<string>? values)) return null;
+        foreach (string value in values) {
+            foreach (string segment in value.Split(',')) {
+                string candidate = segment.Trim();
+                int close = candidate.IndexOf('>');
+                if (!candidate.StartsWith("<", StringComparison.Ordinal) || close <= 1) continue;
+                string parameters = candidate.Substring(close + 1);
+                bool isNext = parameters.Split(';')
+                    .Select(item => item.Trim())
+                    .Any(item => string.Equals(item, "rel=next", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(item, "rel=\"next\"", StringComparison.OrdinalIgnoreCase));
+                if (isNext) return candidate.Substring(1, close - 1);
+            }
+        }
+        return null;
+    }
+}
+
 /// <summary>Options for listing Confluence pages.</summary>
 public sealed class ConfluencePageQuery {
     public string? SpaceId { get; set; }

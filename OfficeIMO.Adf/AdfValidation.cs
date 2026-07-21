@@ -46,11 +46,11 @@ internal static class AdfValidator {
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
-        for (int i = 0; i < document.Content.Count; i++) ValidateNode(document.Content[i], "$.content[" + i + "]", issues);
+        for (int i = 0; i < document.Content.Count; i++) ValidateNode(document.Content[i], "$.content[" + i + "]", null, issues);
         return new AdfValidationResult(issues);
     }
 
-    private static void ValidateNode(AdfNode? node, string path, List<AdfValidationIssue> issues) {
+    private static void ValidateNode(AdfNode? node, string path, string? parentType, List<AdfValidationIssue> issues) {
         if (node == null) {
             issues.Add(Error("ADF_NULL_NODE", path, "ADF content cannot contain null nodes."));
             return;
@@ -58,12 +58,30 @@ internal static class AdfValidator {
         if (string.IsNullOrWhiteSpace(node.Type)) issues.Add(Error("ADF_NODE_TYPE", path + ".type", "ADF node type is required."));
         else if (!KnownNodes.Contains(node.Type)) issues.Add(Warning("ADF_UNKNOWN_NODE", path, "Unknown ADF node '" + node.Type + "' is retained but may be projected with reduced fidelity."));
         if (string.Equals(node.Type, "text", StringComparison.Ordinal) && node.Text == null) issues.Add(Error("ADF_TEXT_REQUIRED", path + ".text", "ADF text nodes require a text value."));
+        if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) &&
+            !string.Equals(parentType, "bulletList", StringComparison.Ordinal) &&
+            !string.Equals(parentType, "orderedList", StringComparison.Ordinal)) {
+            issues.Add(Error("ADF_LIST_ITEM_PARENT", path, "ADF listItem nodes require a bulletList or orderedList parent."));
+        }
+        if (string.Equals(node.Type, "taskItem", StringComparison.Ordinal) && !string.Equals(parentType, "taskList", StringComparison.Ordinal)) {
+            issues.Add(Error("ADF_TASK_ITEM_PARENT", path, "ADF taskItem nodes require a taskList parent."));
+        }
         for (int i = 0; i < node.Marks.Count; i++) {
             AdfMark mark = node.Marks[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
         }
-        for (int i = 0; i < node.Content.Count; i++) ValidateNode(node.Content[i], path + ".content[" + i + "]", issues);
+        for (int i = 0; i < node.Content.Count; i++) {
+            AdfNode child = node.Content[i];
+            if ((string.Equals(node.Type, "bulletList", StringComparison.Ordinal) || string.Equals(node.Type, "orderedList", StringComparison.Ordinal)) &&
+                !string.Equals(child.Type, "listItem", StringComparison.Ordinal)) {
+                issues.Add(Error("ADF_LIST_CHILD", path + ".content[" + i + "]", "ADF bulletList and orderedList nodes may contain only listItem nodes."));
+            }
+            if (string.Equals(node.Type, "taskList", StringComparison.Ordinal) && !string.Equals(child.Type, "taskItem", StringComparison.Ordinal)) {
+                issues.Add(Error("ADF_TASK_LIST_CHILD", path + ".content[" + i + "]", "ADF taskList nodes may contain only taskItem nodes."));
+            }
+            ValidateNode(child, path + ".content[" + i + "]", node.Type, issues);
+        }
     }
 
     private static AdfValidationIssue Error(string code, string path, string message) => new AdfValidationIssue(code, path, message, AdfValidationSeverity.Error);

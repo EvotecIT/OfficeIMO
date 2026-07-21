@@ -30,7 +30,13 @@ public static class AdfConverter {
         HtmlOptions? htmlOptions = null,
         AdfConversionOptions? options = null) {
         AdfConversionResult<MarkdownDoc> result = ToMarkdownDocument(document, options);
-        return new AdfConversionResult<string>(result.Value.ToHtmlFragment(htmlOptions), result.Report.Diagnostics);
+        var diagnostics = result.Report.Diagnostics.ToList();
+        diagnostics.Add(new AdfConversionDiagnostic(
+            "ADF_TO_HTML_VIA_MARKDOWN",
+            "$",
+            "ADF is projected through the OfficeIMO Markdown model before HTML rendering.",
+            AdfConversionSeverity.Warning));
+        return new AdfConversionResult<string>(result.Value.ToHtmlFragment(htmlOptions), diagnostics);
     }
 
     /// <summary>Converts Markdown text to ADF.</summary>
@@ -51,6 +57,13 @@ public static class AdfConverter {
     public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlToMarkdownOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         MarkdownDoc markdown = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
-        return FromMarkdown(markdown);
+        AdfConversionResult<AdfDocument> result = FromMarkdown(markdown);
+        var diagnostics = result.Report.Diagnostics.ToList();
+        diagnostics.Insert(0, new AdfConversionDiagnostic(
+            "ADF_HTML_VIA_MARKDOWN",
+            "$",
+            "HTML is projected through the OfficeIMO Markdown model before ADF generation.",
+            AdfConversionSeverity.Warning));
+        return new AdfConversionResult<AdfDocument>(result.Value, diagnostics);
     }
 }

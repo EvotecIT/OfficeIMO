@@ -45,6 +45,7 @@
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
     <Using Include="System.Linq" />
     <Using Include="System.Net.Http" />
     <Using Include="System.Threading" />

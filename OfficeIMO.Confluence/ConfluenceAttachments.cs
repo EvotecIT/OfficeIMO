@@ -40,3 +40,13 @@ public sealed class ConfluenceAttachmentUpload {
     public string? Comment { get; set; }
     public bool MinorEdit { get; set; } = true;
 }
+
+/// <summary>Streaming attachment data for Confluence's multipart upload endpoint.</summary>
+public sealed class ConfluenceAttachmentStreamUpload {
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/octet-stream";
+    /// <summary>Readable content stream. Ownership remains with the caller.</summary>
+    public Stream Content { get; set; } = Stream.Null;
+    public string? Comment { get; set; }
+    public bool MinorEdit { get; set; } = true;
+}

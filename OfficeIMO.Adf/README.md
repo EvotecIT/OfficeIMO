@@ -11,3 +11,5 @@ AdfConversionResult<AdfDocument> fromMarkdown = AdfConverter.FromMarkdown("# Sta
 ```
 
 Unknown ADF nodes, marks, attributes, and extension properties remain in the parsed model and survive JSON round trips. A projection to Markdown or HTML reports unsupported constructs through `AdfConversionReport` instead of silently claiming full fidelity.
+
+Structural validation enforces list and task-list parent/child contracts. Markdown task markers inside ordinary bullet or ordered lists remain visible text and produce a fidelity warning rather than generating invalid ADF hierarchy.

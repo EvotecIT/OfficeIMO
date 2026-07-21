@@ -45,6 +45,8 @@ public sealed class AdfContractTests {
         Assert.Contains("<h2", html.Value);
         Assert.Contains("Report", html.Value);
         Assert.Contains("<strong>Ready</strong>", html.Value);
+        Assert.Contains(adf.Report.Diagnostics, item => item.Code == "ADF_HTML_VIA_MARKDOWN");
+        Assert.Contains(html.Report.Diagnostics, item => item.Code == "ADF_TO_HTML_VIA_MARKDOWN");
     }
 
     [Fact]
@@ -55,5 +57,43 @@ public sealed class AdfContractTests {
 
         Assert.True(result.IsValid);
         Assert.Contains(result.Issues, item => item.Code == "ADF_UNKNOWN_NODE");
+    }
+
+    [Fact]
+    public void MarkdownTaskList_UsesValidListItemFallbackAndReportsFidelity() {
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown("- [x] Ready\n- [ ] Pending");
+
+        AdfNode list = Assert.Single(result.Value.Content);
+        Assert.Equal("bulletList", list.Type);
+        Assert.All(list.Content, item => Assert.Equal("listItem", item.Type));
+        Assert.True(result.Value.Validate().IsValid);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "MARKDOWN_TASK_LIST_FALLBACK");
+        Assert.Contains("\\[x\\] Ready", AdfConverter.ToMarkdown(result.Value).Value);
+    }
+
+    [Fact]
+    public void Validation_RejectsTaskItemUnderBulletList() {
+        AdfDocument document = AdfDocument.Parse("{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"bulletList\",\"content\":[{\"type\":\"taskItem\",\"attrs\":{\"state\":\"DONE\"},\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Ready\"}]}]}]}]}");
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, item => item.Code == "ADF_LIST_CHILD");
+        Assert.Contains(result.Issues, item => item.Code == "ADF_TASK_ITEM_PARENT");
+    }
+
+    [Fact]
+    public void LinkProjection_PreservesTitleAndReportsUnsupportedAttributes() {
+        var link = new AdfMark("link")
+            .SetAttribute("href", "https://example.com/details")
+            .SetAttribute("title", "Ready \"now\"")
+            .SetAttribute("collection", "other");
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode("details", new[] { link }) } });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.Contains("[details](https://example.com/details 'Ready \"now\"')", result.Value);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "ADF_LINK_ATTRIBUTES_DROPPED");
     }
 }

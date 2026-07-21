@@ -161,7 +161,16 @@ internal static class AdfToMarkdownConverter {
                 case "code": value = "`" + (node.Text ?? string.Empty).Replace("`", "\\`") + "`"; break;
                 case "link":
                     string? href = mark.GetStringAttribute("href");
-                    value = string.IsNullOrWhiteSpace(href) ? value : "[" + value + "](" + href!.Replace(")", "\\)") + ")";
+                    string? title = mark.GetStringAttribute("title");
+                    if (mark.Attributes.Keys.Any(key => !string.Equals(key, "href", StringComparison.Ordinal) && !string.Equals(key, "title", StringComparison.Ordinal)) || mark.ExtensionData.Count > 0) {
+                        diagnostics.Add(Warning("ADF_LINK_ATTRIBUTES_DROPPED", path, "ADF link attributes other than href and title cannot be represented in Markdown."));
+                    }
+                    if (!string.IsNullOrWhiteSpace(href)) {
+                        string renderedTitle = string.IsNullOrEmpty(title)
+                            ? string.Empty
+                            : " \"" + title!.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                        value = "[" + value + "](" + href!.Replace(")", "\\)") + renderedTitle + ")";
+                    }
                     break;
                 default:
                     diagnostics.Add(Warning("ADF_UNSUPPORTED_MARK", path, "ADF mark '" + mark.Type + "' was flattened."));
