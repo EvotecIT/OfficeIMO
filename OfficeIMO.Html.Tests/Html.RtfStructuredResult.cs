@@ -20,4 +20,18 @@ public class HtmlRtfStructuredResult {
         Assert.Equal(import.Report.Diagnostics.Count, import.RtfDiagnostics.Count);
         Assert.Contains(export.Report.Diagnostics, diagnostic => diagnostic.LossKind == HtmlConversionLossKind.Omission);
     }
+
+    [Fact]
+    public void HtmlRtf_UsesSharedDocumentBaseUriForRelativeHyperlinks() {
+        HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(
+            "<p><a href='docs/start.html'>Guide</a></p>",
+            new HtmlConversionDocumentOptions {
+                BaseUri = new Uri("https://example.test/root/page.html")
+            });
+
+        HtmlToRtfResult import = source.ToRtfDocumentResult();
+
+        RtfRun run = Assert.Single(Assert.Single(import.Value.Paragraphs).Runs);
+        Assert.Equal(new Uri("https://example.test/root/docs/start.html"), run.Hyperlink);
+    }
 }

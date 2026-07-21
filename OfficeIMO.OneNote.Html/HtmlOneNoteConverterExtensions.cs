@@ -109,16 +109,16 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlImportBudget budget) {
         string plainText = HtmlGenericDocumentProjector.GetBlockText(source);
         if (plainText.Length == 0) return null;
-        if (!budget.TryReserveShape(out string shapeLimit)) {
-            Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "Additional HTML blocks were omitted because the shared element limit was reached.",
-                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, shapeLimit);
-            return null;
-        }
         if (!budget.IsMetadataWithinLimit(plainText, out string metadataLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "An HTML text block was omitted because it exceeded the shared field limit.",
                 HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, metadataLimit);
+            return null;
+        }
+        if (!budget.TryReserveShape(out string shapeLimit)) {
+            Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "Additional HTML blocks were omitted because the shared element limit was reached.",
+                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, shapeLimit);
             return null;
         }
 

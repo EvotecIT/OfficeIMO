@@ -14,6 +14,27 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void RejectedOversizedParagraphDoesNotConsumeShapeBudget() {
+        var options = new HtmlToOneNoteOptions {
+            Limits = new HtmlImportLimits {
+                MaxMetadataCharacters = 5,
+                MaxShapes = 1
+            }
+        };
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<p>too long</p><p>valid</p>")
+            .ToOneNoteSectionResult(options);
+
+        OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
+        OneNoteParagraph paragraph = Assert.Single(outline.Children.OfType<OneNoteParagraph>());
+        Assert.Equal("valid", string.Concat(paragraph.Runs.Select(run => run.Text)));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void HtmlImportBuildsTypedPagesRunsListsTablesAndImages() {
         const string html = """
             <section aria-label="Project">

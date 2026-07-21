@@ -10,24 +10,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return ConvertUnknownElementChildrenToBlocks(element, context);
         }
 
-        IElement clone = (IElement)element.Clone(deep: true);
-        ResolveMediaUrlAttribute(clone, "src", context);
-        ResolveMediaUrlAttribute(clone, "poster", context);
-        foreach (IElement child in clone.QuerySelectorAll("source[src], track[src]")) {
-            ResolveMediaUrlAttribute(child, "src", context);
-        }
-        return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(clone, context)) };
-    }
-
-    private static void ResolveMediaUrlAttribute(IElement element, string attributeName, ConversionContext context) {
-        string? value = element.GetAttribute(attributeName);
-        if (string.IsNullOrWhiteSpace(value)) return;
-        string resolved = ResolveResourceUrl(value, context);
-        if (resolved.Length == 0) {
-            element.RemoveAttribute(attributeName);
-        } else {
-            element.SetAttribute(attributeName, resolved);
-        }
+        return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertImageElement(IElement element, ConversionContext context) {

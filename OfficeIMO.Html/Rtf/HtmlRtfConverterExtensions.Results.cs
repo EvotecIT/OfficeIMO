@@ -9,6 +9,7 @@ public static partial class HtmlRtfConverterExtensions {
         HtmlUrlPolicy requestedResourcePolicy = resolved.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
         resolved.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
         resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
+        if (resolved.BaseUri == null) resolved.BaseUri = document.BaseUri;
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
         HtmlNormalizer.SanitizePreparedDocumentStructure(sourceDocument);
         HtmlActiveMediaFilter.Filter(sourceDocument, document.MediaContext);

@@ -1,4 +1,6 @@
 using OfficeIMO.Epub;
+using OfficeIMO.Html;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using System.Linq;
@@ -22,10 +24,7 @@ internal static partial class EpubReaderAdapter {
         var chunks = new List<ReaderChunk>();
         var nonContentWarnings = new List<string>();
         ReaderHtmlOptions htmlOptions = ReaderHtmlOptions.CreateOfficeIMOProfile();
-        if (htmlOptions.HtmlToMarkdownOptions != null) {
-            htmlOptions.HtmlToMarkdownOptions.UrlPolicy.ResolvedUrlTransform = value =>
-                ResolveEpubMarkdownReference(source.Path, chapter, value);
-        }
+        ConfigureEpubMarkdownReferencePolicies(htmlOptions, source.Path, chapter);
         foreach (ReaderChunk htmlChunk in HtmlReaderAdapter.ReadContent(
                      chapter.Html!,
                      virtualPath,
@@ -78,6 +77,30 @@ internal static partial class EpubReaderAdapter {
                 nonContentWarnings));
         }
         return chunks;
+    }
+
+    private static void ConfigureEpubMarkdownReferencePolicies(
+        ReaderHtmlOptions htmlOptions,
+        string sourcePath,
+        EpubChapter chapter) {
+        HtmlToMarkdownOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
+        if (markdownOptions == null) return;
+
+        Func<string, string?> transform = value => ResolveEpubMarkdownReference(sourcePath, chapter, value);
+        markdownOptions.UrlPolicy.ResolvedUrlTransform = transform;
+        HtmlUrlPolicy resourcePolicy = (markdownOptions.ResourceUrlPolicy ?? markdownOptions.UrlPolicy).Clone();
+        resourcePolicy.ResolvedUrlTransform = transform;
+        markdownOptions.ResourceUrlPolicy = resourcePolicy;
+
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        AllowEpubVirtualFileLocations(conversionOptions.UrlPolicy);
+        AllowEpubVirtualFileLocations(conversionOptions.ResourceUrlPolicy);
+        htmlOptions.ConversionOptions = conversionOptions;
+    }
+
+    private static void AllowEpubVirtualFileLocations(HtmlUrlPolicy policy) {
+        policy.DisallowFileUrls = false;
+        if (policy.RestrictUrlSchemes) policy.AllowedUrlSchemes.Add(Uri.UriSchemeFile);
     }
 
     private static bool IsHtmlNoMarkdownWarningChunk(ReaderChunk chunk) {
