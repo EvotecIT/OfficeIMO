@@ -209,7 +209,7 @@ internal static class PdfDiagnostics {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
                 "EncryptionDetected",
-                "Encryption markers were detected. OfficeIMO.Pdf can read Standard password-encrypted PDFs with a valid password and can perform selected authenticated page rewrites on unsigned inputs; other rewrites remain blocked, while security changes require owner authorization."));
+                "Encryption markers were detected. OfficeIMO.Pdf can read Standard password-encrypted PDFs with a valid password and can perform proven authenticated page, metadata, sanitization, and simple form rewrites on unsigned inputs when the required permissions are authorized; security changes require owner authorization."));
         }
 
         if (probe.HasActiveContent) {

@@ -127,7 +127,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksEncryptedMutationEvenWithValidPassword() {
+    public void Plan_ChoosesFullRewriteForAuthorizedEncryptedMutation() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted planner source"))
             .ToBytes();
@@ -135,11 +135,13 @@ public class PdfMutationPlannerTests {
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata, readOptions);
 
-        Assert.False(plan.CanExecute);
+        Assert.True(plan.CanExecute);
         Assert.True(plan.Preflight.CanRead);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("FullRewrite.Encryption", plan.BlockerCodes);
-        Assert.Contains("AppendOnly.Encrypted", plan.BlockerCodes);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.True(plan.FullRewriteAvailable);
+        Assert.False(plan.AppendOnlyAvailable);
+        Assert.Empty(plan.BlockerCodes);
+        Assert.Contains("Output.EncryptionWillBeRemoved", plan.Warnings);
     }
 
     [Fact]

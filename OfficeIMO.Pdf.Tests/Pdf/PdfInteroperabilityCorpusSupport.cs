@@ -77,7 +77,7 @@ internal static class PdfInteroperabilityCorpusSupport {
             new PdfInteroperabilityCorpusCase(
                 "password-encrypted",
                 encrypted,
-                PdfMutationExecutionMode.Blocked,
+                PdfMutationExecutionMode.FullRewrite,
                 new PdfReadOptions { Password = "open" },
                 "encrypted", "standard-security", "password"),
             new PdfInteroperabilityCorpusCase(

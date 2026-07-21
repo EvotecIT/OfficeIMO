@@ -73,6 +73,42 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void HeaderFooterRichText_InheritsConfiguredFontFamily() {
+            string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+            if (fontPath == null) {
+                return;
+            }
+
+            const string familyName = "Rich Header Family";
+            var options = new PdfOptions {
+                CompressContentStreams = false
+            }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header
+                    .FontFamily(familyName)
+                    .Text(text => text
+                        .Run(new TextRun("Header "))
+                        .CurrentPage(new TextRun(string.Empty))))
+                .Footer(footer => footer
+                    .FontFamily(familyName)
+                    .Text(text => text
+                        .Run(new TextRun("Footer "))
+                        .TotalPages(new TextRun(string.Empty))))
+                .Paragraph(paragraph => paragraph.Text("Body"))
+                .ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            foreach (string glyph in new[] { "H", "F", "1" }) {
+                Assert.Contains(
+                    page.Letters,
+                    letter => letter.Value == glyph &&
+                              letter.FontName.Contains("RichHeaderFamily", StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = TextRun.Link("Link", "https://example.com");
             var inline = TextRun.Inline(new PdfInlineBox(12, 8));

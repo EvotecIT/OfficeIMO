@@ -6,16 +6,20 @@ internal static partial class PdfPageEditor {
     /// The moved pages keep their original relative order. Use page count + 1 to move pages to the end.
     /// </summary>
     public static byte[] MovePages(byte[] pdf, int insertBeforePageNumber, params int[] pageNumbers) {
+        return MovePagesWithReadOptions(pdf, insertBeforePageNumber, readOptions: null, pageNumbers);
+    }
+
+    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidateMoveInsertBeforePageNumber(insertBeforePageNumber, document.Pages.Count);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 

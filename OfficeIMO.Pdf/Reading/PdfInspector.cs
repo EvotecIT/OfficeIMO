@@ -120,7 +120,7 @@ internal static class PdfInspector {
         }
 
         if (probe.HasEncryption) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page extraction, merge, page-tree, and page-content rewrites; other rewrites remain blocked, and security changes require owner authorization.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.");
         }
 
         bool canRead = readBlockers.Count == 0;

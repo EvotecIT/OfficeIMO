@@ -23,14 +23,19 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfRewritePreservationReport AssessRewritePreservation(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
-        return AssessRewritePreservation(rewrittenDocument.GetBytesForOperation(), options);
+        return PdfRewritePreservation.Assess(
+            GetBytesForOperation(),
+            rewrittenDocument.GetBytesForOperation(),
+            options,
+            ReadOptions,
+            rewrittenDocument.ReadOptions);
     }
 
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and reports whether important document signals were preserved.
     /// </summary>
     public PdfRewritePreservationReport AssessRewritePreservation(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
-        return PdfRewritePreservation.Assess(GetBytesForOperation(), rewrittenPdf, options);
+        return PdfRewritePreservation.Assess(GetBytesForOperation(), rewrittenPdf, options, ReadOptions, rewrittenReadOptions: null);
     }
 
     /// <summary>
@@ -53,14 +58,19 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfRewritePreservationReport AssertRewritePreserved(PdfDocument rewrittenDocument, PdfRewritePreservationOptions? options = null) {
         Guard.NotNull(rewrittenDocument, nameof(rewrittenDocument));
-        return AssertRewritePreserved(rewrittenDocument.GetBytesForOperation(), options);
+        return PdfRewritePreservation.AssertPreserved(
+            GetBytesForOperation(),
+            rewrittenDocument.GetBytesForOperation(),
+            options,
+            ReadOptions,
+            rewrittenDocument.ReadOptions);
     }
 
     /// <summary>
     /// Compares this PDF with rewritten PDF bytes and throws when important document signals were not preserved.
     /// </summary>
     public PdfRewritePreservationReport AssertRewritePreserved(byte[] rewrittenPdf, PdfRewritePreservationOptions? options = null) {
-        return PdfRewritePreservation.AssertPreserved(GetBytesForOperation(), rewrittenPdf, options);
+        return PdfRewritePreservation.AssertPreserved(GetBytesForOperation(), rewrittenPdf, options, ReadOptions, rewrittenReadOptions: null);
     }
 
     /// <summary>

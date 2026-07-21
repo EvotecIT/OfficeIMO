@@ -194,8 +194,143 @@ public class PdfPermissionPolicyTests {
         Assert.DoesNotContain(PdfMutationPermissionCheck.ModifyDocument, allowedPlan.PermissionChecks);
     }
 
+    [Fact]
+    public void TryMergeWithUsesExplicitReadOptionsForEncryptedTargetAcrossOverloads() {
+        byte[] target = CreateRestrictedPdf("merge-open", "merge-owner", "Encrypted target");
+        byte[] incoming = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Incoming page"))
+            .ToBytes();
+        var options = new PdfReadOptions {
+            Password = "merge-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        string path = Path.Combine(Path.GetTempPath(), $"officeimo-merge-{Guid.NewGuid():N}.pdf");
+
+        try {
+            File.WriteAllBytes(path, incoming);
+            using var stream = new MemoryStream(incoming, writable: false);
+            PdfOperationResult<PdfDocument>[] results = {
+                PdfDocument.Open(target).TryMergeWith(PdfDocument.Open(incoming), options),
+                PdfDocument.Open(target).TryMergeWith(incoming, options),
+                PdfDocument.Open(target).TryMergeWith(path, options),
+                PdfDocument.Open(target).TryMergeWith(stream, options)
+            };
+
+            Assert.All(results, result => {
+                Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+                Assert.Equal(2, result.RequireValue().Inspect().PageCount);
+                string text = result.RequireValue().Read.Text();
+                Assert.Contains("Encrypted target", text, StringComparison.Ordinal);
+                Assert.Contains("Incoming page", text, StringComparison.Ordinal);
+            });
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AuthenticatedFluentPageMutationsPreserveStoredReadOptions() {
+        byte[] source = CreateRestrictedThreePagePdf("pages-open", "pages-owner");
+        var options = new PdfReadOptions {
+            Password = "pages-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+
+        PdfDocument deleted = PdfDocument.Open(source, options).Pages.Delete(3);
+        PdfDocument moved = PdfDocument.Open(source, options).Pages.Move(1, 3);
+        PdfDocument rotated = PdfDocument.Open(source, options).Pages.Rotate(90, 1);
+        PdfDocument boxed = PdfDocument.Open(source, options).Pages.SetCropBox(10, 10, 300, 500, 1);
+
+        Assert.Equal(2, deleted.Inspect().PageCount);
+        Assert.Equal(3, moved.Inspect().PageCount);
+        Assert.StartsWith("Page three", moved.Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(90, rotated.Inspect().Pages[0].RotationDegrees);
+        Assert.Equal(290D, boxed.Inspect().Pages[0].CropBox!.Width, 3);
+
+        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Open(source).Pages.TryRotate(180, PdfPageSelection.From(2), options);
+        Assert.True(explicitOptions.Succeeded, string.Join(Environment.NewLine, explicitOptions.Diagnostics));
+        Assert.Equal(180, explicitOptions.RequireValue().Inspect().Pages[1].RotationDegrees);
+    }
+
+    [Fact]
+    public void AuthenticatedFluentFormMutationsPreserveStoredReadOptions() {
+        byte[] source = CreateRestrictedFormPdf("forms-open", "forms-owner", "Before");
+        var options = new PdfReadOptions {
+            Password = "forms-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        var ownerOptions = new PdfReadOptions { Password = "forms-owner" };
+        var values = new Dictionary<string, string> { ["Name"] = "After" };
+        var data = new PdfFormDataSet(new[] { new PdfFormDataField("Name", new[] { "Imported" }) });
+
+        PdfDocument filled = PdfDocument.Open(source, options).Forms.Fill(values);
+        PdfDocument appended = PdfDocument.Open(source, ownerOptions).Forms.AppendRevision(values);
+        PdfDocument flattened = PdfDocument.Open(source, options).Forms.Flatten();
+        PdfDocument filledAndFlattened = PdfDocument.Open(source, options).Forms.FillAndFlatten(values);
+        PdfDocument imported = PdfDocument.Open(source, options).Forms.ImportXfdf(data.ToXfdf());
+
+        Assert.Equal("After", Assert.Single(filled.Inspect().FormFields).Value);
+        Assert.Equal("After", Assert.Single(appended.Inspect().FormFields).Value);
+        Assert.False(flattened.Inspect().HasForms);
+        Assert.False(filledAndFlattened.Inspect().HasForms);
+        Assert.Equal("Imported", Assert.Single(imported.Inspect().FormFields).Value);
+
+        PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Open(source).Forms.TryFlatten(options);
+        Assert.True(explicitOptions.Succeeded, string.Join(Environment.NewLine, explicitOptions.Diagnostics));
+        Assert.False(explicitOptions.RequireValue().Inspect().HasForms);
+    }
+
+    [Fact]
+    public void AuthenticatedSanitizationMetadataAndRewriteProofUseDocumentReadOptions() {
+        byte[] source = CreateRestrictedPdf("owner-open", "owner-password", "Protected content");
+        var options = new PdfReadOptions {
+            Password = "owner-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+
+        PdfSanitizationResult sanitized = PdfDocument.Open(source, options).Sanitize();
+        PdfDocument updated = PdfDocument.Open(source, options).UpdateMetadata(title: "Authenticated title");
+        Assert.True(sanitized.IsSanitized);
+        Assert.Equal("Authenticated title", updated.Read.Metadata().Title);
+
+        byte[] rewrittenBytes = CreateRestrictedPdf("rewrite-open", "rewrite-owner", "Protected content");
+        var rewrittenOptions = new PdfReadOptions {
+            Password = "rewrite-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfRewritePreservationReport report = PdfDocument.Open(source, options).AssessRewritePreservation(
+            PdfDocument.Open(rewrittenBytes, rewrittenOptions));
+
+        Assert.True(report.Original.Security.HasEncryption);
+        Assert.True(report.Rewritten.Security.HasEncryption);
+    }
+
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) =>
         CreateEncryptedPdf(userPassword, ownerPassword, PdfStandardPermissions.None, text);
+
+    private static byte[] CreateRestrictedThreePagePdf(string userPassword, string ownerPassword) {
+        var encryption = new PdfStandardEncryptionOptions(userPassword) {
+            OwnerPassword = ownerPassword,
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page three"))
+            .ToBytes();
+    }
+
+    private static byte[] CreateRestrictedFormPdf(string userPassword, string ownerPassword, string value) {
+        var encryption = new PdfStandardEncryptionOptions(userPassword) {
+            OwnerPassword = ownerPassword,
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .TextField("Name", width: 180, height: 24, value: value)
+            .ToBytes();
+    }
 
     private static byte[] CreateEncryptedPdf(
         string userPassword,

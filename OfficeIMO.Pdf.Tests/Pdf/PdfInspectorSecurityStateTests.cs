@@ -15,7 +15,7 @@ public partial class PdfInspectorTests {
         Assert.Null(report.DocumentInfo);
         Assert.True(report.HasSecurityDiagnostics);
         AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary is missing /O.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page extraction, merge, page-tree, and page-content rewrites; other rewrites remain blocked, and security changes require owner authorization.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.");
 
         PdfDocumentSecurityInfo security = report.Probe.Security;
         Assert.True(security.HasEncryption);

@@ -125,6 +125,8 @@ internal static class PdfMutationPlanner {
             mode = fullRewriteAvailable ? PdfMutationExecutionMode.FullRewrite : PdfMutationExecutionMode.Blocked;
         } else if (executionPreference == PdfMutationExecutionPreference.RequireAppendOnly || RequiresAppendOnlyByDefinition(operation)) {
             mode = appendOnlyAvailable ? PdfMutationExecutionMode.AppendOnly : PdfMutationExecutionMode.Blocked;
+        } else if (security.HasEncryption && appendOnlyAvailable) {
+            mode = PdfMutationExecutionMode.AppendOnly;
         } else if (fullRewriteAvailable) {
             mode = PdfMutationExecutionMode.FullRewrite;
         } else if (appendOnlyAvailable) {
@@ -149,7 +151,7 @@ internal static class PdfMutationPlanner {
             permissions,
             proofs,
             blockers);
-        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, mode, security);
+        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, operation, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
 
         return new PdfMutationPlan(
@@ -171,6 +173,8 @@ internal static class PdfMutationPlanner {
 
     private static bool CanFullRewrite(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
         switch (operation) {
+            case PdfMutationOperation.UpdateMetadata:
+                return CanRewriteAllowingAuthorizedEncryption(preflight, operation);
             case PdfMutationOperation.SynchronizeMetadata:
                 return CanSynchronizeMetadata(preflight);
             case PdfMutationOperation.Sanitize:
@@ -472,6 +476,11 @@ internal static class PdfMutationPlanner {
             }
         } else {
             for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+                if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Encryption &&
+                    CanUseAuthenticatedEncryptedRewrite(preflight, operation)) {
+                    continue;
+                }
+
                 if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, operation)) {
                     Add(blockers, "FullRewrite." + preflight.RewriteBlockers[i].Kind);
                 }
@@ -521,6 +530,7 @@ internal static class PdfMutationPlanner {
     private static IReadOnlyList<string> GetWarnings(
         PdfDocumentPreflight preflight,
         PdfAppendOnlyMutationReport appendOnly,
+        PdfMutationOperation operation,
         PdfMutationExecutionMode mode,
         PdfDocumentSecurityInfo security) {
         var warnings = new List<string>();
@@ -540,6 +550,12 @@ internal static class PdfMutationPlanner {
 
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
             Add(warnings, "Input.RevisionHistoryWillBeNormalized");
+        }
+
+        if (mode == PdfMutationExecutionMode.FullRewrite &&
+            security.HasEncryption &&
+            operation != PdfMutationOperation.ChangeEncryption) {
+            Add(warnings, "Output.EncryptionWillBeRemoved");
         }
 
         if (mode != PdfMutationExecutionMode.Blocked && preflight.PermissionRestrictionsIgnored) {
@@ -729,7 +745,13 @@ internal static class PdfMutationPlanner {
         if (operation != PdfMutationOperation.MergeDocuments &&
             operation != PdfMutationOperation.ExtractPages &&
             operation != PdfMutationOperation.ModifyPageContent &&
-            operation != PdfMutationOperation.ModifyPageTree) {
+            operation != PdfMutationOperation.ModifyPageTree &&
+            operation != PdfMutationOperation.UpdateMetadata &&
+            operation != PdfMutationOperation.SynchronizeMetadata &&
+            operation != PdfMutationOperation.Sanitize &&
+            operation != PdfMutationOperation.FillFormFields &&
+            operation != PdfMutationOperation.FlattenFormFields &&
+            operation != PdfMutationOperation.FillAndFlattenFormFields) {
             return false;
         }
 
@@ -759,7 +781,13 @@ internal static class PdfMutationPlanner {
         }
 
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
-            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.SynchronizeMetadata)) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (blocker == PdfRewriteBlockerKind.Encryption &&
+                CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.SynchronizeMetadata)) {
+                continue;
+            }
+
+            if (IsFullRewriteBlockerForOperation(blocker, PdfMutationOperation.SynchronizeMetadata)) {
                 return false;
             }
         }
@@ -792,6 +820,12 @@ internal static class PdfMutationPlanner {
             return blocker != PdfRewriteBlockerKind.Forms;
         }
 
+        if (operation == PdfMutationOperation.FillFormFields ||
+            operation == PdfMutationOperation.FlattenFormFields ||
+            operation == PdfMutationOperation.FillAndFlattenFormFields) {
+            return blocker != PdfRewriteBlockerKind.Forms;
+        }
+
         return true;
     }
 
@@ -801,7 +835,13 @@ internal static class PdfMutationPlanner {
         }
 
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
-            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.Sanitize)) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (blocker == PdfRewriteBlockerKind.Encryption &&
+                CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Sanitize)) {
+                continue;
+            }
+
+            if (IsFullRewriteBlockerForOperation(blocker, PdfMutationOperation.Sanitize)) {
                 return false;
             }
         }

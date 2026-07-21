@@ -5,16 +5,20 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with the specified one-based pages removed.
     /// </summary>
     public static byte[] DeletePages(byte[] pdf, params int[] pageNumbers) {
+        return DeletePagesWithReadOptions(pdf, readOptions: null, pageNumbers);
+    }
+
+    internal static byte[] DeletePagesWithReadOptions(byte[] pdf, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
         var deleted = new HashSet<int>(pageNumbers);

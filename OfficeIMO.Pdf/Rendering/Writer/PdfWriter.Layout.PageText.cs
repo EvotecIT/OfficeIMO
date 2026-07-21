@@ -323,7 +323,7 @@ internal static partial class PdfWriter {
             };
 
             if (segment.StyledRun != null) {
-                runs.Add(CreateStyledTextRun(text, segment.StyledRun, segment.StyledRun.Font));
+                runs.Add(CreateStyledTextRun(text, segment.StyledRun, segment.StyledRun.Font, fontFamily));
             } else {
                 runs.Add(new TextRun(
                     text,
