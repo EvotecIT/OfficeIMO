@@ -128,6 +128,15 @@ public class RtfHtmlObjectsAndShapesTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_SourcePolicyDiagnosticsDoNotReintroduceExecutableContent() {
+        const string html = "<p onclick='alert(1)'>Visible<script>Hidden script</script></p>";
+
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+
+        Assert.Equal("Visible", Assert.Single(document.Paragraphs).ToPlainText());
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Applies_Active_Node_Limit_To_Encoded_Object_Content() {
         string nestedHtml = "<p>" + string.Concat(Enumerable.Repeat("<span>x</span>", 16)) + "</p>";
         string encodedObjectResult = Convert.ToBase64String(Encoding.UTF8.GetBytes(nestedHtml));

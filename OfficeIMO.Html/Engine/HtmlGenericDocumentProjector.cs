@@ -19,13 +19,14 @@ internal static class HtmlGenericDocumentProjector {
         if (body == null) return Array.Empty<HtmlGenericSectionProjection>();
 
         var result = new List<HtmlGenericSectionProjection>();
-        if (body.Children.Any(IsExplicitGroupingElement)) {
+        IReadOnlyList<IElement> bodyBlocks = GetChildBlocks(body);
+        if (bodyBlocks.Any(IsExplicitGroupingElement)) {
             AppendGroupedSections(document, body, result);
             EnsureAtLeastOneSection(document, result);
             return result;
         }
 
-        AppendImplicitSections(document, body.Children.Where(child => !IgnoredElements.Contains(child.LocalName)), result);
+        AppendImplicitSections(document, bodyBlocks, result);
         EnsureAtLeastOneSection(document, result);
         return result;
     }
@@ -41,14 +42,14 @@ internal static class HtmlGenericDocumentProjector {
         IElement container,
         List<HtmlGenericSectionProjection> result) {
         var pending = new List<IElement>();
-        foreach (IElement child in container.Children) {
+        foreach (IElement child in GetChildBlocks(container)) {
             if (IgnoredElements.Contains(child.LocalName)) continue;
             if (Is(child, "section") || Is(child, "article")) {
                 AppendImplicitSections(document, pending, result);
                 pending.Clear();
                 result.Add(new HtmlGenericSectionProjection(
                     GetSectionTitle(document, child, result.Count + 1),
-                    child.Children.Where(element => !IgnoredElements.Contains(element.LocalName)).ToList()));
+                    GetChildBlocks(child)));
                 continue;
             }
 
@@ -166,9 +167,35 @@ internal static class HtmlGenericDocumentProjector {
             yield return element;
             yield break;
         }
-        foreach (IElement child in element.Children) {
+        foreach (IElement child in GetChildBlocks(element)) {
             foreach (IElement candidate in EnumerateBlocks(child)) yield return candidate;
         }
+    }
+
+    private static IReadOnlyList<IElement> GetChildBlocks(IElement container) {
+        var result = new List<IElement>();
+        var text = new System.Text.StringBuilder();
+        foreach (INode node in container.ChildNodes) {
+            if (node is IText textNode) {
+                text.Append(textNode.Data);
+                continue;
+            }
+
+            if (node is not IElement element || IgnoredElements.Contains(element.LocalName)) continue;
+            FlushTextBlock(container, text, result);
+            result.Add(element);
+        }
+        FlushTextBlock(container, text, result);
+        return result;
+    }
+
+    private static void FlushTextBlock(IElement container, System.Text.StringBuilder text, List<IElement> result) {
+        string value = Normalize(text.ToString());
+        text.Clear();
+        if (value.Length == 0) return;
+        IElement paragraph = container.Owner!.CreateElement("p");
+        paragraph.TextContent = value;
+        result.Add(paragraph);
     }
 
     private static string GetSectionTitle(IHtmlDocument document, IElement section, int index) {

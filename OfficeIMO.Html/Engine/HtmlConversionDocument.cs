@@ -110,6 +110,15 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>Shared limits snapshot used by target adapters and renderers.</summary>
     internal HtmlConversionLimits Limits => _options.Limits.Clone();
 
+    /// <summary>Default media context selected by the shared conversion profile.</summary>
+    internal HtmlCssMediaContext MediaContext => _mediaContext;
+
+    /// <summary>Hyperlink policy snapshot supplied at the shared input boundary.</summary>
+    internal HtmlUrlPolicy HyperlinkUrlPolicy => _options.UrlPolicy.Clone();
+
+    /// <summary>Resource policy snapshot supplied at the shared input boundary.</summary>
+    internal HtmlUrlPolicy ResourceUrlPolicy => _options.ResourceUrlPolicy.Clone();
+
     /// <summary>Profile contract advertised to target adapters and galleries.</summary>
     public HtmlConversionProfileContract ProfileContract { get; }
 

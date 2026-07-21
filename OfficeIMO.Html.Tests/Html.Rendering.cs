@@ -112,6 +112,60 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
+        const string firstCss = ".first { color:red; }";
+        const string secondCss = ".second { color:blue; }";
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 24;
+        limits.MaxTotalCssBytes = 30;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/first.css'>" +
+            "<link rel='stylesheet' href='https://assets.example.test/second.css'>" +
+            "<p class='first'>First</p><p class='second'>Second</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(request.Uri.AbsolutePath.Contains("first", StringComparison.Ordinal) ? firstCss : secondCss),
+                    "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssTotalSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/second.css");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_EnforcesPerSheetCssByteLimitOnResolvedImports() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 24;
+        limits.MaxTotalCssBytes = 64;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/top.css'><p class='base'>Base</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(
+                        request.Uri.AbsolutePath.Contains("top", StringComparison.Ordinal)
+                            ? "@import 'base.css';"
+                            : ".base { color:rgb(1,2,3); padding:1px; }"),
+                    "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "base.css");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Base", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(1, 2, 3));
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_SuppressesStylesheetImportCycles() {
         var stylesheets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
             ["https://assets.example.test/css/top.css"] = "@import 'base.css'; .cycle-top { color:#123456; }",

@@ -41,7 +41,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static void AppendInlineElement(InlineSequence sequence, IElement element, ConversionContext? context) {
         if (IsPassThroughTag(element, context)) {
-            sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
+            sequence.AddRaw(new HtmlRawInline(NormalizeRawElement(element, context)));
             return;
         }
 
@@ -160,7 +160,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                     return string.Empty;
                 }
                 if (IsPassThroughTag(element, context)) {
-                    return element.OuterHtml;
+                    return NormalizeRawElement(element, context);
                 }
                 return ConvertInlineElementToMarkdown(element, context);
             default:
@@ -237,14 +237,14 @@ internal sealed partial class HtmlToMarkdownConverter {
         string? type = element.GetAttribute("type");
         if (string.Equals(type, "checkbox", StringComparison.OrdinalIgnoreCase)) {
             if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-                return element.OuterHtml;
+                return NormalizeRawElement(element, context);
             }
 
             return element.HasAttribute("checked") ? "[x]" : "[ ]";
         }
 
         if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-            return element.OuterHtml;
+            return NormalizeRawElement(element, context);
         }
 
         return string.Empty;
@@ -393,7 +393,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         string src = context == null
             ? element.GetAttribute("src") ?? string.Empty
-            : ResolveUrl(element.GetAttribute("src"), context);
+            : ResolveResourceUrl(element.GetAttribute("src"), context);
         string? alt = GetAccessibleImageName(element);
         return (src, alt, element.GetAttribute("title"), alt);
     }
@@ -510,7 +510,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         string? type = element.GetAttribute("type");
         if (string.Equals(type, "checkbox", StringComparison.OrdinalIgnoreCase)) {
             if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-                sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
+                sequence.AddRaw(new HtmlRawInline(NormalizeRawElement(element, context)));
                 return;
             }
 
@@ -519,7 +519,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-            sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
+            sequence.AddRaw(new HtmlRawInline(NormalizeRawElement(element, context)));
         }
     }
 

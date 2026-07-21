@@ -23,7 +23,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             PptCore.PowerPointSlide slide = presentation.AddSlide();
             result.Slides++;
             double contentTop = 30D;
-            if (!string.IsNullOrWhiteSpace(section.Title) && budget.TryReserveShape(out _)) {
+            if (!string.IsNullOrWhiteSpace(section.Title)) {
                 contentTop = ImportTextBox(section.Blocks.FirstOrDefault() ?? document.Body!, section.Title, slide, 30D, result, budget, 44D);
             }
 
@@ -37,16 +37,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importTable = options.ImportTables && HtmlGenericDocumentProjector.IsTable(block);
                 bool importPicture = options.ImportPictures && HtmlGenericDocumentProjector.IsImage(block);
                 if (!importText && !importTable && !importPicture) continue;
-                if (!budget.TryReserveShape(out string shapeLimit)) {
+                if (importText) {
+                    string text = HtmlGenericDocumentProjector.GetBlockText(block);
+                    contentTop = ImportTextBox(block, text, slide, contentTop, result, budget, 52D);
+                } else if (!budget.TryReserveShape(out string shapeLimit)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "Additional HTML blocks were omitted because the shared shape limit was reached.",
                         lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
                     break;
-                }
-
-                if (importText) {
-                    string text = HtmlGenericDocumentProjector.GetBlockText(block);
-                    contentTop = ImportTextBox(block, text, slide, contentTop, result, budget, 52D);
                 } else if (importTable) {
                     contentTop = ImportTable(block, slide, contentTop, result, budget);
                 } else if (importPicture) {

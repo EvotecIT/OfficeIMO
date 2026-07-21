@@ -905,6 +905,21 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_SanitizesPreservedRawBlocksAfterPolicyDecisions() {
+        const string html = "<custom-widget onclick='alert(1)'><script>alert(2)</script><a href='javascript:alert(3)'>Safe text</a></custom-widget>";
+
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Contains("<custom-widget", markdown, StringComparison.Ordinal);
+        Assert.Contains("Safe text", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("onclick", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("alert(2)", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesUnsupportedInlineHtml_WhenRequested() {
         string html = "<p>Hello <custom-inline data-name=\"demo\">world</custom-inline></p>";
 

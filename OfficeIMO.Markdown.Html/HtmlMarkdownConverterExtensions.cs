@@ -38,12 +38,15 @@ public static class HtmlMarkdownConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
         operation.BaseUri ??= document.FallbackBaseUri;
+        HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        HtmlUrlPolicy requestedResourcePolicy = operation.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
+        operation.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
+        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
         var converter = new HtmlToMarkdownConverter();
-        AngleSharp.Html.Dom.IHtmlDocument sourceDocument;
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
-            sourceDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Print);
+            HtmlActiveMediaFilter.Filter(sourceDocument, HtmlCssMediaContext.Print);
         } else {
-            sourceDocument = document.CreatePolicyNormalizedDocumentForConversion();
             HtmlActiveMediaFilter.FilterUnsupportedPictureSources(sourceDocument);
         }
         MarkdownDoc value = converter.ConvertToDocument(

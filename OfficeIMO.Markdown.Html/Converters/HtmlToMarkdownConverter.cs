@@ -222,6 +222,34 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlUrlPolicyEvaluator.ResolveUrl(candidate, context.Options.BaseUri, context.Options.UrlPolicy);
     }
 
+    private static string ResolveResourceUrl(string? rawUrl, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(rawUrl)) return string.Empty;
+        string candidate = rawUrl!.Trim();
+        return HtmlUrlPolicyEvaluator.ResolveUrl(
+            candidate,
+            context.Options.BaseUri,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+    }
+
+    private static string NormalizeRawElement(IElement element, ConversionContext? context) {
+        HtmlToMarkdownOptions options = context?.Options ?? new HtmlToMarkdownOptions();
+        return HtmlNormalizer.NormalizePreparedElement(
+            element,
+            new HtmlNormalizationOptions {
+                BaseUri = options.BaseUri,
+                BaseElementBaseUri = options.BaseUri,
+                UrlPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateHyperlinkProfile(),
+                ResourceUrlPolicy = options.ResourceUrlPolicy ?? options.UrlPolicy,
+                Limits = HtmlConversionLimits.CreateTrustedProfile(),
+                UseBodyContentsOnly = false,
+                PreserveComments = true,
+                PreserveSkippedElementMarkers = true,
+                PreserveStyleElements = true,
+                RemoveEventHandlerAttributes = true,
+                CollapseTextWhitespace = false
+            });
+    }
+
     private static string NormalizeBlockText(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
             return string.Empty;

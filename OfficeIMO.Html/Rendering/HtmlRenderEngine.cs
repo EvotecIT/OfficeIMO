@@ -86,7 +86,7 @@ public static class HtmlRenderEngine {
             diagnostics,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         fonts.AddRange(resolved.Fonts);
@@ -169,7 +169,7 @@ public static class HtmlRenderEngine {
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         fonts.AddRange(resolved.Fonts);

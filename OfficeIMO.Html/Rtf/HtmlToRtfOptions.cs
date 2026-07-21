@@ -29,8 +29,11 @@ public sealed partial class HtmlToRtfOptions {
     /// <summary>Base URI used to resolve relative hyperlinks and image sources.</summary>
     public Uri? BaseUri { get; set; }
 
-    /// <summary>URL policy used before hyperlinks and image references are materialized into RTF content.</summary>
+    /// <summary>URL policy used before hyperlinks are materialized into RTF content.</summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+    /// <summary>Optional separate policy for image sources. When omitted, <see cref="UrlPolicy"/> is used.</summary>
+    public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
 
     /// <summary>Preserves unknown element names as bracketed text markers instead of treating them as transparent containers.</summary>
     public bool PreserveUnknownTagsAsText { get; set; }
@@ -65,9 +68,12 @@ public sealed partial class HtmlToRtfOptions {
     public HtmlToRtfOptions Clone() => new HtmlToRtfOptions {
         BaseUri = BaseUri,
         UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+        ResourceUrlPolicy = ResourceUrlPolicy?.Clone(),
         PreserveUnknownTagsAsText = PreserveUnknownTagsAsText,
         IgnoreInsignificantWhitespace = IgnoreInsignificantWhitespace,
         MaxHtmlNodes = MaxHtmlNodes,
         MaxHtmlDepth = MaxHtmlDepth
     };
+
+    internal HtmlUrlPolicy GetResourceUrlPolicy() => ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 }

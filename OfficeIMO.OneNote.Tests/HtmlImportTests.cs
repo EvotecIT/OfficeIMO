@@ -5,6 +5,15 @@ namespace OfficeIMO.OneNote.Tests;
 
 public sealed class HtmlImportTests {
     [Fact]
+    public void GenericHtml_PreservesTextInsideOrdinaryContainers() {
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<div>Hello from a generic container</div>")
+            .ToOneNoteSectionResult();
+
+        OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children.OfType<OneNoteParagraph>());
+        Assert.Equal("Hello from a generic container", string.Concat(paragraph.Runs.Select(run => run.Text)));
+    }
+
+    [Fact]
     public void HtmlImportBuildsTypedPagesRunsListsTablesAndImages() {
         const string html = """
             <section aria-label="Project">

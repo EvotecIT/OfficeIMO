@@ -94,9 +94,15 @@ public sealed class HtmlToMarkdownOptions {
     public bool EscapeMarkdownLineStarts { get; set; }
 
     /// <summary>
-    /// Shared URL policy applied before link and image URLs are materialized into the Markdown model.
+    /// Shared URL policy applied before hyperlink URLs are materialized into the Markdown model.
     /// </summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+    /// <summary>
+    /// Optional separate policy for image and media sources. When omitted, <see cref="UrlPolicy"/>
+    /// is used so existing callers retain their single-policy behavior.
+    /// </summary>
+    public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
 
     /// <summary>
     /// Controls how base64 data-URI images are represented in the converted image model.
@@ -259,6 +265,7 @@ public sealed class HtmlToMarkdownOptions {
             UnknownInlineHandling = UnknownInlineHandling,
             EscapeMarkdownLineStarts = EscapeMarkdownLineStarts,
             UrlPolicy = UrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            ResourceUrlPolicy = ResourceUrlPolicy?.Clone(),
             Base64Images = Base64Images,
             Base64ImageOutputDirectory = Base64ImageOutputDirectory,
             Base64ImageFileNameGenerator = Base64ImageFileNameGenerator,

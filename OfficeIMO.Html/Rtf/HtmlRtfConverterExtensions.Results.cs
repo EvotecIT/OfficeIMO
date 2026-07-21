@@ -5,7 +5,14 @@ public static partial class HtmlRtfConverterExtensions {
     public static HtmlToRtfResult ToRtfDocumentResult(this HtmlConversionDocument document, HtmlToRtfOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlToRtfOptions resolved = (options ?? new HtmlToRtfOptions()).Clone();
-        RtfDocument rtfDocument = RtfHtmlReader.Read(document.CreateDocumentForConversion(), resolved);
+        HtmlUrlPolicy requestedHyperlinkPolicy = resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        HtmlUrlPolicy requestedResourcePolicy = resolved.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
+        resolved.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
+        resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
+        HtmlNormalizer.SanitizePreparedDocumentStructure(sourceDocument);
+        HtmlActiveMediaFilter.Filter(sourceDocument, document.MediaContext);
+        RtfDocument rtfDocument = RtfHtmlReader.Read(sourceDocument, resolved);
         return new HtmlToRtfResult(
             rtfDocument,
             document.Diagnostics.Concat(document.ResourceManifest.Diagnostics).Concat(resolved.HtmlDiagnostics),

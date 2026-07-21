@@ -19,7 +19,7 @@ internal static class HtmlConversionInputGuard {
 
     internal static void ValidateDocument(IDocument document, HtmlConversionLimits limits) {
         HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
-        long totalCssBytes = 0L;
+        var cssBudget = new HtmlCssByteBudget(limits);
 
         var pending = new Stack<(INode Node, int Depth, int SrcDocDepth)>();
         for (int index = document.ChildNodes.Length - 1; index >= 0; index--) {
@@ -32,7 +32,7 @@ internal static class HtmlConversionInputGuard {
                 tracker?.RecordElementStart(depth);
                 ValidateSemanticAttributes(element, limits.MaxSemanticMetadataCharacters);
                 if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
-                    ValidateStylesheet(element.TextContent ?? string.Empty, limits, ref totalCssBytes);
+                    cssBudget.ReserveOrThrow(element.TextContent ?? string.Empty);
                 }
                 if (srcDocDepth < MaxSrcDocDepth) {
                     PushSrcDoc(element, depth, srcDocDepth, limits, pending);
@@ -79,27 +79,4 @@ internal static class HtmlConversionInputGuard {
         }
     }
 
-    private static void ValidateStylesheet(string css, HtmlConversionLimits limits, ref long totalBytes) {
-        if (!limits.MaxCssBytes.HasValue && !limits.MaxTotalCssBytes.HasValue) return;
-        long bytes = Encoding.UTF8.GetByteCount(css);
-        if (limits.MaxCssBytes.HasValue && bytes > limits.MaxCssBytes.Value) {
-            throw CreateCssLimitException(
-                HtmlConversionDiagnosticCodes.CssSizeLimitExceeded,
-                nameof(HtmlConversionLimits.MaxCssBytes),
-                bytes,
-                limits.MaxCssBytes.Value);
-        }
-
-        totalBytes += bytes;
-        if (limits.MaxTotalCssBytes.HasValue && totalBytes > limits.MaxTotalCssBytes.Value) {
-            throw CreateCssLimitException(
-                HtmlConversionDiagnosticCodes.CssTotalSizeLimitExceeded,
-                nameof(HtmlConversionLimits.MaxTotalCssBytes),
-                totalBytes,
-                limits.MaxTotalCssBytes.Value);
-        }
-    }
-
-    private static HtmlDomLimitException CreateCssLimitException(string code, string source, long actual, long limit) =>
-        new HtmlDomLimitException(code, "Embedded CSS exceeded the configured conversion limit.", source, actual, limit);
 }

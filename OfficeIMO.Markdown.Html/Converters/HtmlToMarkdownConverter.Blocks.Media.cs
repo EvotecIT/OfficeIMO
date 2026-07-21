@@ -16,13 +16,13 @@ internal sealed partial class HtmlToMarkdownConverter {
         foreach (IElement child in clone.QuerySelectorAll("source[src], track[src]")) {
             ResolveMediaUrlAttribute(child, "src", context);
         }
-        return new IMarkdownBlock[] { new HtmlRawBlock(clone.OuterHtml) };
+        return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(clone, context)) };
     }
 
     private static void ResolveMediaUrlAttribute(IElement element, string attributeName, ConversionContext context) {
         string? value = element.GetAttribute(attributeName);
         if (string.IsNullOrWhiteSpace(value)) return;
-        string resolved = ResolveUrl(value, context);
+        string resolved = ResolveResourceUrl(value, context);
         if (resolved.Length == 0) {
             element.RemoveAttribute(attributeName);
         } else {
@@ -70,7 +70,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             }
 
             return context.Options.PreserveUnsupportedBlocks
-                ? new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) }
+                ? new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) }
                 : Array.Empty<IMarkdownBlock>();
         }
 
@@ -468,7 +468,10 @@ internal sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, context.Options.BaseUri, context.Options.UrlPolicy));
+        return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(
+            source,
+            context.Options.BaseUri,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy));
     }
 
     private static bool IsBlockedBase64ImageSource(string? source, ConversionContext context) {

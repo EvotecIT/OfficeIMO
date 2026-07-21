@@ -183,7 +183,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
         if (IsPassThroughTag(element, context)) {
-            return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+            return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
         }
 
         if (TryConvertVisualContractElement(element, context, out var visualBlock)) {
@@ -257,7 +257,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 }
 
                 if (context.Options.PreserveUnsupportedBlocks) {
-                    return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+                    return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
                 }
 
                 var anchorInline = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));

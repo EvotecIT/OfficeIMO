@@ -10,7 +10,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,
             context.Options.BaseUri,
-            context.Options.UrlPolicy,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
             allowParentPictureFallback: true);
     }
 
@@ -18,7 +18,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSourceCandidates(
             element,
             context.Options.BaseUri,
-            context.Options.UrlPolicy,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
             allowParentPictureFallback: true);
     }
 
@@ -26,7 +26,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,
             context.Options.BaseUri,
-            context.Options.UrlPolicy,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
             allowParentPictureFallback: false);
     }
 
@@ -65,7 +65,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             IReadOnlyList<HtmlSrcSetCandidate> srcSetCandidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
                 element.GetAttribute(attributeNames[i]),
                 context.Options.BaseUri,
-                context.Options.UrlPolicy);
+                context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
 
             for (int candidateIndex = 0; candidateIndex < srcSetCandidates.Count; candidateIndex++) {
                 AddResolvedCandidate(candidates, srcSetCandidates[candidateIndex].Url);
@@ -82,23 +82,23 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolveUrlFromSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.UrlPolicy);
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
     }
 
     private static string ResolveNormalizedSrcSet(string? rawSrcSet, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolveNormalizedSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.UrlPolicy);
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
     }
 
     private static string ResolveUrlFromSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveUrlFromSrcSetAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSetAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
     }
 
     private static string ResolveNormalizedSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveNormalizedSrcSetAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSetAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
     }
 
     private static string ResolveUrlAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveUrlAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveUrlAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
     }
 
     private static void ApplyImageDimensions(IElement element, ImageBlock image) {
@@ -386,7 +386,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
                 element.GetAttribute(attributeNames[i]),
                 context.Options.BaseUri,
-                context.Options.UrlPolicy);
+                context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
 
             foreach (HtmlSrcSetCandidate candidate in candidates) {
                 string resolved = candidate.Url;

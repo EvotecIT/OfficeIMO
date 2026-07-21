@@ -6,7 +6,16 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
-    internal static void Apply(IHtmlDocument document, HtmlRenderResourceSet resources, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal static void Apply(
+        IHtmlDocument document,
+        HtmlRenderResourceSet resources,
+        HtmlRenderOptions options,
+        HtmlConversionLimits limits,
+        HtmlDiagnosticReport diagnostics) {
+        var cssBudget = new HtmlCssByteBudget(limits);
+        foreach (IElement style in document.QuerySelectorAll("style")) {
+            cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
+        }
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
             if (!IsStylesheetLink(link)) {
@@ -29,6 +38,10 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
+            if (!TryReserveCss(cssBudget, css, source, diagnostics)) {
+                continue;
+            }
+
             if (resources.TryGetResolvedSource(source, null, out string resolvedSource)
                 && Uri.TryCreate(resolvedSource, UriKind.Absolute, out Uri? stylesheetUri)) {
                 css = ExpandImports(
@@ -38,7 +51,8 @@ internal static class HtmlRenderStylesheetApplier {
                     options,
                     diagnostics,
                     new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                    reportedCycles);
+                    reportedCycles,
+                    cssBudget);
             }
 
             if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
@@ -80,7 +94,8 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         HashSet<string> activeStylesheets,
-        HashSet<string> reportedCycles) {
+        HashSet<string> reportedCycles,
+        HtmlCssByteBudget cssBudget) {
         string currentKey = stylesheetUri.AbsoluteUri;
         if (!activeStylesheets.Add(currentKey)) {
             ReportCycle(diagnostics, reportedCycles, currentKey);
@@ -107,7 +122,9 @@ internal static class HtmlRenderStylesheetApplier {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
                 } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
-                    replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles);
+                    if (TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
+                        replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles, cssBudget);
+                    }
                 } else {
                     diagnostics.Add(
                         ComponentName,
@@ -128,6 +145,23 @@ internal static class HtmlRenderStylesheetApplier {
             builder.ToString(),
             stylesheetUri,
             options.GetResourceUrlPolicy());
+    }
+
+    private static bool TryReserveCss(
+        HtmlCssByteBudget budget,
+        string css,
+        string source,
+        HtmlDiagnosticReport diagnostics) {
+        if (budget.TryReserve(css, out HtmlDomLimitException? exception)) return true;
+        diagnostics.Add(
+            ComponentName,
+            exception!.Code,
+            "A resolved stylesheet was omitted because it exceeded the shared CSS byte budget.",
+            HtmlDiagnosticSeverity.Error,
+            source,
+            exception.LimitSource + ": " + exception.Detail,
+            HtmlConversionLossKind.Omission);
+        return false;
     }
 
     private static void ReportCycle(HtmlDiagnosticReport diagnostics, HashSet<string> reportedCycles, string source) {

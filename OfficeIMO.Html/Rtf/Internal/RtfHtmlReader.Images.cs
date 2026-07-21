@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void AddImage(IElement token) {
-            string source = HtmlImageSourceResolver.ResolveImageSource(token, _baseUri, _options.UrlPolicy);
+            string source = HtmlImageSourceResolver.ResolveImageSource(token, _baseUri, _options.GetResourceUrlPolicy());
             if (string.IsNullOrWhiteSpace(source) || !TryReadDataImage(source, out RtfImageFormat format, out byte[]? data)) {
                 string? alt = GetAttribute(token, "alt");
                 if (!string.IsNullOrWhiteSpace(alt)) {

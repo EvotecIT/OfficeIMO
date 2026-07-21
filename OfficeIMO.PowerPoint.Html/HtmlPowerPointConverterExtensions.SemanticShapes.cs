@@ -40,7 +40,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         foreach (PowerPointSemanticImportItem item in items
             .OrderBy(item => item.LayerIndex ?? item.FallbackOrder)
             .ThenBy(item => item.FallbackOrder)) {
-            if (!budget.TryReserveShape(out string shapeLimit)) {
+            if (item.Kind != PowerPointSemanticImportKind.TextBox
+                && !budget.TryReserveShape(out string shapeLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional slide shapes were omitted because the shared import limit was reached.",
                     lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
@@ -96,6 +97,13 @@ public static partial class HtmlPowerPointConverterExtensions {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
                 "A slide text block was omitted because it exceeded the shared field limit.",
                 lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+            return fallbackTop;
+        }
+
+        if (!budget.TryReserveShape(out string shapeLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "A slide text block was omitted because the shared shape limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
             return fallbackTop;
         }
 

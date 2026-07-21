@@ -63,6 +63,33 @@ public static class HtmlNormalizer {
         return NormalizeDocument(document, resolved, 0);
     }
 
+    /// <summary>Normalizes one already parsed element for a raw-fragment target without reparsing it.</summary>
+    internal static string NormalizePreparedElement(IElement element, HtmlNormalizationOptions options) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        HtmlNormalizationOptions resolved = CopyOptions(options ?? throw new ArgumentNullException(nameof(options)));
+        resolved.Limits.Validate();
+        var builder = new StringBuilder();
+        AppendElement(builder, element, resolved, 0);
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Removes executable element payloads and inline event handlers from a prepared adapter DOM
+    /// without resolving URL attributes that the target adapter still needs to diagnose.
+    /// </summary>
+    internal static void SanitizePreparedDocumentStructure(IHtmlDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        foreach (IElement element in document.QuerySelectorAll("*")) {
+            foreach (IAttr attribute in element.Attributes
+                .Where(attribute => attribute.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+                .ToArray()) {
+                element.RemoveAttribute(attribute.Name);
+            }
+
+            if (SkippedElements.Contains(element.LocalName)) element.TextContent = string.Empty;
+        }
+    }
+
     private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth) {
         INode root = options.UseBodyContentsOnly
             ? HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly: true)

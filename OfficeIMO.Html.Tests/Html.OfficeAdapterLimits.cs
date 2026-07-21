@@ -280,6 +280,37 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void PowerPointHtml_GenericProjectionPreservesTextInsideOrdinaryContainers() {
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse("<div>Hello from a generic container</div>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using var presentation = result.Value;
+
+        Assert.True(result.Succeeded);
+        Assert.Contains(
+            Assert.Single(presentation.Slides).TextBoxes,
+            textBox => textBox.Text == "Hello from a generic container");
+    }
+
+    [Fact]
+    public void PowerPointHtml_RejectedTextDoesNotConsumeTheSharedShapeBudget() {
+        var limits = HtmlImportLimits.CreateDefault();
+        limits.MaxShapes = 2;
+        limits.MaxMetadataCharacters = 12;
+        const string html = "<section><h2>Title</h2><p>This text is too large</p><p>Accepted</p></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+                Mode = HtmlImportMode.Generic,
+                Limits = limits
+            });
+        using var presentation = result.Value;
+
+        Assert.Equal(2, result.TextBoxes);
+        Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Accepted");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
+    }
+
+    [Fact]
     public void SemanticImportModeRequiresAdapterMetadata() {
         HtmlToExcelResult result = HtmlConversionDocument.Parse("<table><tr><td>Visible only</td></tr></table>")
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Semantic });
