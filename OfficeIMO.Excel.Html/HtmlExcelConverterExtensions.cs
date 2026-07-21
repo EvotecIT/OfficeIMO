@@ -355,19 +355,25 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
-        string imageLimit = string.Empty;
-        if (!budget.TryReserveShape(out string shapeLimit)
-            || !budget.TryReserveImage(dataUri, out imageLimit)) {
+        if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded worksheet image was omitted because the shared import limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission,
-                detail: shapeLimit.Length > 0 ? shapeLimit : imageLimit);
+                detail: imageLimit);
             return;
         }
 
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
                 "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
+            return;
+        }
+
+        if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "An embedded worksheet image was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission,
+                detail: imageLimit);
             return;
         }
 
@@ -447,13 +453,11 @@ public static partial class HtmlExcelConverterExtensions {
     private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget, string range, ref int chartIndex) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ReadChartDimensions(item, out int seriesCount, out int categoryCount);
-        string chartLimit = string.Empty;
-        if (!budget.TryReserveShape(out string shapeLimit)
-            || !budget.TryReserveChart(seriesCount, categoryCount, out chartLimit)) {
+        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission,
-                detail: shapeLimit.Length > 0 ? shapeLimit : chartLimit);
+                detail: chartLimit);
             return;
         }
         ExcelChartType type = ReadExcelChartType(item);

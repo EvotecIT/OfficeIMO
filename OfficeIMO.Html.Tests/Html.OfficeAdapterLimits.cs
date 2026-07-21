@@ -164,6 +164,30 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void PowerPointHtml_RejectedChartDoesNotConsumeTheSharedShapeBudget() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <p data-officeimo-layer-index="1">Accepted</p>
+                <section class="officeimo-charts"><ul><li data-officeimo-layer-index="0"><span class="officeimo-feature-label">Huge</span><span class="officeimo-feature-meta">Series: 100000; Categories: 100000</span></li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxShapes = 1;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Equal(1, result.TextBoxes);
+        Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Accepted");
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectsNonFiniteGeometryWithAVisibleFallbackDiagnostic() {
         const string html = """
             <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
@@ -308,6 +332,26 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(2, result.TextBoxes);
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Accepted");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RejectedPictureDoesNotConsumeTheSharedShapeBudget() {
+        var limits = HtmlImportLimits.CreateDefault();
+        limits.MaxShapes = 2;
+        const string html = "<section><img src='https://example.test/not-embedded.png'><p>Accepted</p></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+                Mode = HtmlImportMode.Generic,
+                Limits = limits
+            });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Pictures);
+        Assert.Equal(2, result.TextBoxes);
+        Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Accepted");
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
 
     [Fact]

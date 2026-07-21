@@ -113,7 +113,13 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!budget.TryReserveImage(dataUri, out string imageLimit)) {
+        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
+            return;
+        }
+
+        if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded slide picture was omitted because the shared image limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: imageLimit);
@@ -126,9 +132,10 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
+        if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "An embedded slide picture was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: imageLimit);
             return;
         }
 
@@ -154,7 +161,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ReadChartDataDimensions(item, out int seriesCount, out int categoryCount);
-        if (!budget.TryReserveChart(seriesCount, categoryCount, out string chartLimit)) {
+        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: chartLimit);

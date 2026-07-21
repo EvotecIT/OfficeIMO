@@ -40,11 +40,6 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (importText) {
                     string text = HtmlGenericDocumentProjector.GetBlockText(block);
                     contentTop = ImportTextBox(block, text, slide, contentTop, result, budget, 52D);
-                } else if (!budget.TryReserveShape(out string shapeLimit)) {
-                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Additional HTML blocks were omitted because the shared shape limit was reached.",
-                        lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
-                    break;
                 } else if (importTable) {
                     contentTop = ImportTable(block, slide, contentTop, result, budget);
                 } else if (importPicture) {

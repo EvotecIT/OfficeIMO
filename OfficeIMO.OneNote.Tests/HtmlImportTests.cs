@@ -35,6 +35,38 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void EmptyTableDoesNotConsumeShapeBudget() {
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxShapes = 1;
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><p>valid</p>")
+            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+
+        OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
+        OneNoteParagraph paragraph = Assert.Single(outline.Children.OfType<OneNoteParagraph>());
+        Assert.Equal("valid", string.Concat(paragraph.Runs.Select(run => run.Text)));
+        Assert.Empty(outline.Children.OfType<OneNoteTable>());
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void EmptyTableDoesNotConsumeTableBudget() {
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxShapes = 1;
+        limits.MaxTables = 1;
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><table><tr><td></td></tr></table>")
+            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+
+        OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
+        Assert.Single(outline.Children.OfType<OneNoteTable>());
+        Assert.Equal(1, result.Tables);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void HtmlImportBuildsTypedPagesRunsListsTablesAndImages() {
         const string html = """
             <section aria-label="Project">

@@ -40,14 +40,6 @@ public static partial class HtmlPowerPointConverterExtensions {
         foreach (PowerPointSemanticImportItem item in items
             .OrderBy(item => item.LayerIndex ?? item.FallbackOrder)
             .ThenBy(item => item.FallbackOrder)) {
-            if (item.Kind != PowerPointSemanticImportKind.TextBox
-                && !budget.TryReserveShape(out string shapeLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "Additional slide shapes were omitted because the shared import limit was reached.",
-                    lossKind: HtmlConversionLossKind.Omission, detail: shapeLimit);
-                break;
-            }
-
             switch (item.Kind) {
                 case PowerPointSemanticImportKind.TextBox:
                     contentTop = ImportSemanticTextBox(item.Element, slide, contentTop, result, budget);
