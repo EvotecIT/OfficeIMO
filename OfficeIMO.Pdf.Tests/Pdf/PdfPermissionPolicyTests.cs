@@ -121,8 +121,12 @@ public class PdfPermissionPolicyTests {
             .TextField("Direct.Name", value: "Ada")
             .ToBytes();
         var enforced = new PdfReadOptions { Password = "direct-open" };
+        PdfDocumentPreflight restrictedPreflight = PdfInspector.Preflight(pdf, enforced);
         PdfReadDocument restricted = PdfReadDocument.Open(pdf, enforced);
 
+        Assert.True(restrictedPreflight.CanRead);
+        Assert.False(restrictedPreflight.CanReadLogicalObjects);
+        Assert.Null(restrictedPreflight.DocumentInfo);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Metadata);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.XmpMetadata);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Outlines);
@@ -144,7 +148,10 @@ public class PdfPermissionPolicyTests {
             Password = "direct-open",
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
+        PdfDocumentPreflight authorizedPreflight = PdfInspector.Preflight(pdf, ignored);
         PdfReadDocument authorized = PdfReadDocument.Open(pdf, ignored);
+        Assert.True(authorizedPreflight.CanReadLogicalObjects);
+        Assert.Equal("Ada", Assert.Single(authorizedPreflight.DocumentInfo!.FormFields).Value);
         Assert.Equal("Direct title", authorized.Metadata.Title);
         Assert.Equal("Direct title", authorized.XmpMetadata?.Title);
         Assert.NotEmpty(authorized.Outlines);

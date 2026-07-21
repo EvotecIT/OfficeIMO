@@ -540,7 +540,7 @@ internal static class PdfMutationPlanner {
             }
         }
 
-        if (preflight.Probe.HasActiveContent || preflight.DocumentInfo?.HasActiveContent == true) {
+        if (preflight.Probe.HasActiveContent || preflight.UncheckedDocumentInfo?.HasActiveContent == true) {
             Add(warnings, "Input.ActiveContentPreserved");
         }
 

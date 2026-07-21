@@ -25,7 +25,7 @@ internal static partial class PdfRedactionPlanner {
         }
 
         PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Open(pdf, options), layoutOptions);
-        PdfDocumentInfo info = preflight.DocumentInfo ?? PdfInspector.Inspect(pdf, options);
+        PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
 
         foreach (PdfRedactionArea area in areaArray) {
