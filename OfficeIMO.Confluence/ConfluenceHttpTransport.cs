@@ -167,22 +167,10 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(_session.RuntimeOptions.RequestTimeout);
-            HttpResponseMessage response;
             try {
-                response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
-            } catch (HttpRequestException) when (CanRetry(safety, attempt)) {
-                TimeSpan delay = GetRetryDelay(attempt);
-                attempt++;
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                continue;
-            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(safety, attempt)) {
-                TimeSpan delay = GetRetryDelay(attempt);
-                attempt++;
-                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                continue;
-            }
-
-            using (response) {
+                using HttpResponseMessage response = await _client
+                    .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
+                    .ConfigureAwait(false);
                 if (ShouldRetry(response.StatusCode, safety, attempt)) {
                     TimeSpan delay = GetRetryDelay(response, attempt);
                     attempt++;
@@ -194,6 +182,16 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
                     throw new ConfluenceApiException(response.StatusCode, method.Method, uri, Encoding.UTF8.GetString(body));
                 }
                 return await readSuccess(response, timeout.Token).ConfigureAwait(false);
+            } catch (HttpRequestException) when (CanRetry(safety, attempt)) {
+                TimeSpan delay = GetRetryDelay(attempt);
+                attempt++;
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                continue;
+            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(safety, attempt)) {
+                TimeSpan delay = GetRetryDelay(attempt);
+                attempt++;
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                continue;
             }
         }
     }

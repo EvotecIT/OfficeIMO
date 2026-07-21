@@ -140,6 +140,21 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task SafeRead_RetriesTransientResponseBodyFailure() {
+        int attempt = 0;
+        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "page-adf.json"));
+        var handler = new RecordingHandler(_ => ++attempt == 1
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new ThrowingReadContent() }
+            : Response(HttpStatusCode.OK, fixture));
+        using ConfluenceClient client = CreateClient(handler, configure: options => { options.RetryBaseDelay = TimeSpan.Zero; options.RetryMaxDelay = TimeSpan.Zero; });
+
+        ConfluencePage page = await client.GetPageAsync("123");
+
+        Assert.Equal("123", page.Id);
+        Assert.Equal(2, attempt);
+    }
+
+    [Fact]
     public async Task DeletePage_IsPlannableAndNotRetried() {
         var handler = new RecordingHandler(_ => Response(HttpStatusCode.ServiceUnavailable, "{\"message\":\"later\"}"));
         using ConfluenceClient client = CreateClient(handler);
@@ -236,6 +251,16 @@ public sealed class ConfluenceContractTests {
     private static HttpResponseMessage Response(HttpStatusCode status, string body) => new HttpResponseMessage(status) {
         Content = new StringContent(body, Encoding.UTF8, "application/json"),
     };
+
+    private sealed class ThrowingReadContent : HttpContent {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            Task.FromException(new HttpRequestException("transient response body failure"));
+
+        protected override bool TryComputeLength(out long length) {
+            length = 0;
+            return false;
+        }
+    }
 
     private sealed class RecordingHandler : HttpMessageHandler {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _respond;
