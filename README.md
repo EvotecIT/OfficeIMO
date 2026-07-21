@@ -54,10 +54,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 82 |
-| Documented package, tool, and example projects below | 90 |
-| Native format, foundation, and shared-service packages | 24 |
-| Conversion and cloud bridge packages | 27 |
+| Coordinated `3.0.x` release packages | 84 |
+| Documented package, tool, and example projects below | 92 |
+| Native format, foundation, and shared-service packages | 25 |
+| Conversion and cloud bridge packages | 28 |
 | Unified Reader packages and tool | 28 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
 | Runnable example projects | 1 |
@@ -239,6 +239,14 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Drawing
 
 _Dependency footprint:_ only `OfficeIMO.Drawing`; no Markdig or other Markdown parser dependency.
 
+#### [OfficeIMO.Adf](OfficeIMO.Adf/README.md)
+
+- [x] Lossless Atlas Document Format JSON model with unknown nodes, marks, attributes, and extension properties preserved
+- [x] Structural validation plus Markdown and HTML projections with explicit fidelity diagnostics
+- [x] Markdown and HTML import through OfficeIMO's existing document engines
+
+_Dependency footprint:_ OfficeIMO Markdown, Markdown.Html, and HTML plus `System.Text.Json` on compatibility targets; no Atlassian SDK.
+
 #### [OfficeIMO.Html](OfficeIMO.Html/README.md)
 
 - [x] Canonical `HtmlConversionDocument` with DOM, base-URI, media, resource, and URL-policy ownership
@@ -384,6 +392,14 @@ _Dependency footprint:_ Google authentication libraries plus OfficeIMO GoogleWor
 - [x] Dry-run, lossy approval, conflicts, cancellation, and item-level partial-failure outcomes
 
 _Dependency footprint:_ only OfficeIMO GoogleWorkspace and Drive.
+
+#### [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md)
+
+- [x] Confluence Cloud v2 page read, cursor listing, create, update, dry-run request plans, and optimistic version contracts
+- [x] Attachment listing/download plus non-retried upload/versioning, cancellation, timeouts, and caller-owned credentials
+- [x] ADF, Markdown, HTML, and storage conversion with fidelity reports and marker-delimited managed-section replacement
+
+_Dependency footprint:_ only OfficeIMO ADF and Markdown plus platform HTTP and `System.Text.Json` on compatibility targets; no Atlassian SDK.
 
 ### Conversion and cloud bridges
 
@@ -982,6 +998,9 @@ dotnet add package OfficeIMO.Excel.Pdf --version 3.0.0
 
 dotnet add package OfficeIMO.Epub --version 3.0.0
 dotnet add package OfficeIMO.Epub.Image --version 3.0.0
+
+dotnet add package OfficeIMO.Adf --version 3.0.0
+dotnet add package OfficeIMO.Confluence --version 3.0.0
 
 dotnet add package OfficeIMO.Reader.Pdf --version 3.0.0
 

@@ -1,7 +1,9 @@
 name: "OfficeIMO production CodeQL config"
 
 paths:
+  - OfficeIMO.Adf
   - OfficeIMO.CSV
+  - OfficeIMO.Confluence
   - OfficeIMO.Epub
   - OfficeIMO.Excel
   - OfficeIMO.Excel.OpenDocument
