@@ -12,6 +12,54 @@ public static class OfficePngReader {
     private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
     /// <summary>
+    /// Inspects a PNG container without decoding pixels and reports its declared APNG frame count.
+    /// Static PNG files report one frame.
+    /// </summary>
+    public static bool TryGetFrameCount(byte[]? bytes, out int frameCount) {
+        frameCount = 0;
+        try {
+            if (bytes == null || !HasSignature(bytes)) return false;
+            OfficeRasterGuards.EnsurePayloadWithinLimits(bytes.Length, "PNG payload exceeds size limits.");
+
+            bool hasHeader = false;
+            bool hasEnd = false;
+            int declaredFrameCount = 1;
+            int offset = Signature.Length;
+            while (offset + 12 <= bytes.Length) {
+                int length = ReadBigEndianInt32(bytes, offset);
+                long chunkEnd = (long)offset + 12L + length;
+                if (length < 0 || chunkEnd > bytes.Length) return false;
+
+                string type = Encoding.ASCII.GetString(bytes, offset + 4, 4);
+                int dataOffset = offset + 8;
+                if (type == "IHDR") {
+                    if (hasHeader || length != 13) return false;
+                    hasHeader = true;
+                } else if (type == "acTL") {
+                    if (!hasHeader || length != 8) return false;
+                    int candidate = ReadBigEndianInt32(bytes, dataOffset);
+                    if (candidate <= 0) return false;
+                    declaredFrameCount = candidate;
+                } else if (type == "IEND") {
+                    if (length != 0) return false;
+                    hasEnd = true;
+                    offset = (int)chunkEnd;
+                    break;
+                }
+
+                offset = (int)chunkEnd;
+            }
+
+            if (!hasHeader || !hasEnd || offset != bytes.Length) return false;
+            frameCount = declaredFrameCount;
+            return true;
+        } catch {
+            frameCount = 0;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Attempts to decode a PNG image into an RGBA raster buffer.
     /// </summary>
     public static bool TryDecode(byte[] bytes, out OfficeRasterImage? image) {

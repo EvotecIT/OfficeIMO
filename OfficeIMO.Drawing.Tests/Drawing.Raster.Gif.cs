@@ -114,16 +114,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, frameCount);
         }
 
+        [Fact]
+        public void OfficeGifReader_SkipsLzwExpansionForUnselectedTrailingFrames() {
+            byte[] gif = CreateTwoFrameGif(out int secondFrameDescriptorOffset);
+            gif[secondFrameDescriptorOffset + 12] = 0x07;
+
+            Assert.True(OfficeGifReader.TryDecodeFrame(gif, 0, out OfficeRasterImage? selected, out int frameCount));
+            Assert.False(OfficeGifReader.TryDecodeFrame(gif, 1, out OfficeRasterImage? malformed, out _));
+
+            Assert.NotNull(selected);
+            Assert.Equal(2, frameCount);
+            Assert.Null(malformed);
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
-        private static byte[] CreateTwoFrameGif() {
+        private static byte[] CreateTwoFrameGif() => CreateTwoFrameGif(out _);
+
+        private static byte[] CreateTwoFrameGif(out int secondFrameDescriptorOffset) {
             OfficeColor[] palette = { OfficeColor.Red, OfficeColor.Lime, OfficeColor.Blue, OfficeColor.White };
             byte[] first = CreateIndexedGif(1, 1, palette, new byte[] { 0 });
             byte[] second = CreateIndexedGif(1, 1, palette, new byte[] { 1 });
             const int imageDescriptorOffset = 25;
             var result = new List<byte>(first.Length + second.Length - imageDescriptorOffset);
             result.AddRange(first.Take(first.Length - 1));
+            secondFrameDescriptorOffset = result.Count;
             result.AddRange(second.Skip(imageDescriptorOffset).Take(second.Length - imageDescriptorOffset - 1));
             result.Add(0x3B);
             return result.ToArray();

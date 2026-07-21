@@ -63,6 +63,7 @@ public static class OfficeGifReader {
             FrameRectangle previousFrame = default;
             int previousDisposalMethod = 0;
             OfficeRasterImage? restoreCanvas = null;
+            long decodedFramePixels = 0;
             while (offset < bytes.Length) {
                 byte marker = bytes[offset++];
                 if (marker == 0x3B) {
@@ -90,32 +91,42 @@ public static class OfficeGifReader {
                     return false;
                 }
 
-                if (canvas == null) {
-                    backgroundColor = ResolveCanvasBackground(globalColorTable, backgroundColorIndex, transparentIndex);
-                    canvas = new OfficeRasterImage(width, height, backgroundColor);
-                }
-                ApplyDisposal(canvas, previousFrame, previousDisposalMethod, backgroundColor, restoreCanvas);
-                restoreCanvas = disposalMethod == 3
-                    ? OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels())
-                    : null;
-                if (!TryReadImageFrame(
+                if (frameCount <= frameIndex) {
+                    if (canvas == null) {
+                        backgroundColor = ResolveCanvasBackground(globalColorTable, backgroundColorIndex, transparentIndex);
+                        canvas = new OfficeRasterImage(width, height, backgroundColor);
+                    }
+                    ApplyDisposal(canvas, previousFrame, previousDisposalMethod, backgroundColor, restoreCanvas);
+                    restoreCanvas = disposalMethod == 3
+                        ? OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels())
+                        : null;
+                    if (!TryReadImageFrame(
+                        bytes,
+                        ref offset,
+                        width,
+                        height,
+                        globalColorTable,
+                        transparentIndex,
+                        canvas,
+                        ref decodedFramePixels,
+                        out FrameRectangle frame)) {
+                        return false;
+                    }
+
+                    if (frameCount == frameIndex) {
+                        image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels());
+                    }
+                    previousFrame = frame;
+                    previousDisposalMethod = disposalMethod;
+                } else if (!TrySkipImageFrame(
                     bytes,
                     ref offset,
                     width,
                     height,
-                    globalColorTable,
-                    transparentIndex,
-                    canvas,
-                    out FrameRectangle frame)) {
+                    globalColorTable != null)) {
                     return false;
                 }
-
-                if (frameCount == frameIndex) {
-                    image = OfficeRasterImage.FromRgba32(canvas.Width, canvas.Height, canvas.GetPixels());
-                }
                 frameCount++;
-                previousFrame = frame;
-                previousDisposalMethod = disposalMethod;
                 transparentIndex = -1;
                 disposalMethod = 0;
             }
@@ -128,7 +139,16 @@ public static class OfficeGifReader {
         }
     }
 
-    private static bool TryReadImageFrame(byte[] bytes, ref int offset, int canvasWidth, int canvasHeight, OfficeColor[]? globalColorTable, int transparentIndex, OfficeRasterImage canvas, out FrameRectangle frame) {
+    private static bool TryReadImageFrame(
+        byte[] bytes,
+        ref int offset,
+        int canvasWidth,
+        int canvasHeight,
+        OfficeColor[]? globalColorTable,
+        int transparentIndex,
+        OfficeRasterImage canvas,
+        ref long decodedFramePixels,
+        out FrameRectangle frame) {
         frame = default;
         if (offset + 9 > bytes.Length) {
             return false;
@@ -145,6 +165,8 @@ public static class OfficeGifReader {
             return false;
         }
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int framePixels)) return false;
+        if (decodedFramePixels > OfficeRasterGuards.MaximumPixels - framePixels) return false;
+        decodedFramePixels += framePixels;
 
         OfficeColor[]? colorTable = globalColorTable;
         if ((packed & 0x80) != 0) {
@@ -192,6 +214,39 @@ public static class OfficeGifReader {
 
         frame = new FrameRectangle(left, top, width, height);
         return true;
+    }
+
+    private static bool TrySkipImageFrame(
+        byte[] bytes,
+        ref int offset,
+        int canvasWidth,
+        int canvasHeight,
+        bool hasGlobalColorTable) {
+        if (offset + 9 > bytes.Length) return false;
+
+        int left = ReadUInt16LittleEndian(bytes, offset);
+        int top = ReadUInt16LittleEndian(bytes, offset + 2);
+        int width = ReadUInt16LittleEndian(bytes, offset + 4);
+        int height = ReadUInt16LittleEndian(bytes, offset + 6);
+        byte packed = bytes[offset + 8];
+        offset += 9;
+        if (width <= 0 || height <= 0 || left + width > canvasWidth || top + height > canvasHeight ||
+            !OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
+            return false;
+        }
+
+        bool hasColorTable = hasGlobalColorTable;
+        if ((packed & 0x80) != 0) {
+            int colorCount = 1 << ((packed & 0x07) + 1);
+            int colorBytes = colorCount * 3;
+            if (offset + colorBytes > bytes.Length) return false;
+            offset += colorBytes;
+            hasColorTable = true;
+        }
+
+        if (!hasColorTable || offset >= bytes.Length) return false;
+        int minimumCodeSize = bytes[offset++];
+        return minimumCodeSize >= 2 && minimumCodeSize <= 8 && SkipSubBlocks(bytes, ref offset);
     }
 
     private static void ApplyDisposal(OfficeRasterImage canvas, FrameRectangle frame, int disposalMethod, OfficeColor backgroundColor, OfficeRasterImage? restoreCanvas) {

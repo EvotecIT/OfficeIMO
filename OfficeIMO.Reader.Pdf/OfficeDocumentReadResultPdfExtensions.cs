@@ -44,6 +44,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
                     identities.TakeForms(page.Forms),
                     options,
                     rasterDecodeOptions,
+                    !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                     report,
                     BuildSourceLabel(source, page, index)));
                 if (options.PagePolicy == ReaderPdfPagePolicy.PreserveSourcePages && index + 1 < source.Pages.Count) document.PageBreak();
@@ -58,6 +59,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
                 identities.TakeForms(source.Forms),
                 options,
                 rasterDecodeOptions,
+                !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                 report,
                 source.Kind + "/document"));
         } else {
@@ -70,6 +72,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
                 identities.TakeForms(source.Forms),
                 options,
                 rasterDecodeOptions,
+                !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase),
                 report,
                 source.Kind.ToString());
         }
@@ -87,11 +90,12 @@ public static class OfficeDocumentReadResultPdfExtensions {
         IReadOnlyList<OfficeDocumentFormField> forms,
         ReaderPdfProjectionOptions options,
         OfficeRasterDecodeOptions rasterDecodeOptions,
+        bool allowRelativeUriLinks,
         PdfConversionReport report,
         string sourceLabel) {
         ComposeBlocksAndTables(document, blocks, tables, report, sourceLabel);
         AssetProjectionSummary assetSummary = ComposeAssets(document, assets, options.AssetPolicy, rasterDecodeOptions, report, sourceLabel);
-        ComposeLinks(document, links, options.LinkPolicy, report, sourceLabel);
+        ComposeLinks(document, links, options.LinkPolicy, allowRelativeUriLinks, report, sourceLabel);
         ComposeForms(document, forms, options.FormPolicy, report, sourceLabel);
         return assetSummary;
     }
@@ -200,8 +204,13 @@ public static class OfficeDocumentReadResultPdfExtensions {
         imageBytes = Array.Empty<byte>();
         imageInfo = null;
         bool identified = OfficeImageReader.TryIdentify(sourceBytes, null, out OfficeImageInfo identifiedInfo);
+        bool isDirectPdfImage = identifiedInfo.Format == OfficeImageFormat.Jpeg ||
+            (identifiedInfo.Format == OfficeImageFormat.Png &&
+             OfficePngReader.TryGetFrameCount(sourceBytes, out int pngFrameCount) &&
+             pngFrameCount == 1);
         if (identified &&
-            (identifiedInfo.Format == OfficeImageFormat.Jpeg || identifiedInfo.Format == OfficeImageFormat.Png) &&
+            rasterDecodeOptions.FrameIndex == 0 &&
+            isDirectPdfImage &&
             OfficeImagePdfCompatibility.TryValidate(sourceBytes, out imageInfo, out _)) {
             imageBytes = sourceBytes;
             return true;
@@ -274,7 +283,13 @@ public static class OfficeDocumentReadResultPdfExtensions {
         string.Equals(left.Sheet, right.Sheet, StringComparison.Ordinal) &&
         string.Equals(left.Path, right.Path, StringComparison.Ordinal);
 
-    private static void ComposeLinks(PdfDocument document, IReadOnlyList<OfficeDocumentLink> links, ReaderPdfLinkPolicy policy, PdfConversionReport report, string sourceLabel) {
+    private static void ComposeLinks(
+        PdfDocument document,
+        IReadOnlyList<OfficeDocumentLink> links,
+        ReaderPdfLinkPolicy policy,
+        bool allowRelativeUriLinks,
+        PdfConversionReport report,
+        string sourceLabel) {
         if (links.Count == 0) return;
         if (policy == ReaderPdfLinkPolicy.Omit) {
             report.Add(Warning("reader-links-omitted", sourceLabel, links.Count + " normalized links were omitted by policy."));
@@ -284,7 +299,9 @@ public static class OfficeDocumentReadResultPdfExtensions {
         document.H3("Links");
         foreach (OfficeDocumentLink link in links) {
             string text = link.Text ?? link.Uri ?? link.DestinationName ?? link.RemoteFile ?? link.Id ?? "link";
-            if (policy == ReaderPdfLinkPolicy.PreserveUriLinks && Uri.TryCreate(link.Uri, UriKind.Absolute, out _)) {
+            bool canPreserveUri = Uri.TryCreate(link.Uri, UriKind.RelativeOrAbsolute, out Uri? uri) &&
+                (uri.IsAbsoluteUri || allowRelativeUriLinks);
+            if (policy == ReaderPdfLinkPolicy.PreserveUriLinks && canPreserveUri) {
                 document.Paragraph(paragraph => paragraph.Link(text, link.Uri!));
             } else {
                 string target = link.DestinationName ?? link.RemoteDestinationName ?? link.RemoteFile ?? link.Uri ?? string.Empty;

@@ -282,6 +282,49 @@ public class PdfEngineRoadmapFoundationTests {
     }
 
     [Fact]
+    public void ReaderProjection_ReportsAndRejectsAnimatedPngBeforeDirectEmbedding() {
+        byte[] animatedPng = PdfPngTestImages.CreateTwoFrameApng();
+        var source = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Unknown,
+            Assets = new[] {
+                new OfficeDocumentAsset { Id = "animation", Kind = "image", FileName = "animation.png", MediaType = "image/png", PayloadBytes = animatedPng }
+            }
+        };
+
+        PdfDocumentConversionResult selected = source.ToPdfDocumentResult();
+        PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
+            RasterDecodeOptions = new OfficeRasterDecodeOptions {
+                AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            }
+        });
+
+        Assert.True(OfficePngReader.TryGetFrameCount(animatedPng, out int frameCount));
+        Assert.Equal(2, frameCount);
+        Assert.Contains(selected.Warnings, warning => warning.Code == "reader-asset-animation-frame-selected");
+        Assert.Contains(rejected.Warnings, warning => warning.Code == "reader-asset-animation-rejected");
+        Assert.Contains("animation.png", PdfReadDocument.Open(rejected.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReaderProjection_PreservesRelativeUriWhenCatalogBaseCanResolveIt() {
+        const string relativeTarget = "docs/guide.html";
+        var source = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Unknown,
+            Links = new[] {
+                new OfficeDocumentLink { Id = "guide", Kind = "uri", Text = "Guide", Uri = relativeTarget }
+            }
+        };
+
+        PdfDocumentConversionResult result = source.ToPdfDocumentResult(new ReaderPdfProjectionOptions {
+            PdfOptions = new PdfOptions().SetCatalogUriBase("https://officeimo.net/")
+        });
+        byte[] bytes = result.ToBytes();
+
+        Assert.Contains(relativeTarget, PdfInspector.Inspect(bytes).LinkUris);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "reader-navigation-listed");
+    }
+
+    [Fact]
     public void ReaderProjection_VisioEvidenceReflectsListPolicyInsteadOfClaimingEmbedding() {
         var source = new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Visio,

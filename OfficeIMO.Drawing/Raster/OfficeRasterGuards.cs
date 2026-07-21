@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeRasterGuards {
-    private const long MaximumPixels = 50_000_000L;
+    internal const long MaximumPixels = 50_000_000L;
     internal const int MaximumEncodedBytes = 128 * 1024 * 1024;
 
     public static void EnsurePayloadWithinLimits(int length, string message) {

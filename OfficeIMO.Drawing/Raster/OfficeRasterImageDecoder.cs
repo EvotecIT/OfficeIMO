@@ -47,6 +47,30 @@ public static class OfficeRasterImageDecoder {
             return decoded;
         }
 
+        if (format == OfficeImageFormat.Png) {
+            if (!OfficePngReader.TryGetFrameCount(bytes, out int pngFrameCount)) {
+                info = new OfficeRasterDecodeInfo(format, 0, effective.FrameIndex, succeeded: false, diagnostic: "The PNG container is malformed.");
+                return false;
+            }
+            if (pngFrameCount > 1) {
+                if (effective.AnimationPolicy == OfficeRasterAnimationPolicy.RejectAnimated) {
+                    info = new OfficeRasterDecodeInfo(format, pngFrameCount, effective.FrameIndex, succeeded: false, diagnostic: "Animated PNG input was rejected by the configured animation policy.");
+                    return false;
+                }
+                if (effective.FrameIndex != 0) {
+                    info = new OfficeRasterDecodeInfo(format, pngFrameCount, effective.FrameIndex, succeeded: false, diagnostic: "Managed animated PNG decoding currently exposes only the default frame.");
+                    return false;
+                }
+
+                bool decoded = OfficePngReader.TryDecode(bytes, out image);
+                info = new OfficeRasterDecodeInfo(format, pngFrameCount, effective.FrameIndex, decoded,
+                    decoded
+                        ? "The default animated PNG frame was decoded; remaining animation frames were not retained in the static raster result."
+                        : "The default animated PNG frame could not be decoded.");
+                return decoded;
+            }
+        }
+
         int webpFrameCount = format == OfficeImageFormat.Webp ? CountWebpAnimationFrames(bytes) : 1;
         if (webpFrameCount > 1) {
             info = new OfficeRasterDecodeInfo(format, webpFrameCount, effective.FrameIndex, succeeded: false,
