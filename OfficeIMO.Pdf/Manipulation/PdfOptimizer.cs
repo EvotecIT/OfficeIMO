@@ -42,7 +42,7 @@ internal static partial class PdfOptimizer {
         var actions = new List<PdfOptimizationAction>();
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
-        PdfMetadata metadata = PdfReadDocument.Open(pdf, readOptions).Metadata;
+        PdfMetadata metadata = PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata;
         if (effectiveOptions.CompressUnfilteredStreams) {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }

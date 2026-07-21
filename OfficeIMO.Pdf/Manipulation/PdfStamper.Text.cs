@@ -4,10 +4,10 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds a simple text stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null) {
+    public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
         if (text.Length == 0) {
             throw new ArgumentException("Stamp text cannot be empty.", nameof(text));
         }
@@ -15,8 +15,8 @@ internal static partial class PdfStamper {
         var effectiveOptions = options ?? new PdfTextStampOptions();
         ValidateOptions(effectiveOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -51,7 +51,7 @@ internal static partial class PdfStamper {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
     }
 
     /// <summary>
@@ -118,17 +118,17 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds a large diagonal text watermark to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null) {
+    public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
         if (text.Length == 0) {
             throw new ArgumentException("Watermark text cannot be empty.", nameof(text));
         }
 
         var effectiveOptions = BuildWatermarkOptions(options);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -164,7 +164,7 @@ internal static partial class PdfStamper {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
     }
 
     /// <summary>

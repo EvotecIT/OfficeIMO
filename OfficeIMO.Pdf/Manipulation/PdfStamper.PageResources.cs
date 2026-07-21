@@ -162,7 +162,10 @@ internal static partial class PdfStamper {
         throw new InvalidOperationException("Unable to find an available PDF font resource name for the stamp.");
     }
 
-    private static string GetAvailableXObjectResourceName(Dictionary<int, PdfIndirectObject> objects, int[] pageObjectNumbers) {
+    private static string GetAvailableXObjectResourceName(
+        Dictionary<int, PdfIndirectObject> objects,
+        int[] pageObjectNumbers,
+        HashSet<string>? additionallyUsed = null) {
         var usedNames = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < pageObjectNumbers.Length; i++) {
             if (!objects.TryGetValue(pageObjectNumbers[i], out var indirect) || indirect.Value is not PdfDictionary pageDictionary) {
@@ -183,7 +186,7 @@ internal static partial class PdfStamper {
         const string baseName = "OIMOStampIm";
         for (int i = 1; i < 1000; i++) {
             string candidate = baseName + i.ToString(CultureInfo.InvariantCulture);
-            if (!usedNames.Contains(candidate)) {
+            if (!usedNames.Contains(candidate) && (additionallyUsed is null || !additionallyUsed.Contains(candidate))) {
                 return candidate;
             }
         }

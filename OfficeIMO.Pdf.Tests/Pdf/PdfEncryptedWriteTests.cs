@@ -128,24 +128,23 @@ public class PdfEncryptedWriteTests {
     }
 
     [Fact]
-    public void GeneratedEncryptedFormPdfBlocksFormMutationEvenWithPassword() {
+    public void GeneratedEncryptedFormPdfSupportsFormMutationWithPassword() {
         byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .TextField("Name", width: 180, height: 24, value: "Ada")
             .ToBytes();
 
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, new PdfReadOptions { Password = "open" });
+        var readOptions = new PdfReadOptions { Password = "open" };
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
+        PdfDocument filled = PdfDocument.Open(pdf, readOptions).Forms.Fill(new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
 
         Assert.True(preflight.CanRead);
-        Assert.False(preflight.CanFillSimpleFormFields);
-        Assert.False(preflight.CanFlattenSimpleFormFields);
-        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.Contains(
-            "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.",
-            preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
-        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
-            ["Name"] = "Grace"
-        }));
-        Assert.Contains("FullRewrite.Encryption", exception.Plan.BlockerCodes);
+        Assert.True(preflight.CanFillSimpleFormFields);
+        Assert.True(preflight.CanFlattenSimpleFormFields);
+        Assert.True(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(PdfInspector.Probe(filled.ToBytes()).HasEncryption);
+        Assert.Equal("Grace", Assert.Single(filled.Inspect().FormFields).Value);
     }
 
     [Fact]

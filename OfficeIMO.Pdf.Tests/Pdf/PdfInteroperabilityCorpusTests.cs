@@ -53,7 +53,10 @@ public class PdfInteroperabilityCorpusTests {
                 ExpectedClassification = item.ExpectedMetadataMode == PdfMutationExecutionMode.Blocked
                     ? PdfRewritePreservationMatrixClassification.Blocked
                     : PdfRewritePreservationMatrixClassification.RewriteSafe,
-                PreservationOptions = new PdfRewritePreservationOptions().AllowMetadataChanges("Title")
+                PreservationOptions = new PdfRewritePreservationOptions {
+                    OriginalReadOptions = item.ReadOptions,
+                    PreserveSecurityState = !item.Features.Contains("encrypted", StringComparer.Ordinal)
+                }.AllowMetadataChanges("Title")
             }
             .WithSourceFeatures(item.Features.ToArray());
     }
@@ -62,9 +65,9 @@ public class PdfInteroperabilityCorpusTests {
         PdfMutationPlan plan = PdfMutationPlanner.Plan(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
         switch (plan.ExecutionMode) {
             case PdfMutationExecutionMode.FullRewrite:
-                return PdfMetadataEditor.UpdateMetadata(pdf, title: "Corpus metadata update");
+                return PdfMetadataEditor.UpdateMetadata(pdf, "Corpus metadata update", author: null, subject: null, keywords: null, readOptions: readOptions);
             case PdfMutationExecutionMode.AppendOnly:
-                return PdfIncrementalUpdater.UpdateMetadata(pdf, title: "Corpus metadata update");
+                return PdfIncrementalUpdater.UpdateMetadata(pdf, title: "Corpus metadata update", readOptions: readOptions);
             default:
                 throw new NotSupportedException(plan.Summary);
         }

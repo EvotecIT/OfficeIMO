@@ -2,9 +2,13 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Observable inventory for one source supplied to a PDF merge.</summary>
 public sealed class PdfMergeSourceInventory {
-    internal PdfMergeSourceInventory(int sourceIndex, int pageCount, int outlineCount, int namedDestinationCount, int pageLabelCount, int formFieldCount, int attachmentCount) {
+    internal PdfMergeSourceInventory(int sourceIndex, int pageCount, int outlineCount, int namedDestinationCount, int pageLabelCount, int formFieldCount, int attachmentCount, PdfDocumentSecurityInfo security, PdfPermissionPolicy permissionPolicy) {
         SourceIndex = sourceIndex; PageCount = pageCount; OutlineCount = outlineCount; NamedDestinationCount = namedDestinationCount;
         PageLabelCount = pageLabelCount; FormFieldCount = formFieldCount; AttachmentCount = attachmentCount;
+        Security = security;
+        HasEncryption = security.HasEncryption; PasswordAuthenticationRole = security.PasswordAuthenticationRole;
+        PermissionRestrictionsIgnored = PdfPermissionAuthorization.RestrictionsIgnored(security, permissionPolicy);
+        HasSignatures = security.HasSignatures;
     }
     /// <summary>Zero-based source index.</summary>
     public int SourceIndex { get; }
@@ -20,6 +24,16 @@ public sealed class PdfMergeSourceInventory {
     public int FormFieldCount { get; }
     /// <summary>Readable embedded or associated files.</summary>
     public int AttachmentCount { get; }
+    /// <summary>Complete security state detected for this source.</summary>
+    public PdfDocumentSecurityInfo Security { get; }
+    /// <summary>True when this source was encrypted.</summary>
+    public bool HasEncryption { get; }
+    /// <summary>Password role established for this source.</summary>
+    public PdfPasswordAuthenticationRole PasswordAuthenticationRole { get; }
+    /// <summary>True when authenticated user-password restrictions were explicitly ignored for this source.</summary>
+    public bool PermissionRestrictionsIgnored { get; }
+    /// <summary>True when signature evidence was detected in this source.</summary>
+    public bool HasSignatures { get; }
 }
 
 /// <summary>One applied merge-policy decision.</summary>
@@ -44,8 +58,8 @@ public sealed class PdfMergeDecision {
 
 /// <summary>Policy and readback evidence returned by a first-party PDF merge.</summary>
 public sealed class PdfMergeReport {
-    internal PdfMergeReport(IReadOnlyList<PdfMergeSourceInventory> sources, IReadOnlyList<PdfMergeDecision> decisions, int outputPageCount) {
-        Sources = sources; Decisions = decisions; OutputPageCount = outputPageCount;
+    internal PdfMergeReport(IReadOnlyList<PdfMergeSourceInventory> sources, IReadOnlyList<PdfMergeDecision> decisions, int outputPageCount, PdfDocumentSecurityInfo outputSecurity) {
+        Sources = sources; Decisions = decisions; OutputPageCount = outputPageCount; OutputSecurity = outputSecurity;
     }
     /// <summary>Per-source structure inventory captured before mutation.</summary>
     public IReadOnlyList<PdfMergeSourceInventory> Sources { get; }
@@ -53,6 +67,12 @@ public sealed class PdfMergeReport {
     public IReadOnlyList<PdfMergeDecision> Decisions { get; }
     /// <summary>Page count read back from the saved artifact.</summary>
     public int OutputPageCount { get; }
+    /// <summary>Complete security state read back from the merged output.</summary>
+    public PdfDocumentSecurityInfo OutputSecurity { get; }
+    /// <summary>True when the merged output remains encrypted.</summary>
+    public bool OutputHasEncryption => OutputSecurity.HasEncryption;
+    /// <summary>True when signature evidence is present in the merged output.</summary>
+    public bool OutputHasSignatures => OutputSecurity.HasSignatures;
 }
 
 /// <summary>Merged PDF bytes plus the policy decisions and readback evidence.</summary>

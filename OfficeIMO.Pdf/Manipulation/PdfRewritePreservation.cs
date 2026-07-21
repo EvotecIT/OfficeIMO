@@ -17,12 +17,23 @@ public static partial class PdfRewritePreservation {
     /// Compares an original PDF and a rewritten PDF using the supplied preservation profile.
     /// </summary>
     public static PdfRewritePreservationReport Assess(byte[] originalPdf, byte[] rewrittenPdf, PdfRewritePreservationOptions? options) {
+        return Assess(originalPdf, rewrittenPdf, options, originalReadOptions: null, rewrittenReadOptions: null);
+    }
+
+    internal static PdfRewritePreservationReport Assess(
+        byte[] originalPdf,
+        byte[] rewrittenPdf,
+        PdfRewritePreservationOptions? options,
+        PdfReadOptions? originalReadOptions,
+        PdfReadOptions? rewrittenReadOptions) {
         Guard.NotNull(originalPdf, nameof(originalPdf));
         Guard.NotNull(rewrittenPdf, nameof(rewrittenPdf));
 
         options ??= new PdfRewritePreservationOptions();
-        PdfDocumentInfo original = PdfInspector.Inspect(originalPdf, options.OriginalReadOptions);
-        PdfDocumentInfo rewritten = PdfInspector.Inspect(rewrittenPdf, options.RewrittenReadOptions);
+        PdfReadOptions? effectiveOriginalReadOptions = options.OriginalReadOptions ?? originalReadOptions;
+        PdfReadOptions? effectiveRewrittenReadOptions = options.RewrittenReadOptions ?? rewrittenReadOptions;
+        PdfDocumentInfo original = InspectReportInput(originalPdf, effectiveOriginalReadOptions, "original");
+        PdfDocumentInfo rewritten = InspectReportInput(rewrittenPdf, effectiveRewrittenReadOptions, "rewritten");
         var issues = new List<PdfRewritePreservationIssue>();
 
         CompareCounts(issues, "PageCount", original.PageCount, rewritten.PageCount, options.PreservePageCount);
@@ -52,9 +63,15 @@ public static partial class PdfRewritePreservation {
         CompareSourceStructure(issues, original, rewritten, options);
         CompareSecurityState(issues, original.Security, rewritten.Security, options);
         CompareCatalogViewSettings(issues, original, rewritten, options);
-        CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers, options.RewrittenReadOptions);
+        CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers, effectiveRewrittenReadOptions);
 
         return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly());
+    }
+
+    private static PdfDocumentInfo InspectReportInput(byte[] pdf, PdfReadOptions? readOptions, string inputName) {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        document.DemandContentExtraction(inputName + " rewrite-preservation report");
+        return PdfInspector.Inspect(pdf, document);
     }
 
     /// <summary>
@@ -69,6 +86,17 @@ public static partial class PdfRewritePreservation {
     /// </summary>
     public static PdfRewritePreservationReport AssertPreserved(byte[] originalPdf, byte[] rewrittenPdf, PdfRewritePreservationOptions? options) {
         PdfRewritePreservationReport report = Assess(originalPdf, rewrittenPdf, options);
+        report.ThrowIfFailed();
+        return report;
+    }
+
+    internal static PdfRewritePreservationReport AssertPreserved(
+        byte[] originalPdf,
+        byte[] rewrittenPdf,
+        PdfRewritePreservationOptions? options,
+        PdfReadOptions? originalReadOptions,
+        PdfReadOptions? rewrittenReadOptions) {
+        PdfRewritePreservationReport report = Assess(originalPdf, rewrittenPdf, options, originalReadOptions, rewrittenReadOptions);
         report.ThrowIfFailed();
         return report;
     }

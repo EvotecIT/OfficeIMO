@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     /// <summary>Builds a safe, immutable, bounded projection of the active raw object graph.</summary>
     public PdfRawDocumentView RawStructure(PdfRawStructureOptions? options = null) {
+        DemandContentExtraction("raw object");
         PdfRawStructureOptions effective = options ?? new PdfRawStructureOptions();
         int take = Math.Min(_objects.Count, effective.MaxObjects);
         var projected = new List<PdfRawObjectView>(take);

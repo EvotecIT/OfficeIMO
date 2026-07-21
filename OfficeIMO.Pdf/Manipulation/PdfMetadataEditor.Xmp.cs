@@ -12,10 +12,21 @@ internal static partial class PdfMetadataEditor {
         string? subject = null,
         string? keywords = null,
         bool createXmpMetadata = true) {
-        Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata);
+        return SynchronizeMetadata(pdf, title, author, subject, keywords, createXmpMetadata, readOptions: null);
+    }
 
-        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf);
+    internal static byte[] SynchronizeMetadata(
+        byte[] pdf,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        bool createXmpMetadata,
+        PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata, readOptions);
+
+        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, readOptions);
         PdfMetadata existing = documentInfo.Metadata;
         PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
         var updated = new PdfMetadata {
@@ -27,7 +38,7 @@ internal static partial class PdfMetadataEditor {
 
         return PdfDocumentObjectGraphRewriter.Rewrite(
             pdf,
-            sourceReadOptions: null,
+            sourceReadOptions: readOptions,
             outputEncryption: null,
             (objects, security) => SynchronizeObjectGraph(objects, security, existingXmp, updated, createXmpMetadata));
     }

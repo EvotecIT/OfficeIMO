@@ -29,13 +29,13 @@ public partial class PdfInspectorTests {
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
-        Assert.Contains("General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains("Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Null(report.DocumentInfo);
         Assert.True(report.Probe.HasEncryption);
         Assert.Contains("PDF encryption dictionary could not be read.", report.Diagnostics);
         AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary could not be read.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.");
     }
 
     [Fact]

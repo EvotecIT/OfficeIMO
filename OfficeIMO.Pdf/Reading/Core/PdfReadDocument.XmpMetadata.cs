@@ -11,7 +11,7 @@ public sealed partial class PdfReadDocument {
     public const int MaxXmpMetadataBytes = 4_000_000;
 
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
-    public PdfXmpMetadataInfo? XmpMetadata { get; }
+    public PdfXmpMetadataInfo? XmpMetadata => ReadLogicalContent(_xmpMetadata);
 
     private PdfXmpMetadataInfo? ExtractXmpMetadata() {
         PdfDictionary? catalog = FindCatalog();

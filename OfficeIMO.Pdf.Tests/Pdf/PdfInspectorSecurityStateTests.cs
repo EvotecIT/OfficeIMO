@@ -15,7 +15,7 @@ public partial class PdfInspectorTests {
         Assert.Null(report.DocumentInfo);
         Assert.True(report.HasSecurityDiagnostics);
         AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary is missing /O.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.");
 
         PdfDocumentSecurityInfo security = report.Probe.Security;
         Assert.True(security.HasEncryption);
@@ -51,10 +51,10 @@ public partial class PdfInspectorTests {
         Assert.False(report.RequiresAppendOnlyMutation);
         Assert.False(report.CanAppendOnlyMutate);
         Assert.Empty(report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("PDF encryption was detected using /Filter /Standard and /SubFilter /adbe.pkcs7.s5 (R=3, 128-bit). OfficeIMO.Pdf can report lightweight markers, but cannot decrypt encrypted PDFs yet.", report.SecurityDiagnostics);
-        Assert.Contains("Raw encryption permissions /P=3900 were detected; permission helpers are informational until decryption support exists.", report.SecurityDiagnostics);
-        Assert.Contains("PDF encryption was detected using /Filter /Standard and /SubFilter /adbe.pkcs7.s5 (R=3, 128-bit). OfficeIMO.Pdf can report lightweight markers, but cannot decrypt encrypted PDFs yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
-        Assert.Contains("Raw encryption permissions /P=3900 were detected; permission helpers are informational until decryption support exists.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains("PDF encryption was detected using /Filter /Standard and /SubFilter /adbe.pkcs7.s5 (R=3, 128-bit). No password authorization was established.", report.SecurityDiagnostics);
+        Assert.Contains("Raw encryption permissions /P=3900 were detected and are enforced for user-password operations unless the caller explicitly ignores restrictions.", report.SecurityDiagnostics);
+        Assert.Contains("PDF encryption was detected using /Filter /Standard and /SubFilter /adbe.pkcs7.s5 (R=3, 128-bit). No password authorization was established.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Contains("Raw encryption permissions /P=3900 were detected and are enforced for user-password operations unless the caller explicitly ignores restrictions.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
     }
 
     [Fact]

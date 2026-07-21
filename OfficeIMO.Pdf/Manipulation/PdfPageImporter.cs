@@ -571,12 +571,12 @@ internal static partial class PdfPageImporter {
             : PdfMerger.MergeWithPrimarySource(1, importedPages, targetPdf);
     }
 
-    private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers) {
+    private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers, PdfReadOptions? sourceReadOptions = null) {
         if (sourcePageNumbers.Length > 0) {
             return sourcePageNumbers;
         }
 
-        PdfDocumentInfo info = PdfInspector.Inspect(sourcePdf);
+        PdfDocumentInfo info = PdfInspector.Inspect(sourcePdf, sourceReadOptions);
         if (info.PageCount == 0) {
             throw new ArgumentException("Source PDF does not contain any pages.", nameof(sourcePdf));
         }

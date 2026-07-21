@@ -107,7 +107,8 @@ internal static class PdfInspector {
         byte[] pdf,
         PdfReadOptions? options,
         Func<PdfReadDocument>? readDocumentFactory) {
-        PdfDocumentProbe probe = Probe(pdf, options);
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfDocumentProbe probe = Probe(pdf, effectiveOptions);
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
@@ -119,13 +120,13 @@ internal static class PdfInspector {
         }
 
         if (probe.HasEncryption) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page, metadata, sanitization, and simple form rewrites when the required permissions are authorized; security changes require owner authorization.");
         }
 
         bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
-                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, options);
+                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions);
                 probe = Probe(pdf, readDocument);
                 info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {
@@ -224,7 +225,7 @@ internal static class PdfInspector {
         }
 
         bool canRewrite = canRead && rewriteBlockers.Count == 0;
-        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly());
+        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy);
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
             AddDiagnostic(message);
@@ -434,48 +435,48 @@ internal static class PdfInspector {
         pageNumbers ??= PdfPageRangeObjectFilter.GetAllPageNumbers(document.Pages.Count);
         bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
         IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
-            ? document.FormFields
-            : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers, preservePageDuplicates: true);
+            ? document.UncheckedFormFields
+            : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.UncheckedFormFields, pageNumbers, preservePageDuplicates: true);
         IReadOnlyList<PdfOutlineItem> outlines = useDocumentWideObjects
-            ? document.Outlines
-            : PdfPageRangeObjectFilter.FilterOutlinesByPageNumbers(document.Outlines, pageNumbers);
+            ? document.UncheckedOutlines
+            : PdfPageRangeObjectFilter.FilterOutlinesByPageNumbers(document.UncheckedOutlines, pageNumbers);
         IReadOnlyList<PdfPageLabel> pageLabels = useDocumentWideObjects
-            ? document.PageLabels
-            : PdfPageRangeObjectFilter.FilterPageLabelsByPageNumbers(document.PageLabels, pageNumbers);
+            ? document.UncheckedPageLabels
+            : PdfPageRangeObjectFilter.FilterPageLabelsByPageNumbers(document.UncheckedPageLabels, pageNumbers);
         IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
-            ? document.NamedDestinations
-            : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+            ? document.UncheckedNamedDestinations
+            : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.UncheckedNamedDestinations, pageNumbers);
         IReadOnlyList<PdfCatalogAction> catalogActions = useDocumentWideObjects
-            ? document.CatalogActions
+            ? document.UncheckedCatalogActions
             : Array.Empty<PdfCatalogAction>();
         IReadOnlyList<PdfAttachmentInfo> attachments = useDocumentWideObjects
-            ? document.Attachments
+            ? document.UncheckedAttachments
             : Array.Empty<PdfAttachmentInfo>();
         IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
-            ? document.OutputIntents
+            ? document.UncheckedOutputIntents
             : Array.Empty<PdfOutputIntentInfo>();
         PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
-            ? document.XmpMetadata
+            ? document.UncheckedXmpMetadata
             : null;
         PdfTaggedContentInfo? taggedContent = useDocumentWideObjects
-            ? document.TaggedContent
+            ? document.UncheckedTaggedContent
             : null;
         PdfOptionalContentProperties? optionalContent = useDocumentWideObjects
-            ? document.OptionalContent
+            ? document.UncheckedOptionalContent
             : null;
         PdfDocumentOpenAction? openAction = useDocumentWideObjects
-            ? document.OpenAction
-            : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
+            ? document.UncheckedOpenAction
+            : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.UncheckedOpenAction, pageNumbers);
 
         var pages = new List<PdfPageInfo>(pageNumbers.Length);
-        var widgetsByPage = BuildFormWidgetsByPage(document.FormFields);
+        var widgetsByPage = BuildFormWidgetsByPage(document.UncheckedFormFields);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             PdfReadPage page = document.Pages[pageNumber - 1];
             PdfPageGeometry geometry = page.GetGeometry();
             var (width, height) = page.GetPageSize();
             int rotation = page.GetRotationDegrees();
-            var pageLinks = page.GetLinkAnnotations();
+            var pageLinks = page.GetLinkAnnotationsUnchecked();
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
             for (int j = 0; j < pageLinks.Count; j++) {
                 PdfLinkAnnotation link = pageLinks[j].WithPageNumber(pageNumber);
@@ -486,13 +487,13 @@ internal static class PdfInspector {
                 links.Add(link);
             }
 
-            var pageAnnotations = page.GetAnnotations();
+            var pageAnnotations = page.GetAnnotationsUnchecked();
             var annotations = new List<PdfAnnotation>(pageAnnotations.Count);
             for (int j = 0; j < pageAnnotations.Count; j++) {
                 annotations.Add(pageAnnotations[j].WithPageNumber(pageNumber));
             }
 
-            var pageActions = page.GetPageActions();
+            var pageActions = page.GetPageActionsUnchecked();
             var actions = new List<PdfPageAction>(pageActions.Count);
             for (int j = 0; j < pageActions.Count; j++) {
                 actions.Add(pageActions[j].WithPageNumber(pageNumber));
@@ -502,7 +503,7 @@ internal static class PdfInspector {
             pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, geometry, links, formWidgets, annotations, actions));
         }
 
-        return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.AcroFormDefaultAppearance, document.AcroFormQuadding, document.AcroFormXfa, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.AcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
+        return new PdfDocumentInfo(pages.AsReadOnly(), document.UncheckedMetadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.UncheckedAcroFormDefaultAppearance, document.UncheckedAcroFormQuadding, document.UncheckedAcroFormXfa, document.UncheckedAcroFormNeedAppearances, document.UncheckedAcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.UncheckedAcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
     }
 
     private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {

@@ -6,40 +6,46 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues) {
-        return FillFields(pdf, ToFormFieldValues(fieldValues), options: null);
+        return FillFields(pdf, ToFormFieldValues(fieldValues), options: null, readOptions: null);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(pdf, ToFormFieldValues(fieldValues), options);
+        return FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions: null);
     }
+
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+        FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions);
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        return FillFields(pdf, fieldValues, options: null);
+        return FillFields(pdf, fieldValues, options: null, readOptions: null);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        return FillFieldsCore(pdf, fieldValues, options, requireMutationPlan: true);
+        return FillFields(pdf, fieldValues, options, readOptions: null);
     }
+
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
 
     internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null) {
-        return FillFieldsCore(pdf, fieldValues, options, requireMutationPlan: false);
+        return FillFieldsCore(pdf, fieldValues, options, readOptions: null, requireMutationPlan: false);
     }
 
-    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, bool requireMutationPlan) {
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
-        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, fieldNames: fieldValues.Keys);
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions, fieldNames: fieldValues.Keys);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
@@ -64,7 +70,7 @@ internal static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
     /// <summary>
@@ -259,17 +265,21 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf) {
-        return FlattenFields(pdf, options: null);
+        return FlattenFields(pdf, options: null, readOptions: null);
     }
 
     /// <summary>
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
-        Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields);
+        return FlattenFields(pdf, options, readOptions: null);
+    }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions);
+
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
@@ -307,26 +317,29 @@ internal static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
     /// <summary>
     /// Returns a new PDF with only the named simple text, choice, and button AcroForm fields painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, requireMutationPlan: true);
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true);
     }
+
+    internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
 
     internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, requireMutationPlan: false);
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: false);
     }
 
-    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, bool requireMutationPlan) {
+    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenFieldNames(fieldNames);
-        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, fieldNames: fieldNames);
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
@@ -380,7 +393,7 @@ internal static partial class PdfFormFiller {
         }
 
         foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf).Metadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
     /// <summary>
@@ -491,6 +504,9 @@ internal static partial class PdfFormFiller {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+        FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
+
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
@@ -504,6 +520,9 @@ internal static partial class PdfFormFiller {
     public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
+
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+        FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.

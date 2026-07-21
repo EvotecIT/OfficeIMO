@@ -42,6 +42,7 @@ public sealed partial class PdfReadPage {
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>
     public OfficeDrawing ToDrawing() {
+        _demandContentExtraction?.Invoke("visual content");
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);

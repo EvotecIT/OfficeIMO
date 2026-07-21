@@ -18,7 +18,7 @@ public sealed partial class PdfReadDocument {
                     var reachable = CollectReachableLeafCandidates(pagesNode);
                     foreach (var id in reachable) {
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
-                            AddPageWithinBudget(result, new PdfReadPage(id, dict, _objects, _options.Limits));
+                            AddPageWithinBudget(result, CreateReadPage(id, dict));
                         }
                     }
                 }
@@ -29,7 +29,7 @@ public sealed partial class PdfReadDocument {
         // Fallback: scan all dictionaries; accept leaf candidates whose Parent chain leads to a /Pages node
         foreach (var kv in _objects) {
             if (kv.Value.Value is PdfDictionary dict) {
-                if (IsLeafPageByParent(dict)) AddPageWithinBudget(result, new PdfReadPage(kv.Key, dict, _objects, _options.Limits));
+                if (IsLeafPageByParent(dict)) AddPageWithinBudget(result, CreateReadPage(kv.Key, dict));
             }
         }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
@@ -62,7 +62,7 @@ public sealed partial class PdfReadDocument {
             int objNum = FindObjectNumberFor(node);
             if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
-                    AddPageWithinBudget(outList, new PdfReadPage(objNum, node, _objects, _options.Limits));
+                    AddPageWithinBudget(outList, CreateReadPage(objNum, node));
                 }
             }
             return;
@@ -79,12 +79,15 @@ public sealed partial class PdfReadDocument {
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
                 if (on > 0 && visitedPages.Add(on)) {
-                    AddPageWithinBudget(outList, new PdfReadPage(on, d, _objects, _options.Limits));
+                    AddPageWithinBudget(outList, CreateReadPage(on, d));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
                 }
             }
         }
     }
+
+    private PdfReadPage CreateReadPage(int objectNumber, PdfDictionary pageDictionary) =>
+        new PdfReadPage(objectNumber, pageDictionary, _objects, _options.Limits, DemandTextExtraction, DemandContentExtraction);
 
     private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot) {
         var set = new HashSet<int>();

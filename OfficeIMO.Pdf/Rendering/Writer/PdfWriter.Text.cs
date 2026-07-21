@@ -1372,7 +1372,7 @@ internal static partial class PdfWriter {
     private static bool IsLongTokenDelimiterBreakChar(char value) =>
         Array.IndexOf(LongTokenDelimiterBreakChars, value) >= 0;
 
-    private static TextRun CreateStyledTextRun(string text, TextRun styleTemplate, PdfStandardFont? font) {
+    private static TextRun CreateStyledTextRun(string text, TextRun styleTemplate, PdfStandardFont? font, string? fallbackFontFamily = null) {
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
             (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
 
@@ -1390,7 +1390,7 @@ internal static partial class PdfWriter {
             styleTemplate.Baseline,
             keepLink ? styleTemplate.LinkDestinationName : null,
             backgroundColor: styleTemplate.BackgroundColor,
-            fontFamily: styleTemplate.FontFamily);
+            fontFamily: styleTemplate.FontFamily ?? fallbackFontFamily);
     }
 
     private static bool CanWriteRunWithSelectedFont(TextRun run, PdfStandardFont baseFont, PdfOptions? options) {

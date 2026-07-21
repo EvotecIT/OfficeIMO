@@ -14,18 +14,28 @@ internal static partial class PdfMetadataEditor {
         string? author = null,
         string? subject = null,
         string? keywords = null) {
-        Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata);
+        return UpdateMetadata(pdf, title, author, subject, keywords, readOptions: null);
+    }
 
-        var document = PdfReadDocument.Open(pdf);
+    internal static byte[] UpdateMetadata(
+        byte[] pdf,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
+
+        var document = PdfReadDocument.Open(pdf, readOptions);
         var metadata = new PdfMetadata {
-            Title = title ?? document.Metadata.Title,
-            Author = author ?? document.Metadata.Author,
-            Subject = subject ?? document.Metadata.Subject,
-            Keywords = keywords ?? document.Metadata.Keywords
+            Title = title ?? document.UncheckedMetadata.Title,
+            Author = author ?? document.UncheckedMetadata.Author,
+            Subject = subject ?? document.UncheckedMetadata.Subject,
+            Keywords = keywords ?? document.UncheckedMetadata.Keywords
         };
 
-        return RewriteWithMetadata(pdf, metadata);
+        return RewriteWithMetadata(pdf, metadata, readOptions);
     }
 
     /// <summary>
@@ -118,11 +128,15 @@ internal static partial class PdfMetadataEditor {
     /// Creates a new PDF with exactly the supplied document metadata.
     /// </summary>
     public static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata) {
+        return ReplaceMetadata(pdf, metadata, readOptions: null);
+    }
+
+    internal static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(metadata, nameof(metadata));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
 
-        return RewriteWithMetadata(pdf, metadata);
+        return RewriteWithMetadata(pdf, metadata, readOptions);
     }
 
     /// <summary>
@@ -181,9 +195,9 @@ internal static partial class PdfMetadataEditor {
         return ReplaceMetadata(File.ReadAllBytes(inputPath), metadata);
     }
 
-    private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata) {
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+    private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata, PdfReadOptions? readOptions) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }

@@ -145,19 +145,22 @@ public class PdfEncryptedReadTests {
 
 
     [Fact]
-    public void StandardPasswordEncryptedFormPdf_BlocksFormFillEvenWithValidPassword() {
+    public void StandardPasswordEncryptedFormPdf_FillsWithValidPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, new PdfReadOptions { Password = "open" });
+        var readOptions = new PdfReadOptions { Password = "open" };
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
+        PdfDocument filled = PdfDocument.Open(pdf, readOptions).Forms.Fill(new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
-        Assert.False(preflight.CanFillSimpleFormFields);
-        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.True(preflight.CanFillSimpleFormFields);
+        Assert.True(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
-        Assert.Contains(
-            "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.",
-            preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(PdfInspector.Probe(filled.ToBytes()).HasEncryption);
+        Assert.Equal("Grace", Assert.Single(filled.Inspect().FormFields).Value);
     }
 
     private static class EncryptedPdfFixture {

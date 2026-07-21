@@ -33,8 +33,18 @@ public sealed partial class PdfReadDocument {
     }
 
     /// <summary>Extracts image XObjects from all pages in page order.</summary>
-    public IReadOnlyList<PdfExtractedImage> ExtractImages() => PdfImageExtractor.ExtractImages(this);
+    public IReadOnlyList<PdfExtractedImage> ExtractImages() {
+        DemandContentExtraction("image");
+        return PdfImageExtractor.ExtractImages(this);
+    }
 
     /// <summary>Extracts embedded file attachments from the document catalog.</summary>
-    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() => PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits);
+    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() {
+        DemandContentExtraction("attachment");
+        return PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits);
+    }
+
+    internal void DemandTextExtraction() => PdfPermissionAuthorization.DemandTextExtraction(Security, _options.PermissionPolicy);
+
+    internal void DemandContentExtraction(string contentName) => PdfPermissionAuthorization.DemandContentExtraction(Security, _options.PermissionPolicy, contentName);
 }

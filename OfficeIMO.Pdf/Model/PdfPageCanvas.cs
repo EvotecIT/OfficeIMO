@@ -19,6 +19,13 @@ public sealed class PdfPageCanvas {
 
     internal IReadOnlyList<PdfCanvasItem> Items => _items;
 
+    internal void AddItems(IReadOnlyList<PdfCanvasItem> items) {
+        Guard.NotNull(items, nameof(items));
+        for (int i = 0; i < items.Count; i++) {
+            _items.Add(items[i]);
+        }
+    }
+
     /// <summary>Adds a document outline entry targeting an absolute top-left page coordinate.</summary>
     /// <param name="title">Visible outline title.</param>
     /// <param name="level">One-based outline hierarchy level.</param>

@@ -53,7 +53,7 @@ internal static partial class PdfPageExtractor {
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>
@@ -246,7 +246,7 @@ internal static partial class PdfPageExtractor {
         }
 
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>
@@ -330,7 +330,7 @@ internal static partial class PdfPageExtractor {
         var result = new List<byte[]>(document.Pages.Count);
 
         foreach (var page in document.Pages) {
-            result.Add(ExtractPages(objects, document.Metadata, new[] { page.ObjectNumber }, catalogState: catalogState, fileVersion: fileVersion));
+            result.Add(ExtractPages(objects, document.UncheckedMetadata, new[] { page.ObjectNumber }, catalogState: catalogState, fileVersion: fileVersion));
         }
 
         return result;
@@ -389,7 +389,7 @@ internal static partial class PdfPageExtractor {
                 .Range(range.FirstPage, range.PageCount)
                 .Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber)
                 .ToArray();
-            result.Add(ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: catalogState, fileVersion: fileVersion));
+            result.Add(ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, catalogState: catalogState, fileVersion: fileVersion));
         }
 
         return result;

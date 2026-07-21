@@ -5,13 +5,17 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with the selected pages rotated to the specified degrees. If no page numbers are supplied, all pages are rotated.
     /// </summary>
     public static byte[] RotatePages(byte[] pdf, int rotationDegrees, params int[] pageNumbers) {
+        return RotatePagesWithReadOptions(pdf, rotationDegrees, readOptions: null, pageNumbers);
+    }
+
+    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -31,7 +35,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>

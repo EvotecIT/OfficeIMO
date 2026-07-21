@@ -4,8 +4,8 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds an image stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        return StampImageCore(pdf, imageBytes, options, watermarkDefaults: false);
+    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfReadOptions? readOptions = null) {
+        return StampImageCore(pdf, imageBytes, options, watermarkDefaults: false, readOptions);
     }
 
     /// <summary>
@@ -57,10 +57,10 @@ internal static partial class PdfStamper {
         WriteOutput(outputStream, StampImage(stream, imageStream, options));
     }
 
-    private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults) {
+    private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
         }
@@ -79,8 +79,8 @@ internal static partial class PdfStamper {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -121,7 +121,7 @@ internal static partial class PdfStamper {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
     }
 
     /// <summary>
@@ -208,9 +208,9 @@ internal static partial class PdfStamper {
     /// Adds a centered image watermark to selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null) {
+    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfReadOptions? readOptions = null) {
         var effectiveOptions = BuildImageWatermarkOptions(options);
-        return StampImageCore(pdf, imageBytes, effectiveOptions, watermarkDefaults: true);
+        return StampImageCore(pdf, imageBytes, effectiveOptions, watermarkDefaults: true, readOptions);
     }
 
     /// <summary>

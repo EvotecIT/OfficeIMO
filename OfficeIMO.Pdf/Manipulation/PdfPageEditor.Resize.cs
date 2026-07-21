@@ -95,7 +95,7 @@ internal static partial class PdfPageEditor {
         TransformPageAnnotationsForResize(objects, document, selected, transformsByPageObjectNumber, overrides, additionalObjects, ref nextPseudoObjectNumber, destinationVisitedReferences, transformedDestinationArrays);
         return PdfPageExtractor.ExtractPages(
             objects,
-            document.Metadata,
+            document.UncheckedMetadata,
             pageObjectNumbers,
             overrides,
             additionalObjects,

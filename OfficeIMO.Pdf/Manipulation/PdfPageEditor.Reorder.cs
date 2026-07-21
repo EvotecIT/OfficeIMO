@@ -5,12 +5,16 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with every page copied in the specified one-based order.
     /// </summary>
     public static byte[] ReorderPages(byte[] pdf, params int[] pageNumbers) {
+        return ReorderPagesWithReadOptions(pdf, null, pageNumbers);
+    }
+
+    internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidateReorderPageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
         var ordered = new int[pageNumbers.Length];
@@ -19,7 +23,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>

@@ -196,6 +196,25 @@ PdfDocument.Create(new PdfOptions {
     .Save("service-report.pdf");
 ```
 
+Generated headers and footers can combine literal text, visually styled runs, and styled page tokens. The same builder is available for the default, first-page, and even-page variants:
+
+```csharp
+PdfDocument.Create()
+    .Header(header => header
+        .Text(text => text
+            .Run(TextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
+            .Text("- page ")
+            .CurrentPage(TextRun.Italicized(string.Empty))
+            .Text(" of ")
+            .TotalPages(TextRun.Italicized(string.Empty)))
+        .FirstPageText(text => text.Run(TextRun.Bolded("Confidential cover")))
+        .EvenPagesText(text => text.Run(TextRun.Underlined("Confidential even page"))))
+    .Paragraph(p => p.Text("Generated report body."))
+    .Save("styled-header.pdf");
+```
+
+Styled header/footer runs support fonts, size, color, highlighting, underline, strike, and baseline changes. Use the existing header/footer image and shape methods for visuals; interactive links and inline elements are intentionally kept out of text runs.
+
 ### Rich report layout
 
 ```csharp
@@ -371,6 +390,35 @@ PdfDocument.Open("packet.pdf")
     .Save("packet-clean.pdf");
 ```
 
+Encrypted merge inputs keep independent authentication settings. Owner
+authorization is honored automatically. A user password follows the PDF
+permission bits unless the caller explicitly opts into ignoring those
+restrictions:
+
+```csharp
+PdfDocument first = PdfDocument.Open("first.pdf", new PdfReadOptions {
+    Password = "first-owner-password"
+});
+PdfDocument second = PdfDocument.Open("second.pdf", new PdfReadOptions {
+    Password = "second-user-password",
+    PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+});
+
+PdfMergeResult merged = PdfDocument.MergeWithReport(
+    new PdfMergeOptions(),
+    first,
+    second);
+
+File.WriteAllBytes("merged.pdf", merged.ToBytes());
+Console.WriteLine(merged.Report.OutputHasEncryption); // False
+Console.WriteLine(merged.Report.Sources[1].PermissionRestrictionsIgnored); // True
+```
+
+`IgnoreRestrictions` is an authenticated permission override, not password
+recovery. The document must still decrypt with the supplied password; an
+unknown or incorrect password remains an error. Full rewrites of signed PDFs
+remain blocked because they would invalidate existing signatures.
+
 ### Stamp and watermark an existing PDF
 
 ```csharp
@@ -404,6 +452,29 @@ PdfDocument.Open("contract.pdf")
     })
     .Save("contract-with-letterhead.pdf");
 ```
+
+For richer existing-page automation, stamp a general visual canvas instead of
+using separate table-, text-, and image-only operations:
+
+```csharp
+PdfDocument.Open("contract.pdf")
+    .Stamp.Content((canvas, page) => {
+        canvas.Text($"Page {page.PageNumber} of {page.PageCount}", 36, 24, 220, 24)
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Reviewed") },
+                new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { TextRun.Bolded("Legal") }) }
+            }, 36, 620, page.Width - 72, 90);
+    }, new PdfCanvasStampOptions {
+        TargetPages = PdfPageSelector.Parse("1,last"),
+        Opacity = 0.95
+    })
+    .Save("contract-with-review-panel.pdf");
+```
+
+Canvas stamping is intentionally visual-only. Text, rich tables, images,
+shapes, drawings, clipping, and effects are supported. Interactive links and
+annotations, named destinations, forms, and document outlines use their
+dedicated editors so their behavior is not silently flattened or discarded.
 
 ### Fill and flatten a PDF form
 

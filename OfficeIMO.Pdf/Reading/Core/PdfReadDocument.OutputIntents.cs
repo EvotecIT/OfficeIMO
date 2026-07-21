@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
-    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents { get; }
+    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
     private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents() {
         PdfDictionary? catalog = FindCatalog();

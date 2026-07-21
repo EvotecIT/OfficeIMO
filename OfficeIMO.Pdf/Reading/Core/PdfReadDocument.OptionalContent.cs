@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     /// <summary>Catalog optional-content/layer metadata discovered from /OCProperties.</summary>
-    public PdfOptionalContentProperties? OptionalContent { get; }
+    public PdfOptionalContentProperties? OptionalContent => ReadLogicalContent(_optionalContent);
 
     private PdfOptionalContentProperties? ExtractOptionalContent() {
         PdfDictionary? catalog = FindCatalog();

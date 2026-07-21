@@ -12,7 +12,7 @@ public sealed partial class PdfReadDocument {
         var result = new List<PdfFormField>();
         var visited = new HashSet<int>();
         var widgetPageNumbers = BuildWidgetPageNumberLookup();
-        PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(AcroFormDefaultAppearance, AcroFormQuadding);
+        PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(_acroFormDefaultAppearance, _acroFormQuadding);
         if (fields.Items.Count > _options.Limits.MaxFormFields) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, _options.Limits.MaxFormFields, fields.Items.Count);
         }

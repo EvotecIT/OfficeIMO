@@ -39,11 +39,17 @@ public sealed partial class PdfDocumentPreflight {
                     encryption += string.Join(", ", parts) + ")";
                 }
 
-                encryption += ". OfficeIMO.Pdf can report lightweight markers, but cannot decrypt encrypted PDFs yet.";
+                encryption += security.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.None
+                    ? ". No password authorization was established."
+                    : ". The supplied password authenticated as " + security.PasswordAuthenticationRole + ".";
                 AddDistinct(messages, encryption);
 
                 if (security.EncryptionPermissions.HasValue) {
-                    AddDistinct(messages, "Raw encryption permissions /P=" + security.EncryptionPermissions.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " were detected; permission helpers are informational until decryption support exists.");
+                    AddDistinct(messages, "Raw encryption permissions /P=" + security.EncryptionPermissions.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " were detected and are enforced for user-password operations unless the caller explicitly ignores restrictions.");
+                }
+
+                if (PermissionRestrictionsIgnored) {
+                    AddDistinct(messages, "Authenticated user-password permission restrictions are being explicitly ignored for this operation.");
                 }
             }
 

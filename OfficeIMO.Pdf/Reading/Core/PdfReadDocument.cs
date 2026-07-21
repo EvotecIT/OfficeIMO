@@ -10,6 +10,24 @@ public sealed partial class PdfReadDocument {
     private readonly PdfReadOptions _options;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
+    private readonly PdfMetadata _metadata;
+    private readonly PdfXmpMetadataInfo? _xmpMetadata;
+    private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
+    private readonly IReadOnlyList<PdfOutlineItem> _outlines;
+    private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
+    private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
+    private readonly IReadOnlyList<PdfCatalogAction> _catalogActions;
+    private readonly IReadOnlyList<PdfAttachmentInfo> _attachments;
+    private readonly PdfTaggedContentInfo? _taggedContent;
+    private readonly PdfOptionalContentProperties? _optionalContent;
+    private readonly PdfDocumentOpenAction? _openAction;
+    private readonly PdfPortfolioInfo? _portfolio;
+    private readonly IReadOnlyList<PdfFormField> _formFields;
+    private readonly string? _acroFormDefaultAppearance;
+    private readonly int? _acroFormQuadding;
+    private readonly bool? _acroFormNeedAppearances;
+    private readonly int? _acroFormSignatureFlags;
+    private readonly PdfAcroFormXfaInfo? _acroFormXfa;
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
@@ -25,25 +43,25 @@ public sealed partial class PdfReadDocument {
         Security = security;
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
-        Metadata = ExtractMetadata();
-        PageLabels = ExtractPageLabels();
-        NamedDestinations = ExtractNamedDestinations();
-        CatalogActions = ExtractCatalogActions();
-        Attachments = ExtractAttachmentInfos();
-        OutputIntents = ExtractOutputIntents();
-        XmpMetadata = ExtractXmpMetadata();
-        TaggedContent = ExtractTaggedContent();
-        OptionalContent = ExtractOptionalContent();
-        Outlines = ExtractOutlines();
-        OpenAction = ExtractOpenAction();
+        _metadata = ExtractMetadata();
+        _pageLabels = ExtractPageLabels();
+        _namedDestinations = ExtractNamedDestinations();
+        _catalogActions = ExtractCatalogActions();
+        _attachments = ExtractAttachmentInfos();
+        _outputIntents = ExtractOutputIntents();
+        _xmpMetadata = ExtractXmpMetadata();
+        _taggedContent = ExtractTaggedContent();
+        _optionalContent = ExtractOptionalContent();
+        _outlines = ExtractOutlines();
+        _openAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
-        Portfolio = ExtractPortfolio();
-        AcroFormDefaultAppearance = ExtractAcroFormText("DA");
-        AcroFormQuadding = ExtractAcroFormInteger("Q");
-        AcroFormXfa = ExtractAcroFormXfaInfo();
-        FormFields = ExtractFormFields();
-        AcroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
-        AcroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
+        _portfolio = ExtractPortfolio();
+        _acroFormDefaultAppearance = ExtractAcroFormText("DA");
+        _acroFormQuadding = ExtractAcroFormInteger("Q");
+        _acroFormXfa = ExtractAcroFormXfaInfo();
+        _formFields = ExtractFormFields();
+        _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
+        _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
@@ -54,46 +72,46 @@ public sealed partial class PdfReadDocument {
     public IReadOnlyList<PdfReadPage> Pages { get; }
 
     /// <summary>Document metadata (when present).</summary>
-    public PdfMetadata Metadata { get; }
+    public PdfMetadata Metadata => ReadLogicalContent(_metadata);
 
     /// <summary>Top-level document outline/bookmark entries.</summary>
-    public IReadOnlyList<PdfOutlineItem> Outlines { get; }
+    public IReadOnlyList<PdfOutlineItem> Outlines => ReadLogicalContent(_outlines);
 
     /// <summary>Page-label rules discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfPageLabel> PageLabels { get; }
+    public IReadOnlyList<PdfPageLabel> PageLabels => ReadLogicalContent(_pageLabels);
 
     /// <summary>Named destinations discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfNamedDestination> NamedDestinations { get; }
+    public IReadOnlyList<PdfNamedDestination> NamedDestinations => ReadLogicalContent(_namedDestinations);
 
     /// <summary>Catalog-level actions discovered from supported name trees.</summary>
-    public IReadOnlyList<PdfCatalogAction> CatalogActions { get; }
+    public IReadOnlyList<PdfCatalogAction> CatalogActions => ReadLogicalContent(_catalogActions);
 
     /// <summary>Simple document open action discovered from the document catalog, when supported.</summary>
-    public PdfDocumentOpenAction? OpenAction { get; }
+    public PdfDocumentOpenAction? OpenAction => ReadLogicalContent(_openAction);
 
     /// <summary>Simple viewer preference entries discovered from the document catalog, when supported.</summary>
     public PdfViewerPreferences? ViewerPreferences { get; }
 
     /// <summary>Document portfolio metadata discovered from the catalog, when present.</summary>
-    public PdfPortfolioInfo? Portfolio { get; }
+    public PdfPortfolioInfo? Portfolio => ReadLogicalContent(_portfolio);
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfFormField> FormFields { get; }
+    public IReadOnlyList<PdfFormField> FormFields => ReadLogicalContent(_formFields);
 
     /// <summary>AcroForm default appearance string from /DA, when present.</summary>
-    public string? AcroFormDefaultAppearance { get; }
+    public string? AcroFormDefaultAppearance => ReadLogicalContent(_acroFormDefaultAppearance);
 
     /// <summary>Raw AcroForm default /Q quadding value, when present.</summary>
-    public int? AcroFormQuadding { get; }
+    public int? AcroFormQuadding => ReadLogicalContent(_acroFormQuadding);
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
-    public bool? AcroFormNeedAppearances { get; }
+    public bool? AcroFormNeedAppearances => ReadLogicalContent(_acroFormNeedAppearances);
 
     /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
-    public int? AcroFormSignatureFlags { get; }
+    public int? AcroFormSignatureFlags => ReadLogicalContent(_acroFormSignatureFlags);
 
     /// <summary>AcroForm XFA packet metadata when the document catalog exposes /AcroForm /XFA.</summary>
-    public PdfAcroFormXfaInfo? AcroFormXfa { get; }
+    public PdfAcroFormXfaInfo? AcroFormXfa => ReadLogicalContent(_acroFormXfa);
 
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
@@ -112,4 +130,27 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Structural recoveries applied while loading this document.</summary>
     public PdfRepairReport RepairReport { get; }
+
+    internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
+    internal PdfMetadata UncheckedMetadata => _metadata;
+    internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
+    internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
+    internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
+    internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
+    internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;
+    internal IReadOnlyList<PdfAttachmentInfo> UncheckedAttachments => _attachments;
+    internal PdfTaggedContentInfo? UncheckedTaggedContent => _taggedContent;
+    internal PdfOptionalContentProperties? UncheckedOptionalContent => _optionalContent;
+    internal PdfDocumentOpenAction? UncheckedOpenAction => _openAction;
+    internal IReadOnlyList<PdfFormField> UncheckedFormFields => _formFields;
+    internal string? UncheckedAcroFormDefaultAppearance => _acroFormDefaultAppearance;
+    internal int? UncheckedAcroFormQuadding => _acroFormQuadding;
+    internal bool? UncheckedAcroFormNeedAppearances => _acroFormNeedAppearances;
+    internal int? UncheckedAcroFormSignatureFlags => _acroFormSignatureFlags;
+    internal PdfAcroFormXfaInfo? UncheckedAcroFormXfa => _acroFormXfa;
+
+    private T ReadLogicalContent<T>(T value) {
+        DemandContentExtraction("logical object");
+        return value;
+    }
 }

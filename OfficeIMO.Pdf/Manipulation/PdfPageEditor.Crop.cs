@@ -93,7 +93,7 @@ internal static partial class PdfPageEditor {
             transformedArrays);
         return PdfPageExtractor.ExtractPages(
             objects,
-            document.Metadata,
+            document.UncheckedMetadata,
             pageObjectNumbers,
             overrides,
             additionalObjects,

@@ -5,6 +5,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMutationPlannerTests {
     [Fact]
+    public void PermissionCheckEnumPreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)PdfMutationPermissionCheck.ReadDocument);
+        Assert.Equal(1, (int)PdfMutationPermissionCheck.ModifyDocument);
+        Assert.Equal(2, (int)PdfMutationPermissionCheck.AssembleDocument);
+        Assert.Equal(3, (int)PdfMutationPermissionCheck.ModifyAnnotations);
+        Assert.Equal(4, (int)PdfMutationPermissionCheck.FillForms);
+        Assert.Equal(5, (int)PdfMutationPermissionCheck.DocMdp);
+        Assert.Equal(6, (int)PdfMutationPermissionCheck.FieldMdp);
+        Assert.Equal(7, (int)PdfMutationPermissionCheck.AppendRevision);
+        Assert.Equal(8, (int)PdfMutationPermissionCheck.FillSignatureContentsReservation);
+        Assert.Equal(9, (int)PdfMutationPermissionCheck.OwnerAuthorization);
+        Assert.Equal(10, (int)PdfMutationPermissionCheck.CopyContents);
+    }
+
+    [Fact]
     public void Plan_ChoosesFullRewriteForOrdinaryMetadataMutation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Planner metadata source"))
@@ -112,7 +127,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksEncryptedMutationEvenWithValidPassword() {
+    public void Plan_ChoosesFullRewriteForAuthorizedEncryptedMutation() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted planner source"))
             .ToBytes();
@@ -120,11 +135,13 @@ public class PdfMutationPlannerTests {
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata, readOptions);
 
-        Assert.False(plan.CanExecute);
+        Assert.True(plan.CanExecute);
         Assert.True(plan.Preflight.CanRead);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("FullRewrite.Encryption", plan.BlockerCodes);
-        Assert.Contains("AppendOnly.Encrypted", plan.BlockerCodes);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.True(plan.FullRewriteAvailable);
+        Assert.False(plan.AppendOnlyAvailable);
+        Assert.Empty(plan.BlockerCodes);
+        Assert.Contains("Output.EncryptionWillBeRemoved", plan.Warnings);
     }
 
     [Fact]
@@ -193,6 +210,51 @@ public class PdfMutationPlannerTests {
             Assert.Equal(2, result.RequireValue().Inspect().PageCount);
             Assert.Single(result.RequireValue().Inspect().FormFields, static field => field.Name == "Name");
         });
+    }
+
+    [Fact]
+    public void TryPageImports_PropagateExplicitTargetAuthenticationThroughExecution() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] target = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Target one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Target two"))
+            .ToBytes();
+        byte[] incoming = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Incoming one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Incoming two"))
+            .ToBytes();
+        var targetReadOptions = new PdfReadOptions {
+            Password = "open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+
+        PdfOperationResult<PdfDocument> appended = PdfDocument.Open(target).Pages.TryAppend(
+            incoming,
+            options: targetReadOptions);
+        PdfOperationResult<PdfDocument> prepended = PdfDocument.Open(target).Pages.TryPrepend(
+            incoming,
+            PdfPageSelection.From(2),
+            options: targetReadOptions);
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Open(target).Pages.TryInsert(
+            2,
+            incoming,
+            PdfPageSelection.From(1),
+            options: targetReadOptions);
+
+        Assert.All(new[] { appended, prepended, inserted }, result => {
+            Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Contains("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
+            Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+        });
+        Assert.Equal(4, appended.RequireValue().Inspect().PageCount);
+        Assert.Equal(3, prepended.RequireValue().Inspect().PageCount);
+        Assert.Equal(3, inserted.RequireValue().Inspect().PageCount);
     }
 
     [Fact]

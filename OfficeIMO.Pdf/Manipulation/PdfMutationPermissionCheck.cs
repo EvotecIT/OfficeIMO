@@ -30,5 +30,8 @@ public enum PdfMutationPermissionCheck {
     FillSignatureContentsReservation,
 
     /// <summary>The operation requires owner-level authorization for encryption changes.</summary>
-    OwnerAuthorization
+    OwnerAuthorization,
+
+    /// <summary>The document security permissions must allow content copying or extraction.</summary>
+    CopyContents
 }

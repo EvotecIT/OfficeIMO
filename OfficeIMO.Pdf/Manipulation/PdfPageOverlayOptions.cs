@@ -68,6 +68,9 @@ public sealed class PdfPageOverlayOptions {
     /// <summary>Places the imported page before existing page content.</summary>
     public bool BehindContent { get; set; }
 
+    /// <summary>Read options used for the imported source PDF, including its password and permission policy.</summary>
+    public PdfReadOptions? SourceReadOptions { get; set; }
+
     /// <summary>Sets the target pages from a rich page-selector expression.</summary>
     public PdfPageOverlayOptions UseTargetPages(string selector) {
         TargetPages = PdfPageSelector.Parse(selector);
@@ -85,7 +88,8 @@ public sealed class PdfPageOverlayOptions {
         Width = Width,
         Height = Height,
         Opacity = Opacity,
-        BehindContent = behindContent ?? BehindContent
+        BehindContent = behindContent ?? BehindContent,
+        SourceReadOptions = SourceReadOptions
     };
 
     private static void ValidateOptionalFinite(double? value, string paramName) {

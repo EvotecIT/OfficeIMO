@@ -3,8 +3,11 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfPageEditor {
     /// <summary>Creates a new PDF with the selected pages updated to the supplied typed boundary box.</summary>
     public static byte[] SetPageBox(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, params int[] pageNumbers) {
-        return SetPageBox(pdf, GetPageBoxName(box), left, bottom, right, top, pageNumbers);
+        return SetPageBoxWithReadOptions(pdf, box, left, bottom, right, top, readOptions: null, pageNumbers);
     }
+
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, PdfReadOptions? readOptions, params int[] pageNumbers) =>
+        SetPageBoxWithReadOptions(pdf, GetPageBoxName(box), left, bottom, right, top, readOptions, pageNumbers);
 
     /// <summary>Sets the media box for selected pages, or every page when no page numbers are supplied.</summary>
     public static byte[] SetMediaBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
@@ -30,14 +33,18 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with the selected pages updated to the supplied production boundary box.
     /// </summary>
     public static byte[] SetPageBox(byte[] pdf, string boxName, double left, double bottom, double right, double top, params int[] pageNumbers) {
+        return SetPageBoxWithReadOptions(pdf, boxName, left, bottom, right, top, readOptions: null, pageNumbers);
+    }
+
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         string normalizedBoxName = NormalizePageBoxName(boxName);
         ValidatePageBoxCoordinates(left, bottom, right, top);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -58,7 +65,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>Creates a new PDF with the selected pages updated to the supplied production boundary box from a readable stream.</summary>

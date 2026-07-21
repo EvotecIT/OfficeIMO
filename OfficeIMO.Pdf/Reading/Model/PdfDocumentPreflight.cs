@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Wrapper-friendly PDF capability report for OfficeIMO.Pdf read and rewrite operations.
 /// </summary>
 public sealed partial class PdfDocumentPreflight {
+    private readonly PdfDocumentInfo? _documentInfo;
+
     internal PdfDocumentPreflight(
         PdfDocumentProbe probe,
         PdfDocumentInfo? documentInfo,
@@ -11,21 +13,28 @@ public sealed partial class PdfDocumentPreflight {
         bool canRewrite,
         IReadOnlyList<string> diagnostics,
         IReadOnlyList<PdfReadBlocker> readBlockers,
-        IReadOnlyList<PdfRewriteBlocker> rewriteBlockers) {
+        IReadOnlyList<PdfRewriteBlocker> rewriteBlockers,
+        PdfPermissionPolicy permissionPolicy) {
         Probe = probe;
-        DocumentInfo = documentInfo;
+        _documentInfo = documentInfo;
         CanRead = canRead;
         CanRewrite = canRewrite;
         Diagnostics = diagnostics;
         ReadBlockers = readBlockers;
         RewriteBlockers = rewriteBlockers;
+        PermissionPolicy = permissionPolicy;
     }
 
     /// <summary>Lightweight PDF markers read before full parsing.</summary>
     public PdfDocumentProbe Probe { get; }
 
-    /// <summary>Parsed document information when the document can be inspected.</summary>
-    public PdfDocumentInfo? DocumentInfo { get; }
+    /// <summary>Parsed document information when content extraction is authorized; otherwise <see langword="null"/>.</summary>
+    public PdfDocumentInfo? DocumentInfo => PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy)
+        ? _documentInfo
+        : null;
+
+    /// <summary>Parsed document information retained for internal capability and mutation planning.</summary>
+    internal PdfDocumentInfo? UncheckedDocumentInfo => _documentInfo;
 
     /// <summary>True when OfficeIMO.Pdf can parse enough of the document for read-oriented operations.</summary>
     public bool CanRead { get; }
@@ -34,25 +43,31 @@ public sealed partial class PdfDocumentPreflight {
     public bool CanRewrite { get; }
 
     /// <summary>True when OfficeIMO.Pdf can attempt text and structured text readback operations for this PDF.</summary>
-    public bool CanExtractText => CanRead;
+    public bool CanExtractText => CanRead && PdfPermissionAuthorization.CanExtractText(Probe.Security, PermissionPolicy);
 
     /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
-    public bool CanExtractImages => DocumentInfo is not null && !HasImageExtractionBlocker();
+    public bool CanExtractImages => _documentInfo is not null && !HasImageExtractionBlocker() && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 
     /// <summary>True when OfficeIMO.Pdf can attempt embedded-file and associated-file attachment extraction for this PDF.</summary>
-    public bool CanExtractAttachments => DocumentInfo is not null && !HasAttachmentExtractionBlocker();
+    public bool CanExtractAttachments => _documentInfo is not null && !HasAttachmentExtractionBlocker() && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 
     /// <summary>True when OfficeIMO.Pdf can attempt logical object readback through PdfLogicalDocument for this PDF.</summary>
-    public bool CanReadLogicalObjects => CanRead;
+    public bool CanReadLogicalObjects => CanRead && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 
-    /// <summary>True when OfficeIMO.Pdf can attempt page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
-    public bool CanManipulatePages => CanRewrite;
+    /// <summary>Permission policy used while evaluating extraction and mutation capabilities.</summary>
+    public PdfPermissionPolicy PermissionPolicy { get; }
+
+    /// <summary>True when authenticated user-password restrictions are being explicitly ignored.</summary>
+    public bool PermissionRestrictionsIgnored => PdfPermissionAuthorization.RestrictionsIgnored(Probe.Security, PermissionPolicy);
+
+    /// <summary>True when OfficeIMO.Pdf can attempt at least one page-level rewrite operation.</summary>
+    public bool CanManipulatePages => CanRewrite || CanUseAuthenticatedEncryptedPageMutation();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
-    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && !HasRewriteBlocker(PdfRewriteBlockerKind.Encryption) && HasSimpleFillableFormFields();
+    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker(PdfMutationOperation.FillFormFields) && HasSimpleFillableFormFields();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text, choice, or button widgets with page-backed rectangles.</summary>
-    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && !HasRewriteBlocker(PdfRewriteBlockerKind.Encryption) && HasSimpleFlattenableFormFields();
+    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker(PdfMutationOperation.FlattenFormFields) && HasSimpleFlattenableFormFields();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates followed by simple widget flattening.</summary>
     public bool CanFillAndFlattenSimpleFormFields => CanFillSimpleFormFields && CanFlattenSimpleFormFields;
@@ -86,6 +101,22 @@ public sealed partial class PdfDocumentPreflight {
         }
 
         return false;
+    }
+
+    private bool CanUseAuthenticatedEncryptedPageMutation() {
+        if (!CanRead || !Probe.Security.HasEncryption) {
+            return false;
+        }
+
+        for (int i = 0; i < RewriteBlockers.Count; i++) {
+            if (RewriteBlockers[i].Kind != PdfRewriteBlockerKind.Encryption) {
+                return false;
+            }
+        }
+
+        return PdfPermissionAuthorization.CanMutate(Probe.Security, PermissionPolicy, PdfMutationOperation.ModifyPageContent) ||
+            PdfPermissionAuthorization.CanMutate(Probe.Security, PermissionPolicy, PdfMutationOperation.ModifyPageTree) ||
+            PdfPermissionAuthorization.CanMutate(Probe.Security, PermissionPolicy, PdfMutationOperation.MergeDocuments);
     }
 
     /// <summary>Returns true when the requested wrapper-facing capability can be attempted for this PDF.</summary>
@@ -126,7 +157,7 @@ public sealed partial class PdfDocumentPreflight {
 
         switch (capability) {
             case PdfPreflightCapability.ExtractText:
-                return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
+                return GetTextExtractionDiagnostics();
             case PdfPreflightCapability.ExtractImages:
                 return GetImageExtractionDiagnostics();
             case PdfPreflightCapability.ExtractAttachments:
@@ -152,12 +183,12 @@ public sealed partial class PdfDocumentPreflight {
         }
     }
 
-    private bool HasFormMutationBlocker() {
-        return Probe.HasEncryption ||
-            Probe.HasSignatures ||
+    private bool HasFormMutationBlocker(PdfMutationOperation operation) {
+        return Probe.HasSignatures ||
             Probe.HasActiveContent ||
-            DocumentInfo?.AcroFormSignaturesExist == true ||
-            DocumentInfo?.HasActiveContent == true;
+            _documentInfo?.AcroFormSignaturesExist == true ||
+            _documentInfo?.HasActiveContent == true ||
+            (Probe.HasEncryption && !PdfPermissionAuthorization.CanMutate(Probe.Security, PermissionPolicy, operation));
     }
 
     private bool HasImageExtractionBlocker() {
@@ -174,12 +205,12 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     private bool HasSimpleFillableFormFields() {
-        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+        if (_documentInfo is null || _documentInfo.FormFields.Count == 0) {
             return false;
         }
 
-        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
-            PdfFormField field = DocumentInfo.FormFields[i];
+        for (int i = 0; i < _documentInfo.FormFields.Count; i++) {
+            PdfFormField field = _documentInfo.FormFields[i];
             if (IsNamedSimpleFillField(field)) {
                 return true;
             }
@@ -189,13 +220,13 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     private bool HasSimpleFlattenableFormFields() {
-        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+        if (_documentInfo is null || _documentInfo.FormFields.Count == 0) {
             return false;
         }
 
         bool hasFlattenableWidget = false;
-        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
-            PdfFormField field = DocumentInfo.FormFields[i];
+        for (int i = 0; i < _documentInfo.FormFields.Count; i++) {
+            PdfFormField field = _documentInfo.FormFields[i];
             if (!IsNamedSimpleFlattenField(field) || field.Widgets.Count == 0) {
                 return false;
             }
@@ -244,7 +275,19 @@ public sealed partial class PdfDocumentPreflight {
         return messages.AsReadOnly();
     }
 
+    private IReadOnlyList<string> GetTextExtractionDiagnostics() {
+        if (CanRead && !PdfPermissionAuthorization.CanExtractText(Probe.Security, PermissionPolicy)) {
+            return new[] { "PDF text extraction is restricted by the authenticated user-password permissions. Supply owner authorization or explicitly ignore permission restrictions." };
+        }
+
+        return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
+    }
+
     private IReadOnlyList<string> GetImageExtractionDiagnostics() {
+        if (CanRead && !PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy)) {
+            return new[] { "PDF image extraction is restricted by the authenticated user-password permissions. Supply owner authorization or explicitly ignore permission restrictions." };
+        }
+
         if (ReadBlockers.Count == 0) {
             return new[] { "PDF image extraction is not available because OfficeIMO.Pdf cannot inspect this PDF." };
         }
@@ -265,6 +308,10 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     private IReadOnlyList<string> GetAttachmentExtractionDiagnostics() {
+        if (CanRead && !PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy)) {
+            return new[] { "PDF attachment extraction is restricted by the authenticated user-password permissions. Supply owner authorization or explicitly ignore permission restrictions." };
+        }
+
         if (ReadBlockers.Count == 0) {
             return new[] { "PDF attachment extraction is not available because OfficeIMO.Pdf cannot inspect this PDF." };
         }
@@ -343,12 +390,12 @@ public sealed partial class PdfDocumentPreflight {
             AddRange(messages, SecurityDiagnostics);
         }
 
-        if (Probe.HasSignatures || DocumentInfo?.AcroFormSignaturesExist == true) {
+        if (Probe.HasSignatures || _documentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
             AddRange(messages, SignatureMutationDiagnostics);
         }
 
-        if (Probe.HasActiveContent || DocumentInfo?.HasActiveContent == true) {
+        if (Probe.HasActiveContent || _documentInfo?.HasActiveContent == true) {
             AddDistinct(messages, "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.");
         }
 
