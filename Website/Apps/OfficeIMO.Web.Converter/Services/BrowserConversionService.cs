@@ -19,9 +19,9 @@ public sealed class BrowserConversionService {
     public const long MaxPackageBytes = 25L * 1024L * 1024L;
     public const int MaxTextInputChars = 500_000;
 
-    public ConversionResult ConvertFile(ConversionRoute route, SelectedDocument file, bool fastPreview) => route.Id switch {
+    public ConversionResult ConvertFile(ConversionRoute route, SelectedDocument file, bool limitExcelRows) => route.Id switch {
         "docx-pdf" => ConvertWordToPdf(file),
-        "xlsx-pdf" => ConvertExcelToPdf(file, fastPreview),
+        "xlsx-pdf" => ConvertExcelToPdf(file, limitExcelRows),
         "pptx-pdf" => ConvertPowerPointToPdf(file),
         _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
     };
@@ -57,14 +57,14 @@ public sealed class BrowserConversionService {
         return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
     }
 
-    private static ConversionResult ConvertExcelToPdf(SelectedDocument file, bool fastPreview) {
+    private static ConversionResult ConvertExcelToPdf(SelectedDocument file, bool limitRowsPerSheet) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using ExcelDocument document = ExcelDocument.Load(stream,
             new ExcelLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new ExcelPdfSaveOptions { MaxRowsPerSheet = fastPreview ? 250 : null };
+        var options = new ExcelPdfSaveOptions { MaxRowsPerSheet = limitRowsPerSheet ? 250 : null };
         var conversion = document.ToPdfDocumentResult(options);
         byte[] bytes = conversion.Value.ToBytes();
         return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());

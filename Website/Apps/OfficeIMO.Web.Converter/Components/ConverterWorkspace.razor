@@ -45,7 +45,7 @@
                     </label>
                     <div class="ocx-input-actions">
                         <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample @ActiveRoute.Source</button>
-                        @if (ActiveRoute.Id == "xlsx-pdf") { <label class="ocx-toggle"><input type="checkbox" @bind="FastPreview" /><span>Limit preview to 250 rows per sheet</span></label> }
+                        @if (ActiveRoute.Id == "xlsx-pdf") { <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" /><span>Limit PDF to 250 rows per sheet</span></label> }
                     </div>
                 } else {
                     <div class="ocx-editor-shell"><div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source source</span><button type="button" @onclick="LoadTextSampleAsync">Reset sample</button></div><textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea></div>

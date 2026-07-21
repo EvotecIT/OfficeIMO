@@ -45,7 +45,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private string? OutputUrl { get; set; }
     private string OutputFileName { get; set; } = "officeimo-output";
     private string TextInput { get; set; } = DefaultMarkdown;
-    private bool FastPreview { get; set; }
+    private bool LimitExcelRows { get; set; }
     private bool PreviewOutput { get; set; } = true;
     private bool IsBusy { get; set; }
     private long ElapsedMilliseconds { get; set; }
@@ -139,7 +139,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
         try {
             Output = ActiveRoute.InputKind == ConversionInputKind.File
-                ? ConversionService.ConvertFile(ActiveRoute, SelectedFile!, FastPreview)
+                ? ConversionService.ConvertFile(ActiveRoute, SelectedFile!, LimitExcelRows)
                 : ConversionService.ConvertText(ActiveRoute, TextInput);
             stopwatch.Stop();
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;

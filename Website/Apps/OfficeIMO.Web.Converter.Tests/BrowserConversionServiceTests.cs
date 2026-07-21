@@ -70,7 +70,7 @@ public sealed class BrowserConversionServiceTests {
         byte[] bytes = CreateHighlyCompressedPackage();
         var document = new SelectedDocument("unsafe.docx", ".docx", "DOCX", bytes.LongLength, bytes);
 
-        Assert.Throws<OfficePackageSecurityException>(() => _service.ConvertFile(route, document, fastPreview: false));
+        Assert.Throws<OfficePackageSecurityException>(() => _service.ConvertFile(route, document, limitExcelRows: false));
     }
 
     private static byte[] CreateHighlyCompressedPackage() {
