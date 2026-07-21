@@ -61,6 +61,22 @@ public sealed class AdfContractTests {
         Assert.Contains(result.Issues, item => item.Code == "ADF_UNKNOWN_NODE");
     }
 
+    [Theory]
+    [InlineData("text")]
+    [InlineData("hardBreak")]
+    [InlineData("mention")]
+    [InlineData("tableCell")]
+    public void Validation_RejectsKnownNonBlockNodesAtDocumentRoot(string nodeType) {
+        var document = new AdfDocument();
+        document.Content.Add(nodeType == "text" ? AdfNode.TextNode("invalid") : new AdfNode(nodeType));
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == "ADF_ROOT_CHILD");
+        Assert.Equal("$.content[0]", issue.Path);
+    }
+
     [Fact]
     public void MarkdownTaskList_UsesValidListItemFallbackAndReportsFidelity() {
         AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown("- [x] Ready\n- [ ] Pending");
@@ -216,6 +232,59 @@ public sealed class AdfContractTests {
             paragraph.Content,
             text => Assert.Equal("ready", text.Text),
             hardBreak => Assert.Equal("hardBreak", hardBreak.Type));
+    }
+
+    [Fact]
+    public void TableProjection_PreservesLiteralPipesAndHardBreaks() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("table") {
+            Content = {
+                new AdfNode("tableRow") {
+                    Content = {
+                        new AdfNode("tableHeader") {
+                            Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode("Header") } } }
+                        },
+                        new AdfNode("tableHeader") {
+                            Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode("Other") } } }
+                        }
+                    }
+                },
+                new AdfNode("tableRow") {
+                    Content = {
+                        new AdfNode("tableCell") {
+                            Content = {
+                                new AdfNode("paragraph") {
+                                    Content = {
+                                        AdfNode.TextNode("left|right"),
+                                        new AdfNode("hardBreak"),
+                                        AdfNode.TextNode("next")
+                                    }
+                                }
+                            }
+                        },
+                        new AdfNode("tableCell") {
+                            Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode("stable") } } }
+                        }
+                    }
+                }
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains("left\\|right<br />next", markdown.Value);
+        AdfNode table = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal(2, table.Content.Count);
+        Assert.All(table.Content, row => Assert.Equal(2, row.Content.Count));
+        AdfNode paragraph = Assert.Single(table.Content[1].Content[0].Content);
+        Assert.Collection(
+            paragraph.Content,
+            text => Assert.Equal("left", text.Text),
+            pipe => Assert.Equal("|", pipe.Text),
+            text => Assert.Equal("right", text.Text),
+            hardBreak => Assert.Equal("hardBreak", hardBreak.Type),
+            text => Assert.Equal("next", text.Text));
     }
 
     [Fact]

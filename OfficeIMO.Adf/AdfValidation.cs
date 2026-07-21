@@ -37,6 +37,12 @@ internal static class AdfValidator {
         "inlineCard", "blockCard", "extension", "inlineExtension", "bodiedExtension", "panel",
     };
 
+    private static readonly HashSet<string> RootBlockNodes = new HashSet<string>(StringComparer.Ordinal) {
+        "paragraph", "heading", "rule", "blockquote", "codeBlock", "bulletList", "orderedList",
+        "taskList", "table", "mediaSingle", "mediaGroup", "blockCard", "extension",
+        "bodiedExtension", "panel",
+    };
+
     private static readonly HashSet<string> KnownMarks = new HashSet<string>(StringComparer.Ordinal) {
         "strong", "em", "code", "strike", "link", "subsup", "textColor", "backgroundColor", "annotation",
     };
@@ -46,7 +52,14 @@ internal static class AdfValidator {
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
-        for (int i = 0; i < document.Content.Count; i++) ValidateNode(document.Content[i], "$.content[" + i + "]", null, issues);
+        for (int i = 0; i < document.Content.Count; i++) {
+            AdfNode node = document.Content[i];
+            string path = "$.content[" + i + "]";
+            if (node != null && KnownNodes.Contains(node.Type) && !RootBlockNodes.Contains(node.Type)) {
+                issues.Add(Error("ADF_ROOT_CHILD", path, "ADF document content may contain only block nodes."));
+            }
+            ValidateNode(node, path, null, issues);
+        }
         return new AdfValidationResult(issues);
     }
 

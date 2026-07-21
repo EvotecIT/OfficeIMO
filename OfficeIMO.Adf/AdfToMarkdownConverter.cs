@@ -129,7 +129,7 @@ internal static class AdfToMarkdownConverter {
         builder.Append('|');
         for (int column = 0; column < columns; column++) {
             string value = column < row.Content.Count ? RenderCell(row.Content[column], path + ".content[" + column + "]", diagnostics) : string.Empty;
-            builder.Append(' ').Append(value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", "<br/>")).Append(" |");
+            builder.Append(' ').Append(value.Replace("\r", " ").Replace("\n", "<br/>")).Append(" |");
         }
     }
 
