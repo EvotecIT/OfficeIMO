@@ -6,16 +6,21 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
+    internal static HtmlCssByteBudget CreateBudget(IHtmlDocument document, HtmlConversionLimits limits) {
+        var budget = new HtmlCssByteBudget(limits);
+        foreach (IElement style in document.QuerySelectorAll("style")) {
+            budget.ReserveOrThrow(style.TextContent ?? string.Empty);
+        }
+
+        return budget;
+    }
+
     internal static void Apply(
         IHtmlDocument document,
         HtmlResourceSession resources,
         HtmlRenderOptions options,
-        HtmlConversionLimits limits,
+        HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
-        var cssBudget = new HtmlCssByteBudget(limits);
-        foreach (IElement style in document.QuerySelectorAll("style")) {
-            cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
-        }
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
             if (!IsStylesheetLink(link)) {
@@ -23,6 +28,13 @@ internal static class HtmlRenderStylesheetApplier {
             }
 
             string source = link.GetAttribute("href") ?? string.Empty;
+            string? resolvedSource = resources.TryGetResolvedSource(source, null, out string resolved)
+                ? resolved
+                : null;
+            if (resources.WasStylesheetRejected(source, resolvedSource)) {
+                continue;
+            }
+
             if (!resources.TryGet(source, null, out HtmlResolvedResource resource)) {
                 continue;
             }
@@ -38,11 +50,12 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!TryReserveCss(cssBudget, css, source, diagnostics)) {
+            if (!resources.WasStylesheetBudgeted(source, resolvedSource)
+                && !TryReserveCss(cssBudget, css, source, diagnostics)) {
                 continue;
             }
 
-            if (resources.TryGetResolvedSource(source, null, out string resolvedSource)
+            if (resolvedSource != null
                 && Uri.TryCreate(resolvedSource, UriKind.Absolute, out Uri? stylesheetUri)) {
                 css = ExpandImports(
                     css,
@@ -117,12 +130,14 @@ internal static class HtmlRenderStylesheetApplier {
             HtmlResourceReference reference = import.Reference;
             if (import.IsApplicable
                 && reference.IsAllowed
+                && !resources.WasStylesheetRejected(reference.Source, reference.ResolvedSource)
                 && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
                 } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
-                    if (TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
+                    if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
+                        || TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
                         replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles, cssBudget);
                     }
                 } else {
@@ -147,7 +162,7 @@ internal static class HtmlRenderStylesheetApplier {
             options.GetResourceUrlPolicy());
     }
 
-    private static bool TryReserveCss(
+    internal static bool TryReserveCss(
         HtmlCssByteBudget budget,
         string css,
         string source,

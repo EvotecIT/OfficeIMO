@@ -10,6 +10,8 @@ public sealed class HtmlResourceSession {
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly List<HtmlResourceSessionEntry> _entries = new List<HtmlResourceSessionEntry>();
     private readonly IReadOnlyList<HtmlResourceSessionEntry> _readOnlyEntries;
 
@@ -261,6 +263,27 @@ public sealed class HtmlResourceSession {
         !string.IsNullOrWhiteSpace(source) && _attempted.Contains(source!)
         || !string.IsNullOrWhiteSpace(resolvedSource) && _attempted.Contains(resolvedSource!);
 
+    internal void MarkStylesheetBudgeted(HtmlResourceReference reference) =>
+        MarkStylesheetState(_budgetedStylesheets, reference);
+
+    internal void MarkStylesheetRejected(HtmlResourceReference reference) =>
+        MarkStylesheetState(_rejectedStylesheets, reference);
+
+    internal bool WasStylesheetBudgeted(string? source, string? resolvedSource) =>
+        ContainsStylesheetState(_budgetedStylesheets, source, resolvedSource);
+
+    internal bool WasStylesheetRejected(string? source, string? resolvedSource) =>
+        ContainsStylesheetState(_rejectedStylesheets, source, resolvedSource);
+
+    private static void MarkStylesheetState(HashSet<string> state, HtmlResourceReference reference) {
+        if (reference.Source.Length > 0) state.Add(reference.Source);
+        if (reference.ResolvedSource.Length > 0) state.Add(reference.ResolvedSource);
+    }
+
+    private static bool ContainsStylesheetState(HashSet<string> state, string? source, string? resolvedSource) =>
+        !string.IsNullOrWhiteSpace(source) && state.Contains(source!)
+        || !string.IsNullOrWhiteSpace(resolvedSource) && state.Contains(resolvedSource!);
+
     private static HtmlResourceSessionEntry CreateEntry(
         HtmlResourceKind kind,
         string source,
@@ -368,7 +391,8 @@ internal static class HtmlRenderResourceLoader {
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        HtmlCssByteBudget? cssBudget = null) {
         var session = new HtmlResourceSession(options, diagnostics);
         HtmlRenderSynchronousResourceResolver? resolver = session.SynchronousResolver;
         if (resolver == null) return session;
@@ -377,6 +401,7 @@ internal static class HtmlRenderResourceLoader {
                 options,
                 session,
                 cancellationToken,
+                cssBudget,
                 markAttemptedBeforeResolve: false,
                 resolver: (request, token) => {
                     bool isHandled = resolver(
@@ -394,7 +419,8 @@ internal static class HtmlRenderResourceLoader {
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        HtmlCssByteBudget? cssBudget = null) {
         var session = new HtmlResourceSession(options, diagnostics);
         HtmlRenderResourceResolver? resolver = session.Resolver;
         if (resolver == null) {
@@ -405,6 +431,7 @@ internal static class HtmlRenderResourceLoader {
             options,
             session,
             cancellationToken,
+            cssBudget,
             markAttemptedBeforeResolve: true,
             resolver: async (request, token) => new ResourceResolution(
                 true,
@@ -416,6 +443,7 @@ internal static class HtmlRenderResourceLoader {
         HtmlRenderOptions options,
         HtmlResourceSession result,
         CancellationToken cancellationToken,
+        HtmlCssByteBudget? cssBudget,
         bool markAttemptedBeforeResolve,
         ResourceResolver resolver) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
@@ -504,6 +532,13 @@ internal static class HtmlRenderResourceLoader {
                 }
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, out string css)) {
+                    if (cssBudget != null
+                        && !HtmlRenderStylesheetApplier.TryReserveCss(cssBudget, css, reference.Source, diagnostics)) {
+                        result.MarkStylesheetRejected(reference);
+                        continue;
+                    }
+
+                    if (cssBudget != null) result.MarkStylesheetBudgeted(reference);
                     EnqueueStylesheetResources(
                         pending,
                         css,

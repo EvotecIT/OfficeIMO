@@ -82,6 +82,8 @@ public static partial class HtmlExcelConverterExtensions {
             return result;
         }
 
+        ApplyFormulaTrustBoundary(document, trust, options, result);
+
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement section in sheetSections) {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
@@ -111,6 +113,34 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         return result;
+    }
+
+    private static void ApplyFormulaTrustBoundary(
+        IHtmlDocument document,
+        HtmlInputTrust trust,
+        HtmlToExcelOptions options,
+        HtmlToExcelResult result) {
+        if (!options.ImportFormulas
+            || trust == HtmlInputTrust.Trusted
+            || options.AllowUntrustedFormulas) {
+            return;
+        }
+
+        bool containsFormulaMetadata = document.QuerySelectorAll("[data-officeimo-value-kind]")
+            .Any(element => string.Equals(
+                element.GetAttribute("data-officeimo-value-kind"),
+                "formula",
+                StringComparison.OrdinalIgnoreCase))
+            || document.QuerySelector("section.officeimo-formulas li[data-officeimo-cell]") != null;
+        options.ImportFormulas = false;
+        if (!containsFormulaMetadata) {
+            return;
+        }
+
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
+            "Excel formulas were imported as visible text because formula restoration requires caller-trusted input or an explicit AllowUntrustedFormulas opt-in.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlConversionLossKind.Approximation);
     }
 
     private static ExcelDocument GetWorkbookOrThrow(HtmlToExcelResult result) {

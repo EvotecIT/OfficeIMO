@@ -140,6 +140,35 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_RejectsOversizedStylesheetBeforeQueuingImports() {
+        const string oversizedCss = "@import 'must-not-load.css'; .oversized { color: red; padding: 20px; }";
+        var requested = new List<string>();
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 32;
+        limits.MaxTotalCssBytes = 128;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/top.css'><p class='oversized'>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                requested.Add(request.Uri.AbsoluteUri);
+                string css = request.Uri.AbsolutePath.EndsWith("top.css", StringComparison.Ordinal)
+                    ? oversizedCss
+                    : ".unexpected { color: blue; }";
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(css), "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Equal(new[] { "https://assets.example.test/top.css" }, requested);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/top.css");
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_EnforcesPerSheetCssByteLimitOnResolvedImports() {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssBytes = 24;

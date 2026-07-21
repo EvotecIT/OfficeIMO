@@ -45,12 +45,19 @@ public sealed class HtmlToExcelOptions {
     /// </summary>
     public bool ImportFormulas { get; set; } = true;
 
+    /// <summary>
+    /// Allows formula restoration from caller-untrusted semantic HTML when <see cref="ImportFormulas"/> is enabled.
+    /// Keep disabled unless the caller has independently validated the formula source.
+    /// </summary>
+    public bool AllowUntrustedFormulas { get; set; }
+
     internal HtmlToExcelOptions Clone() => new HtmlToExcelOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
         ImportImages = ImportImages,
         ImportChartInventory = ImportChartInventory,
         ImportComments = ImportComments,
-        ImportFormulas = ImportFormulas
+        ImportFormulas = ImportFormulas,
+        AllowUntrustedFormulas = AllowUntrustedFormulas
     };
 }

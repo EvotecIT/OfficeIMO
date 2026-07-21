@@ -69,7 +69,8 @@ public sealed class HtmlOfficeAdapterLimitTests {
         HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
         limits.MaxAnnotations = 1;
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(1, result.Formulas);
@@ -98,6 +99,36 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void ExcelHtml_UntrustedSemanticFormulaRequiresExplicitOptIn() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-schema-version="2"
+                  data-officeimo-public-semantics="safe" data-officeimo-restoration="public-safe">
+              <section class="officeimo-sheet" data-officeimo-sheet="Data" data-officeimo-range="A1">
+                <table><tr><td data-officeimo-cell="A1" data-officeimo-value-kind="formula" data-officeimo-value="WEBSERVICE(&quot;https://example.test&quot;)">visible</td></tr></table>
+              </section>
+            </main>
+            """;
+
+        HtmlToExcelResult blocked = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument blockedWorkbook = blocked.Value;
+
+        Assert.Equal(0, blocked.Formulas);
+        Assert.Empty(blockedWorkbook.Sheets[0].GetFormulaCells());
+        Assert.True(blockedWorkbook.Sheets[0].TryGetCellText(1, 1, out string visibleText));
+        Assert.Equal("visible", visibleText);
+        Assert.Contains(blocked.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired);
+
+        HtmlToExcelResult optedIn = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { AllowUntrustedFormulas = true });
+        using ExcelDocument optedInWorkbook = optedIn.Value;
+
+        Assert.Equal(1, optedIn.Formulas);
+        Assert.Contains(optedInWorkbook.Sheets[0].GetFormulaCells(),
+            formula => formula.CellReference == "A1" && formula.Formula.Contains("WEBSERVICE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ExcelHtml_OmitsTextBeyondTheNativeCellLimitWithDiagnostics() {
         string html = "<main class='officeimo-document' data-officeimo-source='excel' data-officeimo-schema-version='1'>"
             + "<section class='officeimo-sheet' data-officeimo-sheet='Data'><table><tr><td>"
@@ -123,7 +154,8 @@ public sealed class HtmlOfficeAdapterLimitTests {
             </main>
             """;
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult();
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(0, result.Formulas);
@@ -139,7 +171,8 @@ public sealed class HtmlOfficeAdapterLimitTests {
             + new string('1', 8_193)
             + "'>visible</td></tr></table></section></main>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToExcelDocumentResult();
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(0, result.Formulas);
