@@ -406,7 +406,7 @@ internal static class HtmlSemanticDocumentBuilder {
         if (Is(element, "video") || Is(element, "audio") || Is(element, "object") || Is(element, "embed")) return HtmlSemanticBlockKind.Media;
         if (Is(element, "form") || Is(element, "input") || Is(element, "select") || Is(element, "textarea") || Is(element, "button")) return HtmlSemanticBlockKind.Form;
         if (HtmlAccessibilitySemantics.HasRole(element, "doc-footnote") || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote") || HtmlAccessibilitySemantics.HasRole(element, "note")) return HtmlSemanticBlockKind.Note;
-        if (Is(element, "p") || Is(element, "address")) return HtmlSemanticBlockKind.Paragraph;
+        if (HtmlGenericDocumentProjector.IsParagraph(element)) return HtmlSemanticBlockKind.Paragraph;
         return HtmlSemanticBlockKind.Other;
     }
 

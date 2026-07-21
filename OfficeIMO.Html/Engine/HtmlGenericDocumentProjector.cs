@@ -154,9 +154,12 @@ internal static class HtmlGenericDocumentProjector {
         && element.LocalName[1] >= '1'
         && element.LocalName[1] <= '6';
 
+    internal static bool IsParagraph(IElement element) =>
+        Is(element, "p") || Is(element, "address") || IsInlineTextContainer(element);
+
     internal static bool IsTextBlock(IElement element) =>
-        IsHeading(element) || Is(element, "p") || Is(element, "blockquote") || Is(element, "pre")
-        || Is(element, "ul") || Is(element, "ol") || Is(element, "dl") || Is(element, "address");
+        IsHeading(element) || IsParagraph(element) || Is(element, "blockquote") || Is(element, "pre")
+        || Is(element, "ul") || Is(element, "ol") || Is(element, "dl");
 
     internal static bool IsTable(IElement element) => Is(element, "table");
     internal static bool IsImage(IElement element) => Is(element, "img");
@@ -210,6 +213,32 @@ internal static class HtmlGenericDocumentProjector {
         paragraph.TextContent = value;
         result.Add(paragraph);
     }
+
+    private static bool IsInlineTextContainer(IElement element) {
+        if (IgnoredElements.Contains(element.LocalName)
+            || IsSemanticBlockBoundary(element) || IsImage(element)
+            || Normalize(element.TextContent).Length == 0) {
+            return false;
+        }
+
+        foreach (IElement descendant in element.QuerySelectorAll("*")) {
+            if (IsContainerBoundary(descendant)) return false;
+        }
+        return true;
+    }
+
+    private static bool IsSemanticBlockBoundary(IElement element) =>
+        IsHeading(element) || Is(element, "p") || Is(element, "address")
+        || Is(element, "blockquote") || Is(element, "pre")
+        || Is(element, "ul") || Is(element, "ol") || Is(element, "dl")
+        || IsTable(element) || IsMedia(element) || IsForm(element)
+        || IsNote(element) || IsExplicitGroupingElement(element);
+
+    private static bool IsContainerBoundary(IElement element) =>
+        IsSemanticBlockBoundary(element)
+        || Is(element, "div") || Is(element, "header") || Is(element, "footer")
+        || Is(element, "aside") || Is(element, "figure") || Is(element, "figcaption")
+        || Is(element, "hr") || Is(element, "li") || Is(element, "dt") || Is(element, "dd");
 
     private static string GetSectionTitle(IHtmlDocument document, IElement section, int index) {
         string title = Normalize(section.GetAttribute("aria-label"));

@@ -45,6 +45,43 @@ public class HtmlRichGenericImports {
     }
 
     [Fact]
+    public void GenericNativeAdaptersPreserveMixedInlineContainerAsOneLinkedBlock() {
+        const string html = "<div>Read <a href='https://example.test/report'>the report</a> now.</div>";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        HtmlSemanticBlock block = Assert.Single(Assert.Single(source.SemanticDocument.Sections).Blocks);
+
+        Assert.Equal(HtmlSemanticBlockKind.Paragraph, block.Kind);
+        Assert.Equal("Read the report now.", block.Text);
+        Assert.Equal("https://example.test/report", Assert.Single(block.Runs,
+            run => run.Text.Contains("the report", StringComparison.Ordinal)).Hyperlink);
+
+        HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = excelResult.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        Assert.Contains(Enumerable.Range(1, 8).Select(row => sheet.CellAt(row, 1).GetValue<string>()),
+            value => value == "Read the report now.");
+        Assert.Contains(sheet.GetHyperlinks().Values,
+            hyperlink => hyperlink.Target == "https://example.test/report");
+
+        HtmlToPowerPointResult powerPointResult = source.ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = powerPointResult.Value;
+        PowerPointTextBox textBox = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
+            candidate => candidate.Text == "Read the report now.");
+        PowerPointTextRun powerPointLink = Assert.Single(textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs),
+            run => run.Text.Contains("the report", StringComparison.Ordinal));
+        Assert.Equal(new Uri("https://example.test/report"), powerPointLink.Hyperlink);
+
+        HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
+        OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(oneNoteResult.Value.Pages).Outlines)
+            .Children.OfType<OneNoteParagraph>());
+        Assert.Equal("Read the report now.", string.Concat(paragraph.Runs.Select(run => run.Text)));
+        Assert.Equal("https://example.test/report", Assert.Single(paragraph.Runs,
+            run => run.Text.Contains("the report", StringComparison.Ordinal)).Hyperlink);
+    }
+
+    [Fact]
     public void ExcelHtml_GenericTableImportPreservesRichCellsLinksAndEmbeddedImages() {
         string html = $$"""
             <section><h1>Data</h1>
