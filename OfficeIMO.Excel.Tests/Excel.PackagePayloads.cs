@@ -88,6 +88,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackagePayloads_SaveCopyNormalizesAddInWorkbookType() {
+            string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string addInCopyPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlam");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
+                    document.AddWorksheet("AddIn").CellValue(1, 1, "SaveCopy");
+                    document.SaveCopy(addInCopyPath);
+                }
+
+                using SpreadsheetDocument package = SpreadsheetDocument.Open(addInCopyPath, false);
+                Assert.Equal(SpreadsheetDocumentType.AddIn, package.DocumentType);
+            } finally {
+                TryDelete(sourcePath);
+                TryDelete(addInCopyPath);
+            }
+        }
+
+        [Fact]
         public void PackagePayloads_EmbeddedPackageCanBeHashedReplacedAndRemoved() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             byte[] original = System.Text.Encoding.UTF8.GetBytes("original embedded package");
