@@ -153,6 +153,38 @@ public class PdfCanvasStampTests {
         Assert.Contains("overlay source", stamped.Read.Text(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ContentCarriesRegisteredNamedFontsThroughRenderingOptions() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string familyName = "Canvas Stamp Family";
+        var renderingOptions = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
+        var stampOptions = new PdfCanvasStampOptions()
+            .UseRenderingOptions(renderingOptions);
+        byte[] target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Existing body"))
+            .ToBytes();
+
+        PdfDocument stamped = PdfDocument.Open(target).Stamp.Content(
+            canvas => canvas.Text(
+                new[] { TextRun.Normal("Named font stamp", fontFamily: familyName) },
+                36D,
+                36D,
+                220D,
+                30D),
+            stampOptions);
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(stamped.ToBytes()));
+        Assert.Contains(
+            pdf.GetPage(1).Letters,
+            letter => letter.Value == "N" &&
+                      letter.FontName.Contains("CanvasStampFamily", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) {
         var encryption = new PdfStandardEncryptionOptions(userPassword) {
             OwnerPassword = ownerPassword,

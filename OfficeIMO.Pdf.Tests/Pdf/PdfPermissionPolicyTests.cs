@@ -105,6 +105,47 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void RestrictedDirectReadModelRequiresCopyPermissionForLogicalContent() {
+        var encryption = new PdfStandardEncryptionOptions("direct-open") {
+            OwnerPassword = "direct-owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CreateOutlineFromHeadings = true
+            }.SetEncryption(encryption))
+            .Bookmark("DirectAnchor")
+            .H1("Direct logical heading")
+            .Paragraph(paragraph => paragraph.LinkToBookmark("Jump", "DirectAnchor"))
+            .TextField("Direct.Name", value: "Ada")
+            .ToBytes();
+        var enforced = new PdfReadOptions { Password = "direct-open" };
+        PdfReadDocument restricted = PdfReadDocument.Open(pdf, enforced);
+
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Outlines);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.NamedDestinations);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.FormFields);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.RawStructure());
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetLinkAnnotations());
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetAnnotations());
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetPageActions());
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Open(pdf, enforced).Inspect());
+
+        var ignored = new PdfReadOptions {
+            Password = "direct-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfReadDocument authorized = PdfReadDocument.Open(pdf, ignored);
+        Assert.NotEmpty(authorized.Outlines);
+        Assert.Contains(authorized.NamedDestinations, destination => destination.Name == "DirectAnchor");
+        Assert.Equal("Ada", Assert.Single(authorized.FormFields).Value);
+        Assert.NotEmpty(authorized.RawStructure().Objects);
+        Assert.NotEmpty(authorized.Pages[0].GetLinkAnnotations());
+        Assert.NotEmpty(authorized.Pages[0].GetAnnotations());
+        Assert.Empty(authorized.Pages[0].GetPageActions());
+        Assert.Equal("Ada", Assert.Single(PdfDocument.Open(pdf, ignored).Inspect().FormFields).Value);
+    }
+
+    [Fact]
     public void MergeUsesPerSourcePasswordsAndReportsSecurityDecisions() {
         byte[] first = CreateRestrictedPdf("open-first", "owner-first", "First encrypted page");
         byte[] second = CreateRestrictedPdf("open-second", "owner-second", "Second encrypted page");

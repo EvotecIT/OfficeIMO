@@ -139,6 +139,11 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Reads simple URI, named-destination, direct-destination, named-action, and remote GoTo link annotations from this page.</summary>
     public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotations() {
+        _demandContentExtraction?.Invoke("link annotation");
+        return GetLinkAnnotationsUnchecked();
+    }
+
+    internal IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsUnchecked() {
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfLinkAnnotation>();
         }
@@ -201,6 +206,11 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Reads generic annotation metadata from this page.</summary>
     public IReadOnlyList<PdfAnnotation> GetAnnotations() {
+        _demandContentExtraction?.Invoke("annotation");
+        return GetAnnotationsUnchecked();
+    }
+
+    internal IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked() {
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfAnnotation>();
         }

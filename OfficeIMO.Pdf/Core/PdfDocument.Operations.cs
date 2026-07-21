@@ -63,6 +63,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDocumentInfo Inspect(PdfReadOptions? options = null) {
         var snapshot = GetReadSnapshot(options);
+        snapshot.Document.DemandContentExtraction("logical object");
         return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
     }
 

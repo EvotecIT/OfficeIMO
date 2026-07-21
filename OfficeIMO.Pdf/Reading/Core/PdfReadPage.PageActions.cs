@@ -3,6 +3,11 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     /// <summary>Reads page-level additional action metadata from this page dictionary.</summary>
     public IReadOnlyList<PdfPageAction> GetPageActions() {
+        _demandContentExtraction?.Invoke("page action");
+        return GetPageActionsUnchecked();
+    }
+
+    internal IReadOnlyList<PdfPageAction> GetPageActionsUnchecked() {
         return _pageDict.Items.TryGetValue("AA", out var additionalActionsObject)
             ? ReadPageActions(additionalActionsObject)
             : Array.Empty<PdfPageAction>();

@@ -28,14 +28,14 @@ internal static partial class PdfStamper {
             build(canvas, context);
             RejectNonVisualCanvasItems(canvas.Items);
 
-            var overlayOptions = new PdfOptions {
-                PageWidth = width,
-                PageHeight = height,
-                MarginLeft = 0D,
-                MarginTop = 0D,
-                MarginRight = 0D,
-                MarginBottom = 0D
-            };
+            PdfOptions overlayOptions = effective.RenderingOptionsSnapshot ?? new PdfOptions();
+            overlayOptions.PageWidth = width;
+            overlayOptions.PageHeight = height;
+            overlayOptions.MarginLeft = 0D;
+            overlayOptions.MarginTop = 0D;
+            overlayOptions.MarginRight = 0D;
+            overlayOptions.MarginBottom = 0D;
+            overlayOptions.Encryption = null;
             byte[] overlay = PdfDocument.Create(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))
                 .ToBytes();
