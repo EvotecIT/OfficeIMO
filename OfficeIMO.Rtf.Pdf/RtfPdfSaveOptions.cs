@@ -30,7 +30,7 @@ public sealed class RtfPdfSaveOptions {
 
     /// <summary>
     /// Optional converter for image formats that the managed drawing layer cannot rasterize, such as WMF and EMF.
-    /// The callback must return structurally valid PNG or JPEG bytes, or null when it cannot convert the image.
+    /// The callback must return a raster payload supported by the shared Drawing-to-PDF pipeline, or null when it cannot convert the image.
     /// </summary>
     public Func<RtfImage, byte[]?>? ImageConverter { get; set; }
 

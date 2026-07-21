@@ -39,6 +39,8 @@ on:
       - 'OfficeIMO.OneNote.Markdown/**'
       - 'OfficeIMO.OneNote.Pdf/**'
       - 'OfficeIMO.OneNote.Tests/**'
+      - 'OfficeIMO.OpenDocument.Pdf/**'
+      - 'OfficeIMO.OpenDocument.Converters.Tests/**'
       - 'OfficeIMO.Reader.Core/**'
       - 'OfficeIMO.Reader.Pdf/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/**'
@@ -46,7 +48,9 @@ on:
       - 'OfficeIMO.Html.Tests/Html.Pdf.cs'
       - 'OfficeIMO.Reader.Tests/Reader.Pdf.Modular.cs'
       - 'Build/Export-PdfVisualReviewGallery.ps1'
+      - 'Build/Export-PdfConversionSupportMatrix.ps1'
       - 'Docs/officeimo.pdf.current-state.md'
+      - 'Docs/officeimo.pdf-conversion-support-matrix.md'
       - 'Docs/pdf-conversion-scenarios.json'
       - '.github/workflows/pdf-visual-review-gallery.yml'
   push:
@@ -87,6 +91,8 @@ on:
       - 'OfficeIMO.OneNote.Markdown/**'
       - 'OfficeIMO.OneNote.Pdf/**'
       - 'OfficeIMO.OneNote.Tests/**'
+      - 'OfficeIMO.OpenDocument.Pdf/**'
+      - 'OfficeIMO.OpenDocument.Converters.Tests/**'
       - 'OfficeIMO.Reader.Core/**'
       - 'OfficeIMO.Reader.Pdf/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/**'
@@ -94,7 +100,9 @@ on:
       - 'OfficeIMO.Html.Tests/Html.Pdf.cs'
       - 'OfficeIMO.Reader.Tests/Reader.Pdf.Modular.cs'
       - 'Build/Export-PdfVisualReviewGallery.ps1'
+      - 'Build/Export-PdfConversionSupportMatrix.ps1'
       - 'Docs/officeimo.pdf.current-state.md'
+      - 'Docs/officeimo.pdf-conversion-support-matrix.md'
       - 'Docs/pdf-conversion-scenarios.json'
       - '.github/workflows/pdf-visual-review-gallery.yml'
   workflow_dispatch:
@@ -128,6 +136,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Verify generated PDF conversion support matrix
+        shell: pwsh
+        run: ./Build/Export-PdfConversionSupportMatrix.ps1 -Check
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

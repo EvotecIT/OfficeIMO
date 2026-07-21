@@ -448,8 +448,8 @@ internal sealed class PdfCanvasImageResource {
 
     internal static PdfCanvasImageResource Create(byte[] bytes) {
         Guard.NotNullOrEmpty(bytes, nameof(bytes));
-        byte[] snapshot = (byte[])bytes.Clone();
-        return new PdfCanvasImageResource(snapshot, PdfDocument.ValidateImageBytes(snapshot));
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(bytes);
+        return new PdfCanvasImageResource(prepared.Data, prepared.Info);
     }
 }
 

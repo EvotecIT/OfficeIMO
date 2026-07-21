@@ -214,7 +214,7 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
-    public void ToPdfDocument_MarkdownImageOnlyParagraph_WarnsAndFallsBackWhenBytesAreUnsupportedByPdfRenderer() {
+    public void ToPdfDocument_MarkdownGifImage_NormalizesThroughSharedRasterEngine() {
         const string imageUrl = "https://example.test/badge.gif";
         MarkdownDoc document = MarkdownDoc
             .Create()
@@ -227,8 +227,9 @@ public class MarkdownSaveAsPdfVisualTests {
         byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
 
-        Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
-        Assert.Contains("[Image unavailable: Remote badge]", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.DoesNotContain("[Image unavailable: Remote badge]", text, StringComparison.Ordinal);
     }
 
     [Fact]

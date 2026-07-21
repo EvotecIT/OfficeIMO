@@ -436,13 +436,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image) {
             byte[] bytes = ImageEmbedder.GetImageBytes(image);
-            if (!IsNativePdfSupportedImageBytes(bytes, out _)) {
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out _)) {
                 return;
             }
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
-            images.Add(new PdfCore.PdfTableCellImage(bytes, width, height, CreateNativeImageStyle()));
+            images.Add(new PdfCore.PdfTableCellImage(preparedBytes, width, height, CreateNativeImageStyle()));
         }
 
         private static void AddNativeParagraphContent(

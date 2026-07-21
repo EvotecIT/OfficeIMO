@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Direct loss-aware OpenDocument text, spreadsheet, and presentation to PDF adapters.</Description>
+    <PackageId>OfficeIMO.OpenDocument.Pdf</PackageId>
+    <AssemblyName>OfficeIMO.OpenDocument.Pdf</AssemblyName>
+    <AssemblyTitle>OfficeIMO.OpenDocument.Pdf</AssemblyTitle>
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>odf;odt;ods;odp;pdf;conversion;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png"><Pack>True</Pack><PackagePath>\</PackagePath></None>
+    <None Include="README.md"><Pack>True</Pack><PackagePath>README.md</PackagePath></None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+</Project>

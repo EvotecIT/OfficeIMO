@@ -1,6 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
+    /// <summary>
+    /// Adds a reusable typed component through the canonical flow engine, with optional layout constraints and position capture.
+    /// </summary>
+    public PdfDocument Component(
+        IPdfComponent component,
+        PdfFlowOptions? options = null,
+        PdfLayoutPositionCapture? capture = null) {
+        Guard.NotNull(component, nameof(component));
+        return Flow(component.Compose, options, capture);
+    }
+
     /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
     public PdfDocument Flow(
         Action<PdfItemCompose> compose,

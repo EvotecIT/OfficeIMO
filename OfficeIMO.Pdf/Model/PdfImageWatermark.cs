@@ -13,11 +13,12 @@ public sealed class PdfImageWatermark {
     private double _opacity = 0.16D;
     private double _rotationAngle;
 
-    /// <summary>Creates an image watermark from supported JPEG or PNG bytes.</summary>
+    /// <summary>Creates an image watermark from raster bytes supported by OfficeIMO.Drawing.</summary>
     public PdfImageWatermark(byte[] data, double width, double height) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        _info = PdfDocument.ValidateImageBytes(data);
-        _data = (byte[])data.Clone();
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
+        _info = prepared.Info;
+        _data = prepared.Data;
         Width = width;
         Height = height;
     }

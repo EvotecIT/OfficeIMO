@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 public class PdfItemCompose {
     private readonly PdfDocument _doc;
     internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
+    /// <summary>Adds a reusable typed component through the canonical flow engine.</summary>
+    public PdfItemCompose Component(IPdfComponent component, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Component(component, options, capture); return this; }
     /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
     public PdfItemCompose Flow(System.Action<PdfItemCompose> build, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Flow(build, options, capture); return this; }
     /// <summary>Adds replayable content materialized from the live page context during layout.</summary>
@@ -124,7 +126,7 @@ public class PdfItemCompose {
     /// <param name="align">Panel text alignment.</param>
     /// <param name="defaultColor">Optional default text color.</param>
     public PdfItemCompose Panel(System.Action<PdfItemCompose> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) { _doc.Panel(build, style, align, defaultColor); return this; }
-    /// <summary>Adds an image from supported image bytes. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing.</summary>
     /// <param name="jpegBytes">Supported image bytes.</param>
     /// <param name="width">Target width in points.</param>
     /// <param name="height">Target height in points.</param>
@@ -143,7 +145,7 @@ public class PdfItemCompose {
     public PdfItemCompose Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
-    /// <summary>Adds an image from supported image bytes. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing.</summary>
     /// <param name="jpegBytes">Supported image bytes.</param>
     /// <param name="width">Target width in points.</param>
     /// <param name="height">Target height in points.</param>

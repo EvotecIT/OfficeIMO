@@ -5,6 +5,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFlowGroupTests {
     [Fact]
+    public void TypedComponentReusesCanonicalFlowAndLayoutCapture() {
+        var capture = new PdfLayoutPositionCapture();
+        var component = new SummaryComponent("Reusable component");
+
+        byte[] bytes = CreateShortPageDocument()
+            .Component(component, new PdfFlowOptions { KeepTogether = true }, capture)
+            .Component(component)
+            .ToBytes();
+
+        string text = PdfReadDocument.Open(bytes).ExtractText();
+        Assert.Equal(2, CountOccurrences(text, "Reusable component"));
+        Assert.NotNull(capture.Last);
+        Assert.False(capture.WasSkipped);
+    }
+
+    [Fact]
     public void KeepTogether_MovesMeasuredGroupAndCapturesFinalRegion() {
         var capture = new PdfLayoutPositionCapture();
         byte[] bytes = CreateShortPageDocument()
@@ -97,5 +113,29 @@ public class PdfFlowGroupTests {
             MarginBottom = 20,
             CompressContentStreams = false
         });
+    }
+
+    private static int CountOccurrences(string value, string expected) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(expected, index, System.StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += expected.Length;
+        }
+
+        return count;
+    }
+
+    private sealed class SummaryComponent : IPdfComponent {
+        private readonly string _title;
+
+        internal SummaryComponent(string title) {
+            _title = title;
+        }
+
+        public void Compose(PdfItemCompose content) {
+            content.Paragraph(paragraph => paragraph.Text(_title))
+                .Paragraph(paragraph => paragraph.Text("The same engine owns component layout."));
+        }
     }
 }

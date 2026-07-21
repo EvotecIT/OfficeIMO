@@ -15,6 +15,7 @@ paths:
   - OfficeIMO.MarkdownRenderer.SamplePlugin
   - OfficeIMO.MarkdownRenderer.Wpf
   - OfficeIMO.OpenDocument
+  - OfficeIMO.OpenDocument.Pdf
   - OfficeIMO.Pdf
   - OfficeIMO.PowerPoint
   - OfficeIMO.PowerPoint.OpenDocument

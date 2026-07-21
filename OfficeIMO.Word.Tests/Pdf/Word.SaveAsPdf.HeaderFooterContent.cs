@@ -122,9 +122,9 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Skips_Unsupported_HeaderFooter_Images() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.pdf");
+    public void SaveAsPdf_OfficeIMOEngine_Normalizes_Gif_HeaderFooter_Images() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         var options = new PdfSaveOptions {
             IncludePageNumbers = false
@@ -133,7 +133,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, 32, 32);
-            document.AddParagraph("Native unsupported header image body");
+            document.AddParagraph("Native GIF header image body");
             document.Save();
         }
 
@@ -142,13 +142,12 @@ public partial class Word {
         using (WordDocument document = WordDocument.Load(docPath)) {
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
-            Assert.Contains(result.Warnings, warning =>
-                warning.Code == "NativeHeaderFooterImageUnsupported" &&
-                warning.Source == "default header image");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
         }
         Assert.True(File.Exists(pdfPath));
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
-        Assert.Contains("Native unsupported header image body", pdf.GetPage(1).Text);
+        Assert.Contains("Native GIF header image body", pdf.GetPage(1).Text);
+        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdfPath).Read.ImagePlacements());
     }
 
     [Fact]

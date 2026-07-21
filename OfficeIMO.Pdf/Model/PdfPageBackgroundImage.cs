@@ -11,11 +11,12 @@ public sealed class PdfPageBackgroundImage {
     private double _opacity = 1D;
     private OfficeImageFit _fit = OfficeImageFit.Cover;
 
-    /// <summary>Creates a page background image from supported JPEG or PNG bytes.</summary>
+    /// <summary>Creates a page background image from raster bytes supported by OfficeIMO.Drawing.</summary>
     public PdfPageBackgroundImage(byte[] data) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        _info = PdfDocument.ValidateImageBytes(data);
-        _data = (byte[])data.Clone();
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
+        _info = prepared.Info;
+        _data = prepared.Data;
     }
 
     /// <summary>How the image is fitted into the page box.</summary>

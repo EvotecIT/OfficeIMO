@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return;
             }
 
-            WarnUnsupportedHeaderFooterImages(headerFooter, sheetName, options);
+            PreparedHeaderFooterImages preparedImages = PrepareHeaderFooterImages(headerFooter, sheetName, options);
 
             HeaderFooterZones? headerZones = options.UseWorksheetHeadersAndFooters ? ConvertHeaderFooterZones(headerFooter.HeaderLeft, headerFooter.HeaderCenter, headerFooter.HeaderRight, sheetName, workbookPath, options, "header") : null;
             var firstHeaderZones = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage
@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
             bool hasFirstHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
-            if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || HasAnyHeaderImage(headerFooter, options)) {
+            if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || preparedImages.HasHeaderImages) {
                 page.Header(header => {
                     ApplyHeaderFooterStyle(header, ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"));
 
@@ -39,9 +39,9 @@ namespace OfficeIMO.Excel.Pdf {
                         header.EvenPagesText(string.Empty);
                     }
 
-                    AddHeaderImage(header, headerFooter.HeaderLeftImage, options, PdfCore.PdfAlign.Left, headerFooter.HeaderLeft, headerFooter.FirstHeaderLeft, headerFooter.EvenHeaderLeft);
-                    AddHeaderImage(header, headerFooter.HeaderCenterImage, options, PdfCore.PdfAlign.Center, headerFooter.HeaderCenter, headerFooter.FirstHeaderCenter, headerFooter.EvenHeaderCenter);
-                    AddHeaderImage(header, headerFooter.HeaderRightImage, options, PdfCore.PdfAlign.Right, headerFooter.HeaderRight, headerFooter.FirstHeaderRight, headerFooter.EvenHeaderRight);
+                    AddHeaderImage(header, preparedImages.HeaderLeft, PdfCore.PdfAlign.Left, headerFooter.HeaderLeft, headerFooter.FirstHeaderLeft, headerFooter.EvenHeaderLeft);
+                    AddHeaderImage(header, preparedImages.HeaderCenter, PdfCore.PdfAlign.Center, headerFooter.HeaderCenter, headerFooter.FirstHeaderCenter, headerFooter.EvenHeaderCenter);
+                    AddHeaderImage(header, preparedImages.HeaderRight, PdfCore.PdfAlign.Right, headerFooter.HeaderRight, headerFooter.FirstHeaderRight, headerFooter.EvenHeaderRight);
                 });
             }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
             bool hasFirstFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
-            if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || HasAnyFooterImage(headerFooter, options)) {
+            if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || preparedImages.HasFooterImages) {
                 page.Footer(footer => {
                     ApplyHeaderFooterStyle(footer, ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"));
 
@@ -74,63 +74,49 @@ namespace OfficeIMO.Excel.Pdf {
                         footer.EvenPagesText(string.Empty);
                     }
 
-                    AddFooterImage(footer, headerFooter.FooterLeftImage, options, PdfCore.PdfAlign.Left, headerFooter.FooterLeft, headerFooter.FirstFooterLeft, headerFooter.EvenFooterLeft);
-                    AddFooterImage(footer, headerFooter.FooterCenterImage, options, PdfCore.PdfAlign.Center, headerFooter.FooterCenter, headerFooter.FirstFooterCenter, headerFooter.EvenFooterCenter);
-                    AddFooterImage(footer, headerFooter.FooterRightImage, options, PdfCore.PdfAlign.Right, headerFooter.FooterRight, headerFooter.FirstFooterRight, headerFooter.EvenFooterRight);
+                    AddFooterImage(footer, preparedImages.FooterLeft, PdfCore.PdfAlign.Left, headerFooter.FooterLeft, headerFooter.FirstFooterLeft, headerFooter.EvenFooterLeft);
+                    AddFooterImage(footer, preparedImages.FooterCenter, PdfCore.PdfAlign.Center, headerFooter.FooterCenter, headerFooter.FirstFooterCenter, headerFooter.EvenFooterCenter);
+                    AddFooterImage(footer, preparedImages.FooterRight, PdfCore.PdfAlign.Right, headerFooter.FooterRight, headerFooter.FirstFooterRight, headerFooter.EvenFooterRight);
                 });
             }
         }
 
-        private static bool HasAnyHeaderImage(ExcelSheet.HeaderFooterSnapshot headerFooter, ExcelPdfSaveOptions options) {
-            return options.UseWorksheetHeaderFooterImages
-                   && (IsPdfSupportedImage(headerFooter.HeaderLeftImage)
-                       || IsPdfSupportedImage(headerFooter.HeaderCenterImage)
-                       || IsPdfSupportedImage(headerFooter.HeaderRightImage));
-        }
-
-        private static bool HasAnyFooterImage(ExcelSheet.HeaderFooterSnapshot headerFooter, ExcelPdfSaveOptions options) {
-            return options.UseWorksheetHeaderFooterImages
-                   && (IsPdfSupportedImage(headerFooter.FooterLeftImage)
-                       || IsPdfSupportedImage(headerFooter.FooterCenterImage)
-                       || IsPdfSupportedImage(headerFooter.FooterRightImage));
-        }
-
-        private static void AddHeaderImage(PdfCore.PdfHeaderCompose header, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
-            if (options.UseWorksheetHeaderFooterImages && IsPdfSupportedImage(image)) {
+        private static void AddHeaderImage(PdfCore.PdfHeaderCompose header, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+            if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    header.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
 
                 if (firstHasImage) {
-                    header.FirstPageImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
 
                 if (evenHasImage) {
-                    header.EvenPagesImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
             }
         }
 
-        private static void AddFooterImage(PdfCore.PdfFooterCompose footer, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
-            if (options.UseWorksheetHeaderFooterImages && IsPdfSupportedImage(image)) {
+        private static void AddFooterImage(PdfCore.PdfFooterCompose footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+            if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    footer.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
 
                 if (firstHasImage) {
-                    footer.FirstPageImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
 
                 if (evenHasImage) {
-                    footer.EvenPagesImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
                 }
             }
         }
@@ -138,13 +124,43 @@ namespace OfficeIMO.Excel.Pdf {
         private static bool HasPicturePlaceholder(string? text) =>
             text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
 
-        private static bool IsPdfSupportedImage(ExcelSheet.HeaderFooterImageSnapshot? image) {
-            return image != null
-                   && image.Bytes.Length > 0
-                   && image.WidthPoints > 0D
-                   && image.HeightPoints > 0D
-                   && IsPdfSupportedImageContentType(image.ContentType)
-                   && TryValidatePdfImageBytes(image.Bytes, image.ContentType, out _);
+        private static PreparedHeaderFooterImages PrepareHeaderFooterImages(
+            ExcelSheet.HeaderFooterSnapshot headerFooter,
+            string sheetName,
+            ExcelPdfSaveOptions options) {
+            if (!options.UseWorksheetHeaderFooterImages) return new PreparedHeaderFooterImages();
+
+            return new PreparedHeaderFooterImages {
+                HeaderLeft = PrepareHeaderFooterImage(headerFooter.HeaderLeftImage, sheetName, "header left", options),
+                HeaderCenter = PrepareHeaderFooterImage(headerFooter.HeaderCenterImage, sheetName, "header center", options),
+                HeaderRight = PrepareHeaderFooterImage(headerFooter.HeaderRightImage, sheetName, "header right", options),
+                FooterLeft = PrepareHeaderFooterImage(headerFooter.FooterLeftImage, sheetName, "footer left", options),
+                FooterCenter = PrepareHeaderFooterImage(headerFooter.FooterCenterImage, sheetName, "footer center", options),
+                FooterRight = PrepareHeaderFooterImage(headerFooter.FooterRightImage, sheetName, "footer right", options)
+            };
+        }
+
+        private static PreparedHeaderFooterImage? PrepareHeaderFooterImage(
+            ExcelSheet.HeaderFooterImageSnapshot? image,
+            string sheetName,
+            string location,
+            ExcelPdfSaveOptions options) {
+            if (image == null) return null;
+
+            if (image.Bytes.Length > 0 &&
+                image.WidthPoints > 0D &&
+                image.HeightPoints > 0D &&
+                IsPdfSupportedImageContentType(image.ContentType) &&
+                TryPreparePdfImageBytes(image.Bytes, image.ContentType, out byte[] preparedBytes, out _)) {
+                return new PreparedHeaderFooterImage(preparedBytes, image.WidthPoints, image.HeightPoints);
+            }
+
+            AddWarning(
+                options,
+                sheetName,
+                "WorksheetHeaderFooterImage",
+                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.WidthPoints.ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.HeightPoints.ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
+            return null;
         }
 
         private static bool HasAnyText(params string?[] values) {
@@ -165,30 +181,6 @@ namespace OfficeIMO.Excel.Pdf {
             return HasAnyText(zones.Left, zones.Center, zones.Right);
         }
 
-        private static void WarnUnsupportedHeaderFooterImages(ExcelSheet.HeaderFooterSnapshot headerFooter, string sheetName, ExcelPdfSaveOptions options) {
-            if (!options.UseWorksheetHeaderFooterImages) {
-                return;
-            }
-
-            WarnUnsupportedHeaderFooterImage(headerFooter.HeaderLeftImage, sheetName, "header left", options);
-            WarnUnsupportedHeaderFooterImage(headerFooter.HeaderCenterImage, sheetName, "header center", options);
-            WarnUnsupportedHeaderFooterImage(headerFooter.HeaderRightImage, sheetName, "header right", options);
-            WarnUnsupportedHeaderFooterImage(headerFooter.FooterLeftImage, sheetName, "footer left", options);
-            WarnUnsupportedHeaderFooterImage(headerFooter.FooterCenterImage, sheetName, "footer center", options);
-            WarnUnsupportedHeaderFooterImage(headerFooter.FooterRightImage, sheetName, "footer right", options);
-        }
-
-        private static void WarnUnsupportedHeaderFooterImage(ExcelSheet.HeaderFooterImageSnapshot? image, string sheetName, string location, ExcelPdfSaveOptions options) {
-            if (image == null || IsPdfSupportedImage(image)) {
-                return;
-            }
-
-            AddWarning(
-                options,
-                sheetName,
-                "WorksheetHeaderFooterImage",
-                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.WidthPoints.ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.HeightPoints.ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
-        }
 
         private static HeaderFooterZones ConvertHeaderFooterZones(string? left, string? center, string? right, string sheetName, string? workbookPath, ExcelPdfSaveOptions options, string scope) {
             HeaderFooterZone leftZone = ConvertHeaderFooterText(left, sheetName, workbookPath, options, scope, "left");
@@ -605,6 +597,30 @@ namespace OfficeIMO.Excel.Pdf {
             return (value >= '0' && value <= '9') ||
                    (value >= 'a' && value <= 'f') ||
                    (value >= 'A' && value <= 'F');
+        }
+
+        private sealed class PreparedHeaderFooterImages {
+            internal PreparedHeaderFooterImage? HeaderLeft { get; set; }
+            internal PreparedHeaderFooterImage? HeaderCenter { get; set; }
+            internal PreparedHeaderFooterImage? HeaderRight { get; set; }
+            internal PreparedHeaderFooterImage? FooterLeft { get; set; }
+            internal PreparedHeaderFooterImage? FooterCenter { get; set; }
+            internal PreparedHeaderFooterImage? FooterRight { get; set; }
+
+            internal bool HasHeaderImages => HeaderLeft != null || HeaderCenter != null || HeaderRight != null;
+            internal bool HasFooterImages => FooterLeft != null || FooterCenter != null || FooterRight != null;
+        }
+
+        private sealed class PreparedHeaderFooterImage {
+            internal PreparedHeaderFooterImage(byte[] bytes, double widthPoints, double heightPoints) {
+                Bytes = bytes;
+                WidthPoints = widthPoints;
+                HeightPoints = heightPoints;
+            }
+
+            internal byte[] Bytes { get; }
+            internal double WidthPoints { get; }
+            internal double HeightPoints { get; }
         }
 
     }

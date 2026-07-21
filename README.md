@@ -39,10 +39,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 81 |
-| Documented package, tool, and example projects below | 89 |
+| Coordinated `3.0.x` release packages | 82 |
+| Documented package, tool, and example projects below | 90 |
 | Native format, foundation, and shared-service packages | 24 |
-| Conversion and cloud bridge packages | 26 |
+| Conversion and cloud bridge packages | 27 |
 | Unified Reader packages and tool | 28 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
 | Runnable example projects | 1 |
@@ -479,6 +479,14 @@ _Dependency footprint:_ only OfficeIMO PowerPoint, PDF, and Drawing packages.
 - [x] Feature reports for advanced geometry, charts, SmartArt, media, animations, masters, and unsupported transitions
 
 _Dependency footprint:_ only OfficeIMO PowerPoint and OpenDocument packages.
+
+#### [OfficeIMO.OpenDocument.Pdf](OfficeIMO.OpenDocument.Pdf/README.md)
+
+- [x] Direct ODT, ODS, and ODP to PDF workflows with path, stream, synchronous, asynchronous, and result-bearing APIs
+- [x] One thin façade over the existing OpenDocument-to-Office adapters and canonical Word, Excel, and PowerPoint PDF engines
+- [x] Combined feature-mapping and PDF conversion diagnostics so approximated, skipped, and unsupported content remains visible
+
+_Dependency footprint:_ only first-party OfficeIMO OpenDocument, Office, and PDF adapter packages; no second document or PDF rendering engine.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
@@ -1131,6 +1139,7 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 - [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)
+- [PDF conversion support matrix](Docs/officeimo.pdf-conversion-support-matrix.md)
 - [Word/HTML support matrix](Docs/officeimo.word-html-support-matrix.md)
 - [RTF support matrix](Docs/officeimo.rtf-support-matrix.md)
 - [Email support matrix](Docs/officeimo.email-support-matrix.md)

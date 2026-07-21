@@ -95,7 +95,7 @@ public sealed partial class PdfDocument {
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
-    /// <summary>Adds a supported image at the current flow position. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
     public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
 
@@ -103,7 +103,7 @@ public sealed partial class PdfDocument {
     public PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
-    /// <summary>Adds a supported image at the current flow position. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
     public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
@@ -114,12 +114,12 @@ public sealed partial class PdfDocument {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        var imageInfo = ValidateImageBytes(jpegBytes);
+        PreparedImage prepared = PrepareImageBytes(jpegBytes);
         if (imageStyle != null) {
-            ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(fit));
+            ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
 
-        AddBlock(new ImageBlock(jpegBytes, width, height, imageInfo, imageStyle, linkUri, linkContents));
+        AddBlock(new ImageBlock(prepared.Data, width, height, prepared.Info, imageStyle, linkUri, linkContents, useDataSnapshot: true));
         return this;
     }
 

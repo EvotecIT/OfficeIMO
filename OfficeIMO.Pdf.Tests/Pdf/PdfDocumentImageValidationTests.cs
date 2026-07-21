@@ -2,7 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -422,15 +426,29 @@ public class PdfDocumentImageValidationTests {
             new ImageBlock(new byte[] { 1 }, 24, 24, PdfAlign.Left, imageInfo, fit: (OfficeImageFit)42));
     }
 
-    [Fact]
-    public void Image_WithRecognizedUnsupportedFormat_ThrowsNotSupportedException() {
-        var doc = PdfDocument.Create();
+    [Theory]
+    [MemberData(nameof(NormalizedRasterPayloads))]
+    public void Image_WithDrawingSupportedRaster_NormalizesAndEmbeds(
+        byte[] source,
+        OfficeImageFormat sourceFormat) {
+        Assert.True(PdfDocument.TryPrepareImageBytes(
+            source,
+            out byte[] prepared,
+            out OfficeImageInfo? imageInfo,
+            out bool wasTranscoded,
+            out string? unsupportedReason), unsupportedReason);
+        Assert.True(wasTranscoded);
+        Assert.NotNull(imageInfo);
+        Assert.Equal(OfficeImageFormat.Png, imageInfo!.Format);
+        Assert.Equal(sourceFormat, OfficeImageReader.Identify(source).Format);
+        Assert.True(OfficeImageReader.TryIdentify(prepared, null, out OfficeImageInfo preparedInfo));
+        Assert.Equal(OfficeImageFormat.Png, preparedInfo.Format);
 
-        var exception = Assert.Throws<NotSupportedException>(() => doc.Image(CreateMinimalGif(), 24, 24));
+        byte[] pdf = PdfDocument.Create()
+            .Image(source, 24, 24)
+            .ToBytes();
 
-        Assert.Contains("JPEG and grayscale/grayscale-alpha/indexed-color/RGB/RGBA PNG", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Adam7-interlaced PNGs", exception.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(OfficeImageFormat.Gif), exception.Message, StringComparison.Ordinal);
+        Assert.Single(PdfImageExtractor.ExtractImages(pdf));
     }
 
     [Fact]
@@ -499,18 +517,74 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
-    public void RowColumnImage_WithRecognizedUnsupportedFormat_ThrowsNotSupportedException() {
+    public void RowColumnImage_WithDrawingSupportedRaster_NormalizesAndEmbeds() {
         var doc = PdfDocument.Create();
 
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            doc.Compose(compose =>
-                compose.Page(page =>
-                    page.Content(content =>
-                        content.Row(row =>
-                            row.Column(100, column =>
-                                column.Image(CreateMinimalGif(), 24, 24)))))));
+        doc.Compose(compose =>
+            compose.Page(page =>
+                page.Content(content =>
+                    content.Row(row =>
+                        row.Column(100, column =>
+                            column.Image(CreateMinimalGif(), 24, 24))))));
 
-        Assert.Contains(nameof(OfficeImageFormat.Gif), exception.Message, StringComparison.Ordinal);
+        Assert.Single(PdfImageExtractor.ExtractImages(doc.ToBytes()));
+    }
+
+    [Fact]
+    public void WordPdfAdapterUsesCanonicalRasterPreparation() {
+        using WordDocument document = WordDocument.Create();
+        using var image = new MemoryStream(CreateMinimalGif());
+        document.AddParagraph().AddImage(image, "pixel.gif", 24, 24);
+
+        byte[] pdf = document.ToPdf();
+
+        PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.Equal("image/png", embedded.MimeType);
+    }
+
+    [Fact]
+    public void ExcelPdfAdapterUsesCanonicalRasterPreparation() {
+        using ExcelDocument workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddWorksheet("Raster");
+        sheet.AddImage(1, 1, CreateMinimalGif(), "image/gif", 24, 24);
+
+        byte[] pdf = workbook.ToPdf();
+
+        PdfExtractedImage embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.Equal("image/png", embedded.MimeType);
+    }
+
+    [Fact]
+    public void Image_WithUnrecognizedPayload_ReportsTheSharedContract() {
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Create().Image(new byte[] { 1, 2, 3, 4 }, 24, 24));
+
+        Assert.Contains("raster formats decoded by OfficeIMO.Drawing", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("not recognized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RasterNormalizationPreservesPhysicalResolution() {
+        var image = new OfficeRasterImage(2, 1, OfficeColor.Red);
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            image,
+            OfficeImageExportFormat.Tiff,
+            new OfficeRasterEncodingOptions { DpiX = 144, DpiY = 120 });
+
+        Assert.True(PdfDocument.TryPrepareImageBytes(
+            tiff,
+            out byte[] prepared,
+            out OfficeImageInfo? info,
+            out bool wasTranscoded,
+            out string? unsupportedReason), unsupportedReason);
+
+        Assert.True(wasTranscoded);
+        Assert.NotNull(info);
+        Assert.InRange(info!.DpiX, 143.98D, 144.02D);
+        Assert.InRange(info.DpiY, 119.98D, 120.02D);
+        OfficeImageInfo preparedInfo = OfficeImageReader.Identify(prepared);
+        Assert.Equal(info.DpiX, preparedInfo.DpiX);
+        Assert.Equal(info.DpiY, preparedInfo.DpiY);
     }
 
     [Fact]
@@ -1210,6 +1284,52 @@ public class PdfDocumentImageValidationTests {
 
     private static byte[] CreateMinimalGif() =>
         Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+
+    public static System.Collections.Generic.IEnumerable<object[]> NormalizedRasterPayloads() {
+        var image = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        image.SetPixel(0, 0, OfficeColor.Red);
+        image.SetPixel(1, 0, OfficeColor.Blue);
+        yield return new object[] { CreateMinimalGif(), OfficeImageFormat.Gif };
+        yield return new object[] { CreateMinimalBmp(), OfficeImageFormat.Bmp };
+        yield return new object[] {
+            OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff),
+            OfficeImageFormat.Tiff
+        };
+        yield return new object[] {
+            OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Webp),
+            OfficeImageFormat.Webp
+        };
+    }
+
+    private static byte[] CreateMinimalBmp() {
+        byte[] bytes = new byte[58];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        WriteInt32LittleEndian(bytes, 2, bytes.Length);
+        WriteInt32LittleEndian(bytes, 10, 54);
+        WriteInt32LittleEndian(bytes, 14, 40);
+        WriteInt32LittleEndian(bytes, 18, 1);
+        WriteInt32LittleEndian(bytes, 22, 1);
+        WriteUInt16LittleEndian(bytes, 26, 1);
+        WriteUInt16LittleEndian(bytes, 28, 24);
+        WriteInt32LittleEndian(bytes, 34, 4);
+        bytes[54] = 0x33;
+        bytes[55] = 0x22;
+        bytes[56] = 0x11;
+        return bytes;
+    }
+
+    private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+    }
 
     private static byte[] CreateMinimalJpeg(int width, int height) {
         return new byte[] {

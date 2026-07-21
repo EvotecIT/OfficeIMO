@@ -377,13 +377,13 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            if (!IsNativePdfSupportedImageBytes(bytes, out unsupportedReason)) {
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out unsupportedReason)) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
                         "NativeWatermarkImageUnsupported",
                         source,
-                        "Word image watermark was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                        "Word image watermark was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
                 }
 
                 return null;
@@ -391,7 +391,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = watermark.Width is > 0D ? watermark.Width.Value : 144D;
             double height = watermark.Height is > 0D ? watermark.Height.Value : 144D;
-            var pdfWatermark = new PdfCore.PdfImageWatermark(bytes, width, height);
+            var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, width, height);
             if (watermark.Rotation.HasValue) {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }

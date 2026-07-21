@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfTableCellImage {
     private readonly byte[] _data;
 
-    /// <summary>Creates a supported table-cell image. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are supported.</summary>
+    /// <summary>Creates a table-cell image from raster bytes supported by OfficeIMO.Drawing.</summary>
     public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
@@ -27,15 +27,15 @@ public sealed class PdfTableCellImage {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
         }
 
-        OfficeImageInfo info = PdfDocument.ValidateImageBytes(data);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
         if (imageStyle != null) {
-            PdfDocument.ValidateImageFitDimensions(info, imageStyle.Fit, nameof(style));
+            PdfDocument.ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(style));
         }
 
-        _data = (byte[])data.Clone();
+        _data = prepared.Data;
         Width = width;
         Height = height;
-        Info = info;
+        Info = prepared.Info;
         Style = imageStyle;
         LinkUri = linkUri;
         LinkContents = linkUri == null ? null : linkContents ?? "Table cell image";
@@ -68,6 +68,6 @@ public sealed class PdfTableCellImage {
         PdfImageStyle style = Style?.Clone() ?? new PdfImageStyle {
             Align = fallbackAlign
         };
-        return new ImageBlock(_data, Width, Height, Info, style, LinkUri, LinkContents);
+        return new ImageBlock(_data, Width, Height, Info, style, LinkUri, LinkContents, useDataSnapshot: true);
     }
 }

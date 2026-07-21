@@ -260,53 +260,9 @@ $proofSummary = [pscustomobject]@{
 $proofSummaryPath = Join-Path $resolvedOutputPath 'conversion-proof-summary.json'
 $proofSummary | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $proofSummaryPath -Encoding UTF8
 
-$supportLines = [System.Collections.Generic.List[string]]::new()
-$supportLines.Add('# OfficeIMO PDF Conversion Support Matrix')
-$supportLines.Add('')
-$supportLines.Add('This matrix is generated from `Docs/pdf-conversion-scenarios.json`. Fidelity status describes the current evidence, not the intended destination.')
-$supportLines.Add('')
-$supportLines.Add("Premium claim rule: $($qualityContract.premiumClaimRule)")
-$supportLines.Add('')
-$supportLines.Add('| Source | Formats | Mode | Evidence status | Reference policy |')
-$supportLines.Add('| --- | --- | --- | --- | --- |')
-foreach ($converter in @($scenarioManifest.converterCatalog)) {
-    $source = ([string]$converter.id).Replace('|', '\|')
-    $formats = (@($converter.sourceFormats) -join ', ').Replace('|', '\|')
-    $mode = ([string]$converter.conversionMode).Replace('|', '\|')
-    $fidelityStatus = ([string]$converter.fidelityStatus).Replace('|', '\|')
-    $referencePolicy = ([string]$converter.referencePolicy).Replace('|', '\|')
-    $supportLines.Add("| $source | $formats | $mode | $fidelityStatus | $referencePolicy |")
-}
-$supportLines.Add('')
-$supportLines.Add('## Capability Claims')
-$supportLines.Add('')
-$supportLines.Add('| Source | Capability | Fidelity level | Evidence scenarios |')
-$supportLines.Add('| --- | --- | --- | --- |')
-foreach ($converter in @($scenarioManifest.converterCatalog)) {
-    if ($null -eq $converter.capabilityClaims) {
-        continue
-    }
-    foreach ($claim in @($converter.capabilityClaims)) {
-        $source = ([string]$converter.id).Replace('|', '\|')
-        $capability = ([string]$claim.capability).Replace('|', '\|')
-        $level = ([string]$claim.level).Replace('|', '\|')
-        $evidence = (@($claim.evidenceScenarioIds) -join ', ').Replace('|', '\|')
-        $supportLines.Add("| $source | $capability | $level | $evidence |")
-    }
-}
-$supportLines.Add('')
-$supportLines.Add('## Composed And Planned Routes')
-$supportLines.Add('')
-$supportLines.Add('| Route | Formats | Status | Diagnostic contract |')
-$supportLines.Add('| --- | --- | --- | --- |')
-foreach ($route in @($scenarioManifest.compositionRoutes)) {
-    $routeId = ([string]$route.id).Replace('|', '\|')
-    $formats = (@($route.sourceFormats) -join ', ').Replace('|', '\|')
-    $routeStatus = ([string]$route.status).Replace('|', '\|')
-    $diagnosticContract = ([string]$route.diagnosticContract).Replace('|', '\|')
-    $supportLines.Add("| $routeId | $formats | $routeStatus | $diagnosticContract |")
-}
-[System.IO.File]::WriteAllLines($supportMatrixPath, $supportLines, [System.Text.Encoding]::UTF8)
+& (Join-Path $PSScriptRoot 'Export-PdfConversionSupportMatrix.ps1') `
+    -ManifestPath $scenarioManifestPath `
+    -OutputPath $supportMatrixPath
 
 $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add('# OfficeIMO PDF Visual Review Gallery')

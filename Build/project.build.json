@@ -34,6 +34,7 @@
     "OfficeIMO.MarkdownRenderer.IntelligenceX": "3.0.X",
     "OfficeIMO.MarkdownRenderer.Wpf": "3.0.X",
     "OfficeIMO.OpenDocument": "3.0.X",
+    "OfficeIMO.OpenDocument.Pdf": "3.0.X",
     "OfficeIMO.OneNote": "3.0.X",
     "OfficeIMO.OneNote.Html": "3.0.X",
     "OfficeIMO.OneNote.Markdown": "3.0.X",
