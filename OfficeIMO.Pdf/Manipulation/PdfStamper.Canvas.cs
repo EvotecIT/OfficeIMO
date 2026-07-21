@@ -13,6 +13,7 @@ internal static partial class PdfStamper {
         if (renderingOptions is not null && renderingOptions.TaggedStructureMode != PdfTaggedStructureMode.None) {
             throw new NotSupportedException("Existing-page canvas stamping is visual-only and cannot preserve a generated tagged structure tree. Use untagged rendering options or a document authoring path that owns the target structure tree.");
         }
+        PdfOptions? canvasRenderingOptions = renderingOptions?.CloneForCanvasStampRendering();
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
 
         PdfReadDocument target = PdfReadDocument.Open(pdf, readOptions);
@@ -32,7 +33,7 @@ internal static partial class PdfStamper {
             build(canvas, context);
             RejectNonVisualCanvasItems(canvas.Items);
 
-            PdfOptions overlayOptions = renderingOptions?.Clone() ?? new PdfOptions();
+            PdfOptions overlayOptions = canvasRenderingOptions?.Clone() ?? new PdfOptions();
             overlayOptions.PageWidth = width;
             overlayOptions.PageHeight = height;
             overlayOptions.MarginLeft = 0D;

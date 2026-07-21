@@ -113,7 +113,7 @@ public class PdfPermissionPolicyTests {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CreateOutlineFromHeadings = true,
                 IncludeXmpMetadata = true
-            }.SetEncryption(encryption))
+            }.SetSrgbOutputIntent().SetEncryption(encryption))
             .Meta(title: "Direct title", author: "OfficeIMO")
             .Bookmark("DirectAnchor")
             .H1("Direct logical heading")
@@ -128,6 +128,7 @@ public class PdfPermissionPolicyTests {
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Outlines);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.NamedDestinations);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.FormFields);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.OutputIntents);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.RawStructure());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetLinkAnnotations());
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Pages[0].GetAnnotations());
@@ -149,6 +150,7 @@ public class PdfPermissionPolicyTests {
         Assert.NotEmpty(authorized.Outlines);
         Assert.Contains(authorized.NamedDestinations, destination => destination.Name == "DirectAnchor");
         Assert.Equal("Ada", Assert.Single(authorized.FormFields).Value);
+        Assert.NotEmpty(authorized.OutputIntents);
         Assert.NotEmpty(authorized.RawStructure().Objects);
         Assert.NotEmpty(authorized.Pages[0].GetLinkAnnotations());
         Assert.NotEmpty(authorized.Pages[0].GetAnnotations());
@@ -283,6 +285,41 @@ public class PdfPermissionPolicyTests {
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void PageImportsUseIndependentSourceReadOptionsAcrossPlacements() {
+        byte[] target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Target page"))
+            .ToBytes();
+        byte[] source = CreateRestrictedThreePagePdf("import-open", "import-owner");
+        var sourceReadOptions = new PdfReadOptions {
+            Password = "import-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        var importOptions = new PdfPageImportOptions {
+            SourceReadOptions = sourceReadOptions
+        };
+
+        PdfDocument appended = PdfDocument.Open(target).Pages.Append(
+            source,
+            PdfPageSelection.From(2),
+            importOptions);
+        PdfDocument prepended = PdfDocument.Open(target).Pages.Prepend(source, importOptions);
+        PdfDocument encryptedSourceDocument = PdfDocument.Open(source, sourceReadOptions);
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Open(target).Pages.TryInsert(
+            1,
+            encryptedSourceDocument,
+            PdfPageSelection.From(3),
+            new PdfPageImportOptions());
+
+        Assert.Equal(2, appended.Inspect().PageCount);
+        Assert.Contains("Page two", appended.Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(4, prepended.Inspect().PageCount);
+        Assert.StartsWith("Page one", prepended.Read.Text(), StringComparison.Ordinal);
+        Assert.True(inserted.Succeeded, string.Join(Environment.NewLine, inserted.Diagnostics));
+        Assert.Equal(2, inserted.RequireValue().Inspect().PageCount);
+        Assert.StartsWith("Page three", inserted.RequireValue().Read.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

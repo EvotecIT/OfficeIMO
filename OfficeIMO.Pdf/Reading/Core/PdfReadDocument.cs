@@ -12,6 +12,7 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
+    private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
     private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
@@ -47,7 +48,7 @@ public sealed partial class PdfReadDocument {
         _namedDestinations = ExtractNamedDestinations();
         _catalogActions = ExtractCatalogActions();
         _attachments = ExtractAttachmentInfos();
-        OutputIntents = ExtractOutputIntents();
+        _outputIntents = ExtractOutputIntents();
         _xmpMetadata = ExtractXmpMetadata();
         _taggedContent = ExtractTaggedContent();
         _optionalContent = ExtractOptionalContent();
@@ -133,6 +134,7 @@ public sealed partial class PdfReadDocument {
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
     internal PdfMetadata UncheckedMetadata => _metadata;
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
+    internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
     internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;

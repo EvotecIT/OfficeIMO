@@ -156,6 +156,30 @@ public class PdfCanvasStampTests {
     }
 
     [Fact]
+    public void ContentIgnoresDocumentChromeFromRenderingOptions() {
+        var renderingOptions = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "Rendering-options header",
+            ShowPageNumbers = true,
+            FooterFormat = "Rendering-options footer",
+            BackgroundColor = PdfColor.FromRgb(240, 240, 240)
+        };
+        var stampOptions = new PdfCanvasStampOptions().UseRenderingOptions(renderingOptions);
+        PdfDocument target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Existing body"));
+
+        PdfDocument stamped = target.Stamp.Content(
+            canvas => canvas.Text("Callback content", 36D, 36D, 220D, 30D),
+            stampOptions);
+
+        string text = stamped.Read.Text();
+        Assert.Contains("Existing body", text, StringComparison.Ordinal);
+        Assert.Contains("Callback content", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rendering-options header", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rendering-options footer", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OverlayPageReadsEncryptedSourceWithItsOwnPasswordPolicy() {
         byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target page")).ToBytes();
         byte[] source = CreateRestrictedPdf("source-open", "source-owner", "Encrypted overlay source");

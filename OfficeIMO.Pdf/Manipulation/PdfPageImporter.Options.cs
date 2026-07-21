@@ -42,12 +42,17 @@ internal static partial class PdfPageImporter {
         int targetPageCount = PdfInspector.Inspect(targetPdf, targetReadOptions).PageCount;
         ValidateInsertBeforePageNumber(insertBeforePageNumber, targetPageCount);
 
-        byte[] preparedSource = PrepareImportSource(sourcePdf, options);
+        PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+        byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
+        PdfReadOptions? preparedSourceReadOptions = options.FlattenVisualAnnotations ? null : sourceReadOptions;
         if (insertBeforePageNumber == targetPageCount + 1) {
-            return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, sourcePageNumbers);
+            return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers);
         }
 
-        byte[] inserted = PdfPageExtractor.ExtractPages(preparedSource, NormalizeSourcePageNumbers(preparedSource, sourcePageNumbers));
+        byte[] inserted = PdfPageExtractor.ExtractPages(
+            preparedSource,
+            preparedSourceReadOptions,
+            NormalizeSourcePageNumbers(preparedSource, sourcePageNumbers, preparedSourceReadOptions));
         if (insertBeforePageNumber == 1) {
             return PdfMerger.MergeWithPrimarySource(
                 1,
@@ -64,12 +69,21 @@ internal static partial class PdfPageImporter {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
-        return ImportPreparedPages(targetPdf, PrepareImportSource(sourcePdf, options), append, targetReadOptions, sourcePageNumbers!);
+        PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+        byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
+        PdfReadOptions? preparedSourceReadOptions = options.FlattenVisualAnnotations ? null : sourceReadOptions;
+        return ImportPreparedPages(targetPdf, preparedSource, append, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers!);
     }
 
-    private static byte[] ImportPreparedPages(byte[] targetPdf, byte[] preparedSourcePdf, bool append, PdfReadOptions? targetReadOptions, int[] sourcePageNumbers) {
-        int[] selectedPages = NormalizeSourcePageNumbers(preparedSourcePdf, sourcePageNumbers);
-        byte[] importedPages = PdfPageExtractor.ExtractPages(preparedSourcePdf, selectedPages);
+    private static byte[] ImportPreparedPages(
+        byte[] targetPdf,
+        byte[] preparedSourcePdf,
+        bool append,
+        PdfReadOptions? targetReadOptions,
+        PdfReadOptions? sourceReadOptions,
+        int[] sourcePageNumbers) {
+        int[] selectedPages = NormalizeSourcePageNumbers(preparedSourcePdf, sourcePageNumbers, sourceReadOptions);
+        byte[] importedPages = PdfPageExtractor.ExtractPages(preparedSourcePdf, sourceReadOptions, selectedPages);
         return append
             ? PdfMerger.Merge(
                 new[] { targetPdf, importedPages },
@@ -80,9 +94,9 @@ internal static partial class PdfPageImporter {
                 new[] { PdfReadOptions.Default, PdfReadOptions.Resolve(targetReadOptions) });
     }
 
-    private static byte[] PrepareImportSource(byte[] sourcePdf, PdfPageImportOptions options) {
+    private static byte[] PrepareImportSource(byte[] sourcePdf, PdfPageImportOptions options, PdfReadOptions? sourceReadOptions) {
         return options.FlattenVisualAnnotations
-            ? PdfAnnotationFlattener.FlattenVisualAnnotations(sourcePdf)
+            ? PdfAnnotationFlattener.FlattenVisualAnnotations(sourcePdf, options: null, readOptions: sourceReadOptions)
             : sourcePdf;
     }
 }
