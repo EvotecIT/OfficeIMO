@@ -196,6 +196,25 @@ PdfDocument.Create(new PdfOptions {
     .Save("service-report.pdf");
 ```
 
+Generated headers and footers can combine literal text, visually styled runs, and styled page tokens. The same builder is available for the default, first-page, and even-page variants:
+
+```csharp
+PdfDocument.Create()
+    .Header(header => header
+        .Text(text => text
+            .Run(TextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
+            .Text("- page ")
+            .CurrentPage(TextRun.Italicized(string.Empty))
+            .Text(" of ")
+            .TotalPages(TextRun.Italicized(string.Empty)))
+        .FirstPageText(text => text.Run(TextRun.Bolded("Confidential cover")))
+        .EvenPagesText(text => text.Run(TextRun.Underlined("Confidential even page"))))
+    .Paragraph(p => p.Text("Generated report body."))
+    .Save("styled-header.pdf");
+```
+
+Styled header/footer runs support fonts, size, color, highlighting, underline, strike, and baseline changes. Use the existing header/footer image and shape methods for visuals; interactive links and inline elements are intentionally kept out of text runs.
+
 ### Rich report layout
 
 ```csharp
