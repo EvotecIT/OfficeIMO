@@ -9,7 +9,10 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlToExcelResult result,
         HtmlToExcelOptions options,
         HtmlImportBudget budget) {
-        IReadOnlyList<HtmlSemanticBlock> tables = document.RootTables;
+        IReadOnlyList<HtmlSemanticBlock> tables = document.RootTables
+            .Where(table => table.Table?.Rows.Any(row => row.Cells.Count > 0) == true)
+            .ToList()
+            .AsReadOnly();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (tables.Count > 0) {
             for (int index = 0; index < tables.Count; index++) {

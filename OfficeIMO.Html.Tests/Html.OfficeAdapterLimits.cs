@@ -129,6 +129,24 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void ExcelHtml_GenericEmptyTableDoesNotConsumeTableOrWorksheetBudget() {
+        const string html = "<table></table><table><tr><td>value</td></tr></table>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+        limits.MaxSemanticContainers = 1;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        Assert.Equal(1, result.Sheets);
+        Assert.Equal(1, result.Cells);
+        Assert.True(sheet.TryGetCellText(1, 1, out string text));
+        Assert.Equal("value", text);
+    }
+
+    [Fact]
     public void ExcelHtml_OmitsTextBeyondTheNativeCellLimitWithDiagnostics() {
         string html = "<main class='officeimo-document' data-officeimo-source='excel' data-officeimo-schema-version='1'>"
             + "<section class='officeimo-sheet' data-officeimo-sheet='Data'><table><tr><td>"
