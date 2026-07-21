@@ -114,6 +114,25 @@ public sealed class AdfContractTests {
         Assert.Equal(content, Assert.Single(codeBlock.Content).Text);
     }
 
+    [Fact]
+    public void CodeBlockProjection_NormalizesExternalLanguageToOneSafeToken() {
+        const string content = "Get-Date";
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("codeBlock") {
+            Content = { AdfNode.TextNode(content) }
+        }.SetAttribute("language", "powershell\n```\n# Heading"));
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.StartsWith("```powershell\n", markdown.Value.Replace("\r\n", "\n"));
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_CODE_LANGUAGE_NORMALIZED");
+        AdfNode codeBlock = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal("codeBlock", codeBlock.Type);
+        Assert.Equal("powershell", codeBlock.GetStringAttribute("language"));
+        Assert.Equal(content, Assert.Single(codeBlock.Content).Text);
+    }
+
     [Theory]
     [InlineData("# Heading")]
     [InlineData("> quote")]
@@ -129,6 +148,38 @@ public sealed class AdfContractTests {
         AdfNode paragraph = Assert.Single(roundTrip.Value.Content);
         Assert.Equal("paragraph", paragraph.Type);
         Assert.Equal(text, string.Concat(paragraph.Content.Select(node => node.Text)));
+    }
+
+    [Fact]
+    public void ParagraphProjection_PreservesLiteralHtmlLikeAndEntityLikeText() {
+        const string content = "before <u>value</u> &copy; after";
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode(content) } });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        AdfNode paragraph = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal("paragraph", paragraph.Type);
+        Assert.Equal(content, string.Concat(paragraph.Content.Select(node => node.Text)));
+    }
+
+    [Fact]
+    public void ParagraphProjection_PreservesTerminalHardBreak() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode("ready"), new AdfNode("hardBreak") }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.EndsWith("<br />", markdown.Value);
+        AdfNode paragraph = Assert.Single(roundTrip.Value.Content);
+        Assert.Collection(
+            paragraph.Content,
+            text => Assert.Equal("ready", text.Text),
+            hardBreak => Assert.Equal("hardBreak", hardBreak.Type));
     }
 
     [Fact]
@@ -149,5 +200,22 @@ public sealed class AdfContractTests {
             Assert.Contains(text.Marks, mark => mark.Type == "strong");
             Assert.Contains(text.Marks, mark => mark.Type == "code");
         }
+    }
+
+    [Fact]
+    public void InlineCodeProjection_ReportsMarkdownLineBreakNormalization() {
+        const string content = "first\nsecond";
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = { AdfNode.TextNode(content, new[] { new AdfMark("code") }) }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_CODE_MARK_LINE_BREAK_NORMALIZED");
+        AdfNode text = Assert.Single(Assert.Single(roundTrip.Value.Content).Content);
+        Assert.Equal("first second", text.Text);
+        Assert.Contains(text.Marks, mark => mark.Type == "code");
     }
 }

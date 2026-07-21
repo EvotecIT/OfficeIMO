@@ -23,9 +23,15 @@ public static class MarkdownEscaper {
     /// as a heading, quote, list, fence, thematic break, definition, or HTML block.
     /// </summary>
     public static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
+
+    /// <summary>
+    /// Escapes literal text so Markdown punctuation, HTML-like text, and character-reference-like
+    /// text are preserved as text when parsed again.
+    /// </summary>
+    public static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
+
     internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
     internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
-    internal static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
     internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);

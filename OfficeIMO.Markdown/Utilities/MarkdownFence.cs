@@ -100,6 +100,29 @@ public static class MarkdownFence {
     }
 
     /// <summary>
+    /// Normalizes an external language value to the first Markdown-safe fenced-code language token.
+    /// Whitespace, control characters, and backticks terminate the token.
+    /// </summary>
+    /// <param name="language">External language value.</param>
+    /// <returns>A single safe language token, or an empty string when none is present.</returns>
+    public static string NormalizeLanguageToken(string? language) {
+        if (string.IsNullOrWhiteSpace(language)) {
+            return string.Empty;
+        }
+
+        string value = language!.Trim();
+        int length = 0;
+        while (length < value.Length
+               && !char.IsWhiteSpace(value[length])
+               && !char.IsControl(value[length])
+               && value[length] != '`') {
+            length++;
+        }
+
+        return length == value.Length ? value : value.Substring(0, length);
+    }
+
+    /// <summary>
     /// Builds a complete inline-code span whose delimiter cannot collide with backtick runs in
     /// <paramref name="content"/>.
     /// </summary>

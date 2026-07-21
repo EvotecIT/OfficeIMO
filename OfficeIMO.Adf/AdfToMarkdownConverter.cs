@@ -11,7 +11,7 @@ internal static class AdfToMarkdownConverter {
             AppendBlock(builder, document.Content[i], "$.content[" + i + "]", options, diagnostics, 0);
             if (i < document.Content.Count - 1 && !EndsWithBlankLine(builder)) builder.AppendLine().AppendLine();
         }
-        return builder.ToString().TrimEnd();
+        return builder.ToString();
     }
 
     private static void AppendBlock(StringBuilder builder, AdfNode node, string path, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics, int listDepth) {
@@ -25,7 +25,11 @@ internal static class AdfToMarkdownConverter {
                 builder.Append(new string('#', level)).Append(' ').Append(RenderInlineContent(node, path, diagnostics));
                 break;
             case "codeBlock":
-                string language = node.GetStringAttribute("language") ?? string.Empty;
+                string rawLanguage = node.GetStringAttribute("language") ?? string.Empty;
+                string language = MarkdownFence.NormalizeLanguageToken(rawLanguage);
+                if (!string.Equals(language, rawLanguage, StringComparison.Ordinal)) {
+                    diagnostics.Add(Warning("ADF_CODE_LANGUAGE_NORMALIZED", path, "ADF code-block language was normalized to one safe Markdown language token."));
+                }
                 string code = ExtractPlainText(node);
                 string fence = MarkdownFence.BuildSafeFence(code);
                 builder.Append(fence).Append(language).AppendLine();
@@ -69,7 +73,7 @@ internal static class AdfToMarkdownConverter {
             default:
                 diagnostics.Add(Warning("ADF_UNSUPPORTED_NODE", path, "ADF node '" + node.Type + "' is retained in the ADF model but has no exact Markdown projection."));
                 if (node.Content.Count > 0) AppendChildrenAsBlocks(builder, node, path, options, diagnostics, listDepth);
-                else if (!string.IsNullOrEmpty(node.Text)) builder.Append(MarkdownEscaper.EscapeTextAndLineStarts(node.Text!));
+                else if (!string.IsNullOrEmpty(node.Text)) builder.Append(MarkdownEscaper.EscapeLiteralText(node.Text!));
                 else if (options.EmitUnsupportedPlaceholders) builder.Append("[Unsupported ADF node: ").Append(node.Type).Append(']');
                 break;
         }
@@ -146,20 +150,23 @@ internal static class AdfToMarkdownConverter {
 
     private static void AppendInline(StringBuilder builder, AdfNode node, string path, List<AdfConversionDiagnostic> diagnostics) {
         if (node.Type == "hardBreak") {
-            builder.Append("  \n");
+            builder.Append("<br />");
             return;
         }
         if (node.Type != "text") {
             diagnostics.Add(Warning("ADF_UNSUPPORTED_INLINE", path, "ADF inline node '" + node.Type + "' was flattened to text."));
-            builder.Append(MarkdownEscaper.EscapeTextAndLineStarts(ExtractPlainText(node)));
+            builder.Append(MarkdownEscaper.EscapeLiteralText(ExtractPlainText(node)));
             return;
         }
 
         string rawText = node.Text ?? string.Empty;
         bool hasCode = node.Marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
+        if (hasCode && (rawText.IndexOf('\r') >= 0 || rawText.IndexOf('\n') >= 0)) {
+            diagnostics.Add(Warning("ADF_CODE_MARK_LINE_BREAK_NORMALIZED", path, "Markdown code spans normalize line breaks to spaces; the original ADF code-mark text cannot be represented exactly."));
+        }
         string value = hasCode
             ? MarkdownFence.BuildSafeCodeSpan(rawText)
-            : MarkdownEscaper.EscapeTextAndLineStarts(rawText);
+            : MarkdownEscaper.EscapeLiteralText(rawText);
         foreach (AdfMark mark in node.Marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
                 case "strong": value = "**" + value + "**"; break;

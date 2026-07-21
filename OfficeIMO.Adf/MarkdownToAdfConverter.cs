@@ -112,6 +112,9 @@ internal static class MarkdownToAdfConverter {
                 case TextRun text:
                     target.Add(AdfNode.TextNode(text.Text, CloneMarks(inheritedMarks)));
                     break;
+                case ILiteralTextMarkdownInline literalText:
+                    target.Add(AdfNode.TextNode(literalText.Text, CloneMarks(inheritedMarks)));
+                    break;
                 case BoldInline bold:
                     target.Add(AdfNode.TextNode(bold.Text, AddMark(inheritedMarks, new AdfMark("strong"))));
                     break;
