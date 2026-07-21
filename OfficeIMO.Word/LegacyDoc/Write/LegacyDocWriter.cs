@@ -28,6 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFSpec = 0x0855;
         private const ushort SprmCPicLocation = 0x6A03;
         private const ushort HasPicturesFibFlag = 0x0008;
+        private const ushort TemplateFibFlag = 0x0001;
         private const ushort SprmCFNoProof = 0x0875;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
@@ -99,13 +100,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
-        internal static byte[] WriteDocument(WordDocument document, WordSaveOptions? options = null) {
+        internal static byte[] WriteDocument(
+            WordDocument document,
+            WordSaveOptions? options = null,
+            bool isTemplate = false) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
 
             LegacyDocWritableBody body = BuildBody(document);
-            byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body));
+            byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 2) {
@@ -633,7 +637,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 or CommentRangeEnd;
         }
 
-        private static byte[] CreateWordDocumentStream(LegacyDocWritableBody body) {
+        private static byte[] CreateWordDocumentStream(LegacyDocWritableBody body, bool isTemplate) {
             bool compressedText = CanWriteCompressedText(body.StoredText);
             int bytesPerCharacter = compressedText ? 1 : 2;
             byte[] textBytes = compressedText ? EncodeCompressedText(body.StoredText) : Encoding.Unicode.GetBytes(body.StoredText);
@@ -660,9 +664,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
-            WriteUInt16(stream, 0x0A, body.HasPictures
-                ? unchecked((ushort)(DefaultFibFlags | HasPicturesFibFlag))
-                : DefaultFibFlags);
+            ushort fibFlags = DefaultFibFlags;
+            if (body.HasPictures) fibFlags = unchecked((ushort)(fibFlags | HasPicturesFibFlag));
+            if (isTemplate) fibFlags = unchecked((ushort)(fibFlags | TemplateFibFlag));
+            WriteUInt16(stream, 0x0A, fibFlags);
             WriteUInt16(stream, 0x0C, Word97FibBackVersion);
             WriteInt32(stream, 0x18, TextOffset);
             WriteInt32(stream, 0x1C, TextOffset + textBytes.Length);

@@ -18,6 +18,9 @@ namespace OfficeIMO.Word {
         /// <summary>An unsupported body element was omitted.</summary>
         public const string UnsupportedBodyElement = "unsupported-word-body-element";
 
+        /// <summary>A chart without a renderable cached-data snapshot was omitted.</summary>
+        public const string UnsupportedChart = "unsupported-word-chart";
+
         /// <summary>An external image was omitted.</summary>
         public const string UnsupportedExternalImage = "unsupported-word-external-image";
 

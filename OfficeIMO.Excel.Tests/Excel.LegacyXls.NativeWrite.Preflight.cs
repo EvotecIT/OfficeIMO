@@ -1594,7 +1594,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LegacyXls_NativeSave_BlocksDigitalSignatureOriginPartsBeforeWriting() {
-            AssertNativeXlsSaveNotSupported("digital signatures", (document, sheet) => {
+            AssertNativeXlsSignedSaveBlocked((document, sheet) => {
                 sheet.CellValue(1, 1, "Signed workbook");
                 document._spreadSheetDocument.AddDigitalSignatureOriginPart();
                 DigitalSignatureOriginPart originPart = document._spreadSheetDocument.DigitalSignatureOriginPart!;
@@ -1607,7 +1607,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LegacyXls_NativeSave_BlocksDigitalSignatureApplicationPropertiesBeforeWriting() {
-            AssertNativeXlsSaveNotSupported("digital signatures", (document, sheet) => {
+            AssertNativeXlsSignedSaveBlocked((document, sheet) => {
                 sheet.CellValue(1, 1, "Signed workbook metadata");
                 ExtendedFilePropertiesPart appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart
                     ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();

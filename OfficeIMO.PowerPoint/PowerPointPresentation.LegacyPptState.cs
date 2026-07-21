@@ -1,6 +1,8 @@
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using OfficeIMO.Drawing;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -13,9 +15,17 @@ namespace OfficeIMO.PowerPoint {
         private string[] _legacyPptLinkedOleDetails = Array.Empty<string>();
         private string[] _legacyPptActiveXDetails = Array.Empty<string>();
         private string[] _legacyPptMediaDetails = Array.Empty<string>();
+        private byte[]? _openXmlOriginalPackageBytes;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
         public PowerPointFileFormat SourceFormat { get; private set; } = PowerPointFileFormat.Pptx;
+
+        /// <summary>Gets the concrete source format, including modern template, slideshow, add-in, and macro variants.</summary>
+        public OfficeFormatDescriptor SourceFormatDescriptor => IsLegacyBinaryFormat(SourceFormat)
+            ? PowerPointFormatCatalog.GetDescriptor(SourceFormat, _legacyPptSourcePath)
+            : _document != null
+                ? PowerPointFormatCatalog.GetDescriptor(_document.DocumentType)
+                : PowerPointFormatCatalog.GetDescriptor(SourceFormat, FilePath);
 
         /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
         public string? SourcePath => IsLegacyBinaryFormat(SourceFormat)
@@ -25,11 +35,47 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Gets diagnostics produced while importing a legacy binary presentation.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> LegacyPptImportDiagnostics => _legacyPptImportDiagnostics;
 
+        /// <summary>Tries to read an original source retained by a compatibility conversion.</summary>
+        public bool TryGetCompatibilitySourcePayload(
+            out OfficeCompatibilitySourcePayload? payload,
+            out string? error) {
+            if (IsLegacyBinaryFormat(SourceFormat)) {
+                return OfficeCompatibilitySourceCarrier.TryRead(
+                    _legacyPptPackage?.CompoundFile,
+                    out payload,
+                    out error);
+            }
+
+            if (_openXmlOriginalPackageBytes != null) {
+                return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                    _openXmlOriginalPackageBytes,
+                    out payload,
+                    out error);
+            }
+
+            try {
+                using var snapshot = new MemoryStream();
+                using (_document!.Clone(snapshot)) { }
+                return OfficeCompatibilitySourceCarrier.TryReadPackage(
+                    snapshot.ToArray(),
+                    out payload,
+                    out error);
+            } catch (Exception exception) when (
+                exception is IOException
+                || exception is InvalidDataException
+                || exception is NotSupportedException) {
+                payload = null;
+                error = exception.Message;
+                return false;
+            }
+        }
+
         internal void MarkLoadedFromLegacyPpt(string? sourcePath, LegacyPptPresentation legacy,
             LegacyPptProjectionMap projectionMap, PowerPointFileFormat sourceFormat) {
             _legacyPptSourcePath = sourcePath;
             _legacyPptImportDiagnostics = legacy.Diagnostics.ToArray();
             _legacyPptPackage = legacy.Package;
+            _openXmlOriginalPackageBytes = null;
             _legacyPptProjectionMap = projectionMap;
             _legacyPptProjectionFingerprint = CreatePackageFingerprint(_document!);
             _legacyPptPreservationFingerprint = LegacyPptProjectionFingerprint.Create(_document!, projectionMap);
@@ -52,8 +98,12 @@ namespace OfficeIMO.PowerPoint {
             SourceFormat = sourceFormat;
         }
 
-        internal void MarkLoadedFromOpenXml() {
+        internal void MarkLoadedFromOpenXml(byte[] originalPackageBytes) {
+            if (originalPackageBytes == null) throw new ArgumentNullException(nameof(originalPackageBytes));
             _legacyPptPackage = null;
+            _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackageBytes)
+                ? (byte[])originalPackageBytes.Clone()
+                : null;
             _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
             _legacyPptPreservationFingerprint = null;
@@ -107,6 +157,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void ClearLegacyPptPackageState() {
             _legacyPptPackage = null;
+            _openXmlOriginalPackageBytes = null;
             _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
             _legacyPptPreservationFingerprint = null;

@@ -101,6 +101,7 @@ namespace OfficeIMO.Excel {
                 ".xlsm" => SpreadsheetDocumentType.MacroEnabledWorkbook,
                 ".xltx" => SpreadsheetDocumentType.Template,
                 ".xltm" => SpreadsheetDocumentType.MacroEnabledTemplate,
+                ".xlam" => SpreadsheetDocumentType.AddIn,
                 _ => null
             };
         }
@@ -114,7 +115,8 @@ namespace OfficeIMO.Excel {
             bool macroFreeTarget = target.Value == SpreadsheetDocumentType.Workbook
                 || target.Value == SpreadsheetDocumentType.Template;
             bool currentlyMacroEnabled = _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledWorkbook
-                || _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledTemplate;
+                || _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledTemplate
+                || _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.AddIn;
             if (macroFreeTarget && HasMacros && currentlyMacroEnabled) {
                 throw new InvalidOperationException(
                     "A workbook containing VBA cannot be saved to a macro-free .xlsx or .xltx destination. Use .xlsm/.xltm or remove the VBA project first.");
@@ -272,7 +274,7 @@ namespace OfficeIMO.Excel {
                 byte[] unchangedPackageBytes = normalizedContentTypes ? normalizedStream.ToArray() : bytes;
 
                 var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
-                return CreateDocument(
+                ExcelDocument document = CreateDocument(
                     memDoc,
                     filePath,
                     shouldRetainPackageStream ? normalizedStream : null,
@@ -283,6 +285,10 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: true,
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
+                document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
+                    ? (byte[])bytes.Clone()
+                    : null;
+                return document;
             } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null

@@ -5,7 +5,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
     /// <summary>Stable Excel handler identifier.</summary>
     public const string HandlerId = "officeimo.reader.excel";
 
-    /// <summary>Adds XLSX, XLSM, XLSB, and XLS workbook ingestion.</summary>
+    /// <summary>Adds every Excel format classified by <see cref="global::OfficeIMO.Excel.ExcelFormatCatalog"/>.</summary>
     public static OfficeDocumentReaderBuilder AddExcelHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderExcelOptions? options = null,
@@ -18,7 +18,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             DisplayName = "Excel Reader",
             Description = "OfficeIMO.Excel workbook projection with bounded row and table extraction.",
             Kind = ReaderInputKind.Excel,
-            Extensions = new[] { ".xlsx", ".xlsm", ".xlsb", ".xls" },
+            Extensions = global::OfficeIMO.Excel.ExcelFormatCatalog.All.Select(format => format.Extension).ToArray(),
             ReadDocumentPath = (path, readerOptions, token) => ExcelReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ProbeEncryptedOpenXml(stream, sourceName, readerOptions, token),

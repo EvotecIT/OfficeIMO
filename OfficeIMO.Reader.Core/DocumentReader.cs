@@ -43,9 +43,11 @@ internal static partial class DocumentReaderEngine {
         }
 
         return extension switch {
-            ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,
-            ".xlsx" or ".xlsm" or ".xls" => ReaderInputKind.Excel,
-            ".pptx" or ".pptm" or ".ppt" or ".pot" or ".pps" => ReaderInputKind.PowerPoint,
+            ".docx" or ".docm" or ".dotx" or ".dotm" or ".doc" or ".dot" => ReaderInputKind.Word,
+            ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" or ".xlsb"
+                or ".xls" or ".xlt" or ".xla" or ".xlm" or ".xlw" => ReaderInputKind.Excel,
+            ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam"
+                or ".ppt" or ".pot" or ".pps" or ".ppa" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
             ".eml" or ".msg" or ".oft" or ".mbox" or ".mbx" or ".tnef" or ".pst" or ".ost" or ".olm" or ".emlx" or ".oab" => ReaderInputKind.Email,

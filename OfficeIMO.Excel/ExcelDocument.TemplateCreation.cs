@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -201,6 +202,7 @@ namespace OfficeIMO.Excel {
                 ".xlsm" => MacroEnabledWorkbookContentType,
                 ".xltx" => TemplateWorkbookContentType,
                 ".xltm" => MacroEnabledTemplateWorkbookContentType,
+                ".xlam" => ExcelPackageUtilities.AddInWorkbookContentType,
                 _ => null
             };
         }

@@ -1,6 +1,8 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Excel;
+using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using System.IO.Compression;
 using System.Text;
@@ -12,6 +14,16 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderDetectionTests {
+    [Fact]
+    public void DocumentReader_DetectKind_CoversEveryClassifiedOfficeExtension() {
+        Assert.All(WordFormatCatalog.All, format =>
+            Assert.Equal(ReaderInputKind.Word, DocumentReaderEngine.DetectKind("artifact" + format.Extension)));
+        Assert.All(ExcelFormatCatalog.All, format =>
+            Assert.Equal(ReaderInputKind.Excel, DocumentReaderEngine.DetectKind("artifact" + format.Extension)));
+        Assert.All(PowerPointFormatCatalog.All, format =>
+            Assert.Equal(ReaderInputKind.PowerPoint, DocumentReaderEngine.DetectKind("artifact" + format.Extension)));
+    }
+
     [Fact]
     public void DocumentReader_Detect_PrefersStrongPdfContentAndRestoresStreamPosition() {
         byte[] bytes = Encoding.ASCII.GetBytes("prefix%PDF-1.7\nbody");

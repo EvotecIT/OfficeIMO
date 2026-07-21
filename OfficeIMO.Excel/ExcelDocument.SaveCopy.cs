@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Saves an independent copy without changing this workbook's associated destination.</summary>
-        /// <param name="filePath">Destination XLSX, XLSM, XLTX, XLTM, XLS, or XLSB path.</param>
+        /// <param name="filePath">Destination XLSX, XLSM, XLTX, XLTM, XLAM, XLS, or XLSB path.</param>
         /// <param name="options">Optional save policy settings.</param>
         public void SaveCopy(string filePath, ExcelSaveOptions? options = null) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
@@ -41,9 +41,10 @@ namespace OfficeIMO.Excel {
             if (string.Equals(extension, ".xlsm", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsx;
             if (string.Equals(extension, ".xltx", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsx;
             if (string.Equals(extension, ".xltm", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsx;
+            if (string.Equals(extension, ".xlam", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsx;
             if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xls;
             if (string.Equals(extension, ".xlsb", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsb;
-            throw new NotSupportedException("SaveCopy supports .xlsx, .xlsm, .xltx, .xltm, .xls, and .xlsb destinations.");
+            throw new NotSupportedException("SaveCopy supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xls, and .xlsb destinations.");
         }
 
         private static void FinalizeSaveCopyPackageType(string filePath, ExcelFileFormat format) {

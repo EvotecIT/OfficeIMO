@@ -359,6 +359,9 @@ namespace OfficeIMO.Word {
                 word._ownedPackageStream = memoryStream;
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
+                word._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
+                    ? (byte[])sourceBytes.Clone()
+                    : null;
                 word.LoadDocument();
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
@@ -469,6 +472,9 @@ namespace OfficeIMO.Word {
                 _ownedPackageStream = memoryStream,
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing."),
+                _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
+                    ? (byte[])sourceBytes.Clone()
+                    : null,
                 _persistenceMode = resolved.PersistenceMode
             };
 
@@ -550,6 +556,9 @@ namespace OfficeIMO.Word {
                 var document = new WordDocument() {
                     OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!,
                     _ownedPackageStream = packageStream,
+                    _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
+                        ? (byte[])sourceBytes.Clone()
+                        : null,
                     _persistenceMode = resolved.PersistenceMode
                 };
 

@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             bool decryptedFilePass = false;
             if (TryFindFilePass(records, out BiffRecord filePass)) {
+                workbook.WasEncryptedSource = true;
                 if (string.IsNullOrEmpty(options.Password)) {
                     AddFilePassBlocker(workbook, filePass);
                     return workbook;

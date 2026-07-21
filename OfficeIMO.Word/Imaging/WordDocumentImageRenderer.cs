@@ -455,6 +455,15 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                WordChart? chart = run.Chart;
+                if (chart != null) {
+                    added |= FlushTextRuns();
+                    context.ClearParagraphSpacingState();
+                    added |= AddChart(chart, context, diagnostics);
+                    context.ClearParagraphSpacingState();
+                    continue;
+                }
+
                 WordSmartArt? smartArt = run.SmartArt;
                 if (smartArt != null) {
                     added |= FlushTextRuns();

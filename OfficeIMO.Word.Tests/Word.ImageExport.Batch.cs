@@ -51,6 +51,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ImageExportProjectsNativeChartThroughSharedDrawingRenderer() {
+            using WordDocument document = WordDocument.Create();
+            WordChart chart = document.AddChart("Delivery status", false, 420, 240);
+            chart.AddPie("Complete", 72);
+            chart.AddPie("Remaining", 28);
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult image = document.ExportImage(
+                OfficeImageExportFormat.Png,
+                new WordImageExportOptions {
+                    Policy = new OfficeImageExportPolicy {
+                        RequireNoOmissions = true,
+                        RequireNoFailures = true
+                    }
+                });
+
+            Assert.DoesNotContain(snapshot.Diagnostics,
+                diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
+            Assert.DoesNotContain(image.Diagnostics,
+                diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
+            Assert.True(snapshot.Drawing.Elements.Count > 0);
+            Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+            Assert.NotNull(raster);
+        }
+
+        [Fact]
         public async Task WordDocument_BatchBuilderSavesSelectedPagesSynchronouslyAndAsynchronously() {
             string syncFolder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Word-Pages-" + Guid.NewGuid().ToString("N"));
             string asyncFolder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Word-Pages-Async-" + Guid.NewGuid().ToString("N"));

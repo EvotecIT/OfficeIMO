@@ -31,6 +31,7 @@ namespace OfficeIMO.Word {
                     return OfficeImageExportLossKind.Approximation;
 
                 case WordImageExportDiagnosticCodes.UnsupportedBodyElement:
+                case WordImageExportDiagnosticCodes.UnsupportedChart:
                 case WordImageExportDiagnosticCodes.UnsupportedExternalImage:
                 case WordImageExportDiagnosticCodes.UnsupportedFloatingImage:
                 case WordImageExportDiagnosticCodes.UnsupportedFooterElement:

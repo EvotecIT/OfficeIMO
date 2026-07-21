@@ -1,13 +1,16 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "collections": [
     {
       "id": "legacy-xls-apache-poi",
       "format": "xls",
+      "formatId": "Excel.Xls",
       "role": "compatibility",
       "root": "LegacyXlsCorpus/apache-poi-testdata",
       "producer": "Apache POI test-data",
       "provenance": "SOURCE.md",
+      "directions": ["legacy-import", "legacy-roundtrip", "modern-to-legacy", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "microsoft-office-open", "libreoffice-open"],
       "artifacts": [
         {
           "file": "3dFormulas.xls",
@@ -62,10 +65,13 @@
     {
       "id": "legacy-xls-excel-com",
       "format": "xls",
+      "formatId": "Excel.Xls",
       "role": "compatibility",
       "root": "LegacyXlsCorpus/excel-com-generated",
       "producer": "Microsoft Excel COM",
       "provenance": "SOURCE.md",
+      "directions": ["legacy-import", "legacy-roundtrip", "modern-to-legacy", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "microsoft-office-open", "libreoffice-open"],
       "artifacts": [
         {
           "file": "analytics.xls",
@@ -144,10 +150,13 @@
     {
       "id": "legacy-xls-openpreserve",
       "format": "xls",
+      "formatId": "Excel.Xls",
       "role": "compatibility",
       "root": "LegacyXlsCorpus/openpreserve-format-corpus",
       "producer": "OpenPreserve format corpus",
       "provenance": "SOURCE.md",
+      "directions": ["legacy-import", "legacy-roundtrip", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "microsoft-office-open", "libreoffice-open"],
       "artifacts": [
         {
           "file": "MonteCarlo.xls",
@@ -166,10 +175,13 @@
     {
       "id": "legacy-xls-excel-com-diagnostics",
       "format": "xls",
+      "formatId": "Excel.Xls",
       "role": "diagnostic",
       "root": "LegacyXlsDiagnosticCorpus/excel-com-generated",
       "producer": "Microsoft Excel COM",
       "provenance": "SOURCE.md",
+      "directions": ["legacy-import"],
+      "oracles": ["diagnostic", "microsoft-office-open"],
       "artifacts": [
         {
           "file": "biff5-workbook.xls",
@@ -188,10 +200,13 @@
     {
       "id": "xlsb-excel-generated",
       "format": "xlsb",
+      "formatId": "Excel.Xlsb",
       "role": "compatibility",
       "root": "XlsbCorpus",
       "producer": "Microsoft Excel",
       "provenance": "README.md",
+      "directions": ["legacy-import", "new-legacy-write", "legacy-roundtrip", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "microsoft-office-open", "libreoffice-open"],
       "artifacts": [
         {
           "file": "excel-generated/basic-values-formula.xlsb",
@@ -223,16 +238,92 @@
     {
       "id": "legacy-doc-word-com",
       "format": "doc",
+      "formatId": "Word.Doc",
       "role": "compatibility",
       "root": "LegacyDocCorpus",
       "producer": "Microsoft Word COM",
       "provenance": "README.md",
+      "directions": ["legacy-import", "new-legacy-write", "legacy-roundtrip", "modern-to-legacy", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "microsoft-office-open", "libreoffice-open"],
       "artifacts": [
         {
           "file": "ComSimpleParagraphs.doc",
           "sha256": "8308e70b4ad26b55ddebb32cc6ce41d17e489b678e1839f68b246b6080adf425",
           "approvedReport": "ComSimpleParagraphs.import-report.md",
           "focus": ["Word-authored paragraphs", "FIB and piece table projection"]
+        }
+      ]
+    },
+    {
+      "id": "legacy-ppt-compatibility",
+      "format": "ppt",
+      "formatId": "PowerPoint.Ppt",
+      "role": "compatibility",
+      "root": "LegacyPptCorpus",
+      "producer": "LibreOffice, Microsoft PowerPoint, and Apache POI",
+      "provenance": "README.md",
+      "directions": ["legacy-import", "new-legacy-write", "legacy-roundtrip", "modern-to-legacy", "legacy-to-modern"],
+      "oracles": ["structural", "semantic", "diagnostic", "visual", "microsoft-office-open", "libreoffice-open", "libreoffice-render"],
+      "artifacts": [
+        {
+          "file": "AccessibilityPowerPoint.ppt",
+          "sha256": "ce8b78712e423238d9082503842152c07ebfc6770ebfc3654c0865b725f4e175",
+          "focus": ["accessibility metadata", "Microsoft-authored CurrentUserAtom", "visual fidelity"]
+        },
+        {
+          "file": "AdjustedShapesPowerPoint.ppt",
+          "sha256": "cfbcdc8249b0cd886a6abcf6c00fe00eb85753eaa693dd933299d47b68a42599",
+          "focus": ["shape adjustments", "preset geometry"]
+        },
+        {
+          "file": "apache-poi-testdata/bug61881.ppt",
+          "sha256": "ba2bf551e87f5fd7667dec52ac19005396bdf9af00f0006f9a247a9fede2e8ee",
+          "focus": ["picture bullets", "independent producer"]
+        },
+        {
+          "file": "BasicPowerPoint.ppt",
+          "sha256": "d2a4e762290f1870f6370295df533bf75da0cd5e579ff9938d1618db88342615",
+          "focus": ["positioned text", "basic slide structure"]
+        },
+        {
+          "file": "ConnectedPowerPoint.ppt",
+          "sha256": "9ec3ea4c6f7a0d6fca06a00a269cbe15b66ded0f4a124e9e5f029c75e3de3ef8",
+          "focus": ["connected shapes", "connector solver rules"]
+        },
+        {
+          "file": "CroppedPicturePowerPoint.ppt",
+          "sha256": "42b9007c1d995ecd0471bdc195a9b2a72acdc89dfbd4cee73f47000099068dc9",
+          "focus": ["picture crop", "negative crop values"]
+        },
+        {
+          "file": "PictureEffectsPowerPoint.ppt",
+          "sha256": "db2eadf76110641fe46230949f04ac4c54cb158678b7cd301ceea193161e27d2",
+          "focus": ["picture effects", "baked-image fallback"]
+        },
+        {
+          "file": "PicturePowerPoint.ppt",
+          "sha256": "db91032546d2e399c02c6b35eb6fdadb73ccf29a7dc77f1ceffcc64071d7ecbc",
+          "focus": ["Pictures delay stream", "OfficeArt image references"]
+        },
+        {
+          "file": "RichTextPowerPoint.ppt",
+          "sha256": "91d0c2a9ee4380357befeee9803d45b4bcdfb2774d84ea5360e3f8b3964dab88",
+          "focus": ["rich text runs", "font and color projection"]
+        },
+        {
+          "file": "ShadowPowerPoint.ppt",
+          "sha256": "33eff835786f06fd721f9f3b2b15300ea2d8aa96ec1dd79160c6e0811d207897",
+          "focus": ["shape shadows", "signed offsets"]
+        },
+        {
+          "file": "ShapePowerPoint.ppt",
+          "sha256": "50f5094a5004cba187defe96d9d15f7e7302fcd8c1176711a1538eeee05eae20",
+          "focus": ["shape geometry", "groups", "connectors", "visual fidelity"]
+        },
+        {
+          "file": "TransformPowerPoint.ppt",
+          "sha256": "eef8191b166d1a2eb4714bddac250390075eb16122c7ecbce6dd285ef707d2e2",
+          "focus": ["rotation", "mirroring", "nested groups"]
         }
       ]
     }

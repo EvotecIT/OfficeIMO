@@ -27,6 +27,7 @@ namespace OfficeIMO.Tests {
         private static readonly TimeSpan WordComOpenTimeout = TimeSpan.FromMinutes(2);
 
         [LegacyDocComFact]
+        [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
@@ -98,6 +99,7 @@ namespace OfficeIMO.Tests {
         }
 
         [LegacyDocComFact]
+        [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_ConvertGeneratedDocxToDocOpensInDesktopWordWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
@@ -163,6 +165,7 @@ namespace OfficeIMO.Tests {
         }
 
         [LegacyDocComFact]
+        [Trait("Category", "MicrosoftOfficeInteroperability")]
         public void LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested() {
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");

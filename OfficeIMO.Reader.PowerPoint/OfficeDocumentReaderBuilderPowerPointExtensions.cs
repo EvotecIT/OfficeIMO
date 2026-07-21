@@ -1,4 +1,5 @@
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Reader.PowerPoint;
 
@@ -10,7 +11,7 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
     /// <summary>Stable legacy binary PowerPoint handler identifier.</summary>
     public const string BinaryHandlerId = "officeimo.reader.powerpoint.binary";
 
-    /// <summary>Adds PPTX, PPTM, and legacy PPT, POT, and PPS ingestion.</summary>
+    /// <summary>Adds every PowerPoint format classified by <see cref="global::OfficeIMO.PowerPoint.PowerPointFormatCatalog"/>.</summary>
     public static OfficeDocumentReaderBuilder AddPowerPointHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderPowerPointOptions? options = null,
@@ -23,7 +24,10 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
             DisplayName = "PowerPoint Reader",
             Description = "OfficeIMO.PowerPoint slide, table, and speaker-note projection.",
             Kind = ReaderInputKind.PowerPoint,
-            Extensions = new[] { ".pptx", ".pptm" },
+            Extensions = global::OfficeIMO.PowerPoint.PowerPointFormatCatalog.All
+                .Where(format => format.Generation == OfficeFormatGeneration.Modern)
+                .Select(format => format.Extension)
+                .ToArray(),
             ReadDocumentPath = (path, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
@@ -37,7 +41,10 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
             Description = "Bounded OfficeIMO.PowerPoint projection for PPT, POT, and PPS compound files.",
             Kind = ReaderInputKind.PowerPoint,
             UseDetectedKindFallback = false,
-            Extensions = new[] { ".ppt", ".pot", ".pps" },
+            Extensions = global::OfficeIMO.PowerPoint.PowerPointFormatCatalog.All
+                .Where(format => format.Generation == OfficeFormatGeneration.Legacy)
+                .Select(format => format.Extension)
+                .ToArray(),
             DefaultMaxInputBytes = LegacyPptImportOptions.DefaultMaxInputBytes,
             ReadDocumentPath = (path, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),

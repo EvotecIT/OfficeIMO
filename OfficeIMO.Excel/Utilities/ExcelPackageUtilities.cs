@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Utilities {
         private const string MacroEnabledWorkbookContentType = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
         private const string TemplateWorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml";
         private const string MacroEnabledTemplateWorkbookContentType = "application/vnd.ms-excel.template.macroEnabled.main+xml";
-        private const string AddInWorkbookContentType = "application/vnd.ms-excel.addin.macroEnabled.main+xml";
+        internal const string AddInWorkbookContentType = "application/vnd.ms-excel.addin.macroEnabled.main+xml";
         private const string AppPropsOverridePart = "/docProps/app.xml";
         private const string AppPropsContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
         private const string CorePropsOverridePart = "/docProps/core.xml";

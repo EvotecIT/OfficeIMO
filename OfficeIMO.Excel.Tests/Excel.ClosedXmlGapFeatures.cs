@@ -1532,7 +1532,17 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Signed"].CellValue(3, 1, "After");
-                document.Save();
+                ExcelSignatureInfo signatures = document.InspectSignatures();
+                Assert.True(signatures.HasSignatures);
+                Assert.True(signatures.HasDigitalSignatureOriginPart);
+                Assert.Equal(1, signatures.XmlSignaturePartCount);
+                Assert.True(signatures.HasApplicationSignatureMetadata);
+                ExcelSignedWorkbookMutationException blocked = Assert.Throws<ExcelSignedWorkbookMutationException>(() =>
+                    document.Save());
+                Assert.True(blocked.SignatureInfo.HasSignatures);
+                document.Save(new ExcelSaveOptions {
+                    SignatureMutationPolicy = ExcelSignatureMutationPolicy.PreserveSignatureMarkup
+                });
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

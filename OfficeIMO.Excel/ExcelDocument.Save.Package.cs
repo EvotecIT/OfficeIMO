@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
         private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false) {
+            ApplySignatureMutationPolicy(options);
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             if (skipDirectFastSaveSheetPreparation) {
                 MaterializePendingDirectCellValueSheetIfNeeded();
