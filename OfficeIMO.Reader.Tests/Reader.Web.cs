@@ -447,7 +447,7 @@ public sealed class ReaderWebTests {
         });
 
         Assert.Contains("recovered", recovered.Markdown, StringComparison.Ordinal);
-        Assert.True(SpinWait.SpinUntil(() => lateStream.IsDisposed, TimeSpan.FromSeconds(2)));
+        await AssertDisposedAsync(lateStream);
         Assert.Equal(2, handler.CallCount);
     }
 
@@ -507,7 +507,7 @@ public sealed class ReaderWebTests {
 
         Assert.Contains("recovered", recovered.Markdown, StringComparison.Ordinal);
         Assert.True(stalledContent.IsDisposed);
-        Assert.True(SpinWait.SpinUntil(() => lateStream.IsDisposed, TimeSpan.FromSeconds(2)));
+        await AssertDisposedAsync(lateStream);
         Assert.Equal(2, handler.CallCount);
     }
 
@@ -701,16 +701,30 @@ public sealed class ReaderWebTests {
         }
     }
 
+    private static async Task AssertDisposedAsync(TrackingMemoryStream stream) {
+        Task disposal = stream.Disposal;
+        Task completed = await Task.WhenAny(disposal, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        Assert.Same(disposal, completed);
+        Assert.True(stream.IsDisposed);
+    }
+
     private sealed class TrackingMemoryStream : MemoryStream {
+        private readonly TaskCompletionSource<bool> _disposal =
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _isDisposed;
 
         internal TrackingMemoryStream(byte[] bytes) : base(bytes, writable: false) {
         }
 
         internal bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;
+        internal Task Disposal => _disposal.Task;
 
         protected override void Dispose(bool disposing) {
-            if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
+            if (disposing) {
+                Interlocked.Exchange(ref _isDisposed, 1);
+                _disposal.TrySetResult(true);
+            }
             base.Dispose(disposing);
         }
     }
