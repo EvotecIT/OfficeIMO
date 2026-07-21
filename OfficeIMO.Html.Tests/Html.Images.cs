@@ -27,7 +27,8 @@ namespace OfficeIMO.Tests {
                 var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
                 Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><img src=\"logo.png\" alt=\"Logo\" />";
-                var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+                var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                    .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
                 Assert.Single(doc.Images);
                 Assert.Equal("Logo", doc.Images[0].Description);
             } finally {
@@ -81,7 +82,8 @@ namespace OfficeIMO.Tests {
             string html = "<img src=\"http://localhost:1/missing.png\" alt=\"Missing\" />";
             var options = new HtmlToWordOptions();
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocumentResult(options);
             var doc = conversion.Value;
 
             Assert.Empty(doc.Images);
@@ -100,7 +102,8 @@ namespace OfficeIMO.Tests {
             string html = "<img src=\"http://localhost:1/missing.png\" />";
             var options = new HtmlToWordOptions();
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocumentResult(options);
             var doc = conversion.Value;
 
             Assert.Empty(doc.Images);
@@ -1062,7 +1065,8 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"{uri}\" width=\"64\" height=\"64\" alt=\"Logo\" />";
             var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
             options.ImageProcessing = ImageProcessingMode.LinkExternal;
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocumentResult(options);
             var doc = conversion.Value;
             var img = Assert.Single(doc.Images);
             Assert.True(img.IsExternal);
@@ -1618,7 +1622,8 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"{uri}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocumentResult(options);
             var doc = conversion.Value;
 
             Assert.Empty(doc.Images);

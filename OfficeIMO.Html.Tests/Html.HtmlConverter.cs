@@ -128,7 +128,8 @@ public partial class Html {
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, OfficeIMO.Html.HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
         string roundTrip = doc.ToHtml(new WordToHtmlOptions());
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -342,7 +343,8 @@ public partial class Html {
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, OfficeIMO.Html.HtmlConversionDocumentOptions.CreateTrustedProfile())
+            .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
         Assert.Single(doc.Images);
     }

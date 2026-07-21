@@ -138,6 +138,11 @@ namespace OfficeIMO.Word.Html {
         public HtmlUrlPolicy HyperlinkUrlPolicy { get; set; } = HtmlUrlPolicy.CreateHyperlinkProfile();
 
         /// <summary>
+        /// Shared URL policy applied before imported image resources are resolved or materialized.
+        /// </summary>
+        public HtmlUrlPolicy ResourceUrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+        /// <summary>
         /// Controls how images are processed during conversion.
         /// </summary>
         public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.EmbedDataUriOnly;
@@ -387,6 +392,7 @@ namespace OfficeIMO.Word.Html {
                 NoteReferenceType = NoteReferenceType,
                 LinkNoteUrls = LinkNoteUrls,
                 HyperlinkUrlPolicy = HyperlinkUrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateHyperlinkProfile(),
+                ResourceUrlPolicy = ResourceUrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateOfficeIMOProfile(),
                 ImageProcessing = ImageProcessing,
                 HttpClient = HttpClient,
                 ResourceTimeout = ResourceTimeout,

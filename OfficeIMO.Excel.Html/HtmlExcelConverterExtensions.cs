@@ -462,33 +462,41 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget, string range, ref int chartIndex) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
+        bool hasSemanticData = TryReadChartData(item, out ExcelChartData? chartData) && chartData != null;
+        bool hasUsableRange = !string.IsNullOrWhiteSpace(range) && !string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase);
+        if (!hasSemanticData && !hasUsableRange) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.", lossKind: HtmlConversionLossKind.Omission);
+            return;
+        }
+
         ReadChartDimensions(item, out int seriesCount, out int categoryCount);
-        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out string chartLimit)) {
+        ExcelChartType type = ReadExcelChartType(item);
+        ReadChartPlacement(item, chartIndex, budget, result, out int row, out int column, out int width, out int height);
+        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission,
                 detail: chartLimit);
             return;
         }
-        ExcelChartType type = ReadExcelChartType(item);
-        ReadChartPlacement(item, chartIndex, budget, result, out int row, out int column, out int width, out int height);
-        try {
-            if (TryReadChartData(item, out ExcelChartData? chartData) && chartData != null) {
-                sheet.AddChart(chartData, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
-            } else if (!string.IsNullOrWhiteSpace(range) && !string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase)) {
-                sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
-            } else {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                    "Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.", lossKind: HtmlConversionLossKind.Omission);
-                return;
-            }
 
-            result.Charts++;
-            chartIndex++;
-        } catch (Exception ex) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ArtifactCreationFailed,
-                "Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message,
-                lossKind: HtmlConversionLossKind.Omission, detail: ex.GetType().Name);
+        using (reservation) {
+            try {
+                if (hasSemanticData) {
+                    sheet.AddChart(chartData!, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                } else {
+                    sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                }
+
+                reservation.Commit();
+                result.Charts++;
+                chartIndex++;
+            } catch (Exception ex) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ArtifactCreationFailed,
+                    "Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message,
+                    lossKind: HtmlConversionLossKind.Omission, detail: ex.GetType().Name);
+            }
         }
     }
 

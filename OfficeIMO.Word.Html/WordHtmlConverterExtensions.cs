@@ -83,6 +83,15 @@ namespace OfficeIMO.Word.Html {
                 : HtmlToWordOptions.CreateUntrustedHtmlProfile();
         }
 
+        private static HtmlToWordOptions ResolveWordOptionsForSharedDocument(
+            HtmlConversionDocument document,
+            HtmlToWordOptions? options) {
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+            resolved.HyperlinkUrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, resolved.HyperlinkUrlPolicy);
+            resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, resolved.ResourceUrlPolicy);
+            return resolved;
+        }
+
         /// <summary>
         /// Appends HTML content to the document's body.
         /// </summary>
@@ -91,7 +100,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         public static void AddHtmlToBody(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions? options = null) {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
             doc.AddHtmlToBodyAsync(htmlDocument, resolved).GetAwaiter().GetResult();
@@ -109,7 +118,7 @@ namespace OfficeIMO.Word.Html {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
@@ -127,7 +136,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         public static void AddHtmlToHeader(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
             doc.AddHtmlToHeaderAsync(htmlDocument, type, resolved).GetAwaiter().GetResult();
@@ -146,7 +155,7 @@ namespace OfficeIMO.Word.Html {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             type ??= HeaderFooterValues.Default;
 
@@ -172,7 +181,7 @@ namespace OfficeIMO.Word.Html {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
 
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
 
@@ -198,7 +207,7 @@ namespace OfficeIMO.Word.Html {
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             var footerType = type ?? HeaderFooterValues.Default;
 

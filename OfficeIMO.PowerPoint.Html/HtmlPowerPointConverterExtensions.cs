@@ -171,37 +171,40 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ReadChartDataDimensions(item, out int seriesCount, out int categoryCount);
-        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out string chartLimit)) {
+        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: chartLimit);
             return;
         }
 
-        bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
-        PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
-        string chartKind = ReadChartKind(item);
-        ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
-        if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
-            return;
-        }
+        using (reservation) {
+            bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
+            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
+            string chartKind = ReadChartKind(item);
+            ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
+            if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
 
-        chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
-        ApplyShapeTransforms(item, chart, budget, result);
-        result.Charts++;
-        if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage, lossKind: HtmlConversionLossKind.Approximation);
-        }
+            reservation.Commit();
+            chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
+            ApplyShapeTransforms(item, chart, budget, result);
+            result.Charts++;
+            if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage, lossKind: HtmlConversionLossKind.Approximation);
+            }
 
-        if (!restoredFromSemanticData) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.", lossKind: HtmlConversionLossKind.Approximation);
-        }
+            if (!restoredFromSemanticData) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                    "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.", lossKind: HtmlConversionLossKind.Approximation);
+            }
 
-        fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
+            fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
+        }
     }
 
     private static void ImportNotes(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget) {

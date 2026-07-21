@@ -8,7 +8,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
     public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         EnsureOfflineSynchronousImport(document, resolved);
         return ToWordDocumentResultAsync(document, resolved).GetAwaiter().GetResult();
     }
@@ -20,7 +20,7 @@ public static partial class WordHtmlConverterExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         resolved.ConversionReport.AddRange(document.Diagnostics);
         var converter = new HtmlToWordConverter();
         WordDocument wordDocument = await converter.ConvertAsync(

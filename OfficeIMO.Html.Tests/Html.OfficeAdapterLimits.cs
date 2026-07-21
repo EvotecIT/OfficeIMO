@@ -2,6 +2,8 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
 using OfficeIMO.PowerPoint.Html;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -185,6 +187,92 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Accepted");
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void PowerPointHtml_UnsupportedChartDoesNotConsumeTheSharedChartBudget() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul>
+                  <li data-officeimo-layer-index="0"><span class="officeimo-feature-label">Unsupported</span><span class="officeimo-feature-meta">Type: FutureChart; Series: 1; Categories: 1</span></li>
+                  <li data-officeimo-layer-index="1"><span class="officeimo-feature-label">Accepted</span><span class="officeimo-feature-meta">Type: Pie; Series: 1; Categories: 1</span></li>
+                </ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxCharts = 1;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(1, result.Charts);
+        Assert.Single(Assert.Single(presentation.Slides).Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void ExcelHtml_UnusableChartDoesNotConsumeTheSharedChartBudget() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-profile="ExcelSemanticTables" data-officeimo-schema-version="1">
+              <section class="officeimo-sheet" data-officeimo-sheet="Data" data-officeimo-range="A1">
+                <table><tbody><tr><td>value</td></tr></tbody></table>
+                <section class="officeimo-charts"><ul>
+                  <li data-officeimo-layer-index="0"><span class="officeimo-feature-label">Unusable</span></li>
+                  <li data-officeimo-layer-index="1">
+                    <span class="officeimo-feature-label">Accepted</span>
+                    <table class="officeimo-chart-data">
+                      <thead><tr><th></th><th>Q1</th></tr></thead>
+                      <tbody><tr><th>Actual</th><td>10</td></tr></tbody>
+                    </table>
+                  </li>
+                </ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxCharts = 1;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(1, result.Charts);
+        Assert.Single(Assert.Single(workbook.Sheets, sheet => sheet.Name == "Data").Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void WordHtml_PreparedDocumentPoliciesRemainAuthoritative() {
+        const string image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        var hyperlinkPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
+        hyperlinkPolicy.AllowedUrlSchemes.Clear();
+        hyperlinkPolicy.AllowedUrlSchemes.Add(Uri.UriSchemeHttps);
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<p><a href='http://example.test/plain'>Plain link</a></p><img src='data:image/png;base64," + image + "' alt='Blocked image'>",
+            new HtmlConversionDocumentOptions {
+                Trust = HtmlInputTrust.Trusted,
+                UrlPolicy = hyperlinkPolicy,
+                ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+        HtmlToWordOptions permissiveOptions = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        permissiveOptions.ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+        HtmlToWordResult result = source.ToWordDocumentResult(permissiveOptions);
+        using WordDocument document = result.Value;
+
+        Assert.Empty(document.ParagraphsHyperLinks);
+        Assert.Empty(document.Images);
+        Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Plain link", StringComparison.Ordinal));
+        Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Blocked image", StringComparison.Ordinal));
     }
 
     [Fact]

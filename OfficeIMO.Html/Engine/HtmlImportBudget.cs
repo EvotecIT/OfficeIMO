@@ -59,7 +59,12 @@ internal sealed class HtmlImportBudget {
         return true;
     }
 
-    internal bool TryReserveChartWithShape(int series, int categories, out string detail) {
+    internal bool TryReserveChartWithShape(
+        int series,
+        int categories,
+        out HtmlImportBudgetReservation reservation,
+        out string detail) {
+        reservation = null!;
         if (!CanReserveChart(series, categories, out long points, out detail)
             || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) {
             return false;
@@ -68,8 +73,15 @@ internal sealed class HtmlImportBudget {
         _charts++;
         _chartPoints += points;
         _shapes++;
+        reservation = new HtmlImportBudgetReservation(() => ReleaseChartWithShape(points));
         detail = string.Empty;
         return true;
+    }
+
+    private void ReleaseChartWithShape(long points) {
+        _charts--;
+        _chartPoints -= points;
+        _shapes--;
     }
 
     private bool CanReserveChart(int series, int categories, out long points, out string detail) {
@@ -178,4 +190,21 @@ internal sealed class HtmlImportBudget {
 
     private static string Detail(string source, long actual, long limit) =>
         source + ": Actual=" + actual + "; Limit=" + limit;
+}
+
+/// <summary>Rolls back a provisional shared import-budget reservation unless it is committed.</summary>
+internal sealed class HtmlImportBudgetReservation : IDisposable {
+    private Action? _rollback;
+
+    internal HtmlImportBudgetReservation(Action rollback) {
+        _rollback = rollback ?? throw new ArgumentNullException(nameof(rollback));
+    }
+
+    internal void Commit() => _rollback = null;
+
+    public void Dispose() {
+        Action? rollback = _rollback;
+        _rollback = null;
+        rollback?.Invoke();
+    }
 }
