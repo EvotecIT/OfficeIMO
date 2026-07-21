@@ -8,12 +8,12 @@
   window.Prism = window.Prism || {};
   window.Prism.manual = true;
 
-  function getPreferredTheme() {
-    return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  function getDefaultTheme() {
+    return "light";
   }
 
   function applyTheme(mode) {
-    var resolved = mode === "light" || mode === "dark" ? mode : getPreferredTheme();
+    var resolved = mode === "light" || mode === "dark" ? mode : getDefaultTheme();
     document.documentElement.setAttribute("data-theme", resolved);
     document.documentElement.style.colorScheme = resolved;
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
@@ -27,12 +27,12 @@
   function initTheme() {
     var stored = localStorage.getItem(THEME_KEY);
     if (stored !== "light" && stored !== "dark") {
-      stored = getPreferredTheme();
+      stored = getDefaultTheme();
     }
     applyTheme(stored);
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var cur = document.documentElement.getAttribute("data-theme") || getPreferredTheme();
+        var cur = document.documentElement.getAttribute("data-theme") || getDefaultTheme();
         var next = cur === "dark" ? "light" : "dark";
         localStorage.setItem(THEME_KEY, next);
         applyTheme(next);
@@ -261,6 +261,51 @@
     }, { passive: true });
   }
 
+  function initConverterFrame() {
+    var frame = document.querySelector('.imo-converter-launch__frame');
+    if (!frame) return;
+
+    var observer = null;
+
+    function syncHeight() {
+      try {
+        var frameDocument = frame.contentDocument;
+        if (!frameDocument) return;
+
+        var documentHeight = frameDocument.documentElement ? frameDocument.documentElement.scrollHeight : 0;
+        var bodyHeight = frameDocument.body ? frameDocument.body.scrollHeight : 0;
+        var height = Math.max(documentHeight, bodyHeight);
+        if (height > 0) frame.style.height = Math.ceil(height) + 'px';
+      } catch (error) {
+        // The converter is same-origin in production. Keep the CSS fallback if a preview host changes that.
+      }
+    }
+
+    function observeFrame() {
+      if (observer) observer.disconnect();
+      syncHeight();
+
+      try {
+        var frameWindow = frame.contentWindow;
+        var frameDocument = frame.contentDocument;
+        if (frameWindow && frameWindow.ResizeObserver && frameDocument) {
+          observer = new frameWindow.ResizeObserver(syncHeight);
+          if (frameDocument.documentElement) observer.observe(frameDocument.documentElement);
+          if (frameDocument.body) observer.observe(frameDocument.body);
+        }
+      } catch (error) {
+        // The fixed minimum height remains usable if same-origin observation is unavailable.
+      }
+
+      window.setTimeout(syncHeight, 250);
+      window.setTimeout(syncHeight, 1000);
+    }
+
+    frame.addEventListener('load', observeFrame);
+    window.addEventListener('resize', syncHeight);
+    observeFrame();
+  }
+
   function initDocsSidebar() {
     var toggle = document.querySelector(".imo-docs__sidebar-toggle");
     var sidebar = document.querySelector(".imo-docs__sidebar");
@@ -381,6 +426,7 @@
     initCodeCopy();
     initTabs();
     initHeaderScroll();
+    initConverterFrame();
     initDocsSidebar();
     initPrism();
   }

@@ -22,7 +22,7 @@
   "featureContracts": {
     "apiDocs": {
       "requiredPartials": ["api-header", "api-footer", "theme-tokens"],
-      "cssHrefs": ["/themes/officeimo/assets/app.css", "/themes/officeimo/assets/api.css"],
+      "cssHrefs": ["/themes/officeimo/assets/app.css", "/themes/officeimo/assets/api.css", "/themes/officeimo/assets/visual-system.css"],
       "requiredCssSelectors": [
         ".api-layout",
         ".api-sidebar",

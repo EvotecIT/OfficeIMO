@@ -3,59 +3,64 @@
 
 <main class="ocx-shell">
     <header class="ocx-appbar">
-        <a class="ocx-brand" href="/" target="_top"><span class="ocx-brand__mark">O</span><span>OfficeIMO</span></a>
-        <nav aria-label="Converter links"><a href="/docs/" target="_top">Docs</a><a href="/api/" target="_top">API</a><a href="/downloads/" target="_top">Packages</a><a href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
+        <a class="ocx-brand" href="/" target="_top" aria-label="OfficeIMO home">
+            <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
+            <span>OfficeIMO</span>
+        </a>
+        <nav aria-label="Converter links"><a href="/products/word/" target="_top">Products</a><a href="/docs/" target="_top">Docs</a><a href="/api/" target="_top">API</a><a href="/downloads/" target="_top">Packages</a><a class="ocx-nav-cta" href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
     </header>
 
     <section class="ocx-intro">
-        <div><p class="ocx-eyebrow">Browser converter</p><h1>Convert a document.<br><span>Keep it on your device.</span></h1><p>Choose a supported route, add a file or text, and download the result. Conversion runs inside WebAssembly in this tab—your content is not uploaded to OfficeIMO.</p></div>
-        <aside><span class="ocx-local-dot"></span><div><strong>Private by default</strong><p>Local processing · no account · no server upload</p></div></aside>
+        <p class="ocx-eyebrow">Browser document converter</p>
+        <h1>Convert documents <span>without Office.</span></h1>
+        <p>Choose a route, add your source, and download the result. Supported conversions run locally in WebAssembly in this browser tab.</p>
     </section>
 
-    <section class="ocx-route-catalog" aria-labelledby="route-title">
-        <div class="ocx-route-catalog__heading"><div><p class="ocx-eyebrow">Choose a route</p><h2 id="route-title">What do you want to create?</h2></div><span>@Routes.Count supported browser routes</span></div>
-        <div class="ocx-route-catalog__grid">
-            @foreach (ConversionRoute route in Routes) {
-                <button @key="route.Id" type="button" class="ocx-route-card @route.AccentClass @(ActiveRoute.Id == route.Id ? "is-active" : null)" @onclick="() => SelectRouteAsync(route)" aria-pressed="@(ActiveRoute.Id == route.Id)">
-                    <span class="ocx-route-card__formats"><i>@route.Source</i><b aria-hidden="true">→</b><i>@route.Target</i></span>
-                    <strong>@route.Title</strong><small>@route.Description</small>
-                </button>
-            }
+    <section class="ocx-converter" aria-label="@ActiveRoute.Title converter">
+        <div class="ocx-route-picker" aria-label="Selected conversion route">
+            <div class="ocx-format-field">
+                <span>From</span>
+                <div><i class="@ActiveRoute.AccentClass">@ActiveRoute.Source</i><strong>@ActiveRoute.Source document</strong><small>@ActiveRoute.Accept.Split(',')[0]</small></div>
+            </div>
+            <span class="ocx-route-arrow" aria-hidden="true">→</span>
+            <div class="ocx-format-field">
+                <span>To</span>
+                <div><i class="ocx-route-card--pdf">@ActiveRoute.Target</i><strong>@ActiveRoute.Target output</strong><small>download</small></div>
+            </div>
         </div>
-    </section>
 
-    <section class="ocx-workspace" aria-label="@ActiveRoute.Title converter">
-        <div class="ocx-workspace__header"><div><span class="ocx-step">01</span><div><p>Selected route</p><h2>@ActiveRoute.Title</h2></div></div><code>@ActiveRoute.EnginePath</code></div>
-        <div class="ocx-workspace__grid">
+        <div class="ocx-local-banner"><span class="ocx-local-dot"></span><strong>Private in this demo</strong><span>Your file stays in this tab. No account, upload, or retention.</span><code>@ActiveRoute.EnginePath</code></div>
+
+        <div class="ocx-workspace">
             <section class="ocx-input-panel" aria-labelledby="input-title">
-                <div class="ocx-panel-heading"><span class="ocx-step">02</span><div><p>Source</p><h3 id="input-title">@(ActiveRoute.InputKind == ConversionInputKind.File ? "Choose a document" : "Add your content")</h3></div></div>
+                <div class="ocx-panel-heading"><div><p>Source</p><h2 id="input-title">@(ActiveRoute.InputKind == ConversionInputKind.File ? "Add your document" : $"Add {ActiveRoute.Source} content")</h2></div><span>Up to @FormatBytes(MaxUploadBytes)</span></div>
 
                 @if (ActiveRoute.InputKind == ConversionInputKind.File) {
                     <label class="ocx-dropzone" @key="ActiveRoute.Id">
                         <InputFile class="ocx-hidden-input" OnChange="HandleFileSelectedAsync" accept="@ActiveRoute.Accept" />
-                        <span class="ocx-dropzone__icon">@ActiveRoute.Source</span>
-                        <strong>@(SelectedFile is null ? $"Drop or choose a {ActiveRoute.Source} file" : SelectedFile.Name)</strong>
-                        <small>@(SelectedFile is null ? $"Up to {FormatBytes(MaxUploadBytes)} · processed locally" : $"{SelectedFile.FormatLabel} · {FormatBytes(SelectedFile.Size)}")</small>
-                        <span class="ocx-button ocx-button--compact">Browse files</span>
+                        <span class="ocx-dropzone__icon @ActiveRoute.AccentClass"><i></i><b>@ActiveRoute.Source</b></span>
+                        <strong>@(SelectedFile is null ? $"Drop a {ActiveRoute.Source} file here" : SelectedFile.Name)</strong>
+                        <small>@(SelectedFile is null ? "or choose one from your device" : $"{SelectedFile.FormatLabel} · {FormatBytes(SelectedFile.Size)} · ready locally")</small>
+                        <span class="ocx-button">Choose file</span>
                     </label>
                     <div class="ocx-input-actions">
-                        <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Use sample @ActiveRoute.Source</button>
+                        <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample @ActiveRoute.Source</button>
                         @if (ActiveRoute.Id == "xlsx-pdf") { <label class="ocx-toggle"><input type="checkbox" @bind="FastPreview" /><span>Limit preview to 250 rows per sheet</span></label> }
                     </div>
                 } else {
-                    <div class="ocx-editor-shell"><div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source input</span><button type="button" @onclick="LoadTextSampleAsync">Load sample</button></div><textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea></div>
+                    <div class="ocx-editor-shell"><div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source source</span><button type="button" @onclick="LoadTextSampleAsync">Reset sample</button></div><textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea></div>
                 }
 
-                <button type="button" class="ocx-convert-button" disabled="@(!CanConvert)" @onclick="ConvertAsync"><span>@(IsBusy ? "Converting…" : $"Convert to {ActiveRoute.Target}")</span><b aria-hidden="true">→</b></button>
+                <button type="button" class="ocx-convert-button" disabled="@(!CanConvert)" @onclick="ConvertAsync"><span>@(IsBusy ? "Converting locally…" : $"Convert to {ActiveRoute.Target}")</span><b aria-hidden="true">→</b></button>
             </section>
 
             <section class="ocx-output-panel" aria-labelledby="output-title">
-                <div class="ocx-panel-heading ocx-panel-heading--output"><span class="ocx-step">03</span><div><p>Result</p><h3 id="output-title">@OutputHeading</h3></div>@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary ocx-button--compact" href="@OutputUrl" download="@OutputFileName">Download</a> }</div>
+                <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div>@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary" href="@OutputUrl" download="@OutputFileName">Download result</a> }</div>
                 <div class="ocx-preview-stage">
                     @if (IsBusy) {
-                        <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Converting locally</strong><p>The browser is running the OfficeIMO engine.</p></div>
+                        <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Converting in your browser</strong><p>The OfficeIMO engine is preparing the result.</p></div>
                     } else if (Output is null) {
-                        <div class="ocx-empty-state"><div class="ocx-empty-state__files" aria-hidden="true"><i>@ActiveRoute.Source</i><b>→</b><i>@ActiveRoute.Target</i></div><strong>Your result will appear here</strong><p>Add a source, then run the conversion.</p></div>
+                        <div class="ocx-empty-state"><div class="ocx-empty-state__files" aria-hidden="true"><i class="@ActiveRoute.AccentClass">@ActiveRoute.Source</i><b>→</b><i>@ActiveRoute.Target</i></div><strong>Your result will appear here</strong><p>Add a source and run the conversion.</p></div>
                     } else if (Output.ContentType == "application/pdf" && PreviewOutput) {
                         <iframe class="ocx-pdf-preview" src="@OutputUrl" title="Converted PDF preview"></iframe>
                     } else if (!string.IsNullOrWhiteSpace(Output.HtmlPreview)) {
@@ -76,5 +81,20 @@
         </div>
     </section>
 
-    <section class="ocx-privacy" aria-labelledby="privacy-title"><div><p class="ocx-eyebrow">Deployment choice</p><h2 id="privacy-title">Local demo here. Your service when you need scale.</h2><p>This public converter deliberately keeps supported inputs in the browser. For larger files, authenticated workflows, queues, storage, or additional engines, host OfficeIMO inside infrastructure whose retention and access policies you control.</p></div><div class="ocx-privacy__cards"><article><span>THIS DEMO</span><strong>Browser-local</strong><p>No upload and no retained document data.</p></article><article><span>YOUR DEPLOYMENT</span><strong>Service-backed</strong><p>You define authentication, storage, logging, and retention.</p></article></div></section>
+    <section class="ocx-routes" aria-labelledby="route-title">
+        <div class="ocx-section-heading"><div><p class="ocx-eyebrow">Popular conversions</p><h2 id="route-title">Choose another route</h2></div><span>@Routes.Count browser-local routes</span></div>
+        <div class="ocx-route-grid">
+            @foreach (ConversionRoute route in Routes) {
+                <button @key="route.Id" type="button" class="ocx-route-card @route.AccentClass @(ActiveRoute.Id == route.Id ? "is-active" : null)" @onclick="() => SelectRouteAsync(route)" aria-pressed="@(ActiveRoute.Id == route.Id)">
+                    <span class="ocx-route-card__formats"><i>@route.Source</i><b aria-hidden="true">→</b><i>@route.Target</i></span>
+                    <strong>@route.Title</strong><small>@route.Description</small>
+                </button>
+            }
+        </div>
+    </section>
+
+    <section class="ocx-developer" aria-labelledby="developer-title">
+        <div><p class="ocx-eyebrow">Use it in your app</p><h2 id="developer-title">The demo uses the same document engines.</h2><p>Bring the library into your .NET service or PowerShell automation when you need authenticated jobs, queues, storage, or larger inputs under policies you control.</p><div class="ocx-developer__links"><a href="/docs/" target="_top">Read the guides →</a><a href="/api/" target="_top">Browse the API →</a></div></div>
+        <div class="ocx-code-card"><div><span>C#</span><small>@ActiveRoute.Title</small></div><code>@ActiveRoute.EnginePath</code><p>Browser demo: local and ephemeral<br />Your deployment: your authentication, storage, logging, and retention</p></div>
+    </section>
 </main>

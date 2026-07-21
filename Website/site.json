@@ -230,17 +230,18 @@
       { "Name": "product", "Css": ["/css/product.css"] },
       { "Name": "docs", "Css": ["/css/docs.css"] },
       { "Name": "api", "Css": ["/css/api.css"] },
+      { "Name": "experience", "Css": ["/css/visual-system.css"] },
       { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
     ],
     "RouteBundles": [
-      { "Match": "/", "Bundles": ["global", "home"] },
-      { "Match": "/products/**", "Bundles": ["global", "product"] },
-      { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks"] },
-      { "Match": "/showcase/", "Bundles": ["global", "docs"] },
-      { "Match": "/faq/", "Bundles": ["global", "docs"] },
-      { "Match": "/docs/**", "Bundles": ["global", "docs"] },
-      { "Match": "/api/**", "Bundles": ["global", "api"] },
-      { "Match": "/**", "Bundles": ["global"] }
+      { "Match": "/", "Bundles": ["global", "home", "experience"] },
+      { "Match": "/products/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
+      { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
+      { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
+      { "Match": "/docs/**", "Bundles": ["global", "docs", "experience"] },
+      { "Match": "/api/**", "Bundles": ["global", "api", "experience"] },
+      { "Match": "/**", "Bundles": ["global", "experience"] }
     ],
     "CriticalCss": [
       { "Name": "officeimo", "Path": "themes/officeimo/critical.css" }
@@ -362,8 +363,31 @@
               }
             ]
           },
-          { "Title": "Docs", "Url": "/docs/" },
+          {
+            "Title": "Solutions",
+            "Url": "/docs/",
+            "Sections": [
+              {
+                "Title": "By task",
+                "Items": [
+                  { "Title": "Build reports", "Url": "/docs/getting-started/", "Description": "Create Word, Excel, PowerPoint, and PDF output" },
+                  { "Title": "Convert documents", "Url": "/playground/", "Description": "Move between Office, PDF, HTML, and Markdown" },
+                  { "Title": "Extract content", "Url": "/docs/reader/", "Description": "Normalize documents for search and AI workflows" },
+                  { "Title": "Automate with PowerShell", "Url": "/docs/pswriteoffice/", "Description": "Build repeatable document jobs from scripts" }
+                ]
+              },
+              {
+                "Title": "By deployment",
+                "Items": [
+                  { "Title": "Cross-platform .NET", "Url": "/docs/getting-started/platform-support/", "Description": "Choose packages for services, apps, and AOT" },
+                  { "Title": "Browser conversion", "Url": "/playground/", "Description": "Run supported routes locally with WebAssembly" },
+                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" }
+                ]
+              }
+            ]
+          },
           { "Title": "Convert", "Url": "/playground/" },
+          { "Title": "Docs", "Url": "/docs/" },
           {
             "Title": "API",
             "Url": "/api/",

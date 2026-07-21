@@ -36,23 +36,32 @@
 
     <div class="imo-product-proof" aria-label="{{ page.title }} workflow preview">
       <div class="imo-product-proof__window">
-        <div class="imo-product-proof__chrome"><i></i><i></i><i></i><span>{{ page.title }}</span></div>
+        <div class="imo-product-proof__chrome"><i></i><i></i><i></i><span>Generated output · {{ page.title }}</span></div>
         <div class="imo-product-proof__canvas">
           <div class="imo-product-proof__document">
-            <span class="imo-product-proof__label">OUTPUT</span>
+            {{ if nuget_pkg == "OfficeIMO.Word" }}
+            <span class="imo-product-proof__label">DOCX · GENERATED</span>
+            <p class="imo-product-proof__overline">NORTHWIND OPERATIONS</p>
+            <h2>Quarterly operations review</h2>
+            <p>Structured output built from application data, with reusable styles and a document model you can inspect.</p>
+            <div class="imo-product-proof__metrics" aria-hidden="true"><span><small>Revenue</small><strong>$4.8m</strong></span><span><small>Growth</small><strong>12.4%</strong></span><span><small>Regions</small><strong>6</strong></span></div>
+            <div class="imo-product-proof__report-table" aria-hidden="true"><b>Region</b><b>Revenue</b><b>Status</b><span>Europe</span><span>$1.8m</span><span>On plan</span><span>Americas</span><span>$2.1m</span><span>Leading</span></div>
+            {{ else }}
+            <span class="imo-product-proof__label">GENERATED OUTPUT</span>
             <h2>Ready for your workflow</h2>
             <p>Build, inspect, and transform documents through a focused API.</p>
             <div class="imo-product-proof__lines"><i></i><i></i><i></i></div>
             <div class="imo-product-proof__table"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            {{ end }}
           </div>
           <aside class="imo-product-proof__status">
-            <span>DOCUMENT</span><strong>Created</strong>
-            <span>VALIDATION</span><strong>Passed</strong>
-            <span>OUTPUT</span><strong>Ready</strong>
+            <span>DOCUMENT MAP</span><strong>Title and summary</strong>
+            <span>CONTENT</span><strong>Metrics and table</strong>
+            <span>VALIDATION</span><strong>Package passed</strong>
           </aside>
         </div>
       </div>
-      <div class="imo-product-proof__code"><span>C#</span><code>using var document = CreateDocument();<br>document.Save();</code></div>
+      <div class="imo-product-proof__code"><span>C#</span>{{ if nuget_pkg == "OfficeIMO.Word" }}<code>using var document = WordDocument.Create("report.docx");<br>document.AddParagraph("Quarterly operations review");<br>document.Save();</code>{{ else }}<code>using var document = CreateDocument();<br>document.Save();</code>{{ end }}</div>
     </div>
   </div>
 </section>

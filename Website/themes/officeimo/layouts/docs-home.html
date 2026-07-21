@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ page.title }} | {{ site.name }} Docs</title>
   {{ description_meta_html }}{{ canonical_html }}{{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}{{ assets.critical_css_html }}{{ assets.preloads_html }}{{ extra_css_html }}{{ assets.css_html }}{{ opengraph_html }}{{ structured_data_html }}
 </head>
 <body class="imo-body imo-body--docs imo-body--docs-home">
@@ -16,7 +16,7 @@
     <aside class="imo-docs__sidebar">{{ include "docs-navigation" }}</aside><div class="imo-docs__sidebar-overlay" hidden></div>
     <main id="content" class="imo-docs__main imo-docs__main--home">
       <article class="imo-docs__article">
-        <header class="imo-docs-home-hero"><p class="imo-docs-home-hero__eyebrow">Documentation</p><h1>Build the workflow,<br><span>then go deeper.</span></h1><p>Start with a task, choose the package that owns it, and move into generated API detail only when you need exact types and members.</p><div class="imo-docs-home-hero__actions"><a class="imo-btn imo-btn-primary" href="/docs/getting-started/">Get started</a><a class="imo-btn imo-btn-ghost" href="/api/">Browse API reference</a></div></header>
+        <header class="imo-docs-home-hero"><p class="imo-docs-home-hero__eyebrow">Documentation</p><h1>Build a document.<br><span>Know every step.</span></h1><p>Start with a real workflow, choose the package that owns it, and move into generated API detail when you need exact types and members.</p><div class="imo-docs-home-hero__actions"><a class="imo-btn imo-btn-primary" href="/docs/getting-started/quickstart/">Open quick start</a><a class="imo-btn imo-btn-ghost" href="/api/">Browse API reference</a></div></header>
 
         <section class="imo-docs-paths" aria-labelledby="docs-paths-title">
           <div class="imo-docs-section-heading"><p>Choose a path</p><h2 id="docs-paths-title">What are you trying to do?</h2></div>

@@ -7,7 +7,7 @@ layout: api-home
 <section class="imo-api-landing">
   <header class="imo-api-landing__hero">
     <p class="imo-api-landing__eyebrow">Generated from source</p>
-    <h1>Find the package.<br><span>Use the exact API.</span></h1>
+    <h1>Choose a package.<br><span>Use the exact API.</span></h1>
     <p>Reference pages are built from compiled assemblies and XML documentation. Start with a guide when you are choosing a workflow; use this catalog when you already know the owning package.</p>
     <div class="imo-api-landing__actions"><a class="imo-btn imo-btn-primary" href="/search/">Search all reference</a><a class="imo-btn imo-btn-ghost" href="/docs/">Open guides</a></div>
   </header>
