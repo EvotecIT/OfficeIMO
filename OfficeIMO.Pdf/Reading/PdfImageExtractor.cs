@@ -233,6 +233,7 @@ internal static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImages(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
+        document.DemandContentExtraction("image");
 
         var images = new List<PdfExtractedImage>();
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -247,6 +248,7 @@ internal static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(PdfReadDocument document) {
         Guard.NotNull(document, nameof(document));
+        document.DemandContentExtraction("image placement");
 
         var placements = new List<PdfImagePlacement>();
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -277,6 +279,7 @@ internal static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
+        document.DemandContentExtraction("image");
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
         var images = new List<PdfExtractedImage>();
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -292,6 +295,7 @@ internal static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
+        document.DemandContentExtraction("image placement");
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
         var placements = new List<PdfImagePlacement>();
         for (int i = 0; i < pageNumbers.Length; i++) {

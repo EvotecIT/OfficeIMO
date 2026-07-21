@@ -53,6 +53,32 @@ public class PdfCanvasStampTests {
     }
 
     [Fact]
+    public void ContentStampsManyPagesWithPageSpecificCanvasContent() {
+        byte[] target = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Body one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Body two"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Body three"))
+            .ToBytes();
+        int callbackCount = 0;
+
+        byte[] stamped = PdfDocument.Open(target).Stamp.Content((canvas, context) => {
+            callbackCount++;
+            canvas.Text("Stamp page " + context.PageNumber, 30D, 30D, 180D, 24D);
+        }).ToBytes();
+
+        PdfReadDocument readback = PdfReadDocument.Open(stamped);
+        Assert.Equal(3, callbackCount);
+        Assert.Equal(3, readback.Pages.Count);
+        for (int pageIndex = 0; pageIndex < readback.Pages.Count; pageIndex++) {
+            string pageText = readback.Pages[pageIndex].ExtractText();
+            Assert.Contains("Body " + new[] { "one", "two", "three" }[pageIndex], pageText, StringComparison.Ordinal);
+            Assert.Contains("Stamp page " + (pageIndex + 1), pageText, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void ContentRejectsInteractiveAnnotationsBecauseItIsVisualOnly() {
         PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
 
@@ -61,6 +87,29 @@ public class PdfCanvasStampTests {
                 nested.TextAnnotation("Interactive note", 10D, 10D))));
 
         Assert.Contains("visual content only", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ContentRejectsInteractiveMetadataThatWouldNotSurviveVisualImport() {
+        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
+
+        NotSupportedException linkException = Assert.Throws<NotSupportedException>(() =>
+            target.Stamp.Content(canvas => canvas.Text(
+                new[] { TextRun.Link("Link", "https://example.com") },
+                10D,
+                10D,
+                120D,
+                30D)));
+        NotSupportedException formException = Assert.Throws<NotSupportedException>(() =>
+            target.Stamp.Content(canvas => canvas.Table(
+                new[] { new[] { PdfTableCell.WithFormFields("Field", new[] { PdfTableCellFormField.TextField("Entry") }) } },
+                10D,
+                50D,
+                160D,
+                50D)));
+
+        Assert.Contains("visual content only", linkException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("visual content only", formException.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

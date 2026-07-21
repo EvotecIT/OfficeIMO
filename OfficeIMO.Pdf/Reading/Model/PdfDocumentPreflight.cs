@@ -45,7 +45,7 @@ public sealed partial class PdfDocumentPreflight {
     public bool CanExtractAttachments => DocumentInfo is not null && !HasAttachmentExtractionBlocker() && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 
     /// <summary>True when OfficeIMO.Pdf can attempt logical object readback through PdfLogicalDocument for this PDF.</summary>
-    public bool CanReadLogicalObjects => CanExtractText;
+    public bool CanReadLogicalObjects => CanRead && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 
     /// <summary>Permission policy used while evaluating extraction and mutation capabilities.</summary>
     public PdfPermissionPolicy PermissionPolicy { get; }

@@ -12,6 +12,7 @@ public sealed partial class PdfReadPage {
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfReadLimits _limits;
     private readonly Action? _demandTextExtraction;
+    private readonly Action<string>? _demandContentExtraction;
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
         : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
@@ -21,13 +22,15 @@ public sealed partial class PdfReadPage {
         PdfDictionary pageDict,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
-        Action? demandTextExtraction = null) {
+        Action? demandTextExtraction = null,
+        Action<string>? demandContentExtraction = null) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
         _limits = limits;
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         _demandTextExtraction = demandTextExtraction;
+        _demandContentExtraction = demandContentExtraction;
     }
 
     /// <summary>Underlying object number for the page.</summary>
@@ -306,7 +309,10 @@ public sealed partial class PdfReadPage {
     }
 
     /// <summary>Extracts image XObjects referenced by this page.</summary>
-    public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
+    public IReadOnlyList<PdfExtractedImage> GetImages() {
+        _demandContentExtraction?.Invoke("image");
+        return GetImages(0);
+    }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber) {
         return GetImages(pageNumber, GetImagePlacements(pageNumber));
@@ -348,7 +354,10 @@ public sealed partial class PdfReadPage {
     }
 
     /// <summary>Extracts image XObject placement invocations from this page.</summary>
-    public IReadOnlyList<PdfImagePlacement> GetImagePlacements() => GetImagePlacements(0);
+    public IReadOnlyList<PdfImagePlacement> GetImagePlacements() {
+        _demandContentExtraction?.Invoke("image placement");
+        return GetImagePlacements(0);
+    }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber) {
         var placements = new List<PdfImagePlacement>();

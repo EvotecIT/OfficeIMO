@@ -57,6 +57,54 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void RestrictedPageLevelVisualExtractionRequiresCopyPermission() {
+        var encryption = new PdfStandardEncryptionOptions("visual-open") {
+            OwnerPassword = "visual-owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D))
+            .ToBytes();
+        var enforced = new PdfReadOptions { Password = "visual-open" };
+        PdfReadDocument document = PdfReadDocument.Open(pdf, enforced);
+
+        Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].GetImages());
+        Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].GetImagePlacements());
+        Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].ToDrawing());
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImages(document));
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImagePlacements(document));
+
+        var ignored = new PdfReadOptions {
+            Password = "visual-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfReadDocument authorized = PdfReadDocument.Open(pdf, ignored);
+        Assert.NotEmpty(authorized.Pages[0].GetImages());
+        Assert.NotEmpty(authorized.Pages[0].GetImagePlacements());
+        Assert.NotEmpty(authorized.Pages[0].ToDrawing().Elements);
+    }
+
+    [Fact]
+    public void AccessibilityPermissionAllowsTextButNotTheFullLogicalObjectModel() {
+        byte[] pdf = CreateEncryptedPdf(
+            "accessible-open",
+            "accessible-owner",
+            PdfStandardPermissions.Accessibility,
+            "Accessible text");
+        var options = new PdfReadOptions { Password = "accessible-open" };
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, options);
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfLogicalDocument.Load(pdf, null, options));
+
+        Assert.True(preflight.CanExtractText);
+        Assert.False(preflight.CanReadLogicalObjects);
+        Assert.Contains("Accessible text", text, StringComparison.Ordinal);
+        Assert.Equal(PdfStandardPermissions.CopyContents, exception.Permission);
+    }
+
+    [Fact]
     public void MergeUsesPerSourcePasswordsAndReportsSecurityDecisions() {
         byte[] first = CreateRestrictedPdf("open-first", "owner-first", "First encrypted page");
         byte[] second = CreateRestrictedPdf("open-second", "owner-second", "Second encrypted page");
@@ -88,6 +136,33 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void MergePreservesOriginalSecurityEvidenceAfterSourcePreprocessing() {
+        byte[] encrypted = CreateRestrictedPdf("resize-open", "resize-owner", "Encrypted resized page");
+        var sourceOptions = new PdfReadOptions {
+            Password = "resize-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfDocument plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain page"));
+        var mergeOptions = new PdfMergeOptions {
+            ResizePages = new PdfPageResizeOptions(PageSizes.A4)
+        };
+
+        PdfMergeResult result = PdfDocument.MergeWithReport(
+            mergeOptions,
+            PdfDocument.Open(encrypted, sourceOptions),
+            plain);
+
+        PdfMergeSourceInventory inventory = result.Report.Sources[0];
+        Assert.True(inventory.HasEncryption);
+        Assert.Equal(PdfPasswordAuthenticationRole.User, inventory.PasswordAuthenticationRole);
+        Assert.True(inventory.PermissionRestrictionsIgnored);
+        Assert.Equal(PdfStandardPermissions.None, inventory.Security.AllowedStandardPermissions);
+        PdfMergeDecision security = Assert.Single(result.Report.Decisions, decision => decision.Structure == "Security");
+        Assert.Contains("unencrypted", security.Action, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("explicitly ignored", security.Action, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RestrictedUserMergeIsBlockedUnlessCopyAndAssemblyAreAllowed() {
         byte[] restricted = CreateRestrictedPdf("open-blocked", "owner-blocked", "Blocked merge");
         var restrictedOptions = new PdfReadOptions { Password = "open-blocked" };
@@ -107,8 +182,16 @@ public class PdfPermissionPolicyTests {
             plain,
             PdfDocument.Open(allowed, new PdfReadOptions { Password = "open-allowed" }));
 
+        PdfMutationPlan allowedPlan = PdfMutationPlanner.Plan(
+            allowed,
+            PdfMutationOperation.MergeDocuments,
+            new PdfReadOptions { Password = "open-allowed" });
+
         Assert.Equal(2, PdfInspector.Inspect(merged.ToBytes()).PageCount);
         Assert.Contains("Allowed merge", merged.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains(PdfMutationPermissionCheck.CopyContents, allowedPlan.PermissionChecks);
+        Assert.Contains(PdfMutationPermissionCheck.AssembleDocument, allowedPlan.PermissionChecks);
+        Assert.DoesNotContain(PdfMutationPermissionCheck.ModifyDocument, allowedPlan.PermissionChecks);
     }
 
     private static byte[] CreateRestrictedPdf(string userPassword, string ownerPassword, string text) =>

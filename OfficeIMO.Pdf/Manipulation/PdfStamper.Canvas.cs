@@ -18,7 +18,7 @@ internal static partial class PdfStamper {
 
         IReadOnlyList<int> selectedPages = effective.TargetPages?.Resolve(target.Pages.Count) ??
             Enumerable.Range(1, target.Pages.Count).ToArray();
-        byte[] output = pdf;
+        var requests = new List<PageStampRequest>(selectedPages.Count);
         for (int selectedIndex = 0; selectedIndex < selectedPages.Count; selectedIndex++) {
             int pageNumber = selectedPages[selectedIndex];
             PdfReadPage page = target.Pages[pageNumber - 1];
@@ -49,10 +49,10 @@ internal static partial class PdfStamper {
                 Opacity = effective.Opacity,
                 BehindContent = effective.BehindContent
             };
-            output = StampPage(output, overlay, pageOptions, readOptions);
+            requests.Add(new PageStampRequest(overlay, pageOptions));
         }
 
-        return output;
+        return StampPageSetCore(pdf, requests, readOptions);
     }
 
     private static void CopyCanvasItems(PdfPageCanvas source, PdfPageCanvas target) {
@@ -70,6 +70,10 @@ internal static partial class PdfStamper {
                 throw new NotSupportedException("Existing-page canvas stamping accepts visual content only. Use the bookmark editor for document outlines.");
             }
 
+            if (HasInteractiveMetadata(item)) {
+                throw new NotSupportedException("Existing-page canvas stamping accepts visual content only. Links, named destinations, and form controls require their dedicated document editors.");
+            }
+
             if (item is PdfCanvasClipItem clip) {
                 RejectNonVisualCanvasItems(clip.Items);
             } else if (item is PdfCanvasEffectItem effect) {
@@ -82,5 +86,39 @@ internal static partial class PdfStamper {
                 RejectNonVisualCanvasItems(actualText.Items);
             }
         }
+    }
+
+    private static bool HasInteractiveMetadata(PdfCanvasItem item) {
+        if (item is PdfCanvasTextItem text) return HasInteractiveTextRuns(text.Runs);
+        if (item is PdfCanvasTextBoxItem textBox) return HasInteractiveTextRuns(textBox.Runs);
+        if (item is PdfCanvasShapeItem shape) return shape.Block.LinkUri != null;
+        if (item is PdfCanvasDrawingItem drawing) return drawing.Block.LinkUri != null;
+        if (item is PdfCanvasImageItem image) return image.Block.LinkUri != null;
+        if (item is not PdfCanvasTableItem table) return false;
+
+        if (table.Block.Links.Count > 0) return true;
+        for (int rowIndex = 0; rowIndex < table.Block.Cells.Count; rowIndex++) {
+            IReadOnlyList<PdfTableCell> row = table.Block.Cells[rowIndex];
+            for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                PdfTableCell cell = row[cellIndex];
+                if (cell.LinkUri != null || cell.LinkDestinationName != null || cell.NamedDestinationName != null ||
+                    cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0 ||
+                    HasInteractiveTextRuns(cell.Runs) ||
+                    cell.Images.Any(static cellImage => cellImage.LinkUri != null) ||
+                    cell.Paragraphs.Any(static paragraph => HasInteractiveTextRuns(paragraph.Runs))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasInteractiveTextRuns(IReadOnlyList<TextRun> runs) {
+        for (int i = 0; i < runs.Count; i++) {
+            if (runs[i].LinkUri != null || runs[i].LinkDestinationName != null) return true;
+        }
+
+        return false;
     }
 }

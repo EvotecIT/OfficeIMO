@@ -314,9 +314,12 @@ internal static class PdfMutationPlanner {
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
                 break;
             case PdfMutationOperation.ModifyPageTree:
+                Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
+                Add(permissions, PdfMutationPermissionCheck.DocMdp);
+                break;
             case PdfMutationOperation.ExtractPages:
             case PdfMutationOperation.MergeDocuments:
-                Add(permissions, PdfMutationPermissionCheck.ModifyDocument);
+                Add(permissions, PdfMutationPermissionCheck.CopyContents);
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
                 break;

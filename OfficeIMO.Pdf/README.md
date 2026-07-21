@@ -453,9 +453,9 @@ PdfDocument.Open("contract.pdf")
 ```
 
 Canvas stamping is intentionally visual-only. Text, rich tables, images,
-shapes, drawings, clipping, and effects are supported; interactive annotations,
-forms, and document outlines use their dedicated editors so their behavior is
-not silently flattened or discarded.
+shapes, drawings, clipping, and effects are supported. Interactive links and
+annotations, named destinations, forms, and document outlines use their
+dedicated editors so their behavior is not silently flattened or discarded.
 
 ### Fill and flatten a PDF form
 

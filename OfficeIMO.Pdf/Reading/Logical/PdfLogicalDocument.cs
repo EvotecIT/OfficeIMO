@@ -943,6 +943,7 @@ public sealed partial class PdfLogicalDocument {
     }
 
     private static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
+        document.DemandContentExtraction("logical object");
         bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
         IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
             ? document.FormFields

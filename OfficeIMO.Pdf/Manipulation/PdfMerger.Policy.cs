@@ -17,8 +17,8 @@ internal static partial class PdfMerger {
             source.Document.PageLabels.Count,
             source.Document.FormFields.Count,
             PdfAttachmentExtractor.ExtractAttachments(source.Document).Count,
-            source.Document.Security,
-            source.Document.ReadOptions.PermissionPolicy)).ToArray();
+            source.SourceSecurity,
+            source.SourcePermissionPolicy)).ToArray();
         var decisions = new List<PdfMergeDecision>();
         int encryptedSourceCount = inventories.Count(static source => source.HasEncryption);
         int ignoredRestrictionCount = inventories.Count(static source => source.PermissionRestrictionsIgnored);

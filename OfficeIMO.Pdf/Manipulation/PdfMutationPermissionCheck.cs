@@ -8,6 +8,9 @@ public enum PdfMutationPermissionCheck {
     /// <summary>The document security permissions must allow general modification.</summary>
     ModifyDocument,
 
+    /// <summary>The document security permissions must allow content copying or extraction.</summary>
+    CopyContents,
+
     /// <summary>The document security permissions must allow document assembly.</summary>
     AssembleDocument,
 

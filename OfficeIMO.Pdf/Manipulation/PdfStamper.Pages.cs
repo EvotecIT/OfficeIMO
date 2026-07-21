@@ -35,96 +35,129 @@ internal static partial class PdfStamper {
     }
 
     private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfReadOptions? targetReadOptions = null) {
+        return StampPageSetCore(
+            targetPdf,
+            new[] { new PageStampRequest(sourcePdf, options) },
+            targetReadOptions);
+    }
+
+    private static byte[] StampPageSetCore(
+        byte[] targetPdf,
+        IReadOnlyList<PageStampRequest> requests,
+        PdfReadOptions? targetReadOptions = null) {
         Guard.NotNull(targetPdf, nameof(targetPdf));
-        Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        Guard.NotNull(options, nameof(options));
-        PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+        Guard.NotNull(requests, nameof(requests));
+        if (requests.Count == 0) {
+            return targetPdf;
+        }
+
         _ = PdfMutationPlanner.RequireFullRewrite(targetPdf, PdfMutationOperation.ModifyPageContent, targetReadOptions);
-        _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
 
         var (targetObjects, targetTrailer) = PdfSyntax.ParseObjects(targetPdf, targetReadOptions);
-        var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
         PdfReadDocument target = PdfReadDocument.Open(targetPdf, targetReadOptions);
-        PdfReadDocument source = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
         if (target.Pages.Count == 0) throw new ArgumentException("Target PDF does not contain any pages.", nameof(targetPdf));
-        if (options.SourcePageNumber > source.Pages.Count) throw new ArgumentOutOfRangeException(nameof(options), options.SourcePageNumber, "Source page number exceeds the source PDF page count.");
-
-        PdfReadPage sourcePage = source.Pages[options.SourcePageNumber - 1];
-        if (!sourceObjects.TryGetValue(sourcePage.ObjectNumber, out PdfIndirectObject? sourcePageObject) || sourcePageObject.Value is not PdfDictionary sourcePageDictionary) {
-            throw new InvalidOperationException("Source PDF page dictionary was not found.");
-        }
-
-        PdfObject? sourceResources = GetInheritedPageValue(sourceObjects, sourcePageDictionary, "Resources");
-        PdfObject? sourceGroup = sourcePageDictionary.Items.TryGetValue("Group", out PdfObject? groupValue)
-            ? groupValue
-            : null;
-        var sourceCollector = new PdfPageExtractor.ObjectCollector(sourceObjects);
-        sourceCollector.CollectObjectGraph(sourceResources);
-        sourceCollector.CollectObjectGraph(sourceGroup);
         int nextObjectNumber = targetObjects.Count == 0 ? 1 : targetObjects.Keys.Max() + 1;
-        var importedObjectNumbers = new Dictionary<int, int>();
-        foreach (int sourceObjectNumber in sourceCollector.ObjectIds) importedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
-        foreach (int sourceObjectNumber in sourceCollector.ObjectIds) {
-            PdfIndirectObject sourceObject = sourceObjects[sourceObjectNumber];
-            int importedNumber = importedObjectNumbers[sourceObjectNumber];
-            targetObjects[importedNumber] = new PdfIndirectObject(importedNumber, 0, CloneImportedObject(sourceObject.Value, importedObjectNumbers));
-        }
-
-        (double sourceWidth, double sourceHeight, Matrix2D normalization) = sourcePage.GetImportGeometry();
-        byte[] formContent = BuildImportedPageContent(sourceObjects, sourcePageDictionary, sourceWidth, sourceHeight, normalization);
-        var formDictionary = new PdfDictionary();
-        formDictionary.Items["Type"] = new PdfName("XObject");
-        formDictionary.Items["Subtype"] = new PdfName("Form");
-        formDictionary.Items["FormType"] = new PdfNumber(1D);
-        formDictionary.Items["BBox"] = NumberArray(0D, 0D, sourceWidth, sourceHeight);
-        formDictionary.Items["Resources"] = sourceResources == null
-            ? new PdfDictionary()
-            : CloneImportedObject(sourceResources, importedObjectNumbers);
-        if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
-        int formObjectNumber = nextObjectNumber++;
-        targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
-
-        int graphicsStateObjectNumber = 0;
-        if (options.Opacity < 1D) {
-            var graphicsState = new PdfDictionary();
-            graphicsState.Items["Type"] = new PdfName("ExtGState");
-            graphicsState.Items["ca"] = new PdfNumber(options.Opacity);
-            graphicsState.Items["CA"] = new PdfNumber(options.Opacity);
-            graphicsStateObjectNumber = nextObjectNumber++;
-            targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
-        }
-
-        IReadOnlyList<int> selectedPages = options.TargetPages?.Resolve(target.Pages.Count) ?? Enumerable.Range(1, target.Pages.Count).ToArray();
-        var selectedSet = new HashSet<int>(selectedPages);
         int[] pageObjectNumbers = target.Pages.Select(page => page.ObjectNumber).ToArray();
-        string formResourceName = GetAvailableXObjectResourceName(targetObjects, pageObjectNumbers);
-        string? graphicsStateResourceName = graphicsStateObjectNumber == 0
-            ? null
-            : GetAvailableGraphicsStateResourceName(targetObjects, pageObjectNumbers);
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
-        for (int pageIndex = 0; pageIndex < target.Pages.Count; pageIndex++) {
-            int pageNumber = pageIndex + 1;
-            if (!selectedSet.Contains(pageNumber)) continue;
-            PdfReadPage targetPage = target.Pages[pageIndex];
-            (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
-            Matrix2D targetVisualToUser = Invert(targetUserToVisual);
-            PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
-            int stampObjectNumber = nextObjectNumber++;
-            targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
-            overrides[targetPage.ObjectNumber] = BuildImportedPageOverrides(
-                targetObjects,
-                targetPage.ObjectNumber,
-                formResourceName,
-                formObjectNumber,
-                graphicsStateResourceName,
-                graphicsStateObjectNumber,
-                stampObjectNumber,
-                options.BehindContent);
+        var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        var reservedGraphicsStateResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        var stampedPageNumbers = new HashSet<int>();
+        PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
+
+        for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
+            PageStampRequest request = requests[requestIndex];
+            byte[] sourcePdf = request.SourcePdf;
+            PdfPageOverlayOptions options = request.Options;
+            Guard.NotNull(sourcePdf, nameof(requests));
+            Guard.NotNull(options, nameof(requests));
+            PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+            _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
+
+            var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
+            PdfReadDocument source = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
+            if (options.SourcePageNumber > source.Pages.Count) {
+                throw new ArgumentOutOfRangeException(nameof(requests), options.SourcePageNumber, "Source page number exceeds the source PDF page count.");
+            }
+
+            PdfReadPage sourcePage = source.Pages[options.SourcePageNumber - 1];
+            if (!sourceObjects.TryGetValue(sourcePage.ObjectNumber, out PdfIndirectObject? sourcePageObject) || sourcePageObject.Value is not PdfDictionary sourcePageDictionary) {
+                throw new InvalidOperationException("Source PDF page dictionary was not found.");
+            }
+
+            PdfObject? sourceResources = GetInheritedPageValue(sourceObjects, sourcePageDictionary, "Resources");
+            PdfObject? sourceGroup = sourcePageDictionary.Items.TryGetValue("Group", out PdfObject? groupValue)
+                ? groupValue
+                : null;
+            var sourceCollector = new PdfPageExtractor.ObjectCollector(sourceObjects);
+            sourceCollector.CollectObjectGraph(sourceResources);
+            sourceCollector.CollectObjectGraph(sourceGroup);
+            var importedObjectNumbers = new Dictionary<int, int>();
+            foreach (int sourceObjectNumber in sourceCollector.ObjectIds) importedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
+            foreach (int sourceObjectNumber in sourceCollector.ObjectIds) {
+                PdfIndirectObject sourceObject = sourceObjects[sourceObjectNumber];
+                int importedNumber = importedObjectNumbers[sourceObjectNumber];
+                targetObjects[importedNumber] = new PdfIndirectObject(importedNumber, 0, CloneImportedObject(sourceObject.Value, importedObjectNumbers));
+            }
+
+            (double sourceWidth, double sourceHeight, Matrix2D normalization) = sourcePage.GetImportGeometry();
+            byte[] formContent = BuildImportedPageContent(sourceObjects, sourcePageDictionary, sourceWidth, sourceHeight, normalization);
+            var formDictionary = new PdfDictionary();
+            formDictionary.Items["Type"] = new PdfName("XObject");
+            formDictionary.Items["Subtype"] = new PdfName("Form");
+            formDictionary.Items["FormType"] = new PdfNumber(1D);
+            formDictionary.Items["BBox"] = NumberArray(0D, 0D, sourceWidth, sourceHeight);
+            formDictionary.Items["Resources"] = sourceResources == null
+                ? new PdfDictionary()
+                : CloneImportedObject(sourceResources, importedObjectNumbers);
+            if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
+            int formObjectNumber = nextObjectNumber++;
+            targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
+
+            int graphicsStateObjectNumber = 0;
+            if (options.Opacity < 1D) {
+                var graphicsState = new PdfDictionary();
+                graphicsState.Items["Type"] = new PdfName("ExtGState");
+                graphicsState.Items["ca"] = new PdfNumber(options.Opacity);
+                graphicsState.Items["CA"] = new PdfNumber(options.Opacity);
+                graphicsStateObjectNumber = nextObjectNumber++;
+                targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
+            }
+
+            string formResourceName = GetAvailableXObjectResourceName(targetObjects, pageObjectNumbers, reservedFormResourceNames);
+            reservedFormResourceNames.Add(formResourceName);
+            string? graphicsStateResourceName = graphicsStateObjectNumber == 0
+                ? null
+                : GetAvailableGraphicsStateResourceName(targetObjects, pageObjectNumbers, reservedGraphicsStateResourceNames);
+            if (graphicsStateResourceName != null) reservedGraphicsStateResourceNames.Add(graphicsStateResourceName);
+
+            IReadOnlyList<int> selectedPages = options.TargetPages?.Resolve(target.Pages.Count) ?? Enumerable.Range(1, target.Pages.Count).ToArray();
+            for (int selectedIndex = 0; selectedIndex < selectedPages.Count; selectedIndex++) {
+                int pageNumber = selectedPages[selectedIndex];
+                if (!stampedPageNumbers.Add(pageNumber)) {
+                    throw new InvalidOperationException("A page can only receive one generated canvas stamp in a single rewrite.");
+                }
+
+                PdfReadPage targetPage = target.Pages[pageNumber - 1];
+                (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
+                Matrix2D targetVisualToUser = Invert(targetUserToVisual);
+                PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
+                int stampObjectNumber = nextObjectNumber++;
+                targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
+                overrides[targetPage.ObjectNumber] = BuildImportedPageOverrides(
+                    targetObjects,
+                    targetPage.ObjectNumber,
+                    formResourceName,
+                    formObjectNumber,
+                    graphicsStateResourceName,
+                    graphicsStateObjectNumber,
+                    stampObjectNumber,
+                    options.BehindContent);
+            }
+
+            PdfFileVersion sourceVersion = PdfPageExtractor.GetSourceFileVersion(sourcePdf);
+            if (sourceVersion > outputVersion) outputVersion = sourceVersion;
         }
 
-        PdfFileVersion targetVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
-        PdfFileVersion sourceVersion = PdfPageExtractor.GetSourceFileVersion(sourcePdf);
-        PdfFileVersion outputVersion = sourceVersion > targetVersion ? sourceVersion : targetVersion;
         return PdfPageExtractor.ExtractPages(
             targetObjects,
             target.Metadata,
@@ -132,6 +165,17 @@ internal static partial class PdfStamper {
             overrides,
             catalogState: PdfPageExtractor.ExtractCatalogRewriteState(targetObjects, targetTrailer),
             fileVersion: outputVersion);
+    }
+
+    private sealed class PageStampRequest {
+        internal PageStampRequest(byte[] sourcePdf, PdfPageOverlayOptions options) {
+            SourcePdf = sourcePdf;
+            Options = options;
+        }
+
+        internal byte[] SourcePdf { get; }
+
+        internal PdfPageOverlayOptions Options { get; }
     }
 
     private static byte[] BuildImportedPageContent(
@@ -314,7 +358,10 @@ internal static partial class PdfStamper {
         _ => y
     };
 
-    private static string GetAvailableGraphicsStateResourceName(Dictionary<int, PdfIndirectObject> objects, int[] pageObjectNumbers) {
+    private static string GetAvailableGraphicsStateResourceName(
+        Dictionary<int, PdfIndirectObject> objects,
+        int[] pageObjectNumbers,
+        HashSet<string>? additionallyUsed = null) {
         var used = new HashSet<string>(StringComparer.Ordinal);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? indirect) || indirect.Value is not PdfDictionary page) continue;
@@ -324,7 +371,7 @@ internal static partial class PdfStamper {
         }
         for (int i = 1; i < 1000; i++) {
             string candidate = "OIMOStampGS" + i.ToString(CultureInfo.InvariantCulture);
-            if (!used.Contains(candidate)) return candidate;
+            if (!used.Contains(candidate) && (additionallyUsed is null || !additionallyUsed.Contains(candidate))) return candidate;
         }
         throw new InvalidOperationException("Unable to find an available PDF graphics-state resource name for the imported page.");
     }
