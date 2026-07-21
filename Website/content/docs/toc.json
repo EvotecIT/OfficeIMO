@@ -39,6 +39,21 @@
     ]
   },
   {
+    "title": "PDF, Email, and Notes",
+    "items": [
+      { "title": "PDF", "path": "pdf/index.md", "href": "/docs/pdf/" },
+      { "title": "Email and Outlook data", "path": "email/index.md", "href": "/docs/email/" },
+      { "title": "OneNote", "path": "onenote/index.md", "href": "/docs/onenote/" }
+    ]
+  },
+  {
+    "title": "Web and Open Formats",
+    "items": [
+      { "title": "HTML and MHTML", "path": "html/index.md", "href": "/docs/html/" },
+      { "title": "OpenDocument", "path": "open-document/index.md", "href": "/docs/open-document/" }
+    ]
+  },
+  {
     "title": "Markdown",
     "items": [
       { "title": "Markdown Overview", "path": "markdown/index.md", "href": "/docs/markdown/" },

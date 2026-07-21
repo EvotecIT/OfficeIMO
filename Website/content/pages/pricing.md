@@ -1,5 +1,5 @@
 ---
-title: "Pricing"
-description: "OfficeIMO is free and open source. See sponsorship tiers and how we compare to commercial alternatives."
+title: "Support"
+description: "Use OfficeIMO under the MIT license, get community help, sponsor the project, or discuss commercial support."
 layout: pricing
 ---

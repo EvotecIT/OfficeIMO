@@ -1,0 +1,80 @@
+@namespace OfficeIMO.Web.Converter.Components
+@implements IAsyncDisposable
+
+<main class="ocx-shell">
+    <header class="ocx-appbar">
+        <a class="ocx-brand" href="/"><span class="ocx-brand__mark">O</span><span>OfficeIMO</span></a>
+        <nav aria-label="Converter links"><a href="/docs/">Docs</a><a href="/api/">API</a><a href="/downloads/">Packages</a><a href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
+    </header>
+
+    <section class="ocx-intro">
+        <div><p class="ocx-eyebrow">Browser converter</p><h1>Convert a document.<br><span>Keep it on your device.</span></h1><p>Choose a supported route, add a file or text, and download the result. Conversion runs inside WebAssembly in this tab—your content is not uploaded to OfficeIMO.</p></div>
+        <aside><span class="ocx-local-dot"></span><div><strong>Private by default</strong><p>Local processing · no account · no server upload</p></div></aside>
+    </section>
+
+    <section class="ocx-route-catalog" aria-labelledby="route-title">
+        <div class="ocx-route-catalog__heading"><div><p class="ocx-eyebrow">Choose a route</p><h2 id="route-title">What do you want to create?</h2></div><span>@Routes.Count supported browser routes</span></div>
+        <div class="ocx-route-catalog__grid">
+            @foreach (ConversionRoute route in Routes) {
+                <button @key="route.Id" type="button" class="ocx-route-card @route.AccentClass @(ActiveRoute.Id == route.Id ? "is-active" : null)" @onclick="() => SelectRouteAsync(route)" aria-pressed="@(ActiveRoute.Id == route.Id)">
+                    <span class="ocx-route-card__formats"><i>@route.Source</i><b aria-hidden="true">→</b><i>@route.Target</i></span>
+                    <strong>@route.Title</strong><small>@route.Description</small>
+                </button>
+            }
+        </div>
+    </section>
+
+    <section class="ocx-workspace" aria-label="@ActiveRoute.Title converter">
+        <div class="ocx-workspace__header"><div><span class="ocx-step">01</span><div><p>Selected route</p><h2>@ActiveRoute.Title</h2></div></div><code>@ActiveRoute.EnginePath</code></div>
+        <div class="ocx-workspace__grid">
+            <section class="ocx-input-panel" aria-labelledby="input-title">
+                <div class="ocx-panel-heading"><span class="ocx-step">02</span><div><p>Source</p><h3 id="input-title">@(ActiveRoute.InputKind == ConversionInputKind.File ? "Choose a document" : "Add your content")</h3></div></div>
+
+                @if (ActiveRoute.InputKind == ConversionInputKind.File) {
+                    <label class="ocx-dropzone" @key="ActiveRoute.Id">
+                        <InputFile class="ocx-hidden-input" OnChange="HandleFileSelectedAsync" accept="@ActiveRoute.Accept" />
+                        <span class="ocx-dropzone__icon">@ActiveRoute.Source</span>
+                        <strong>@(SelectedFile is null ? $"Drop or choose a {ActiveRoute.Source} file" : SelectedFile.Name)</strong>
+                        <small>@(SelectedFile is null ? $"Up to {FormatBytes(MaxUploadBytes)} · processed locally" : $"{SelectedFile.FormatLabel} · {FormatBytes(SelectedFile.Size)}")</small>
+                        <span class="ocx-button ocx-button--compact">Browse files</span>
+                    </label>
+                    <div class="ocx-input-actions">
+                        <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Use sample @ActiveRoute.Source</button>
+                        @if (ActiveRoute.Id == "xlsx-pdf") { <label class="ocx-toggle"><input type="checkbox" @bind="FastPreview" /><span>Limit preview to 250 rows per sheet</span></label> }
+                    </div>
+                } else {
+                    <div class="ocx-editor-shell"><div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source input</span><button type="button" @onclick="LoadTextSampleAsync">Load sample</button></div><textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea></div>
+                }
+
+                <button type="button" class="ocx-convert-button" disabled="@(!CanConvert)" @onclick="ConvertAsync"><span>@(IsBusy ? "Converting…" : $"Convert to {ActiveRoute.Target}")</span><b aria-hidden="true">→</b></button>
+            </section>
+
+            <section class="ocx-output-panel" aria-labelledby="output-title">
+                <div class="ocx-panel-heading ocx-panel-heading--output"><span class="ocx-step">03</span><div><p>Result</p><h3 id="output-title">@OutputHeading</h3></div>@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary ocx-button--compact" href="@OutputUrl" download="@OutputFileName">Download</a> }</div>
+                <div class="ocx-preview-stage">
+                    @if (IsBusy) {
+                        <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Converting locally</strong><p>The browser is running the OfficeIMO engine.</p></div>
+                    } else if (Output is null) {
+                        <div class="ocx-empty-state"><div class="ocx-empty-state__files" aria-hidden="true"><i>@ActiveRoute.Source</i><b>→</b><i>@ActiveRoute.Target</i></div><strong>Your result will appear here</strong><p>Add a source, then run the conversion.</p></div>
+                    } else if (Output.ContentType == "application/pdf" && PreviewOutput) {
+                        <iframe class="ocx-pdf-preview" src="@OutputUrl" title="Converted PDF preview"></iframe>
+                    } else if (!string.IsNullOrWhiteSpace(Output.HtmlPreview)) {
+                        <iframe class="ocx-html-preview" srcdoc="@Output.HtmlPreview" title="Converted HTML preview"></iframe>
+                    } else {
+                        <pre class="ocx-text-output"><code>@Output.Text</code></pre>
+                    }
+                </div>
+                @if (Output is not null) {
+                    <div class="ocx-output-summary"><span><small>FILE</small><strong>@Output.FileName</strong></span><span><small>SIZE</small><strong>@FormatBytes(Output.Bytes.Length)</strong></span><span><small>TIME</small><strong>@ElapsedLabel</strong></span></div>
+                }
+                <div class="ocx-diagnostics" aria-live="polite">
+                    @foreach (ConversionDiagnostic diagnostic in Diagnostics) {
+                        <div @key="diagnostic" class="ocx-diagnostic"><span class="ocx-dot @diagnostic.ToneClass"></span><div><strong>@diagnostic.Title</strong><span>@diagnostic.Message</span></div></div>
+                    }
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="ocx-privacy" aria-labelledby="privacy-title"><div><p class="ocx-eyebrow">Deployment choice</p><h2 id="privacy-title">Local demo here. Your service when you need scale.</h2><p>This public converter deliberately keeps supported inputs in the browser. For larger files, authenticated workflows, queues, storage, or additional engines, host OfficeIMO inside infrastructure whose retention and access policies you control.</p></div><div class="ocx-privacy__cards"><article><span>THIS DEMO</span><strong>Browser-local</strong><p>No upload and no retained document data.</p></article><article><span>YOUR DEPLOYMENT</span><strong>Service-backed</strong><p>You define authentication, storage, logging, and retention.</p></article></div></section>
+</main>

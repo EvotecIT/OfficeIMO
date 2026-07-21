@@ -21,9 +21,10 @@
   {{ include "header" }}
   <main id="content" class="imo-main imo-main--page">
     <div class="imo-container">
-      <header class="imo-page__header" style="text-align:center;padding:3rem 0 2rem;">
-        <h1 class="imo-page__title">{{ page.title }}</h1>
-        {{ if page.description }}<p class="imo-page__description">{{ page.description }}</p>{{ end }}
+      <header class="imo-support-hero">
+        <p class="imo-support-hero__eyebrow">{{ data.pricing.hero.label }}</p>
+        <h1>{{ data.pricing.hero.title }}</h1>
+        <p>{{ data.pricing.hero.description }}</p>
       </header>
 
       {{ if data.pricing.comparison }}

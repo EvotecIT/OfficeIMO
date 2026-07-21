@@ -18,10 +18,10 @@ function Resolve-RepoRoot {
     }
 
     $candidates += @(
+        (Join-Path $SiteRootPath 'projects\pswriteoffice'),
         (Join-Path (Split-Path -Parent $SiteRootPath) 'PSWriteOffice'),
         'C:\Support\GitHub\PSWriteOffice',
-        '/mnt/c/Support/GitHub/PSWriteOffice',
-        (Join-Path $SiteRootPath 'projects\pswriteoffice')
+        '/mnt/c/Support/GitHub/PSWriteOffice'
     )
 
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
@@ -81,6 +81,73 @@ function Sync-DirectoryContents {
     }
 }
 
+function Get-ManifestCommandNames {
+    param([Parameter(Mandatory)][string] $Path)
+
+    $manifest = Import-PowerShellDataFile -LiteralPath $Path
+    @($manifest.FunctionsToExport) + @($manifest.CmdletsToExport) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -ne '*' } |
+        Sort-Object -Unique
+}
+
+function Get-HelpCommandNames {
+    param([Parameter(Mandatory)][string] $Path)
+
+    [xml] $help = Get-Content -LiteralPath $Path -Raw
+    @($help.helpItems.command) |
+        ForEach-Object { [string] $_.details.name } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique
+}
+
+function Get-MetadataCommandNames {
+    param([Parameter(Mandatory)][string] $Path)
+
+    $metadata = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    @($metadata.commands) |
+        ForEach-Object { [string] $_.name } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Sort-Object -Unique
+}
+
+function Test-ApiBundle {
+    param(
+        [Parameter(Mandatory)][string] $ManifestPath,
+        [Parameter(Mandatory)][string] $HelpPath,
+        [Parameter(Mandatory)][string] $MetadataPath,
+        [Parameter(Mandatory)][string[]] $ExpectedCommands
+    )
+
+    $paths = @($ManifestPath, $HelpPath, $MetadataPath)
+    $missing = @($paths | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
+    if ($missing.Count -gt 0) {
+        return [PSCustomObject]@{ Valid = $false; Reason = "missing: $($missing -join ', ')"; CommandCount = 0 }
+    }
+
+    try {
+        $sets = [ordered]@{
+            manifest = @(Get-ManifestCommandNames -Path $ManifestPath)
+            help = @(Get-HelpCommandNames -Path $HelpPath)
+            metadata = @(Get-MetadataCommandNames -Path $MetadataPath)
+        }
+    } catch {
+        return [PSCustomObject]@{ Valid = $false; Reason = "could not parse bundle: $($_.Exception.Message)"; CommandCount = 0 }
+    }
+
+    foreach ($entry in $sets.GetEnumerator()) {
+        $difference = @(Compare-Object -ReferenceObject $ExpectedCommands -DifferenceObject $entry.Value)
+        if ($difference.Count -gt 0) {
+            return [PSCustomObject]@{
+                Valid = $false
+                Reason = "$($entry.Key) covers $($entry.Value.Count) of $($ExpectedCommands.Count) authoritative commands"
+                CommandCount = $entry.Value.Count
+            }
+        }
+    }
+
+    [PSCustomObject]@{ Valid = $true; Reason = 'complete'; CommandCount = $ExpectedCommands.Count }
+}
+
 $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
 $resolvedRepoRoot = Resolve-RepoRoot -SiteRootPath $resolvedSiteRoot -RequestedRoot $PSWriteOfficeRoot
 $targetRoot = Join-Path $resolvedSiteRoot 'data\apidocs\powershell'
@@ -95,6 +162,7 @@ New-Item -ItemType Directory -Path $targetExamplesPath -Force | Out-Null
 $summary = [ordered]@{
     siteRoot = $resolvedSiteRoot
     repoRoot = $resolvedRepoRoot
+    sourceCommit = $null
     helpSource = $null
     helpUpdated = $false
     manifestSource = $null
@@ -104,6 +172,9 @@ $summary = [ordered]@{
     examplesSource = $null
     examplesUpdated = $false
     fallbackUsed = $true
+    apiSnapshotSource = 'checked-in'
+    expectedCommandCount = $null
+    sourceBundleStatus = $null
 }
 
 if (-not $resolvedRepoRoot) {
@@ -112,59 +183,53 @@ if (-not $resolvedRepoRoot) {
     return
 }
 
-$helpCandidates = @(
-    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\PSWriteOffice-help.xml'),
-    (Join-Path $resolvedRepoRoot 'Docs\Generated\PSWriteOffice-help.xml'),
-    (Join-Path $resolvedRepoRoot 'Artefacts\Unpacked\Modules\PSWriteOffice\en-US\PSWriteOffice-help.xml')
-) | Select-Object -Unique
+$websiteArtifactsRoot = Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell'
+$resolvedHelpPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice-help.xml'
+$resolvedManifestPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice.psd1'
+$resolvedCommandMetadataPath = Join-Path $websiteArtifactsRoot 'command-metadata.json'
+$authoritativeManifestPath = Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1'
+$expectedCommands = @(Get-ManifestCommandNames -Path $authoritativeManifestPath)
+$summary.expectedCommandCount = $expectedCommands.Count
 
-$resolvedHelpPath = $helpCandidates |
-    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
-    Select-Object -First 1
+$sourceBundle = Test-ApiBundle `
+    -ManifestPath $resolvedManifestPath `
+    -HelpPath $resolvedHelpPath `
+    -MetadataPath $resolvedCommandMetadataPath `
+    -ExpectedCommands $expectedCommands
+$summary.sourceBundleStatus = $sourceBundle.Reason
 
-if ($resolvedHelpPath) {
+$checkedInBundle = Test-ApiBundle `
+    -ManifestPath $targetManifestPath `
+    -HelpPath $targetHelpPath `
+    -MetadataPath $targetCommandMetadataPath `
+    -ExpectedCommands $expectedCommands
+
+$gitDirectory = Join-Path $resolvedRepoRoot '.git'
+if (Test-Path -LiteralPath $gitDirectory) {
+    $summary.sourceCommit = (& git -C $resolvedRepoRoot rev-parse HEAD 2>$null | Select-Object -First 1)
+}
+
+if ($sourceBundle.Valid) {
     Copy-Item -LiteralPath $resolvedHelpPath -Destination $targetHelpPath -Force
     $summary.helpSource = $resolvedHelpPath
     $summary.helpUpdated = $true
-    $summary.fallbackUsed = $false
-} else {
-    Write-Host 'PSWriteOffice help XML not found in synced repo. Keeping checked-in fallback help snapshot.' -ForegroundColor Yellow
-}
 
-$manifestCandidates = @(
-    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\PSWriteOffice.psd1'),
-    (Join-Path $resolvedRepoRoot 'Artefacts\Unpacked\Modules\PSWriteOffice\PSWriteOffice.psd1'),
-    (Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1')
-) | Select-Object -Unique
-
-$resolvedManifestPath = $manifestCandidates |
-    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
-    Select-Object -First 1
-
-if ($resolvedManifestPath) {
     Copy-Item -LiteralPath $resolvedManifestPath -Destination $targetManifestPath -Force
     $summary.manifestSource = $resolvedManifestPath
     $summary.manifestUpdated = $true
-    $summary.fallbackUsed = $false
-} else {
-    Write-Host 'PSWriteOffice module manifest not found in synced repo. Keeping checked-in fallback manifest snapshot.' -ForegroundColor Yellow
-}
 
-$commandMetadataCandidates = @(
-    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\command-metadata.json')
-) | Select-Object -Unique
-
-$resolvedCommandMetadataPath = $commandMetadataCandidates |
-    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
-    Select-Object -First 1
-
-if ($resolvedCommandMetadataPath) {
     Copy-Item -LiteralPath $resolvedCommandMetadataPath -Destination $targetCommandMetadataPath -Force
     $summary.commandMetadataSource = $resolvedCommandMetadataPath
     $summary.commandMetadataUpdated = $true
     $summary.fallbackUsed = $false
+    $summary.apiSnapshotSource = 'source-bundle'
+} elseif ($checkedInBundle.Valid) {
+    Write-Host "PSWriteOffice WebsiteArtifacts are stale ($($sourceBundle.Reason)). Keeping the complete checked-in $($expectedCommands.Count)-command snapshot." -ForegroundColor Yellow
+    $summary.helpSource = $targetHelpPath
+    $summary.manifestSource = $targetManifestPath
+    $summary.commandMetadataSource = $targetCommandMetadataPath
 } else {
-    Write-Host 'PSWriteOffice command metadata not found in synced repo. Keeping checked-in fallback command metadata snapshot.' -ForegroundColor Yellow
+    throw "No complete PSWriteOffice API snapshot is available. Source bundle: $($sourceBundle.Reason). Checked-in bundle: $($checkedInBundle.Reason)."
 }
 
 if (-not $SkipExamples) {
@@ -173,7 +238,6 @@ if (-not $SkipExamples) {
         Sync-DirectoryContents -Source $sourceExamplesPath -Destination $targetExamplesPath
         $summary.examplesSource = $sourceExamplesPath
         $summary.examplesUpdated = $true
-        $summary.fallbackUsed = $false
     } else {
         Write-Host 'PSWriteOffice examples folder not found in synced repo. Keeping checked-in fallback examples.' -ForegroundColor Yellow
     }

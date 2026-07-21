@@ -1,0 +1,9 @@
+<article class="imo-product-card" style="--product-color: {{ product.color }};">
+  <div class="imo-product-card__header">
+    <div class="imo-product-card__icon">{{ product.icon_svg }}</div>
+    <div><span class="imo-product-card__name">{{ product.title }}</span>{{ if product.tag }}<span class="imo-badge">{{ product.tag }}</span>{{ end }}</div>
+  </div>
+  <p class="imo-product-card__desc">{{ product.tagline }}</p>
+  {{ if product.highlights && product.highlights.size > 0 }}<div class="imo-product-card__formats">{{ for item in product.highlights }}<span class="imo-product-card__format">{{ item }}</span>{{ end }}</div>{{ end }}
+  <div class="imo-product-card__actions"><a href="{{ product.url }}" class="imo-product-card__primary">Explore {{ product.title }} <span aria-hidden="true">&rarr;</span></a>{{ if product.secondary_url }}<a href="{{ product.secondary_url }}" class="imo-product-card__secondary">{{ product.title }} guide</a>{{ end }}</div>
+</article>

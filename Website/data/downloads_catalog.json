@@ -30,9 +30,9 @@
   "sections": [
     {
       "id": "core-builders",
-      "eyebrow": "Core builders",
-      "title": "Primary document libraries",
-      "description": "Start here when you are building or editing Office documents directly from .NET code.",
+      "eyebrow": "Document engines",
+      "title": "Create, edit, and inspect documents",
+      "description": "Start with the native package for the document family your application owns.",
       "packages": [
         {
           "registry": "nuget",
@@ -78,6 +78,77 @@
           "docs_url": "/docs/powerpoint/",
           "api_url": "/api/powerpoint/",
           "accent": "#f43f5e"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Pdf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Pdf",
+          "release_product": "officeimo.pdf",
+          "title": "OfficeIMO.Pdf",
+          "summary": "Create, inspect, edit, merge, split, stamp, sign, validate, and render PDF files.",
+          "best_for": "PDF authoring, page operations, validation, rendering, and document security",
+          "install": "dotnet add package OfficeIMO.Pdf",
+          "product_url": "/products/pdf/",
+          "docs_url": "/docs/pdf/",
+          "api_url": "/api/pdf/",
+          "accent": "#ef4444"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.OneNote",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.OneNote",
+          "title": "OfficeIMO.OneNote",
+          "summary": "Read, create, edit, and write native OneNote sections, notebooks, and packages offline.",
+          "best_for": "ONE and ONEPKG processing without Graph, OneNote, or COM",
+          "install": "dotnet add package OfficeIMO.OneNote",
+          "product_url": "/products/onenote/",
+          "docs_url": "/docs/onenote/",
+          "api_url": "/api/onenote/",
+          "accent": "#7c3aed"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Email",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Email",
+          "title": "OfficeIMO.Email",
+          "summary": "Read and write messages, Outlook items, mailbox stores, calendars, contacts, and address books.",
+          "best_for": "EML, MSG, PST, OST, OLM, mailbox migration, and Outlook data inspection",
+          "install": "dotnet add package OfficeIMO.Email",
+          "product_url": "/products/email/",
+          "docs_url": "/docs/email/",
+          "api_url": "/api/email/",
+          "accent": "#0284c7"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.OpenDocument",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.OpenDocument",
+          "title": "OfficeIMO.OpenDocument",
+          "summary": "Create and edit ODT, ODS, and ODP files without LibreOffice or Office.",
+          "best_for": "native OpenDocument creation and Office-format conversion adapters",
+          "install": "dotnet add package OfficeIMO.OpenDocument",
+          "product_url": "/products/open-document/",
+          "docs_url": "/docs/open-document/",
+          "api_url": "/api/open-document/",
+          "accent": "#0f766e"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Html",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Html",
+          "title": "OfficeIMO.Html",
+          "summary": "Parse HTML and MHTML, apply resource policy, render images, and project web content into document models.",
+          "best_for": "web archives, safe resource handling, rendering, and shared conversion semantics",
+          "install": "dotnet add package OfficeIMO.Html",
+          "product_url": "/products/html/",
+          "docs_url": "/docs/html/",
+          "api_url": "/api/html/",
+          "accent": "#ea580c"
         },
         {
           "registry": "nuget",
@@ -229,18 +300,6 @@
           "best_for": "HTML ingestion, cleanup, and markdown-first publishing workflows",
           "install": "dotnet add package OfficeIMO.Markdown.Html",
           "accent": "#22c55e"
-        },
-        {
-          "registry": "nuget",
-          "registry_label": "NuGet",
-          "registry_package": "OfficeIMO.Pdf",
-          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Pdf",
-          "release_product": "officeimo.pdf",
-          "title": "OfficeIMO.Pdf",
-          "summary": "Fluent zero-dependency PDF builder for producing printable output directly.",
-          "best_for": "basic PDF generation, printable reports, and low-dependency server output",
-          "install": "dotnet add package OfficeIMO.Pdf",
-          "accent": "#ef4444"
         },
         {
           "registry": "nuget",

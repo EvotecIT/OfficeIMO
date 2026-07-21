@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--blog-post">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--blog-post">
+    <article class="imo-blog-post">
+      <header class="imo-blog-post__header">
+        <div class="imo-container imo-blog-post__header-inner">
+          <a class="imo-blog-post__back" href="/blog/">← OfficeIMO blog</a>
+          <p class="imo-blog-post__eyebrow">Guide and engineering notes</p>
+          <h1>{{ page.title }}</h1>
+          {{ if page.description }}
+          <p class="imo-blog-post__description">{{ page.description }}</p>
+          {{ end }}
+          <div class="imo-blog-post__meta">
+            {{ if page.date }}<span>{{ page.date }}</span>{{ end }}
+            {{ if page.author }}<span>By {{ page.author }}</span>{{ end }}
+          </div>
+        </div>
+      </header>
+      <div class="imo-container imo-blog-post__body">
+        <div class="imo-blog-post__content imo-prose">
+{{ content }}
+        </div>
+        <aside class="imo-blog-post__next" aria-label="Continue exploring OfficeIMO">
+          <p>Put the pattern to work</p>
+          <h2>Choose the package, then move from a working guide to the generated API.</h2>
+          <div>
+            <a class="imo-button imo-button--primary" href="/docs/">Browse guides</a>
+            <a class="imo-button imo-button--secondary" href="/api/">Open API reference</a>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

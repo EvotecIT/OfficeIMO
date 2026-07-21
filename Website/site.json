@@ -40,7 +40,7 @@
       "Preset": "blog",
       "Input": "content/blog",
       "Output": "/blog",
-      "DefaultLayout": "page",
+      "DefaultLayout": "blog-post",
       "ListLayout": "page",
       "UseToc": false,
       "EditorialCards": {
@@ -165,6 +165,11 @@
         { "Anchor": "/api/powerpoint/", "ServiceDesc": "/api/powerpoint/index.json", "ServiceDoc": "/api/powerpoint/", "Title": "OfficeIMO.PowerPoint API Reference" },
         { "Anchor": "/api/csv/", "ServiceDesc": "/api/csv/index.json", "ServiceDoc": "/api/csv/", "Title": "OfficeIMO.CSV API Reference" },
         { "Anchor": "/api/visio/", "ServiceDesc": "/api/visio/index.json", "ServiceDoc": "/api/visio/", "Title": "OfficeIMO.Visio API Reference" },
+        { "Anchor": "/api/pdf/", "ServiceDesc": "/api/pdf/index.json", "ServiceDoc": "/api/pdf/", "Title": "OfficeIMO.Pdf API Reference" },
+        { "Anchor": "/api/html/", "ServiceDesc": "/api/html/index.json", "ServiceDoc": "/api/html/", "Title": "OfficeIMO.Html API Reference" },
+        { "Anchor": "/api/email/", "ServiceDesc": "/api/email/index.json", "ServiceDoc": "/api/email/", "Title": "OfficeIMO.Email API Reference" },
+        { "Anchor": "/api/onenote/", "ServiceDesc": "/api/onenote/index.json", "ServiceDoc": "/api/onenote/", "Title": "OfficeIMO.OneNote API Reference" },
+        { "Anchor": "/api/open-document/", "ServiceDesc": "/api/open-document/index.json", "ServiceDoc": "/api/open-document/", "Title": "OfficeIMO.OpenDocument API Reference" },
         { "Anchor": "/api/reader/", "ServiceDesc": "/api/reader/index.json", "ServiceDoc": "/api/reader/", "Title": "OfficeIMO.Reader API Reference" },
         { "Anchor": "/api/powershell/", "ServiceDesc": "/api/powershell/index.json", "ServiceDoc": "/api/powershell/", "Title": "PSWriteOffice Cmdlet Reference" }
       ]
@@ -224,6 +229,7 @@
       { "Name": "home", "Css": ["/css/home.css"] },
       { "Name": "product", "Css": ["/css/product.css"] },
       { "Name": "docs", "Css": ["/css/docs.css"] },
+      { "Name": "api", "Css": ["/css/api.css"] },
       { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
     ],
     "RouteBundles": [
@@ -233,6 +239,7 @@
       { "Match": "/showcase/", "Bundles": ["global", "docs"] },
       { "Match": "/faq/", "Bundles": ["global", "docs"] },
       { "Match": "/docs/**", "Bundles": ["global", "docs"] },
+      { "Match": "/api/**", "Bundles": ["global", "api"] },
       { "Match": "/**", "Bundles": ["global"] }
     ],
     "CriticalCss": [
@@ -325,60 +332,38 @@
             "Url": "/products/word/",
             "Sections": [
               {
-                "Title": "Core Builders",
+                "Title": "Create and edit",
                 "Items": [
-                  {
-                    "Title": "OfficeIMO.Word",
-                    "Url": "/products/word/",
-                    "Description": "Create and edit .docx documents"
-                  },
-                  {
-                    "Title": "OfficeIMO.Excel",
-                    "Url": "/products/excel/",
-                    "Description": "Read and write .xlsx workbooks"
-                  },
-                  {
-                    "Title": "OfficeIMO.PowerPoint",
-                    "Url": "/products/powerpoint/",
-                    "Description": "Generate .pptx decks with slides and charts"
-                  },
-                  {
-                    "Title": "OfficeIMO.Markdown",
-                    "Url": "/products/markdown/",
-                    "Description": "Build, parse, and render Markdown"
-                  },
-                  {
-                    "Title": "OfficeIMO.CSV",
-                    "Url": "/products/csv/",
-                    "Description": "Typed CSV workflows with schema and streaming"
-                  },
-                  {
-                    "Title": "OfficeIMO.Visio",
-                    "Url": "/products/visio/",
-                    "Description": "Create .vsdx diagrams with shapes and connectors"
-                  }
+                  { "Title": "Word", "Url": "/products/word/", "Description": "DOCX documents, templates, and review" },
+                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLSX workbooks, tables, and charts" },
+                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPTX presentations and data-driven decks" },
+                  { "Title": "PDF", "Url": "/products/pdf/", "Description": "Author, inspect, transform, and sign PDF" },
+                  { "Title": "OneNote", "Url": "/products/onenote/", "Description": "Native offline OneNote files and notebooks" }
                 ]
               },
               {
-                "Title": "Automation and Ingestion",
+                "Title": "Formats and conversion",
                 "Items": [
-                  {
-                    "Title": "OfficeIMO.Reader",
-                    "Url": "/products/reader/",
-                    "Description": "Extract, chunk, and normalize documents for search and AI"
-                  },
-                  {
-                    "Title": "PSWriteOffice",
-                    "Url": "/products/pswriteoffice/",
-                    "Description": "Automate Office workflows from PowerShell scripts"
-                  }
+                  { "Title": "Email", "Url": "/products/email/", "Description": "EML, MSG, stores, calendars, and contacts" },
+                  { "Title": "OpenDocument", "Url": "/products/open-document/", "Description": "ODT, ODS, ODP, and Office adapters" },
+                  { "Title": "HTML", "Url": "/products/html/", "Description": "HTML, MHTML, resource policy, and rendering" },
+                  { "Title": "Markdown", "Url": "/products/markdown/", "Description": "Typed AST, transforms, and rendering" },
+                  { "Title": "Visio", "Url": "/products/visio/", "Description": "VSDX pages, shapes, and connectors" }
+                ]
+              },
+              {
+                "Title": "Workflows",
+                "Items": [
+                  { "Title": "Reader", "Url": "/products/reader/", "Description": "Extract and normalize content across formats" },
+                  { "Title": "Google Workspace", "Url": "/products/google-workspace/", "Description": "Docs, Sheets, Slides, Drive, and sync" },
+                  { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/", "Description": "Document automation from PowerShell" },
+                  { "Title": "All packages", "Url": "/downloads/", "Description": "Find every library and focused adapter" }
                 ]
               }
             ]
           },
           { "Title": "Docs", "Url": "/docs/" },
-          { "Title": "Playground", "Url": "/playground/" },
-          { "Title": "Blog", "Url": "/blog/" },
+          { "Title": "Convert", "Url": "/playground/" },
           {
             "Title": "API",
             "Url": "/api/",
@@ -398,6 +383,11 @@
                   },
                   { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
                   { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
+                  { "Title": "OfficeIMO.Pdf API", "Url": "/api/pdf/" },
+                  { "Title": "OfficeIMO.Html API", "Url": "/api/html/" },
+                  { "Title": "OfficeIMO.Email API", "Url": "/api/email/" },
+                  { "Title": "OfficeIMO.OneNote API", "Url": "/api/onenote/" },
+                  { "Title": "OpenDocument API", "Url": "/api/open-document/" },
                   { "Title": "OfficeIMO.Reader API", "Url": "/api/reader/" },
                   {
                     "Title": "PSWriteOffice Cmdlets",
@@ -408,7 +398,21 @@
             ]
           },
           { "Title": "Downloads", "Url": "/downloads/" },
-          { "Title": "Pricing", "Url": "/pricing/" }
+          {
+            "Title": "Resources",
+            "Url": "/blog/",
+            "Sections": [
+              {
+                "Title": "Learn and evaluate",
+                "Items": [
+                  { "Title": "Blog", "Url": "/blog/", "Description": "Patterns, releases, and practical walkthroughs" },
+                  { "Title": "Showcase", "Url": "/showcase/", "Description": "See generated document workflows" },
+                  { "Title": "Benchmarks", "Url": "/benchmarks/", "Description": "Measured package and performance evidence" },
+                  { "Title": "Support", "Url": "/pricing/", "Description": "Open-source help and commercial support" }
+                ]
+              }
+            ]
+          }
         ]
       },
       {
@@ -417,6 +421,10 @@
           { "Title": "OfficeIMO.Word", "Url": "/products/word/" },
           { "Title": "OfficeIMO.Excel", "Url": "/products/excel/" },
           { "Title": "OfficeIMO.PowerPoint", "Url": "/products/powerpoint/" },
+          { "Title": "OfficeIMO.Pdf", "Url": "/products/pdf/" },
+          { "Title": "OfficeIMO.Email", "Url": "/products/email/" },
+          { "Title": "OfficeIMO.OneNote", "Url": "/products/onenote/" },
+          { "Title": "OfficeIMO.OpenDocument", "Url": "/products/open-document/" },
           { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/" },
           { "Title": "OfficeIMO.CSV", "Url": "/products/csv/" },
           { "Title": "OfficeIMO.Visio", "Url": "/products/visio/" },
@@ -431,6 +439,9 @@
           { "Title": "Word Docs", "Url": "/docs/word/" },
           { "Title": "Excel Docs", "Url": "/docs/excel/" },
           { "Title": "PowerPoint Docs", "Url": "/docs/powerpoint/" },
+          { "Title": "PDF Docs", "Url": "/docs/pdf/" },
+          { "Title": "Email Docs", "Url": "/docs/email/" },
+          { "Title": "OneNote Docs", "Url": "/docs/onenote/" },
           { "Title": "Markdown Docs", "Url": "/docs/markdown/" },
           { "Title": "CSV Docs", "Url": "/docs/csv/" },
           { "Title": "Visio Docs", "Url": "/docs/visio/" },
@@ -448,7 +459,7 @@
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
           { "Title": "Comparison", "Url": "/comparison/" },
           { "Title": "Playground", "Url": "/playground/" },
-          { "Title": "Pricing", "Url": "/pricing/" },
+          { "Title": "Support", "Url": "/pricing/" },
           { "Title": "Showcase", "Url": "/showcase/" },
           { "Title": "Blog", "Url": "/blog/" }
         ]
