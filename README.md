@@ -66,10 +66,12 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Image identification, dimensions, MIME metadata, fit modes, projection, cropping, and transform helpers
 - [x] Bounded async remote-image loading with URL policy, byte limits, media checks, and diagnostics
 - [x] Font descriptors, deterministic text measurement, TrueType font discovery, and glyph-outline reading
+- [x] One shaping-provider contract with a dependency-light managed core-Arabic/TrueType implementation and explicit fallback diagnostics
 - [x] Shapes, paths, gradients, shadows, clipping, transforms, vector scenes, and text blocks
 - [x] Shared chart kinds, chart snapshots, series data, renderers, and visual-quality reports
 - [x] Dependency-free raster buffers, drawing canvases, compositing, patterns, data bars, and sparklines
 - [x] First-party PNG/JPEG identification, decoding, encoding, and raster export paths
+- [x] Explicit composited-GIF frame selection or animation rejection with typed loss evidence
 - [x] Dependency-free TIFF output with uncompressed, PackBits, or Deflate strips and deterministic lossless WebP encoding with common raster export options
 - [x] Shared SVG primitive writing and scalable drawing export
 - [x] Single and batch image-export builders with dimensions, source metadata, and diagnostics
@@ -162,7 +164,7 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
-- [x] Create PDFs with page setup, rich text, TrueType/OpenType-CFF subsetting, shaping-provider positioning, multilingual font fallback, dictionary hyphenation, mixed inline visuals, styled multipage containers, balanced block-flow columns, tables, and images
+- [x] Create PDFs with page setup, rich text, TrueType/OpenType-CFF subsetting, bounded managed Arabic plus shaping-provider positioning, multilingual font fallback, dictionary hyphenation, mixed inline visuals, typed business recipes, page-aware components, styled multipage containers, balanced block-flow columns, tables, and images
 - [x] Conditional and replayable flow, position capture, semantic sections, generated TOCs, named destinations, outlines, and generated optional-content layers
 - [x] Vector drawings, chart scenes, backgrounds, page decorations, headers, first/even footers, watermarks, metadata, and viewer preferences
 - [x] AcroForm creation, field values, choice fields, appearance generation, filling, flattening, and validation
@@ -176,6 +178,8 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 - [x] Standard and modern encrypted PDF read/write plus signature mutation and permissions analysis
 - [x] Incremental object updates and append-only annotation paths where the source structure allows them
 - [x] Managed page rendering to PNG, JPEG, TIFF, lossless WebP, and SVG with page selections, pixel/page limits, capability diagnostics, and continue-on-error batches
+- [x] Shared mutation-portfolio and render-compatibility assessments backed by the canonical preflight/planner and generated capability registry
+- [x] Bounded stream serialization with per-save peak-retention, spill, buffering, and passthrough evidence
 - [x] Exact embedded TrueType outlines plus shared managed CMYK, Lab, XYZ, and calibrated-color conversion where supported
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
@@ -747,8 +751,9 @@ _Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesserac
 - [x] Page-aware text and Markdown chunks with logical tables and confidence/diagnostic signals
 - [x] Metadata, outlines, links, forms, annotations, layers, attachments, tags, security/signatures, and passive-action summaries
 - [x] Image placeholders, visual geometry, and typed fields where the PDF parser can recover them
+- [x] Source-neutral normalized-document-to-PDF projection with explicit page, asset, link, and form policies plus merged source/PDF evidence
 
-_Dependency footprint:_ only `OfficeIMO.Reader.Core` and the first-party OfficeIMO PDF engine.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core`, `OfficeIMO.Drawing`, and the first-party OfficeIMO PDF engine.
 
 #### [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md)
 

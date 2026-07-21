@@ -8,6 +8,8 @@ public class PdfItemCompose {
     internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Adds a reusable typed component through the canonical flow engine.</summary>
     public PdfItemCompose Component(IPdfComponent component, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Component(component, options, capture); return this; }
+    /// <summary>Adds a reusable page-aware component through the canonical deferred-flow engine.</summary>
+    public PdfItemCompose Component(IPdfContextComponent component, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Component(component, options, capture); return this; }
     /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
     public PdfItemCompose Flow(System.Action<PdfItemCompose> build, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Flow(build, options, capture); return this; }
     /// <summary>Adds replayable content materialized from the live page context during layout.</summary>

@@ -106,10 +106,13 @@ public class PdfBoundedObjectBufferTests {
         var options = new PdfOptions { ObjectBufferMemoryLimitBytes = 0 }.SetEncryption(encryption);
         using var output = new MemoryStream();
 
-        PdfDocument.Create(options)
+        PdfSaveResult result = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("Bounded encrypted output"))
             .Save(output);
 
+        PdfSerializationReport serialization = Assert.IsType<PdfSerializationReport>(result.Serialization);
+        Assert.True(serialization.ObjectBufferSpilled);
+        Assert.Equal(0, serialization.PeakRetainedObjectBytes);
         byte[] bytes = output.ToArray();
         Assert.Contains(
             "Bounded encrypted output",

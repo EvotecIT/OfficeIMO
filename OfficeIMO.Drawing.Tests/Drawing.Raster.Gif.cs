@@ -71,8 +71,63 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.White, rendered.GetPixel(7, 5));
         }
 
+        [Fact]
+        public void OfficeRasterImageDecoder_SelectsCompositedGifFrameAndReportsAnimationLoss() {
+            byte[] gif = CreateTwoFrameGif();
+            var options = new OfficeRasterDecodeOptions { FrameIndex = 1 };
+
+            Assert.True(OfficeRasterImageDecoder.TryDecode(gif, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+
+            Assert.Equal(OfficeColor.Lime, image!.GetPixel(0, 0));
+            Assert.Equal(2, info.FrameCount);
+            Assert.Equal(1, info.SelectedFrameIndex);
+            Assert.True(info.Succeeded);
+            Assert.True(info.IsAnimated);
+            Assert.True(info.AnimationDiscarded);
+            Assert.NotNull(info.Diagnostic);
+        }
+
+        [Fact]
+        public void OfficeRasterImageDecoder_RejectsAnimatedGifWhenPolicyRequiresExactStaticInput() {
+            byte[] gif = CreateTwoFrameGif();
+            var options = new OfficeRasterDecodeOptions {
+                AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            };
+
+            Assert.False(OfficeRasterImageDecoder.TryDecode(gif, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));
+
+            Assert.Null(image);
+            Assert.False(info.Succeeded);
+            Assert.Equal(2, info.FrameCount);
+            Assert.False(info.AnimationDiscarded);
+            Assert.Contains("rejected", info.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void OfficeGifReader_ClearsSelectedFrameWhenTrailingContentIsMalformed() {
+            byte[] valid = CreateTwoFrameGif();
+            byte[] malformed = valid.Take(valid.Length - 1).Concat(new byte[] { 0x21 }).ToArray();
+
+            Assert.False(OfficeGifReader.TryDecodeFrame(malformed, 0, out OfficeRasterImage? image, out int frameCount));
+
+            Assert.Null(image);
+            Assert.Equal(2, frameCount);
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+
+        private static byte[] CreateTwoFrameGif() {
+            OfficeColor[] palette = { OfficeColor.Red, OfficeColor.Lime, OfficeColor.Blue, OfficeColor.White };
+            byte[] first = CreateIndexedGif(1, 1, palette, new byte[] { 0 });
+            byte[] second = CreateIndexedGif(1, 1, palette, new byte[] { 1 });
+            const int imageDescriptorOffset = 25;
+            var result = new List<byte>(first.Length + second.Length - imageDescriptorOffset);
+            result.AddRange(first.Take(first.Length - 1));
+            result.AddRange(second.Skip(imageDescriptorOffset).Take(second.Length - imageDescriptorOffset - 1));
+            result.Add(0x3B);
+            return result.ToArray();
+        }
 
         private static byte[] CreateIndexedGif(
             int width,

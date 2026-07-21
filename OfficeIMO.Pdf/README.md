@@ -38,13 +38,13 @@ PdfDocument.Create(new PdfOptions {
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed components, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while the shared `OfficeIMO.Drawing.IOfficeTextShapingProvider` contract can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven core-Arabic/TrueType subset. The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
-- Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
+- Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
@@ -220,6 +220,27 @@ PdfDocument.Create()
     .Save("summary.pdf");
 ```
 
+### Reusable business recipes
+
+```csharp
+var invoice = new PdfInvoiceComponent(
+    invoiceNumber: "INV-42",
+    issueDate: DateTime.Today,
+    seller: new PdfInvoiceParty("Seller Ltd", new[] { "Tax ID 123" }),
+    customer: new PdfInvoiceParty("Customer Ltd"),
+    lines: new[] { new PdfInvoiceLine("Engineering", 2M, 50M, taxRate: 0.20M) },
+    currencyCode: "EUR");
+
+PdfDocument.Create()
+    .Component(new PdfReportComponent("Delivery summary", "All checks passed."))
+    .Component(invoice)
+    .Save("delivery-pack.pdf");
+```
+
+These recipes compose normal flow, table, and panel primitives. `IPdfContextComponent`
+uses the existing deferred replay path when content must react to the live page number;
+it does not introduce another layout engine.
+
 ### Hyphenation and inline visuals
 
 ```csharp
@@ -249,7 +270,7 @@ var options = new PdfOptions {
     ObjectBufferMemoryLimitBytes = 8 * 1024 * 1024
 };
 
-PdfDocument.Create(options)
+PdfSaveResult save = PdfDocument.Create(options)
     .TableOfContents()
     .Section("Summary", section => section
         .Container(content => content
@@ -261,6 +282,9 @@ PdfDocument.Create(options)
             columns.Paragraph(p => p.Text("Second column"));
         }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))
     .Save("navigable-report.pdf");
+
+Console.WriteLine($"Peak page payload: {save.Serialization?.PeakRetainedPageContentBytes}");
+Console.WriteLine($"Object spill used: {save.Serialization?.ObjectBufferSpilled}");
 ```
 
 ### Read text, Markdown, tables, images, and attachments
@@ -528,6 +552,11 @@ Console.WriteLine($"Active content: {inspection.HasActiveContent}");
 foreach (var page in inspection.Pages) {
     Console.WriteLine($"{page.PageNumber}: {page.Width} x {page.Height}");
 }
+
+PdfMutationPortfolioReport mutations = pdf.AssessMutations();
+PdfRenderCompatibilityReport rendering = pdf.AssessRenderCompatibility();
+Console.WriteLine($"Executable mutation families: {mutations.ExecutablePlans.Count}");
+Console.WriteLine($"Render capability findings: {rendering.DiagnosticCount}");
 ```
 
 ### Convert PDFs through adapter packages
@@ -573,12 +602,12 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | [OfficeIMO.Latex.Pdf](../OfficeIMO.Latex.Pdf/README.md) | Projects the bounded LaTeX profile through the loss-aware Markdown bridge without executing TeX. |
 | [OfficeIMO.OpenDocument.Pdf](../OfficeIMO.OpenDocument.Pdf/README.md) | Provides direct ODT, ODS, and ODP façades while retaining both OpenDocument projection and PDF conversion diagnostics. |
 
-The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. Email, EPUB, and Visio are intentionally not advertised as direct conversion yet.
+The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are intentionally not advertised as direct conversion until their route-specific artifact gates are proven.
 
 ## Boundaries
 
 - PDF parsing, layout, writing, and rendering stay first-party. CMS/DER/X.509 belongs in `OfficeIMO.Security`; rasterizers, visual comparison tools, and external renderers remain test or development tooling.
-- Polished invoice, report, and statement examples belong in samples and visual fixtures, not as special engine concepts.
+- Small reusable recipe components may compose the public flow primitives; branded invoice, report, and statement designs still belong in samples and visual fixtures rather than special layout engines.
 - Adapter-specific mapping belongs in the source adapter packages. Shared PDF layout, reading, and manipulation behavior belongs here.
 - Current-state inventories belong in [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md), not in this NuGet README.
 
@@ -610,7 +639,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, host-provided complex-script shaping, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, shared Security-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Built-in full complex-script shaping, Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus a broader provider seam, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, shared Security-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Full GSUB/GPOS shaping, Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 

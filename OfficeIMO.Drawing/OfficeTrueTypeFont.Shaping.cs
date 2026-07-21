@@ -20,6 +20,13 @@ public sealed partial class OfficeTrueTypeFont {
 
     internal int UnitsPerEm => _unitsPerEm;
 
+    internal bool TryGetGlyphMetrics(int scalar, out int glyphId, out int advanceWidth) {
+        ushort mapped = MapGlyph(scalar);
+        glyphId = mapped;
+        advanceWidth = mapped == 0 ? 0 : AdvanceWidth(mapped);
+        return mapped != 0;
+    }
+
     internal ShapedTextRun CreateShapedTextRun(string text, OfficeTextShapingResult result) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         if (result == null) throw new ArgumentNullException(nameof(result));
