@@ -161,9 +161,22 @@ internal static class HtmlGenericDocumentProjector {
     internal static bool IsTable(IElement element) => Is(element, "table");
     internal static bool IsImage(IElement element) => Is(element, "img");
 
+    internal static bool IsMedia(IElement element) =>
+        Is(element, "video") || Is(element, "audio") || Is(element, "object") || Is(element, "embed");
+
+    internal static bool IsForm(IElement element) =>
+        Is(element, "form") || Is(element, "input") || Is(element, "select")
+        || Is(element, "textarea") || Is(element, "button");
+
+    internal static bool IsNote(IElement element) =>
+        HtmlAccessibilitySemantics.HasRole(element, "note")
+        || HtmlAccessibilitySemantics.HasRole(element, "doc-footnote")
+        || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote");
+
     private static IEnumerable<IElement> EnumerateBlocks(IElement element) {
         if (IgnoredElements.Contains(element.LocalName)) yield break;
-        if (IsTextBlock(element) || IsTable(element) || IsImage(element)) {
+        if (IsTextBlock(element) || IsTable(element) || IsImage(element)
+            || IsMedia(element) || IsForm(element) || IsNote(element)) {
             yield return element;
             yield break;
         }

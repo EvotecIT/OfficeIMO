@@ -80,7 +80,7 @@ public static class HtmlRenderEngine {
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
         diagnostics.AddRange(manifest.Diagnostics);
-        HtmlRenderResourceSet resources = HtmlRenderResourceLoader.Load(
+        HtmlResourceSession resources = HtmlResourceSession.Resolve(
             manifest,
             resolved,
             diagnostics,
@@ -167,7 +167,7 @@ public static class HtmlRenderEngine {
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);
-        HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
+        HtmlResourceSession resources = await HtmlResourceSession.ResolveAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
@@ -186,7 +186,7 @@ public static class HtmlRenderEngine {
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
 
-    private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlRenderResourceSet resources, HtmlDiagnosticReport diagnostics) {
+    private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlResourceReference reference in manifest.Resources) {
             if (!reference.IsAllowed

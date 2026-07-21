@@ -215,13 +215,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string diagnosticCode = string.Empty;
             string diagnosticDetail = string.Empty;
             bool withinBudget = estimatedBytes >= 0L
-                && _resources.CanAcceptInlineResource(estimatedBytes, _options, out diagnosticCode, out diagnosticDetail);
+                && _resources.CanAcceptInlineResource(estimatedBytes, out diagnosticCode, out diagnosticDetail);
             if (withinBudget && dataUri.TryDecodeBytes(out byte[] decoded)) {
                 var inlineResource = new HtmlResolvedResource(decoded, dataUri.MediaType);
-                _resources.AddInline(resolvedSource, inlineResource);
-                bytes = inlineResource.EncodedBytes;
-                contentType = NormalizeImageContentType(inlineResource.ContentType);
-                extension = dataUri.FileExtension;
+                if (_resources.TryAcceptInline(HtmlResourceKind.Image, resolvedSource, inlineResource,
+                        out diagnosticCode, out diagnosticDetail)) {
+                    bytes = inlineResource.EncodedBytes;
+                    contentType = NormalizeImageContentType(inlineResource.ContentType);
+                    extension = dataUri.FileExtension;
+                } else if (diagnosticCode.Length > 0) {
+                    _diagnostics.Add(ComponentName, diagnosticCode,
+                        "An image data URI was rejected by the shared resource session.",
+                        HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail);
+                }
             } else if (!withinBudget && diagnosticCode.Length > 0) {
                 _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail);
             }

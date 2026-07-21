@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Scores structural HTML round-trip fidelity for gallery manifests and regression tests.
 /// </summary>
-public static class HtmlRoundTripScorer {
+public static partial class HtmlRoundTripScorer {
     private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\r', '\n', '\f' };
     private static readonly string[] FormControlStateAttributes = {
         "type",
@@ -112,9 +112,32 @@ public static class HtmlRoundTripScorer {
     }
 
     /// <summary>
+    /// Compares source and target HTML with evidence captured after reopening the native artifact.
+    /// </summary>
+    public static HtmlRoundTripScore Compare(
+        string sourceHtml,
+        string targetHtml,
+        HtmlArtifactReloadEvidence artifactReloadEvidence) {
+        return Compare(
+            HtmlConversionDocument.Parse(sourceHtml),
+            HtmlConversionDocument.Parse(targetHtml),
+            artifactReloadEvidence);
+    }
+
+    /// <summary>
     /// Compares retained conversion documents without reparsing either HTML source.
     /// </summary>
     public static HtmlRoundTripScore Compare(HtmlConversionDocument sourceDocument, HtmlConversionDocument targetDocument) {
+        return Compare(sourceDocument, targetDocument, artifactReloadEvidence: null);
+    }
+
+    /// <summary>
+    /// Compares retained conversion documents and includes actual native-artifact reload evidence.
+    /// </summary>
+    public static HtmlRoundTripScore Compare(
+        HtmlConversionDocument sourceDocument,
+        HtmlConversionDocument targetDocument,
+        HtmlArtifactReloadEvidence? artifactReloadEvidence) {
         if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
         if (targetDocument == null) throw new ArgumentNullException(nameof(targetDocument));
 
@@ -127,13 +150,14 @@ public static class HtmlRoundTripScorer {
         double? formOwnerSimilarity = sourceFormOwners.Count == 0 && targetFormOwners.Count == 0
             ? (double?)null
             : SignatureSimilarity(targetFormOwners, sourceFormOwners);
-        return Compare(
+        HtmlRoundTripScore structuralScore = Compare(
             source,
             target,
             TextSimilarityFromText(
                 ExtractVisibleTextFromHtml(sourceDocument.CreateSourceDocumentForConversion()),
                 ExtractVisibleTextFromHtml(targetDocument.CreateSourceDocumentForConversion())),
             formOwnerSimilarity);
+        return ApplyFidelityV2(structuralScore, sourceDocument, targetDocument, artifactReloadEvidence);
     }
 
     /// <summary>
@@ -192,10 +216,25 @@ public static class HtmlRoundTripScorer {
         AddSignatureMetric(metrics, "link-targets", ExtractSignatures(target, HtmlLogicalNodeKind.Link, CreateLinkSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Link, CreateLinkSignature));
         AddMetric(metrics, "text", textSimilarity);
 
+        var dimensions = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        double[] structuralMetrics = metrics
+            .Where(pair => !string.Equals(pair.Key, "text", StringComparison.OrdinalIgnoreCase))
+            .Select(pair => pair.Value)
+            .ToArray();
+        if (structuralMetrics.Length > 0) dimensions["structure"] = structuralMetrics.Average();
+        if (metrics.TryGetValue("text", out double textMetric)) dimensions["text"] = textMetric;
+
         int compared = metrics.Count;
         int matched = metrics.Values.Count(value => value >= 0.95D);
-        double score = compared == 0 ? 1D : metrics.Values.Average();
-        return new HtmlRoundTripScore(score, SumCounts(source), SumCounts(target), matched, compared, metrics);
+        double score = dimensions.Count == 0 ? 1D : dimensions.Values.Average();
+        return new HtmlRoundTripScore(
+            score,
+            SumCounts(source),
+            SumCounts(target),
+            matched,
+            compared,
+            metrics,
+            dimensions);
     }
 
     private static void AddMetric(IDictionary<string, double> metrics, string name, double value) {

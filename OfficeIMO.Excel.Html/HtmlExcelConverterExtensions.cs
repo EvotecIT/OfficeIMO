@@ -25,11 +25,13 @@ public static partial class HtmlExcelConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
-        return ImportDocument(adapterDocument, resolved, document.Diagnostics);
+        return ImportDocument(adapterDocument, document.SemanticDocument, document.Trust, resolved, document.Diagnostics);
     }
 
     private static HtmlToExcelResult ImportDocument(
         IHtmlDocument document,
+        HtmlSemanticDocument semanticDocument,
+        HtmlInputTrust trust,
         HtmlToExcelOptions options,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null) {
         options.Limits.Validate();
@@ -53,9 +55,17 @@ public static partial class HtmlExcelConverterExtensions {
             workbook.AddWorksheet("Imported");
             return result;
         }
+        if (useSemantic && !envelope.CanRestoreTargetSpecific(trust)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
+                "Target-specific Excel restoration was not applied because the v2 envelope requires caller-trusted input.",
+                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Approximation,
+                detail: "restoration=" + envelope.RestorationMode);
+            ImportGenericDocument(semanticDocument, workbook, result, options, budget);
+            return result;
+        }
 
         if (!useSemantic) {
-            ImportGenericDocument(document, workbook, result, options, budget);
+            ImportGenericDocument(semanticDocument, workbook, result, options, budget);
             return result;
         }
 

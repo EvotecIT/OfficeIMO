@@ -1,5 +1,3 @@
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
 using OfficeIMO.Html;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +19,8 @@ public static class HtmlOneNoteConverterExtensions {
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
         var result = new HtmlToOneNoteSectionResult(section);
-        IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
         foreach (HtmlDiagnostic diagnostic in document.Diagnostics) result.AddImportDiagnostic(diagnostic);
-        ImportPages(adapterDocument, section, resolved, result);
+        ImportPages(document.SemanticDocument, section, resolved, result);
         return result;
     }
 
@@ -50,12 +47,12 @@ public static class HtmlOneNoteConverterExtensions {
     }
 
     private static void ImportPages(
-        IHtmlDocument document,
+        HtmlSemanticDocument document,
         OneNoteSection target,
         HtmlToOneNoteOptions options,
         HtmlToOneNoteSectionResult result) {
         var budget = new HtmlImportBudget(options.Limits);
-        foreach (HtmlGenericSectionProjection projection in HtmlGenericDocumentProjector.CreateSections(document)) {
+        foreach (HtmlSemanticSection projection in document.Sections) {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional HTML sections were omitted because the shared page limit was reached.",
@@ -65,7 +62,7 @@ public static class HtmlOneNoteConverterExtensions {
 
             var page = new OneNotePage { Title = CleanName(projection.Title, "Imported") };
             var outline = new OneNoteOutline();
-            foreach (IElement block in HtmlGenericDocumentProjector.EnumerateBlocks(projection)) {
+            foreach (HtmlSemanticBlock block in projection.Blocks) {
                 ImportBlock(block, outline.Children, options, result, budget);
             }
             if (outline.Children.Count > 0) page.Outlines.Add(outline);
@@ -75,39 +72,68 @@ public static class HtmlOneNoteConverterExtensions {
     }
 
     private static void ImportBlock(
-        IElement block,
+        HtmlSemanticBlock block,
         IList<OneNoteElement> target,
         HtmlToOneNoteOptions options,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        if (HtmlGenericDocumentProjector.IsTable(block)) {
-            ImportTable(block, target, result, budget);
+        if (block.Kind == HtmlSemanticBlockKind.Table) {
+            ImportTable(block, target, options, result, budget);
             return;
         }
-        if (HtmlGenericDocumentProjector.IsImage(block)) {
-            if (options.ImportImages) ImportImage(block, target, result, budget);
+        if (block.Kind == HtmlSemanticBlockKind.Image) {
+            if (options.ImportImages && block.Resource != null) ImportImage(block.Resource, target, result, budget);
             return;
         }
-        if (string.Equals(block.LocalName, "ul", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(block.LocalName, "ol", StringComparison.OrdinalIgnoreCase)) {
-            bool ordered = string.Equals(block.LocalName, "ol", StringComparison.OrdinalIgnoreCase);
-            foreach (IElement item in block.Children.Where(child => string.Equals(child.LocalName, "li", StringComparison.OrdinalIgnoreCase))) {
-                OneNoteParagraph? paragraph = CreateParagraph(item, result, budget);
-                if (paragraph == null) break;
-                paragraph.List = new OneNoteListInfo { Ordered = ordered, Level = 0 };
-                target.Add(paragraph);
-            }
+        if (block.Kind == HtmlSemanticBlockKind.List) {
+            ImportList(block, target, options, result, budget, Math.Max(0, block.Level - 1));
             return;
         }
         OneNoteParagraph? text = CreateParagraph(block, result, budget);
         if (text != null) target.Add(text);
+        if (options.ImportImages) {
+            foreach (HtmlSemanticResource resource in block.InlineResources.Where(item => item.Kind == HtmlResourceKind.Image)) {
+                ImportImage(resource, target, result, budget);
+            }
+        }
+    }
+
+    private static void ImportList(
+        HtmlSemanticBlock list,
+        IList<OneNoteElement> target,
+        HtmlToOneNoteOptions options,
+        HtmlToOneNoteSectionResult result,
+        HtmlImportBudget budget,
+        int level) {
+        foreach (HtmlSemanticBlock item in list.Children) {
+            OneNoteParagraph? paragraph = CreateParagraph(item, result, budget);
+            if (paragraph == null) break;
+            paragraph.List = new OneNoteListInfo { Ordered = list.Ordered, Level = level };
+            target.Add(paragraph);
+            if (options.ImportImages) {
+                foreach (HtmlSemanticResource resource in item.InlineResources.Where(candidate => candidate.Kind == HtmlResourceKind.Image)) {
+                    ImportImage(resource, target, result, budget);
+                }
+            }
+            foreach (HtmlSemanticBlock nested in item.Children.Where(child => child.Kind == HtmlSemanticBlockKind.List)) {
+                ImportList(nested, target, options, result, budget, level + 1);
+            }
+        }
     }
 
     private static OneNoteParagraph? CreateParagraph(
-        IElement source,
+        HtmlSemanticBlock source,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        string plainText = HtmlGenericDocumentProjector.GetBlockText(source);
+        return CreateParagraph(source.Text, source.Runs, source.Kind == HtmlSemanticBlockKind.Heading ? source.Level : 0, result, budget);
+    }
+
+    private static OneNoteParagraph? CreateParagraph(
+        string plainText,
+        IReadOnlyList<HtmlSemanticRun> runs,
+        int headingLevel,
+        HtmlToOneNoteSectionResult result,
+        HtmlImportBudget budget) {
         if (plainText.Length == 0) return null;
         if (!budget.IsMetadataWithinLimit(plainText, out string metadataLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
@@ -123,25 +149,31 @@ public static class HtmlOneNoteConverterExtensions {
         }
 
         var paragraph = new OneNoteParagraph();
-        AppendRuns(source, paragraph, default);
+        foreach (HtmlSemanticRun sourceRun in runs) {
+            var run = new OneNoteTextRun { Text = sourceRun.Text, Hyperlink = sourceRun.Hyperlink };
+            run.Style.Bold = sourceRun.Bold ? true : null;
+            run.Style.Italic = sourceRun.Italic ? true : null;
+            run.Style.Underline = sourceRun.Underline ? true : null;
+            run.Style.Strikethrough = sourceRun.Strikethrough ? true : null;
+            run.Style.Superscript = sourceRun.Superscript ? true : null;
+            run.Style.Subscript = sourceRun.Subscript ? true : null;
+            paragraph.Runs.Add(run);
+        }
         if (paragraph.Runs.Count == 0) paragraph.Runs.Add(new OneNoteTextRun { Text = plainText });
         TrimRuns(paragraph);
-        if (HtmlGenericDocumentProjector.IsHeading(source)) {
-            paragraph.Style.StyleId = "Heading" + source.LocalName.Substring(1);
-        }
+        if (headingLevel > 0) paragraph.Style.StyleId = "Heading" + Math.Min(6, headingLevel);
         result.Elements++;
         return paragraph;
     }
 
     private static void ImportTable(
-        IElement source,
+        HtmlSemanticBlock source,
         IList<OneNoteElement> target,
+        HtmlToOneNoteOptions options,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        List<IElement> rows = DirectRows(source)
-            .Where(row => row.Children.Any(IsTableCell))
-            .ToList();
-        if (rows.Count == 0) return;
+        HtmlSemanticTable? sourceTable = source.Table;
+        if (sourceTable == null || sourceTable.Rows.Count == 0) return;
 
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -153,9 +185,9 @@ public static class HtmlOneNoteConverterExtensions {
         var table = new OneNoteTable { BordersVisible = true };
         int cells = 0;
         int maxTableCells = budget.Limits.MaxTableCells;
-        foreach (IElement rowElement in rows) {
+        foreach (HtmlSemanticTableRow rowElement in sourceTable.Rows) {
             var row = new OneNoteTableRow();
-            foreach (IElement cellElement in rowElement.Children.Where(IsTableCell)) {
+            foreach (HtmlSemanticTableCell cellElement in rowElement.Cells) {
                 if (++cells > maxTableCells) {
                     Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "Remaining HTML table cells were omitted because the configured table limit was reached.",
@@ -164,8 +196,13 @@ public static class HtmlOneNoteConverterExtensions {
                     break;
                 }
                 var cell = new OneNoteTableCell();
-                OneNoteParagraph? paragraph = CreateParagraph(cellElement, result, budget);
+                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, result, budget);
                 if (paragraph != null) cell.Content.Add(paragraph);
+                if (options.ImportImages) {
+                    foreach (HtmlSemanticResource resource in cellElement.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {
+                        ImportImage(resource, cell.Content, result, budget);
+                    }
+                }
                 row.Cells.Add(cell);
             }
             if (row.Cells.Count > 0) table.Rows.Add(row);
@@ -178,11 +215,16 @@ public static class HtmlOneNoteConverterExtensions {
     }
 
     private static void ImportImage(
-        IElement imageElement,
+        HtmlSemanticResource resource,
         IList<OneNoteElement> target,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
-        if (!HtmlImageDataUri.TryParse(imageElement.GetAttribute("src"), out HtmlImageDataUri dataUri)) return;
+        if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)) {
+            Add(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                "An HTML image was omitted because native import requires a bounded image data URI.",
+                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission, resource.Source);
+            return;
+        }
         if (!budget.IsImageWithinLimit(dataUri, out string imageLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded HTML image was omitted because the shared import limit was reached.",
@@ -203,52 +245,13 @@ public static class HtmlOneNoteConverterExtensions {
             return;
         }
         target.Add(new OneNoteImage {
-            AltText = imageElement.GetAttribute("alt"),
+            AltText = resource.AlternateText,
             MediaType = dataUri.MediaType,
             FileName = "image" + dataUri.FileExtension,
             Payload = OneNoteBinaryPayload.FromBytes(bytes)
         });
         result.Elements++;
         result.Images++;
-    }
-
-    private static IEnumerable<IElement> DirectRows(IElement table) {
-        foreach (IElement child in table.Children) {
-            if (string.Equals(child.LocalName, "tr", StringComparison.OrdinalIgnoreCase)) yield return child;
-            else if (string.Equals(child.LocalName, "thead", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(child.LocalName, "tbody", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(child.LocalName, "tfoot", StringComparison.OrdinalIgnoreCase)) {
-                foreach (IElement row in child.Children.Where(candidate => string.Equals(candidate.LocalName, "tr", StringComparison.OrdinalIgnoreCase))) yield return row;
-            }
-        }
-    }
-
-    private static bool IsTableCell(IElement element) =>
-        string.Equals(element.LocalName, "th", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(element.LocalName, "td", StringComparison.OrdinalIgnoreCase);
-
-    private static void AppendRuns(INode node, OneNoteParagraph paragraph, InlineState state) {
-        if (node is IText text) {
-            string value = text.Data;
-            if (value.Length == 0) return;
-            var run = new OneNoteTextRun { Text = value, Hyperlink = state.Hyperlink };
-            run.Style.Bold = state.Bold ? true : null;
-            run.Style.Italic = state.Italic ? true : null;
-            run.Style.Underline = state.Underline ? true : null;
-            run.Style.Strikethrough = state.Strikethrough ? true : null;
-            run.Style.Superscript = state.Superscript ? true : null;
-            run.Style.Subscript = state.Subscript ? true : null;
-            paragraph.Runs.Add(run);
-            return;
-        }
-        if (!(node is IElement element)) return;
-        string name = element.LocalName;
-        if (string.Equals(name, "br", StringComparison.OrdinalIgnoreCase)) {
-            paragraph.Runs.Add(new OneNoteTextRun { Text = "\n" });
-            return;
-        }
-        InlineState nested = state.With(element);
-        foreach (INode child in element.ChildNodes) AppendRuns(child, paragraph, nested);
     }
 
     private static void TrimRuns(OneNoteParagraph paragraph) {
@@ -277,30 +280,4 @@ public static class HtmlOneNoteConverterExtensions {
         return normalized.Length == 0 ? fallback : normalized;
     }
 
-    private readonly struct InlineState {
-        internal bool Bold { get; }
-        internal bool Italic { get; }
-        internal bool Underline { get; }
-        internal bool Strikethrough { get; }
-        internal bool Superscript { get; }
-        internal bool Subscript { get; }
-        internal string? Hyperlink { get; }
-
-        private InlineState(bool bold, bool italic, bool underline, bool strikethrough, bool superscript, bool subscript, string? hyperlink) {
-            Bold = bold; Italic = italic; Underline = underline; Strikethrough = strikethrough;
-            Superscript = superscript; Subscript = subscript; Hyperlink = hyperlink;
-        }
-
-        internal InlineState With(IElement element) {
-            string name = element.LocalName;
-            return new InlineState(
-                Bold || name == "strong" || name == "b",
-                Italic || name == "em" || name == "i",
-                Underline || name == "u",
-                Strikethrough || name == "s" || name == "strike" || name == "del",
-                Superscript || name == "sup",
-                Subscript || name == "sub",
-                name == "a" ? element.GetAttribute("href") : Hyperlink);
-        }
-    }
 }

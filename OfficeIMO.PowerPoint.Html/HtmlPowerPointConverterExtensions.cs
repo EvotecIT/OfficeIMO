@@ -24,11 +24,13 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         IHtmlDocument adapterDocument = document.CreateDocumentForConversion(HtmlCssMediaContext.Screen);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
-        return ImportDocument(adapterDocument, resolved, document.Diagnostics);
+        return ImportDocument(adapterDocument, document.SemanticDocument, document.Trust, resolved, document.Diagnostics);
     }
 
     private static HtmlToPowerPointResult ImportDocument(
         IHtmlDocument document,
+        HtmlSemanticDocument semanticDocument,
+        HtmlInputTrust trust,
         HtmlToPowerPointOptions options,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null) {
         options.Limits.Validate();
@@ -51,9 +53,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                 detail: "source=" + envelope.ActualSource + "; version=" + envelope.SchemaVersion);
             return result;
         }
+        if (useSemantic && !envelope.CanRestoreTargetSpecific(trust)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired,
+                "Target-specific PowerPoint restoration was not applied because the v2 envelope requires caller-trusted input.",
+                HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Approximation,
+                detail: "restoration=" + envelope.RestorationMode);
+            ImportGenericDocument(semanticDocument, presentation, options, result, budget);
+            return result;
+        }
 
         if (!useSemantic) {
-            ImportGenericDocument(document, presentation, options, result, budget);
+            ImportGenericDocument(semanticDocument, presentation, options, result, budget);
             return result;
         }
 

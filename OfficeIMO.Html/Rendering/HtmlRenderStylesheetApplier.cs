@@ -8,7 +8,7 @@ internal static class HtmlRenderStylesheetApplier {
 
     internal static void Apply(
         IHtmlDocument document,
-        HtmlRenderResourceSet resources,
+        HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlConversionLimits limits,
         HtmlDiagnosticReport diagnostics) {
@@ -90,7 +90,7 @@ internal static class HtmlRenderStylesheetApplier {
     private static string ExpandImports(
         string css,
         Uri stylesheetUri,
-        HtmlRenderResourceSet resources,
+        HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         HashSet<string> activeStylesheets,

@@ -10,6 +10,43 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlResourceSession_OwnsDedupMimeBudgetsCacheAndDigestEvidence() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(
+            "<img src='https://assets.example.test/chart.png'><img src='https://assets.example.test/chart.png'>");
+        int requests = 0;
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                requests++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png"));
+            },
+            MaxResourceBytes = 1024,
+            MaxTotalResourceBytes = 2048,
+            MaxResourceCount = 2,
+            MaxResourceRequests = 2
+        };
+
+        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+
+        Assert.Equal(1, requests);
+        Assert.Equal(1, session.ResolverRequestCount);
+        Assert.Equal(1, session.AcceptedResourceCount);
+        Assert.Equal(png.Length, session.AcceptedResourceBytes);
+        HtmlResourceSessionEntry entry = Assert.Single(session.Resources);
+        Assert.Equal("https://assets.example.test/chart.png", entry.CanonicalSource);
+        Assert.Equal("image/png", entry.ContentType);
+        Assert.Equal(64, entry.Sha256.Length);
+        Assert.True(session.TryGet("https://assets.example.test/chart.png", null, out HtmlResolvedResource cached));
+        Assert.Equal(png, cached.Bytes);
+
+        options.ResourceResolver = (request, cancellationToken) =>
+            Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(new byte[] { 1, 2, 3 }, "text/plain"));
+        HtmlResourceSession rejected = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+        Assert.Empty(rejected.Resources);
+        Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected);
+    }
+
+    [Fact]
     public async Task HtmlRender_ResolvesResourcesConcurrentlyWithinTheConfiguredBound() {
         int active = 0;
         int maximumActive = 0;
@@ -142,6 +179,53 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(rendered.Fonts.Faces);
         Assert.Empty(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+    }
+
+    [Fact]
+    public void HtmlRender_InvalidInlineFontMimeDoesNotConsumeImageBudgetOrMislabelTheResource() {
+        byte[] font = CreateHtmlRenderTestFont();
+        string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>@font-face{font-family:Rejected;src:url('data:image/png;base64,"
+            + Convert.ToBase64String(font)
+            + "')}p{font-family:Rejected}</style><p>Fallback</p><img src='data:image/png;base64,"
+            + png + "'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            MaxResourceCount = 1,
+            MaxResourceBytes = 1024L * 1024L,
+            MaxTotalResourceBytes = 2L * 1024L * 1024L,
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Empty(rendered.Fonts.Faces);
+        Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
+        Assert.Contains(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected);
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+    }
+
+    [Fact]
+    public void HtmlResourceSession_InlineAdmissionIsMimeAwareAtomicAndRecordsTheRequestedKind() {
+        var session = new HtmlResourceSession(
+            maxResourceBytes: 1024,
+            maxTotalResourceBytes: 1024,
+            maxResourceCount: 1,
+            maxResourceRequests: 1);
+
+        Assert.False(session.TryAcceptInline(HtmlResourceKind.Font, "data:image/png;base64,AA==",
+            new HtmlResolvedResource(new byte[] { 0 }, "image/png"), out string rejectedCode, out _));
+        Assert.Equal(HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, rejectedCode);
+        Assert.Equal(0, session.AcceptedResourceCount);
+        Assert.Equal(0, session.AcceptedResourceBytes);
+
+        Assert.True(session.TryAcceptInline(HtmlResourceKind.Font, "data:font/ttf;base64,AQ==",
+            new HtmlResolvedResource(new byte[] { 1 }, "font/ttf"), out string acceptedCode, out _));
+        Assert.Equal(string.Empty, acceptedCode);
+        Assert.Equal(1, session.AcceptedResourceCount);
+        Assert.Equal(1, session.AcceptedResourceBytes);
+        Assert.Equal(HtmlResourceKind.Font, Assert.Single(session.Resources).Kind);
     }
 
     [Fact]

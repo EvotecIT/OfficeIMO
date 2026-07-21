@@ -10,7 +10,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointSlide slide,
         double top,
         HtmlToPowerPointResult result,
-        HtmlImportBudget budget) {
+        HtmlImportBudget budget,
+        HtmlSemanticBlock? semanticBlock = null) {
         PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, budget, result);
         if (grid.Rows == 0 || grid.Columns == 0) {
             return top;
@@ -36,9 +37,59 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
 
+        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table);
+
         ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
         return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
+    }
+
+    private static void ApplySemanticTableFormatting(PptCore.PowerPointTable target, HtmlSemanticTable source) {
+        var occupied = new HashSet<long>();
+        int rowIndex = 0;
+        foreach (HtmlSemanticTableRow row in source.Rows) {
+            int columnIndex = 0;
+            foreach (HtmlSemanticTableCell cell in row.Cells) {
+                while (occupied.Contains(GetTableCellKey(rowIndex, columnIndex))) columnIndex++;
+                if (rowIndex >= target.Rows || columnIndex >= target.Columns) break;
+                PptCore.PowerPointTableCell targetCell = target.GetCell(rowIndex, columnIndex);
+                if (cell.Runs.Count > 0) ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
+                if (cell.IsHeader) {
+                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
+                }
+                string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
+                if (fill.Length > 0) targetCell.FillColor = fill;
+                string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
+                if (color.Length > 0) {
+                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+                }
+                ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
+                ReservePowerPointSpan(occupied, rowIndex, columnIndex,
+                    Math.Max(1, cell.RowSpan), Math.Max(1, cell.ColumnSpan));
+                columnIndex += Math.Max(1, cell.ColumnSpan);
+            }
+            rowIndex++;
+            if (rowIndex >= target.Rows) break;
+        }
+    }
+
+    private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment) {
+        switch ((alignment ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "center":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center;
+                break;
+            case "right":
+            case "end":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Right;
+                break;
+            case "justify":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Justified;
+                break;
+            case "left":
+            case "start":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Left;
+                break;
+        }
     }
 
     private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, HtmlImportBudget budget, HtmlToPowerPointResult result) {

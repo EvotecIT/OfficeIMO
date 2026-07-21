@@ -16,9 +16,16 @@ public partial class Html {
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
-        Assert.Contains("generated from `HtmlConversionProfileContracts` and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
+        }
+        Assert.Equal(Enum.GetValues<HtmlConversionTarget>().Length, HtmlTargetCapabilityContracts.All.Count);
+        foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All) {
+            Assert.Contains("| " + contract.Target + " |", first, StringComparison.Ordinal);
+            foreach (HtmlSemanticFeature feature in Enum.GetValues<HtmlSemanticFeature>()) {
+                Assert.True(Enum.IsDefined(contract.GetSupport(feature)));
+            }
         }
         foreach (HtmlDiagnosticDefinition definition in HtmlDiagnosticCatalog.Ordered) {
             Assert.Contains("`" + definition.Code + "`", first, StringComparison.Ordinal);
@@ -28,6 +35,19 @@ public partial class Html {
         Assert.Equal(
             HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code),
             HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code).OrderBy(value => value, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlSupportMatrix_CheckedInArtifactMatchesExecutableContracts() {
+        string outputPath = Path.Combine(FindRepositoryRoot(), "Docs", "officeimo.html-support-matrix.md");
+        if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX"), "1", StringComparison.Ordinal)) {
+            HtmlSupportMatrixWriter.WriteMarkdown(outputPath);
+        }
+
+        Assert.True(File.Exists(outputPath),
+            "Generated HTML support matrix is missing. Run Build/Export-HtmlSupportMatrix.ps1.");
+        string actual = File.ReadAllText(outputPath).Replace("\r\n", "\n");
+        Assert.Equal(HtmlSupportMatrixWriter.ToMarkdown(), actual);
     }
 
     [Fact]
@@ -145,9 +165,11 @@ public partial class Html {
         Assert.Contains(resourceManifest.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, roundTripHtml);
-        Assert.InRange(score.Score, 0.55D, 1.00D);
+        Assert.InRange(score.Score, 0.10D, 0.55D);
         Assert.Equal(1D, score.Metrics["headings"], 3);
         Assert.Equal(1D, score.Metrics["tables"], 3);
+        Assert.InRange(score.Dimensions["styles"], 0D, 0.50D);
+        Assert.InRange(score.Dimensions["resources"], 0D, 0.50D);
 
         Assert.True(HtmlDiagnosticCatalog.TryGet("ImageResourceRejectedByPolicy", out HtmlDiagnosticDefinition imageDefinition));
         Assert.Equal("ResourcePolicy", imageDefinition.Category);

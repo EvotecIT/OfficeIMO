@@ -92,6 +92,18 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Attaches an external hyperlink to an existing cell without replacing its value or rich-text runs.
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="url">Target URL.</param>
+        /// <param name="style">When true, applies the cell-level hyperlink style.</param>
+        /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
+        public void SetHyperlinkReference(int row, int column, string url, bool style = true, string? tooltip = null) {
+            AddExternalHyperlinkReference(A1.CellReference(row, column), url, style, tooltip);
+        }
+
         private static Uri CreateExternalHyperlinkUri(string url) {
             if (Uri.TryCreate(url, UriKind.Absolute, out Uri? absoluteUri)) {
                 return absoluteUri;

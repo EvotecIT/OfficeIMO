@@ -12,6 +12,7 @@ public sealed partial class HtmlConversionDocument {
     private readonly HtmlCssMediaContext _mediaContext;
     private readonly Lazy<IHtmlDocument> _adapterDocument;
     private readonly Lazy<HtmlLogicalDocument> _logicalDocument;
+    private readonly Lazy<HtmlSemanticDocument> _semanticDocument;
     private readonly Lazy<HtmlComputedStyleSummary> _styleSummary;
     private readonly Lazy<HtmlResourceManifest> _resourceManifest;
     private readonly Lazy<HtmlResourceDependencyPlan> _resourcePlan;
@@ -19,6 +20,7 @@ public sealed partial class HtmlConversionDocument {
     private readonly HtmlDiagnosticReport _diagnostics = new HtmlDiagnosticReport();
     private readonly object _diagnosticSync = new object();
     private readonly object _analysisSync = new object();
+    private readonly Dictionary<HtmlConversionTarget, HtmlConversionPreflight> _preflight = new Dictionary<HtmlConversionTarget, HtmlConversionPreflight>();
 
     internal HtmlConversionDocument(
         string sourceHtml,
@@ -38,6 +40,12 @@ public sealed partial class HtmlConversionDocument {
         _adapterDocument = new Lazy<IHtmlDocument>(BuildAdapterDocument, LazyThreadSafetyMode.ExecutionAndPublication);
         _logicalDocument = new Lazy<HtmlLogicalDocument>(
             () => AnalyzeSource(() => HtmlLogicalDocumentBuilder.FromDocument(_sourceDocument, _options.UseBodyContentsOnly)),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+        _semanticDocument = new Lazy<HtmlSemanticDocument>(
+            () => AnalyzeSource(() => HtmlSemanticDocumentBuilder.FromDocument(
+                _adapterDocument.Value,
+                _mediaContext,
+                _options.Limits)),
             LazyThreadSafetyMode.ExecutionAndPublication);
         _styleSummary = new Lazy<HtmlComputedStyleSummary>(
             () => AnalyzeSource(() => HtmlComputedStyleEngine.Summarize(HtmlComputedStyleEngine.Compute(_sourceDocument, _mediaContext, _options.Limits))),
@@ -127,6 +135,23 @@ public sealed partial class HtmlConversionDocument {
 
     /// <summary>Normalized logical structure used for semantic scoring and adapter planning.</summary>
     public HtmlLogicalDocument LogicalDocument => _logicalDocument.Value;
+
+    /// <summary>Typed semantic structure interpreted once for generic native target adapters.</summary>
+    public HtmlSemanticDocument SemanticDocument => _semanticDocument.Value;
+
+    /// <summary>
+    /// Predicts supported, approximated, and omitted source features for a target before artifact creation.
+    /// Results are cached per prepared document and target.
+    /// </summary>
+    public HtmlConversionPreflight AnalyzeFor(HtmlConversionTarget target) {
+        if (!Enum.IsDefined(typeof(HtmlConversionTarget), target)) throw new ArgumentOutOfRangeException(nameof(target));
+        lock (_analysisSync) {
+            if (_preflight.TryGetValue(target, out HtmlConversionPreflight? result)) return result;
+            result = HtmlConversionPreflightAnalyzer.Analyze(this, target);
+            _preflight[target] = result;
+            return result;
+        }
+    }
 
     /// <summary>Compact computed-style capability summary.</summary>
     public HtmlComputedStyleSummary StyleSummary => _styleSummary.Value;

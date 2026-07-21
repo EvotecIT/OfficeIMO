@@ -13,7 +13,9 @@ internal static class HtmlDocumentParser {
     /// </summary>
     public static IHtmlDocument ParseDocument(string html) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        var parser = new HtmlParser();
+        var parser = new HtmlParser(new HtmlParserOptions {
+            IsKeepingSourceReferences = true
+        });
         return parser.ParseDocument(html);
     }
 

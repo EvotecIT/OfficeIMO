@@ -6,13 +6,15 @@ First-party HTML adapter for OfficeIMO.PowerPoint. It exports semantic slide HTM
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Html;
 using OfficeIMO.PowerPoint.Html;
 
 using PowerPointPresentation presentation = PowerPointPresentation.Load("briefing.pptx");
 string html = presentation.ToHtml();
 
-HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
-using PowerPointPresentation imported = result.GetArtifactOrThrow();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+HtmlToPowerPointResult result = source.ToPowerPointPresentationResult();
+using PowerPointPresentation imported = result.RequireValue();
 using FileStream output = File.Create("briefing-roundtrip.pptx");
 imported.Save(output);
 ```
@@ -32,7 +34,7 @@ HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
 
 `Semantic` remains the strict round-trip default. `Auto` uses a supported semantic envelope when present and otherwise groups ordinary headings, text, lists, tables, and embedded images into slides; `Generic` always uses that projection. `HtmlToPowerPointOptions.Limits` bounds slides, shapes, tables, cells, images, chart data, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
-Path, stream, and async save/import methods use UTF-8 without a byte-order mark. Stream overloads leave caller-owned streams open.
+`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToPowerPointPresentation()` or `ToPowerPointPresentationResult()` on the prepared document. Stream overloads leave caller-owned streams open.
 
 ## Positioned review
 

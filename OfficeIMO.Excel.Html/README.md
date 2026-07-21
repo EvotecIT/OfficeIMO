@@ -6,6 +6,7 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 
 ```csharp
 using OfficeIMO.Excel;
+using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
 using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", readOnly: true);
@@ -13,8 +14,9 @@ string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
 
-HtmlToExcelResult result = html.ToExcelDocumentResult();
-using ExcelDocument imported = result.GetArtifactOrThrow();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+HtmlToExcelResult result = source.ToExcelDocumentResult();
+using ExcelDocument imported = result.RequireValue();
 imported.Save("report-roundtrip.xlsx");
 ```
 
@@ -35,7 +37,7 @@ HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
 
 `Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlToExcelOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
-Path, stream, and async save/import methods use UTF-8 without a byte-order mark. Stream overloads leave caller-owned streams open.
+`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcelDocument()` or `ToExcelDocumentResult()` on the prepared document. Stream overloads leave caller-owned streams open.
 
 ## Visual review
 

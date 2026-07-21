@@ -63,6 +63,9 @@ public static class HtmlConversionDiagnosticCodes {
     /// <summary>A legacy semantic envelope did not declare a schema version.</summary>
     public const string SemanticSchemaLegacy = "SemanticSchemaLegacy";
 
+    /// <summary>A v2 envelope requested target-specific restoration without caller trust.</summary>
+    public const string SemanticRestorationTrustRequired = "SemanticRestorationTrustRequired";
+
     /// <summary>Media filtering could not safely parse or transform an active stylesheet.</summary>
     public const string MediaFilterFailed = "MediaFilterFailed";
 
@@ -87,6 +90,7 @@ public static class HtmlConversionDiagnosticCodes {
         SemanticMetadataLimitExceeded,
         SemanticSchemaUnsupported,
         SemanticSchemaLegacy,
+        SemanticRestorationTrustRequired,
         MediaFilterFailed
     });
 }
