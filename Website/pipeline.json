@@ -362,6 +362,19 @@
       "workingDirectory": ".."
     },
     {
+      "task": "exec",
+      "id": "generate-benchmark-overview",
+      "dependsOn": ["generate-excel-benchmark-data"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./Build/Generate-BenchmarkWebsiteOverview.ps1"
+      ],
+      "workingDirectory": ".."
+    },
+    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
@@ -382,7 +395,7 @@
         "build-open-document",
         "build-release-hub",
         "build-ecosystem-stats",
-        "generate-excel-benchmark-data"
+        "generate-benchmark-overview"
       ],
       "config": "./site.json",
       "out": "./_site",

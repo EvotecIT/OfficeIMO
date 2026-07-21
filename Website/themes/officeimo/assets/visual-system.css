@@ -872,7 +872,8 @@ body.pf-api-docs {
 
 /* Editorial / blog */
 .imo-main--blog { background: transparent; }
-.imo-body--blog .imo-container { max-width: 1120px; }
+.imo-main--blog > .imo-container,
+.imo-main--blog-post > .imo-container { max-width: 1120px; }
 .imo-blog-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(310px, 0.65fr);
@@ -1058,6 +1059,20 @@ body.pf-api-docs {
   .imo-blog-featured__copy { padding: 1.3rem; }
   .imo-footer__grid { grid-template-columns: 1fr 1fr; }
   .imo-converter-launch__frame { min-height: 900px; }
+
+  .pf-api-docs .api-layout,
+  .pf-api-docs .type-detail-shell,
+  .pf-api-docs .api-overview-grid { grid-template-columns: minmax(0, 1fr); }
+  .pf-api-docs .api-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(21rem, calc(100vw - 2rem));
+    height: 100vh;
+    transform: translateX(-110%);
+  }
+  .pf-api-docs .api-sidebar.sidebar-open { transform: translateX(0); }
+  .pf-api-docs .api-content { width: 100%; padding: 1.5rem 1rem 2rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

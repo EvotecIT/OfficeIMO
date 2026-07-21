@@ -44,7 +44,7 @@ svg {
 }
 .imo-container {
   width: 100%;
-  max-width: var(--imo-max-width, 1200px);
+  max-width: var(--imo-container-max, 1180px);
   margin: 0 auto;
   padding: 0 2rem;
 }

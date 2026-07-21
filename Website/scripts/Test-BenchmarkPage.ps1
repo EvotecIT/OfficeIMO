@@ -43,6 +43,14 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
     throw "Benchmark page did not render the generated data dashboard."
 }
 
+if ($pageHtml -notmatch 'data-benchmark-family="excel"' -or
+    $pageHtml -notmatch 'data-benchmark-family="csv"' -or
+    $pageHtml -notmatch 'id="excel-matrix"' -or
+    $pageHtml -notmatch 'Public baseline planned' -or
+    $pageHtml -notmatch 'Word and PowerPoint') {
+    throw "Benchmark page did not render the format-specific evidence hub and publication status."
+}
+
 if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or $pageHtml -notmatch 'data-benchmark-filter="search"' -or $pageHtml -notmatch 'data-benchmark-reset' -or $pageHtml -notmatch 'data-benchmark-sort-mode' -or $pageHtml -notmatch '/js/benchmarks.js') {
     throw "Benchmark page did not render matrix sorting and filtering controls."
 }
