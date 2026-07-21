@@ -63,7 +63,8 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" alt=\"Company logo\" title=\"Quarterly report logo\" width=\"32\" height=\"32\" />";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var image = Assert.Single(doc.Images);
             Assert.Equal("Company logo", image.Description);
@@ -761,7 +762,8 @@ namespace OfficeIMO.Tests {
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.MaxTotalImageBytes = 70;
 
-                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                    .ToWordDocumentResult(options);
                 var doc = conversion.Value;
 
                 Assert.Single(doc.Images);
@@ -799,7 +801,8 @@ namespace OfficeIMO.Tests {
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.MaxTotalImageBytes = 100;
 
-                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                    .ToWordDocumentResult(options);
                 var doc = conversion.Value;
 
                 Assert.Single(doc.Images);
@@ -967,7 +970,8 @@ namespace OfficeIMO.Tests {
         public void DuplicateImageFileSrcSharesPart() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>";
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
             var wordDoc = doc._wordprocessingDocument;
@@ -1041,7 +1045,8 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" width=\"64\" height=\"32\" alt=\"Logo\" />";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
+                .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var img = Assert.Single(doc.Images);
             Assert.Equal(64D, Math.Round(img.Width!.Value));
