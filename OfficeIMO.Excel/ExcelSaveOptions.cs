@@ -1,4 +1,16 @@
 namespace OfficeIMO.Excel {
+    /// <summary>Controls saves of workbooks that carry digital-signature metadata.</summary>
+    public enum ExcelSignatureMutationPolicy {
+        /// <summary>Block save to prevent silently invalidating an existing signature.</summary>
+        BlockSave,
+
+        /// <summary>Remove signature parts and application metadata before saving the rewritten package.</summary>
+        RemoveInvalidatedSignatures,
+
+        /// <summary>Preserve signature markup even though rewriting the package can invalidate it.</summary>
+        PreserveSignatureMarkup
+    }
+
     /// <summary>
     /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, ExcelSaveOptions?)"/> and
     /// <see cref="ExcelDocument.SaveAsync(string, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
@@ -55,6 +67,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
 
+        /// <summary>
+        /// Gets or sets how save operations handle digital-signature metadata. The safe default blocks
+        /// package rewriting; removing or preserving invalidated markup must be selected explicitly.
+        /// </summary>
+        public ExcelSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
+            ExcelSignatureMutationPolicy.BlockSave;
+
         /// <summary>Returns a fresh options instance with the default save policy.</summary>
         public static ExcelSaveOptions Default => new ExcelSaveOptions();
 
@@ -68,7 +87,8 @@ namespace OfficeIMO.Excel {
                 ClearCachedFormulaResultsBeforeSave = ClearCachedFormulaResultsBeforeSave,
                 MarkFormulasDirtyBeforeSave = MarkFormulasDirtyBeforeSave,
                 ForceFullCalculationOnOpen = ForceFullCalculationOnOpen,
-                LossPolicy = lossPolicy
+                LossPolicy = lossPolicy,
+                SignatureMutationPolicy = SignatureMutationPolicy
             };
         }
     }

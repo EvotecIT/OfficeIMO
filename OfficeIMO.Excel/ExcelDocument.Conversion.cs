@@ -345,6 +345,31 @@ namespace OfficeIMO.Excel {
                     sourceLocation: "xl/vbaProject.bin"));
             }
 
+            if (detectedFormat.Generation == OfficeFormatGeneration.Modern) {
+                ExcelSignatureInfo signatures = document.InspectSignatures();
+                if (signatures.HasSignatures) {
+                    ExcelSignatureMutationPolicy signaturePolicy = options.SaveOptions?.SignatureMutationPolicy
+                        ?? ExcelSignatureMutationPolicy.BlockSave;
+                    bool signatureRewriteAllowed = signaturePolicy != ExcelSignatureMutationPolicy.BlockSave;
+                    OfficeCompatibilityState signatureState = signatureRewriteAllowed
+                        ? GetExcelGenericLossState(compatibilityMode, preserveLossySource)
+                        : OfficeCompatibilityState.Blocked;
+                    diagnostics.Add(new ExcelConversionDiagnostic(
+                        "Excel.DigitalSignature.Invalidated",
+                        ExcelConversionDiagnosticCategory.DataLoss,
+                        signatureState == OfficeCompatibilityState.Blocked
+                            ? ExcelConversionDiagnosticSeverity.Error
+                            : ExcelConversionDiagnosticSeverity.Warning,
+                        signatureRewriteAllowed
+                            ? "Saving the converted package invalidates its existing digital signature. Signature markup is removed or retained according to the explicit save policy and must no longer be trusted."
+                            : "The source carries digital-signature metadata and the configured save policy blocks conversion because rewriting the package can invalidate the signature.",
+                        representsDataLoss: true,
+                        signatureState,
+                        OfficeCompatibilityImpact.Security | OfficeCompatibilityImpact.Carrier,
+                        sourceLocation: "_xmlsignatures"));
+                }
+            }
+
             if (document._legacyXlsWasEncryptedSource
                 && destinationFormat.Generation == OfficeFormatGeneration.Modern) {
                 OfficeCompatibilityState encryptionState = GetExcelGenericLossState(
@@ -381,8 +406,11 @@ namespace OfficeIMO.Excel {
                 compatibilityMode,
                 options,
                 diagnostics);
+            bool hasBlockedFeature = diagnostics.Any(
+                diagnostic => diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
             embedSourceCarrier = visualFallback == null
                 && preserveLossySource
+                && !hasBlockedFeature
                 && (compatibilityMode == OfficeCompatibilityMode.PreservationOnly
                     || diagnostics.Any(diagnostic => diagnostic.RepresentsDataLoss));
             if (embedSourceCarrier) {

@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             WorkbookPart workbookPart = document.WorkbookPartRoot;
             Workbook workbook = document.WorkbookRoot;
-            if (HasDigitalSignatureMetadata(document._spreadSheetDocument)) {
+            if (document.InspectSignatures().HasSignatures) {
                 ThrowUnsupported("digital signatures");
             }
 
@@ -299,18 +299,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return true;
-        }
-
-        private static bool HasDigitalSignatureMetadata(SpreadsheetDocument document) {
-            if (document.DigitalSignatureOriginPart != null) {
-                return true;
-            }
-
-            if (document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
-                return true;
-            }
-
-            return false;
         }
 
         private static bool SupportsWorkbookSingletonElements(Workbook workbook, out string? reason) {

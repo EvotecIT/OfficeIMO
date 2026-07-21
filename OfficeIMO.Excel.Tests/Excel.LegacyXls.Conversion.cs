@@ -266,11 +266,75 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            ExcelDocumentConversionReport report = ExcelDocument.AnalyzeConversion(sourcePath, destinationPath);
+            var options = new ExcelDocumentConversionOptions {
+                CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
+            };
+            ExcelDocumentConversionReport report = ExcelDocument.AnalyzeConversion(sourcePath, destinationPath, options);
 
             Assert.True(report.Compatibility.HasBlockedFeatures);
             Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "Excel.LegacyDestination.NotWritable");
+            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "Excel.SourceCarrier.Embedded");
             Assert.False(File.Exists(destinationPath));
+
+            ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
+                ExcelDocument.Convert(sourcePath, destinationPath, options));
+            Assert.DoesNotContain(exception.Result.Report.Diagnostics,
+                diagnostic => diagnostic.Code == "Excel.SourceCarrier.Embedded");
+            Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
+        public void Convert_SignedModernSourceIsIncludedInAnalysisAndStructuredFailure() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
+            string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
+                document.AddWorksheet("Signed").CellValue(1, 1, "Signed conversion source");
+                document.Save();
+            }
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
+                spreadsheet.AddDigitalSignatureOriginPart();
+                DigitalSignatureOriginPart originPart = spreadsheet.DigitalSignatureOriginPart!;
+                XmlSignaturePart signaturePart = originPart.AddNewPart<XmlSignaturePart>();
+                using var signatureStream = new MemoryStream(Encoding.UTF8.GetBytes(
+                    "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo /></Signature>"));
+                signaturePart.FeedData(signatureStream);
+                ExtendedFilePropertiesPart appPart = spreadsheet.ExtendedFilePropertiesPart
+                    ?? spreadsheet.AddExtendedFilePropertiesPart();
+                appPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                appPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                appPart.Properties.Save();
+            }
+
+            ExcelDocumentConversionReport analysis = ExcelDocument.AnalyzeConversion(sourcePath, blockedPath);
+            Assert.True(analysis.Compatibility.HasSecurityImpact);
+            Assert.Contains(analysis.Compatibility.Findings,
+                finding => finding.Code == "Excel.DigitalSignature.Invalidated"
+                    && finding.State == OfficeCompatibilityState.Blocked
+                    && finding.RepresentsLoss);
+
+            ExcelDocumentConversionException blocked = Assert.Throws<ExcelDocumentConversionException>(() =>
+                ExcelDocument.Convert(sourcePath, blockedPath));
+            Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, blocked.Reason);
+            Assert.False(File.Exists(blockedPath));
+
+            ExcelDocumentConversionResult allowed = ExcelDocument.Convert(
+                sourcePath,
+                allowedPath,
+                new ExcelDocumentConversionOptions {
+                    CompatibilityMode = OfficeCompatibilityMode.BestEffort,
+                    SaveOptions = new ExcelSaveOptions {
+                        SignatureMutationPolicy = ExcelSignatureMutationPolicy.RemoveInvalidatedSignatures
+                    }
+                });
+            Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
+            Assert.Contains(allowed.Report.Compatibility.Findings,
+                finding => finding.Code == "Excel.DigitalSignature.Invalidated"
+                    && finding.State == OfficeCompatibilityState.Dropped
+                    && finding.RepresentsLoss);
+            using SpreadsheetDocument converted = SpreadsheetDocument.Open(allowedPath, false);
+            Assert.Null(converted.DigitalSignatureOriginPart);
+            Assert.Null(converted.ExtendedFilePropertiesPart?.Properties?.DigitalSignature);
         }
 
         [Theory]

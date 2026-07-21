@@ -4420,6 +4420,25 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        private static void AssertNativeXlsSignedSaveBlocked(Action<ExcelDocument, ExcelSheet> configure) {
+            string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Create(openXmlPath);
+                ExcelSheet sheet = document.AddWorksheet("Signed");
+                configure(document, sheet);
+
+                ExcelSignedWorkbookMutationException exception = Assert.Throws<ExcelSignedWorkbookMutationException>(() =>
+                    document.Save(xlsOutputPath));
+                Assert.True(exception.SignatureInfo.HasSignatures);
+                Assert.False(File.Exists(xlsOutputPath));
+            } finally {
+                TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
         private static string FormatUnsupportedFeatures(IEnumerable<LegacyXlsUnsupportedFeature> features) {
             return string.Join(
                 Environment.NewLine,
