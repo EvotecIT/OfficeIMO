@@ -70,7 +70,7 @@ internal static partial class PdfAnnotationEditor {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).Metadata, pdf);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true, readOptions: readOptions);
     }
 

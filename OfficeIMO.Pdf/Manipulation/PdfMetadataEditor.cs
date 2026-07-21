@@ -29,10 +29,10 @@ internal static partial class PdfMetadataEditor {
 
         var document = PdfReadDocument.Open(pdf, readOptions);
         var metadata = new PdfMetadata {
-            Title = title ?? document.Metadata.Title,
-            Author = author ?? document.Metadata.Author,
-            Subject = subject ?? document.Metadata.Subject,
-            Keywords = keywords ?? document.Metadata.Keywords
+            Title = title ?? document.UncheckedMetadata.Title,
+            Author = author ?? document.UncheckedMetadata.Author,
+            Subject = subject ?? document.UncheckedMetadata.Subject,
+            Keywords = keywords ?? document.UncheckedMetadata.Keywords
         };
 
         return RewriteWithMetadata(pdf, metadata, readOptions);

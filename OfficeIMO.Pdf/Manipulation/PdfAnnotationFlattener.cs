@@ -39,7 +39,7 @@ internal static partial class PdfAnnotationFlattener {
             return pdf.ToArray();
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, read.Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata);
     }
 
     private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {

@@ -22,7 +22,7 @@ internal static partial class PdfPageEditor {
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
         return PdfPageExtractor.ExtractPages(
             objects,
-            document.Metadata,
+            document.UncheckedMetadata,
             orderedObjectNumbers,
             catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
             fileVersion: fileVersion);

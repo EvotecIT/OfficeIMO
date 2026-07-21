@@ -111,8 +111,10 @@ public class PdfPermissionPolicyTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         byte[] pdf = PdfDocument.Create(new PdfOptions {
-                CreateOutlineFromHeadings = true
+                CreateOutlineFromHeadings = true,
+                IncludeXmpMetadata = true
             }.SetEncryption(encryption))
+            .Meta(title: "Direct title", author: "OfficeIMO")
             .Bookmark("DirectAnchor")
             .H1("Direct logical heading")
             .Paragraph(paragraph => paragraph.LinkToBookmark("Jump", "DirectAnchor"))
@@ -121,6 +123,8 @@ public class PdfPermissionPolicyTests {
         var enforced = new PdfReadOptions { Password = "direct-open" };
         PdfReadDocument restricted = PdfReadDocument.Open(pdf, enforced);
 
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.Metadata);
+        Assert.Throws<PdfPermissionDeniedException>(() => restricted.XmpMetadata);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.Outlines);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.NamedDestinations);
         Assert.Throws<PdfPermissionDeniedException>(() => restricted.FormFields);
@@ -135,6 +139,8 @@ public class PdfPermissionPolicyTests {
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
         PdfReadDocument authorized = PdfReadDocument.Open(pdf, ignored);
+        Assert.Equal("Direct title", authorized.Metadata.Title);
+        Assert.Equal("Direct title", authorized.XmpMetadata?.Title);
         Assert.NotEmpty(authorized.Outlines);
         Assert.Contains(authorized.NamedDestinations, destination => destination.Name == "DirectAnchor");
         Assert.Equal("Ada", Assert.Single(authorized.FormFields).Value);

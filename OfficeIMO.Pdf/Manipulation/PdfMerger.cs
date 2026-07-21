@@ -594,7 +594,7 @@ internal static partial class PdfMerger {
 
         public PdfReadDocument Document { get; }
 
-        public PdfMetadata Metadata => Document.Metadata;
+        public PdfMetadata Metadata => Document.UncheckedMetadata;
 
         public int[] PageObjectNumbers { get; }
 

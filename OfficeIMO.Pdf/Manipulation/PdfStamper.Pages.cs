@@ -161,7 +161,7 @@ internal static partial class PdfStamper {
 
         return PdfPageExtractor.ExtractPages(
             targetObjects,
-            target.Metadata,
+            target.UncheckedMetadata,
             pageObjectNumbers,
             overrides,
             catalogState: PdfPageExtractor.ExtractCatalogRewriteState(targetObjects, targetTrailer),

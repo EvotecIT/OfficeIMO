@@ -10,6 +10,8 @@ public sealed partial class PdfReadDocument {
     private readonly PdfReadOptions _options;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
+    private readonly PdfMetadata _metadata;
+    private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
@@ -40,13 +42,13 @@ public sealed partial class PdfReadDocument {
         Security = security;
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
-        Metadata = ExtractMetadata();
+        _metadata = ExtractMetadata();
         _pageLabels = ExtractPageLabels();
         _namedDestinations = ExtractNamedDestinations();
         _catalogActions = ExtractCatalogActions();
         _attachments = ExtractAttachmentInfos();
         OutputIntents = ExtractOutputIntents();
-        XmpMetadata = ExtractXmpMetadata();
+        _xmpMetadata = ExtractXmpMetadata();
         _taggedContent = ExtractTaggedContent();
         _optionalContent = ExtractOptionalContent();
         _outlines = ExtractOutlines();
@@ -69,7 +71,7 @@ public sealed partial class PdfReadDocument {
     public IReadOnlyList<PdfReadPage> Pages { get; }
 
     /// <summary>Document metadata (when present).</summary>
-    public PdfMetadata Metadata { get; }
+    public PdfMetadata Metadata => ReadLogicalContent(_metadata);
 
     /// <summary>Top-level document outline/bookmark entries.</summary>
     public IReadOnlyList<PdfOutlineItem> Outlines => ReadLogicalContent(_outlines);
@@ -129,6 +131,8 @@ public sealed partial class PdfReadDocument {
     public PdfRepairReport RepairReport { get; }
 
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
+    internal PdfMetadata UncheckedMetadata => _metadata;
+    internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
     internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;

@@ -42,7 +42,7 @@ internal static partial class PdfAnnotationEditor {
             output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed, encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security));
             PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions); ValidateCreatedAnnotation(output, options, annotationObjectNumber, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength)); return new PdfAnnotationEditResult(output, 1, plan, proof, readOptions: readOptions);
         }
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).Metadata, pdf);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
         ValidateCreatedAnnotation(output, options, null, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength)); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions);
     }
 
