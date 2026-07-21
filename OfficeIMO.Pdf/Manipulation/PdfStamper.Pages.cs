@@ -5,18 +5,18 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
     /// <summary>Imports one source PDF page as a Form XObject above selected target pages.</summary>
-    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
-        return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: false));
+    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+        return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: false), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject below selected target pages.</summary>
-    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
-        return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: true));
+    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+        return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: true), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject using the requested content order.</summary>
-    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null) {
-        return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions());
+    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+        return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions(), targetReadOptions);
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
@@ -34,17 +34,18 @@ internal static partial class PdfStamper {
         return UnderlayPage(ReadStream(targetPdf, nameof(targetPdf)), ReadStream(sourcePdf, nameof(sourcePdf)), options);
     }
 
-    private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options) {
+    private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfReadOptions? targetReadOptions = null) {
         Guard.NotNull(targetPdf, nameof(targetPdf));
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(options, nameof(options));
-        _ = PdfMutationPlanner.RequireFullRewrite(targetPdf, PdfMutationOperation.ModifyPageContent);
-        _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages);
+        PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+        _ = PdfMutationPlanner.RequireFullRewrite(targetPdf, PdfMutationOperation.ModifyPageContent, targetReadOptions);
+        _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
 
-        var (targetObjects, targetTrailer) = PdfSyntax.ParseObjects(targetPdf);
-        var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf);
-        PdfReadDocument target = PdfReadDocument.Open(targetPdf);
-        PdfReadDocument source = PdfReadDocument.Open(sourcePdf);
+        var (targetObjects, targetTrailer) = PdfSyntax.ParseObjects(targetPdf, targetReadOptions);
+        var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
+        PdfReadDocument target = PdfReadDocument.Open(targetPdf, targetReadOptions);
+        PdfReadDocument source = PdfReadDocument.Open(sourcePdf, sourceReadOptions);
         if (target.Pages.Count == 0) throw new ArgumentException("Target PDF does not contain any pages.", nameof(targetPdf));
         if (options.SourcePageNumber > source.Pages.Count) throw new ArgumentOutOfRangeException(nameof(options), options.SourcePageNumber, "Source page number exceeds the source PDF page count.");
 

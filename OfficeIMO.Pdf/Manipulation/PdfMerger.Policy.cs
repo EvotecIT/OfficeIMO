@@ -16,8 +16,20 @@ internal static partial class PdfMerger {
             source.Document.NamedDestinations.Count,
             source.Document.PageLabels.Count,
             source.Document.FormFields.Count,
-            PdfAttachmentExtractor.ExtractAttachments(source.Document).Count)).ToArray();
+            PdfAttachmentExtractor.ExtractAttachments(source.Document).Count,
+            source.Document.Security,
+            source.Document.ReadOptions.PermissionPolicy)).ToArray();
         var decisions = new List<PdfMergeDecision>();
+        int encryptedSourceCount = inventories.Count(static source => source.HasEncryption);
+        int ignoredRestrictionCount = inventories.Count(static source => source.PermissionRestrictionsIgnored);
+        if (encryptedSourceCount > 0) {
+            string action = "Decrypted " + encryptedSourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " authenticated source(s) and produced an unencrypted merged output.";
+            if (ignoredRestrictionCount > 0) {
+                action += " Permission restrictions were explicitly ignored for " + ignoredRestrictionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " source(s).";
+            }
+            decisions.Add(new PdfMergeDecision("Security", PdfMergeStructureMode.Combine, action, encryptedSourceCount));
+        }
         if (options?.FlattenVisualAnnotations == true) decisions.Add(new PdfMergeDecision("SourceAnnotations", PdfMergeStructureMode.Combine, "Flattened supported visual annotations before import; links, forms, and unsupported shapes remained live."));
         if (options?.ResizePages != null) decisions.Add(new PdfMergeDecision("PageSizeNormalization", PdfMergeStructureMode.Combine, "Normalized every source page through the requested resize mode before import."));
 
@@ -38,7 +50,7 @@ internal static partial class PdfMerger {
             throw new InvalidOperationException("PDF merge post-save validation failed: output page count did not match the imported page count.");
         }
 
-        return new PdfMergeResult(merged, new PdfMergeReport(inventories, decisions.AsReadOnly(), readback.Pages.Count));
+        return new PdfMergeResult(merged, new PdfMergeReport(inventories, decisions.AsReadOnly(), readback.Pages.Count, readback.Security));
     }
 
     private static byte[] ApplyMetadataPolicy(

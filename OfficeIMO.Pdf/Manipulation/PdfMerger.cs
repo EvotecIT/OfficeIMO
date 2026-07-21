@@ -40,6 +40,12 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
     }
 
+    internal static PdfMergeResult MergeWithReport(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfReadOptions> readOptions) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(readOptions, nameof(readOptions));
+        return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions);
+    }
+
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
     /// </summary>

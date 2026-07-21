@@ -5,7 +5,8 @@ public sealed partial class PdfReadDocument {
     public IReadOnlyList<PdfAttachmentInfo> Attachments { get; }
 
     private IReadOnlyList<PdfAttachmentInfo> ExtractAttachmentInfos() {
-        IReadOnlyList<PdfExtractedAttachment> attachments = ExtractAttachments();
+        // Catalog inspection must remain available for preflight even when payload extraction is restricted.
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits);
         if (attachments.Count == 0) {
             return Array.Empty<PdfAttachmentInfo>();
         }

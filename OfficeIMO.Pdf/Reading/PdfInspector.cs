@@ -107,7 +107,8 @@ internal static class PdfInspector {
         byte[] pdf,
         PdfReadOptions? options,
         Func<PdfReadDocument>? readDocumentFactory) {
-        PdfDocumentProbe probe = Probe(pdf, options);
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfDocumentProbe probe = Probe(pdf, effectiveOptions);
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
@@ -119,13 +120,13 @@ internal static class PdfInspector {
         }
 
         if (probe.HasEncryption) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted input requires operation-specific planning. Authenticated unsigned PDFs support proven page extraction, merge, page-tree, and page-content rewrites; other rewrites remain blocked, and security changes require owner authorization.");
         }
 
         bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
-                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, options);
+                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions);
                 probe = Probe(pdf, readDocument);
                 info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {
@@ -224,7 +225,7 @@ internal static class PdfInspector {
         }
 
         bool canRewrite = canRead && rewriteBlockers.Count == 0;
-        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly());
+        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy);
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
             AddDiagnostic(message);

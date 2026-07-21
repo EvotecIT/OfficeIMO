@@ -78,6 +78,9 @@ public sealed class PdfMutationPlan {
     /// <summary>Human-readable explanation of the selected or blocked plan.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 
+    /// <summary>True when this executable plan explicitly ignores authenticated user-password permission restrictions.</summary>
+    public bool PermissionRestrictionsIgnored => CanExecute && Preflight.PermissionRestrictionsIgnored;
+
     /// <summary>Short plan summary suitable for logs and command surfaces.</summary>
     public string Summary => CanExecute
         ? Operation + " will use " + ExecutionMode + " and requires " + RequiredProofs.Count + " proof check(s)."

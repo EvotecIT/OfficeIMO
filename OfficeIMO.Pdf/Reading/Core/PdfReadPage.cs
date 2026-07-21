@@ -11,6 +11,7 @@ public sealed partial class PdfReadPage {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfReadLimits _limits;
+    private readonly Action? _demandTextExtraction;
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
         : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
@@ -19,12 +20,14 @@ public sealed partial class PdfReadPage {
         int objectNumber,
         PdfDictionary pageDict,
         Dictionary<int, PdfIndirectObject> objects,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        Action? demandTextExtraction = null) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
         _limits = limits;
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
+        _demandTextExtraction = demandTextExtraction;
     }
 
     /// <summary>Underlying object number for the page.</summary>
@@ -106,6 +109,7 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
+        _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);

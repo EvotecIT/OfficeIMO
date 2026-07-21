@@ -76,7 +76,12 @@ public class PdfSecurityEditorTests {
         Assert.Equal(PdfPasswordAuthenticationRole.User, userInfo.Security.PasswordAuthenticationRole);
         Assert.Equal(PdfPasswordAuthenticationRole.Owner, ownerInfo.Security.PasswordAuthenticationRole);
         Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "old-open" }));
-        Assert.Contains("Re-encryption proof", PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "new-open" }), StringComparison.Ordinal);
+        Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "new-open" }));
+        Assert.Contains(
+            "Re-encryption proof",
+            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "new-owner" }),
+            StringComparison.Ordinal);
     }
 
     [Fact]
