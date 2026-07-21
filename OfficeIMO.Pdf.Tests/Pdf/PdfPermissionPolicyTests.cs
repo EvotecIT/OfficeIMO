@@ -240,16 +240,24 @@ public class PdfPermissionPolicyTests {
         PdfDocument moved = PdfDocument.Open(source, options).Pages.Move(1, 3);
         PdfDocument rotated = PdfDocument.Open(source, options).Pages.Rotate(90, 1);
         PdfDocument boxed = PdfDocument.Open(source, options).Pages.SetCropBox(10, 10, 300, 500, 1);
+        PdfDocument reordered = PdfDocument.Open(source, options).Pages.Reorder(3, 2, 1);
+        PdfDocument duplicated = PdfDocument.Open(source, options).Pages.Duplicate(2);
 
         Assert.Equal(2, deleted.Inspect().PageCount);
         Assert.Equal(3, moved.Inspect().PageCount);
         Assert.StartsWith("Page three", moved.Read.Text(), StringComparison.Ordinal);
         Assert.Equal(90, rotated.Inspect().Pages[0].RotationDegrees);
         Assert.Equal(290D, boxed.Inspect().Pages[0].CropBox!.Width, 3);
+        Assert.StartsWith("Page three", reordered.Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(4, duplicated.Inspect().PageCount);
 
         PdfOperationResult<PdfDocument> explicitOptions = PdfDocument.Open(source).Pages.TryRotate(180, PdfPageSelection.From(2), options);
         Assert.True(explicitOptions.Succeeded, string.Join(Environment.NewLine, explicitOptions.Diagnostics));
         Assert.Equal(180, explicitOptions.RequireValue().Inspect().Pages[1].RotationDegrees);
+
+        PdfOperationResult<PdfDocument> explicitDuplicateOptions = PdfDocument.Open(source).Pages.TryDuplicate(PdfPageSelection.From(1), options);
+        Assert.True(explicitDuplicateOptions.Succeeded, string.Join(Environment.NewLine, explicitDuplicateOptions.Diagnostics));
+        Assert.Equal(4, explicitDuplicateOptions.RequireValue().Inspect().PageCount);
     }
 
     [Fact]

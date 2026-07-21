@@ -6,16 +6,20 @@ internal static partial class PdfPageEditor {
     /// Repeated selections create repeated page copies.
     /// </summary>
     public static byte[] DuplicatePages(byte[] pdf, params int[] pageNumbers) {
+        return DuplicatePagesWithReadOptions(pdf, null, pageNumbers);
+    }
+
+    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfReadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Open(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers), allowDuplicates: true);
 
         var duplicateCounts = new Dictionary<int, int>();
