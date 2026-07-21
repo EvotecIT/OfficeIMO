@@ -69,14 +69,30 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex, options: null).ToBytes();
     }
 
+    internal static byte[] MergeWithPrimarySource(
+        int primarySourceIndex,
+        IReadOnlyList<byte[]> pdfs,
+        IReadOnlyList<PdfReadOptions> readOptions) {
+        Guard.NotNull(readOptions, nameof(readOptions));
+        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).ToBytes();
+    }
+
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
+        return MergePrimaryWithInsertedPages(primaryPdf, insertedPdf, insertBeforePageNumber, primaryReadOptions: null);
+    }
+
+    internal static byte[] MergePrimaryWithInsertedPages(
+        byte[] primaryPdf,
+        byte[] insertedPdf,
+        int insertBeforePageNumber,
+        PdfReadOptions? primaryReadOptions) {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
-        _ = PdfMutationPlanner.RequireFullRewrite(primaryPdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(primaryPdf, PdfMutationOperation.ModifyPageTree, primaryReadOptions);
         _ = PdfMutationPlanner.RequireFullRewrite(insertedPdf, PdfMutationOperation.ExtractPages);
 
-        var primaryDocument = PdfReadDocument.Open(primaryPdf);
+        var primaryDocument = PdfReadDocument.Open(primaryPdf, primaryReadOptions);
         if (primaryDocument.Pages.Count == 0) {
             throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
         }
@@ -110,7 +126,7 @@ internal static partial class PdfMerger {
         }
 
         var importedSources = new[] {
-            ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap),
+            ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap, PdfMutationOperation.ModifyPageTree, primaryReadOptions),
             ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null)
         };
         return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);

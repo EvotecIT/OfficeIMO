@@ -213,6 +213,51 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void TryPageImports_PropagateExplicitTargetAuthenticationThroughExecution() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] target = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Target one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Target two"))
+            .ToBytes();
+        byte[] incoming = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Incoming one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Incoming two"))
+            .ToBytes();
+        var targetReadOptions = new PdfReadOptions {
+            Password = "open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+
+        PdfOperationResult<PdfDocument> appended = PdfDocument.Open(target).Pages.TryAppend(
+            incoming,
+            options: targetReadOptions);
+        PdfOperationResult<PdfDocument> prepended = PdfDocument.Open(target).Pages.TryPrepend(
+            incoming,
+            PdfPageSelection.From(2),
+            options: targetReadOptions);
+        PdfOperationResult<PdfDocument> inserted = PdfDocument.Open(target).Pages.TryInsert(
+            2,
+            incoming,
+            PdfPageSelection.From(1),
+            options: targetReadOptions);
+
+        Assert.All(new[] { appended, prepended, inserted }, result => {
+            Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+            Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+            Assert.Contains("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
+            Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+        });
+        Assert.Equal(4, appended.RequireValue().Inspect().PageCount);
+        Assert.Equal(3, prepended.RequireValue().Inspect().PageCount);
+        Assert.Equal(3, inserted.RequireValue().Inspect().PageCount);
+    }
+
+    [Fact]
     public void Plan_StreamStopsBufferingAtConfiguredInputLimit() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded planner stream")).ToBytes();
         byte[] padded = new byte[1024 * 1024];
