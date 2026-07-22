@@ -100,6 +100,51 @@ public static class MarkdownFence {
     }
 
     /// <summary>
+    /// Normalizes an external language value to the first Markdown-safe fenced-code language token.
+    /// Whitespace, control characters, and fence-marker characters terminate the token.
+    /// </summary>
+    /// <param name="language">External language value.</param>
+    /// <returns>A single safe language token, or an empty string when none is present.</returns>
+    public static string NormalizeLanguageToken(string? language) {
+        if (string.IsNullOrWhiteSpace(language)) {
+            return string.Empty;
+        }
+
+        string value = language!.Trim();
+        int length = 0;
+        while (length < value.Length
+               && !char.IsWhiteSpace(value[length])
+               && !char.IsControl(value[length])
+               && value[length] != '`'
+               && value[length] != '~') {
+            length++;
+        }
+
+        return length == value.Length ? value : value.Substring(0, length);
+    }
+
+    /// <summary>
+    /// Builds a complete inline-code span whose delimiter cannot collide with backtick runs in
+    /// <paramref name="content"/>.
+    /// </summary>
+    /// <param name="content">Literal inline-code content.</param>
+    /// <returns>A CommonMark-compatible inline-code span.</returns>
+    public static string BuildSafeCodeSpan(string? content) {
+        var value = content ?? string.Empty;
+        var fence = new string('`', LongestRun(value, '`') + 1);
+        bool padBothSides = value.StartsWith("`", StringComparison.Ordinal) || value.EndsWith("`", StringComparison.Ordinal);
+        if (!padBothSides && value.Length > 1 && value[0] == ' ' && value[value.Length - 1] == ' ') {
+            for (int i = 0; i < value.Length; i++) {
+                if (value[i] == ' ') continue;
+                padBothSides = true;
+                break;
+            }
+        }
+        string padding = padBothSides ? " " : string.Empty;
+        return fence + padding + value + padding + fence;
+    }
+
+    /// <summary>
     /// Applies a text transformation only to segments outside fenced code blocks while preserving
     /// container-aware fence boundaries such as blockquoted or indented fences.
     /// </summary>

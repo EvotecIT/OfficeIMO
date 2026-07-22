@@ -1,0 +1,14 @@
+{
+  "id": "123",
+  "status": "current",
+  "title": "Status",
+  "spaceId": "42",
+  "parentId": "100",
+  "version": { "number": 7, "message": "fixture", "minorEdit": false },
+  "body": {
+    "atlas_doc_format": {
+      "representation": "atlas_doc_format",
+      "value": "{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Ready\"}]}]}"
+    }
+  }
+}

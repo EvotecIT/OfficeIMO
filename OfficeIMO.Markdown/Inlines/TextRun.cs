@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Plain text run.
 /// </summary>
-public sealed class TextRun : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class TextRun : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, ILiteralTextMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Backslash escape marker text when this run was parsed from an escaped character.</summary>

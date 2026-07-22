@@ -419,12 +419,16 @@ jobs:
       max-parallel: 6
       matrix:
         include:
+          - name: Adf
+            project: OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj
           - name: AsciiDoc
             project: OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
           - name: AsciiDoc-Markdown
             project: OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
           - name: CSV
             project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+          - name: Confluence
+            project: OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
           - name: Drawing
             project: OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
           - name: Drawing-CodeGlyphX
@@ -720,6 +724,8 @@ jobs:
             fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet restore OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj
+            dotnet restore OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
             dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
             dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj
             dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
@@ -767,6 +773,8 @@ jobs:
             fi
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet build OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1005,6 +1013,8 @@ jobs:
               ;;
             other-projects)
               audit_retired_aggregate_tests
+              dotnet test OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_drawing_tests
               dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_googleworkspace_tests

@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Shared helper for escaping Markdown-reserved characters across inline renderers.
 /// </summary>
-internal static class MarkdownEscaper {
+public static class MarkdownEscaper {
     // Inline HTML is allowed in rendered Markdown (e.g., <u> for underline), so we intentionally
     // do not escape angle brackets here to preserve legitimate HTML passthroughs.
     // Allows: "Use <u>underline</u> for emphasis" -> "Use <u>underline</u> for emphasis"
@@ -15,11 +15,23 @@ internal static class MarkdownEscaper {
     private static readonly char[] HighlightReserved = ['\\', '[', ']', '(', ')', '|', '*', '_', '='];
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
-    internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
-    internal static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
+    /// <summary>Escapes Markdown-reserved punctuation in literal inline text.</summary>
+    public static string EscapeText(string? text) => Escape(text, GeneralReserved);
+
+    /// <summary>
+    /// Escapes literal inline text and any line-leading syntax that Markdown would otherwise parse
+    /// as a heading, quote, list, fence, thematic break, definition, or HTML block.
+    /// </summary>
+    public static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
+
+    /// <summary>
+    /// Escapes literal text so Markdown punctuation, HTML-like text, and character-reference-like
+    /// text are preserved as text when parsed again.
+    /// </summary>
+    public static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
+
     internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
     internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
-    internal static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
     internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
@@ -27,11 +39,13 @@ internal static class MarkdownEscaper {
     internal static string EscapeSuperscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '^']);
     internal static string EscapeSubscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '~']);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
-    internal static string EscapeLinkUrl(string? text) => Escape(text, UrlReserved);
+    /// <summary>Escapes Markdown-reserved delimiters in a link destination.</summary>
+    public static string EscapeLinkUrl(string? text) => Escape(text, UrlReserved);
     internal static string EscapeImageAlt(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeImageSrc(string? text) => Escape(text, UrlReserved);
 
-    internal static string FormatOptionalTitle(string? title) {
+    /// <summary>Formats an optional Markdown link or image title using a non-colliding delimiter.</summary>
+    public static string FormatOptionalTitle(string? title) {
         if (string.IsNullOrEmpty(title)) return string.Empty;
 
         // Titles cannot contain line breaks in Markdown link/image syntax; normalize them to spaces.
