@@ -34,6 +34,8 @@ dotnet publish -c Release -r linux-x64
 
 NativeAOT evaluates your complete application, including every package and code path you use. Run the published executable and assert the generated or extracted document content before shipping it.
 
+The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XML SDK in the supported range `[3.5.1, 4.0.0)`. Normal OfficeIMO consumers receive that dependency transitively. If your application references `DocumentFormat.OpenXml` directly, keep its resolved version inside the same range so the dependency graph matches the versions validated by OfficeIMO.
+
 ## Project-level coverage
 
 | Production classification | Projects | What CI proves | Customer guidance |
