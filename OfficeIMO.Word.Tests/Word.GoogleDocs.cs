@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
@@ -143,6 +144,36 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("page 2 of 2", fallbacks[1].Description, StringComparison.OrdinalIgnoreCase);
                 Assert.All(fallbacks, image => Assert.True(image.Bytes.Length > 0));
                 Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.FALLBACK.RENDERED_PAGES" && notice.Count == 2);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleDocsBatchCompiler_EnforcesRasterFallbackPageBudget() {
+            string filePath = Path.Combine(_directoryWithFiles,
+                "GoogleDocsFallbackLimit.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Page one");
+                document.AddPageBreak();
+                document.AddParagraph("Page two");
+                document.AddStructuredDocumentTag("Unsupported control");
+                var options = new GoogleDocsSaveOptions {
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
+                    RasterFallbackImageOptions = new WordImageExportOptions {
+                        MaximumOutputCount = 1,
+                    },
+                };
+                options.UnsupportedFeatures.ContentControls =
+                    UnsupportedFeatureMode.Rasterize;
+
+                OfficeImageExportBatchLimitException exception =
+                    Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                        document.BuildGoogleDocsBatch(options));
+
+                Assert.Equal(nameof(OfficeImageExportOptions.MaximumOutputCount),
+                    exception.LimitName);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

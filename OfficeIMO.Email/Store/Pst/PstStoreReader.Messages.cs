@@ -116,8 +116,19 @@ internal sealed partial class PstStoreReader {
                 DeferredAttachmentPropertyIds);
             long declaredLength = Math.Max(0,
                 attachmentProperties.GetNullableMapiValue(MapiKnownProperties.PidTag.AttachSize) ?? 0);
+            MapiProperty? attachData = attachmentProperties.GetMapiProperty(
+                MapiKnownProperties.PidTag.AttachData);
+            if (attachData?.PropertyType == MapiPropertyType.Object &&
+                attachData.RawData != null && attachData.RawData.Length >= 8) {
+                declaredLength = Math.Max(declaredLength,
+                    PstBinary.UInt32(attachData.RawData, 4));
+            }
             EmailAttachment attachment = PstAttachmentProjection.Create(
                 attachmentProperties, declaredLength);
+
+            if (attachment.MapiAttachMethod == 5) {
+                ReserveEmbeddedAttachment(declaredLength);
+            }
 
             if (readOptions.Includes(EmailStoreItemReadParts.AttachmentContent) &&
                 attachment.MapiAttachMethod != 5 &&
@@ -176,6 +187,15 @@ internal sealed partial class PstStoreReader {
         _attachmentBudget = new PstAttachmentAggregateBudget(_options.MaxTotalAttachmentBytes);
     }
 
+    private void ReserveEmbeddedAttachment(long declaredLength) {
+        if (declaredLength > _options.MaxAttachmentBytes) {
+            throw new EmailStoreLimitExceededException(
+                nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
+                declaredLength, _options.MaxAttachmentBytes);
+        }
+        if (declaredLength > 0) CountAttachmentBytes(declaredLength);
+    }
+
     private void TryReadEmbeddedMessage(EmailAttachment attachment,
         IReadOnlyDictionary<uint, PstSubnodeReference> attachmentSubnodes,
         IReadOnlyDictionary<ushort, uint> sourceHnids, EmailStoreFormat format,
@@ -195,9 +215,39 @@ internal sealed partial class PstStoreReader {
         }
 
         string embeddedId = FormatId(embeddedNode.Nid);
-        attachment.EmbeddedDocument = ReadItemDocument(
+        long maximumDecodedBytes = Math.Min(
+            readOptions.MaxDecodedPropertyBytes ?? _options.MaxDecodedPropertyBytesPerItem,
+            _options.MaxAttachmentBytes);
+        var embeddedReadOptions = new EmailStoreItemReadOptions(
+            readOptions.Parts, maximumDecodedBytes,
+            readOptions.PreferStreamingAttachmentContent);
+        EmailDocument embeddedDocument = ReadItemDocument(
             embeddedNode.DataBid, embeddedNode.SubnodeBid, embeddedId, folderId: null,
-            format, string.Concat(location, "/embedded/", embeddedId), nestedDepth + 1, readOptions);
+            format, string.Concat(location, "/embedded/", embeddedId), nestedDepth + 1,
+            embeddedReadOptions);
+        long observedBytes = CountDecodedPropertyBytes(embeddedDocument.MapiProperties,
+            _options.MaxAttachmentBytes);
+        if (observedBytes > attachment.Length) {
+            CountAttachmentBytes(observedBytes - attachment.Length);
+            attachment.Length = observedBytes;
+        }
+        attachment.EmbeddedDocument = embeddedDocument;
+    }
+
+    private static long CountDecodedPropertyBytes(
+        IEnumerable<MapiProperty> properties,
+        long maximumBytes) {
+        long total = 0;
+        foreach (MapiProperty property in properties) {
+            long length = property.RawData?.LongLength ?? 0;
+            if (length > maximumBytes - total) {
+                long actual = length > long.MaxValue - total ? long.MaxValue : total + length;
+                throw new EmailStoreLimitExceededException(
+                    nameof(EmailStoreReaderOptions.MaxAttachmentBytes), actual, maximumBytes);
+            }
+            total += length;
+        }
+        return total;
     }
 
     private void ProjectItem(EmailDocument document, IReadOnlyList<MapiProperty> properties, string location) {
@@ -205,6 +255,7 @@ internal sealed partial class PstStoreReader {
             properties.GetNullableMapiValue(MapiKnownProperties.PidTag.InternetCodepage) ??
             properties.GetNullableMapiValue(MapiKnownProperties.PidTag.CodePageId);
         EmailReadResult projection = EmailMapiProjection.Project(document, codePage, location: location,
+            options: EmailStoreMessageReader.CreateOptions(_options, includeAttachmentContent: false),
             cancellationToken: _cancellationToken);
         foreach (EmailDiagnostic diagnostic in projection.Diagnostics) {
             _diagnostics.Add(new EmailStoreDiagnostic(

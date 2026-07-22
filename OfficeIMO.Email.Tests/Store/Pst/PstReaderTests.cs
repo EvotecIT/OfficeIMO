@@ -98,10 +98,22 @@ public sealed class PstReaderTests {
         Assert.Equal(5, attachment.MapiAttachMethod);
         Assert.Equal("forwarded.msg", attachment.FileName);
         Assert.Null(attachment.Content);
-        Assert.Equal(0, attachment.Length);
+        Assert.True(attachment.Length > 0);
         Assert.NotNull(attachment.EmbeddedDocument);
         Assert.Equal("Embedded PST message", attachment.EmbeddedDocument!.Subject);
         Assert.Equal("Body from the embedded PST item", attachment.EmbeddedDocument.Body.Text);
+    }
+
+    [Fact]
+    public void EmbeddedPstObjectAttachmentsHonorAttachmentByteLimit() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            includeEmbeddedMessage: true));
+        var reader = new EmailStoreReader(new EmailStoreReaderOptions(
+            maxAttachmentBytes: 16,
+            maxTotalAttachmentBytes: 1024));
+
+        Assert.Throws<EmailStoreLimitExceededException>(() =>
+            reader.Read(stream, "mailbox.pst"));
     }
 
     [Fact]

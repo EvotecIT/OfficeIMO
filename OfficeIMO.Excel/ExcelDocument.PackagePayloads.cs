@@ -11,9 +11,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Inspects the attached VBA project without executing macro code.</summary>
         public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256 = false) {
+            return InspectVbaProject(includeSha256, OfficeVbaProjectInfo.DefaultMaximumProjectBytes);
+        }
+
+        /// <summary>Inspects the attached VBA project while enforcing a decoded byte limit.</summary>
+        public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256, long maxBytes) {
+            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             return Locking.ExecuteRead(EnsureLock(), () => {
                 VbaProjectPart? part = WorkbookPartRoot?.VbaProjectPart;
-                return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(part, includeSha256);
+                return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(
+                    part, includeSha256, maxBytes);
             });
         }
 

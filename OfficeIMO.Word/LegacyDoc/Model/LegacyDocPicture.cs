@@ -11,6 +11,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal byte[] ImageBytes => (byte[])_imageBytes.Clone();
 
+        internal int ImageByteCount => _imageBytes.Length;
+
         internal string ContentType { get; }
 
         internal double WidthPixels { get; }

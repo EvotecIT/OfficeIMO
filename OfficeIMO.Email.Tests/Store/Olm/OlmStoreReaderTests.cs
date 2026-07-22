@@ -196,6 +196,31 @@ public sealed class OlmStoreReaderTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID");
     }
 
+    [Fact]
+    public void DecodedEntryStream_EnforcesActualEntryAndAggregateBytes() {
+        using (var entry = new OlmDecodedEntryStream(
+            new MemoryStream(new byte[6], writable: false), 5,
+            nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes),
+            new OlmDecodedArchiveBudget(100))) {
+            EmailStoreLimitExceededException entryLimit =
+                Assert.Throws<EmailStoreLimitExceededException>(() =>
+                    entry.CopyTo(Stream.Null));
+            Assert.Equal(nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes),
+                entryLimit.LimitName);
+        }
+
+        using (var entry = new OlmDecodedEntryStream(
+            new MemoryStream(new byte[6], writable: false), 100,
+            nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes),
+            new OlmDecodedArchiveBudget(5))) {
+            EmailStoreLimitExceededException aggregateLimit =
+                Assert.Throws<EmailStoreLimitExceededException>(() =>
+                    entry.CopyTo(Stream.Null));
+            Assert.Equal(nameof(EmailStoreReaderOptions.MaxArchiveDecodedBytes),
+                aggregateLimit.LimitName);
+        }
+    }
+
     private static EmailStoreReadResult Read(byte[] archive, EmailStoreReaderOptions? options = null) {
         using (var stream = new MemoryStream(archive, writable: false)) {
             return new EmailStoreReader(options).Read(stream, "archive.olm");

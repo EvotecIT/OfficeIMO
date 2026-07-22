@@ -5,9 +5,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     /// Reuses the established formula parser and converts its common BIFF8 token subset to BIFF12.
     /// </summary>
     internal static class XlsbFormulaEncoder {
+        private const int MaximumFormulaCharacters = 8_192;
+        private const int MaximumControlFunctionDepth = 64;
+
         internal static bool TryEncode(string formulaText, out byte[] formulaPayload, out string? reason) {
             formulaPayload = Array.Empty<byte>();
-            if (!TryEncodeTokens(formulaText, out byte[] biff12Tokens, out reason)) return false;
+            if (formulaText == null) throw new ArgumentNullException(nameof(formulaText));
+            if (formulaText.Length > MaximumFormulaCharacters) {
+                reason = $"Formula text exceeds the supported limit of {MaximumFormulaCharacters} characters.";
+                return false;
+            }
+            if (!TryEncodeTokens(formulaText, depth: 0, out byte[] biff12Tokens, out reason)) return false;
 
             using var payload = new MemoryStream(checked(biff12Tokens.Length + 10));
             WriteUInt16(payload, 0); // grbit
@@ -18,8 +26,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return true;
         }
 
-        private static bool TryEncodeTokens(string formulaText, out byte[] tokens, out string? reason) {
-            if (TryEncodeControlFunction(formulaText, out tokens, out reason)) return true;
+        private static bool TryEncodeTokens(string formulaText, int depth,
+            out byte[] tokens, out string? reason) {
+            if (depth > MaximumControlFunctionDepth) {
+                tokens = Array.Empty<byte>();
+                reason = $"Formula control-function nesting exceeds the supported depth of {MaximumControlFunctionDepth}.";
+                return false;
+            }
+            if (TryEncodeControlFunction(formulaText, depth, out tokens, out reason)) return true;
             if (reason != null) return false;
 
             if (!LegacyXlsFormulaEncoder.TryEncode(formulaText, out byte[] biff8Tokens, out reason)) {
@@ -30,7 +44,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return TryConvertTokens(biff8Tokens, out tokens, out reason);
         }
 
-        private static bool TryEncodeControlFunction(string formulaText, out byte[] tokens, out string? reason) {
+        private static bool TryEncodeControlFunction(string formulaText, int depth,
+            out byte[] tokens, out string? reason) {
             tokens = Array.Empty<byte>();
             reason = null;
             string normalized = formulaText.Trim();
@@ -73,7 +88,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     continue;
                 }
 
-                if (!TryEncodeTokens(argument, out byte[] argumentTokens, out reason)) return false;
+                if (!TryEncodeTokens(argument, checked(depth + 1),
+                        out byte[] argumentTokens, out reason)) return false;
                 output.Write(argumentTokens, 0, argumentTokens.Length);
             }
 

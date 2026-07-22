@@ -89,10 +89,14 @@ namespace OfficeIMO.Excel.Xlsb {
             using var packageStream = new MemoryStream(packageBytes, writable: false);
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             var parts = new XlsbPackagePartReader(archive, resolved);
+            var recordBudget = new XlsbRecordReadBudget(resolved.MaxRecordCount);
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships = parts.ReadRelationships(workbookPartName!);
-            IReadOnlyList<string> sharedStrings = ReadSharedStrings(parts, workbookPartName!, relationships, resolved, workbook);
-            workbook.Stylesheet = ReadStyles(parts, workbookPartName!, relationships, resolved, workbook);
-            ParseWorkbookPart(parts.ReadPart(workbookPartName!), workbookPartName!, resolved, workbook);
+            IReadOnlyList<string> sharedStrings = ReadSharedStrings(parts, workbookPartName!, relationships,
+                resolved, workbook, recordBudget);
+            workbook.Stylesheet = ReadStyles(parts, workbookPartName!, relationships, resolved,
+                workbook, recordBudget);
+            ParseWorkbookPart(parts.ReadPart(workbookPartName!), workbookPartName!, resolved, workbook,
+                recordBudget);
 
             if (workbook.Worksheets.Count == 0) {
                 throw new InvalidDataException("The XLSB workbook contains no worksheet bundle records.");
@@ -103,6 +107,7 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             int totalCells = 0;
+            int totalRowDefinitions = 0;
             int totalMergedRanges = 0;
             int totalHyperlinks = 0;
             foreach (XlsbWorksheet worksheet in workbook.Worksheets) {
@@ -123,7 +128,9 @@ namespace OfficeIMO.Excel.Xlsb {
                     sharedStrings,
                     resolved,
                     workbook,
+                    recordBudget,
                     ref totalCells,
+                    ref totalRowDefinitions,
                     ref totalMergedRanges,
                     ref totalHyperlinks);
             }
@@ -143,8 +150,9 @@ namespace OfficeIMO.Excel.Xlsb {
             byte[] bytes,
             string partName,
             XlsbImportOptions options,
-            XlsbWorkbook workbook) {
-            IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options);
+            XlsbWorkbook workbook,
+            XlsbRecordReadBudget recordBudget) {
+            IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options, recordBudget);
             if (records.Count < 2 || records[0].Type != BrtBeginBook || records[records.Count - 1].Type != BrtEndBook) {
                 throw new InvalidDataException($"The XLSB workbook part '{partName}' is missing its BrtBeginBook/BrtEndBook boundaries.");
             }
@@ -366,13 +374,15 @@ namespace OfficeIMO.Excel.Xlsb {
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
             XlsbImportOptions options,
-            XlsbWorkbook workbook) {
+            XlsbWorkbook workbook,
+            XlsbRecordReadBudget recordBudget) {
             XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
                 !item.IsExternal && item.Type.EndsWith(StylesRelationshipSuffix, StringComparison.Ordinal));
             if (relationship == null) return null;
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            return XlsbStylesheetReader.Read(parts.ReadPart(partName), partName, options, workbook);
+            return XlsbStylesheetReader.Read(parts.ReadPart(partName), partName, options, workbook,
+                recordBudget);
         }
 
         private static IReadOnlyList<string> ReadSharedStrings(
@@ -380,13 +390,15 @@ namespace OfficeIMO.Excel.Xlsb {
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships,
             XlsbImportOptions options,
-            XlsbWorkbook workbook) {
+            XlsbWorkbook workbook,
+            XlsbRecordReadBudget recordBudget) {
             XlsbPackageRelationship? relationship = relationships.Values.FirstOrDefault(item =>
                 !item.IsExternal && item.Type.EndsWith(SharedStringsRelationshipSuffix, StringComparison.Ordinal));
             if (relationship == null) return Array.Empty<string>();
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            IReadOnlyList<XlsbRecord> records = ReadRecords(parts.ReadPart(partName), options);
+            IReadOnlyList<XlsbRecord> records = ReadRecords(parts.ReadPart(partName), options,
+                recordBudget);
             var values = new List<string>();
             bool hasBegin = false;
             bool hasEnd = false;
@@ -434,10 +446,12 @@ namespace OfficeIMO.Excel.Xlsb {
             IReadOnlyList<string> sharedStrings,
             XlsbImportOptions options,
             XlsbWorkbook workbook,
+            XlsbRecordReadBudget recordBudget,
             ref int totalCells,
+            ref int totalRowDefinitions,
             ref int totalMergedRanges,
             ref int totalHyperlinks) {
-            IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options);
+            IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options, recordBudget);
             if (records.Count < 2 || records[0].Type != BrtBeginSheet || records[records.Count - 1].Type != BrtEndSheet) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' is missing its BrtBeginSheet/BrtEndSheet boundaries.");
             }
@@ -535,6 +549,11 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB row record at offset {record.Offset} is duplicated or out of order.");
                         }
                         previousRow = currentRow.Row - 1;
+                        totalRowDefinitions = checked(totalRowDefinitions + 1);
+                        if (totalRowDefinitions > options.MaxRowDefinitions) {
+                            throw new InvalidDataException(
+                                $"The XLSB workbook exceeds the configured limit of {options.MaxRowDefinitions} row definitions.");
+                        }
                         worksheet.AddRow(currentRow);
                         break;
                     case BrtBeginMergeCells:
@@ -932,9 +951,10 @@ namespace OfficeIMO.Excel.Xlsb {
             }
         }
 
-        private static IReadOnlyList<XlsbRecord> ReadRecords(byte[] bytes, XlsbImportOptions options) {
+        private static IReadOnlyList<XlsbRecord> ReadRecords(byte[] bytes, XlsbImportOptions options,
+            XlsbRecordReadBudget budget) {
             using var stream = new MemoryStream(bytes, writable: false);
-            return XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes);
+            return XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes, budget);
         }
 
         private static void PreserveRecord(

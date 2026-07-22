@@ -6,8 +6,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryRead(
             BiffRecord record,
             string? sheetName,
-            List<LegacyXlsDrawingRecord> records) {
-            if (TryRead(record, sheetName, out LegacyXlsDrawingRecord? drawingRecord)) {
+            List<LegacyXlsDrawingRecord> records,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
+            if (TryRead(record, sheetName, out LegacyXlsDrawingRecord? drawingRecord, decodedImageBudget)) {
                 records.Add(drawingRecord!);
                 return true;
             }
@@ -18,7 +19,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryRead(
             BiffRecord record,
             string? sheetName,
-            out LegacyXlsDrawingRecord? drawingRecord) {
+            out LegacyXlsDrawingRecord? drawingRecord,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             drawingRecord = null;
             if (!BiffUnsupportedRecordDiagnostics.IsDrawingRecord(record.Type)) {
                 return false;
@@ -40,7 +42,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
                 out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
                 out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
-                out bool officeArtPayloadFullyTraversed);
+                out bool officeArtPayloadFullyTraversed,
+                decodedImageBudget);
             drawingRecord = new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -103,7 +106,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
             out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
-            out bool officeArtPayloadFullyTraversed) {
+            out bool officeArtPayloadFullyTraversed,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             if (!TryGetOfficeArtPayloadRange(record, out int officeArtOffset, out int officeArtLength)) {
                 blipStoreEntries = Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
                 shapeEntries = Array.Empty<LegacyXlsDrawingShape>();
@@ -129,7 +133,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out drawingGroupBlocks,
                 out drawingGroupInfos,
                 out shapeProperties,
-                out officeArtPayloadFullyTraversed);
+                out officeArtPayloadFullyTraversed,
+                decodedImageBudget);
         }
 
         internal static void ReadOfficeArtPayload(
@@ -142,7 +147,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
             out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
-            out bool fullyTraversed) {
+            out bool fullyTraversed,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             if (payload == null) {
                 throw new ArgumentNullException(nameof(payload));
             }
@@ -155,7 +161,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var groupBlocks = new List<LegacyXlsDrawingGroupBlock>();
             var groupInfos = new List<LegacyXlsDrawingGroupInfo>();
             var properties = new List<LegacyXlsDrawingShapeProperty>();
-            fullyTraversed = TryReadOfficeArtRecords(payload, 0, payload.Length, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0);
+            fullyTraversed = TryReadOfficeArtRecords(payload, 0, payload.Length, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0, decodedImageBudget);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
@@ -178,7 +184,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
             out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
-            out bool fullyTraversed) {
+            out bool fullyTraversed,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             if (payload == null) {
                 throw new ArgumentNullException(nameof(payload));
             }
@@ -195,7 +202,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             fullyTraversed = offset >= 0
                 && length >= 0
                 && endOffset <= payload.Length
-                && TryReadOfficeArtRecords(payload, offset, endOffset, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0);
+                && TryReadOfficeArtRecords(payload, offset, endOffset, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0, decodedImageBudget);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
@@ -218,7 +225,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
             List<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             List<LegacyXlsDrawingShapeProperty> shapeProperties,
-            int depth) {
+            int depth,
+            LegacyXlsDecodedImageBudget? decodedImageBudget) {
             if (depth > 8) {
                 return false;
             }
@@ -239,7 +247,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (contentStart + (int)recordLength > endOffset) {
                     if (version == 0x0f) {
                         officeArtRecords.Add(new LegacyXlsDrawingOfficeArtRecord(recordType, instance, version, recordLength, depth));
-                        TryReadOfficeArtRecords(payload, contentStart, endOffset, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, drawingGroupBlocks, drawingGroupInfos, shapeProperties, depth + 1);
+                        TryReadOfficeArtRecords(payload, contentStart, endOffset, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, drawingGroupBlocks, drawingGroupInfos, shapeProperties, depth + 1, decodedImageBudget);
                     }
 
                     return false;
@@ -248,7 +256,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 int contentEnd = contentStart + (int)recordLength;
                 officeArtRecords.Add(new LegacyXlsDrawingOfficeArtRecord(recordType, instance, version, recordLength, depth));
 
-                if (recordType == 0xF007 && TryReadBlipStoreEntry(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingBlipStoreEntry? blipEntry)) {
+                if (recordType == 0xF007 && TryReadBlipStoreEntry(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingBlipStoreEntry? blipEntry, decodedImageBudget)) {
                     blipStoreEntries.Add(blipEntry!);
                 } else if (recordType == 0xF006 && TryReadDrawingGroupBlock(payload, contentStart, contentEnd, out LegacyXlsDrawingGroupBlock? drawingGroupBlock)) {
                     drawingGroupBlocks.Add(drawingGroupBlock!);
@@ -265,7 +273,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (version == 0x0f) {
-                    fullyTraversed &= TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, drawingGroupBlocks, drawingGroupInfos, shapeProperties, depth + 1);
+                    fullyTraversed &= TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, drawingGroupBlocks, drawingGroupInfos, shapeProperties, depth + 1, decodedImageBudget);
                 }
 
                 offset = contentEnd;
@@ -331,14 +339,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int contentStart,
             int contentEnd,
             ushort recordInstance,
-            out LegacyXlsDrawingBlipStoreEntry? entry) {
+            out LegacyXlsDrawingBlipStoreEntry? entry,
+            LegacyXlsDecodedImageBudget? decodedImageBudget) {
             entry = null;
             if (contentStart < 0 || contentEnd < contentStart || contentEnd > payload.Length
                 || !OfficeArtBlipStoreEntryReader.TryRead(payload, contentStart,
                     contentEnd - contentStart, recordInstance, delayStream: null,
-                    out OfficeArtBlipStoreEntry? sharedEntry) || sharedEntry == null) {
+                    out OfficeArtBlipStoreEntry? sharedEntry,
+                    decodedImageBudget?.RemainingBytes ?? 64 * 1024 * 1024) || sharedEntry == null) {
                 return false;
             }
+            decodedImageBudget?.Consume(sharedEntry.ImageByteCount);
             entry = new LegacyXlsDrawingBlipStoreEntry(sharedEntry);
             return true;
         }

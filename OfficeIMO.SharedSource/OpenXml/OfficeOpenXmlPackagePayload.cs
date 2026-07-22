@@ -157,9 +157,11 @@ namespace OfficeIMO.OpenXml.Internal {
                     || string.Equals(element.LocalName, "controls", StringComparison.OrdinalIgnoreCase));
         }
 
-        internal static OfficeVbaProjectInfo CreateVbaProjectInfo(VbaProjectPart part, bool includeSha256) {
+        internal static OfficeVbaProjectInfo CreateVbaProjectInfo(VbaProjectPart part, bool includeSha256,
+            long maxBytes = OfficeVbaProjectInfo.DefaultMaximumProjectBytes) {
             if (part == null) throw new ArgumentNullException(nameof(part));
-            byte[] projectBytes = ReadBytes(part);
+            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            byte[] projectBytes = ReadBytes(part, maxBytes);
             string? sha256 = includeSha256 ? ComputeSha256(projectBytes) : null;
             bool hasSignature = part.Parts.Any(pair =>
                 pair.OpenXmlPart.RelationshipType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0

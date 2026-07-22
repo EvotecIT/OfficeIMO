@@ -10,7 +10,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference>? externSheets = null,
             IReadOnlyList<LegacyXlsExternalReference>? externalReferences = null,
             IReadOnlyList<string>? sheetNames = null,
-            IReadOnlyList<string?>? definedNames = null) {
+            IReadOnlyList<string?>? definedNames = null,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             if (!BiffUnsupportedRecordDiagnostics.IsChartRecord(record.Type)) {
                 return false;
             }
@@ -67,7 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadFutureBlock(record, out LegacyXlsChartFutureBlock? futureBlock);
             TryReadUnits(record, out LegacyXlsChartUnits? units);
             TryReadAxisExtension(record, out LegacyXlsChartAxisExtension? axisExtension);
-            TryReadGelFrame(record, out LegacyXlsChartGelFrame? gelFrame);
+            TryReadGelFrame(record, out LegacyXlsChartGelFrame? gelFrame, decodedImageBudget);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -694,7 +695,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        private static bool TryReadGelFrame(BiffRecord record, out LegacyXlsChartGelFrame? gelFrame) {
+        private static bool TryReadGelFrame(
+            BiffRecord record,
+            out LegacyXlsChartGelFrame? gelFrame,
+            LegacyXlsDecodedImageBudget? decodedImageBudget) {
             gelFrame = null;
             if (record.Type != 0x1066 || record.Payload.Length < 8) {
                 return false;
@@ -710,7 +714,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out _,
                 out _,
                 out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
-                out _);
+                out _,
+                decodedImageBudget);
             gelFrame = new LegacyXlsChartGelFrame(officeArtRecords, shapeProperties);
             return true;
         }

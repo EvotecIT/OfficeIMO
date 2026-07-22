@@ -13,6 +13,16 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void LegacyXls_Load_RejectsNonPositiveDecodedImageBudget() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                LegacyXlsWorkbook.Load(compound,
+                    new LegacyXlsImportOptions { MaxDecodedImageBytes = 0 }));
+        }
+
+        [Fact]
         public void LegacyXls_BiffRecordReader_ReadsRecordsAndReportsTruncation() {
             var diagnostics = new List<LegacyXlsImportDiagnostic>();
             byte[] bytes = {

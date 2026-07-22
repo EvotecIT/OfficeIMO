@@ -240,8 +240,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> notesDirectory =
                 ReadNotesDirectory(document, options);
 
+            LegacyPptRecord[] slidePersists = slideList.Children.Where(
+                record => record.Type == RecordSlidePersistAtom).ToArray();
+            if (slidePersists.Length > options.MaxSlideCount) {
+                throw new InvalidDataException(
+                    $"The binary PowerPoint slide count {slidePersists.Length} exceeds {options.MaxSlideCount}.");
+            }
+
             int slideIndex = 0;
-            foreach (LegacyPptRecord slidePersist in slideList.Children.Where(record => record.Type == RecordSlidePersistAtom)) {
+            foreach (LegacyPptRecord slidePersist in slidePersists) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (slidePersist.PayloadLength < 16) {
                     AddDiagnostic("PPT-SLIDE-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,

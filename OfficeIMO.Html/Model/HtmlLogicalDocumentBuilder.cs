@@ -28,11 +28,17 @@ internal static class HtmlLogicalDocumentBuilder {
         INode rootNode = HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly);
         var counts = new Dictionary<HtmlLogicalNodeKind, int>();
         var capabilities = new List<string>();
-        HtmlLogicalNode root = Build(rootNode, counts, capabilities, forceRetain: true)!;
+        var accessibleNames = new HtmlAccessibilitySemantics.HtmlAccessibleNameContext();
+        HtmlLogicalNode root = Build(rootNode, counts, capabilities, accessibleNames,
+            forceRetain: true)!;
         return new HtmlLogicalDocument(root, counts, capabilities);
     }
 
-    private static HtmlLogicalNode? Build(INode source, IDictionary<HtmlLogicalNodeKind, int> counts, ICollection<string> capabilities, bool forceRetain = false) {
+    private static HtmlLogicalNode? Build(INode source,
+        IDictionary<HtmlLogicalNodeKind, int> counts,
+        ICollection<string> capabilities,
+        HtmlAccessibilitySemantics.HtmlAccessibleNameContext accessibleNames,
+        bool forceRetain = false) {
         if (!forceRetain && source is IElement sourceElement && IsNonDocumentLogicalElement(sourceElement.TagName)) {
             return null;
         }
@@ -42,7 +48,8 @@ internal static class HtmlLogicalDocumentBuilder {
         if (source is IElement element) {
             string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(
                 element,
-                includeTextFallback: node.Kind == HtmlLogicalNodeKind.Link);
+                includeTextFallback: node.Kind == HtmlLogicalNodeKind.Link,
+                accessibleNames);
             node.AccessibleName = accessibleName.Length == 0 ? null : accessibleName;
             foreach (IAttr attribute in element.Attributes) {
                 node.AddAttribute(attribute.Name, attribute.Value);
@@ -59,7 +66,7 @@ internal static class HtmlLogicalDocumentBuilder {
                 continue;
             }
 
-            HtmlLogicalNode? childNode = Build(child, counts, capabilities);
+            HtmlLogicalNode? childNode = Build(child, counts, capabilities, accessibleNames);
             if (childNode != null) {
                 node.AddChild(childNode);
             }

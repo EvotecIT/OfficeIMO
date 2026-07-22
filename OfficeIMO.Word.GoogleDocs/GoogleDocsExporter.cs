@@ -32,7 +32,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (session == null) throw new ArgumentNullException(nameof(session));
 
             var effectiveOptions = options ?? new GoogleDocsSaveOptions();
-            var batch = BuildBatch(document, effectiveOptions);
+            var batch = GoogleDocsBatchCompiler.Build(
+                document, effectiveOptions, cancellationToken);
             GoogleWorkspacePreflight.Validate(batch.Report, effectiveOptions.FidelityPolicy);
             var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
             if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {

@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class LegacyBiffWorkbookParser {
         internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options) {
             var workbook = new LegacyXlsWorkbook();
+            var decodedImageBudget = new LegacyXlsDecodedImageBudget(options.MaxDecodedImageBytes);
             IReadOnlyList<BiffRecord> records = ReadWorkbookGlobalRecords(workbookStream, workbook.MutableDiagnostics);
             var sharedStrings = new List<BiffStringReader.BiffStringValue>();
             var numberFormatsById = new Dictionary<ushort, string>();
@@ -143,7 +144,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     continue;
-                } else if (BiffDrawingMetadataReader.TryRead(record, sheetName: null, out LegacyXlsDrawingRecord? drawingRecord)) {
+                } else if (BiffDrawingMetadataReader.TryRead(record, sheetName: null, out LegacyXlsDrawingRecord? drawingRecord, decodedImageBudget)) {
                     workbook.MutableDrawingRecords.Add(drawingRecord!);
                     if (record.Type == (ushort)BiffRecordType.DrawingGroup || drawingRecord!.HasSupportedDrawingMetadata) {
                         continue;
@@ -173,7 +174,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
                 } else if (BiffExternalQueryConnectionReader.TryRead(record, sheetName: null, workbook.MutableDiagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
                     workbook.MutableExternalQueryConnections.Add(externalQueryConnection!);
-                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable)) {
+                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable, decodedImageBudget)) {
                     BiffChartMetadataReader.ScanFormulaTokens(record, sheetName: null, workbook.MutableFormulaTokenRecords);
                     LegacyXlsChartRecord chartRecord = workbook.MutableChartRecords[workbook.MutableChartRecords.Count - 1];
                     if (!chartRecord.HasSupportedChartMetadata) {
@@ -227,7 +228,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetNames,
                 definedNameTable,
                 workbook.MutableDiagnostics,
-                options);
+                options,
+                decodedImageBudget);
             LegacyBiffUnsupportedSheetScanner.Scan(
                 workbookStream,
                 workbook.UnsupportedSheets,
@@ -243,10 +245,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetNames,
                 definedNameTable,
                 workbook.MutableDiagnostics,
-                options);
+                options,
+                decodedImageBudget);
 
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, workbookGlobalsBiffVersion, workbook, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.MutableExternalQueryConnections, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, workbookGlobalsBiffVersion, workbook, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.MutableExternalQueryConnections, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options, decodedImageBudget);
             }
 
             return workbook;

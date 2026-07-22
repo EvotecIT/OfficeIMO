@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb;
+using OfficeIMO.Excel.Xlsb.Write;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO.Compression;
 using System.Threading.Tasks;
@@ -114,6 +115,51 @@ namespace OfficeIMO.Tests {
                 XlsbRecordReader.ReadAll(stream, maxRecordBytes: 1));
 
             Assert.Contains("configured limit of 1 byte", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_RecordReader_EnforcesWorkbookWideRecordBudget() {
+            byte[] bytes = {
+                0x83, 0x01, 0x00,
+                0x84, 0x01, 0x00
+            };
+            using var stream = new MemoryStream(bytes, writable: false);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                XlsbRecordReader.ReadAll(stream, budget: new XlsbRecordReadBudget(1)));
+
+            Assert.Contains("BIFF12 records", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_FormulaEncoder_RejectsDeepControlFunctionNesting() {
+            string formula = "1";
+            for (int index = 0; index < 66; index++) {
+                formula = $"IF(TRUE,{formula},0)";
+            }
+
+            Assert.False(XlsbFormulaEncoder.TryEncode(
+                formula, out _, out string? reason));
+            Assert.Contains("nesting", reason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_WorkbookReader_EnforcesRowMetadataBudget() {
+            byte[] package;
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddWorksheet("Rows");
+                sheet.CellValue(1, 1, "one");
+                sheet.CellValue(2, 1, "two");
+                package = document.ToBytes(ExcelFileFormat.Xlsb);
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                XlsbWorkbookReader.Load(package,
+                    new XlsbImportOptions { MaxRowDefinitions = 1 }));
+
+            Assert.Contains("row definitions", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

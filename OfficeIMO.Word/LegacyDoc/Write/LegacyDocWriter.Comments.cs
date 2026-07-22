@@ -252,16 +252,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             internal void BindBodyReferences(Body body, string bodyText) {
+                const int maximumCommentReferences = 100_000;
                 CommentReference[] references = body.Descendants<CommentReference>().ToArray();
-                int[] markerPositions = bodyText
-                    .Select((character, index) => new { character, index })
-                    .Where(item => item.character == LegacyDocCommentReader.CommentReferenceCharacter)
-                    .Select(item => item.index)
-                    .ToArray();
-                if (references.Length != markerPositions.Length) {
+                if (references.Length > maximumCommentReferences) {
+                    throw new NotSupportedException(
+                        $"Native DOC saving supports at most {maximumCommentReferences} comment references.");
+                }
+
+                var markerPositions = new List<int>(references.Length);
+                for (int index = 0; index < bodyText.Length; index++) {
+                    if (bodyText[index] == LegacyDocCommentReader.CommentReferenceCharacter) {
+                        markerPositions.Add(index);
+                    }
+                }
+                if (references.Length != markerPositions.Count) {
                     throw new NotSupportedException(
                         "Native DOC saving could not match body comment-reference elements to encoded comment markers.");
                 }
+
+                IReadOnlyDictionary<string, int> rangeStartCounts = CountCommentMarkers(
+                    body.Descendants<CommentRangeStart>().Select(marker => marker.Id?.Value));
+                IReadOnlyDictionary<string, int> rangeEndCounts = CountCommentMarkers(
+                    body.Descendants<CommentRangeEnd>().Select(marker => marker.Id?.Value));
 
                 var referencedIds = new HashSet<string>(StringComparer.Ordinal);
                 for (int index = 0; index < references.Length; index++) {
@@ -276,10 +288,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             $"Native DOC saving currently supports one body reference per comment id. Duplicate reference id '{id}' was found.");
                     }
 
-                    int rangeStartCount = body.Descendants<CommentRangeStart>()
-                        .Count(marker => string.Equals(marker.Id?.Value, id, StringComparison.Ordinal));
-                    int rangeEndCount = body.Descendants<CommentRangeEnd>()
-                        .Count(marker => string.Equals(marker.Id?.Value, id, StringComparison.Ordinal));
+                    int rangeStartCount = rangeStartCounts.TryGetValue(id!, out int starts) ? starts : 0;
+                    int rangeEndCount = rangeEndCounts.TryGetValue(id!, out int ends) ? ends : 0;
                     if (rangeStartCount != 1 || rangeEndCount != 1) {
                         throw new NotSupportedException(
                             $"Native DOC saving supports comment id '{id}' only with one matching range start and range end in the body.");
@@ -293,6 +303,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException($"Native DOC saving cannot write unreferenced comment id '{id}'.");
                     }
                 }
+            }
+
+            private static IReadOnlyDictionary<string, int> CountCommentMarkers(
+                IEnumerable<string?> markerIds) {
+                var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (string? markerId in markerIds) {
+                    if (string.IsNullOrWhiteSpace(markerId)) continue;
+                    counts[markerId!] = counts.TryGetValue(markerId!, out int count)
+                        ? checked(count + 1)
+                        : 1;
+                }
+                return counts;
             }
 
             internal LegacyDocWritableCommentStories CreateStories() {
