@@ -5,6 +5,7 @@ using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelRangeVisualSnapshotBuilder {
+        private const int MaxSparklineDataCells = 100_000;
         internal static ExcelRangeVisualSnapshot Build(ExcelSheet sheet, string range, ExcelImageExportOptions options, IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null) {
             if (sheet == null) {
                 throw new ArgumentNullException(nameof(sheet));
@@ -16,6 +17,22 @@ namespace OfficeIMO.Excel {
 
             if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 throw new ArgumentException("Range must be a valid A1 range.", nameof(range));
+            }
+
+            if (options.MaximumRenderedCells <= 0) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options),
+                    options.MaximumRenderedCells,
+                    "MaximumRenderedCells must be greater than zero.");
+            }
+
+            long rowCount = (long)lastRow - firstRow + 1L;
+            long columnCount = (long)lastColumn - firstColumn + 1L;
+            if (rowCount <= 0L || columnCount <= 0L || rowCount > options.MaximumRenderedCells / columnCount) {
+                throw new InvalidOperationException(
+                    "The requested Excel visual range exceeds the configured limit of " +
+                    options.MaximumRenderedCells.ToString(CultureInfo.InvariantCulture) +
+                    " rendered cells.");
             }
 
             var diagnostics = initialDiagnostics == null
@@ -1012,7 +1029,14 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var visuals = new List<ExcelVisualSparkline>();
-            IReadOnlyList<ResolvedSparkline> resolvedSparklines = ResolveSparklines(sheet);
+            IReadOnlyList<ResolvedSparkline> resolvedSparklines = ResolveSparklines(
+                sheet,
+                firstRow,
+                firstColumn,
+                lastRow,
+                lastColumn,
+                columnsByIndex,
+                rowsByIndex);
             IReadOnlyDictionary<int, SparklineScaleRange> scaleRanges = ResolveSparklineScaleRanges(resolvedSparklines);
             foreach (ResolvedSparkline resolvedSparkline in resolvedSparklines) {
                 ExcelWorksheetSparklineInfo sparkline = resolvedSparkline.Info;
@@ -1092,16 +1116,42 @@ namespace OfficeIMO.Excel {
             return visuals;
         }
 
-        private static IReadOnlyList<ResolvedSparkline> ResolveSparklines(ExcelSheet sheet) {
+        private static IReadOnlyList<ResolvedSparkline> ResolveSparklines(
+            ExcelSheet sheet,
+            int firstRow,
+            int firstColumn,
+            int lastRow,
+            int lastColumn,
+            IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
+            IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex) {
             IReadOnlyList<ExcelWorksheetSparklineInfo> sparklines = ExcelWorksheetSparklineResolver.FindSparklines(sheet.WorksheetPart);
             var resolved = new List<ResolvedSparkline>(sparklines.Count);
             foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
+                if (!IsSupportedSparklineKind(sparkline.Kind) ||
+                    !TryResolveVisibleExportCell(
+                        sparkline.CellReference,
+                        firstRow,
+                        firstColumn,
+                        lastRow,
+                        lastColumn,
+                        columnsByIndex,
+                        rowsByIndex,
+                        out _)) {
+                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
+                    continue;
+                }
+
                 if (!TryResolveSparklineDataRange(sheet.Name, sparkline.Formula, out string? dataRange, out bool externalRange) || dataRange == null) {
                     resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange));
                     continue;
                 }
 
-                resolved.Add(new ResolvedSparkline(sparkline, ReadSparklineValues(sheet, dataRange), hasResolvedRange: true, externalRange: false));
+                if (!TryReadSparklineValues(sheet, dataRange, out IReadOnlyList<double> values)) {
+                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
+                    continue;
+                }
+
+                resolved.Add(new ResolvedSparkline(sparkline, values, hasResolvedRange: true, externalRange: false));
             }
 
             return resolved.AsReadOnly();
@@ -1197,32 +1247,41 @@ namespace OfficeIMO.Excel {
             return normalized;
         }
 
-        private static IReadOnlyList<double> ReadSparklineValues(ExcelSheet sheet, string dataRange) {
+        private static bool TryReadSparklineValues(ExcelSheet sheet, string dataRange, out IReadOnlyList<double> values) {
             int firstRow;
             int firstColumn;
             int lastRow;
             int lastColumn;
             if (!A1.TryParseRange(dataRange, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 if (!A1.TryParseCellReferenceFast(dataRange, out firstRow, out firstColumn)) {
-                    return Array.Empty<double>();
+                    values = Array.Empty<double>();
+                    return false;
                 }
 
                 lastRow = firstRow;
                 lastColumn = firstColumn;
             }
 
-            var values = new List<double>();
+            long rowCount = (long)lastRow - firstRow + 1L;
+            long columnCount = (long)lastColumn - firstColumn + 1L;
+            if (rowCount <= 0L || columnCount <= 0L || rowCount > MaxSparklineDataCells / columnCount) {
+                values = Array.Empty<double>();
+                return false;
+            }
+
+            var resolvedValues = new List<double>();
             for (int row = firstRow; row <= lastRow; row++) {
                 for (int column = firstColumn; column <= lastColumn; column++) {
                     ExcelCellData data = sheet.GetCellValueSnapshot(row, column);
                     if (TryConvertSparklineNumber(data.Value, out double value) ||
                         TryConvertSparklineNumber(data.CachedText, out value)) {
-                        values.Add(value);
+                        resolvedValues.Add(value);
                     }
                 }
             }
 
-            return values.AsReadOnly();
+            values = resolvedValues.AsReadOnly();
+            return true;
         }
 
         private static bool TryConvertSparklineNumber(object? value, out double number) {
@@ -1320,10 +1379,28 @@ namespace OfficeIMO.Excel {
             y = 0D;
             width = 0D;
             height = 0D;
-            if (rowIndex <= 0 || columnIndex <= 0) {
+            if (rowIndex <= 0 || columnIndex <= 0 || columnsByIndex.Count == 0 || rowsByIndex.Count == 0) {
                 return false;
             }
 
+            int lastVisibleColumn = columnsByIndex.Keys.Max();
+            int lastVisibleRow = rowsByIndex.Keys.Max();
+            if (columnIndex > lastVisibleColumn || rowIndex > lastVisibleRow ||
+                (toColumnIndex.HasValue && toColumnIndex.Value < firstColumn) ||
+                (toRowIndex.HasValue && toRowIndex.Value < firstRow) ||
+                Math.Abs((long)columnIndex - firstColumn) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                Math.Abs((long)rowIndex - firstRow) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                (toColumnIndex.HasValue && Math.Abs((long)toColumnIndex.Value - columnIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
+                (toRowIndex.HasValue && Math.Abs((long)toRowIndex.Value - rowIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells)) {
+                return false;
+            }
+
+            offsetXPixels = ExcelImageExportLimits.ClampOffsetPixels(offsetXPixels);
+            offsetYPixels = ExcelImageExportLimits.ClampOffsetPixels(offsetYPixels);
+            toOffsetXPixels = ExcelImageExportLimits.ClampOffsetPixels(toOffsetXPixels);
+            toOffsetYPixels = ExcelImageExportLimits.ClampOffsetPixels(toOffsetYPixels);
+            widthPixels = ExcelImageExportLimits.ClampExtentPixels(widthPixels);
+            heightPixels = ExcelImageExportLimits.ClampExtentPixels(heightPixels);
             x = ResolveRelativeColumnOffset(firstColumn, columnIndex, offsetXPixels, columnDefinitions, options);
             y = ResolveRelativeRowOffset(firstRow, rowIndex, offsetYPixels, rowDefinitions, defaultRowsHidden, options);
             width = ResolveImageWidth(options, firstColumn, columnDefinitions, columnIndex, offsetXPixels, widthPixels, toColumnIndex, toOffsetXPixels);

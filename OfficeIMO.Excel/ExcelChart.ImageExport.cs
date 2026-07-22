@@ -10,6 +10,8 @@ using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
+        private const double MaximumImageExportLineWidthPoints = 64D;
+
         private OfficeChartStyle? CreateImageExportStyle() {
             C.ChartSpace? chartSpace = GetChartPart().ChartSpace;
             if (chartSpace == null) {
@@ -867,7 +869,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            width = emu.Value / 12700D;
+            width = Math.Min(MaximumImageExportLineWidthPoints, emu.Value / 12700D);
             return true;
         }
 

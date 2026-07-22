@@ -302,8 +302,8 @@ namespace OfficeIMO.Excel.Utilities {
 
         private static AnchorPosition GetAnchorPosition(OpenXmlElement anchor, WorksheetPart worksheetPart) {
             if (anchor is Xdr.AbsoluteAnchor absoluteAnchor) {
-                int absoluteX = ParseEmuPixels(absoluteAnchor.Position?.X?.Value);
-                int absoluteY = ParseEmuPixels(absoluteAnchor.Position?.Y?.Value);
+                int absoluteX = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(ParseEmuPixels(absoluteAnchor.Position?.X?.Value));
+                int absoluteY = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(ParseEmuPixels(absoluteAnchor.Position?.Y?.Value));
                 ResolveAbsoluteColumn(worksheetPart, absoluteX, out int absoluteColumn, out int columnOffset);
                 ResolveAbsoluteRow(worksheetPart, absoluteY, out int absoluteRow, out int rowOffset);
                 return new AnchorPosition(
@@ -311,8 +311,8 @@ namespace OfficeIMO.Excel.Utilities {
                     absoluteColumn,
                     columnOffset,
                     rowOffset,
-                    ParseEmuPixels(absoluteAnchor.Extent?.Cx?.Value),
-                    ParseEmuPixels(absoluteAnchor.Extent?.Cy?.Value),
+                    ExcelImageExportLimits.ClampExtentPixels(ParseEmuPixels(absoluteAnchor.Extent?.Cx?.Value)),
+                    ExcelImageExportLimits.ClampExtentPixels(ParseEmuPixels(absoluteAnchor.Extent?.Cy?.Value)),
                     toColumn: null,
                     toRow: null,
                     toOffsetXPixels: 0,
@@ -327,16 +327,16 @@ namespace OfficeIMO.Excel.Utilities {
             Xdr.MarkerType? toMarker = anchor is Xdr.TwoCellAnchor twoCell ? twoCell.ToMarker : null;
             Xdr.Extent? extent = anchor is Xdr.OneCellAnchor oneCell ? oneCell.Extent : null;
 
-            int row = ParseOneBasedMarker(fromMarker?.RowId?.Text);
-            int column = ParseOneBasedMarker(fromMarker?.ColumnId?.Text);
-            int offsetX = ParseEmuPixels(fromMarker?.ColumnOffset?.Text);
-            int offsetY = ParseEmuPixels(fromMarker?.RowOffset?.Text);
-            int? toRow = ParseOneBasedMarkerOrNull(toMarker?.RowId?.Text);
-            int? toColumn = ParseOneBasedMarkerOrNull(toMarker?.ColumnId?.Text);
-            int toOffsetX = ParseEmuPixels(toMarker?.ColumnOffset?.Text);
-            int toOffsetY = ParseEmuPixels(toMarker?.RowOffset?.Text);
-            int width = ParseEmuPixels(extent?.Cx?.Value);
-            int height = ParseEmuPixels(extent?.Cy?.Value);
+            int row = ParseOneBasedMarker(fromMarker?.RowId?.Text, 1048576);
+            int column = ParseOneBasedMarker(fromMarker?.ColumnId?.Text, 16384);
+            int offsetX = ExcelImageExportLimits.ClampOffsetPixels(ParseEmuPixels(fromMarker?.ColumnOffset?.Text));
+            int offsetY = ExcelImageExportLimits.ClampOffsetPixels(ParseEmuPixels(fromMarker?.RowOffset?.Text));
+            int? toRow = ParseOneBasedMarkerOrNull(toMarker?.RowId?.Text, 1048576);
+            int? toColumn = ParseOneBasedMarkerOrNull(toMarker?.ColumnId?.Text, 16384);
+            int toOffsetX = ExcelImageExportLimits.ClampOffsetPixels(ParseEmuPixels(toMarker?.ColumnOffset?.Text));
+            int toOffsetY = ExcelImageExportLimits.ClampOffsetPixels(ParseEmuPixels(toMarker?.RowOffset?.Text));
+            int width = ExcelImageExportLimits.ClampExtentPixels(ParseEmuPixels(extent?.Cx?.Value));
+            int height = ExcelImageExportLimits.ClampExtentPixels(ParseEmuPixels(extent?.Cy?.Value));
             if (anchor is Xdr.TwoCellAnchor && toColumn.HasValue && toRow.HasValue) {
                 width = ResolveTwoCellWidthPixels(worksheetPart, column, offsetX, toColumn.Value, toOffsetX);
                 height = ResolveTwoCellHeightPixels(worksheetPart, row, offsetY, toRow.Value, toOffsetY);
@@ -346,8 +346,10 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static void ResolveAbsoluteColumn(WorksheetPart worksheetPart, int absolutePixels, out int column, out int offsetPixels) {
+            absolutePixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(absolutePixels);
             int cursor = 0;
-            for (column = 1; column < 16384; column++) {
+            int maximumColumn = Math.Min(16384, ExcelImageExportLimits.MaximumAnchorSpanCells);
+            for (column = 1; column <= maximumColumn; column++) {
                 int width = GetColumnWidthPixels(worksheetPart, column);
                 if (cursor + width >= absolutePixels) {
                     offsetPixels = Math.Max(0, absolutePixels - cursor);
@@ -357,12 +359,15 @@ namespace OfficeIMO.Excel.Utilities {
                 cursor += width;
             }
 
+            column = maximumColumn;
             offsetPixels = 0;
         }
 
         private static void ResolveAbsoluteRow(WorksheetPart worksheetPart, int absolutePixels, out int row, out int offsetPixels) {
+            absolutePixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(absolutePixels);
             int cursor = 0;
-            for (row = 1; row < 1048576; row++) {
+            int maximumRow = Math.Min(1048576, ExcelImageExportLimits.MaximumAnchorSpanCells);
+            for (row = 1; row <= maximumRow; row++) {
                 int height = GetRowHeightPixels(worksheetPart, row);
                 if (cursor + height >= absolutePixels) {
                     offsetPixels = Math.Max(0, absolutePixels - cursor);
@@ -372,33 +377,34 @@ namespace OfficeIMO.Excel.Utilities {
                 cursor += height;
             }
 
+            row = maximumRow;
             offsetPixels = 0;
         }
 
         private static int ResolveTwoCellWidthPixels(WorksheetPart worksheetPart, int fromColumn, int fromOffsetPixels, int toColumn, int toOffsetPixels) {
-            if (fromColumn <= 0 || toColumn <= 0 || toColumn < fromColumn) {
+            if (!ExcelImageExportLimits.IsValidMarkerSpan(fromColumn - 1, toColumn - 1, 16384)) {
                 return 0;
             }
 
-            int pixels = -fromOffsetPixels + toOffsetPixels;
+            long pixels = -(long)fromOffsetPixels + toOffsetPixels;
             for (int column = fromColumn; column < toColumn; column++) {
                 pixels += GetColumnWidthPixels(worksheetPart, column);
             }
 
-            return Math.Max(0, pixels);
+            return ExcelImageExportLimits.ClampExtentPixels((int)Math.Max(0L, Math.Min(int.MaxValue, pixels)));
         }
 
         private static int ResolveTwoCellHeightPixels(WorksheetPart worksheetPart, int fromRow, int fromOffsetPixels, int toRow, int toOffsetPixels) {
-            if (fromRow <= 0 || toRow <= 0 || toRow < fromRow) {
+            if (!ExcelImageExportLimits.IsValidMarkerSpan(fromRow - 1, toRow - 1, 1048576)) {
                 return 0;
             }
 
-            int pixels = -fromOffsetPixels + toOffsetPixels;
+            long pixels = -(long)fromOffsetPixels + toOffsetPixels;
             for (int row = fromRow; row < toRow; row++) {
                 pixels += GetRowHeightPixels(worksheetPart, row);
             }
 
-            return Math.Max(0, pixels);
+            return ExcelImageExportLimits.ClampExtentPixels((int)Math.Max(0L, Math.Min(int.MaxValue, pixels)));
         }
 
         private static int GetColumnWidthPixels(WorksheetPart worksheetPart, int columnIndex) {
@@ -778,19 +784,28 @@ namespace OfficeIMO.Excel.Utilities {
         private static string? NormalizeFontFamily(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
 
-        private static int ParseOneBasedMarker(string? value) =>
-            int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 0;
+        private static int ParseOneBasedMarker(string? value, int maximum) =>
+            int.TryParse(value, out int zeroBased) && zeroBased >= 0 && zeroBased < maximum ? zeroBased + 1 : 0;
 
-        private static int? ParseOneBasedMarkerOrNull(string? value) {
-            int parsed = ParseOneBasedMarker(value);
+        private static int? ParseOneBasedMarkerOrNull(string? value, int maximum) {
+            int parsed = ParseOneBasedMarker(value, maximum);
             return parsed > 0 ? parsed : null;
         }
 
         private static int ParseEmuPixels(string? value) =>
-            long.TryParse(value, out long emus) ? Math.Max(0, (int)Math.Round(emus / EmusPerPixel)) : 0;
+            long.TryParse(value, out long emus) ? ConvertEmuToPixels(emus) : 0;
 
         private static int ParseEmuPixels(long? value) =>
-            value.HasValue ? Math.Max(0, (int)Math.Round(value.Value / EmusPerPixel)) : 0;
+            value.HasValue ? ConvertEmuToPixels(value.Value) : 0;
+
+        private static int ConvertEmuToPixels(long emus) {
+            double pixels = Math.Round(emus / EmusPerPixel);
+            if (pixels <= 0D) {
+                return 0;
+            }
+
+            return pixels >= int.MaxValue ? int.MaxValue : (int)pixels;
+        }
 
         private readonly struct AnchorPosition {
             internal AnchorPosition(

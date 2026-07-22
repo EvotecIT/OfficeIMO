@@ -10,6 +10,42 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvDocumentBasicsTests
 {
     [Fact]
+    public void Quoted_Field_Delimiters_Do_Not_Inflate_Field_Allocation()
+    {
+        string value = new string(',', 100_000);
+
+        CsvDocument parsed = CsvDocument.Parse(
+            "\"" + value + "\"\n",
+            new CsvLoadOptions { HasHeaderRow = false });
+
+        Assert.Equal(value, parsed.AsEnumerable().Single().AsString("Column1"));
+    }
+
+    [Fact]
+    public void Multiline_Quoted_Record_Is_Parsed_Without_Reparsing_Each_Prefix()
+    {
+        string value = string.Join("\n", Enumerable.Repeat("payload", 5_000));
+
+        CsvDocument parsed = CsvDocument.Parse(
+            "\"" + value + "\",done\n",
+            new CsvLoadOptions { HasHeaderRow = false });
+
+        CsvRow row = parsed.AsEnumerable().Single();
+        Assert.Equal(value, row.AsString("Column1"));
+        Assert.Equal("done", row.AsString("Column2"));
+    }
+
+    [Fact]
+    public void Unterminated_Multiline_Quote_Fails_After_A_Single_Forward_Scan()
+    {
+        string value = "\"" + string.Join("\n", Enumerable.Repeat("payload", 5_000));
+
+        Assert.Throws<CsvParseException>(() => CsvDocument.Parse(
+            value,
+            new CsvLoadOptions { HasHeaderRow = false }));
+    }
+
+    [Fact]
     public void RoundTrip_ToString_ParsesBack()
     {
         var doc = new CsvDocument()

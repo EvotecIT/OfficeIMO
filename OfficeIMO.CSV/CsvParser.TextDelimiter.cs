@@ -115,7 +115,9 @@ internal static partial class CsvParser
                 {
                     var logicalRecord = new StringBuilder(line);
                     var pendingSeparator = lineSeparator;
-                    while (true)
+                    var inQuotes = false;
+                    UpdateQuotedRecordState(line, ref inQuotes);
+                    while (inQuotes)
                     {
                         ThrowIfCancellationRequested(options);
                         var next = lineReader.ReadLine(out var nextSeparator);
@@ -127,13 +129,13 @@ internal static partial class CsvParser
                         logicalRecord.Append(pendingSeparator);
                         logicalRecord.Append(next);
                         lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
-                        {
-                            break;
-                        }
-
+                        UpdateQuotedRecordState(next, ref inQuotes);
                         pendingSeparator = nextSeparator;
+                    }
+
+                    if (!TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
+                    {
+                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
                     }
                 }
             }
@@ -193,6 +195,7 @@ internal static partial class CsvParser
         var inQuotes = false;
         var fieldWasQuoted = false;
         var afterClosingQuote = false;
+        var bufferIsWhitespaceOnly = true;
 
         for (var i = 0; i < text.Length; i++)
         {
@@ -206,6 +209,7 @@ internal static partial class CsvParser
                     {
                         i++;
                         buffer.Append('"');
+                        bufferIsWhitespaceOnly = false;
                     }
                     else
                     {
@@ -216,6 +220,10 @@ internal static partial class CsvParser
                 else
                 {
                     buffer.Append(c);
+                    if (!char.IsWhiteSpace(c))
+                    {
+                        bufferIsWhitespaceOnly = false;
+                    }
                 }
 
                 continue;
@@ -224,6 +232,7 @@ internal static partial class CsvParser
             if (StartsWithDelimiter(text, delimiter, i))
             {
                 AddQuotedField(parsedFields, buffer, trim, ref fieldWasQuoted);
+                bufferIsWhitespaceOnly = true;
                 afterClosingQuote = false;
                 i += delimiter.Length - 1;
                 continue;
@@ -239,11 +248,12 @@ internal static partial class CsvParser
                     }
 
                     buffer.Append(c);
+                    bufferIsWhitespaceOnly = false;
                     afterClosingQuote = false;
                     continue;
                 }
 
-                if (trim && IsWhitespaceOnly(buffer))
+                if (trim && bufferIsWhitespaceOnly)
                 {
                     buffer.Clear();
                 }
@@ -265,6 +275,10 @@ internal static partial class CsvParser
 
             afterClosingQuote = false;
             buffer.Append(c);
+            if (!char.IsWhiteSpace(c))
+            {
+                bufferIsWhitespaceOnly = false;
+            }
         }
 
         if (inQuotes)
@@ -305,28 +319,25 @@ internal static partial class CsvParser
             return true;
         }
 
-        var logicalRecord = new StringBuilder(firstLine);
-        var pendingSeparator = firstLineSeparator;
         var continuationCount = 0;
+        var inQuotes = false;
+        UpdateQuotedRecordState(firstLine, ref inQuotes);
         while (true)
         {
             ThrowIfCancellationRequested(options);
-            var next = reader.ReadLine(out var nextSeparator);
+            var next = reader.ReadLine(out _);
             if (next == null)
             {
                 return true;
             }
 
             continuationCount++;
-            logicalRecord.Append(pendingSeparator);
-            logicalRecord.Append(next);
-            if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes: false, lineNumber, out _))
+            UpdateQuotedRecordState(next, ref inQuotes);
+            if (!inQuotes)
             {
                 lineNumber += continuationCount;
                 return true;
             }
-
-            pendingSeparator = nextSeparator;
         }
     }
 

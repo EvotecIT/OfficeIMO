@@ -267,6 +267,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1 1/4", ExcelNumberFormatDisplay.FormatNumericText(1.25D, 12U, null, "1.25"));
             Assert.Equal("-1/2", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 12U, null, "-0.5"));
             Assert.Equal("1/10", ExcelNumberFormatDisplay.FormatNumericText(0.1D, 13U, null, "0.1"));
+            Assert.Equal("1/2", ExcelNumberFormatDisplay.FormatNumericText(0.5D, 1U, "# ?/2", "0.5"));
+            Assert.Equal("1073741824/2147483647", ExcelNumberFormatDisplay.FormatNumericText(0.5D, 1U, "# ?/2147483647", "0.5"));
             Assert.Equal("(1/2)", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 1U, "# ?/?;(# ?/?)", "-0.5"));
             Assert.Equal("1,235", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,", "1234567"));
             Assert.Equal("1 K", ExcelNumberFormatDisplay.FormatNumericText(1234D, 1U, "#,##0, \"K\"", "1234"));
@@ -831,6 +833,41 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FFFF0000", snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FillColorArgb);
                 Assert.Equal("FFFFFF00", snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);
                 Assert.Equal("FF00FF00", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FillColorArgb);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsPercentileColorScaleMiddleStop() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("PercentileColor");
+                int[] values = { 0, 10, 15, 20, 100 };
+                for (int row = 1; row <= values.Length; row++) {
+                    sheet.CellValue(row, 1, values[row - 1]);
+                }
+
+                sheet.AddConditionalColorScale("A1:A5", OfficeColor.Red, OfficeColor.Green);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                ColorScale colorScale = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<ColorScale>()!;
+                colorScale.RemoveAllChildren<ConditionalFormatValueObject>();
+                colorScale.RemoveAllChildren<X.Color>();
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Percentile, Val = "50" });
+                colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
+                colorScale.Append(new X.Color { Rgb = "FFFF0000" });
+                colorScale.Append(new X.Color { Rgb = "FFFFFF00" });
+                colorScale.Append(new X.Color { Rgb = "FF00FF00" });
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelRangeVisualSnapshot snapshot = document.Sheets.Single().Range("A1:A5").CreateVisualSnapshot();
+
+                Assert.Equal("FFFFFF00", snapshot.Cells.Single(cell => cell.Row == 3).Style.FillColorArgb);
             }
         }
 
@@ -2821,6 +2858,30 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(220D, visualChart.Width);
                 Assert.Equal(120D, visualChart.Height);
             }
+        }
+
+        [Fact]
+        public void ExcelWorksheet_ImageExportRejectsDrawingExpandedRangesBeforeMaterialization() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("BoundedDrawingRange");
+                sheet.CellValue(1, 1, "Category");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "Item");
+                sheet.CellValue(2, 2, 1);
+                sheet.AddChartFromRange("A1:B2", row: 1, column: 3, widthPixels: 240, heightPixels: 140, type: ExcelChartType.ColumnClustered);
+                document.Save();
+            }
+
+            MoveFirstChartToAbsoluteAnchor(filePath, xPixels: 1_000_000, yPixels: 1_000_000, widthPixels: 1_000_000, heightPixels: 1_000_000);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+                loaded.Sheets.Single().ExportImage(
+                    OfficeImageExportFormat.Png,
+                    new ExcelWorksheetImageExportOptions { ShowGridlines = false }));
+
+            Assert.Contains("100000 rendered cells", error.Message, StringComparison.Ordinal);
         }
 
         [Fact]

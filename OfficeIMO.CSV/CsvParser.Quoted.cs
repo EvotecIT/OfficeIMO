@@ -42,6 +42,7 @@ internal static partial class CsvParser
         var inQuotes = false;
         var fieldWasQuoted = false;
         var afterClosingQuote = false;
+        var bufferIsWhitespaceOnly = true;
 
         for (var i = 0; i < text.Length; i++)
         {
@@ -55,6 +56,7 @@ internal static partial class CsvParser
                     {
                         i++;
                         buffer.Append('"');
+                        bufferIsWhitespaceOnly = false;
                     }
                     else
                     {
@@ -65,6 +67,10 @@ internal static partial class CsvParser
                 else
                 {
                     buffer.Append(c);
+                    if (!char.IsWhiteSpace(c))
+                    {
+                        bufferIsWhitespaceOnly = false;
+                    }
                 }
 
                 continue;
@@ -75,11 +81,12 @@ internal static partial class CsvParser
                 if (afterClosingQuote)
                 {
                     buffer.Append(c);
+                    bufferIsWhitespaceOnly = false;
                     afterClosingQuote = false;
                     continue;
                 }
 
-                if (trim && IsWhitespaceOnly(buffer))
+                if (trim && bufferIsWhitespaceOnly)
                 {
                     buffer.Clear();
                 }
@@ -92,6 +99,7 @@ internal static partial class CsvParser
             if (c == delimiter)
             {
                 AddQuotedField(parsedFields, buffer, trim, ref fieldWasQuoted);
+                bufferIsWhitespaceOnly = true;
                 afterClosingQuote = false;
                 continue;
             }
@@ -103,6 +111,10 @@ internal static partial class CsvParser
 
             afterClosingQuote = false;
             buffer.Append(c);
+            if (!char.IsWhiteSpace(c))
+            {
+                bufferIsWhitespaceOnly = false;
+            }
         }
 
         if (inQuotes)
@@ -144,12 +156,114 @@ internal static partial class CsvParser
     private static bool TryParseQuotedRecordLenient(string text, char delimiter, bool trim, List<string> fields) =>
         TryParseQuotedRecord(text, delimiter, trim, strictQuotes: false, lineNumber: 0, fields);
 
+    private static bool TryParseQuotedRecordWithContinuations(
+        CsvLineReader reader,
+        Queue<CsvLine> pendingLines,
+        string firstLine,
+        string firstLineSeparator,
+        char delimiter,
+        bool trim,
+        bool strictQuotes,
+        CsvLoadOptions options,
+        ref int lineNumber,
+        out string[] fields)
+    {
+        if (TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes, lineNumber, out fields))
+        {
+            return true;
+        }
+
+        var logicalRecord = new StringBuilder(firstLine);
+        var pendingSeparator = firstLineSeparator;
+        var inQuotes = false;
+        UpdateQuotedRecordState(firstLine, ref inQuotes);
+        while (inQuotes)
+        {
+            ThrowIfCancellationRequested(options);
+            var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
+            if (next == null)
+            {
+                fields = Array.Empty<string>();
+                return false;
+            }
+
+            logicalRecord.Append(pendingSeparator);
+            logicalRecord.Append(next);
+            lineNumber++;
+            UpdateQuotedRecordState(next, ref inQuotes);
+            pendingSeparator = nextSeparator;
+        }
+
+        return TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields);
+    }
+
+    private static bool TryParseQuotedRecordWithContinuations(
+        CsvLineReader reader,
+        Queue<CsvLine> pendingLines,
+        string firstLine,
+        string firstLineSeparator,
+        char delimiter,
+        bool trim,
+        bool strictQuotes,
+        CsvLoadOptions options,
+        ref int lineNumber,
+        List<string> fields)
+    {
+        if (TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes, lineNumber, fields))
+        {
+            return true;
+        }
+
+        var logicalRecord = new StringBuilder(firstLine);
+        var pendingSeparator = firstLineSeparator;
+        var inQuotes = false;
+        UpdateQuotedRecordState(firstLine, ref inQuotes);
+        while (inQuotes)
+        {
+            ThrowIfCancellationRequested(options);
+            var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
+            if (next == null)
+            {
+                fields.Clear();
+                return false;
+            }
+
+            logicalRecord.Append(pendingSeparator);
+            logicalRecord.Append(next);
+            lineNumber++;
+            UpdateQuotedRecordState(next, ref inQuotes);
+            pendingSeparator = nextSeparator;
+        }
+
+        return TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, fields);
+    }
+
+    private static void UpdateQuotedRecordState(string text, ref bool inQuotes)
+    {
+        for (var index = 0; index < text.Length; index++)
+        {
+            if (text[index] != '"')
+            {
+                continue;
+            }
+
+            if (inQuotes && index + 1 < text.Length && text[index + 1] == '"')
+            {
+                index++;
+                continue;
+            }
+
+            inQuotes = !inQuotes;
+        }
+    }
+
     private static bool TryParseFlexibleQuotedRecord(string text, char delimiter, bool trim, List<string> parsedFields)
     {
         var buffer = new StringBuilder();
         var inQuotes = false;
         var fieldWasQuoted = false;
         var afterClosingQuote = false;
+        var bufferIsWhitespaceOnly = true;
 
         for (var i = 0; i < text.Length; i++)
         {
@@ -163,6 +277,7 @@ internal static partial class CsvParser
                     {
                         i++;
                         buffer.Append('"');
+                        bufferIsWhitespaceOnly = false;
                     }
                     else
                     {
@@ -173,6 +288,10 @@ internal static partial class CsvParser
                 else
                 {
                     buffer.Append(c);
+                    if (!char.IsWhiteSpace(c))
+                    {
+                        bufferIsWhitespaceOnly = false;
+                    }
                 }
 
                 continue;
@@ -183,11 +302,12 @@ internal static partial class CsvParser
                 if (afterClosingQuote)
                 {
                     buffer.Append(c);
+                    bufferIsWhitespaceOnly = false;
                     afterClosingQuote = false;
                     continue;
                 }
 
-                if (trim && IsWhitespaceOnly(buffer))
+                if (trim && bufferIsWhitespaceOnly)
                 {
                     buffer.Clear();
                 }
@@ -200,6 +320,7 @@ internal static partial class CsvParser
             if (c == delimiter)
             {
                 AddQuotedField(parsedFields, buffer, trim, ref fieldWasQuoted);
+                bufferIsWhitespaceOnly = true;
                 afterClosingQuote = false;
                 continue;
             }
@@ -211,6 +332,10 @@ internal static partial class CsvParser
 
             afterClosingQuote = false;
             buffer.Append(c);
+            if (!char.IsWhiteSpace(c))
+            {
+                bufferIsWhitespaceOnly = false;
+            }
         }
 
         if (inQuotes)
@@ -492,12 +617,13 @@ internal static partial class CsvParser
         var inQuotes = false;
         var fieldWasQuoted = false;
         var afterClosingQuote = false;
+        var bufferIsWhitespaceOnly = true;
         var line = firstLine;
         var lineSeparator = firstLineSeparator;
 
         while (true)
         {
-            ParseQuotedLineSegment(line, delimiter, trim, parsedFields, buffer, ref inQuotes, ref fieldWasQuoted, ref afterClosingQuote);
+            ParseQuotedLineSegment(line, delimiter, trim, parsedFields, buffer, ref inQuotes, ref fieldWasQuoted, ref afterClosingQuote, ref bufferIsWhitespaceOnly);
             if (!inQuotes)
             {
                 AddQuotedField(parsedFields, buffer, trim, ref fieldWasQuoted);
@@ -525,7 +651,8 @@ internal static partial class CsvParser
         StringBuilder buffer,
         ref bool inQuotes,
         ref bool fieldWasQuoted,
-        ref bool afterClosingQuote)
+        ref bool afterClosingQuote,
+        ref bool bufferIsWhitespaceOnly)
     {
         for (var i = 0; i < text.Length; i++)
         {
@@ -539,6 +666,7 @@ internal static partial class CsvParser
                     {
                         i++;
                         buffer.Append('"');
+                        bufferIsWhitespaceOnly = false;
                     }
                     else
                     {
@@ -549,6 +677,10 @@ internal static partial class CsvParser
                 else
                 {
                     buffer.Append(c);
+                    if (!char.IsWhiteSpace(c))
+                    {
+                        bufferIsWhitespaceOnly = false;
+                    }
                 }
 
                 continue;
@@ -559,11 +691,12 @@ internal static partial class CsvParser
                 if (afterClosingQuote)
                 {
                     buffer.Append(c);
+                    bufferIsWhitespaceOnly = false;
                     afterClosingQuote = false;
                     continue;
                 }
 
-                if (trim && IsWhitespaceOnly(buffer))
+                if (trim && bufferIsWhitespaceOnly)
                 {
                     buffer.Clear();
                 }
@@ -576,6 +709,7 @@ internal static partial class CsvParser
             if (c == delimiter)
             {
                 AddQuotedField(parsedFields, buffer, trim, ref fieldWasQuoted);
+                bufferIsWhitespaceOnly = true;
                 afterClosingQuote = false;
                 continue;
             }
@@ -587,6 +721,10 @@ internal static partial class CsvParser
 
             afterClosingQuote = false;
             buffer.Append(c);
+            if (!char.IsWhiteSpace(c))
+            {
+                bufferIsWhitespaceOnly = false;
+            }
         }
     }
 #endif
@@ -861,19 +999,6 @@ internal static partial class CsvParser
     }
 #endif
 
-    private static bool IsWhitespaceOnly(StringBuilder buffer)
-    {
-        for (var i = 0; i < buffer.Length; i++)
-        {
-            if (!char.IsWhiteSpace(buffer[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private static bool TryParseStrictQuotedRecord(string text, char delimiter, bool trim, out string[] fields)
     {
         if (text.Length == 0)
@@ -883,9 +1008,14 @@ internal static partial class CsvParser
         }
 
         var fieldCount = 1;
+        var inQuotes = false;
         for (var i = 0; i < text.Length; i++)
         {
-            if (text[i] == delimiter)
+            if (text[i] == '"')
+            {
+                inQuotes = !inQuotes;
+            }
+            else if (text[i] == delimiter && !inQuotes)
             {
                 fieldCount++;
             }

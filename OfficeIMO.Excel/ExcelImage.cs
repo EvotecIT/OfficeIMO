@@ -143,10 +143,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            xPixels = EmuOffsetToPx(absoluteAnchor.Position?.X?.Value ?? 0L);
-            yPixels = EmuOffsetToPx(absoluteAnchor.Position?.Y?.Value ?? 0L);
-            widthPixels = EmuToPx(absoluteAnchor.Extent?.Cx?.Value ?? 0L);
-            heightPixels = EmuToPx(absoluteAnchor.Extent?.Cy?.Value ?? 0L);
+            xPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPx(absoluteAnchor.Position?.X?.Value ?? 0L));
+            yPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPx(absoluteAnchor.Position?.Y?.Value ?? 0L));
+            widthPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPx(absoluteAnchor.Extent?.Cx?.Value ?? 0L));
+            heightPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPx(absoluteAnchor.Extent?.Cy?.Value ?? 0L));
             if (widthPixels <= 0 || heightPixels <= 0) {
                 widthPixels = WidthPixels;
                 heightPixels = HeightPixels;
@@ -568,10 +568,16 @@ namespace OfficeIMO.Excel {
                 return 0;
             }
 
-            return (int)Math.Max(1, Math.Round(emu / 9525.0));
+            double pixels = Math.Max(1D, Math.Round(emu / 9525.0));
+            return ExcelImageExportLimits.ClampExtentPixels(pixels >= int.MaxValue ? int.MaxValue : (int)pixels);
         }
 
-        private static int EmuOffsetToPx(long emu) => (int)Math.Round(emu / 9525.0);
+        private static int EmuOffsetToPx(long emu) {
+            double pixels = Math.Round(emu / 9525.0);
+            if (pixels <= -int.MaxValue) return -int.MaxValue;
+            if (pixels >= int.MaxValue) return int.MaxValue;
+            return ExcelImageExportLimits.ClampOffsetPixels((int)pixels);
+        }
 
         private static double GetCropRatio(int? percentage) {
             if (!percentage.HasValue || percentage.Value <= 0) {
@@ -610,8 +616,9 @@ namespace OfficeIMO.Excel {
             int limit,
             Func<int, int> segmentSizePixels) {
             int index = Math.Max(0, startIndex);
-            int remainingPixels = Math.Max(1, sizePixels) + EmuToPx(startOffsetEmu);
-            while (index < limit - 1) {
+            int remainingPixels = ExcelImageExportLimits.SaturatingAddExtent(sizePixels, EmuToPx(startOffsetEmu));
+            int maximumIndex = Math.Min(limit - 1, index + ExcelImageExportLimits.MaximumAnchorSpanCells);
+            while (index < maximumIndex) {
                 int segmentPixels = Math.Max(1, segmentSizePixels(index));
                 if (remainingPixels < segmentPixels) {
                     break;
@@ -789,6 +796,11 @@ namespace OfficeIMO.Excel {
             int to = horizontal
                 ? ParseMarkerIndex(twoCellAnchor.ToMarker.ColumnId?.Text)
                 : ParseMarkerIndex(twoCellAnchor.ToMarker.RowId?.Text);
+            int maximumMarker = horizontal ? 16384 : 1048576;
+            if (!ExcelImageExportLimits.IsValidMarkerSpan(from, to, maximumMarker)) {
+                return false;
+            }
+
             long fromOffset = ParseMarkerOffset(horizontal
                 ? twoCellAnchor.FromMarker.ColumnOffset?.Text
                 : twoCellAnchor.FromMarker.RowOffset?.Text);
@@ -802,15 +814,15 @@ namespace OfficeIMO.Excel {
 
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
             double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
-            int basePixels = 0;
+            long basePixels = 0L;
             for (int index = from; index < to; index++) {
                 basePixels += horizontal
                     ? GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth)
                     : GetRowHeightPixels(worksheetPart, index + 1);
             }
 
-            int offsetPixels = (int)Math.Round((toOffset - fromOffset) / 9525D);
-            int pixels = Math.Max(1, basePixels + offsetPixels);
+            int offsetPixels = EmuOffsetToPx(toOffset - fromOffset);
+            int pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, Math.Max(1L, basePixels + offsetPixels)));
             emu = PxToEmu(pixels);
             return true;
         }

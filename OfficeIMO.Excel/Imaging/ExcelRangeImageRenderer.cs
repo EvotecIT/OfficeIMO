@@ -93,6 +93,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken: cancellationToken);
             double scale = options.Scale;
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
+            Dictionary<string, ExcelVisualConditionalIcon> conditionalIcons = BuildConditionalIconMap(snapshot.ConditionalIcons);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
@@ -123,7 +124,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                DrawRasterCellText(canvas, cell, snapshot, options, scale, cellsByAddress, diagnostics);
+                DrawRasterCellText(canvas, cell, snapshot, options, scale, cellsByAddress, dataBars, conditionalIcons, diagnostics);
             }
 
             RenderRasterConditionalIcons(canvas, snapshot, options);
@@ -149,6 +150,7 @@ namespace OfficeIMO.Excel {
             builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
             OfficeTextMeasurer textMeasurer = OfficeTextMeasurer.Create();
             Dictionary<string, ExcelVisualConditionalDataBar> dataBars = BuildDataBarMap(snapshot.ConditionalDataBars);
+            Dictionary<string, ExcelVisualConditionalIcon> conditionalIcons = BuildConditionalIconMap(snapshot.ConditionalIcons);
             Dictionary<string, ExcelVisualCell> cellsByAddress = BuildCellMap(snapshot.Cells);
 
             foreach (ExcelVisualCell cell in snapshot.Cells) {
@@ -182,7 +184,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, diagnostics);
+                AppendSvgCellText(builder, cell, snapshot, options, textMeasurer, cellsByAddress, dataBars, conditionalIcons, diagnostics);
             }
 
             AppendSvgConditionalIcons(builder, snapshot, options);
@@ -228,6 +230,18 @@ namespace OfficeIMO.Excel {
                 string key = Key(dataBar.Row, dataBar.Column);
                 if (!resolved.ContainsKey(key)) {
                     resolved[key] = dataBar;
+                }
+            }
+
+            return resolved;
+        }
+
+        private static Dictionary<string, ExcelVisualConditionalIcon> BuildConditionalIconMap(IReadOnlyList<ExcelVisualConditionalIcon> icons) {
+            var resolved = new Dictionary<string, ExcelVisualConditionalIcon>(StringComparer.Ordinal);
+            foreach (ExcelVisualConditionalIcon icon in icons) {
+                string key = Key(icon.Row, icon.Column);
+                if (!resolved.ContainsKey(key)) {
+                    resolved[key] = icon;
                 }
             }
 

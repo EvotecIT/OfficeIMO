@@ -225,30 +225,9 @@ internal static partial class CsvParser
             string[] fields;
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
+                if (!TryParseQuotedRecordWithContinuations(lineReader, pendingLines, line, lineSeparator, delimiter, trim, strictQuotes, options, ref lineNumber, out fields))
                 {
-                    var logicalRecord = new StringBuilder(line);
-                    var pendingSeparator = lineSeparator;
-                    while (true)
-                    {
-                        ThrowIfCancellationRequested(options);
-                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                        if (next == null)
-                        {
-                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                        }
-
-                        logicalRecord.Append(pendingSeparator);
-                        logicalRecord.Append(next);
-                        lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
-                        {
-                            break;
-                        }
-
-                        pendingSeparator = nextSeparator;
-                    }
+                    throw new CsvParseException("Unterminated quoted field.", lineNumber);
                 }
             }
             catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
@@ -333,30 +312,9 @@ internal static partial class CsvParser
             string[] fields;
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
+                if (!TryParseQuotedRecordWithContinuations(lineReader, pendingLines, line, lineSeparator, delimiter, trim, strictQuotes, options, ref lineNumber, out fields))
                 {
-                    var logicalRecord = new StringBuilder(line);
-                    var pendingSeparator = lineSeparator;
-                    while (true)
-                    {
-                        ThrowIfCancellationRequested(options);
-                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                        if (next == null)
-                        {
-                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                        }
-
-                        logicalRecord.Append(pendingSeparator);
-                        logicalRecord.Append(next);
-                        lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
-                        {
-                            break;
-                        }
-
-                        pendingSeparator = nextSeparator;
-                    }
+                    throw new CsvParseException("Unterminated quoted field.", lineNumber);
                 }
             }
             catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
@@ -476,30 +434,9 @@ internal static partial class CsvParser
 
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                if (!TryParseQuotedRecordWithContinuations(lineReader, pendingLines, line, lineSeparator, delimiter, trim, strictQuotes, options, ref lineNumber, reusableQuotedRecord))
                 {
-                    var logicalRecord = new StringBuilder(line);
-                    var pendingSeparator = lineSeparator;
-                    while (true)
-                    {
-                        ThrowIfCancellationRequested(options);
-                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                        if (next == null)
-                        {
-                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                        }
-
-                        logicalRecord.Append(pendingSeparator);
-                        logicalRecord.Append(next);
-                        lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                        {
-                            break;
-                        }
-
-                        pendingSeparator = nextSeparator;
-                    }
+                    throw new CsvParseException("Unterminated quoted field.", lineNumber);
                 }
             }
             catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
@@ -619,30 +556,9 @@ internal static partial class CsvParser
 
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                if (!TryParseQuotedRecordWithContinuations(lineReader, pendingLines, line, lineSeparator, delimiter, trim, strictQuotes, options, ref lineNumber, reusableQuotedRecord))
                 {
-                    var logicalRecord = new StringBuilder(line);
-                    var pendingSeparator = lineSeparator;
-                    while (true)
-                    {
-                        ThrowIfCancellationRequested(options);
-                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                        if (next == null)
-                        {
-                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                        }
-
-                        logicalRecord.Append(pendingSeparator);
-                        logicalRecord.Append(next);
-                        lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                        {
-                            break;
-                        }
-
-                        pendingSeparator = nextSeparator;
-                    }
+                    throw new CsvParseException("Unterminated quoted field.", lineNumber);
                 }
             }
             catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
@@ -959,9 +875,9 @@ internal static partial class CsvParser
             return true;
         }
 
-        var logicalRecord = new StringBuilder(firstLine);
-        var pendingSeparator = firstLineSeparator;
         var continuations = new List<CsvLine>();
+        var inQuotes = false;
+        UpdateQuotedRecordState(firstLine, ref inQuotes);
         while (true)
         {
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
@@ -972,8 +888,8 @@ internal static partial class CsvParser
             }
 
             continuations.Add(new CsvLine(next, nextSeparator));
-            var candidate = string.Concat(logicalRecord.ToString(), pendingSeparator, next);
-            if (TryParseQuotedRecordLenient(candidate, delimiter, options.TrimWhitespace, out _))
+            UpdateQuotedRecordState(next, ref inQuotes);
+            if (!inQuotes)
             {
                 lineNumber += continuations.Count;
                 return true;
@@ -984,10 +900,6 @@ internal static partial class CsvParser
                 EnqueueContinuations(pendingLines, continuations);
                 return true;
             }
-
-            logicalRecord.Append(pendingSeparator);
-            logicalRecord.Append(next);
-            pendingSeparator = nextSeparator;
         }
     }
 

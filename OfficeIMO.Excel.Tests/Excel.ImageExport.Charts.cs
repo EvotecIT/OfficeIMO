@@ -10,6 +10,21 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportTests {
         [Fact]
+        public void ExcelChart_ImageExportClampsUntrustedLineWidths() {
+            var properties = new ChartShapeProperties(
+                new A.Outline { Width = int.MaxValue });
+            System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
+                "TryGetLineWidth",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object?[] arguments = { properties, 0D };
+
+            bool resolved = (bool)method.Invoke(null, arguments)!;
+
+            Assert.True(resolved);
+            Assert.Equal(64D, Assert.IsType<double>(arguments[1]));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesScatterSeriesCachedXYValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

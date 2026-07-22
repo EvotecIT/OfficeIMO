@@ -118,6 +118,37 @@ namespace OfficeIMO.Tests {
             Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.SparklineExternalRangeUnsupported && item.Source == "Summary!A1");
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportSkipsOffscreenSparklineDataPrefetch() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            sheet.CellValue(1, 1, 1);
+            sheet.AddSparklines("A1:A100001", "Z1000");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Sparklines);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Source == "Sparklines!Z1000");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsOversizedVisibleSparklineDataRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            sheet.CellValue(1, 1, 1);
+            sheet.AddSparklines("A1:A100001", "B1");
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Sparklines);
+            Assert.Contains(
+                snapshot.Diagnostics,
+                diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.SparklineRangeUnsupported &&
+                    diagnostic.Source == "Sparklines!B1");
+        }
+
         private static int CountBluePixels(OfficeRasterImage image) {
             int count = 0;
             for (int y = 0; y < image.Height; y++) {

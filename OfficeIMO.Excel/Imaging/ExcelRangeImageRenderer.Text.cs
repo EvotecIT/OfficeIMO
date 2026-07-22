@@ -18,17 +18,19 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             double scale,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
+            IReadOnlyDictionary<string, ExcelVisualConditionalDataBar> dataBars,
+            IReadOnlyDictionary<string, ExcelVisualConditionalIcon> conditionalIcons,
             List<OfficeImageExportDiagnostic>? diagnostics) {
             if (string.IsNullOrEmpty(cell.Text)) {
                 return;
             }
 
-            if (TryGetConditionalDataBarForCell(snapshot, cell, out ExcelVisualConditionalDataBar dataBar) && !dataBar.ShowValue) {
+            if (dataBars.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalDataBar? dataBar) && !dataBar.ShowValue) {
                 return;
             }
 
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
-            if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
+            if (conditionalIcons.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalIcon? conditionalIcon)) {
                 if (!conditionalIcon.ShowValue) {
                     return;
                 }
@@ -156,18 +158,20 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             OfficeTextMeasurer textMeasurer,
             IReadOnlyDictionary<string, ExcelVisualCell> cellsByAddress,
+            IReadOnlyDictionary<string, ExcelVisualConditionalDataBar> dataBars,
+            IReadOnlyDictionary<string, ExcelVisualConditionalIcon> conditionalIcons,
             List<OfficeImageExportDiagnostic>? diagnostics) {
             if (string.IsNullOrEmpty(cell.Text)) {
                 return;
             }
 
             double scale = options.Scale;
-            if (TryGetConditionalDataBarForCell(snapshot, cell, out ExcelVisualConditionalDataBar dataBar) && !dataBar.ShowValue) {
+            if (dataBars.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalDataBar? dataBar) && !dataBar.ShowValue) {
                 return;
             }
 
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
-            if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
+            if (conditionalIcons.TryGetValue(Key(cell.Row, cell.Column), out ExcelVisualConditionalIcon? conditionalIcon)) {
                 if (!conditionalIcon.ShowValue) {
                     return;
                 }
@@ -547,32 +551,6 @@ namespace OfficeIMO.Excel {
 
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
-        }
-
-        private static bool TryGetConditionalIconForCell(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, out ExcelVisualConditionalIcon icon) {
-            for (int index = 0; index < snapshot.ConditionalIcons.Count; index++) {
-                ExcelVisualConditionalIcon candidate = snapshot.ConditionalIcons[index];
-                if (candidate.Row == cell.Row && candidate.Column == cell.Column) {
-                    icon = candidate;
-                    return true;
-                }
-            }
-
-            icon = null!;
-            return false;
-        }
-
-        private static bool TryGetConditionalDataBarForCell(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, out ExcelVisualConditionalDataBar dataBar) {
-            for (int index = 0; index < snapshot.ConditionalDataBars.Count; index++) {
-                ExcelVisualConditionalDataBar candidate = snapshot.ConditionalDataBars[index];
-                if (candidate.Row == cell.Row && candidate.Column == cell.Column) {
-                    dataBar = candidate;
-                    return true;
-                }
-            }
-
-            dataBar = null!;
-            return false;
         }
 
         private static CellTextViewport ReserveConditionalIconTextSpace(CellTextViewport viewport, ExcelVisualConditionalIcon icon, double scale) {

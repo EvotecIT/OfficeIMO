@@ -62,10 +62,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            xPixels = EmuOffsetToPixels(absoluteAnchor.Position?.X?.Value ?? 0L);
-            yPixels = EmuOffsetToPixels(absoluteAnchor.Position?.Y?.Value ?? 0L);
-            widthPixels = EmuToPixels(absoluteAnchor.Extent?.Cx?.Value, GetAnchorWidthPixels());
-            heightPixels = EmuToPixels(absoluteAnchor.Extent?.Cy?.Value, GetAnchorHeightPixels());
+            xPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPixels(absoluteAnchor.Position?.X?.Value ?? 0L));
+            yPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPixels(absoluteAnchor.Position?.Y?.Value ?? 0L));
+            widthPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cx?.Value, GetAnchorWidthPixels()));
+            heightPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cy?.Value, GetAnchorHeightPixels()));
             return widthPixels > 0 && heightPixels > 0;
         }
 
@@ -397,13 +397,13 @@ namespace OfficeIMO.Excel {
         private int GetAnchorRow() {
             Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
                 ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
-            return ParseOneBasedMarker(marker?.RowId?.Text);
+            return ParseOneBasedMarker(marker?.RowId?.Text, 1048576);
         }
 
         private int GetAnchorColumn() {
             Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
                 ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
-            return ParseOneBasedMarker(marker?.ColumnId?.Text);
+            return ParseOneBasedMarker(marker?.ColumnId?.Text, 16384);
         }
 
         private int GetAnchorOffsetXPixels() {
@@ -467,10 +467,15 @@ namespace OfficeIMO.Excel {
 
             int from = horizontal ? ParseZeroBasedMarker(anchor.FromMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.FromMarker.RowId?.Text);
             int to = horizontal ? ParseZeroBasedMarker(anchor.ToMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.ToMarker.RowId?.Text);
+            int maximumMarker = horizontal ? 16384 : 1048576;
+            if (!ExcelImageExportLimits.IsValidMarkerSpan(from, to, maximumMarker)) {
+                return false;
+            }
+
             long fromOffset = ParseEmuOffset(horizontal ? anchor.FromMarker.ColumnOffset?.Text : anchor.FromMarker.RowOffset?.Text);
             long toOffset = ParseEmuOffset(horizontal ? anchor.ToMarker.ColumnOffset?.Text : anchor.ToMarker.RowOffset?.Text);
             double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
-            int basePixels = 0;
+            long basePixels = 0L;
             for (int index = from; index < to; index++) {
                 basePixels += horizontal
                     ? GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth)
@@ -478,7 +483,8 @@ namespace OfficeIMO.Excel {
             }
 
             int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
-            pixels = Math.Max(1, basePixels + offsetPixels);
+            long totalPixels = Math.Max(1L, basePixels + offsetPixels);
+            pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, totalPixels));
             return pixels > 1;
         }
 
@@ -552,8 +558,8 @@ namespace OfficeIMO.Excel {
             return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
         }
 
-        private static int ParseOneBasedMarker(string? value) {
-            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 1;
+        private static int ParseOneBasedMarker(string? value, int maximum) {
+            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 && zeroBased < maximum ? zeroBased + 1 : 1;
         }
 
         private static int ParseZeroBasedMarker(string? value) {
@@ -565,7 +571,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static int EmuOffsetToPixels(long emu) {
-            return (int)Math.Round(emu / 9525D);
+            double pixels = Math.Round(emu / 9525D);
+            if (pixels <= -int.MaxValue) return -int.MaxValue;
+            if (pixels >= int.MaxValue) return int.MaxValue;
+            return ExcelImageExportLimits.ClampOffsetPixels((int)pixels);
         }
 
         private static int EmuToPixels(long? emu, int fallback) {
@@ -573,7 +582,8 @@ namespace OfficeIMO.Excel {
                 return fallback;
             }
 
-            return Math.Max(1, (int)Math.Round(emu.Value / 9525D));
+            double pixels = Math.Round(emu.Value / 9525D);
+            return ExcelImageExportLimits.ClampExtentPixels(pixels >= int.MaxValue ? int.MaxValue : Math.Max(1, (int)pixels));
         }
 
         private ChartPart GetChartPart() {

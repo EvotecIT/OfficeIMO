@@ -5,6 +5,9 @@ namespace OfficeIMO.Excel {
     /// Options for dependency-free Excel range, worksheet, and workbook image export.
     /// </summary>
     public class ExcelImageExportOptions : OfficeImageExportOptions {
+        /// <summary>Default maximum number of worksheet cells materialized for one visual snapshot.</summary>
+        public const int DefaultMaximumRenderedCells = 100_000;
+
         /// <summary>
         /// Gridline color used when <see cref="ShowGridlines"/> is enabled.
         /// </summary>
@@ -66,6 +69,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public double DefaultRowHeightPixels { get; set; } = 20D;
 
+        /// <summary>
+        /// Maximum number of worksheet cells materialized for one visual snapshot.
+        /// This limit is applied before rows, columns, and cells are expanded from drawing-driven ranges.
+        /// </summary>
+        public int MaximumRenderedCells { get; set; } = DefaultMaximumRenderedCells;
+
         /// <summary>Creates an independent options snapshot.</summary>
         public ExcelImageExportOptions Clone() => CopyExcelOptionsTo(new ExcelImageExportOptions());
 
@@ -83,10 +92,16 @@ namespace OfficeIMO.Excel {
             target.ShowCommentBodies = ShowCommentBodies;
             target.DefaultColumnWidthPixels = DefaultColumnWidthPixels;
             target.DefaultRowHeightPixels = DefaultRowHeightPixels;
+            target.MaximumRenderedCells = MaximumRenderedCells;
             return target;
         }
 
-        internal void Validate() => ValidateImageExportOptions();
+        internal void Validate() {
+            ValidateImageExportOptions();
+            if (MaximumRenderedCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(MaximumRenderedCells), "Maximum rendered cells must be positive.");
+            }
+        }
     }
 
     /// <summary>
