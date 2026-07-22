@@ -89,24 +89,43 @@ namespace OfficeIMO.Excel {
             Dictionary<int, ExcelVisualRow> rowsByIndex = rows.ToDictionary(row => row.Index);
             var coveredByMerge = new HashSet<string>(StringComparer.Ordinal);
             var mergeOrigins = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
+            var fullMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
+            var boundedMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
+            long remainingMergeCellWork = options.MaximumRenderedCells;
             foreach (ExcelMergedRangeSnapshot merge in merges) {
-                double mergeWidth = 0D;
-                double mergeHeight = 0D;
-                for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
-                    if (columnsByIndex.TryGetValue(column, out ExcelVisualColumn? visualColumn)) {
-                        mergeWidth += visualColumn.Width;
-                    }
+                int visibleStartRow = Math.Max(firstRow, merge.StartRow);
+                int visibleStartColumn = Math.Max(firstColumn, merge.StartColumn);
+                int visibleEndRow = Math.Min(lastRow, merge.EndRow);
+                int visibleEndColumn = Math.Min(lastColumn, merge.EndColumn);
+                if (visibleStartRow > visibleEndRow || visibleStartColumn > visibleEndColumn) {
+                    continue;
                 }
 
-                for (int row = merge.StartRow; row <= merge.EndRow; row++) {
-                    if (rowsByIndex.TryGetValue(row, out ExcelVisualRow? visualRow)) {
-                        mergeHeight += visualRow.Height;
-                    }
+                long visibleCellCount = ((long)visibleEndRow - visibleStartRow + 1L) *
+                    ((long)visibleEndColumn - visibleStartColumn + 1L);
+                long fullCellCount = ((long)merge.EndRow - merge.StartRow + 1L) *
+                    ((long)merge.EndColumn - merge.StartColumn + 1L);
+                bool preserveFullGeometry = fullCellCount > 0L && fullCellCount <= remainingMergeCellWork;
+                long chargedWork = preserveFullGeometry ? fullCellCount : visibleCellCount;
+                if (chargedWork <= 0L || chargedWork > remainingMergeCellWork) {
+                    continue;
                 }
 
+                remainingMergeCellWork -= chargedWork;
+                boundedMergeGeometry.Add(MergeGeometryKey(merge));
+                if (preserveFullGeometry) {
+                    fullMergeGeometry.Add(MergeGeometryKey(merge));
+                }
+
+                double mergeWidth = columns
+                    .Where(column => column.Index >= visibleStartColumn && column.Index <= visibleEndColumn)
+                    .Sum(column => column.Width);
+                double mergeHeight = rows
+                    .Where(row => row.Index >= visibleStartRow && row.Index <= visibleEndRow)
+                    .Sum(row => row.Height);
                 mergeOrigins[Key(merge.StartRow, merge.StartColumn)] = (mergeWidth, mergeHeight);
-                for (int row = merge.StartRow; row <= merge.EndRow; row++) {
-                    for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
+                for (int row = visibleStartRow; row <= visibleEndRow; row++) {
+                    for (int column = visibleStartColumn; column <= visibleEndColumn; column++) {
                         if (row != merge.StartRow || column != merge.StartColumn) {
                             coveredByMerge.Add(Key(row, column));
                         }
@@ -169,7 +188,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
+            AddIntersectingMergeOriginCells(sheet, options, firstRow, firstColumn, lastRow, lastColumn, merges, boundedMergeGeometry, fullMergeGeometry, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, hyperlinkMap, cells);
 
             ExcelConditionalVisualState conditionalVisuals = options.IncludeConditionalFormatting
                 ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, options.ConditionalFormattingDate ?? DateTime.Today, diagnostics)
@@ -280,6 +299,8 @@ namespace OfficeIMO.Excel {
             int lastRow,
             int lastColumn,
             IReadOnlyList<ExcelMergedRangeSnapshot> merges,
+            ISet<string> boundedMergeGeometry,
+            ISet<string> fullMergeGeometry,
             IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
             bool defaultRowsHidden,
             IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
@@ -288,6 +309,10 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinkMap,
             List<ExcelVisualCell> cells) {
             foreach (ExcelMergedRangeSnapshot merge in merges) {
+                if (!boundedMergeGeometry.Contains(MergeGeometryKey(merge))) {
+                    continue;
+                }
+
                 if (merge.StartRow >= firstRow &&
                     merge.StartRow <= lastRow &&
                     merge.StartColumn >= firstColumn &&
@@ -297,22 +322,47 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                double width = 0D;
-                for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
-                    width += ResolveVisibleColumnWidth(column, columnDefinitions, options);
-                }
+                bool preserveFullGeometry = fullMergeGeometry.Contains(MergeGeometryKey(merge));
+                double width;
+                double height;
+                double x;
+                double y;
+                if (preserveFullGeometry) {
+                    width = 0D;
+                    for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
+                        width += ResolveVisibleColumnWidth(column, columnDefinitions, options);
+                    }
 
-                double height = 0D;
-                for (int row = merge.StartRow; row <= merge.EndRow; row++) {
-                    height += ResolveVisibleRowHeight(row, rowDefinitions, defaultRowsHidden, options);
+                    height = 0D;
+                    for (int row = merge.StartRow; row <= merge.EndRow; row++) {
+                        height += ResolveVisibleRowHeight(row, rowDefinitions, defaultRowsHidden, options);
+                    }
+
+                    x = ResolveRelativeColumnOffset(firstColumn, merge.StartColumn, 0, columnDefinitions, options);
+                    y = ResolveRelativeRowOffset(firstRow, merge.StartRow, 0, rowDefinitions, defaultRowsHidden, options);
+                } else {
+                    ExcelVisualColumn[] visibleColumns = columnsByIndex.Values
+                        .Where(column => column.Index >= Math.Max(firstColumn, merge.StartColumn) && column.Index <= Math.Min(lastColumn, merge.EndColumn))
+                        .OrderBy(column => column.Index)
+                        .ToArray();
+                    ExcelVisualRow[] visibleRows = rowsByIndex.Values
+                        .Where(row => row.Index >= Math.Max(firstRow, merge.StartRow) && row.Index <= Math.Min(lastRow, merge.EndRow))
+                        .OrderBy(row => row.Index)
+                        .ToArray();
+                    if (visibleColumns.Length == 0 || visibleRows.Length == 0) {
+                        continue;
+                    }
+
+                    width = visibleColumns.Sum(column => column.Width);
+                    height = visibleRows.Sum(row => row.Height);
+                    x = visibleColumns[0].X;
+                    y = visibleRows[0].Y;
                 }
 
                 if (width <= 0D || height <= 0D) {
                     continue;
                 }
 
-                double x = ResolveRelativeColumnOffset(firstColumn, merge.StartColumn, 0, columnDefinitions, options);
-                double y = ResolveRelativeRowOffset(firstRow, merge.StartRow, 0, rowDefinitions, defaultRowsHidden, options);
                 ExcelCellStyleSnapshot style = sheet.GetCellStyle(merge.StartRow, merge.StartColumn);
                 ExcelCellData valueData = sheet.GetCellValueSnapshot(merge.StartRow, merge.StartColumn);
                 string rawText = sheet.TryGetCellText(merge.StartRow, merge.StartColumn, out string cellText)
@@ -1712,5 +1762,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static string Key(int row, int column) => row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + column.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        private static string MergeGeometryKey(ExcelMergedRangeSnapshot merge) =>
+            Key(merge.StartRow, merge.StartColumn) + ":" + Key(merge.EndRow, merge.EndColumn);
     }
 }

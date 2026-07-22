@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelConditionalFormatThreshold> thresholds,
             out ColorScaleEvaluator? evaluator) {
             evaluator = null;
-            if (values.Count == 0 || colors.Count < 2) {
+            if (values.Count == 0 || (colors.Count != 2 && colors.Count != 3)) {
                 return false;
             }
 

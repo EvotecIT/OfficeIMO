@@ -3,6 +3,7 @@ namespace OfficeIMO.Excel {
         internal const int MaximumAnchorSpanCells = 10_000;
         internal const int MaximumAnchorOffsetPixels = 100_000;
         internal const int MaximumAnchorExtentPixels = 16_384;
+        internal const double MaximumStrokeWidth = 64D;
 
         internal static int ClampOffsetPixels(int value) =>
             Math.Max(-MaximumAnchorOffsetPixels, Math.Min(MaximumAnchorOffsetPixels, value));
@@ -12,6 +13,9 @@ namespace OfficeIMO.Excel {
 
         internal static int ClampExtentPixels(int value) =>
             Math.Max(0, Math.Min(MaximumAnchorExtentPixels, value));
+
+        internal static double ClampStrokeWidth(double value) =>
+            Math.Max(0D, Math.Min(MaximumStrokeWidth, value));
 
         internal static int SaturatingAddExtent(int sizePixels, int offsetPixels) {
             long total = Math.Max(1, sizePixels) + Math.Max(0, (long)offsetPixels);

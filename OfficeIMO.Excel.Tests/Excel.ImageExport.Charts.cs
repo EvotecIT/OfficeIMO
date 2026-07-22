@@ -25,6 +25,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelChart_ImageExportClampsUntrustedMarkerOutlineWidths() {
+            var marker = new Marker(
+                new ChartShapeProperties(
+                    new A.Outline { Width = int.MaxValue }));
+            System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
+                "GetImageExportMarkerOutlineWidth",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            double? width = (double?)method.Invoke(null, new object?[] { marker });
+
+            Assert.Equal(64D, width);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesScatterSeriesCachedXYValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

@@ -372,10 +372,14 @@ namespace OfficeIMO.Excel {
             double displayValue = selectedSection == 1 ? Math.Abs(value) : value;
             bool negative = displayValue < 0D;
             double absoluteValue = Math.Abs(displayValue);
-            int whole = (int)Math.Floor(absoluteValue);
+            if (absoluteValue >= long.MaxValue) {
+                return false;
+            }
+
+            long whole = (long)Math.Floor(absoluteValue);
             double fractional = absoluteValue - whole;
-            int numerator = 0;
-            int denominator = 1;
+            long numerator = 0L;
+            long denominator = 1L;
 
             if (fractional > 0.0000000001D) {
                 if (fixedDenominator) {
@@ -384,7 +388,7 @@ namespace OfficeIMO.Excel {
                 } else {
                     double bestError = double.MaxValue;
                     for (int currentDenominator = 1; currentDenominator <= maxDenominator; currentDenominator++) {
-                        int currentNumerator = (int)Math.Round(fractional * currentDenominator, MidpointRounding.AwayFromZero);
+                        long currentNumerator = (long)Math.Round(fractional * currentDenominator, MidpointRounding.AwayFromZero);
                         double candidate = currentNumerator / (double)currentDenominator;
                         double error = Math.Abs(candidate - fractional);
                         if (error + 0.0000000001D < bestError) {
@@ -396,6 +400,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (numerator >= denominator) {
+                    if (whole > long.MaxValue - (numerator / denominator)) {
+                        return false;
+                    }
+
                     whole += numerator / denominator;
                     numerator %= denominator;
                 }
@@ -403,6 +411,10 @@ namespace OfficeIMO.Excel {
 
             bool mixedFraction = HasMixedFractionWholePart(formatCode, slash);
             if (!mixedFraction && numerator > 0) {
+                if (whole > (long.MaxValue - numerator) / denominator) {
+                    return false;
+                }
+
                 numerator += whole * denominator;
                 whole = 0;
             }

@@ -5,6 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.Utilities;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
@@ -19,14 +20,16 @@ namespace OfficeIMO.Excel {
         private readonly ExcelDocument _document;
         private readonly string _sheetName;
         private ExcelChartDataRange? _dataRange;
+        private ExcelWorksheetGeometryIndex? _worksheetGeometry;
 
-        internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
+        internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null, ExcelWorksheetGeometryIndex? worksheetGeometry = null) {
             _frame = frame ?? throw new ArgumentNullException(nameof(frame));
             _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             _document = sheet.Document;
             _sheetName = sheet.Name;
             _dataRange = dataRange;
+            _worksheetGeometry = worksheetGeometry;
         }
 
         /// <summary>
@@ -421,7 +424,7 @@ namespace OfficeIMO.Excel {
         private int GetAnchorWidthPixels() {
             Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, horizontal: true, out int widthPixels)) {
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, GetWorksheetGeometry(worksheetPart), horizontal: true, out int widthPixels)) {
                 return widthPixels;
             }
 
@@ -432,7 +435,7 @@ namespace OfficeIMO.Excel {
         private int GetAnchorHeightPixels() {
             Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, horizontal: false, out int heightPixels)) {
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, GetWorksheetGeometry(worksheetPart), horizontal: false, out int heightPixels)) {
                 return heightPixels;
             }
 
@@ -459,7 +462,10 @@ namespace OfficeIMO.Excel {
             return 0;
         }
 
-        private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, WorksheetPart? worksheetPart, bool horizontal, out int pixels) {
+        private ExcelWorksheetGeometryIndex GetWorksheetGeometry(WorksheetPart? worksheetPart) =>
+            _worksheetGeometry ??= ExcelWorksheetGeometryIndex.Create(worksheetPart);
+
+        private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, WorksheetPart? worksheetPart, ExcelWorksheetGeometryIndex geometry, bool horizontal, out int pixels) {
             pixels = 0;
             if (anchor?.FromMarker == null || anchor.ToMarker == null) {
                 return false;
@@ -478,33 +484,14 @@ namespace OfficeIMO.Excel {
             long basePixels = 0L;
             for (int index = from; index < to; index++) {
                 basePixels += horizontal
-                    ? GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth)
-                    : GetRowHeightPixels(worksheetPart, index + 1);
+                    ? geometry.GetColumnWidthPixels(index + 1, maximumDigitWidth)
+                    : geometry.GetRowHeightPixels(index + 1);
             }
 
             int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
             long totalPixels = Math.Max(1L, basePixels + offsetPixels);
             pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, totalPixels));
             return pixels > 1;
-        }
-
-        private static int GetColumnWidthPixels(WorksheetPart? worksheetPart, int columnIndex, double maximumDigitWidth) {
-            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
-            DocumentFormat.OpenXml.Spreadsheet.Column? column = worksheet?
-                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
-                .FirstOrDefault(item => item.Min != null && item.Max != null && item.Min.Value <= (uint)columnIndex && item.Max.Value >= (uint)columnIndex);
-            if (column?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double width = column?.Width?.Value > 0 && column.CustomWidth?.Value == true
-                ? column.Width.Value
-                : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultColumnWidth?.Value > 0
-                    ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultColumnWidth!.Value
-                    : 8.43D;
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / maximumDigitWidth)) / 256D * maximumDigitWidth);
-            return Math.Max(1, (int)Math.Round(pixels));
         }
 
         private static double GetDefaultMaximumDigitWidth(WorksheetPart? worksheetPart) {
@@ -538,24 +525,6 @@ namespace OfficeIMO.Excel {
             } catch {
                 return fallbackMaximumDigitWidth;
             }
-        }
-
-        private static int GetRowHeightPixels(WorksheetPart? worksheetPart, int rowIndex) {
-            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
-            DocumentFormat.OpenXml.Spreadsheet.Row? row = worksheet?
-                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()?
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
-                .FirstOrDefault(item => item.RowIndex != null && item.RowIndex.Value == (uint)rowIndex);
-            if (row?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
-                ? row.Height.Value
-                : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultRowHeight?.Value > 0
-                    ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultRowHeight!.Value
-                    : 15D;
-            return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
         }
 
         private static int ParseOneBasedMarker(string? value, int maximum) {

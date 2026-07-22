@@ -573,6 +573,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportClampsUntrustedDrawingShapeOutlineWidths() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("BoundedOutline");
+                sheet.CellValue(1, 1, "Shape");
+                document.Save();
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Bounded outline",
+                string.Empty,
+                strokeWidthEmu: int.MaxValue);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelRangeVisualSnapshot snapshot = loaded.Sheets.Single().Range("A1:D4").CreateVisualSnapshot();
+
+            Assert.Equal(64D, Assert.Single(snapshot.DrawingObjects).StrokeWidth);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportRendersDrawingShapeEffectsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -1353,7 +1374,8 @@ namespace OfficeIMO.Tests {
             int? shadowAlpha = null,
             int shadowDistancePixels = 0,
             int shadowBlurPixels = 0,
-            int shadowDirectionDegrees = 0) {
+            int shadowDirectionDegrees = 0,
+            int? strokeWidthEmu = null) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -1363,7 +1385,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu, textHardBreak, offsetXPixels, offsetYPixels, strokeDash, strokeLineCap, strokeLineJoin, glowHex, glowAlpha, glowRadiusPixels, shadowHex, shadowAlpha, shadowDistancePixels, shadowBlurPixels, shadowDirectionDegrees));
+                CreateSupportedShapeAnchor(1, 1, toColumn, toRow, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, fillSchemeColor, fillLuminanceModulation, fillLuminanceOffset, strokeSchemeColor, textSchemeColor, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textResizeShapeToFit, textOrientation, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu, textHardBreak, offsetXPixels, offsetYPixels, strokeDash, strokeLineCap, strokeLineJoin, glowHex, glowAlpha, glowRadiusPixels, shadowHex, shadowAlpha, shadowDistancePixels, shadowBlurPixels, shadowDirectionDegrees, strokeWidthEmu));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -1514,7 +1536,8 @@ namespace OfficeIMO.Tests {
             int? shadowAlpha = null,
             int shadowDistancePixels = 0,
             int shadowBlurPixels = 0,
-            int shadowDirectionDegrees = 0) {
+            int shadowDirectionDegrees = 0,
+            int? strokeWidthEmu = null) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -1599,7 +1622,7 @@ namespace OfficeIMO.Tests {
 
             var outline = new A.Outline(
                 CreateSolidFill(strokeHex, strokeSchemeColor)) {
-                Width = 12700
+                Width = strokeWidthEmu ?? 12700
             };
             if (strokeDash.HasValue) {
                 outline.Append(new A.PresetDash { Val = strokeDash.Value });

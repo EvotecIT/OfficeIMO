@@ -269,6 +269,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1/10", ExcelNumberFormatDisplay.FormatNumericText(0.1D, 13U, null, "0.1"));
             Assert.Equal("1/2", ExcelNumberFormatDisplay.FormatNumericText(0.5D, 1U, "# ?/2", "0.5"));
             Assert.Equal("1073741824/2147483647", ExcelNumberFormatDisplay.FormatNumericText(0.5D, 1U, "# ?/2147483647", "0.5"));
+            Assert.Equal("3221225471/2147483647", ExcelNumberFormatDisplay.FormatNumericText(1.5D, 1U, "?/2147483647", "1.5"));
             Assert.Equal("(1/2)", ExcelNumberFormatDisplay.FormatNumericText(-0.5D, 1U, "# ?/?;(# ?/?)", "-0.5"));
             Assert.Equal("1,235", ExcelNumberFormatDisplay.FormatNumericText(1234567D, 1U, "#,##0,", "1234567"));
             Assert.Equal("1 K", ExcelNumberFormatDisplay.FormatNumericText(1234D, 1U, "#,##0, \"K\"", "1234"));
@@ -869,6 +870,41 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("FFFFFF00", snapshot.Cells.Single(cell => cell.Row == 3).Style.FillColorArgb);
             }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsMalformedColorScaleStopCounts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("MalformedColor");
+                for (int row = 1; row <= 4; row++) {
+                    sheet.CellValue(row, 1, row);
+                }
+
+                sheet.AddConditionalColorScale("A1:A4", OfficeColor.Red, OfficeColor.Green);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                ColorScale colorScale = worksheet.Descendants<ColorScale>().Single();
+                colorScale.RemoveAllChildren<ConditionalFormatValueObject>();
+                colorScale.RemoveAllChildren<X.Color>();
+                for (int index = 0; index < 4; index++) {
+                    colorScale.Append(new ConditionalFormatValueObject {
+                        Type = ConditionalFormatValueObjectValues.Number,
+                        Val = index.ToString(CultureInfo.InvariantCulture)
+                    });
+                    colorScale.Append(new X.Color { Rgb = "FF" + index.ToString("X6", CultureInfo.InvariantCulture) });
+                }
+
+                worksheet.Save();
+            }
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelRangeVisualSnapshot snapshot = loaded.Sheets.Single().Range("A1:A4").CreateVisualSnapshot();
+
+            Assert.All(snapshot.Cells, cell => Assert.Null(cell.Style.FillColorArgb));
         }
 
         [Fact]
@@ -1876,6 +1912,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Merged title", mergedOrigin.Text);
             Assert.True(mergedOrigin.X < 0D, "The merged origin should keep its true negative X position relative to the selected range.");
             Assert.True(mergedOrigin.Width > snapshot.Width, "The merged origin should retain the full merged-cell width for clipping.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportBoundsMergedRangesBeforeExpansion() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("MergedLimit");
+            sheet.CellValue(1, 1, "Bounded");
+            sheet.Range("A1:XFD1048576").Merge();
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            ExcelVisualCell cell = Assert.Single(snapshot.Cells);
+            Assert.Equal("Bounded", cell.Text);
+            Assert.True(cell.Width <= snapshot.Width);
+            Assert.True(cell.Height <= snapshot.Height);
         }
 
         [Fact]
