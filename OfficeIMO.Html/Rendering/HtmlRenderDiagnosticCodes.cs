@@ -112,6 +112,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ResourceByteLimitExceeded = "HtmlRenderResourceByteLimitExceeded";
     /// <summary>Resolved resources exceeded the operation-wide count limit.</summary>
     public const string ResourceCountLimitExceeded = "HtmlRenderResourceCountLimitExceeded";
+    /// <summary>Resolver invocations exceeded the operation-wide request limit.</summary>
+    public const string ResourceRequestLimitExceeded = "HtmlRenderResourceRequestLimitExceeded";
     /// <summary>A resolver returned an incompatible media type.</summary>
     public const string ResourceContentTypeRejected = "HtmlRenderResourceContentTypeRejected";
     /// <summary>The configured resource resolver failed.</summary>
@@ -196,6 +198,7 @@ public static class HtmlRenderDiagnosticCodes {
         SvgContentUnsupported,
         ResourceByteLimitExceeded,
         ResourceCountLimitExceeded,
+        ResourceRequestLimitExceeded,
         ResourceContentTypeRejected,
         ResourceLoadFailed,
         ResourceTimeout,

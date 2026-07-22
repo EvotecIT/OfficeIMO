@@ -38,7 +38,7 @@ public static partial class HtmlResourcePipeline {
         var imports = new List<HtmlExternalStylesheetImport>();
         var fontResources = new List<HtmlResourceReference>();
         var imageResources = new List<HtmlResourceReference>();
-        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
         foreach (CssImportReference import in ExtractCssImports(normalized)) {
             string source = DecodeCssEscapes(import.Source);
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);

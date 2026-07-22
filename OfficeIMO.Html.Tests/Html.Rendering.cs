@@ -112,6 +112,89 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
+        const string firstCss = ".first { color:red; }";
+        const string secondCss = ".second { color:blue; }";
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 24;
+        limits.MaxTotalCssBytes = 30;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/first.css'>" +
+            "<link rel='stylesheet' href='https://assets.example.test/second.css'>" +
+            "<p class='first'>First</p><p class='second'>Second</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(request.Uri.AbsolutePath.Contains("first", StringComparison.Ordinal) ? firstCss : secondCss),
+                    "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssTotalSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/second.css");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_RejectsOversizedStylesheetBeforeQueuingImports() {
+        const string oversizedCss = "@import 'must-not-load.css'; .oversized { color: red; padding: 20px; }";
+        var requested = new List<string>();
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 32;
+        limits.MaxTotalCssBytes = 128;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/top.css'><p class='oversized'>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                requested.Add(request.Uri.AbsoluteUri);
+                string css = request.Uri.AbsolutePath.EndsWith("top.css", StringComparison.Ordinal)
+                    ? oversizedCss
+                    : ".unexpected { color: blue; }";
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(css), "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Equal(new[] { "https://assets.example.test/top.css" }, requested);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "https://assets.example.test/top.css");
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_EnforcesPerSheetCssByteLimitOnResolvedImports() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssBytes = 24;
+        limits.MaxTotalCssBytes = 64;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/top.css'><p class='base'>Base</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(
+                        request.Uri.AbsolutePath.Contains("top", StringComparison.Ordinal)
+                            ? "@import 'base.css';"
+                            : ".base { color:rgb(1,2,3); padding:1px; }"),
+                    "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
+            && diagnostic.Source == "base.css");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Base", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(1, 2, 3));
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_SuppressesStylesheetImportCycles() {
         var stylesheets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
             ["https://assets.example.test/css/top.css"] = "@import 'base.css'; .cycle-top { color:#123456; }",
@@ -295,9 +378,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_ExposesSharedRenderResourcePolicy() {
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
         options.ResourceTimeout = TimeSpan.FromSeconds(5D);
+        options.MaxConcurrentResourceLoads = 3;
         options.MaxResourceBytes = 1024L;
         options.MaxTotalResourceBytes = 4096L;
         options.MaxResourceCount = 12;
+        options.MaxResourceRequests = 24;
         options.MaxStylesheetImportDepth = 4;
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         options.ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null);
@@ -311,9 +396,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(summary.AllowDataUris);
         Assert.True(summary.AllowEmbeddedPackageResources);
         Assert.Equal(TimeSpan.FromSeconds(5D), summary.ResourceTimeout);
+        Assert.Equal(3, summary.MaxConcurrentResourceLoads);
         Assert.Equal(1024L, summary.MaxResourceBytes);
         Assert.Equal(4096L, summary.MaxTotalResourceBytes);
         Assert.Equal(12, summary.MaxResourceCount);
+        Assert.Equal(24, summary.MaxResourceRequests);
         Assert.Equal(4, summary.MaxStylesheetImportDepth);
         Assert.Contains("https", summary.AllowedUrlSchemes);
     }
@@ -404,12 +491,16 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
+        var documentOptions = new HtmlConversionDocumentOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
+        };
         PdfCore.PdfDocumentConversionResult result = await HtmlConversionDocument.Parse($"""
             <a href="{dataUri}">Blocked data link</a>
             <a href="{fileUri}">Blocked file link</a>
             <img src="{dataUri}" width="40" height="25" alt="data image">
             <img src="{fileUri}" width="25" height="40" alt="file image">
-            """).ToPdfDocumentResultAsync(options);
+            """, documentOptions).ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
@@ -585,7 +676,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.Equal(0, hostResolverCalls);
-        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Contains(result.Warnings, warning => warning.Code == "ImageResourceRejectedByPolicy");
     }
 
     [Fact]

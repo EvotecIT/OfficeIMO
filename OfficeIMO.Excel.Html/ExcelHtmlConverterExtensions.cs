@@ -11,22 +11,36 @@ public static partial class ExcelHtmlConverterExtensions {
     /// Converts a workbook to HTML.
     /// </summary>
     public static string ToHtml(this ExcelDocument workbook, ExcelHtmlSaveOptions? options = null) {
+        return workbook.ToHtmlResult(options).Value;
+    }
+
+    /// <summary>Converts a workbook to HTML with the shared structured result contract.</summary>
+    public static HtmlTextConversionResult ToHtmlResult(this ExcelDocument workbook, ExcelHtmlSaveOptions? options = null) {
         if (workbook == null) throw new ArgumentNullException(nameof(workbook));
         options ??= new ExcelHtmlSaveOptions();
-        return options.Profile == OfficeHtmlConversionProfile.ExcelVisualReview
+        options.Validate();
+        string html = options.Profile == OfficeHtmlConversionProfile.ExcelVisualReview
             ? ConvertWorkbookVisual(workbook, options)
             : ConvertWorkbookSemantic(workbook, options);
+        return new HtmlTextConversionResult(html);
     }
 
     /// <summary>
     /// Converts a worksheet to HTML.
     /// </summary>
     public static string ToHtml(this ExcelSheet sheet, ExcelHtmlSaveOptions? options = null) {
+        return sheet.ToHtmlResult(options).Value;
+    }
+
+    /// <summary>Converts a worksheet to HTML with the shared structured result contract.</summary>
+    public static HtmlTextConversionResult ToHtmlResult(this ExcelSheet sheet, ExcelHtmlSaveOptions? options = null) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         options ??= new ExcelHtmlSaveOptions();
-        return options.Profile == OfficeHtmlConversionProfile.ExcelVisualReview
+        options.Validate();
+        string html = options.Profile == OfficeHtmlConversionProfile.ExcelVisualReview
             ? ConvertSheetVisual(sheet, options)
             : ConvertSheetSemantic(sheet, options);
+        return new HtmlTextConversionResult(html);
     }
 
     /// <summary>
@@ -47,9 +61,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static string ConvertWorkbookSemantic(ExcelDocument workbook, ExcelHtmlSaveOptions options) {
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"excel\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
+        body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Workbook"))).Append("</h1>");
         foreach (ExcelSheet sheet in workbook.Sheets) {
             AppendSheetTable(body, sheet, options);
@@ -61,9 +75,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static string ConvertSheetSemantic(ExcelSheet sheet, ExcelHtmlSaveOptions options) {
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"excel\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
+        body.Append('>');
         AppendSheetTable(body, sheet, options);
         body.Append("</main>");
         return Wrap(body.ToString(), options, GetTitle(options, sheet.Name));
@@ -71,9 +85,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static string ConvertWorkbookVisual(ExcelDocument workbook, ExcelHtmlSaveOptions options) {
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"excel\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
+        body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Visual Review"))).Append("</h1>");
         ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
@@ -92,9 +106,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static string ConvertSheetVisual(ExcelSheet sheet, ExcelHtmlSaveOptions options) {
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"excel\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
+        body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, sheet.Name))).Append("</h1>");
         AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ToWorksheetOptions(ResolveWorkbookVisualOptions(options.VisualOptions))), "officeimo-sheet-svg-1-");
         AppendVisualCommentInventory(body, sheet.GetComments());

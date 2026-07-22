@@ -10,7 +10,6 @@ using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
         private static readonly string[] WordImageSrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
         private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
@@ -541,7 +540,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageLazySourceAttributes, responsiveCandidateState)) {
+            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageLazySourceAttributes, options, responsiveCandidateState)) {
                 yield return candidate;
             }
 
@@ -552,7 +551,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageSourceAttributes, responsiveCandidateState)) {
+            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageSourceAttributes, options, responsiveCandidateState)) {
                 yield return candidate;
             }
         }
@@ -560,7 +559,7 @@ namespace OfficeIMO.Word.Html {
         private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, IHtmlImageElement img, Uri? baseUri, HtmlToWordOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
                 foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceElement.GetAttribute(attributeName))) {
-                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, options.ResourceUrlPolicy);
                     if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
                         state.TrackRejectedResponsiveCandidate();
                         if (state.HasReachedScanLimit) {
@@ -595,7 +594,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawValue, baseUri, ImageSourceResolutionPolicy);
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawValue, baseUri, options.ResourceUrlPolicy);
                 if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
                     state.TrackRejectedResponsiveCandidate();
                     continue;
@@ -610,7 +609,7 @@ namespace OfficeIMO.Word.Html {
         private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, HtmlToWordOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
                 foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(img.GetAttribute(attributeName))) {
-                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, options.ResourceUrlPolicy);
                     if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
                         state.TrackRejectedResponsiveCandidate();
                         if (state.HasReachedScanLimit) {
@@ -636,9 +635,9 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static IEnumerable<string> ResolveImageUrlAttributeCandidates(IHtmlImageElement img, Uri? baseUri, IEnumerable<string> attributeNames, ResponsiveImageCandidateState state) {
+        private static IEnumerable<string> ResolveImageUrlAttributeCandidates(IHtmlImageElement img, Uri? baseUri, IEnumerable<string> attributeNames, HtmlToWordOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in attributeNames) {
-                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(img.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(img.GetAttribute(attributeName), baseUri, options.ResourceUrlPolicy);
                 if (state.TryTrackFixedCandidate(resolved, out string tracked)) {
                     yield return tracked;
                 }
@@ -799,12 +798,6 @@ namespace OfficeIMO.Word.Html {
 
             baseUri = candidate;
             return true;
-        }
-
-        private static HtmlUrlPolicy CreateImageSourceResolutionPolicy() {
-            var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
-            policy.DisallowScriptUrls = false;
-            return policy;
         }
 
         private async Task PrefetchRemoteImagesAsync(

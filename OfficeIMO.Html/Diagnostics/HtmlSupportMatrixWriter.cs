@@ -10,7 +10,7 @@ public static class HtmlSupportMatrixWriter {
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO HTML support matrix");
         builder.AppendLine();
-        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts` and `HtmlDiagnosticCatalog`. Profile entries are supported contracts; diagnostic entries describe bounded fallbacks, policy decisions, and safety limits.");
+        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, and `HtmlDiagnosticCatalog`. Profile and target entries are tested contracts; diagnostic entries describe bounded fallbacks, policy decisions, and safety limits.");
         builder.AppendLine();
         builder.AppendLine("## Conversion profiles");
 
@@ -24,6 +24,35 @@ public static class HtmlSupportMatrixWriter {
             AppendList(builder, "Supported CSS", contract.SupportedCss);
             AppendList(builder, "Resource guarantees", contract.ResourceGuarantees);
             AppendList(builder, "Diagnostic guarantees", contract.DiagnosticGuarantees);
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Target adapter API contracts");
+        builder.AppendLine();
+        builder.AppendLine("| Target | Package | Artifact | HTML import | Result contract | Reverse HTML | Reverse result | Profiles | I/O and async boundary |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All.OrderBy(item => item.Target)) {
+            builder.Append("| ").Append(contract.Target)
+                .Append(" | `").Append(EscapeCode(contract.PackageName)).Append("` | ")
+                .Append(EscapeCell(contract.ArtifactName)).Append(" | `")
+                .Append(EscapeCode(contract.ImportEntryPoint)).Append("` | `")
+                .Append(EscapeCode(contract.ImportResultContract)).Append("` | ")
+                .Append(FormatCode(contract.ExportEntryPoint)).Append(" | ")
+                .Append(FormatCode(contract.ExportResultContract)).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", contract.Profiles))).Append(" | ")
+                .Append(EscapeCell(contract.IoAndAsyncBoundary)).AppendLine(" |");
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Target semantic capability contracts");
+        builder.AppendLine();
+        builder.AppendLine("| Target | Supported | Approximated | Unsupported |");
+        builder.AppendLine("| --- | --- | --- | --- |");
+        foreach (HtmlTargetCapabilityContract contract in HtmlTargetCapabilityContracts.All.OrderBy(item => item.Target)) {
+            builder.Append("| ").Append(contract.Target).Append(" | ")
+                .Append(EscapeCell(FormatFeatures(contract.SupportedFeatures))).Append(" | ")
+                .Append(EscapeCell(FormatFeatures(contract.ApproximatedFeatures))).Append(" | ")
+                .Append(EscapeCell(FormatFeatures(contract.UnsupportedFeatures))).AppendLine(" |");
         }
 
         builder.AppendLine();
@@ -61,4 +90,9 @@ public static class HtmlSupportMatrixWriter {
         .Replace("\n", " ");
 
     private static string EscapeCode(string value) => (value ?? string.Empty).Replace("`", "\\`");
+
+    private static string FormatCode(string? value) => value == null ? "—" : "`" + EscapeCode(value) + "`";
+
+    private static string FormatFeatures(IReadOnlyList<HtmlSemanticFeature> features) =>
+        features.Count == 0 ? "None" : string.Join(", ", features);
 }

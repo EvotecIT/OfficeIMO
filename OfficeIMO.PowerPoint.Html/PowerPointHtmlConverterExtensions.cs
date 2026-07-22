@@ -37,9 +37,9 @@ public static partial class PowerPointHtmlConverterExtensions {
     private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"powerpoint\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
+        body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Presentation"))).Append("</h1>");
 
         int visibleIndex = 0;
@@ -61,9 +61,9 @@ public static partial class PowerPointHtmlConverterExtensions {
         IList<OfficeImageExportDiagnostic> imageDiagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
-        body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"powerpoint\" data-officeimo-profile=\"")
-            .Append(OfficeHtmlText.EscapeAttribute(options.Profile.ToString()))
-            .Append("\">");
+        body.Append("<main class=\"officeimo-document\"");
+        OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "powerpoint", options.Profile.ToString());
+        body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "PowerPoint Visual Review"))).Append("</h1>");
 
         for (int i = 0; i < presentation.Slides.Count; i++) {

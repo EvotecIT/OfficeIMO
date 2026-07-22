@@ -72,6 +72,24 @@ public sealed class MhtmlDocumentTests {
     }
 
     [Fact]
+    public void ConversionDocumentPreservesOnlyArchiveBackedCidAndFileResources() {
+        var document = new MhtmlDocument(
+            "<a href='cid:logo'>package link</a><img src='cid:logo'><img src='images/chart.png'><img src='file:///outside/secret.png'>",
+            new[] {
+                new MhtmlResource(new byte[] { 1 }, "image/png", contentId: "logo", fileName: "logo.png"),
+                new MhtmlResource(new byte[] { 2 }, "image/png", contentLocation: "images/chart.png", fileName: "chart.png")
+            },
+            "file:///snapshot/page.html");
+
+        string html = document.HtmlDocument.HtmlForConversion;
+
+        Assert.Contains("src=\"cid:logo\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("file:///snapshot/images/chart.png", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("file:///outside/secret.png", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("href=\"cid:logo\"", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ConstructedArchiveRoundTripsUnreferencedRelatedResource() {
         var resource = new MhtmlResource(Encoding.UTF8.GetBytes("body { color: black; }"),
             "text/css", contentLocation: "styles/site.css", fileName: "site.css");

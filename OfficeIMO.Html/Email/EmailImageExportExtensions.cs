@@ -132,6 +132,8 @@ public static class EmailImageExportExtensions {
             html,
             new HtmlConversionDocumentOptions {
                 BaseUri = effective.BaseUri,
+                UrlPolicy = renderOptions.UrlPolicy.Clone(),
+                ResourceUrlPolicy = renderOptions.GetResourceUrlPolicy().Clone(),
                 UseBodyContentsOnly = false
             });
         return new EmailRenderPreparation(
@@ -256,7 +258,7 @@ public static class EmailImageExportExtensions {
     }
 
     private static string ExtractHtmlBody(string html) {
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html);
         string styles = string.Concat(
             document.Head?.QuerySelectorAll("style")
                 .Select(element => element.OuterHtml) ??

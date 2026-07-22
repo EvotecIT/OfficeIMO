@@ -9,20 +9,24 @@ public static partial class HtmlPowerPointConverterExtensions {
         IElement tableElement,
         PptCore.PowerPointSlide slide,
         double top,
-        HtmlToPowerPointOptions options,
-        HtmlToPowerPointResult result) {
-        if (options.MaxTableCells <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells), "MaxTableCells must be greater than zero.");
+        HtmlToPowerPointResult result,
+        HtmlImportBudget budget,
+        HtmlSemanticBlock? semanticBlock = null) {
+        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, budget, result);
+        if (grid.Rows == 0 || grid.Columns == 0) {
+            return top;
         }
 
-        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, options.MaxTableCells, result);
-        if (grid.Rows == 0 || grid.Columns == 0) {
+        if (!budget.TryReserveTableWithShape(out string tableLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "A slide table was omitted because the shared import limit was reached.",
+                lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
             return top;
         }
 
         double fallbackWidth = Math.Max(240D, grid.Columns * 150D);
         double fallbackHeight = Math.Max(70D, grid.Rows * 34D);
-        ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight,
+        ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight, budget, result,
             out double left, out double tableTop, out double width, out double height);
         PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
@@ -33,12 +37,63 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
 
-        ApplyShapeTransforms(tableElement, table);
+        if (semanticBlock?.Table != null) ApplySemanticTableFormatting(table, semanticBlock.Table);
+
+        ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
         return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
     }
 
-    private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, int maxTableCells, HtmlToPowerPointResult result) {
+    private static void ApplySemanticTableFormatting(PptCore.PowerPointTable target, HtmlSemanticTable source) {
+        var occupied = new HashSet<long>();
+        int rowIndex = 0;
+        foreach (HtmlSemanticTableRow row in source.Rows) {
+            int columnIndex = 0;
+            foreach (HtmlSemanticTableCell cell in row.Cells) {
+                while (occupied.Contains(GetTableCellKey(rowIndex, columnIndex))) columnIndex++;
+                if (rowIndex >= target.Rows || columnIndex >= target.Columns) break;
+                PptCore.PowerPointTableCell targetCell = target.GetCell(rowIndex, columnIndex);
+                if (cell.Runs.Count > 0) ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs);
+                if (cell.IsHeader) {
+                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
+                }
+                string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
+                if (fill.Length > 0) targetCell.FillColor = fill;
+                string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
+                if (color.Length > 0) {
+                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+                }
+                ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
+                ReservePowerPointSpan(occupied, rowIndex, columnIndex,
+                    Math.Max(1, cell.RowSpan), Math.Max(1, cell.ColumnSpan));
+                columnIndex += Math.Max(1, cell.ColumnSpan);
+            }
+            rowIndex++;
+            if (rowIndex >= target.Rows) break;
+        }
+    }
+
+    private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment) {
+        switch ((alignment ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "center":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Center;
+                break;
+            case "right":
+            case "end":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Right;
+                break;
+            case "justify":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Justified;
+                break;
+            case "left":
+            case "start":
+                cell.HorizontalAlignment = DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues.Left;
+                break;
+        }
+    }
+
+    private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, HtmlImportBudget budget, HtmlToPowerPointResult result) {
+        int maxTableCells = budget.Limits.MaxTableCells;
         var cells = new List<PowerPointHtmlTableCell>();
         var occupied = new HashSet<long>();
         int rowIndex = 0;
@@ -86,12 +141,19 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
 
                 ReservePowerPointSpan(occupied, rowIndex, columnIndex, rowSpan, columnSpan);
+                string text = PreserveText(element.TextContent);
+                if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                        "A slide table cell was imported without text because it exceeded the shared field limit.",
+                        lossKind: HtmlConversionLossKind.Omission, detail: metadataLimit);
+                    text = string.Empty;
+                }
                 cells.Add(new PowerPointHtmlTableCell(
                     rowIndex,
                     columnIndex,
                     rowSpan,
                     columnSpan,
-                    PreserveText(element.TextContent)));
+                    text));
                 rowExtent = Math.Max(rowExtent, rowIndex + rowSpan);
                 columnExtent = Math.Max(columnExtent, columnIndex + columnSpan);
                 columnIndex += columnSpan;

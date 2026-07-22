@@ -26,7 +26,7 @@ public sealed class HtmlToExcelResult : HtmlConversionResult<ExcelDocument> {
     public int MergedRanges { get; internal set; }
 
     /// <summary>
-    /// Number of formulas restored from semantic formula inventory.
+    /// Number of formulas restored from semantic cell metadata or formula inventory.
     /// </summary>
     public int Formulas { get; internal set; }
 

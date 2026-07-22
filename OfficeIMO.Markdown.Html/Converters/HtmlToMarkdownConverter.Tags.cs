@@ -74,7 +74,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             case HtmlUnknownTagHandling.Preserve:
             default:
                 if (context.Options.PreserveUnsupportedBlocks) {
-                    return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+                    return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
                 }
 
                 return ConvertUnknownElementChildrenToBlocks(element, context);
@@ -123,7 +123,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             case HtmlUnknownTagHandling.Preserve:
             default:
                 if (context.Options.PreserveUnsupportedInlineHtml) {
-                    sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
+                    sequence.AddRaw(new HtmlRawInline(NormalizeRawElement(element, context)));
                     return;
                 }
 

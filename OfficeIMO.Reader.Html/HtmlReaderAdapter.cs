@@ -93,12 +93,10 @@ internal static partial class HtmlReaderAdapter {
         int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
         var logicalSourceName = source.Path;
 
-        HtmlConversionDocument conversionDocument = HtmlConversionDocument.Parse(
+        HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
-            new HtmlConversionDocumentOptions {
-                UseBodyContentsOnly = false,
-                IncludeNormalizedHtml = false
-            });
+            effectiveHtmlOptions,
+            effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri);
         string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
 
         if (string.IsNullOrWhiteSpace(markdown)) {
@@ -138,6 +136,37 @@ internal static partial class HtmlReaderAdapter {
             }, source, effective.ComputeHashes);
 
             chunkIndex++;
+        }
+    }
+
+    private static HtmlConversionDocumentOptions CreateConversionOptions(ReaderHtmlOptions options, Uri? projectionBaseUri) {
+        HtmlConversionDocumentOptions conversionOptions = options.ConversionOptions?.Clone()
+            ?? HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        conversionOptions.UseBodyContentsOnly = false;
+        conversionOptions.IncludeNormalizedHtml = false;
+        if (projectionBaseUri != null) conversionOptions.BaseUri = projectionBaseUri;
+
+        int? projectionLimit = options.HtmlToMarkdownOptions?.MaxInputCharacters;
+        if (projectionLimit.HasValue &&
+            (!conversionOptions.Limits.MaxInputCharacters.HasValue || conversionOptions.Limits.MaxInputCharacters.Value > projectionLimit.Value)) {
+            conversionOptions.Limits.MaxInputCharacters = projectionLimit;
+        }
+
+        return conversionOptions;
+    }
+
+    private static HtmlConversionDocument ParseConversionDocument(string html, ReaderHtmlOptions options, Uri? projectionBaseUri) {
+        try {
+            return HtmlConversionDocument.Parse(html, CreateConversionOptions(options, projectionBaseUri));
+        } catch (HtmlDomLimitException exception) when (
+            exception.Code == HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded
+            && options.HtmlToMarkdownOptions?.MaxInputCharacters.HasValue == true) {
+            // Preserve the established Reader/Markdown public exception contract while enforcing
+            // the same limit earlier in the shared parser.
+            throw new ArgumentOutOfRangeException(
+                nameof(html),
+                exception.Actual,
+                "Input exceeds MaxInputCharacters (" + exception.Limit + ").");
         }
     }
 

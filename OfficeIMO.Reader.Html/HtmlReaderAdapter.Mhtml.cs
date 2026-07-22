@@ -32,6 +32,14 @@ internal static partial class HtmlReaderAdapter {
             projection.UrlPolicy.AllowedUrlSchemes.Add(archive.BaseUri.Scheme);
         }
         options.HtmlToMarkdownOptions = projection;
+        HtmlConversionDocumentOptions conversion = options.ConversionOptions?.Clone()
+            ?? HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        conversion.BaseUri ??= archive.BaseUri;
+        if (conversion.ResourceUrlPolicy.RestrictUrlSchemes) {
+            conversion.ResourceUrlPolicy.AllowedUrlSchemes.Add("cid");
+            conversion.ResourceUrlPolicy.AllowedUrlSchemes.Add(archive.BaseUri.Scheme);
+        }
+        options.ConversionOptions = conversion;
         return options;
     }
 

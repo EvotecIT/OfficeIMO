@@ -9,7 +9,7 @@ internal static class HtmlRenderFontFaceLoader {
 
     internal static OfficeFontFaceCollection Load(
         IHtmlDocument document,
-        HtmlRenderResourceSet resources,
+        HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics) {
         var fonts = new OfficeFontFaceCollection();
@@ -52,7 +52,7 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlCssFontFaceDefinition definition,
         Uri? baseUri,
         HtmlUrlPolicy resourcePolicy,
-        HtmlRenderResourceSet resources,
+        HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         OfficeFontFaceCollection fonts,
@@ -77,7 +77,7 @@ internal static class HtmlRenderFontFaceLoader {
             byte[]? bytes = null;
             string contentType = string.Empty;
             if (resources.TryGet(source, resolved, out HtmlResolvedResource cached)) {
-                bytes = cached.Bytes;
+                bytes = cached.EncodedBytes;
                 contentType = cached.ContentType;
             } else if (resolved.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
                 if (!HtmlDataUri.TryParse(resolved, out HtmlDataUri dataUri)) {
@@ -95,7 +95,7 @@ internal static class HtmlRenderFontFaceLoader {
 
                 contentType = dataUri.MediaType;
 
-                if (!resources.CanAcceptInlineResource(estimatedBytes, options, out string diagnosticCode, out string diagnosticDetail)) {
+                if (!resources.CanAcceptInlineResource(estimatedBytes, out string diagnosticCode, out string diagnosticDetail)) {
                     ReportOnce(diagnostics, reported, diagnosticCode, "A font data URI exceeded the configured operation-wide resource budget.", source, diagnosticDetail);
                     continue;
                 }
@@ -106,7 +106,16 @@ internal static class HtmlRenderFontFaceLoader {
                 }
 
                 var inlineResource = new HtmlResolvedResource(bytes, contentType);
-                resources.AddInline(resolved, inlineResource);
+                if (!resources.TryAcceptInline(HtmlResourceKind.Font, resolved, inlineResource,
+                        out diagnosticCode, out diagnosticDetail)) {
+                    ReportOnce(diagnostics, reported, diagnosticCode,
+                        diagnosticCode == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected
+                            ? "A font face source declared an incompatible media type."
+                            : "A font data URI exceeded the configured operation-wide resource budget.",
+                        source, diagnosticDetail);
+                    bytes = null;
+                    continue;
+                }
             }
 
             if (bytes == null) {

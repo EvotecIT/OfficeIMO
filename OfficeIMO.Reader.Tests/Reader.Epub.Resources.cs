@@ -120,7 +120,7 @@ public sealed partial class ReaderEpubModularTests {
 
             string markdown = Assert.IsType<string>(result.Markdown);
             Assert.Contains("[base link](", markdown, StringComparison.Ordinal);
-            Assert.Contains(@"C:\books\novel.epub::", markdown, StringComparison.Ordinal);
+            Assert.Contains(@"C:\\books\\novel.epub::", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/text/chapter.xhtml?mode=print#local", markdown, StringComparison.Ordinal);
             Assert.Contains("![Cover](", markdown, StringComparison.Ordinal);
             Assert.Contains("::EPUB/shared/images/cover%20art.png?display=1#front", markdown, StringComparison.Ordinal);

@@ -15,10 +15,12 @@ dotnet add package OfficeIMO.Markdown.Html
 
 ```csharp
 using OfficeIMO.Markdown;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 
-string markdown = "<h1>Hello</h1><p>Body</p>".ToMarkdown();
-MarkdownDoc document = "<h1>Hello</h1><p>Body</p>".ToMarkdownDocument();
+HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
+string markdown = source.ToMarkdown();
+MarkdownDoc document = source.ToMarkdownDocument();
 ```
 
 For multi-target workflows, prepare HTML once and reuse its normalized DOM:
@@ -31,7 +33,7 @@ string markdown = source.ToMarkdown();
 MarkdownDoc document = source.ToMarkdownDocument();
 ```
 
-String, stream, and prepared-document overloads share the same conversion behavior. Adapter-local filtering works on a clone, so converting to Markdown does not mutate the document consumed by Word, RTF, PDF, or image output.
+Create a prepared document with `HtmlConversionDocument.Parse(...)`, `Load(...)`, or `LoadAsync(...)`; all three enter through the same bounded parser. Save Markdown through the prepared document's path, stream, and async `SaveAsMarkdown` methods. Adapter-local filtering works on a clone, so converting to Markdown does not mutate the document consumed by Word, RTF, PDF, or image output.
 
 ## Options
 
@@ -46,7 +48,8 @@ var options = new HtmlToMarkdownOptions {
     SmartHref = true
 };
 
-string markdown = "<p><a href=\"guide/start\">Docs</a></p>".ToMarkdown(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse("<p><a href=\"guide/start\">Docs</a></p>");
+string markdown = source.ToMarkdown(options);
 ```
 
 ### Compatibility controls
@@ -62,7 +65,8 @@ options.ExcludeSelectors.Add(".ad, .cookie-banner");
 options.TagAliases["highlight"] = "mark";
 options.PassThroughTags.Add("custom-widget");
 
-string markdown = html.ToMarkdown(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+string markdown = source.ToMarkdown(options);
 ```
 
 - `SmartHref` emits self-describing links such as `<a href="https://example.com">https://example.com</a>` as plain text.
@@ -92,10 +96,14 @@ EPUB footnote references are converted only when their target is an actual footn
 
 ```csharp
 var github = HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile();
-string readme = "<p><a href=\"https://example.com\">https://example.com</a></p>".ToMarkdown(github);
+string readme = HtmlConversionDocument
+    .Parse("<p><a href=\"https://example.com\">https://example.com</a></p>")
+    .ToMarkdown(github);
 
 var commonMark = HtmlToMarkdownOptions.CreateCommonMarkProfile();
-string portableTable = "<table><tr><th>Name</th></tr><tr><td>Value</td></tr></table>".ToMarkdown(commonMark);
+string portableTable = HtmlConversionDocument
+    .Parse("<table><tr><th>Name</th></tr><tr><td>Value</td></tr></table>")
+    .ToMarkdown(commonMark);
 ```
 
 ## Boundaries

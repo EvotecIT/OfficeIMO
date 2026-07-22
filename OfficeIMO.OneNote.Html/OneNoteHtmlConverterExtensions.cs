@@ -1,5 +1,7 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Html;
 using OfficeIMO.OneNote.Markdown;
+using System.Linq;
 
 namespace OfficeIMO.OneNote.Html;
 
@@ -12,12 +14,36 @@ public static class OneNoteHtmlConverterExtensions {
         HtmlOptions? htmlOptions = null) =>
         section.ToMarkdownDocument(projectionOptions).ToHtmlDocument(htmlOptions);
 
+    /// <summary>Converts a section to HTML with shared structured projection diagnostics.</summary>
+    public static HtmlTextConversionResult ToHtmlDocumentResult(
+        this OneNoteSection section,
+        OneNoteMarkdownOptions? projectionOptions = null,
+        HtmlOptions? htmlOptions = null) {
+        if (section == null) throw new ArgumentNullException(nameof(section));
+        OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(projectionOptions);
+        return new HtmlTextConversionResult(
+            projection.Value.ToHtmlDocument(htmlOptions),
+            projection.Diagnostics.Select(ToHtmlDiagnostic));
+    }
+
     /// <summary>Converts a notebook to a standalone HTML5 document.</summary>
     public static string ToHtmlDocument(
         this OneNoteNotebook notebook,
         OneNoteMarkdownOptions? projectionOptions = null,
         HtmlOptions? htmlOptions = null) =>
         notebook.ToMarkdownDocument(projectionOptions).ToHtmlDocument(htmlOptions);
+
+    /// <summary>Converts a notebook to HTML with shared structured projection diagnostics.</summary>
+    public static HtmlTextConversionResult ToHtmlDocumentResult(
+        this OneNoteNotebook notebook,
+        OneNoteMarkdownOptions? projectionOptions = null,
+        HtmlOptions? htmlOptions = null) {
+        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(projectionOptions);
+        return new HtmlTextConversionResult(
+            projection.Value.ToHtmlDocument(htmlOptions),
+            projection.Diagnostics.Select(ToHtmlDiagnostic));
+    }
 
     /// <summary>Converts a section to an embeddable HTML fragment.</summary>
     public static string ToHtmlFragment(
@@ -116,6 +142,26 @@ public static class OneNoteHtmlConverterExtensions {
         WriteAsync(stream, notebook.ToHtmlBytes(projectionOptions, htmlOptions), cancellationToken);
 
     private static byte[] Utf8(string value) => new UTF8Encoding(false).GetBytes(value);
+
+    private static HtmlDiagnostic ToHtmlDiagnostic(OneNoteMarkdownDiagnostic diagnostic) {
+        HtmlDiagnosticSeverity severity = diagnostic.Severity == OneNoteDiagnosticSeverity.Error
+            ? HtmlDiagnosticSeverity.Error
+            : diagnostic.Severity == OneNoteDiagnosticSeverity.Warning
+                ? HtmlDiagnosticSeverity.Warning
+                : HtmlDiagnosticSeverity.Info;
+        HtmlConversionLossKind lossKind = severity == HtmlDiagnosticSeverity.Error
+            ? HtmlConversionLossKind.Failure
+            : severity == HtmlDiagnosticSeverity.Warning
+                ? HtmlConversionLossKind.Approximation
+                : HtmlConversionLossKind.None;
+        return new HtmlDiagnostic(
+            "OfficeIMO.OneNote.Html",
+            diagnostic.Code,
+            diagnostic.Message,
+            severity,
+            diagnostic.Source,
+            lossKind: lossKind);
+    }
 
     private static void Write(Stream stream, byte[] bytes) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));

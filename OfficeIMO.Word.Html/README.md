@@ -27,6 +27,9 @@ string html = document.ToHtml(new WordToHtmlOptions {
     ExportEndnotes = true,
     ExportComments = true
 });
+
+HtmlTextConversionResult export = document.ToHtmlResult();
+Console.WriteLine(export.RequireValue());
 ```
 
 HTML can also be appended to an existing body, header, or footer with `AddHtmlToBody`, `AddHtmlToHeader`, and `AddHtmlToFooter`.
@@ -43,7 +46,7 @@ foreach (HtmlDiagnostic diagnostic in result.Report.Diagnostics) {
 }
 ```
 
-`HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
+`HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
 ## What it maps
 

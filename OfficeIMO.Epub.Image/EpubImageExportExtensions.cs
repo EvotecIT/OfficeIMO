@@ -201,6 +201,8 @@ public static class EpubImageExportExtensions {
             html,
             new HtmlConversionDocumentOptions {
                 BaseUri = baseUri,
+                UrlPolicy = effective.UrlPolicy.Clone(),
+                ResourceUrlPolicy = (effective.ResourceUrlPolicy ?? effective.UrlPolicy).Clone(),
                 UseBodyContentsOnly = false
             });
         return new EpubChapterRenderPreparation(

@@ -8,7 +8,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
     public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         EnsureOfflineSynchronousImport(document, resolved);
         return ToWordDocumentResultAsync(document, resolved).GetAwaiter().GetResult();
     }
@@ -20,10 +20,11 @@ public static partial class WordHtmlConverterExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+        HtmlToWordOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
+        resolved.ConversionReport.AddRange(document.Diagnostics);
         var converter = new HtmlToWordConverter();
         WordDocument wordDocument = await converter.ConvertAsync(
-            CreateWordSourceDocument(document),
+            CreateWordSourceDocument(document, resolved.ConversionReport),
             resolved,
             cancellationToken).ConfigureAwait(false);
         return CreateResult(wordDocument, resolved);
@@ -34,13 +35,15 @@ public static partial class WordHtmlConverterExtensions {
     }
 
     private static void EnsureOfflineSynchronousImport(HtmlConversionDocument document, HtmlToWordOptions options) {
-        if (HtmlToWordConverter.RequiresRemoteAccess(CreateWordSourceDocument(document), options)) {
+        if (HtmlToWordConverter.RequiresRemoteAccess(CreateWordSourceDocument(document, diagnostics: null), options)) {
             throw new InvalidOperationException(
                 "Synchronous HTML-to-Word import is offline-only. Use the Async method when images or stylesheets require HTTP access.");
         }
     }
 
-    private static AngleSharp.Html.Dom.IHtmlDocument CreateWordSourceDocument(HtmlConversionDocument document) {
+    private static AngleSharp.Html.Dom.IHtmlDocument CreateWordSourceDocument(
+        HtmlConversionDocument document,
+        HtmlDiagnosticReport? diagnostics) {
         AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
         if (document.BaseUri != null) {
             AngleSharp.Dom.IElement? baseElement = source.QuerySelector("base[href]");
@@ -57,7 +60,7 @@ public static partial class WordHtmlConverterExtensions {
         HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
             ? HtmlCssMediaContext.Print
             : HtmlCssMediaContext.Screen;
-        HtmlActiveMediaFilter.Filter(source, mediaContext);
+        HtmlActiveMediaFilter.Filter(source, mediaContext, diagnostics);
         return source;
     }
 }

@@ -13,6 +13,18 @@ public sealed class HtmlNormalizationOptions {
     /// <summary>URL policy applied before URL-bearing attributes are emitted.</summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
+    /// <summary>
+    /// Optional separate policy for images, stylesheets, fonts, and other non-hyperlink resources.
+    /// When omitted, a resource policy is derived from <see cref="UrlPolicy"/>.
+    /// </summary>
+    public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
+
+    /// <summary>Shared source, DOM, stylesheet, and semantic-metadata limits applied before normalization.</summary>
+    public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.CreateUntrustedProfile();
+
+    /// <summary>Optional maximum number of candidates normalized from one responsive source set.</summary>
+    public int? MaxResponsiveImageCandidates { get; set; }
+
     /// <summary>When true, only body contents are emitted instead of a full document shell.</summary>
     public bool UseBodyContentsOnly { get; set; } = true;
 

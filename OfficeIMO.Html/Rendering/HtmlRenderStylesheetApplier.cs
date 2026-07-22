@@ -6,7 +6,21 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
-    internal static void Apply(IHtmlDocument document, HtmlRenderResourceSet resources, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal static HtmlCssByteBudget CreateBudget(IHtmlDocument document, HtmlConversionLimits limits) {
+        var budget = new HtmlCssByteBudget(limits);
+        foreach (IElement style in document.QuerySelectorAll("style")) {
+            budget.ReserveOrThrow(style.TextContent ?? string.Empty);
+        }
+
+        return budget;
+    }
+
+    internal static void Apply(
+        IHtmlDocument document,
+        HtmlResourceSession resources,
+        HtmlRenderOptions options,
+        HtmlCssByteBudget cssBudget,
+        HtmlDiagnosticReport diagnostics) {
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
             if (!IsStylesheetLink(link)) {
@@ -14,11 +28,18 @@ internal static class HtmlRenderStylesheetApplier {
             }
 
             string source = link.GetAttribute("href") ?? string.Empty;
+            string? resolvedSource = resources.TryGetResolvedSource(source, null, out string resolved)
+                ? resolved
+                : null;
+            if (resources.WasStylesheetRejected(source, resolvedSource)) {
+                continue;
+            }
+
             if (!resources.TryGet(source, null, out HtmlResolvedResource resource)) {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetText.TryDecode(resource.Bytes, out string css)) {
+            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -29,7 +50,12 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (resources.TryGetResolvedSource(source, null, out string resolvedSource)
+            if (!resources.WasStylesheetBudgeted(source, resolvedSource)
+                && !TryReserveCss(cssBudget, css, source, diagnostics)) {
+                continue;
+            }
+
+            if (resolvedSource != null
                 && Uri.TryCreate(resolvedSource, UriKind.Absolute, out Uri? stylesheetUri)) {
                 css = ExpandImports(
                     css,
@@ -38,7 +64,8 @@ internal static class HtmlRenderStylesheetApplier {
                     options,
                     diagnostics,
                     new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                    reportedCycles);
+                    reportedCycles,
+                    cssBudget);
             }
 
             if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
@@ -76,11 +103,12 @@ internal static class HtmlRenderStylesheetApplier {
     private static string ExpandImports(
         string css,
         Uri stylesheetUri,
-        HtmlRenderResourceSet resources,
+        HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         HashSet<string> activeStylesheets,
-        HashSet<string> reportedCycles) {
+        HashSet<string> reportedCycles,
+        HtmlCssByteBudget cssBudget) {
         string currentKey = stylesheetUri.AbsoluteUri;
         if (!activeStylesheets.Add(currentKey)) {
             ReportCycle(diagnostics, reportedCycles, currentKey);
@@ -88,7 +116,8 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         var resourceOptions = new HtmlResourcePipelineOptions {
-            UrlPolicy = options.GetResourceUrlPolicy().Clone(),
+            ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
+            MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
             MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
@@ -101,12 +130,16 @@ internal static class HtmlRenderStylesheetApplier {
             HtmlResourceReference reference = import.Reference;
             if (import.IsApplicable
                 && reference.IsAllowed
+                && !resources.WasStylesheetRejected(reference.Source, reference.ResolvedSource)
                 && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)
                 && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
-                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.Bytes, out string importedCss)) {
-                    replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles);
+                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
+                    if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
+                        || TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
+                        replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles, cssBudget);
+                    }
                 } else {
                     diagnostics.Add(
                         ComponentName,
@@ -127,6 +160,23 @@ internal static class HtmlRenderStylesheetApplier {
             builder.ToString(),
             stylesheetUri,
             options.GetResourceUrlPolicy());
+    }
+
+    internal static bool TryReserveCss(
+        HtmlCssByteBudget budget,
+        string css,
+        string source,
+        HtmlDiagnosticReport diagnostics) {
+        if (budget.TryReserve(css, out HtmlDomLimitException? exception)) return true;
+        diagnostics.Add(
+            ComponentName,
+            exception!.Code,
+            "A resolved stylesheet was omitted because it exceeded the shared CSS byte budget.",
+            HtmlDiagnosticSeverity.Error,
+            source,
+            exception.LimitSource + ": " + exception.Detail,
+            HtmlConversionLossKind.Omission);
+        return false;
     }
 
     private static void ReportCycle(HtmlDiagnosticReport diagnostics, HashSet<string> reportedCycles, string source) {

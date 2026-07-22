@@ -51,7 +51,7 @@ public static partial class HtmlComputedStyleEngine {
         return result.ToString();
     }
 
-    private static IEnumerable<string> SplitSelectorList(string selectorText) {
+    internal static IEnumerable<string> SplitSelectorList(string selectorText) {
         int depth = 0;
         char quote = '\0';
         int start = 0;

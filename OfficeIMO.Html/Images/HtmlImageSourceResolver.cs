@@ -74,8 +74,8 @@ public static class HtmlImageSourceResolver {
 
                 int candidateCount = 0;
                 int countBeforeSource = candidates.Items.Count;
-                AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, null, ref candidateCount, SrcSetAttributes);
-                AddResolvedUrlAttributes(candidates, child, baseUri, policy, null, ref candidateCount, PictureSourceAttributes);
+                AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, SrcSetAttributes);
+                AddResolvedUrlAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, PictureSourceAttributes);
                 if (candidates.Items.Count > countBeforeSource) {
                     selectedPictureSource = true;
                     break;
@@ -86,7 +86,7 @@ public static class HtmlImageSourceResolver {
         if (!selectedPictureSource) {
             AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
             int responsiveCandidateCount = 0;
-            AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, null, ref responsiveCandidateCount, SrcSetAttributes);
+            AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, options.ResponsiveImageCandidateLimit, ref responsiveCandidateCount, SrcSetAttributes);
             AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
         }
 
@@ -149,12 +149,17 @@ public static class HtmlImageSourceResolver {
     /// Resolves and normalizes all allowed candidates from a <c>srcset</c> value.
     /// </summary>
     public static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy) {
+        return ResolveNormalizedSrcSet(rawSrcSet, baseUri, policy, null);
+    }
+
+    /// <summary>Resolves and normalizes allowed candidates up to the supplied parsing limit.</summary>
+    public static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
         if (string.IsNullOrWhiteSpace(rawSrcSet)) {
             return string.Empty;
         }
 
         var parts = new List<string>();
-        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet)) {
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet, maxCandidates)) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) {
                 parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor) ? resolved : resolved + " " + candidate.Descriptor);

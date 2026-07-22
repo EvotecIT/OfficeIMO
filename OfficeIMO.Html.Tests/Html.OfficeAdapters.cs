@@ -199,7 +199,9 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("Cell: 1, 5", html, StringComparison.Ordinal);
         Assert.Contains("Size: 280x180", html, StringComparison.Ordinal);
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
+            html,
+            HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Roundtrip");
 
@@ -496,7 +498,9 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
+            html,
+            HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -522,7 +526,9 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
+            html,
+            HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 

@@ -5,7 +5,10 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document, MediaEnvironment environment) {
+    private static IReadOnlyList<StyleRule> ParseStyleRules(
+        IHtmlDocument document,
+        MediaEnvironment environment,
+        HtmlCssProcessingBudget budget) {
         var rules = new List<StyleRule>();
         var parser = new CssParser(new CssParserOptions {
             IsIncludingUnknownDeclarations = true
@@ -26,7 +29,7 @@ public static partial class HtmlComputedStyleEngine {
 
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, environment);
+                AddStyleRules(rule, rules, environment, budget);
             }
         }
 
@@ -57,10 +60,14 @@ public static partial class HtmlComputedStyleEngine {
         return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules, MediaEnvironment environment) {
+    private static void AddStyleRules(
+        AngleSharp.Css.Dom.ICssRule rule,
+        ICollection<StyleRule> rules,
+        MediaEnvironment environment,
+        HtmlCssProcessingBudget budget) {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
-            AddStyleRule(styleRule, rules);
+            AddStyleRule(styleRule, rules, budget);
             return;
         }
 
@@ -79,11 +86,14 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, environment);
+            AddStyleRules(childRule, rules, environment, budget);
         }
     }
 
-    private static void AddStyleRule(AngleSharp.Css.Dom.ICssStyleRule styleRule, ICollection<StyleRule> rules) {
+    private static void AddStyleRule(
+        AngleSharp.Css.Dom.ICssStyleRule styleRule,
+        ICollection<StyleRule> rules,
+        HtmlCssProcessingBudget budget) {
         var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < styleRule.Style.Length; i++) {
             string propertyName = styleRule.Style[i];
@@ -109,6 +119,7 @@ public static partial class HtmlComputedStyleEngine {
         foreach (string selector in SplitSelectorList(styleRule.SelectorText)) {
             string trimmedSelector = selector.Trim();
             if (trimmedSelector.Length > 0 && declarations.Count > 0) {
+                budget.RecordRule(declarations.Count);
                 rules.Add(new StyleRule(trimmedSelector, CalculateSpecificity(trimmedSelector), rules.Count, declarations));
             }
         }

@@ -9,7 +9,6 @@ namespace OfficeIMO.Html;
 /// Produces stable, policy-aware normalized HTML for OfficeIMO conversion workflows.
 /// </summary>
 public static class HtmlNormalizer {
-    private const int MaxSrcDocDepth = 8;
     private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
@@ -44,7 +43,10 @@ public static class HtmlNormalizer {
             throw new ArgumentNullException(nameof(html));
         }
 
-        return Normalize(HtmlDocumentParser.ParseDocument(html), options);
+        HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
+        resolved.Limits.Validate();
+        IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html, resolved.Limits);
+        return NormalizeDocument(document, resolved, 0);
     }
 
     /// <summary>
@@ -55,8 +57,37 @@ public static class HtmlNormalizer {
             throw new ArgumentNullException(nameof(document));
         }
 
-        options ??= new HtmlNormalizationOptions();
-        return NormalizeDocument(document, options, 0);
+        HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
+        resolved.Limits.Validate();
+        HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits);
+        return NormalizeDocument(document, resolved, 0);
+    }
+
+    /// <summary>Normalizes one already parsed element for a raw-fragment target without reparsing it.</summary>
+    internal static string NormalizePreparedElement(IElement element, HtmlNormalizationOptions options) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        HtmlNormalizationOptions resolved = CopyOptions(options ?? throw new ArgumentNullException(nameof(options)));
+        resolved.Limits.Validate();
+        var builder = new StringBuilder();
+        AppendElement(builder, element, resolved, 0);
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Removes executable element payloads and inline event handlers from a prepared adapter DOM
+    /// without resolving URL attributes that the target adapter still needs to diagnose.
+    /// </summary>
+    internal static void SanitizePreparedDocumentStructure(IHtmlDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        foreach (IElement element in document.QuerySelectorAll("*")) {
+            foreach (IAttr attribute in element.Attributes
+                .Where(attribute => attribute.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+                .ToArray()) {
+                element.RemoveAttribute(attribute.Name);
+            }
+
+            if (SkippedElements.Contains(element.LocalName)) element.TextContent = string.Empty;
+        }
     }
 
     private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth) {
@@ -121,7 +152,7 @@ public static class HtmlNormalizer {
         builder.Append('>');
         if (!VoidElements.Contains(name)) {
             if (name == "style" && options.PreserveStyleElements) {
-                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
+                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options));
                 if (styleText.Length > 0) {
                     builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }
@@ -172,7 +203,11 @@ public static class HtmlNormalizer {
         }
 
         if (IsSrcSetAttribute(element, name)) {
-            return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
+            return HtmlImageSourceResolver.ResolveNormalizedSrcSet(
+                value,
+                options.BaseUri,
+                GetResourceUrlPolicy(options),
+                options.MaxResponsiveImageCandidates);
         }
 
         if (IsMetaRefreshContentAttribute(element, name)) {
@@ -180,7 +215,7 @@ public static class HtmlNormalizer {
         }
 
         if (IsUrlAttribute(element, name)) {
-            HtmlUrlPolicy attributePolicy = GetAttributeUrlPolicy(element, name, options.UrlPolicy);
+            HtmlUrlPolicy attributePolicy = GetAttributeUrlPolicy(element, name, options);
             if (string.IsNullOrWhiteSpace(value) && ShouldPreserveEmptyUrlAttribute(element, name, value)) {
                 return HtmlUrlPolicyEvaluator.ResolveUrl(options.BaseUri?.AbsoluteUri, null, attributePolicy);
             }
@@ -194,7 +229,7 @@ public static class HtmlNormalizer {
         }
 
         if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) {
-            return NormalizeCssUrls(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy)).Trim();
+            return NormalizeCssUrls(value, options.BaseUri, GetResourceUrlPolicy(options)).Trim();
         }
 
         if (string.Equals(name, "class", StringComparison.OrdinalIgnoreCase)) {
@@ -205,7 +240,7 @@ public static class HtmlNormalizer {
     }
 
     private static string NormalizeSrcDoc(string value, HtmlNormalizationOptions options, int srcDocDepth) {
-        if (string.IsNullOrWhiteSpace(value) || srcDocDepth >= MaxSrcDocDepth) {
+        if (string.IsNullOrWhiteSpace(value) || srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
             return string.Empty;
         }
 
@@ -220,7 +255,10 @@ public static class HtmlNormalizer {
         return new HtmlNormalizationOptions {
             BaseUri = options.BaseUri,
             BaseElementBaseUri = options.BaseElementBaseUri,
-            UrlPolicy = options.UrlPolicy,
+            UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            ResourceUrlPolicy = (options.ResourceUrlPolicy ?? HtmlResourceUrlPolicy.Create(options.UrlPolicy)).Clone(),
+            Limits = (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone(),
+            MaxResponsiveImageCandidates = options.MaxResponsiveImageCandidates,
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = options.PreserveComments,
             PreserveSkippedElementMarkers = options.PreserveSkippedElementMarkers,
@@ -396,14 +434,14 @@ public static class HtmlNormalizer {
         yield return content.Substring(start).Trim();
     }
 
-    private static HtmlUrlPolicy GetAttributeUrlPolicy(IElement element, string name, HtmlUrlPolicy policy) {
+    private static HtmlUrlPolicy GetAttributeUrlPolicy(IElement element, string name, HtmlNormalizationOptions options) {
         return IsHyperlinkUrlAttribute(element, name)
-            ? policy
-            : GetResourceUrlPolicy(policy);
+            ? options.UrlPolicy
+            : GetResourceUrlPolicy(options);
     }
 
-    private static HtmlUrlPolicy GetResourceUrlPolicy(HtmlUrlPolicy policy) {
-        return HtmlResourceUrlPolicy.Create(policy);
+    private static HtmlUrlPolicy GetResourceUrlPolicy(HtmlNormalizationOptions options) {
+        return options.ResourceUrlPolicy ?? HtmlResourceUrlPolicy.Create(options.UrlPolicy);
     }
 
     private static bool IsHyperlinkUrlAttribute(IElement element, string name) {

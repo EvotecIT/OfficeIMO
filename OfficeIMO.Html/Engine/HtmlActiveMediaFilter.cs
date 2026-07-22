@@ -19,16 +19,21 @@ public static class HtmlActiveMediaFilter {
     /// <param name="mediaContext">CSS media context used by the target conversion profile.</param>
     /// <returns>Filtered HTML when changes were required; otherwise the original HTML.</returns>
     public static string Filter(string html, HtmlCssMediaContext mediaContext) {
+        return Filter(html, mediaContext, diagnostics: null);
+    }
+
+    /// <summary>Filters HTML while reporting a parser or transformation failure instead of silently hiding it.</summary>
+    public static string Filter(string html, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
         if (string.IsNullOrWhiteSpace(html)) {
             return html;
         }
 
         try {
             bool isFragment = !ContainsHtmlDocumentElement(html);
-            IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(isFragment
+            IHtmlDocument parsed = HtmlConversionDocument.ParseSourceDocumentForAnalysis(isFragment
                 ? "<html><body><" + FragmentRootElementName + ">" + html + "</" + FragmentRootElementName + "></body></html>"
                 : html);
-            bool changed = FilterDocument(parsed, mediaContext);
+            bool changed = FilterDocument(parsed, mediaContext, diagnostics);
 
             if (!changed) {
                 return html;
@@ -39,7 +44,8 @@ public static class HtmlActiveMediaFilter {
             }
 
             return parsed.DocumentElement?.OuterHtml ?? html;
-        } catch {
+        } catch (Exception exception) {
+            ReportFailure(diagnostics, "document", exception);
             return html;
         }
     }
@@ -49,8 +55,18 @@ public static class HtmlActiveMediaFilter {
     /// </summary>
     /// <returns>Whether the document was changed.</returns>
     public static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
+        return Filter(document, mediaContext, diagnostics: null);
+    }
+
+    /// <summary>Filters a prepared DOM while reporting CSS parser or transformation failures.</summary>
+    public static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return FilterDocument(document, mediaContext);
+        try {
+            return FilterDocument(document, mediaContext, diagnostics);
+        } catch (Exception exception) when (diagnostics != null) {
+            ReportFailure(diagnostics, "document", exception);
+            return false;
+        }
     }
 
     /// <summary>
@@ -74,7 +90,7 @@ public static class HtmlActiveMediaFilter {
         return changed;
     }
 
-    private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext) {
+    private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
         bool changed = false;
         foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
             if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
@@ -105,7 +121,7 @@ public static class HtmlActiveMediaFilter {
                 continue;
             }
 
-            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
+            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, diagnostics, out bool stylesheetChanged);
             if (stylesheetChanged) {
                 styleElement.TextContent = expanded;
                 changed = true;
@@ -156,7 +172,11 @@ public static class HtmlActiveMediaFilter {
         return string.Equals(mediaType, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string ExpandActiveMediaStyleRules(string css, HtmlCssMediaContext mediaContext, out bool changed) {
+    private static string ExpandActiveMediaStyleRules(
+        string css,
+        HtmlCssMediaContext mediaContext,
+        HtmlDiagnosticReport? diagnostics,
+        out bool changed) {
         changed = false;
         if (string.IsNullOrWhiteSpace(css)) {
             return css;
@@ -171,9 +191,21 @@ public static class HtmlActiveMediaFilter {
             }
 
             return changed ? builder.ToString() : css;
-        } catch {
+        } catch (Exception exception) {
+            ReportFailure(diagnostics, "style", exception);
             return css;
         }
+    }
+
+    private static void ReportFailure(HtmlDiagnosticReport? diagnostics, string source, Exception exception) {
+        diagnostics?.Add(
+            "OfficeIMO.Html.MediaFilter",
+            HtmlConversionDiagnosticCodes.MediaFilterFailed,
+            "Active CSS media filtering could not safely transform the source; the original content was preserved.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            exception.GetType().Name,
+            HtmlConversionLossKind.Approximation);
     }
 
     private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed) {

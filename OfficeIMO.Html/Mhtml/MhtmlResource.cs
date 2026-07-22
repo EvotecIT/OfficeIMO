@@ -39,6 +39,10 @@ public sealed class MhtmlResource {
     /// <summary>Returns an independent copy of the decoded content.</summary>
     public byte[] Content => (byte[])_content.Clone();
 
+    // MHTML is immutable, so the package resolver can safely borrow this snapshot and avoid a
+    // public-copy followed by a second constructor copy for every render.
+    internal byte[] EncodedContent => _content;
+
     /// <summary>Opens an independent read-only content stream.</summary>
     public Stream OpenRead() => new MemoryStream(_content, writable: false);
 

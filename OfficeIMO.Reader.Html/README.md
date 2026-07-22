@@ -40,6 +40,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
+`ReaderHtmlOptions.ConversionOptions` exposes the same trust, URL, and complexity policy used by other `OfficeIMO.Html` adapters. `CreateUntrustedHtmlProfile` applies its character cap both before shared parsing and during Markdown projection, so the reader does not maintain a second limit decision.
+
 ## Examples
 
 ### Convert HTML to Markdown chunks

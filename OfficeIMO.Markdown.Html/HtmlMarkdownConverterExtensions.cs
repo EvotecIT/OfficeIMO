@@ -38,6 +38,10 @@ public static class HtmlMarkdownConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
         operation.BaseUri ??= document.FallbackBaseUri;
+        HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        HtmlUrlPolicy requestedResourcePolicy = operation.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
+        operation.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
+        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
         var converter = new HtmlToMarkdownConverter();
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
@@ -48,7 +52,7 @@ public static class HtmlMarkdownConverterExtensions {
         MarkdownDoc value = converter.ConvertToDocument(
             sourceDocument,
             operation);
-        return new HtmlToMarkdownResult(value);
+        return new HtmlToMarkdownResult(value, document.Diagnostics);
     }
 
     /// <summary>Saves converted Markdown text to a path.</summary>

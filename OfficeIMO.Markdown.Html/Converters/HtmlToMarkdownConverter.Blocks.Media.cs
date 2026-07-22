@@ -10,24 +10,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return ConvertUnknownElementChildrenToBlocks(element, context);
         }
 
-        IElement clone = (IElement)element.Clone(deep: true);
-        ResolveMediaUrlAttribute(clone, "src", context);
-        ResolveMediaUrlAttribute(clone, "poster", context);
-        foreach (IElement child in clone.QuerySelectorAll("source[src], track[src]")) {
-            ResolveMediaUrlAttribute(child, "src", context);
-        }
-        return new IMarkdownBlock[] { new HtmlRawBlock(clone.OuterHtml) };
-    }
-
-    private static void ResolveMediaUrlAttribute(IElement element, string attributeName, ConversionContext context) {
-        string? value = element.GetAttribute(attributeName);
-        if (string.IsNullOrWhiteSpace(value)) return;
-        string resolved = ResolveUrl(value, context);
-        if (resolved.Length == 0) {
-            element.RemoveAttribute(attributeName);
-        } else {
-            element.SetAttribute(attributeName, resolved);
-        }
+        return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertImageElement(IElement element, ConversionContext context) {
@@ -70,7 +53,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             }
 
             return context.Options.PreserveUnsupportedBlocks
-                ? new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) }
+                ? new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) }
                 : Array.Empty<IMarkdownBlock>();
         }
 
@@ -468,7 +451,10 @@ internal sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, context.Options.BaseUri, context.Options.UrlPolicy));
+        return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(
+            source,
+            context.Options.BaseUri,
+            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy));
     }
 
     private static bool IsBlockedBase64ImageSource(string? source, ConversionContext context) {

@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.Html {
 
             HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source.SourceHtml, roundTripHtml);
             HtmlResourceManifest resourceManifest = HtmlResourcePipeline.BuildManifest(source.SourceHtml, new HtmlResourcePipelineOptions {
-                UrlPolicy = options.ResourceUrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()
+                ResourceUrlPolicy = options.ResourceUrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()
             });
             var manifest = new HtmlCapabilityGalleryManifest(
                 result,

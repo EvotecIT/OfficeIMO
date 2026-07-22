@@ -10,22 +10,40 @@ public sealed class HtmlUrlPolicy {
     public static HtmlUrlPolicy CreateOfficeIMOProfile() => new HtmlUrlPolicy();
 
     /// <summary>
-    /// Creates a hyperlink policy that rejects script, file, and data URLs while allowing common web and mail links.
+    /// Creates a hyperlink policy that rejects script, file, and data URLs while allowing common web, mail, and telephone links.
     /// </summary>
     public static HtmlUrlPolicy CreateHyperlinkProfile() => new HtmlUrlPolicy {
         DisallowFileUrls = true,
         AllowDataUrls = false,
-        RestrictUrlSchemes = true
+        RestrictUrlSchemes = true,
+        AllowedUrlSchemes = { "tel" }
     };
 
     /// <summary>
-    /// Creates a restrictive web-only policy that accepts only HTTP, HTTPS, and mail links.
+    /// Creates a restrictive web-only policy that accepts only HTTP, HTTPS, mail, and telephone links.
     /// </summary>
     public static HtmlUrlPolicy CreateWebOnlyProfile() => new HtmlUrlPolicy {
         DisallowFileUrls = true,
         AllowDataUrls = false,
-        RestrictUrlSchemes = true
+        RestrictUrlSchemes = true,
+        AllowedUrlSchemes = { "tel" }
     };
+
+    /// <summary>
+    /// Creates an offline resource policy that accepts bounded embedded data while rejecting file and network schemes.
+    /// </summary>
+    public static HtmlUrlPolicy CreateEmbeddedResourceProfile() {
+        var policy = new HtmlUrlPolicy {
+            DisallowFileUrls = true,
+            AllowMailtoUrls = false,
+            AllowDataUrls = true,
+            AllowProtocolRelativeUrls = false,
+            RestrictUrlSchemes = true
+        };
+        policy.AllowedUrlSchemes.Clear();
+        policy.AllowedUrlSchemes.Add("data");
+        return policy;
+    }
 
     /// <summary>
     /// When true, script-like URL schemes such as <c>javascript:</c> and <c>vbscript:</c> are rejected.
@@ -96,5 +114,40 @@ public sealed class HtmlUrlPolicy {
         }
 
         return clone;
+    }
+
+    /// <summary>Creates the restrictive intersection of two independently supplied policy boundaries.</summary>
+    internal static HtmlUrlPolicy Intersect(HtmlUrlPolicy? first, HtmlUrlPolicy? second) {
+        HtmlUrlPolicy left = first ?? CreateOfficeIMOProfile();
+        HtmlUrlPolicy right = second ?? CreateOfficeIMOProfile();
+        var result = new HtmlUrlPolicy {
+            DisallowScriptUrls = left.DisallowScriptUrls || right.DisallowScriptUrls,
+            DisallowFileUrls = left.DisallowFileUrls || right.DisallowFileUrls,
+            AllowMailtoUrls = left.AllowMailtoUrls && right.AllowMailtoUrls,
+            AllowDataUrls = left.AllowDataUrls && right.AllowDataUrls,
+            AllowProtocolRelativeUrls = left.AllowProtocolRelativeUrls && right.AllowProtocolRelativeUrls,
+            RestrictUrlSchemes = left.RestrictUrlSchemes || right.RestrictUrlSchemes,
+            ResolvedUrlTransform = ComposeTransforms(left.ResolvedUrlTransform, right.ResolvedUrlTransform)
+        };
+
+        result.AllowedUrlSchemes.Clear();
+        IEnumerable<string> schemes = left.RestrictUrlSchemes && right.RestrictUrlSchemes
+            ? left.AllowedUrlSchemes.Intersect(right.AllowedUrlSchemes, StringComparer.OrdinalIgnoreCase)
+            : left.RestrictUrlSchemes ? left.AllowedUrlSchemes
+            : right.RestrictUrlSchemes ? right.AllowedUrlSchemes
+            : left.AllowedUrlSchemes.Union(right.AllowedUrlSchemes, StringComparer.OrdinalIgnoreCase);
+        foreach (string scheme in schemes) result.AllowedUrlSchemes.Add(scheme);
+        return result;
+    }
+
+    private static Func<string, string?>? ComposeTransforms(
+        Func<string, string?>? first,
+        Func<string, string?>? second) {
+        if (first == null) return second;
+        if (second == null) return first;
+        return value => {
+            string? transformed = first(value);
+            return string.IsNullOrWhiteSpace(transformed) ? null : second(transformed!);
+        };
     }
 }

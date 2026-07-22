@@ -15,7 +15,7 @@ public class HtmlRenderingStageBenchmarks {
     private string _html = string.Empty;
     private HtmlRenderOptions _options = null!;
     private HtmlCssPageRuleSet _pageRules = null!;
-    private HtmlRenderResourceSet _resources = null!;
+    private HtmlResourceSession _resources = null!;
 
     [Params(10, 100)]
     public int RowCount { get; set; }
@@ -25,10 +25,13 @@ public class HtmlRenderingStageBenchmarks {
         _html = HtmlBenchmarkCorpus.BuildReport(RowCount);
         _document = HtmlDocumentParser.ParseDocument(_html);
         _options = HtmlBenchmarkCorpus.CreateContinuousOptions();
-        _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(_document, _options);
+        _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
+            _document,
+            _options,
+            HtmlConversionLimits.CreateUntrustedProfile());
         _fonts = new OfficeFontFaceCollection();
         _pageRules = new HtmlCssPageRuleSet();
-        _resources = new HtmlRenderResourceSet();
+        _resources = new HtmlResourceSession();
     }
 
     [Benchmark]

@@ -55,9 +55,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>URL policy applied before links or resources enter the rendered result.</summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
-    // Package-backed adapters can authorize an archive resource origin without authorizing the
-    // same URI scheme for hyperlinks emitted by the rendered document.
-    internal HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
+    /// <summary>
+    /// Optional separate policy for images, stylesheets, fonts, and other render resources.
+    /// When omitted, <see cref="UrlPolicy"/> is used. This lets package or application resolvers
+    /// authorize a resource origin without authorizing the same scheme for emitted hyperlinks.
+    /// </summary>
+    public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
 
     /// <summary>Optional application-supplied asynchronous resolver for policy-approved external resources.</summary>
     public HtmlRenderResourceResolver? ResourceResolver { get; set; }
@@ -70,6 +73,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum time allowed for one resolver invocation.</summary>
     public TimeSpan ResourceTimeout { get; set; } = TimeSpan.FromSeconds(30D);
 
+    /// <summary>Maximum asynchronous resolver invocations allowed to run concurrently.</summary>
+    public int MaxConcurrentResourceLoads { get; set; } = 8;
+
     /// <summary>Maximum bytes accepted from one resolved resource.</summary>
     public long MaxResourceBytes { get; set; } = 10L * 1024L * 1024L;
 
@@ -78,6 +84,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     /// <summary>Maximum number of external resources accepted in one render operation.</summary>
     public int MaxResourceCount { get; set; } = 256;
+
+    /// <summary>Maximum resolver invocations attempted in one render operation, including misses and failures.</summary>
+    public int MaxResourceRequests { get; set; } = 512;
 
     /// <summary>Maximum recursive <c>@import</c> depth accepted for external stylesheets.</summary>
     public int MaxStylesheetImportDepth { get; set; } = 16;
@@ -151,9 +160,11 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.ResourceResolver = ResourceResolver;
         target.SynchronousResourceResolver = SynchronousResourceResolver;
         target.ResourceTimeout = ResourceTimeout;
+        target.MaxConcurrentResourceLoads = MaxConcurrentResourceLoads;
         target.MaxResourceBytes = MaxResourceBytes;
         target.MaxTotalResourceBytes = MaxTotalResourceBytes;
         target.MaxResourceCount = MaxResourceCount;
+        target.MaxResourceRequests = MaxResourceRequests;
         target.MaxStylesheetImportDepth = MaxStylesheetImportDepth;
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
@@ -167,11 +178,14 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxGradientStops = MaxGradientStops;
         target.MaxGridTracks = MaxGridTracks;
         target.MaxColumnCount = MaxColumnCount;
+        target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
         return target;
     }
 
     internal HtmlUrlPolicy GetResourceUrlPolicy() =>
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+    internal int? ResponsiveImageCandidateLimit { get; set; }
 
     internal void Validate() {
         ValidateImageExportOptions();
@@ -236,6 +250,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
             throw new ArgumentOutOfRangeException(nameof(ResourceTimeout), "Resource timeout must be a finite positive duration.");
         }
 
+        if (MaxConcurrentResourceLoads <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxConcurrentResourceLoads), "Maximum concurrent resource loads must be positive.");
+        }
+
         if (MaxResourceBytes <= 0L) {
             throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes), "Maximum resource bytes must be positive.");
         }
@@ -246,6 +264,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxResourceCount <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxResourceCount), "Maximum resource count must be positive.");
+        }
+
+        if (MaxResourceRequests <= 0 || MaxResourceRequests < MaxResourceCount) {
+            throw new ArgumentOutOfRangeException(nameof(MaxResourceRequests), "Maximum resource requests must be positive and at least the accepted resource count limit.");
         }
 
         if (MaxStylesheetImportDepth <= 0) {

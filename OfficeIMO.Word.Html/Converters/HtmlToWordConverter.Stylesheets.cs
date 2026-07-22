@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -228,6 +229,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var rule in rules) {
+                RecordCssRule(rule);
                 _cssRules.Add(rule);
 
                 var mapped = CssStyleMapper.MapParagraphStyle(rule.Style?.CssText);
@@ -315,6 +317,9 @@ namespace OfficeIMO.Word.Html {
             for (int ruleIndex = 0; ruleIndex < _cssRules.Count; ruleIndex++) {
                 var rule = _cssRules[ruleIndex];
                 var selector = rule.Selector;
+                if (selector != null) {
+                    RecordSelectorEvaluation();
+                }
                 if (selector != null && SelectorMatches(rule, element)) {
                     var specificity = selector.Specificity;
                     foreach (var property in rule.Style) {
@@ -342,6 +347,29 @@ namespace OfficeIMO.Word.Html {
             }
 
             return accumulated;
+        }
+
+        private void RecordCssRule(ICssStyleRule rule) {
+            int declarationCount = rule.Style?.Length ?? 0;
+            if (declarationCount == 0) return;
+            foreach (string selector in HtmlComputedStyleEngine.SplitSelectorList(rule.SelectorText)) {
+                if (string.IsNullOrWhiteSpace(selector)) continue;
+                try {
+                    _cssProcessingBudget.RecordRule(declarationCount);
+                } catch (HtmlDomLimitException exception) {
+                    ThrowLimitExceeded(_options, exception.Code, exception.Message,
+                        exception.LimitSource, exception.Actual, exception.Limit);
+                }
+            }
+        }
+
+        private void RecordSelectorEvaluation() {
+            try {
+                _cssProcessingBudget.RecordSelectorEvaluation();
+            } catch (HtmlDomLimitException exception) {
+                ThrowLimitExceeded(_options, exception.Code, exception.Message,
+                    exception.LimitSource, exception.Actual, exception.Limit);
+            }
         }
 
         private static bool SelectorMatches(ICssStyleRule rule, IElement element) {

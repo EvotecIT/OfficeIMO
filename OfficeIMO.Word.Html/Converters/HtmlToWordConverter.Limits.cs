@@ -5,31 +5,16 @@ using System.Text;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private void ValidateDocumentLimits(IDocument document, HtmlToWordOptions options) {
-            if (!options.MaxHtmlNodes.HasValue && !options.MaxHtmlDepth.HasValue) {
-                return;
-            }
-
-            int nodeCount = 0;
-            var stack = new Stack<(INode Node, int Depth)>();
-            foreach (var child in document.ChildNodes) {
-                stack.Push((child, 1));
-            }
-
-            while (stack.Count > 0) {
-                var current = stack.Pop();
-                nodeCount++;
-
-                if (options.MaxHtmlNodes.HasValue && nodeCount > options.MaxHtmlNodes.Value) {
-                    ThrowLimitExceeded(options, "HtmlNodeLimitExceeded", "HTML node count exceeded the configured conversion limit.", "MaxHtmlNodes", nodeCount, options.MaxHtmlNodes.Value);
-                }
-
-                if (options.MaxHtmlDepth.HasValue && current.Depth > options.MaxHtmlDepth.Value) {
-                    ThrowLimitExceeded(options, "HtmlDepthLimitExceeded", "HTML nesting depth exceeded the configured conversion limit.", "MaxHtmlDepth", current.Depth, options.MaxHtmlDepth.Value);
-                }
-
-                for (int i = current.Node.ChildNodes.Length - 1; i >= 0; i--) {
-                    stack.Push((current.Node.ChildNodes[i], current.Depth + 1));
-                }
+            try {
+                HtmlConversionInputGuard.ValidateDocument(document, options.Limits);
+            } catch (HtmlDomLimitException exception) {
+                ThrowLimitExceeded(
+                    options,
+                    exception.Code,
+                    exception.Message,
+                    exception.LimitSource,
+                    exception.Actual,
+                    exception.Limit);
             }
         }
 

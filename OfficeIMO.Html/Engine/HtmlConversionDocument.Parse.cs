@@ -11,42 +11,31 @@ public sealed partial class HtmlConversionDocument {
             throw new ArgumentNullException(nameof(html));
         }
 
-        options ??= new HtmlConversionDocumentOptions();
+        HtmlConversionDocumentOptions resolved = (options ?? new HtmlConversionDocumentOptions()).Clone();
+        resolved.Validate();
+        HtmlConversionInputGuard.ValidateSource(html, resolved.Limits);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
-        Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
-        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(document, options.UseBodyContentsOnly);
-        HtmlCssMediaContext mediaContext = options.Profile == HtmlConversionProfile.HighFidelityPrint
-            ? HtmlCssMediaContext.Print
-            : HtmlCssMediaContext.Screen;
-        var styles = HtmlComputedStyleEngine.Compute(document, mediaContext);
-        HtmlComputedStyleSummary styleSummary = HtmlComputedStyleEngine.Summarize(styles);
-        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, options.ToResourcePipelineOptions());
-        HtmlResourceDependencyPlan resourcePlan = HtmlResourceDependencyPlanner.Create(manifest);
-        string normalized = options.IncludeNormalizedHtml
-            ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
-            : string.Empty;
-        string adapterHtml = HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options));
-        IHtmlDocument adapterDocument = HtmlDocumentParser.ParseDocument(adapterHtml);
-        IHtmlDocument documentForConversion = HtmlDocumentParser.CloneDocument(adapterDocument);
-        HtmlActiveMediaFilter.Filter(documentForConversion, mediaContext);
-        string filteredAdapterHtml = documentForConversion.DocumentElement?.OuterHtml ?? adapterHtml;
-
-        return new HtmlConversionDocument(
-            html,
-            HtmlDocumentParser.CloneDocument(document),
-            adapterDocument,
-            documentForConversion,
-            HtmlConversionProfileContracts.Get(options.Profile),
-            options.Trust,
-            logical,
-            styleSummary,
-            manifest,
-            resourcePlan,
-            baseUri,
-            options.BaseUri,
-            normalized,
-            filteredAdapterHtml);
+        HtmlConversionInputGuard.ValidateDocument(document, resolved.Limits);
+        Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, resolved.BaseUri);
+        return new HtmlConversionDocument(html, document, resolved, baseUri);
     }
+
+    /// <summary>
+    /// Gives low-level analysis helpers an independent source DOM while retaining the same bounded
+    /// parser entry point as converters. The returned DOM may be safely mutated by the caller.
+    /// </summary>
+    internal static IHtmlDocument ParseSourceDocumentForAnalysis(string html) =>
+        ParseSourceDocumentForAnalysis(html, HtmlConversionLimits.CreateUntrustedProfile());
+
+    /// <summary>Parses a low-level analysis clone using the caller's resolved shared limits.</summary>
+    internal static IHtmlDocument ParseSourceDocumentForAnalysis(string html, HtmlConversionLimits limits) =>
+        Parse(
+            html,
+            new HtmlConversionDocumentOptions {
+                IncludeNormalizedHtml = false,
+                Limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone()
+            })
+        .CreateSourceDocumentForConversion();
 
     private static HtmlNormalizationOptions ConfigureNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
         HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
@@ -54,6 +43,9 @@ public sealed partial class HtmlConversionDocument {
             BaseUri = source.BaseUri ?? HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri),
             BaseElementBaseUri = source.BaseElementBaseUri ?? source.BaseUri ?? options.BaseUri,
             UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            ResourceUrlPolicy = (options.ResourceUrlPolicy ?? HtmlUrlPolicy.CreateEmbeddedResourceProfile()).Clone(),
+            Limits = options.Limits.Clone(),
+            MaxResponsiveImageCandidates = options.Limits.MaxResponsiveImageCandidates,
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = source.PreserveComments,
             PreserveStyleElements = source.PreserveStyleElements,

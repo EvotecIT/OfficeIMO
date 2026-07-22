@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.Html {
         private long _imageBytesUsed;
         private long _remoteImageBytesFetched;
         private long _cssBytesUsed;
+        private HtmlCssProcessingBudget _cssProcessingBudget = new HtmlCssProcessingBudget(null);
         private HtmlToWordOptions _options = new HtmlToWordOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
         private static readonly HashSet<string> _blockTags = new(StringComparer.OrdinalIgnoreCase) {
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word.Html {
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
+            _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
 
             _context = document.Context;
             ValidateDocumentLimits(document, options);
@@ -128,6 +130,7 @@ namespace OfficeIMO.Word.Html {
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
+            _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
 
             _context = document.Context;
             ValidateDocumentLimits(document, options);
@@ -182,6 +185,7 @@ namespace OfficeIMO.Word.Html {
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
+            _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
 
             _context = document.Context;
             ValidateDocumentLimits(document, options);

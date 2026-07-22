@@ -22,7 +22,7 @@ public sealed class MhtmlDocument {
         RootContentId = NormalizeContentId(rootContentId);
         Subject = NormalizeOptional(subject);
         BaseUri = ResolveBaseUri(ContentLocation, null);
-        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri));
+        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
         _mimeDocument = CreateMimeDocument(html, _resources, ContentLocation, RootContentId, Subject);
     }
 
@@ -47,7 +47,7 @@ public sealed class MhtmlDocument {
             .Select(MhtmlResource.FromEmailAttachment)
             .ToArray();
         _mimeDiagnostics = readResult.Diagnostics;
-        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri));
+        HtmlDocument = HtmlConversionDocument.Parse(html, PrepareHtmlOptions(htmlOptions, BaseUri, _resources));
     }
 
     /// <summary>Parsed HTML root document.</summary>
@@ -168,7 +168,7 @@ public sealed class MhtmlDocument {
         MhtmlResource? resource = FindResource(request);
         return Task.FromResult(resource == null
             ? null
-            : new HtmlResolvedResource(resource.Content, resource.ContentType));
+            : new HtmlResolvedResource(resource.EncodedContent, resource.ContentType));
     }
 
     private MhtmlResource? FindResource(HtmlRenderResourceRequest request) {
@@ -212,11 +212,50 @@ public sealed class MhtmlDocument {
         return document;
     }
 
-    private static HtmlConversionDocumentOptions PrepareHtmlOptions(HtmlConversionDocumentOptions? source,
-        Uri baseUri) {
+    private static HtmlConversionDocumentOptions PrepareHtmlOptions(
+        HtmlConversionDocumentOptions? source,
+        Uri baseUri,
+        IReadOnlyList<MhtmlResource> resources) {
         HtmlConversionDocumentOptions options = source?.Clone() ?? new HtmlConversionDocumentOptions();
         options.BaseUri ??= baseUri;
+        HtmlUrlPolicy resourcePolicy = options.ResourceUrlPolicy.Clone();
+        var archiveUris = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (MhtmlResource resource in resources) {
+            if (!string.IsNullOrWhiteSpace(resource.ContentId)) {
+                AddArchiveUri(archiveUris, "cid:" + resource.ContentId, baseUri);
+            }
+            AddArchiveUri(archiveUris, resource.ContentLocation, baseUri);
+            AddArchiveUri(archiveUris, resource.FileName, baseUri);
+        }
+
+        if (resourcePolicy.RestrictUrlSchemes) {
+            resourcePolicy.AllowedUrlSchemes.Add("cid");
+            resourcePolicy.AllowedUrlSchemes.Add(baseUri.Scheme);
+        }
+        if (baseUri.IsFile) resourcePolicy.DisallowFileUrls = false;
+        Func<string, string?>? callerTransform = resourcePolicy.ResolvedUrlTransform;
+        resourcePolicy.ResolvedUrlTransform = resolved => {
+            string? transformed = callerTransform == null ? resolved : callerTransform(resolved);
+            if (string.IsNullOrWhiteSpace(transformed)
+                || !Uri.TryCreate(transformed, UriKind.Absolute, out Uri? uri)) {
+                return transformed;
+            }
+
+            bool archiveOnlyScheme = uri.Scheme.Equals("cid", StringComparison.OrdinalIgnoreCase)
+                || baseUri.IsFile && uri.IsFile
+                || (!baseUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                    && !baseUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                    && !baseUri.Scheme.Equals("data", StringComparison.OrdinalIgnoreCase)
+                    && uri.Scheme.Equals(baseUri.Scheme, StringComparison.OrdinalIgnoreCase));
+            return !archiveOnlyScheme || archiveUris.Contains(uri.AbsoluteUri) ? transformed : null;
+        };
+        options.ResourceUrlPolicy = resourcePolicy;
         return options;
+    }
+
+    private static void AddArchiveUri(HashSet<string> archiveUris, string? value, Uri baseUri) {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (Uri.TryCreate(baseUri, value, out Uri? resolved)) archiveUris.Add(resolved.AbsoluteUri);
     }
 
     private static Uri ResolveBaseUri(string? contentLocation, Uri? sourceBaseUri) {

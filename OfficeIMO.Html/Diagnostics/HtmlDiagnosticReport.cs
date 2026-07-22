@@ -63,6 +63,29 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
         Add(new HtmlDiagnostic(component, code, message, severity, source, detail, lossKind));
     }
 
+    /// <summary>Adds a diagnostic with typed source-to-target provenance.</summary>
+    /// <param name="component">Component that emitted the diagnostic.</param>
+    /// <param name="code">Stable diagnostic code.</param>
+    /// <param name="message">Human-readable diagnostic message.</param>
+    /// <param name="severity">Diagnostic severity.</param>
+    /// <param name="source">Optional source.</param>
+    /// <param name="detail">Optional low-level detail.</param>
+    /// <param name="lossKind">Conversion fidelity impact.</param>
+    /// <param name="sourceLocation">Optional typed HTML source location.</param>
+    /// <param name="targetAddress">Optional target artifact address.</param>
+    public void Add(
+        string component,
+        string code,
+        string message,
+        HtmlDiagnosticSeverity severity,
+        string? source,
+        string? detail,
+        HtmlConversionLossKind lossKind,
+        HtmlSemanticSourceLocation? sourceLocation,
+        string? targetAddress) {
+        Add(new HtmlDiagnostic(component, code, message, severity, source, detail, lossKind, sourceLocation, targetAddress));
+    }
+
     /// <summary>
     /// Adds diagnostics to the report in enumeration order.
     /// </summary>

@@ -13,7 +13,7 @@ internal static class HtmlLogicalDocumentBuilder {
     /// Parses raw HTML and builds a logical document from the conversion root.
     /// </summary>
     public static HtmlLogicalDocument FromHtml(string html, bool useBodyContentsOnly = true) {
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html);
         return FromDocument(document, useBodyContentsOnly);
     }
 

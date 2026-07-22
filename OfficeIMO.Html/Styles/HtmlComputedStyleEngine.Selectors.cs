@@ -3,6 +3,89 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
+    private static SelectorCandidateKey GetSelectorCandidateKey(string selector) {
+        if (TryParsePseudoElementSelector(selector, out string hostSelector, out _)) selector = hostSelector;
+        int start = FindRightmostCompoundStart(selector);
+        string compound = selector.Substring(start).Trim();
+        if (compound.Length == 0) return new SelectorCandidateKey(SelectorCandidateKind.Universal, string.Empty);
+
+        string id = FindTopLevelSimpleToken(compound, '#');
+        if (id.Length > 0) return new SelectorCandidateKey(SelectorCandidateKind.Id, id);
+        string className = FindTopLevelSimpleToken(compound, '.');
+        if (className.Length > 0) return new SelectorCandidateKey(SelectorCandidateKind.Class, className);
+
+        int length = ReadSimpleIdentifier(compound, 0);
+        if (length > 0 && IsCandidateTokenBoundary(compound, length)) {
+            return new SelectorCandidateKey(SelectorCandidateKind.Tag, compound.Substring(0, length));
+        }
+
+        return new SelectorCandidateKey(SelectorCandidateKind.Universal, string.Empty);
+    }
+
+    private static int FindRightmostCompoundStart(string selector) {
+        int squareDepth = 0;
+        int parenthesisDepth = 0;
+        char quote = '\0';
+        int start = 0;
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(selector, index)) quote = '\0';
+                continue;
+            }
+            if (current == '"' || current == '\'') { quote = current; continue; }
+            if (current == '[') { squareDepth++; continue; }
+            if (current == ']') { if (squareDepth > 0) squareDepth--; continue; }
+            if (current == '(') { parenthesisDepth++; continue; }
+            if (current == ')') { if (parenthesisDepth > 0) parenthesisDepth--; continue; }
+            if (squareDepth == 0 && parenthesisDepth == 0
+                && (char.IsWhiteSpace(current) || current == '>' || current == '+' || current == '~')) {
+                start = index + 1;
+            }
+        }
+        return start;
+    }
+
+    private static string FindTopLevelSimpleToken(string compound, char marker) {
+        int squareDepth = 0;
+        int parenthesisDepth = 0;
+        char quote = '\0';
+        for (int index = 0; index < compound.Length; index++) {
+            char current = compound[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(compound, index)) quote = '\0';
+                continue;
+            }
+            if (current == '"' || current == '\'') { quote = current; continue; }
+            if (current == '[') { squareDepth++; continue; }
+            if (current == ']') { if (squareDepth > 0) squareDepth--; continue; }
+            if (current == '(') { parenthesisDepth++; continue; }
+            if (current == ')') { if (parenthesisDepth > 0) parenthesisDepth--; continue; }
+            if (squareDepth != 0 || parenthesisDepth != 0 || current != marker || IsEscaped(compound, index)) continue;
+            int tokenStart = index + 1;
+            int tokenLength = ReadSimpleIdentifier(compound, tokenStart);
+            int tokenEnd = tokenStart + tokenLength;
+            if (tokenLength > 0 && IsCandidateTokenBoundary(compound, tokenEnd)) {
+                return compound.Substring(tokenStart, tokenLength);
+            }
+            if (tokenLength > 0) index = tokenEnd - 1;
+        }
+        return string.Empty;
+    }
+
+    private static bool IsCandidateTokenBoundary(string compound, int index) =>
+        index >= compound.Length
+        || compound[index] == '#'
+        || compound[index] == '.'
+        || compound[index] == '['
+        || compound[index] == ':';
+
+    private static int ReadSimpleIdentifier(string value, int start) {
+        int index = start;
+        while (index < value.Length && IsIdentifierCharacter(value[index])) index++;
+        return index - start;
+    }
+
     private static bool MatchesSelector(IElement element, string selector) {
         try {
             return element.Matches(selector);
