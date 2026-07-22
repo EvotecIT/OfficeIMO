@@ -154,10 +154,12 @@ namespace OfficeIMO.PowerPoint {
             Justification = "The late-bound PowerPoint Desktop lane is called only when dynamic code is supported. NativeAOT reports the lane as unavailable and uses the in-process renderers.")]
         private static PowerPointReferenceRenderResult TryRenderDesktopWhenSupported(string presentationPath,
             string outputDirectory, bool enabled) {
+#if NET5_0_OR_GREATER
             if (!RuntimeFeature.IsDynamicCodeSupported) {
                 return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Unavailable,
                     "PowerPoint Desktop reference rendering is unavailable in NativeAOT applications; use the in-process renderers.");
             }
+#endif
 
             return PowerPointDesktopReferenceRenderer.TryRender(presentationPath, outputDirectory, enabled);
         }

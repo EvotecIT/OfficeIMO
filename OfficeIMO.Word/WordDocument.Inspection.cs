@@ -516,6 +516,11 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            if (value is IEnumValue enumValue && !string.IsNullOrWhiteSpace(enumValue.Value)) {
+                string normalizedEnumValue = enumValue.Value;
+                return char.ToUpperInvariant(normalizedEnumValue[0]) + normalizedEnumValue.Substring(1);
+            }
+
             string? innerText = (value as OpenXmlSimpleType)?.InnerText;
             if (!string.IsNullOrWhiteSpace(innerText)) {
                 string normalizedInnerText = innerText!;

@@ -146,7 +146,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             var payload = GoogleDriveJson.ToNode(new GoogleDriveFilePayload {
                 Name = name,
                 MimeType = GoogleDriveMimeTypes.Folder,
-                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
+                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId! },
             }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
             string uri = $"https://www.googleapis.com/drive/v3/files?supportsAllDrives={Bool(_options.SupportsAllDrives)}&fields={Escape(DefaultFileFields)}";
             return await _transport.SendJsonAsync<GoogleDriveFile>(
@@ -172,7 +172,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string token = await AcquireTokenAsync(_options.WriteScopes, report, "Google Drive file copy", cancellationToken).ConfigureAwait(false);
             var payload = GoogleDriveJson.ToNode(new GoogleDriveFilePayload {
                 Name = name,
-                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
+                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId! },
             }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
             string uri = $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/copy?supportsAllDrives={Bool(_options.SupportsAllDrives)}&fields={Escape(DefaultFileFields)}";
             return await _transport.SendJsonAsync<GoogleDriveFile>(

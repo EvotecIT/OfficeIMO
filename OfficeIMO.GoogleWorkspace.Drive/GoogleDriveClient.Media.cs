@@ -258,7 +258,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             return GoogleDriveJson.Serialize(new GoogleDriveFilePayload {
                 Name = options.Name,
                 MimeType = options.ConvertToGoogleMimeType,
-                Parents = string.IsNullOrWhiteSpace(options.ParentId) ? null : new[] { options.ParentId },
+                Parents = string.IsNullOrWhiteSpace(options.ParentId) ? null : new[] { options.ParentId! },
             }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
         }
 

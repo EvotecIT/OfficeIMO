@@ -263,6 +263,7 @@ namespace OfficeIMO.Drawing {
         }
 
         private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
+#if !NETSTANDARD2_0
             // ITuple exposes tuple items without reflecting over runtime-generated accessors.
             if (obj is System.Runtime.CompilerServices.ITuple tuple) {
                 for (int i = 0; i < tuple.Length; i++) {
@@ -278,6 +279,7 @@ namespace OfficeIMO.Drawing {
                 }
                 return;
             }
+#endif
 
             // Fallback: reflect public instance fields Item1..ItemN
             var fields = GetValueTupleFields(obj.GetType());
