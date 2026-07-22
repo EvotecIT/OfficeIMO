@@ -154,6 +154,19 @@ public sealed class AdfContractTests {
         Assert.Contains(result.Issues, item => item.Code == "ADF_TEXT_REQUIRED" && item.Path == "$.content[0].content[0].text");
     }
 
+    [Fact]
+    public void Validation_ReportsNullNestedNodesWithoutThrowing() {
+        var paragraph = new AdfNode("paragraph");
+        paragraph.Content.Add(null!);
+        var document = new AdfDocument(new[] { paragraph });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == "ADF_NULL_NODE");
+        Assert.Equal("$.content[0].content[0]", issue.Path);
+    }
+
     [Theory]
     [InlineData("taskList", "{}", "ADF_TASK_LOCAL_ID")]
     [InlineData("taskItem", "{\"state\":\"DONE\"}", "ADF_TASK_LOCAL_ID")]
@@ -325,6 +338,19 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void MarkdownEmptyCodeFence_ProducesValidEmptyAdfCodeBlock() {
+        AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown("```\n```");
+
+        AdfNode codeBlock = Assert.Single(adf.Value.Content);
+        Assert.Equal("codeBlock", codeBlock.Type);
+        Assert.Empty(codeBlock.Content);
+        Assert.True(adf.Value.Validate().IsValid);
+
+        AdfConversionResult<string> roundTrip = AdfConverter.ToMarkdown(adf.Value);
+        Assert.Equal("```\n```", roundTrip.Value.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
     public void CodeBlockProjection_NormalizesExternalLanguageToOneSafeToken() {
         const string content = "Get-Date";
         var document = new AdfDocument();
@@ -479,6 +505,20 @@ public sealed class AdfContractTests {
         Assert.False(result.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_ATTRIBUTES_DROPPED");
         Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
+    }
+
+    [Fact]
+    public void TableProjection_ReportsDroppedTableAttributesAndProperties() {
+        var table = new AdfNode("table").SetAttribute("layout", "wide");
+        table.ExtensionData["vendorTableProperty"] = JsonSerializer.SerializeToElement(true);
+        table.Content.Add(new AdfNode("tableRow") { Content = { TableCell("tableHeader", "Header") } });
+        var document = new AdfDocument(new[] { table });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_ATTRIBUTES_DROPPED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
     }
 
     [Fact]

@@ -113,6 +113,9 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static void AppendTable(StringBuilder builder, AdfNode table, string path, List<AdfConversionDiagnostic> diagnostics) {
+        if (table.Attributes.Count > 0 || table.ExtensionData.Count > 0) {
+            diagnostics.Add(Warning("ADF_TABLE_ATTRIBUTES_DROPPED", path, "ADF table attributes cannot be represented in Markdown and were omitted."));
+        }
         var rows = table.Content.Where(node => node.Type == "tableRow").ToList();
         if (rows.Count == 0) return;
         int columns = rows.Max(row => row.Content.Count);

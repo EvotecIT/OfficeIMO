@@ -21,7 +21,7 @@ internal static class MarkdownToAdfConverter {
             case CodeBlock code:
                 var codeNode = new AdfNode("codeBlock");
                 if (!string.IsNullOrWhiteSpace(code.Language)) codeNode.SetAttribute("language", code.Language);
-                codeNode.Content.Add(AdfNode.TextNode(code.Content));
+                if (!string.IsNullOrEmpty(code.Content)) codeNode.Content.Add(AdfNode.TextNode(code.Content));
                 return codeNode;
             case QuoteBlock quote:
                 var quoteNode = new AdfNode("blockquote");

@@ -148,9 +148,9 @@ internal static class AdfValidator {
             }
         }
         for (int i = 0; i < node.Content.Count; i++) {
-            AdfNode child = node.Content[i];
+            AdfNode? child = node.Content[i];
             string childPath = path + ".content[" + i + "]";
-            ValidateKnownChild(node, child, childPath, issues);
+            if (child != null) ValidateKnownChild(node, child, childPath, issues);
             ValidateNode(child, childPath, node.Type, issues);
         }
     }
