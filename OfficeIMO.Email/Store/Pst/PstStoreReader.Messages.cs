@@ -136,12 +136,18 @@ internal sealed partial class PstStoreReader {
                 EmailStoreItemReadParts.ExtendedMapiProperties)
                 ? null
                 : AttachmentMetadataPropertyIds;
+            long? maximumAttachmentMetadataBytes = decodedObjectBudget == null
+                ? null
+                : GetEmbeddedMessageMaximumDecodedBytes(
+                    decodedObjectBudget.RemainingBytes,
+                    decodedObjectBudget,
+                    _options.MaxAttachmentBytes);
             PstHeap heap = CreateHeap(attachmentNode.DataBid, attachmentNode.SubnodeBid,
-                attachmentSubnodes, decodedObjectBudget?.RemainingBytes);
+                attachmentSubnodes, maximumAttachmentMetadataBytes);
             IReadOnlyList<MapiProperty> attachmentProperties = ReadProperties(
                 heap, attachmentLocation, sourceHnids, includedPropertyIds,
                 DeferredAttachmentPropertyIds,
-                maximumDecodedBytes: decodedObjectBudget?.RemainingBytes);
+                maximumDecodedBytes: maximumAttachmentMetadataBytes);
             decodedObjectBudget?.AddProperties(attachmentProperties);
             long declaredLength = Math.Max(0,
                 attachmentProperties.GetNullableMapiValue(MapiKnownProperties.PidTag.AttachSize) ?? 0);
