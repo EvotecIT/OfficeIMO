@@ -380,6 +380,41 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderChargesRepeatedUsePolylinesToOneCommandBudget() {
+        var points = new StringBuilder("0,0");
+        for (int index = 1; index < 1000; index++) points.Append(' ').Append(index % 10).Append(',').Append(index % 10);
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs><polyline id='p' points='")
+            .Append(points).Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.InRange(drawing!.Shapes.Count, 1, 20);
+        Assert.True(unsupported > 0);
+        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+    }
+
+    [Fact]
+    public void SvgReaderRejectsTransformArgumentsBeyondSupportedArity() {
+        var arguments = new StringBuilder("0");
+        for (int index = 1; index < 1000; index++) arguments.Append(" 0");
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<rect width='10' height='10' fill='red' transform='matrix(" + arguments + ")'/>"
+            + "<rect x='10' width='10' height='10' fill='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(2, drawing!.Shapes.Count);
+        Assert.Equal(OfficeColor.Red, drawing.Shapes[0].Shape.FillColor);
+        Assert.False(drawing.Shapes[0].Shape.Transform.HasValue);
+        Assert.Equal(OfficeColor.Lime, drawing.Shapes[1].Shape.FillColor);
+    }
+
+    [Fact]
     public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='50%' stop-color='red'/><stop offset='50%' stop-color='blue'/><stop offset='80%' stop-color='blue'/></linearGradient>"

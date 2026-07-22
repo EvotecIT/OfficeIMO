@@ -461,6 +461,26 @@ internal static class HtmlPdfRenderedConverter {
                     target.Effect(pageTransform, effectGroup.Opacity, nested => AddElements(nested, nestedDrawing.Elements));
                     continue;
                 }
+                if (element is OfficeDrawingTilingPattern tilingPattern) {
+                    FlushShapes();
+                    OfficeDrawing tileDrawing = tilingPattern.Tile;
+                    OfficeImagePlacement area = tilingPattern.Area;
+                    double clipX = (visual.X + (area.X * scaleX)) * PointsPerCssPixel;
+                    double clipY = (visual.Y + (area.Y * scaleY)) * PointsPerCssPixel;
+                    double clipWidth = area.Width * scaleX * PointsPerCssPixel;
+                    double clipHeight = area.Height * scaleY * PointsPerCssPixel;
+                    target.Clip(clipX, clipY, clipWidth, clipHeight, clipped => {
+                        foreach (OfficeTransform tileTransform in tilingPattern.GetTileTransforms()) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            OfficeTransform pageTransform = pageToDrawing
+                                .Then(tileTransform)
+                                .Then(drawingToPage);
+                            clipped.Effect(pageTransform, tilingPattern.Opacity,
+                                nested => AddElements(nested, tileDrawing.Elements));
+                        }
+                    });
+                    continue;
+                }
                 if (element is not OfficeDrawingText text || text.Text.Length == 0) continue;
                 FlushShapes();
                 double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;

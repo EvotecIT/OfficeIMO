@@ -26,7 +26,10 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointSlide slide = _slides[slideIndex];
                 if (slide.Hidden && !resolved.IncludeHiddenSlides) continue;
                 List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide, resolved).ToList();
-                string? slideTitle = FindSlideTitle(shapes, SlideSize.HeightPoints);
+                string? slideTitle = FindSlideTitle(
+                    slide.EnumerateShapesDeep(slide.Shapes, includeHidden: false,
+                        resolved.MaximumShapeCount, resolved.MaximumGroupDepth),
+                    SlideSize.HeightPoints);
                 if (resolved.RequireSlideTitles && string.IsNullOrWhiteSpace(slideTitle)) {
                     findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
                         "Accessibility.MissingSlideTitle", "The slide does not expose a recognizable title.", slideIndex));

@@ -175,19 +175,31 @@ public static partial class ReaderHierarchicalChunker {
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
         PageBlockIndex pageIndex = IndexPageBlocks(pages, maximumInputChunks, cancellationToken);
-        foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+        int inspectedBlocks = 0;
+        IReadOnlyList<OfficeDocumentBlock> documentBlocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();
+        for (int blockIndex = 0;
+             blockIndex < documentBlocks.Count && inspectedBlocks < maximumInputChunks;
+             blockIndex++, inspectedBlocks++) {
             cancellationToken.ThrowIfCancellationRequested();
+            OfficeDocumentBlock block = documentBlocks[blockIndex];
             if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
             if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page) && !string.IsNullOrWhiteSpace(block.Id)) {
                 pageIndex.ById.TryGetValue(block.Id!, out page);
             }
             yield return new FallbackBlock(block, page);
         }
-        foreach (OfficeDocumentPage page in pages) {
+        for (int pageIndexValue = 0;
+             pageIndexValue < pages.Count && pageIndexValue < maximumInputChunks && inspectedBlocks < maximumInputChunks;
+             pageIndexValue++) {
             cancellationToken.ThrowIfCancellationRequested();
+            OfficeDocumentPage page = pages[pageIndexValue];
             if (page?.Blocks == null) continue;
-            foreach (OfficeDocumentBlock block in page.Blocks) {
+            IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
+            for (int blockIndex = 0;
+                 blockIndex < pageBlocks.Count && inspectedBlocks < maximumInputChunks;
+                 blockIndex++, inspectedBlocks++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                OfficeDocumentBlock block = pageBlocks[blockIndex];
                 if (TryRegisterFallbackBlock(block, seen, seenIds)) yield return new FallbackBlock(block, page);
             }
         }
@@ -209,8 +221,9 @@ public static partial class ReaderHierarchicalChunker {
             ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var byId = new Dictionary<string, OfficeDocumentPage>(StringComparer.Ordinal);
         int visited = 0;
-        foreach (OfficeDocumentPage page in pages) {
+        for (int pageIndex = 0; pageIndex < pages.Count && pageIndex < maximumBlocks; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
+            OfficeDocumentPage page = pages[pageIndex];
             if (page?.Blocks == null) continue;
             foreach (OfficeDocumentBlock block in page.Blocks) {
                 cancellationToken.ThrowIfCancellationRequested();

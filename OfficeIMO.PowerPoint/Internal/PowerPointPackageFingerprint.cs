@@ -23,7 +23,8 @@ namespace OfficeIMO.PowerPoint {
                 includeDataPartReferenceRelationship = null,
             bool includePackageProperties = true) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            HashSet<OpenXmlPart> parts = CollectParts(document);
+            HashSet<OpenXmlPart> parts = CollectParts(
+                document, MaximumPartCount, MaximumPartDepth, MaximumRelationshipCount);
             using var content = new FingerprintWriter(MaximumContentBytes, MaximumRelationshipCount);
 
             foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(), StringComparer.Ordinal)) {
@@ -135,22 +136,39 @@ namespace OfficeIMO.PowerPoint {
             return content.Complete();
         }
 
-        private static HashSet<OpenXmlPart> CollectParts(PresentationDocument document) {
+        internal static HashSet<OpenXmlPart> CollectParts(PresentationDocument document,
+            int maximumPartCount, int maximumPartDepth, int maximumRelationshipCount) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (maximumPartCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPartCount));
+            if (maximumPartDepth < 0) throw new ArgumentOutOfRangeException(nameof(maximumPartDepth));
+            if (maximumRelationshipCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRelationshipCount));
             var parts = new HashSet<OpenXmlPart>();
+            var scheduled = new HashSet<OpenXmlPart>();
             var pending = new Stack<(OpenXmlPart Part, int Depth)>();
-            foreach (IdPartPair pair in document.Parts) pending.Push((pair.OpenXmlPart, 0));
-            while (pending.Count > 0) {
-                (OpenXmlPart part, int depth) = pending.Pop();
-                if (!parts.Add(part)) continue;
-                if (parts.Count > MaximumPartCount) {
+            int relationshipCount = 0;
+
+            void Schedule(OpenXmlPart part, int depth) {
+                if (++relationshipCount > maximumRelationshipCount) {
+                    throw new FingerprintLimitExceededException(
+                        "The presentation relationship count exceeds the fingerprint limit.");
+                }
+                if (!scheduled.Add(part)) return;
+                if (scheduled.Count > maximumPartCount) {
                     throw new FingerprintLimitExceededException(
                         "The presentation part count exceeds the fingerprint limit.");
                 }
-                if (depth > MaximumPartDepth) {
+                if (depth > maximumPartDepth) {
                     throw new FingerprintLimitExceededException(
                         "The presentation part graph depth exceeds the fingerprint limit.");
                 }
-                foreach (IdPartPair child in part.Parts) pending.Push((child.OpenXmlPart, depth + 1));
+                pending.Push((part, depth));
+            }
+
+            foreach (IdPartPair pair in document.Parts) Schedule(pair.OpenXmlPart, 0);
+            while (pending.Count > 0) {
+                (OpenXmlPart part, int depth) = pending.Pop();
+                parts.Add(part);
+                foreach (IdPartPair child in part.Parts) Schedule(child.OpenXmlPart, depth + 1);
             }
             return parts;
         }

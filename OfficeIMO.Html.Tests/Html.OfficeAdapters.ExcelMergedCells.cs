@@ -13,6 +13,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
         Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
         Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
+        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxMergedRangesPerSheet, options.MaxMergedRangesPerSheet);
     }
 
     [Fact]
@@ -123,5 +124,17 @@ public class HtmlOfficeAdaptersExcelMergedCells {
 
         Assert.Contains("data-officeimo-merge=\"A1:C1\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-officeimo-cell=\"A2\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExcelHtml_RejectsMergeMetadataBeyondTheConfiguredLimit() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("MergeBounded");
+        sheet.MergeRange("A1:B1");
+        sheet.MergeRange("A2:B2");
+
+        Assert.Throws<InvalidOperationException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions {
+            MaxMergedRangesPerSheet = 1
+        }));
     }
 }

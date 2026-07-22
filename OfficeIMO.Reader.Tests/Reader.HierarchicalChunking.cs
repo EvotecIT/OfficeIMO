@@ -309,6 +309,28 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_BoundsFallbackInspectionWhenSourceBlocksAreDuplicates() {
+        var duplicate = new OfficeDocumentBlock { Id = "duplicate", Text = "body" };
+        var blocks = new CountingBlockList(duplicate, 1000);
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = blocks
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 2,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.Equal(2, blocks.ReadCount);
+    }
+
+    [Fact]
     public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
         ReaderChunk source = CreateChunk("stable-id", "body");
         source.Location.Page = null;
@@ -985,6 +1007,32 @@ public sealed class ReaderHierarchicalChunkingTests {
             if (text.EndsWith("\n\n", StringComparison.Ordinal)) return 1;
             return text.Contains("\n\n", StringComparison.Ordinal) ? 3 : 1;
         }
+    }
+
+    private sealed class CountingBlockList : IReadOnlyList<OfficeDocumentBlock> {
+        private readonly OfficeDocumentBlock _block;
+
+        internal CountingBlockList(OfficeDocumentBlock block, int count) {
+            _block = block;
+            Count = count;
+        }
+
+        public int Count { get; }
+        internal int ReadCount { get; private set; }
+
+        public OfficeDocumentBlock this[int index] {
+            get {
+                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                ReadCount++;
+                return _block;
+            }
+        }
+
+        public IEnumerator<OfficeDocumentBlock> GetEnumerator() {
+            for (int index = 0; index < Count; index++) yield return this[index];
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
 }

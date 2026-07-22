@@ -182,8 +182,8 @@ public static partial class OfficeSvgDrawingReader {
             "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "ellipse" => CreateEllipse(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "line" => CreateLine(element, style, viewX, viewY, drawing.Width, drawing.Height),
-            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true),
-            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false),
+            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands),
+            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands),
             "path" => CreatePath(element, style, viewX, viewY, ref pathCommands),
             _ => null
         };
@@ -333,8 +333,24 @@ public static partial class OfficeSvgDrawingReader {
         return new OfficeDrawingShape(shape, x, y);
     }
 
-    private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX, double viewY, bool close) {
-        if (!TryParseNumberList(element.Attribute("points")?.Value, out IReadOnlyList<double> values) || values.Count < 4 || values.Count % 2 != 0) return null;
+    private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX,
+        double viewY, bool close, ref int pathCommands) {
+        int remainingCommands = MaximumSvgPathCommands - pathCommands;
+        if (remainingCommands <= 0
+            || !TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
+                out IReadOnlyList<double> values)
+            || values.Count < 4
+            || values.Count % 2 != 0) {
+            pathCommands = MaximumSvgPathCommands;
+            return null;
+        }
+        int commandCount = values.Count / 2;
+        if (close) commandCount++;
+        if (commandCount > remainingCommands) {
+            pathCommands = MaximumSvgPathCommands;
+            return null;
+        }
+        pathCommands += commandCount;
         var points = new List<OfficePoint>(values.Count / 2);
         for (int index = 0; index < values.Count; index += 2) points.Add(new OfficePoint(values[index] - viewX, values[index + 1] - viewY));
         double minX = points.Min(point => point.X);
@@ -676,13 +692,25 @@ public static partial class OfficeSvgDrawingReader {
         && result >= 0D
         && result <= 1D;
 
-    private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) {
-        var result = new List<double>();
+    private static bool TryParseNumberList(string? value, out IReadOnlyList<double> values) =>
+        TryParseNumberList(value, int.MaxValue, out values);
+
+    private static bool TryParseNumberList(string? value, int maximumValues,
+        out IReadOnlyList<double> values) {
+        var result = new List<double>(Math.Min(maximumValues, 16));
         values = result;
-        if (string.IsNullOrWhiteSpace(value)) return false;
-        string normalized = value!.Replace(',', ' ');
-        foreach (string part in normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
-            if (!double.TryParse(part, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
+        int index = 0;
+        while (index < value!.Length) {
+            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
+            if (index >= value.Length) break;
+            if (result.Count >= maximumValues) return false;
+            int start = index;
+            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') index++;
+            int length = index - start;
+            if (length <= 0 || length > 128
+                || !double.TryParse(value.Substring(start, length), NumberStyles.Float,
+                    CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number)
                 || double.IsInfinity(number)) return false;
             result.Add(number);

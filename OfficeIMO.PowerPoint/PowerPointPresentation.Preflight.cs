@@ -83,8 +83,10 @@ namespace OfficeIMO.PowerPoint {
                     InspectPicture(picture, reportShapeIndex, slideIndex, findings);
                 }
                 if (shape is PowerPointGroupShape groupShape) {
-                    IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(groupShape);
-                    InspectShapeTree(slide, children, slideIndex, slide.GetGroupChildBounds(groupShape),
+                    int remainingShapeCount = options.MaximumShapeCount - inspectedShapeCount;
+                    IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(groupShape, remainingShapeCount);
+                    InspectShapeTree(slide, children, slideIndex,
+                        PowerPointSlide.GetGroupChildBounds(groupShape, children),
                         options, findings, reportShapeIndex, groupDepth + 1, ref inspectedShapeCount);
                 }
             }

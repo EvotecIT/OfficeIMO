@@ -71,6 +71,9 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
 
     internal OfficeDrawing InnerTile => _tile;
 
+    /// <summary>Returns the bounded transforms needed to paint this pattern.</summary>
+    public IReadOnlyList<OfficeTransform> GetTileTransforms() => GetTileTransforms(MaximumTileCount);
+
     internal IReadOnlyList<OfficeTransform> GetTileTransforms(int maximumTileCount) {
         if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount));
         Transform.TryInvert(out OfficeTransform inverse);

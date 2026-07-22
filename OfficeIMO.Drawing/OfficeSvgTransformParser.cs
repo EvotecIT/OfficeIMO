@@ -23,7 +23,7 @@ internal static class OfficeSvgTransformParser {
             int argumentsStart = index;
             int close = value.IndexOf(')', index);
             if (close < 0) return false;
-            if (!TryParseNumbers(value.Substring(argumentsStart, close - argumentsStart), out IReadOnlyList<double> arguments)
+            if (!TryParseNumbers(value, argumentsStart, close, 6, out IReadOnlyList<double> arguments)
                 || !TryCreateTransform(name, arguments, out OfficeTransform current)) return false;
             transform = current.Then(transform);
             index = close + 1;
@@ -69,38 +69,47 @@ internal static class OfficeSvgTransformParser {
         }
     }
 
-    private static bool TryParseNumbers(string value, out IReadOnlyList<double> numbers) {
-        var result = new List<double>();
+    private static bool TryParseNumbers(string value, int startIndex, int endIndex, int maximumNumbers,
+        out IReadOnlyList<double> numbers) {
+        var result = new List<double>(maximumNumbers);
         numbers = result;
-        int index = 0;
-        while (SkipSeparators(value, ref index)) {
+        int index = startIndex;
+        while (SkipSeparators(value, ref index, endIndex)) {
+            if (result.Count >= maximumNumbers) return false;
             int start = index;
             if (value[index] is '+' or '-') index++;
             bool digits = false;
-            while (index < value.Length && char.IsDigit(value[index])) {
+            while (index < endIndex && char.IsDigit(value[index])) {
                 digits = true;
                 index++;
             }
-            if (index < value.Length && value[index] == '.') {
+            if (index < endIndex && value[index] == '.') {
                 index++;
-                while (index < value.Length && char.IsDigit(value[index])) {
+                while (index < endIndex && char.IsDigit(value[index])) {
                     digits = true;
                     index++;
                 }
             }
             if (!digits) return false;
-            if (index < value.Length && (value[index] is 'e' or 'E')) {
+            if (index < endIndex && (value[index] is 'e' or 'E')) {
                 int exponent = index++;
-                if (index < value.Length && (value[index] is '+' or '-')) index++;
+                if (index < endIndex && (value[index] is '+' or '-')) index++;
                 int exponentDigits = index;
-                while (index < value.Length && char.IsDigit(value[index])) index++;
+                while (index < endIndex && char.IsDigit(value[index])) index++;
                 if (index == exponentDigits) index = exponent;
             }
-            if (!double.TryParse(value.Substring(start, index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            int length = index - start;
+            if (length > 128
+                || !double.TryParse(value.Substring(start, length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || !IsFinite(number)) return false;
             result.Add(number);
         }
         return result.Count > 0;
+    }
+
+    private static bool SkipSeparators(string value, ref int index, int endIndex) {
+        while (index < endIndex && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
+        return index < endIndex;
     }
 
     private static bool SkipSeparators(string value, ref int index) {
