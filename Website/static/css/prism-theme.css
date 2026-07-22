@@ -32,6 +32,13 @@ code[class*="language-"] {
   background: var(--imo-code-bg, #f3f6fb);
   color: var(--imo-code-text, #172033);
   text-shadow: none;
+  tab-size: 2;
+}
+
+pre[class*="language-"] .token,
+code[class*="language-"] .token {
+  background: transparent;
+  text-shadow: none;
 }
 
 pre[class*="language-"] {
@@ -92,6 +99,7 @@ code[class*="language-"]::selection {
 .token.entity,
 .token.url {
   color: var(--imo-code-operator);
+  background: transparent;
 }
 
 /* Functions, class names */

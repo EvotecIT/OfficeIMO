@@ -8,7 +8,7 @@
   <div class="imo-container imo-product-hero__inner">
     <div class="imo-product-hero__copy">
       <p class="imo-product-hero__eyebrow">{{ product_label }}</p>
-      <h1 id="imo-product-hero-title" class="imo-product-hero__title">{{ page.title }}</h1>
+      <h1 id="imo-product-hero-title" class="imo-product-hero__title">{{ if page.meta.hero_title_html }}{{ page.meta.hero_title_html }}{{ else }}{{ page.title }}{{ end }}</h1>
       {{ if page.description }}<p class="imo-product-hero__desc">{{ page.description }}</p>{{ end }}
 
       <div class="imo-product-hero__meta" aria-label="Product characteristics">

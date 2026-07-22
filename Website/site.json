@@ -171,6 +171,10 @@
         { "Anchor": "/api/onenote/", "ServiceDesc": "/api/onenote/index.json", "ServiceDoc": "/api/onenote/", "Title": "OfficeIMO.OneNote API Reference" },
         { "Anchor": "/api/open-document/", "ServiceDesc": "/api/open-document/index.json", "ServiceDoc": "/api/open-document/", "Title": "OfficeIMO.OpenDocument API Reference" },
         { "Anchor": "/api/reader/", "ServiceDesc": "/api/reader/index.json", "ServiceDoc": "/api/reader/", "Title": "OfficeIMO.Reader API Reference" },
+        { "Anchor": "/api/google-workspace/", "ServiceDesc": "/api/google-workspace/index.json", "ServiceDoc": "/api/google-workspace/", "Title": "OfficeIMO.GoogleWorkspace API Reference" },
+        { "Anchor": "/api/google-workspace-drive/", "ServiceDesc": "/api/google-workspace-drive/index.json", "ServiceDoc": "/api/google-workspace-drive/", "Title": "OfficeIMO.GoogleWorkspace.Drive API Reference" },
+        { "Anchor": "/api/google-workspace-auth/", "ServiceDesc": "/api/google-workspace-auth/index.json", "ServiceDoc": "/api/google-workspace-auth/", "Title": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis API Reference" },
+        { "Anchor": "/api/google-workspace-sync/", "ServiceDesc": "/api/google-workspace-sync/index.json", "ServiceDoc": "/api/google-workspace-sync/", "Title": "OfficeIMO.GoogleWorkspace.Sync API Reference" },
         { "Anchor": "/api/powershell/", "ServiceDesc": "/api/powershell/index.json", "ServiceDoc": "/api/powershell/", "Title": "PSWriteOffice Cmdlet Reference" }
       ]
     },
@@ -393,26 +397,41 @@
             "Url": "/api/",
             "Sections": [
               {
-                "Title": "API Reference",
+                "Title": "Document APIs",
                 "Items": [
+                  { "Title": "All API references", "Url": "/api/" },
                   { "Title": "OfficeIMO.Word API", "Url": "/api/word/" },
                   { "Title": "OfficeIMO.Excel API", "Url": "/api/excel/" },
                   {
                     "Title": "OfficeIMO.PowerPoint API",
                     "Url": "/api/powerpoint/"
                   },
+                  { "Title": "OfficeIMO.Pdf API", "Url": "/api/pdf/" },
+                  { "Title": "OfficeIMO.OneNote API", "Url": "/api/onenote/" }
+                ]
+              },
+              {
+                "Title": "Formats and content",
+                "Items": [
                   {
                     "Title": "OfficeIMO.Markdown API",
                     "Url": "/api/markdown/"
                   },
                   { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
                   { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
-                  { "Title": "OfficeIMO.Pdf API", "Url": "/api/pdf/" },
                   { "Title": "OfficeIMO.Html API", "Url": "/api/html/" },
                   { "Title": "OfficeIMO.Email API", "Url": "/api/email/" },
-                  { "Title": "OfficeIMO.OneNote API", "Url": "/api/onenote/" },
-                  { "Title": "OpenDocument API", "Url": "/api/open-document/" },
+                  { "Title": "OpenDocument API", "Url": "/api/open-document/" }
+                ]
+              },
+              {
+                "Title": "Workflows and cloud",
+                "Items": [
                   { "Title": "OfficeIMO.Reader API", "Url": "/api/reader/" },
+                  { "Title": "Google Workspace API", "Url": "/api/google-workspace/" },
+                  { "Title": "Google Drive API", "Url": "/api/google-workspace-drive/" },
+                  { "Title": "Google Auth API", "Url": "/api/google-workspace-auth/" },
+                  { "Title": "Google Sync API", "Url": "/api/google-workspace-sync/" },
                   {
                     "Title": "PSWriteOffice Cmdlets",
                     "Url": "/api/powershell/"

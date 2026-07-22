@@ -32,6 +32,15 @@ if ($index -match 'converter-interop\.js') {
 if ($index -notmatch '_framework/blazor\.webassembly') {
     throw 'Converter index does not reference the Blazor WebAssembly bootstrap.'
 }
+if ($index -notmatch "embedded'\)===\'1\'" -or $index -notmatch "classList\.add\('ocx-embedded'\)") {
+    throw 'Converter index does not enable the shared-shell embedded mode.'
+}
+
+$converterCssPath = Join-Path $converterRoot 'converter.css'
+$converterCss = Get-Content -LiteralPath $converterCssPath -Raw
+if ($converterCss -notmatch '\.ocx-embedded \.ocx-appbar\s*\{\s*display:\s*none') {
+    throw 'Converter stylesheet does not hide the standalone app bar in embedded mode.'
+}
 
 $module = Get-Content -LiteralPath $modulePath -Raw
 if ($module -notmatch 'export function createObjectUrl' -or $module -notmatch 'export function revokeObjectUrl') {
