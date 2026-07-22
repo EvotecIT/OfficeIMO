@@ -486,7 +486,7 @@ namespace OfficeIMO.Excel {
                     : geometry.GetRowHeightPixels(index + 1);
             }
 
-            int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
+            int offsetPixels = ExcelImageExportLimits.EmuOffsetDifferencePixels(fromOffset, toOffset);
             long totalPixels = Math.Max(1L, basePixels + offsetPixels);
             pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, totalPixels));
             return pixels > 0;

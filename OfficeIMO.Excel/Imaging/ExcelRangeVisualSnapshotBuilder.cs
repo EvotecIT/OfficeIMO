@@ -91,7 +91,8 @@ namespace OfficeIMO.Excel {
             var mergeOrigins = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
             var fullMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
             var boundedMergeGeometry = new HashSet<string>(StringComparer.Ordinal);
-            long remainingMergeCellWork = options.MaximumRenderedCells;
+            long remainingVisibleMergeCellWork = options.MaximumRenderedCells;
+            long remainingFullMergeCellWork = options.MaximumRenderedCells;
             foreach (ExcelMergedRangeSnapshot merge in merges) {
                 int visibleStartRow = Math.Max(firstRow, merge.StartRow);
                 int visibleStartColumn = Math.Max(firstColumn, merge.StartColumn);
@@ -105,15 +106,21 @@ namespace OfficeIMO.Excel {
                     ((long)visibleEndColumn - visibleStartColumn + 1L);
                 long fullCellCount = ((long)merge.EndRow - merge.StartRow + 1L) *
                     ((long)merge.EndColumn - merge.StartColumn + 1L);
-                bool preserveFullGeometry = fullCellCount > 0L && fullCellCount <= remainingMergeCellWork;
-                long chargedWork = preserveFullGeometry ? fullCellCount : visibleCellCount;
-                if (chargedWork <= 0L || chargedWork > remainingMergeCellWork) {
+                if (visibleCellCount <= 0L || visibleCellCount > remainingVisibleMergeCellWork) {
                     continue;
                 }
 
-                remainingMergeCellWork -= chargedWork;
+                remainingVisibleMergeCellWork -= visibleCellCount;
                 boundedMergeGeometry.Add(MergeGeometryKey(merge));
+                bool originIsVisible = merge.StartRow >= firstRow && merge.StartRow <= lastRow
+                    && merge.StartColumn >= firstColumn && merge.StartColumn <= lastColumn
+                    && rowsByIndex.ContainsKey(merge.StartRow)
+                    && columnsByIndex.ContainsKey(merge.StartColumn);
+                bool preserveFullGeometry = !originIsVisible
+                    && fullCellCount > 0L
+                    && fullCellCount <= remainingFullMergeCellWork;
                 if (preserveFullGeometry) {
+                    remainingFullMergeCellWork -= fullCellCount;
                     fullMergeGeometry.Add(MergeGeometryKey(merge));
                 }
 
@@ -1175,10 +1182,9 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex) {
             IReadOnlyList<ExcelWorksheetSparklineInfo> sparklines = ExcelWorksheetSparklineResolver.FindSparklines(sheet.WorksheetPart);
-            var resolved = new List<ResolvedSparkline>(sparklines.Count);
-            foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
-                if (!IsSupportedSparklineKind(sparkline.Kind) ||
-                    !TryResolveVisibleExportCell(
+            var visibleGroups = new HashSet<int>(sparklines
+                .Where(sparkline => IsSupportedSparklineKind(sparkline.Kind)
+                    && TryResolveVisibleExportCell(
                         sparkline.CellReference,
                         firstRow,
                         firstColumn,
@@ -1186,7 +1192,12 @@ namespace OfficeIMO.Excel {
                         lastColumn,
                         columnsByIndex,
                         rowsByIndex,
-                        out _)) {
+                        out _))
+                .Select(sparkline => sparkline.GroupIndex));
+            var resolved = new List<ResolvedSparkline>(sparklines.Count);
+            foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
+                if (!IsSupportedSparklineKind(sparkline.Kind) ||
+                    !visibleGroups.Contains(sparkline.GroupIndex)) {
                     resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
                     continue;
                 }
@@ -1524,7 +1535,7 @@ namespace OfficeIMO.Excel {
                 double from = ResolveRelativeColumnOffset(firstColumn, anchorColumn, offsetPixels, columnDefinitions, options);
                 double to = ResolveRelativeColumnOffset(firstColumn, toColumnIndex.Value, toOffsetPixels, columnDefinitions, options);
                 if (to > from) {
-                    return Math.Max(1D, to - from);
+                    return Math.Min(ExcelImageExportLimits.MaximumAnchorExtentPixels, Math.Max(1D, to - from));
                 }
             }
 
@@ -1566,7 +1577,7 @@ namespace OfficeIMO.Excel {
                 double from = ResolveRelativeRowOffset(firstRow, anchorRow, offsetPixels, rowDefinitions, defaultRowsHidden, options);
                 double to = ResolveRelativeRowOffset(firstRow, toRowIndex.Value, toOffsetPixels, rowDefinitions, defaultRowsHidden, options);
                 if (to > from) {
-                    return Math.Max(1D, to - from);
+                    return Math.Min(ExcelImageExportLimits.MaximumAnchorExtentPixels, Math.Max(1D, to - from));
                 }
             }
 

@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
+using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
@@ -78,6 +79,31 @@ namespace OfficeIMO.Tests {
 
             Assert.True(after.WidthPixels > before.WidthPixels);
             Assert.True(after.HeightPixels > before.HeightPixels);
+        }
+
+        [Fact]
+        public void ExcelChart_ImageExportUsesCustomRowGeometryAfterInitialIndexBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("LateGeometry");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Only");
+            sheet.CellValue(2, 2, 1);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ReplaceChartAnchorWithTwoCell(
+                document,
+                new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("100000"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("100001"), new Xdr.RowOffset("0")));
+
+            X.SheetData sheetData = sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!;
+            sheetData.RemoveAllChildren<X.Row>();
+            for (uint index = 1; index <= 100000U; index++) {
+                sheetData.Append(new X.Row { RowIndex = index });
+            }
+            sheetData.Append(new X.Row { RowIndex = 100001U, Height = 60D, CustomHeight = true });
+
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(80, snapshot.HeightPixels);
         }
 
         [Fact]

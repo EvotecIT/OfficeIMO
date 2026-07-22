@@ -14,6 +14,13 @@ namespace OfficeIMO.Excel {
         internal static int ClampExtentPixels(int value) =>
             Math.Max(0, Math.Min(MaximumAnchorExtentPixels, value));
 
+        internal static int EmuOffsetDifferencePixels(long fromOffset, long toOffset) {
+            double pixels = Math.Round(((double)toOffset - fromOffset) / 9525D);
+            if (pixels <= -MaximumAnchorOffsetPixels) return -MaximumAnchorOffsetPixels;
+            if (pixels >= MaximumAnchorOffsetPixels) return MaximumAnchorOffsetPixels;
+            return (int)pixels;
+        }
+
         internal static double ClampStrokeWidth(double value) =>
             Math.Max(0D, Math.Min(MaximumStrokeWidth, value));
 

@@ -1931,6 +1931,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRetainsVisibleMergesAfterLargeOffRangeOrigin() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("MergeBudget");
+            sheet.CellValue(1, 1, "Outside origin");
+            sheet.CellValue(1, 3, "Visible origin");
+            sheet.Range("A1:B50").Merge();
+            sheet.Range("C1:C2").Merge();
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("B1:C2").CreateVisualSnapshot(
+                new ExcelImageExportOptions { MaximumRenderedCells = 100 });
+
+            Assert.Contains(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1 && !cell.CoveredByMerge);
+            ExcelVisualCell covered = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 3);
+            Assert.True(covered.CoveredByMerge);
+            Assert.True(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 3).Height > covered.Height);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesTwoCellImageAnchorDimensions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             byte[] banner = CreateSolidPng(32, 32, OfficeColor.FromRgb(37, 99, 235));
@@ -1966,6 +1985,29 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);
             AssertPixelNear(rendered!, Math.Min(rendered!.Width - 1, 120), Math.Min(rendered.Height - 1, 40), OfficeColor.FromRgb(37, 99, 235), tolerance: 3);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportSaturatesOverflowingTwoCellAnchorOffsets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            byte[] banner = CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235));
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("AnchorOverflow");
+                sheet.CellValue(1, 1, "Anchor");
+                document.Save();
+            }
+
+            AddTwoCellAnchoredImage(
+                filePath,
+                banner,
+                fromColumnOffset: long.MinValue.ToString(CultureInfo.InvariantCulture),
+                toColumnOffset: long.MaxValue.ToString(CultureInfo.InvariantCulture),
+                toColumnId: "0");
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelImage image = Assert.Single(loaded.Sheets.Single().Images);
+
+            Assert.Equal(16384, image.WidthPixels);
         }
 
         [Fact]
@@ -4478,7 +4520,12 @@ namespace OfficeIMO.Tests {
             sheet.WorksheetPart.Worksheet.Save();
         }
 
-        private static void AddTwoCellAnchoredImage(string filePath, byte[] imageBytes) {
+        private static void AddTwoCellAnchoredImage(
+            string filePath,
+            byte[] imageBytes,
+            string fromColumnOffset = "0",
+            string toColumnOffset = "0",
+            string toColumnId = "3") {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -4497,12 +4544,12 @@ namespace OfficeIMO.Tests {
             drawingsPart.WorksheetDrawing.Append(new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(
                     new Xdr.ColumnId("0"),
-                    new Xdr.ColumnOffset("0"),
+                    new Xdr.ColumnOffset(fromColumnOffset),
                     new Xdr.RowId("0"),
                     new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(
-                    new Xdr.ColumnId("3"),
-                    new Xdr.ColumnOffset("0"),
+                    new Xdr.ColumnId(toColumnId),
+                    new Xdr.ColumnOffset(toColumnOffset),
                     new Xdr.RowId("2"),
                     new Xdr.RowOffset("0")),
                 new Xdr.Picture(

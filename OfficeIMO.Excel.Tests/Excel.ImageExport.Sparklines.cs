@@ -97,6 +97,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportIncludesOffRangeGroupMembersInSparklineScale() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("PartialGroupScale");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(1, 2, 2);
+            sheet.CellValue(1, 3, 3);
+            sheet.CellValue(2, 1, 0);
+            sheet.CellValue(2, 2, 50);
+            sheet.CellValue(2, 3, 100);
+            sheet.AddSparklines("A1:C2", "D1:D2", SparklineTypeValues.Column, seriesColor: "#2563EB");
+
+            ExcelVisualSparkline visible = Assert.Single(sheet.Range("D1:D1").CreateVisualSnapshot().Sparklines);
+
+            Assert.Equal("PartialGroupScale!D1", visible.Source);
+            Assert.Equal(0D, visible.ScaleMinimum);
+            Assert.Equal(100D, visible.ScaleMaximum);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsExternalSparklineRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

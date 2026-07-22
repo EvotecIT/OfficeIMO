@@ -7,16 +7,23 @@ namespace OfficeIMO.Excel.Utilities {
         private const int MaximumIndexedRows = 100_000;
         private readonly X.Column?[] _columns;
         private readonly IReadOnlyDictionary<int, X.Row> _rows;
+        private readonly X.SheetData? _sheetData;
+        private readonly bool _rowIndexMayBeTruncated;
         private readonly double _defaultColumnWidth;
         private readonly double _defaultRowHeightPoints;
+        private double[]? _overflowRowHeights;
 
         private ExcelWorksheetGeometryIndex(
             X.Column?[] columns,
             IReadOnlyDictionary<int, X.Row> rows,
+            X.SheetData? sheetData,
+            bool rowIndexMayBeTruncated,
             double defaultColumnWidth,
             double defaultRowHeightPoints) {
             _columns = columns;
             _rows = rows;
+            _sheetData = sheetData;
+            _rowIndexMayBeTruncated = rowIndexMayBeTruncated;
             _defaultColumnWidth = defaultColumnWidth;
             _defaultRowHeightPoints = defaultRowHeightPoints;
         }
@@ -56,10 +63,9 @@ namespace OfficeIMO.Excel.Utilities {
                 }
             }
 
+            X.SheetData? sheetData = worksheet?.GetFirstChild<X.SheetData>();
             var rows = new Dictionary<int, X.Row>();
-            foreach (X.Row row in worksheet?
-                .GetFirstChild<X.SheetData>()?
-                .Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
+            foreach (X.Row row in sheetData?.Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
                 if (rows.Count >= MaximumIndexedRows) {
                     break;
                 }
@@ -72,7 +78,13 @@ namespace OfficeIMO.Excel.Utilities {
                 }
             }
 
-            return new ExcelWorksheetGeometryIndex(columns, rows, defaultColumnWidth, defaultRowHeight);
+            return new ExcelWorksheetGeometryIndex(
+                columns,
+                rows,
+                sheetData,
+                rows.Count >= MaximumIndexedRows,
+                defaultColumnWidth,
+                defaultRowHeight);
         }
 
         internal int GetSimpleColumnWidthPixels(int columnIndex) {
@@ -106,10 +118,53 @@ namespace OfficeIMO.Excel.Utilities {
                 return 0;
             }
 
-            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
-                ? row.Height.Value
-                : _defaultRowHeightPoints;
+            double heightPoints = _defaultRowHeightPoints;
+            if (row != null) {
+                if (row.Height?.Value > 0 && row.CustomHeight?.Value == true) {
+                    heightPoints = row.Height.Value;
+                }
+            } else {
+                double overflowHeight = GetOverflowRowHeight(rowIndex);
+                if (overflowHeight < 0D) {
+                    return 0;
+                }
+
+                if (overflowHeight > 0D) {
+                    heightPoints = overflowHeight;
+                }
+            }
+
             return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
+        }
+
+        private double GetOverflowRowHeight(int rowIndex) {
+            if (!_rowIndexMayBeTruncated || rowIndex <= 0 || rowIndex > 1048576) {
+                return 0D;
+            }
+
+            EnsureOverflowRowsIndexed();
+            return _overflowRowHeights![rowIndex];
+        }
+
+        private void EnsureOverflowRowsIndexed() {
+            if (_overflowRowHeights != null) {
+                return;
+            }
+
+            var heights = new double[1048577];
+            foreach (X.Row row in _sheetData?.Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
+                if (row.RowIndex?.Value is not uint rowIndex || rowIndex == 0U || rowIndex > 1048576U || _rows.ContainsKey((int)rowIndex)) {
+                    continue;
+                }
+
+                heights[rowIndex] = row.Hidden?.Value == true
+                    ? -1D
+                    : row.Height?.Value > 0D && row.CustomHeight?.Value == true
+                        ? row.Height.Value
+                        : 0D;
+            }
+
+            _overflowRowHeights = heights;
         }
     }
 }

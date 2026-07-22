@@ -821,7 +821,7 @@ namespace OfficeIMO.Excel {
                     : GetRowHeightPixels(worksheetPart, index + 1);
             }
 
-            int offsetPixels = EmuOffsetToPx(toOffset - fromOffset);
+            int offsetPixels = ExcelImageExportLimits.EmuOffsetDifferencePixels(fromOffset, toOffset);
             int pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, Math.Max(1L, basePixels + offsetPixels)));
             emu = PxToEmu(pixels);
             return true;
