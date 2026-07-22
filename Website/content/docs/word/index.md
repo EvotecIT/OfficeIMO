@@ -4,9 +4,17 @@ description: Overview of the OfficeIMO.Word package for creating and manipulatin
 order: 10
 ---
 
-# Word Documents
+The `OfficeIMO.Word` package provides a higher-level API for creating, reading, and modifying Microsoft Word documents (`.docx`) without requiring Microsoft Office. It wraps the Open XML SDK with an approachable object model and adds workflow-oriented capabilities for template binding, review inspection, structural comparison, redlines, content-control forms, package signatures, conversion, legacy DOC import/export, and page rendering.
 
-The `OfficeIMO.Word` package provides a higher-level API for creating, reading, and modifying Microsoft Word documents (`.docx`) without requiring Microsoft Office. It wraps the Open XML SDK with a more approachable object model, while the deeper examples and tests in the repo cover a broader surface than this page alone.
+## Choose a workflow
+
+| Goal | Start here |
+|---|---|
+| Compose reports, contracts, and invoices | Paragraphs, tables, images, lists, charts, sections, fields, and reusable styles on this page and the focused authoring guides |
+| Use an approved DOCX as the layout | [Templates, forms, and mail merge](/docs/word/templates/) |
+| Process comments and tracked changes | [Review, comparison, revisions, and signatures](/docs/word/review/) |
+| Publish or exchange the document | [Word conversion and rendering](/docs/word/conversion/) |
+| Evaluate a feature against the current implementation | [Market readiness](/docs/word/market-readiness/) and the generated [Word API](/api/word/) |
 
 ## Key Classes
 
@@ -116,8 +124,11 @@ document.Save();
 
 ## Further Reading
 
-- [Paragraphs](/docs/word/paragraphs) -- Text formatting, alignment, spacing, and fonts.
-- [Tables](/docs/word/tables) -- Creating and styling tables.
-- [Images](/docs/word/images) -- Adding images from files, streams, URLs, and base64.
-- [Headers and Footers](/docs/word/headers-footers) -- Page numbers, different first page headers, and section-specific content.
-- [Market readiness](/docs/word/market-readiness) -- Current non-PDF readiness snapshot for templates, review workflows, conversion proof, and real-document showcase work.
+- [Paragraphs](/docs/word/paragraphs/) -- Text formatting, alignment, spacing, and fonts.
+- [Tables](/docs/word/tables/) -- Creating, styling, merging, and inspecting tables.
+- [Images](/docs/word/images/) -- Adding images from files, streams, URLs, and base64.
+- [Headers and Footers](/docs/word/headers-footers/) -- Page numbers, different first-page headers, and section-specific content.
+- [Templates, forms, and mail merge](/docs/word/templates/) -- Preflight and bind layout-owned templates.
+- [Review and comparison](/docs/word/review/) -- Inspect comments and revisions, compare structure, create redlines, and enforce signed-document policy.
+- [Conversion and rendering](/docs/word/conversion/) -- Choose HTML, Markdown, PDF, OpenDocument, RTF, Google Docs, or image output.
+- [Market readiness](/docs/word/market-readiness/) -- Current readiness evidence, proof artifacts, and known limits.

@@ -2,7 +2,6 @@
 title: "Email and Outlook data"
 description: "Read and write EML, MSG, OFT, TNEF, mailbox stores, calendars, contacts, and address books."
 order: 36
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/email/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/email/" />'
 ---
 
 ## Install

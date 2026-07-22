@@ -41,5 +41,4 @@ layout: api-home
     <a class="imo-api-catalog-card" href="/api/google-workspace-sync/"><strong>GoogleWorkspace.Sync</strong><span>Checkpoints, dry-run plans, approvals, apply outcomes, and synchronization</span><small>Open sync reference →</small></a>
   </div></section>
 
-  <aside class="imo-api-source-note"><div><strong>Reference and releases are different channels.</strong><p>These pages describe the repository source used for this site build. Package feeds on the downloads page show what consumers can install today.</p></div><a href="/downloads/">Compare package versions →</a></aside>
 </section>

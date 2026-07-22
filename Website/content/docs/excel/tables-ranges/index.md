@@ -4,8 +4,6 @@ description: Excel tables with AutoFilter, data validation, and conditional form
 order: 22
 ---
 
-# Tables and Ranges
-
 OfficeIMO.Excel supports structured Excel tables with AutoFilter, built-in table styles, data validation rules, and conditional formatting. These features help create professional, interactive spreadsheets.
 
 ## Creating a Table

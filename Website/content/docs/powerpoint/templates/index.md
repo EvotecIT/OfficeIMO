@@ -2,7 +2,6 @@
 title: PowerPoint Templates and Brand Kits
 description: Inspect corporate PPTX and POTX templates, resolve named layouts and placeholders, and generate editable branded decks.
 order: 34
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/powerpoint/templates/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/powerpoint/templates/" />'
 ---
 
 Use a template workflow when the organization already owns the slide master, layouts, theme, logos, and footer rules. OfficeIMO copies that package structure and adds editable slides; it does not rebuild a corporate template from screenshots or a parallel JSON theme.

@@ -4,8 +4,6 @@ description: Overview of the OfficeIMO.Excel package for creating and manipulati
 order: 20
 ---
 
-# Excel Workbooks
-
 The `OfficeIMO.Excel` package provides a higher-level API for creating, reading, and modifying Excel workbooks (`.xlsx`) without requiring Microsoft Office. It is built on the Open XML SDK and exposes both imperative and fluent patterns, with additional examples and tests in the repo covering larger reporting scenarios.
 
 ## Key Classes

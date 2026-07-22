@@ -4,8 +4,6 @@ description: Use the shared typed Drive owner for files, conversion, collaborati
 order: 50
 ---
 
-# Google Drive
-
 Install `OfficeIMO.GoogleWorkspace.Drive`. The format translators already use this package; applications can use the same owner directly.
 
 ```csharp

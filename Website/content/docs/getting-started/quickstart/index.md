@@ -4,8 +4,6 @@ description: Create your first Word document, Excel workbook, and PowerPoint pre
 order: 2
 ---
 
-# Quick Start
-
 This guide walks you through creating simple documents with OfficeIMO. All examples assume you have already [installed](/docs/getting-started/installation) the relevant NuGet packages.
 
 ## Create a Word Document (C#)
@@ -148,7 +146,6 @@ csv.Save("people.csv");
 ```powershell
 Import-Module PSWriteOffice
 
-# Create a Word document
 $doc = New-OfficeWord -Path "Report.docx" -PassThru
 
 $doc | Add-OfficeWordSection {
@@ -161,7 +158,6 @@ $doc | Add-OfficeWordParagraph {
 $doc | Save-OfficeWord
 Close-OfficeWord -Document $doc
 
-# Create an Excel workbook
 $excel = New-OfficeExcel -Path "Data.xlsx" -PassThru
 
 $excel | Add-OfficeExcelSheet -Name "Summary" {

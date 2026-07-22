@@ -4,8 +4,6 @@ description: Fluent API for building Markdown documents -- headings, paragraphs,
 order: 41
 ---
 
-# Markdown Builder
-
 The `MarkdownDoc` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDoc` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
 
 ## Headings

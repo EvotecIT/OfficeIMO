@@ -1,94 +1,56 @@
 ---
 title: "AOT and Trimming: Current State in OfficeIMO"
-description: "A practical look at which OfficeIMO packages are lower-risk fits for NativeAOT and trimming, and where you should still test carefully."
+description: "The executable NativeAOT matrix for OfficeIMO, including passing document workflows, current compiler blockers, and how to reproduce both."
 date: 2025-11-01
 tags: [aot, trimming, performance]
-categories: [Deep Dive]
-author: "Przemyslaw Klys"
+author: OfficeIMO Team
 ---
 
-.NET 8 and newer made NativeAOT much more accessible, which makes trimming behavior and startup cost matter more for library authors. But OfficeIMO is a package family, not one uniform runtime story, so the right answer depends on which package you are using.
+.NET NativeAOT is not a label that can be assigned from a project file or a short dependency list. OfficeIMO contains focused document engines, format adapters, readers, and renderers, so each useful claim needs a concrete application graph and an executed workflow.
 
-## The Short Version
+## The result we can prove
 
-- **Lower-risk starting points for AOT-sensitive workloads:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
-- **Test carefully with your own scenarios:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
-- **Treat separately:** `OfficeIMO.Word.Pdf`, because PDF layout fidelity and host-font behavior need scenario validation
+The repository now keeps one native smoke executable per evaluated workflow. On `win-x64`, the following .NET 10 binaries publish and run:
 
-## What the Repo Proves Today
+- Word creates a DOCX, saves it, reloads it, and finds a marker paragraph.
+- Markdown composes and renders a fluent document.
+- CSV parses data and exposes the expected header schema.
+- Reader routes CSV through an isolated handler and emits normalized table chunks.
+- HTML rendering produces SVG, PNG, and searchable PDF output, then reads the marker text back from the PDF.
 
-From the project files in this repository:
+CI repeats the supported matrix on `linux-x64`. A passing row therefore means more than “the compiler accepted an empty program,” but less than “every member in every related package is safe.”
 
-- `OfficeIMO.Markdown`, `OfficeIMO.Word`, and `OfficeIMO.Excel` explicitly enable `EnableTrimmingPolyfills`.
-- `OfficeIMO.Markdown` has no package dependencies.
-- `OfficeIMO.CSV` is also a lightweight package with no runtime-heavy dependency graph.
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` target modern TFMs but still sit on top of Open XML-oriented code paths.
-- `OfficeIMO.Word.Pdf` uses the first-party `OfficeIMO.Pdf` engine instead of external PDF/layout runtime packages.
+## The blockers are part of the story
 
-That means the repo supports a **strong trimming/AOT story for Markdown and CSV**, but it does **not** prove that every OfficeIMO package is uniformly NativeAOT-safe across all code paths.
+Excel and PowerPoint have their own smoke projects and are deliberately retained even though native publication currently stops before runtime:
 
-## Why Markdown and CSV Are the Strongest Candidates
+| Package | Current publish result | Compiler evidence |
+|---|---|---|
+| OfficeIMO.Excel | Blocked | `IL2072` in `DirectDataSetTableModel.ToDataTable` |
+| OfficeIMO.PowerPoint | Blocked | `IL2060`, `IL2075`, `IL2087`, and `IL3050` in reflective Open XML part and media paths |
 
-These two packages are the simplest fit for aggressive deployment modes because they avoid the broader Open XML document stack and keep their runtime surface small.
+Keeping these as separate executables matters. If every package shared one test app, the first compiler error would hide which independent graphs already work. It would also make a future fix difficult to attribute.
 
-- `OfficeIMO.Markdown` has zero external dependencies and a typed in-memory model.
-- `OfficeIMO.CSV` is similarly focused and lightweight for read/write/validation workflows.
+## Run it yourself
 
-If you are building small utilities, serverless helpers, or trimmed CLI tools, these are the safest packages to start with.
+The repository script publishes, executes, and cleans the supported matrix for the current machine:
 
-## Where You Should Test More Carefully
-
-### Open XML document packages
-
-`OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and higher-level packages like `OfficeIMO.Reader` ultimately rely on richer document-processing stacks. Those are absolutely usable in modern deployments, but you should validate your own code paths with trimming or `PublishAot` instead of assuming blanket support.
-
-Typical areas to test:
-
-- Read/modify scenarios instead of write-only generation.
-- Reflection warnings emitted by upstream dependencies.
-- Package combinations such as Reader, converters, or HTML/Markdown bridges.
-
-### PDF conversion
-
-`OfficeIMO.Word.Pdf` is cross-platform and now routes through the first-party PDF engine. Host fonts and document templates still matter, especially in containers, because visual PDF fidelity depends on the available font metrics and glyph coverage.
-
-## A Reasonable Publishing Baseline
-
-If you want to test trimming or AOT yourself, start with a minimal app and verify the exact features you call:
-
-```xml
-<PropertyGroup>
-  <PublishTrimmed>true</PublishTrimmed>
-  <TrimMode>link</TrimMode>
-</PropertyGroup>
+```powershell
+./Build/Test-AotScenarios.ps1
 ```
 
-For NativeAOT experiments:
+Add `-IncludeKnownBlocked` to confirm that the documented Excel and PowerPoint diagnostics still reproduce. The script fails if a passing workflow regresses or if a known blocked status changes without the compatibility contract being updated.
 
-```xml
-<PropertyGroup>
-  <PublishAot>true</PublishAot>
-</PropertyGroup>
+```powershell
+./Build/Test-AotScenarios.ps1 -IncludeKnownBlocked
 ```
 
-```bash
-dotnet publish -c Release -r linux-x64
-```
+For a deployment target different from the host, pass its runtime identifier explicitly. Publishing alone is not enough when the output cannot run on the current machine, so the CI job remains the execution evidence for Linux.
 
-## Practical Guidance
+## Trimming is related, not identical
 
-1. Prefer `OfficeIMO.Markdown` and `OfficeIMO.CSV` first when AOT or trimming is a hard requirement.
-2. Treat Word, Excel, PowerPoint, Reader, and converters as scenario-driven validation work.
-3. Run publish-time checks early in the project instead of waiting until deployment.
-4. Test on the same OS, architecture, and runtime you intend to ship.
+The solution also builds with trim and AOT analyzers for .NET 8 and .NET 10. Those analyzers catch source patterns that may be unsafe, but analyzer cleanliness cannot replace a real native publish and semantic runtime assertion. Conversely, preserving an entire assembly can silence trimming failures while increasing output size and still leave an untested workflow.
 
-## Conclusion
+The useful rule is straightforward: start from the smallest passing smoke that matches your package, add the exact APIs and documents your service uses, publish for the real runtime identifier, and assert the generated content. Anything outside that graph remains not tested until it gets its own evidence.
 
-OfficeIMO is friendly to modern deployment patterns, but the current state is nuanced. The lightweight packages already fit trimming-oriented workflows well, while the richer Open XML and PDF packages still deserve targeted validation in your own environment. That is a much more useful rule of thumb than pretending the whole family has the same AOT profile.
-
-## Continue with
-
-- [Advanced AOT and trimming docs](/docs/advanced/aot-trimming/) for the longer-form deployment guidance.
-- [OfficeIMO.Markdown](/products/markdown/) if you want the lowest-friction starting point for trimmed utilities.
-- [CSV documentation](/docs/csv/) for another lightweight package in the family.
-- [Platform support](/docs/getting-started/platform-support/) for the broader framework and runtime picture.
+See the [AOT and trimming guide](/docs/advanced/aot-trimming/) for the live matrix and deployment choices.

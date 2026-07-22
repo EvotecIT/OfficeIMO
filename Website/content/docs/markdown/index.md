@@ -4,8 +4,6 @@ description: Overview of the OfficeIMO.Markdown package -- fluent builder, typed
 order: 40
 ---
 
-# Markdown
-
 The `OfficeIMO.Markdown` package provides a focused Markdown toolkit for .NET with three main capabilities:
 
 1. **Fluent Builder** -- Compose Markdown documents programmatically with a chainable API.

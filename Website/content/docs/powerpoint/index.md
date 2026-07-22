@@ -4,8 +4,6 @@ description: Overview of OfficeIMO.PowerPoint for creating and editing PPTX and 
 order: 30
 ---
 
-# PowerPoint Presentations
-
 `OfficeIMO.PowerPoint` lets you build and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from one higher-level object model. It is designed for generated decks, reporting pipelines, legacy presentation maintenance, demo content, and repeatable presentation output.
 
 ## Good fit scenarios

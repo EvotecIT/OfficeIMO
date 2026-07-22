@@ -4,8 +4,6 @@ description: Plan, export, import, and safely replace Google Sheets with OfficeI
 order: 30
 ---
 
-# Excel and Google Sheets
-
 Install `OfficeIMO.Excel.GoogleSheets`. The translator separates value-heavy writes from structural requests and chunks both paths.
 
 ```csharp

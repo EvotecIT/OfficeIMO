@@ -25,7 +25,7 @@
         },
         {
           "question": "What is PSWriteOffice?",
-          "answer": "<p>PSWriteOffice is a PowerShell module that wraps the OfficeIMO .NET libraries. It provides 150+ cmdlets and DSL aliases for creating Office documents from PowerShell scripts without writing C#. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
+          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its current manifest exports 464 cmdlets and 354 aliases across 15 validated families for Word, Excel, PowerPoint, PDF, Reader, Visio, text, open-format, email, and conversion workflows. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",

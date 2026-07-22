@@ -4,8 +4,6 @@ description: How to install OfficeIMO packages via NuGet, Package Manager Consol
 order: 1
 ---
 
-# Installation
-
 Released OfficeIMO .NET packages are distributed through [NuGet.org](https://www.nuget.org/profiles/EvotecIT). The PowerShell module is distributed through the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice).
 
 This source tree and its locally packed artifacts target the coordinated `3.0.0` release. NuGet publication is a separate release step: the examples below will restore from NuGet.org only after each exact `3.0.0` package ID is live. Before publication, point NuGet at the clean local feed produced by `Build/Build-Project.ps1`; otherwise remain on the current public stable version. Upgrade OfficeIMO packages together rather than mixing release lines.

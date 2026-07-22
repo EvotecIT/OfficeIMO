@@ -4,8 +4,6 @@ description: Choose and configure the OfficeIMO libraries for Google Docs, Sheet
 order: 10
 ---
 
-# Google Workspace
-
 OfficeIMO exposes one shared Google Workspace foundation and format-specific translators. The format libraries remain thin over `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint`; they do not introduce a universal intermediate document model.
 
 ## Install the parts you use

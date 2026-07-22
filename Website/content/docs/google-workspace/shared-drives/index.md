@@ -4,8 +4,6 @@ description: Validate shared-drive and folder identity, target translators, and 
 order: 65
 ---
 
-# Shared drives
-
 Set both the drive and folder when a workflow targets a shared drive. The folder is the actual placement boundary; a query flag alone does not prove it belongs to the intended drive.
 
 ```csharp

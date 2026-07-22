@@ -4,8 +4,6 @@ description: Generate VSDX diagrams with builders, pages, shapes, connectors, st
 order: 52
 ---
 
-# Visio Diagrams
-
 `OfficeIMO.Visio` focuses on generating `.vsdx` diagrams from pure .NET code. It is a good fit when your application already knows the topology, flow, or system shape it wants to draw and you need a repeatable way to emit diagrams without manual Visio authoring.
 
 ## Good use cases

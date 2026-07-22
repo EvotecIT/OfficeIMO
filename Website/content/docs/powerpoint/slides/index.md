@@ -4,8 +4,6 @@ description: Build PowerPoint slides with titles, text boxes, bullets, tables, c
 order: 31
 ---
 
-# Slides
-
 This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Instead of manually creating `SlidePart` trees, you work with `PowerPointSlide`, `PowerPointTextBox`, `PowerPointTable`, and related helpers directly.
 
 ## Start with a title and body region

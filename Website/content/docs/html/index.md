@@ -2,7 +2,6 @@
 title: "HTML and MHTML"
 description: "Parse, inspect, render, and safely project web content through the shared OfficeIMO.Html engine."
 order: 39
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/html/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/html/" />'
 ---
 
 ## Install

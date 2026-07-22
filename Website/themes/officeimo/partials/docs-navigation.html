@@ -1,17 +1,21 @@
 <nav class="imo-docs__nav" aria-label="Documentation">
+  <div class="imo-docs__nav-intro">
+    <a href="/docs/"{{ if current_path == "/docs/" }} aria-current="page"{{ end }}><strong>Documentation home</strong><span>Choose a workflow or component</span></a>
+    <a href="/docs/capabilities/"><strong>Capability catalog</strong><span>89 components, adapters, and tools</span></a>
+  </div>
   {{ if navigation.menus && navigation.menus.size > 0 }}
     {{ for menu in navigation.menus }}
       {{ if menu.name == "docs" }}
         {{ for item in menu.items }}
           {{ if item.items && item.items.size > 0 }}
             {{~ is_open = false ~}}
-            {{~ for child in item.items ~}}{{~ if page.url == child.url ~}}{{~ is_open = true ~}}{{~ end ~}}{{~ end ~}}
-            <details class="imo-docs__group" open{{ if is_open }} data-current="true"{{ end }}>
-              <summary class="imo-docs__group-title">{{ item.title }}</summary>
-              <ul class="imo-docs__list">{{ for child in item.items }}<li><a href="{{ child.url }}" class="imo-docs__link{{ if page.url == child.url }} active{{ end }}"{{ if page.url == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}</ul>
+            {{~ for child in item.items ~}}{{~ if current_path == child.url ~}}{{~ is_open = true ~}}{{~ end ~}}{{~ end ~}}
+            <details class="imo-docs__group"{{ if is_open }} open data-current="true"{{ end }}>
+              <summary class="imo-docs__group-title"><span>{{ item.title }}</span><small>{{ item.items.size }}</small></summary>
+              <ul class="imo-docs__list">{{ for child in item.items }}<li><a href="{{ child.url }}" class="imo-docs__link{{ if current_path == child.url }} active{{ end }}"{{ if current_path == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}</ul>
             </details>
           {{ else }}
-            <a href="{{ item.url }}" class="imo-docs__link imo-docs__link--top{{ if page.url == item.url }} active{{ end }}">{{ item.title }}</a>
+            <a href="{{ item.url }}" class="imo-docs__link imo-docs__link--top{{ if current_path == item.url }} active{{ end }}"{{ if current_path == item.url }} aria-current="page"{{ end }}>{{ item.title }}</a>
           {{ end }}
         {{ end }}
       {{ end }}

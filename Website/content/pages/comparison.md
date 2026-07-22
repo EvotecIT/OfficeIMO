@@ -35,7 +35,7 @@ OfficeIMO is not one monolithic bundle. The repo includes focused packages such 
 - `OfficeIMO.Reader` for normalized extraction across multiple document types.
 
 ### Better fit for modern deployment workflows
-The core packages are COM-free and designed for server, CI, container, and automation scenarios. Markdown and CSV are especially lightweight and are the clearest fit today for trimmed or AOT-sensitive workloads.
+The core packages are COM-free and designed for server, CI, container, and automation scenarios. NativeAOT claims are scenario-based: the repository publishes and runs Word, Markdown, CSV, Reader CSV, and HTML/PDF/image smoke binaries rather than inferring support from package size.
 
 ## Where Commercial Suites May Still Win
 
@@ -50,9 +50,9 @@ Commercial libraries are often a better choice when you need:
 
 OfficeIMO does **not** have one uniform AOT story across every package.
 
-- `OfficeIMO.Markdown` and `OfficeIMO.CSV` are the most AOT-friendly packages in the repo.
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` depend on Open XML-based code paths and should be tested with your actual `PublishAot` or trimming scenario.
-- `OfficeIMO.Word.Pdf` uses the first-party `OfficeIMO.Pdf` engine, but PDF output should still be validated on the target OS with the fonts and templates you plan to ship.
+- Word create/save/reload, Markdown rendering, CSV parsing, Reader CSV extraction, and HTML-to-SVG/PNG/searchable-PDF currently publish and execute as isolated native binaries.
+- Excel publication is currently blocked by `IL2072`; PowerPoint is blocked by `IL2060`, `IL2075`, `IL2087`, and `IL3050`.
+- Other package paths are not covered by that matrix and should be described as not tested, not assumed compatible.
 
 ## Reader and Automation Differentiators
 

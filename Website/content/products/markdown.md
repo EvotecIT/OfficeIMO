@@ -74,7 +74,7 @@ foreach (var block in parsed.DescendantsAndSelf())
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Markdown runs on Windows, Linux, and macOS. It is one of the lower-risk packages in the repo for trimming- or AOT-sensitive deployments, but you should still validate your own publish configuration and runtime targets.
+OfficeIMO.Markdown runs on Windows, Linux, and macOS. Its checked-in NativeAOT smoke publishes and executes fluent composition and rendering; use the deployment guide to reproduce that baseline and then add the exact extensions your application needs.
 
 ## Related guides
 
@@ -82,5 +82,5 @@ OfficeIMO.Markdown runs on Windows, Linux, and macOS. It is one of the lower-ris
 |-------|-------------|
 | [Markdown documentation](/docs/markdown/) | Start with the package overview and document model. |
 | [Builder API](/docs/markdown/builder/) | Compose documents fluently with headings, tables, and callouts. |
-| [PSWriteOffice Markdown cmdlets](/docs/pswriteoffice/markdown/) | Generate Markdown from PowerShell objects and scripts. |
+| [PSWriteOffice Markdown cmdlets](/docs/pswriteoffice/open-text-formats/#markdown) | Generate Markdown from PowerShell objects and scripts. |
 | [Word to Markdown](/docs/converters/word-markdown/) | Convert between Word documents and Markdown workflows. |

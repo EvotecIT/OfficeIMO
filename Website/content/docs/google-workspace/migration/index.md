@@ -4,8 +4,6 @@ description: Adopt the split Google Workspace packages and explicit fidelity, im
 order: 90
 ---
 
-# Migration from the preview APIs
-
 The completed package family intentionally breaks misleading preview shapes.
 
 ## Package ownership

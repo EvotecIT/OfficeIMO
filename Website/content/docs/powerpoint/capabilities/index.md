@@ -2,7 +2,6 @@
 title: PowerPoint Capability Matrix
 description: Tested authoring, editing, preservation, rendering, and reporting boundaries for OfficeIMO.PowerPoint.
 order: 35
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/powerpoint/capabilities/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/powerpoint/capabilities/" />'
 ---
 
 OfficeIMO.PowerPoint is strongest when the output must stay editable and the workflow can use tested Open XML features. The table below separates native authoring from preservation and preview support so a successful save is not confused with full edit fidelity.

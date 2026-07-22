@@ -4,8 +4,6 @@ description: Create, import, template, and safely replace Google Slides with Off
 order: 40
 ---
 
-# PowerPoint and Google Slides
-
 Install `OfficeIMO.PowerPoint.GoogleSlides`.
 
 ```csharp

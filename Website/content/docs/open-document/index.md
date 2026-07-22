@@ -3,7 +3,6 @@ title: "OpenDocument"
 description: "Create and edit ODT, ODS, and ODP files and connect them to Office and PDF adapters."
 order: 38
 meta.seo_title: "OpenDocument formats and APIs | OfficeIMO"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/open-document/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/open-document/" />'
 ---
 
 ## Install

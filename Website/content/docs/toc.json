@@ -10,6 +10,15 @@
     ]
   },
   {
+    "title": "Platform Map",
+    "items": [
+      { "title": "Capability Catalog", "path": "capabilities/index.md", "href": "/docs/capabilities/" },
+      { "title": "Packages and Components", "path": "capabilities/packages/index.md", "href": "/docs/capabilities/packages/" },
+      { "title": "Conversion Capability Map", "path": "capabilities/conversions/index.md", "href": "/docs/capabilities/conversions/" },
+      { "title": "Validation and Evidence", "path": "capabilities/validation/index.md", "href": "/docs/capabilities/validation/" }
+    ]
+  },
+  {
     "title": "Word Documents",
     "items": [
       { "title": "Word Overview", "path": "word/index.md", "href": "/docs/word/" },
@@ -17,6 +26,9 @@
       { "title": "Tables", "path": "word/tables/index.md", "href": "/docs/word/tables/" },
       { "title": "Images", "path": "word/images/index.md", "href": "/docs/word/images/" },
       { "title": "Headers & Footers", "path": "word/headers-footers/index.md", "href": "/docs/word/headers-footers/" },
+      { "title": "Templates and Forms", "path": "word/templates/index.md", "href": "/docs/word/templates/" },
+      { "title": "Review and Comparison", "path": "word/review/index.md", "href": "/docs/word/review/" },
+      { "title": "Word Conversion and Rendering", "path": "word/conversion/index.md", "href": "/docs/word/conversion/" },
       { "title": "Market Readiness", "path": "word/market-readiness/index.md", "href": "/docs/word/market-readiness/" }
     ]
   },
@@ -41,7 +53,11 @@
   {
     "title": "PDF, Email, and Notes",
     "items": [
-      { "title": "PDF", "path": "pdf/index.md", "href": "/docs/pdf/" },
+      { "title": "PDF Overview", "path": "pdf/index.md", "href": "/docs/pdf/" },
+      { "title": "PDF Authoring", "path": "pdf/authoring/index.md", "href": "/docs/pdf/authoring/" },
+      { "title": "PDF Operations", "path": "pdf/operations/index.md", "href": "/docs/pdf/operations/" },
+      { "title": "PDF Security", "path": "pdf/security/index.md", "href": "/docs/pdf/security/" },
+      { "title": "PDF Conversion", "path": "pdf/conversion/index.md", "href": "/docs/pdf/conversion/" },
       { "title": "Email and Outlook data", "path": "email/index.md", "href": "/docs/email/" },
       { "title": "OneNote", "path": "onenote/index.md", "href": "/docs/onenote/" }
     ]
@@ -82,10 +98,19 @@
     "title": "PSWriteOffice",
     "items": [
       { "title": "PSWriteOffice Overview", "path": "pswriteoffice/index.md", "href": "/docs/pswriteoffice/" },
+      { "title": "Platform and Command Map", "path": "pswriteoffice/overview/index.md", "href": "/docs/pswriteoffice/overview/" },
+      { "title": "Install and Update", "path": "pswriteoffice/install/index.md", "href": "/docs/pswriteoffice/install/" },
+      { "title": "Choose a Workflow", "path": "pswriteoffice/choosing-a-workflow/index.md", "href": "/docs/pswriteoffice/choosing-a-workflow/" },
+      { "title": "All Command Families", "path": "pswriteoffice/command-families/index.md", "href": "/docs/pswriteoffice/command-families/" },
       { "title": "Word Cmdlets", "path": "pswriteoffice/word/index.md", "href": "/docs/pswriteoffice/word/" },
       { "title": "Excel Cmdlets", "path": "pswriteoffice/excel/index.md", "href": "/docs/pswriteoffice/excel/" },
       { "title": "PowerPoint Cmdlets", "path": "pswriteoffice/powerpoint/index.md", "href": "/docs/pswriteoffice/powerpoint/" },
-      { "title": "Markdown Cmdlets", "path": "pswriteoffice/markdown/index.md", "href": "/docs/pswriteoffice/markdown/" }
+      { "title": "PDF Cmdlets", "path": "pswriteoffice/pdf/index.md", "href": "/docs/pswriteoffice/pdf/" },
+      { "title": "Reader Cmdlets", "path": "pswriteoffice/reader/index.md", "href": "/docs/pswriteoffice/reader/" },
+      { "title": "Visio Cmdlets", "path": "pswriteoffice/visio/index.md", "href": "/docs/pswriteoffice/visio/" },
+      { "title": "Open and Text Formats", "path": "pswriteoffice/open-text-formats/index.md", "href": "/docs/pswriteoffice/open-text-formats/" },
+      { "title": "Automation Patterns", "path": "pswriteoffice/automation-patterns/index.md", "href": "/docs/pswriteoffice/automation-patterns/" },
+      { "title": "Troubleshooting", "path": "pswriteoffice/troubleshooting/index.md", "href": "/docs/pswriteoffice/troubleshooting/" }
     ]
   },
   {

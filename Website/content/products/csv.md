@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.CSV"
-description: "Typed CSV workflows with schema validation and streaming. AOT-friendly, trimming-safe, and zero dependencies."
+description: "Typed CSV workflows with schema validation, streaming, zero third-party dependencies, and an executed NativeAOT parse scenario."
 layout: product
 product_color: "#0891b2"
 install: "dotnet add package OfficeIMO.CSV"
@@ -11,7 +11,7 @@ api_url: "/api/csv/"
 
 ## Why OfficeIMO.CSV?
 
-OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. Define a schema, map rows to typed objects without reflection, validate on read, and stream through files of any size. It is AOT-friendly and trimming-safe by design, with zero external dependencies.
+OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. Define a schema, map rows to typed objects without reflection, validate on read, and stream through files of any size. Its checked-in NativeAOT smoke publishes a real parser, executes it, and verifies the resulting header schema.
 
 ## Features
 
@@ -20,7 +20,7 @@ OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. De
 - **Typed mapping without reflection** -- map rows to POCOs using compile-time delegates instead of runtime reflection
 - **Streaming mode for large files** -- process millions of rows with constant memory using forward-only enumeration
 - **Sort, filter & transform** -- chain LINQ-style operations directly on the CSV document
-- **AOT-friendly & trimming-safe** -- compatible with Native AOT and IL trimming in .NET 8+
+- **NativeAOT scenario in CI** -- publishes and executes CSV parsing with schema readback instead of inferring compatibility from dependencies
 - **Zero external dependencies** -- ships as a single assembly with no third-party references
 
 ## Quick start

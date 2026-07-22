@@ -4,8 +4,6 @@ description: Bidirectional conversion between Word documents and Markdown using 
 order: 71
 ---
 
-# Word to Markdown Conversion
-
 The `OfficeIMO.Word.Markdown` package provides bidirectional conversion between Word documents and Markdown. It builds on `OfficeIMO.Word`, `OfficeIMO.Markdown`, and `OfficeIMO.Word.Html` to handle headings, formatting, tables, lists, images, and more.
 
 ## Installation
@@ -94,8 +92,6 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
 string markdown = @"
-# Project Report
-
 ## Summary
 
 This report covers **Q4 performance**.

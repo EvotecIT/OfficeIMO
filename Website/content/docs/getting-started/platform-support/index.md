@@ -4,8 +4,6 @@ description: Supported target frameworks, operating systems, and AOT/trimming co
 order: 3
 ---
 
-# Platform Support
-
 OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` use the first-party `OfficeIMO.Pdf` engine; PDF workloads should still be tested on the target OS with the fonts and templates you plan to ship. The framework matrix below is taken from the current project files in this repo rather than from package-marketing copy.
 
 ## Target Frameworks
@@ -44,11 +42,11 @@ For the core document packages, OfficeIMO mainly relies on managed libraries suc
 
 OfficeIMO does **not** have one identical AOT story across every package.
 
-- **Best candidates:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
-- **Requires scenario testing:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
-- **Treat separately:** `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, and direct `OfficeIMO.Pdf` rendering
+- **Published and executed scenarios:** Word create/save/reload, Markdown rendering, CSV parsing, Reader CSV extraction, and HTML-to-SVG/PNG/searchable-PDF rendering
+- **Current native compiler blockers:** Excel (`IL2072`) and PowerPoint (`IL2060`, `IL2075`, `IL2087`, `IL3050`)
+- **Not tested:** package and adapter paths outside the executable matrix
 
-Some projects in the repo enable trimming polyfills, but full NativeAOT success still depends on the dependency graph and the code paths your application exercises.
+The smoke applications isolate each dependency graph, run semantic assertions, and are repeated by CI for the supported paths. Some projects also enable trimming polyfills, but those flags are not a compatibility guarantee.
 
 See [AOT and Trimming](/docs/advanced/aot-trimming) for more detailed guidance.
 

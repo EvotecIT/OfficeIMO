@@ -4,8 +4,6 @@ description: Working with Excel worksheets in OfficeIMO.Excel -- cells, formatti
 order: 21
 ---
 
-# Worksheets
-
 The `ExcelSheet` class represents a single worksheet within an Excel workbook. It provides access to cells, rows, columns, formatting, formulas, named ranges, and page setup.
 
 ## Creating Worksheets

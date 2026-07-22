@@ -34,7 +34,7 @@ That package model works well when you want to adopt only the part of the ecosys
 
 ### Good fit for modern automation workflows
 
-OfficeIMO is designed for COM-free document automation on developer machines, servers, containers, and CI jobs. For trimming- or AOT-sensitive scenarios, the lower-risk packages in the repo today are still Markdown and CSV.
+OfficeIMO is designed for COM-free document automation on developer machines, servers, containers, and CI jobs. For NativeAOT evaluation, use the executable matrix: Word, Markdown, CSV, Reader CSV, and HTML/PDF/image scenarios publish and run today, while Excel and PowerPoint expose named compiler blockers.
 
 ## Where Proprietary Suites May Still Be Stronger
 

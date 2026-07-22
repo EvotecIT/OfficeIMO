@@ -1322,17 +1322,12 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore OfficeIMO.sln
 
-      - name: Restore HTML NativeAOT smoke
-        run: dotnet restore OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj --runtime linux-x64
-
       - name: Run AOT/Trim analyzers (net8.0)
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
 
       - name: Run AOT/Trim analyzers (net10.0)
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
 
-      - name: Publish HTML/PDF/image NativeAOT smoke
-        run: dotnet publish OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --runtime linux-x64 --no-restore --output artifacts/html-aot-smoke
-
-      - name: Run HTML/PDF/image NativeAOT smoke
-        run: ./artifacts/html-aot-smoke/OfficeIMO.Html.AotSmoke
+      - name: Publish and run supported NativeAOT scenarios
+        shell: pwsh
+        run: ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration ${{ env.BUILD_CONFIGURATION }}
