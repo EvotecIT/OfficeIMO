@@ -120,6 +120,59 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void ExternalSignaturePreparationBoundsByteStreamAndPathInputs() {
+        byte[] pdf = BuildPdf();
+
+        PdfReadLimitException bytesLimit = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(
+                pdf,
+                new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length - 1L }));
+        Assert.Equal(PdfReadLimitKind.InputBytes, bytesLimit.Kind);
+
+        byte[] prefixed = new byte[pdf.Length + 5];
+        Buffer.BlockCopy(pdf, 0, prefixed, 5, pdf.Length);
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 5;
+        PdfReadLimitException streamLimit = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(
+                stream,
+                new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length - 1L }));
+        Assert.Equal(PdfReadLimitKind.InputBytes, streamLimit.Kind);
+        Assert.Equal(5, stream.Position);
+
+        using var successfulStream = new MemoryStream(prefixed);
+        successfulStream.Position = 5;
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            successfulStream,
+            new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length });
+        Assert.True(preparation.PreparedPdf.Length > pdf.Length);
+        Assert.Equal(successfulStream.Length, successfulStream.Position);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(
+                pdf,
+                new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+
+        string inputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            File.WriteAllBytes(inputPath, pdf);
+            PdfReadLimitException pathLimit = Assert.Throws<PdfReadLimitException>(() =>
+                PdfIncrementalUpdater.PrepareExternalSignature(
+                    inputPath,
+                    outputPath,
+                    new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length - 1L }));
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathLimit.Kind);
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            File.Delete(inputPath);
+            File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
     public void PageCompositionRejectsOversizedRemainingStreamBeforeReading() {
         using var stream = new LengthOnlyReadStream(
             PdfReadOptions.Default.Limits.MaxInputBytes + 1L);

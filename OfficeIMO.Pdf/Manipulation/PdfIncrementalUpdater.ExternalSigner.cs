@@ -47,10 +47,14 @@ internal static partial class PdfIncrementalUpdater {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) throw new ArgumentException("Stream must be readable.", nameof(input));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
+        byte[] pdf = ReadSigningInput(input, effectiveOptions);
+        return SignExternal(pdf, signer, effectiveOptions);
+    }
+
+    private static byte[] ReadSigningInput(Stream input, PdfExternalSignatureOptions effectiveOptions) {
         ValidateSigningInput(0, effectiveOptions);
-        byte[] pdf;
         try {
-            pdf = OfficeStreamReader.ReadRemainingBytes(
+            return OfficeStreamReader.ReadRemainingBytes(
                 input,
                 effectiveOptions.CancellationToken,
                 effectiveOptions.MaxInputBytes);
@@ -61,7 +65,6 @@ internal static partial class PdfIncrementalUpdater {
             throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes,
                 effectiveOptions.MaxInputBytes, observedBytes);
         }
-        return SignExternal(pdf, signer, effectiveOptions);
     }
 
     /// <summary>Signs a PDF file through caller-owned key infrastructure and writes the completed output.</summary>

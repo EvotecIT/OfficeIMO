@@ -90,6 +90,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_Convert_DoesNotApplyLegacyInputLimitToOpenXml() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Open XML source");
+                document.Save();
+            }
+
+            WordDocumentConversionResult result = WordDocument.Convert(
+                sourcePath,
+                destinationPath,
+                new WordDocumentConversionOptions {
+                    LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
+                });
+
+            Assert.Equal(destinationPath, result.RequireNoLoss());
+            using WordDocument converted = WordDocument.Load(destinationPath);
+            Assert.Equal(WordFileFormat.Doc, converted.SourceFormat);
+            Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Open XML source");
+        }
+
+        [Fact]
         public void LegacyDoc_Convert_CannotSuppressDiscoveryToBypassLossPolicy() {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");

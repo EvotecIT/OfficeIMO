@@ -20,6 +20,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
+        ValidateSigningInput(pdf.LongLength, effectiveOptions);
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         ValidateExternalSignatureOptions(effectiveOptions);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
         _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature, readOptions);
@@ -101,16 +103,19 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("Stream must be readable.", nameof(input));
         }
 
-        using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
-        return PrepareExternalSignature(buffer.ToArray(), options);
+        PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
+        return PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions);
     }
 
     /// <summary>Appends an external signature placeholder to a PDF file and writes the prepared PDF to <paramref name="outputPath"/>.</summary>
     public static PdfExternalSignaturePreparation PrepareExternalSignature(string inputPath, string outputPath, PdfExternalSignatureOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfExternalSignaturePreparation preparation = PrepareExternalSignature(File.ReadAllBytes(inputPath), options);
+        PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
+        PdfExternalSignaturePreparation preparation;
+        using (var input = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+            preparation = PrepareExternalSignature(ReadSigningInput(input, effectiveOptions), effectiveOptions);
+        }
         OfficeFileCommit.WriteAllBytes(outputPath, preparation.PreparedPdf);
         return preparation;
     }
