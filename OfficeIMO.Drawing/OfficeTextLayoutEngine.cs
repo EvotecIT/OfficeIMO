@@ -246,15 +246,40 @@ public static partial class OfficeTextLayoutEngine {
         string ellipsis) {
         if (Measure(ellipsis, fontSize, measure) > width) return string.Empty;
         int[] starts = StringInfo.ParseCombiningCharacters(value);
+        double MeasureCandidate(int elementCount) =>
+            Measure(CreateEllipsizedSlice(value, starts, elementCount, trimStart, ellipsis), fontSize, measure);
         int low = 0;
         int high = starts.Length;
         while (low < high) {
             int middle = low + ((high - low + 1) / 2);
-            string candidate = CreateEllipsizedSlice(value, starts, middle, trimStart, ellipsis);
-            if (Measure(candidate, fontSize, measure) <= width) {
+            if (MeasureCandidate(middle) <= width) {
                 low = middle;
             } else {
                 high = middle - 1;
+            }
+        }
+
+        const int monotonicityVerificationElements = 8;
+        bool nonMonotonic = false;
+        double previousWidth = MeasureCandidate(low);
+        int verificationEnd = Math.Min(starts.Length, low + monotonicityVerificationElements);
+        for (int elementCount = low + 1; elementCount <= verificationEnd; elementCount++) {
+            double candidateWidth = MeasureCandidate(elementCount);
+            if (candidateWidth < previousWidth) {
+                nonMonotonic = true;
+            }
+            if (candidateWidth <= width) {
+                low = elementCount;
+            }
+            previousWidth = candidateWidth;
+        }
+
+        if (nonMonotonic) {
+            low = 0;
+            for (int elementCount = 0; elementCount <= starts.Length; elementCount++) {
+                if (MeasureCandidate(elementCount) <= width) {
+                    low = elementCount;
+                }
             }
         }
 

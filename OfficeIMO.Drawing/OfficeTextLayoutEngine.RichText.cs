@@ -194,7 +194,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         IReadOnlyList<OfficeRichTextRun> normalizedRuns =
-            NormalizeRichTextRuns(runs, cancellationToken);
+            NormalizeRichTextRuns(runs, out bool inputTruncated, cancellationToken);
         double width = NormalizeNonNegative(maxWidth);
         if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
@@ -218,6 +218,7 @@ public static partial class OfficeTextLayoutEngine {
             wrap,
             overflowBehavior,
             paragraphIndent ?? OfficeTextParagraphIndent.Empty,
+            inputTruncated,
             cancellationToken);
     }
 
@@ -230,6 +231,7 @@ public static partial class OfficeTextLayoutEngine {
         bool wrap,
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent paragraphIndent,
+        bool inputTruncated,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
@@ -240,7 +242,7 @@ public static partial class OfficeTextLayoutEngine {
         var lines = new List<OfficeRichTextLine>();
         var builder = new RichTextLineBuilder(measure);
         builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
-        bool clipped = false;
+        bool clipped = inputTruncated;
 
         foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -321,15 +323,19 @@ public static partial class OfficeTextLayoutEngine {
 
     private static IReadOnlyList<OfficeRichTextRun> NormalizeRichTextRuns(
         IReadOnlyList<OfficeRichTextRun> runs,
+        out bool truncated,
         CancellationToken cancellationToken = default) {
         int runCapacity = Math.Min(runs.Count, MaximumLayoutTextRuns);
         var normalized = new List<OfficeRichTextRun>(runCapacity);
         int remainingCharacters = MaximumLayoutTextCharacters;
+        int processedRuns = 0;
+        truncated = runs.Count > MaximumLayoutTextRuns;
         for (int i = 0; i < runs.Count && i < MaximumLayoutTextRuns && remainingCharacters > 0; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
             string text = run.Text ?? string.Empty;
             if (text.Length > remainingCharacters) {
+                truncated = true;
                 int length = remainingCharacters;
                 if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
                 text = text.Substring(0, length) + "...";
@@ -345,7 +351,10 @@ public static partial class OfficeTextLayoutEngine {
                 run.Strikethrough,
                 run.BackgroundColor));
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
+            processedRuns = i + 1;
         }
+
+        truncated |= processedRuns < runs.Count;
 
         return normalized;
     }

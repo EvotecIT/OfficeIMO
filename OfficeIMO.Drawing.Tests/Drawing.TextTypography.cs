@@ -116,6 +116,49 @@ public class DrawingTextTypographyTests {
     }
 
     [Fact]
+    public void TextLayout_PreservesClippingStateForBoundedRichTextInput() {
+        var runs = new[] { new OfficeRichTextRun(new string('A', 100_001), 1D, OfficeColor.Black) };
+
+        OfficeRichTextBlockLayout horizontal = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            runs,
+            maxWidth: 200_000,
+            maxHeight: 2,
+            lineHeightFactor: 1,
+            static (value, size, _) => (value?.Length ?? 0) * size,
+            wrap: false,
+            shrinkToFit: false,
+            minimumFontSize: 1,
+            overflowBehavior: OfficeTextOverflowBehavior.Clip);
+        OfficeRichTextBlockLayout stacked = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            runs,
+            maxWidth: 2,
+            maxHeight: 5_000,
+            lineHeightFactor: 1,
+            static (value, size, _) => (value?.Length ?? 0) * size,
+            shrinkToFit: false);
+
+        Assert.True(horizontal.Clipped);
+        Assert.True(stacked.Clipped);
+        Assert.Equal(4_096, stacked.Lines.Count);
+    }
+
+    [Fact]
+    public void TextLayout_FallsBackWhenTextMeasurementIsNonMonotonic() {
+        static double Measure(string? value, double _) => value switch {
+            "ABC" => 10D,
+            "AB..." => 10D,
+            "ABC..." => 4D,
+            _ => value?.Length ?? 0D
+        };
+
+        OfficeTextLine line = OfficeTextLayoutEngine.TrimLineToWidth("ABC", 1D, 4D, Measure, out bool clipped);
+
+        Assert.True(clipped);
+        Assert.Equal("ABC...", line.Text);
+        Assert.Equal(4D, line.Width);
+    }
+
+    [Fact]
     public void FitWrappedText_ClipsToVisibleHeightAfterShrinkToFit() {
         OfficeTextBlockLayout layout = OfficeTextLayoutEngine.FitWrappedText(
             string.Join("\n", Enumerable.Repeat("line", 100)),

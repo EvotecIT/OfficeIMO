@@ -109,13 +109,14 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        IReadOnlyList<OfficeRichTextRun> elements = SplitRichTextElements(NormalizeRichTextRuns(runs));
+        IReadOnlyList<OfficeRichTextRun> normalizedRuns = NormalizeRichTextRuns(runs, out bool inputTruncated);
+        IReadOnlyList<OfficeRichTextRun> elements = SplitRichTextElements(normalizedRuns);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
         if (elements.Count == 0) {
             double lineHeight = Math.Max(1D, Math.Ceiling(lineFactor));
-            return new OfficeRichTextBlockLayout(new[] { new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), lineHeight) }, lineHeight, 0D, lineHeight);
+            return new OfficeRichTextBlockLayout(new[] { new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), lineHeight) }, lineHeight, 0D, lineHeight, inputTruncated);
         }
 
         if (shrinkToFit) {
@@ -125,7 +126,7 @@ public static partial class OfficeTextLayoutEngine {
         double maxFontSize = ResolveMaxRichTextFontSize(elements);
         double resolvedLineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure, resolvedLineHeight);
-        return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure);
+        return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated);
     }
 
     private static double FitStackedFontSize(
@@ -273,8 +274,9 @@ public static partial class OfficeTextLayoutEngine {
         double lineHeight,
         double maxWidth,
         double maxHeight,
-        Func<string?, double, string?, double> measure) {
-        bool clipped = false;
+        Func<string?, double, string?, double> measure,
+        bool alreadyClipped) {
+        bool clipped = alreadyClipped;
         int maxLines = Math.Max(1, (int)Math.Floor(NormalizeNonNegative(maxHeight) / Math.Max(1D, lineHeight)));
         if (lines.Count > maxLines) {
             clipped = true;
