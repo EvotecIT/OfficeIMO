@@ -521,6 +521,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedImageExportSharesSourceImageBudgetWithHeaderFooter() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            byte[] logo = CreateHeaderFooterLogoPng();
+            sheet.SetHeaderImage(HeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
+            sheet.AddImage(1, 1, logo, "image/png", widthPixels: 24, heightPixels: 12, name: "Worksheet logo");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false,
+                MaximumTotalSourceImageBytes = logo.LongLength
+            })[0];
+
+            Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterImageApproximation);
+            Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ImageBytesMissing);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedImageExportRendersHeaderFooterBmpImagesThroughSharedDecoder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

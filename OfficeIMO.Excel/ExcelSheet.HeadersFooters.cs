@@ -69,6 +69,14 @@ namespace OfficeIMO.Excel {
             public HeaderFooterImageSnapshot? FooterCenterImage { get; set; }
             /// <summary>Right section image of the footer (odd pages), when available.</summary>
             public HeaderFooterImageSnapshot? FooterRightImage { get; set; }
+
+            internal long SourceImageByteCount =>
+                (HeaderLeftImage?.SourceByteCount ?? 0L) +
+                (HeaderCenterImage?.SourceByteCount ?? 0L) +
+                (HeaderRightImage?.SourceByteCount ?? 0L) +
+                (FooterLeftImage?.SourceByteCount ?? 0L) +
+                (FooterCenterImage?.SourceByteCount ?? 0L) +
+                (FooterRightImage?.SourceByteCount ?? 0L);
         }
 
         /// <summary>
@@ -95,6 +103,7 @@ namespace OfficeIMO.Excel {
             public double WidthPoints { get; }
             /// <summary>Image height in points.</summary>
             public double HeightPoints { get; }
+            internal long SourceByteCount => _bytes.LongLength;
         }
 
         internal static string NormalizeImageContentType(string? contentType, string parameterName) {

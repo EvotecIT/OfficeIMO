@@ -148,7 +148,12 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static string LimitLayoutText(string text) {
-        if (text.Length <= MaximumLayoutTextCharacters) return text;
+        return LimitLayoutText(text, out _);
+    }
+
+    private static string LimitLayoutText(string text, out bool truncated) {
+        truncated = text.Length > MaximumLayoutTextCharacters;
+        if (!truncated) return text;
         int length = MaximumLayoutTextCharacters;
         if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
         return text.Substring(0, length);
@@ -186,11 +191,13 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = LimitLayoutText(ExpandTabs(LimitLayoutText(text ?? string.Empty)));
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
+        bool limitTruncated = inputTruncated || expandedTruncated;
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
-            clipped = false;
+            clipped = limitTruncated;
             return new OfficeTextLine(value, measured);
         }
 
@@ -214,11 +221,13 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = LimitLayoutText(ExpandTabs(LimitLayoutText(text ?? string.Empty)));
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
+        bool limitTruncated = inputTruncated || expandedTruncated;
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
-            clipped = false;
+            clipped = limitTruncated;
             return new OfficeTextLine(value, measured);
         }
 

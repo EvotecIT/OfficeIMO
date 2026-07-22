@@ -747,6 +747,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_ReportsConfiguredTextLimitAsClipping() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+            string oversized = new string('A', 100_001);
+
+            OfficeTextLine endTrimmed = OfficeTextLayoutEngine.TrimLineToWidth(oversized, 1D, 200_000D, Measure, out bool endClipped);
+            OfficeTextLine startTrimmed = OfficeTextLayoutEngine.TrimLineStartToWidth(oversized, 1D, 200_000D, Measure, out bool startClipped);
+
+            Assert.True(endClipped);
+            Assert.True(startClipped);
+            Assert.Equal(100_000, endTrimmed.Text.Length);
+            Assert.Equal(100_000, startTrimmed.Text.Length);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_TrimsSingleLineAtTextElementBoundaries() {
             static double Measure(string? value, double size) => string.IsNullOrEmpty(value) ? 0D : value!.Length * size;
             string eAcute = "e\u0301";

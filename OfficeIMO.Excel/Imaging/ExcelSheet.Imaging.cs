@@ -51,6 +51,7 @@ namespace OfficeIMO.Excel {
             HeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
                 ? GetHeaderFooter(resolved.MaximumTotalSourceImageBytes)
                 : null;
+            long headerFooterSourceImageBytes = headerFooterSnapshot?.SourceImageByteCount ?? 0L;
             OfficeImageExportConsumer accept =
                 OfficeImageExportBatchProcessor.CreateGuardedConsumer(
                     resolved,
@@ -58,7 +59,9 @@ namespace OfficeIMO.Excel {
                     cancellationToken);
             for (int index = 0; index < ranges.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                accept(RenderWorksheetImageResult(format, ranges[index], resolved, headerFooterSnapshot, index + 1, ranges.Count, cancellationToken));
+                var sourceImageBudget = new ExcelSourceImageBudget(resolved.MaximumTotalSourceImageBytes);
+                sourceImageBudget.Consume(headerFooterSourceImageBytes);
+                accept(RenderWorksheetImageResult(format, ranges[index], resolved, headerFooterSnapshot, sourceImageBudget, index + 1, ranges.Count, cancellationToken));
             }
         }
 

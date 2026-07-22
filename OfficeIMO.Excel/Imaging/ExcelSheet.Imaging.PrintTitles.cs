@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel {
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
             HeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
             int pageCount,
             CancellationToken cancellationToken = default) {
@@ -25,9 +26,10 @@ namespace OfficeIMO.Excel {
                     range,
                     options,
                     layout,
+                    sourceImageBudget,
                     out rasterState);
             } else {
-                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
+                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics, sourceImageBudget);
                 result = ExcelRangeImageRenderer.Render(
                     snapshot,
                     workingFormat,
@@ -77,9 +79,10 @@ namespace OfficeIMO.Excel {
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
             PrintTitleLayout layout,
+            ExcelSourceImageBudget sourceImageBudget,
             out ExcelRasterRenderState rasterState) {
             var diagnostics = new List<OfficeImageExportDiagnostic>(range.Diagnostics);
-            List<PrintTitleVisualComponent> visuals = CreatePrintTitleVisualComponents(layout, options, diagnostics);
+            List<PrintTitleVisualComponent> visuals = CreatePrintTitleVisualComponents(layout, options, diagnostics, sourceImageBudget);
             double logicalWidth = visuals.Count == 0 ? 0D : visuals.Max(component => component.X + component.Snapshot.Width);
             double logicalHeight = visuals.Count == 0 ? 0D : visuals.Max(component => component.Y + component.Snapshot.Height);
             double renderScale = options.Scale;
@@ -146,23 +149,25 @@ namespace OfficeIMO.Excel {
         private List<PrintTitleVisualComponent> CreatePrintTitleVisualComponents(
             PrintTitleLayout layout,
             ExcelWorksheetImageExportOptions options,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            ExcelSourceImageBudget sourceImageBudget) {
             var components = new List<PrintTitleVisualComponent>();
             PrintTitleVisualComponent? corner = layout.CornerRange == null
                 ? null
-                : CreatePrintTitleVisualComponent(layout.CornerRange, 0D, 0D, options, diagnostics);
+                : CreatePrintTitleVisualComponent(layout.CornerRange, 0D, 0D, options, diagnostics, sourceImageBudget);
             PrintTitleVisualComponent? rowTitles = layout.RowTitleRange == null
                 ? null
-                : CreatePrintTitleVisualComponent(layout.RowTitleRange, corner?.Snapshot.Width ?? 0D, 0D, options, diagnostics);
+                : CreatePrintTitleVisualComponent(layout.RowTitleRange, corner?.Snapshot.Width ?? 0D, 0D, options, diagnostics, sourceImageBudget);
             PrintTitleVisualComponent? columnTitles = layout.ColumnTitleRange == null
                 ? null
-                : CreatePrintTitleVisualComponent(layout.ColumnTitleRange, 0D, rowTitles?.Snapshot.Height ?? 0D, options, diagnostics);
+                : CreatePrintTitleVisualComponent(layout.ColumnTitleRange, 0D, rowTitles?.Snapshot.Height ?? 0D, options, diagnostics, sourceImageBudget);
             PrintTitleVisualComponent body = CreatePrintTitleVisualComponent(
                 layout.BodyRange,
                 columnTitles?.Snapshot.Width ?? 0D,
                 rowTitles?.Snapshot.Height ?? 0D,
                 options,
-                diagnostics);
+                diagnostics,
+                sourceImageBudget);
 
             if (corner != null) {
                 components.Add(corner);
@@ -185,7 +190,8 @@ namespace OfficeIMO.Excel {
             double x,
             double y,
             ExcelWorksheetImageExportOptions options,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            ExcelSourceImageBudget sourceImageBudget) {
             if (options == null) {
                 throw new ArgumentNullException(nameof(options));
             }
@@ -194,7 +200,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
             }
 
-            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range, options);
+            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range, options, sourceImageBudget: sourceImageBudget);
             if (snapshot.Diagnostics.Count > 0) {
                 diagnostics.AddRange(snapshot.Diagnostics);
             }
