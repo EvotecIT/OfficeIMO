@@ -327,8 +327,32 @@ public sealed class ReaderHierarchicalChunkingTests {
             });
 
         Assert.Single(result.Chunks);
-        Assert.Equal(2, blocks.ReadCount);
+        Assert.Equal(8, blocks.ReadCount);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_DoesNotChargeDuplicateFallbackBlocksToInputQuota() {
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "first", Text = "first" },
+                new OfficeDocumentBlock { Id = "first", Text = "duplicate" },
+                new OfficeDocumentBlock { Id = "second", Text = "second" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 2,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Equal(new[] { "first", "second" }, result.Chunks.Select(chunk => chunk.Text));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
     }
 
     [Fact]
