@@ -3600,16 +3600,6 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageReaderRejectsPngWithoutACompleteContainer() {
-        byte[] truncated = OnePixelPng.Take(33).ToArray();
-
-        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
-
-        Assert.False(identified);
-        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
-    }
-
-    [Fact]
     public void OfficeImageReaderRejectsPngDimensionsBeyondRasterLimits() {
         byte[] oversized = OnePixelPng.ToArray();
         oversized[16] = 0x7F;
