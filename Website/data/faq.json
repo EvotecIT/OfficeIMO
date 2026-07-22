@@ -33,7 +33,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>It depends on the package. <strong>OfficeIMO.CSV</strong> and <strong>OfficeIMO.Markdown</strong> are the strongest current fits for AOT- and trimming-sensitive workloads. The Open XML-based packages should be tested against your exact publish profile and deployment target before you rely on NativeAOT in production.</p>"
+          "answer": "<p>NativeAOT support is stated per executed scenario, not as a blanket package promise. Current <strong>win-x64</strong> smoke paths pass for Word create/save, Markdown parse/render, CSV round-trip, Reader CSV extraction, and HTML-to-PDF with an embedded image. Excel and PowerPoint are currently blocked by trim/AOT warnings in their dependency paths. See the <a href='/docs/advanced/aot-trimming/'>AOT and trimming matrix</a> for commands, evidence, and the CI-tested subset.</p>"
         }
       ]
     },

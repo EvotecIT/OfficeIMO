@@ -18,8 +18,8 @@ $records = @(
 
 New-OfficeExcel -Path '.\Output\Revenue.xlsx' {
     Add-OfficeExcelSheet -Name 'Sales' {
-        Add-OfficeExcelTable -InputObject $records -AutoFilter -AutoFit
-        Add-OfficeExcelChart -Type ColumnClustered -Title 'Revenue by region'
+        Add-OfficeExcelTable -InputObject $records -TableName 'Sales' -AutoFit
+        Add-OfficeExcelChart -TableName 'Sales' -Row 2 -Column 5 -Type ColumnClustered -Title 'Revenue by region'
     }
 }
 ```

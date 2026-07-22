@@ -38,8 +38,20 @@ $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 if ($catalog.repository.productionComponentCount -ne @($catalog.components).Count) {
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
-if ($catalog.repository.productionComponentCount -lt 85) {
-    Add-Failure "The OfficeIMO catalog unexpectedly contains only $($catalog.repository.productionComponentCount) production components."
+$expectedRepositoryCounts = [ordered]@{
+    projectCount = 144
+    productionComponentCount = 89
+    testProjectCount = 29
+    benchmarkProjectCount = 12
+    validationProjectCount = 15
+    apiReferenceCount = 17
+    conceptualPageCount = 70
+}
+foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
+    $actual = [int] $catalog.repository.($expectedCount.Key)
+    if ($actual -ne $expectedCount.Value) {
+        Add-Failure "The OfficeIMO $($expectedCount.Key) is $actual; expected $($expectedCount.Value) on every operating system."
+    }
 }
 if (@($catalog.components | Where-Object { [string]::IsNullOrWhiteSpace($_.description) }).Count -gt 0) {
     Add-Failure 'One or more OfficeIMO catalog components have no description.'
@@ -52,6 +64,9 @@ if ($powerShellCatalog.module.commandCount -ne 464) {
 }
 if ((@($powerShellCatalog.families | Measure-Object commandCount -Sum).Sum) -ne $powerShellCatalog.module.commandCount) {
     Add-Failure 'The PSWriteOffice family totals do not cover each command exactly once.'
+}
+if ($powerShellCatalog.module.aliasCount -ne 354) {
+    Add-Failure "The PSWriteOffice snapshot has $($powerShellCatalog.module.aliasCount) aliases; expected 354."
 }
 
 if ($failures.Count -gt 0) {

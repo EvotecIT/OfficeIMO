@@ -26,11 +26,11 @@ function Get-ComponentCategory {
     switch -Regex ($Name) {
         '^OfficeIMO\.Reader' { return 'Extraction and ingestion' }
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
+        '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex)' { return 'Publishing and conversion' }
         '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Drawing|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
-        '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         default { return 'Specialized components' }
     }
 }
@@ -57,15 +57,20 @@ function Get-DocumentationUrl {
 }
 
 $allProjects = @(Get-ChildItem -LiteralPath $RepositoryRoot -Recurse -File -Filter '*.csproj' |
-    Where-Object { $_.FullName -notmatch '\\(?:bin|obj|Website\\projects)\\' })
+    Where-Object {
+        $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
+        $relativeProjectPath -notmatch '(^|/)(?:bin|obj)(?:/|$)' -and
+            $relativeProjectPath -notmatch '^Website/projects/'
+    })
 
 $testProjects = @($allProjects | Where-Object { $_.BaseName -match '(?:^|\.)(?:Tests|VerifyTests)(?:\.|$)' })
 $benchmarkProjects = @($allProjects | Where-Object { $_.BaseName -match '(?:^|\.)Benchmarks(?:\.|$)' })
 $validationProjects = @($allProjects | Where-Object {
-    $_.FullName -match '\\Build\\' -or
+    $relativeProjectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $_.FullName).Replace('\', '/')
+    $relativeProjectPath -match '(^|/)Build/' -or
     $_.BaseName -match '(?:^|\.)AotSmoke$' -or
     $_.BaseName -in @('OfficeIMO.Examples', 'OfficeIMO.MarkdownRenderer.SamplePlugin') -or
-    $_.FullName -match '\\Website\\Apps\\'
+    $relativeProjectPath -match '^Website/Apps/'
 })
 $productionProjects = @($allProjects | Where-Object {
     $_ -notin $testProjects -and
@@ -108,7 +113,10 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
     $outputType = Get-ProjectValue -Project $project -Name 'OutputType'
     $projectPath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $projectFile.FullName).Replace('\', '/')
     $sourceCount = @(Get-ChildItem -LiteralPath $projectFile.DirectoryName -Recurse -File -Filter '*.cs' |
-        Where-Object { $_.FullName -notmatch '\\(?:bin|obj)\\' }).Count
+        Where-Object {
+            $relativeSourcePath = [System.IO.Path]::GetRelativePath($projectFile.DirectoryName, $_.FullName).Replace('\', '/')
+            $relativeSourcePath -notmatch '(^|/)(?:bin|obj)(?:/|$)'
+        }).Count
     $resolvedProjectPath = [System.IO.Path]::GetFullPath($projectFile.FullName)
 
     [ordered]@{
