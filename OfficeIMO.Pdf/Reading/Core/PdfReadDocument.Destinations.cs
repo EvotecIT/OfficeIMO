@@ -50,7 +50,6 @@ public sealed partial class PdfReadDocument {
         HashSet<int> visitedReferences,
         int depth,
         ref int traversedNodes) {
-        EnsureNameTreeBudget(depth, ++traversedNodes);
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
@@ -61,6 +60,7 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
+        EnsureNameTreeBudget(depth, ++traversedNodes);
         if (treeObject is not PdfDictionary tree) {
             return;
         }

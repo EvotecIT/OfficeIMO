@@ -52,6 +52,27 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void TextContentParser_BoundsInlineActualTextBeforeDecoding() {
+        const string oversized = "/Span << /ActualText (AB) >> BDC BT /F1 12 Tf (X) Tj ET EMC";
+        const string boundedUtf16 = "/Span << /ActualText <FEFF00410042> >> BDC BT /F1 12 Tf (X) Tj ET EMC";
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                oversized,
+                static (_, bytes) => Encoding.ASCII.GetString(bytes),
+                static (_, bytes) => bytes.Length * 500D,
+                maxActualTextCharacters: 1));
+        IReadOnlyList<PdfTextSpan> spans = TextContentParser.Parse(
+            boundedUtf16,
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (_, bytes) => bytes.Length * 500D,
+            maxActualTextCharacters: 2);
+
+        Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
+        Assert.Equal("AB", Assert.Single(spans).Text);
+    }
+
+    [Fact]
     public void PdfReadPage_BoundsAggregateContentStreamBytes() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R >>",
@@ -192,6 +213,23 @@ public sealed class PdfResourceBudgetSecurityTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(pdf, options));
 
         Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadDocument_CountsReferencedNameTreeNodeOnce() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 5 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [(Target) [3 0 R /Fit]] >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        Assert.Equal("Target", Assert.Single(document.NamedDestinations).Name);
     }
 
     [Fact]

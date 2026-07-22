@@ -44,26 +44,47 @@ internal static class TextContentParser {
     }
 
     private readonly struct ActualTextValue {
-        public string Text { get; }
+        private readonly string? _text;
+        private readonly byte[]? _bytes;
 
         public ActualTextValue(string text) {
-            Text = text;
+            _text = text;
+            _bytes = null;
+        }
+
+        public ActualTextValue(byte[] bytes) {
+            _text = null;
+            _bytes = bytes;
+        }
+
+        public string Decode(TextOutputBudget budget) {
+            if (_bytes != null) {
+                budget.EnsureActualTextMayFit(PdfTextString.GetDecodedCharacterCount(_bytes));
+                return PdfTextString.Decode(_bytes);
+            }
+
+            string text = _text ?? string.Empty;
+            budget.EnsureActualTextMayFit(text.Length);
+            return text;
         }
     }
 
     private sealed class MarkedContentState {
-        public string ActualText { get; }
+        private readonly ActualTextValue? _actualText;
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
         public bool IsHidden { get; }
         public bool ActualTextEmitted { get; set; }
 
         public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden) {
-            ActualText = actualText?.Text ?? string.Empty;
+            _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
         }
+
+        public string DecodeActualText(TextOutputBudget budget) =>
+            _actualText?.Decode(budget) ?? string.Empty;
     }
 
     internal sealed class TextOutputBudget {
@@ -91,6 +112,13 @@ internal static class TextContentParser {
             }
 
             _actualTextCharacters = next;
+        }
+
+        internal void EnsureActualTextMayFit(int characters) {
+            long next = _actualTextCharacters + characters;
+            if (next > _maxActualTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+            }
         }
 
         internal void ChargeDecodedText(int characters) {
@@ -602,7 +630,7 @@ internal static class TextContentParser {
             } else if (isArtifact) {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
-                textOut = actualTextState.ActualText;
+                textOut = actualTextState.DecodeActualText(textOutputBudget);
                 textOutputBudget.ChargeActualText(textOut.Length);
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
@@ -706,7 +734,7 @@ internal static class TextContentParser {
             if (propertyObject is PdfContentDictionary dictionary &&
                 dictionary.Items.TryGetValue("ActualText", out var value) &&
                 value is byte[] bytes) {
-                return new ActualTextValue(PdfTextString.Decode(bytes));
+                return new ActualTextValue(bytes);
             }
 
             return null;

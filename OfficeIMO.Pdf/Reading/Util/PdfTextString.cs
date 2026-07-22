@@ -3,6 +3,23 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfTextString {
+    internal static int GetDecodedCharacterCount(byte[] bytes) {
+        if (bytes == null || bytes.Length == 0) {
+            return 0;
+        }
+
+        if (bytes.Length >= 2 &&
+            (bytes[0] == 0xFE && bytes[1] == 0xFF || bytes[0] == 0xFF && bytes[1] == 0xFE)) {
+            return (bytes.Length - 2) / 2;
+        }
+
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
+            return Encoding.UTF8.GetCharCount(bytes, 3, bytes.Length - 3);
+        }
+
+        return bytes.Length;
+    }
+
     public static string Decode(byte[] bytes) {
         if (bytes == null || bytes.Length == 0) {
             return string.Empty;
