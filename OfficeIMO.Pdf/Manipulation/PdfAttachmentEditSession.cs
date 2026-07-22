@@ -3,14 +3,33 @@ namespace OfficeIMO.Pdf;
 /// <summary>Mutable attachment collection used by one existing-document attachment edit.</summary>
 public sealed class PdfAttachmentEditSession {
     private readonly List<PdfEmbeddedFile> _attachments;
+    private readonly List<PdfAttachmentSourceIdentity> _sourceIdentities;
     private readonly Dictionary<string, string> _retainedOriginalNames;
 
     internal PdfAttachmentEditSession(IEnumerable<PdfEmbeddedFile> attachments) {
         _attachments = attachments.Select(static file => file.Clone()).ToList();
-        _retainedOriginalNames = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (PdfEmbeddedFile attachment in _attachments) {
-            _retainedOriginalNames.TryAdd(attachment.FileName, attachment.FileName);
+        _sourceIdentities = _attachments
+            .Select(static _ => new PdfAttachmentSourceIdentity(0, 0))
+            .ToList();
+        _retainedOriginalNames = CreateRetainedOriginalNames(_attachments);
+    }
+
+    internal PdfAttachmentEditSession(IEnumerable<PdfAttachmentEditSource> attachments) {
+        IReadOnlyList<PdfAttachmentEditSource> sources = attachments.ToArray();
+        _attachments = sources.Select(static source => source.Attachment.Clone()).ToList();
+        _sourceIdentities = sources.Select(static source => new PdfAttachmentSourceIdentity(
+            source.FileSpecObjectNumber,
+            source.EmbeddedFileObjectNumber)).ToList();
+        _retainedOriginalNames = CreateRetainedOriginalNames(_attachments);
+    }
+
+    private static Dictionary<string, string> CreateRetainedOriginalNames(
+        IEnumerable<PdfEmbeddedFile> attachments) {
+        var retainedOriginalNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (PdfEmbeddedFile attachment in attachments) {
+            retainedOriginalNames.TryAdd(attachment.FileName, attachment.FileName);
         }
+        return retainedOriginalNames;
     }
 
     /// <summary>Current attachment snapshots in edit order.</summary>
@@ -21,6 +40,7 @@ public sealed class PdfAttachmentEditSession {
         Guard.NotNull(attachment, nameof(attachment));
         EnsureMissing(attachment.FileName);
         _attachments.Add(attachment.Clone());
+        _sourceIdentities.Add(new PdfAttachmentSourceIdentity(0, 0));
         return this;
     }
 
@@ -47,13 +67,18 @@ public sealed class PdfAttachmentEditSession {
 
     /// <summary>Removes an attachment by file name.</summary>
     public PdfAttachmentEditSession Remove(string fileName) {
-        _attachments.RemoveAt(RequireIndex(fileName));
+        int index = RequireIndex(fileName);
+        _attachments.RemoveAt(index);
+        _sourceIdentities.RemoveAt(index);
         string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, fileName, StringComparison.Ordinal)).Key;
         if (originalName != null) _retainedOriginalNames.Remove(originalName);
         return this;
     }
 
     internal IReadOnlyList<PdfEmbeddedFile> Snapshot() => _attachments.Select(static file => file.Clone()).ToArray();
+    internal IReadOnlyList<PdfAttachmentEditEntry> SnapshotEntries() => _attachments
+        .Select((file, index) => new PdfAttachmentEditEntry(file.Clone(), _sourceIdentities[index]))
+        .ToArray();
     internal IReadOnlyDictionary<string, string> RetainedOriginalNames => _retainedOriginalNames;
 
     private void UpdateRetainedName(string currentName, string newName) {
@@ -64,4 +89,43 @@ public sealed class PdfAttachmentEditSession {
     private int RequireIndex(string fileName) { Guard.NotNullOrWhiteSpace(fileName, nameof(fileName)); int index = FindIndex(fileName); return index >= 0 ? index : throw new KeyNotFoundException("PDF attachment was not found: " + fileName); }
     private void EnsureMissing(string fileName) { if (FindIndex(fileName) >= 0) throw new ArgumentException("A PDF attachment with this file name already exists: " + fileName, nameof(fileName)); }
     private int FindIndex(string fileName) => _attachments.FindIndex(file => string.Equals(file.FileName, fileName, StringComparison.Ordinal));
+}
+
+internal sealed class PdfAttachmentEditSource {
+    internal PdfAttachmentEditSource(
+        PdfEmbeddedFile attachment,
+        int fileSpecObjectNumber,
+        int embeddedFileObjectNumber) {
+        Attachment = attachment;
+        FileSpecObjectNumber = fileSpecObjectNumber;
+        EmbeddedFileObjectNumber = embeddedFileObjectNumber;
+    }
+
+    internal PdfEmbeddedFile Attachment { get; }
+    internal int FileSpecObjectNumber { get; }
+    internal int EmbeddedFileObjectNumber { get; }
+}
+
+internal sealed class PdfAttachmentEditEntry {
+    internal PdfAttachmentEditEntry(
+        PdfEmbeddedFile attachment,
+        PdfAttachmentSourceIdentity sourceIdentity) {
+        Attachment = attachment;
+        SourceIdentity = sourceIdentity;
+    }
+
+    internal PdfEmbeddedFile Attachment { get; }
+    internal PdfAttachmentSourceIdentity SourceIdentity { get; }
+}
+
+internal readonly struct PdfAttachmentSourceIdentity {
+    internal PdfAttachmentSourceIdentity(
+        int fileSpecObjectNumber,
+        int embeddedFileObjectNumber) {
+        FileSpecObjectNumber = fileSpecObjectNumber;
+        EmbeddedFileObjectNumber = embeddedFileObjectNumber;
+    }
+
+    internal int FileSpecObjectNumber { get; }
+    internal int EmbeddedFileObjectNumber { get; }
 }

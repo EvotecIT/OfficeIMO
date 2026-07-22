@@ -125,6 +125,31 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void Edit_PreservesDuplicateNamedAnnotationPayloadIdentity() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildDuplicateNamedFileAttachmentAnnotationsPdf();
+
+        byte[] output = PdfAttachmentEditor.Add(
+            source,
+            new PdfEmbeddedFile("new.txt", Encoding.UTF8.GetBytes("new payload"), "text/plain"))
+            .ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+        PdfDictionary[] annotations = objects.Values
+            .Select(static item => item.Value as PdfDictionary)
+            .Where(static dictionary =>
+                string.Equals(dictionary?.Get<PdfName>("Subtype")?.Name,
+                    "FileAttachment", StringComparison.Ordinal))
+            .Select(static dictionary => dictionary!)
+            .OrderBy(static dictionary => Assert.IsType<PdfNumber>(
+                Assert.IsType<PdfArray>(dictionary.Items["Rect"]).Items[0]).Value)
+            .ToArray();
+
+        Assert.Equal(2, annotations.Length);
+        Assert.Equal("FIRST-DUPLICATE-PAYLOAD", ReadAnnotationPayload(objects, annotations[0]));
+        Assert.Equal("SECOND-DUPLICATE-PAYLOAD", ReadAnnotationPayload(objects, annotations[1]));
+        Assert.Equal(2, PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "duplicate.txt").Count);
+    }
+
+    [Fact]
     public void Edit_RemovesFileAttachmentAnnotationWhenItsPayloadIsRemoved() {
         byte[] source = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
 
@@ -144,5 +169,16 @@ public class PdfAttachmentEditorTests {
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(8, exception.Limit);
+    }
+
+    private static string ReadAnnotationPayload(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation) {
+        PdfReference fileSpecReference = Assert.IsType<PdfReference>(annotation.Items["FS"]);
+        PdfDictionary fileSpec = Assert.IsType<PdfDictionary>(objects[fileSpecReference.ObjectNumber].Value);
+        PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(fileSpec.Items["EF"]);
+        PdfReference embeddedFileReference = Assert.IsType<PdfReference>(embeddedFiles.Items["UF"]);
+        PdfStream embeddedFile = Assert.IsType<PdfStream>(objects[embeddedFileReference.ObjectNumber].Value);
+        return Encoding.ASCII.GetString(embeddedFile.Data);
     }
 }
