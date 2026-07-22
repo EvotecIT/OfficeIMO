@@ -261,6 +261,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_ActivatesManagedFallbackForUnicodeRepeatedSvgBackgroundText() {
+        const string marker = "שלום";
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24'>"
+            + "<text x='2' y='17' font-size='12'>" + marker + "</text></svg>";
+        string html = "<div style=\"width:240px;height:48px;background-image:url('data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "');background-size:120px 24px;background-repeat:repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        HtmlRenderDrawing background = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
+        Assert.Single(background.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.Default,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(rendered, PdfCore.PdfTextFallbackFeatures.Default));
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontsWithoutConsumingStandardFontSlots() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null

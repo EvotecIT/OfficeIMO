@@ -15,8 +15,6 @@ public static partial class OfficeSvgDrawingReader {
     private const int MaximumInputBytes = 8 * 1024 * 1024;
     private const int MaximumSvgNestingDepth = 128;
     private const int MaximumSvgPathCommands = 20000;
-    private const double MaximumSvgViewportDimension = 8192D;
-    private const double MaximumSvgViewportPixels = 16D * 1024D * 1024D;
     private const double MaximumSvgTransformCoefficient = 1024D;
     private const double MaximumSvgTransformOffset = 1000000D;
 
@@ -48,7 +46,11 @@ public static partial class OfficeSvgDrawingReader {
         unsupportedFeatureCount = 0;
         if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
         int maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
+        double maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
+        double maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
         if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
+        if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
+            maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
 
         try {
             var settings = new XmlReaderSettings {
@@ -65,7 +67,8 @@ public static partial class OfficeSvgDrawingReader {
             XElement? root = document.Root;
             if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
-            if (!TryResolveViewport(bytes, root, out double viewX, out double viewY, out double width, out double height)) return false;
+            if (!TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels,
+                    out double viewX, out double viewY, out double width, out double height)) return false;
 
             var result = new OfficeDrawing(width, height);
             int visited = 0;
@@ -76,10 +79,11 @@ public static partial class OfficeSvgDrawingReader {
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
             AddChildren(root, result, context, paintServers, references, rootTransform, viewX, viewY,
-                maximumElements, 0, ref visited, ref pathCommands, ref unsupportedFeatureCount);
+                maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
+                ref visited, ref pathCommands, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
             drawing = result;
-            return IsSupportedSvgViewport(width, height);
+            return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
         } catch (XmlException) {
             return false;
         } catch (InvalidOperationException) {
@@ -89,7 +93,15 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
-    private static bool TryResolveViewport(byte[] bytes, XElement root, out double viewX, out double viewY, out double width, out double height) {
+    private static bool TryResolveViewport(
+        byte[] bytes,
+        XElement root,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        out double viewX,
+        out double viewY,
+        out double width,
+        out double height) {
         viewX = viewY = 0D;
         width = height = 0D;
         if (TryParseNumberList(root.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
@@ -100,19 +112,23 @@ public static partial class OfficeSvgDrawingReader {
             viewY = viewBox[1];
             width = viewBox[2];
             height = viewBox[3];
-            return true;
+            return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
         }
 
         if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) return false;
         width = info.Width * 96D / Math.Max(1D, info.DpiX);
         height = info.Height * 96D / Math.Max(1D, info.DpiY);
-        return IsSupportedSvgViewport(width, height);
+        return IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels);
     }
 
-    private static bool IsSupportedSvgViewport(double width, double height) =>
+    private static bool IsSupportedSvgViewport(
+        double width,
+        double height,
+        double maximumViewportDimension,
+        double maximumViewportPixels) =>
         width > 0D && height > 0D &&
-        width <= MaximumSvgViewportDimension && height <= MaximumSvgViewportDimension &&
-        width * height <= MaximumSvgViewportPixels;
+        width <= maximumViewportDimension && height <= maximumViewportDimension &&
+        width * height <= maximumViewportPixels;
 
     private static void AddChildren(
         XElement parent,
@@ -124,6 +140,8 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
         int depth,
         ref int visited,
         ref int pathCommands,
@@ -134,7 +152,8 @@ public static partial class OfficeSvgDrawingReader {
         }
         foreach (XElement element in parent.Elements()) {
             AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
-                maximumElements, depth, ref visited, ref pathCommands, ref unsupported);
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+                ref visited, ref pathCommands, ref unsupported);
             if (visited > maximumElements) return;
         }
     }
@@ -149,6 +168,8 @@ public static partial class OfficeSvgDrawingReader {
         double viewX,
         double viewY,
         int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
         int depth,
         ref int visited,
         ref int pathCommands,
@@ -164,12 +185,14 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
         if (name is "g" or "svg" or "a" or "switch") {
             AddChildren(element, drawing, style, paintServers, references, transform, viewX, viewY,
-                maximumElements, depth + 1, ref visited, ref pathCommands, ref unsupported);
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                ref visited, ref pathCommands, ref unsupported);
             return;
         }
         if (name == "use") {
             AddReferencedElement(element, drawing, style, paintServers, references, transform, viewX, viewY,
-                maximumElements, depth + 1, ref visited, ref pathCommands, ref unsupported);
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
+                ref visited, ref pathCommands, ref unsupported);
             return;
         }
         if (name == "text") {

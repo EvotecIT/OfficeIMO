@@ -72,7 +72,10 @@ public static class CodeGlyphDrawingExtensions {
 
     private static OfficeDrawing ReadSvg(string svg, int maximumElements, out int unsupportedFeatureCount) {
         byte[] bytes = Encoding.UTF8.GetBytes(svg);
-        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumElements = maximumElements };
+        var readerOptions = new OfficeSvgDrawingReaderOptions {
+            MaximumElements = maximumElements,
+            MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension
+        };
         if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing, out unsupportedFeatureCount) || drawing is null) {
             throw new InvalidOperationException("CodeGlyphX produced SVG that OfficeIMO.Drawing could not read.");
         }

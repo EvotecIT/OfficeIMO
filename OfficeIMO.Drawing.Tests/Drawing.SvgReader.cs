@@ -92,6 +92,21 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAllowsAnExplicitTrustedViewportLimit() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22000 100'>"
+            + "<rect width='22000' height='100' fill='black'/></svg>";
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes, out _));
+
+        var options = new OfficeSvgDrawingReaderOptions { MaximumViewportDimension = 22000D };
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(22000D, drawing!.Width);
+    }
+
+    [Fact]
     public void SvgReaderParsesAbsoluteRelativeAndSmoothPathCommands() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 40 20'>"
             + "<path fill='red' d='M10 20 h20 v20 h-20 z'/>"

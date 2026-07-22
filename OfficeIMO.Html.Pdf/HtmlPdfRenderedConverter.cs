@@ -756,6 +756,7 @@ internal static class HtmlPdfRenderedConverter {
         foreach (OfficeDrawingElement element in elements) {
             if (element is OfficeDrawingText text && RequiresUnicodeFont(text.Text)) return true;
             if (element is OfficeDrawingEffectGroup effectGroup && DrawingRequiresUnicodeFont(effectGroup.Drawing.Elements)) return true;
+            if (element is OfficeDrawingTilingPattern tilingPattern && DrawingRequiresUnicodeFont(tilingPattern.Tile.Elements)) return true;
         }
 
         return false;

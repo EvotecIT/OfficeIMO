@@ -120,9 +120,14 @@ public static partial class ExcelHtmlConverterExtensions {
         int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
         int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
         IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
+        string reportedUsedRange = sheet.GetUsedRangeA1();
+        bool isEmptyDefaultRange = mergedRanges.Count == 0
+            && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(reportedUsedRange, "A1:A1", StringComparison.OrdinalIgnoreCase))
+            && !sheet.TryGetCellText(1, 1, out _);
         string usedRange = ExpandUsedRangeForMerges(
             sheet,
-            sheet.GetUsedRangeA1(),
+            reportedUsedRange,
             mergedRanges,
             rowLimit,
             columnLimit,
@@ -144,9 +149,9 @@ public static partial class ExcelHtmlConverterExtensions {
         }
         ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, maxColumns);
         if (rowCount == 0 || columnCount == 0 || maxRows == 0 || maxColumns == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, maxRows, maxColumns) && mergeMap.Count == 0)) {
-            body.Append(rowCount > 0 && columnCount > 0
-                ? "<p class=\"officeimo-muted\">No cells within export limits.</p>"
-                : "<p class=\"officeimo-muted\">No used cells.</p>");
+            body.Append(isEmptyDefaultRange
+                ? "<p class=\"officeimo-muted\">No used cells.</p>"
+                : "<p class=\"officeimo-muted\">No cells within export limits.</p>");
             AppendSheetTruncationDiagnostics(body, maxRows, rowCount, maxColumns, columnCount);
             AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");

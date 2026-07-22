@@ -14,6 +14,8 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         OfficeTransform inheritedTransform,
         int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
         int depth,
         ref int visited,
         ref int pathCommands,
@@ -22,14 +24,14 @@ public static partial class OfficeSvgDrawingReader {
             || viewBox.Count != 4
             || viewBox[2] <= 0D
             || viewBox[3] <= 0D
-            || !IsSupportedSvgViewport(viewBox[2], viewBox[3])
+            || !IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)
             || !TrySymbolLength(use, symbol, "width", viewBox[2], out double width)
             || !TrySymbolLength(use, symbol, "height", viewBox[3], out double height)
             || !TryOptionalUseLength(use, "x", out double x)
             || !TryOptionalUseLength(use, "y", out double y)
             || width <= 0D
             || height <= 0D
-            || !IsSupportedSvgViewport(width, height)) {
+            || !IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels)) {
             unsupported++;
             return;
         }
@@ -46,7 +48,8 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style = ResolvePaintContext(symbol, inheritedStyle, paintServers, ref unsupported);
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
         AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1],
-            maximumElements, depth, ref visited, ref pathCommands, ref unsupported);
+            maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+            ref visited, ref pathCommands, ref unsupported);
 
         OfficeTransform viewportTransform;
         if (alignment == SvgAspectAlignment.None) {
