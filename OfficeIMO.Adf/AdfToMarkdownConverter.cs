@@ -104,6 +104,14 @@ internal static class AdfToMarkdownConverter {
 
     private static void AppendList(StringBuilder builder, AdfNode list, string path, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics, int depth) {
         int order = list.GetInt32Attribute("order") ?? 1;
+        if (list.Type == "taskList" &&
+            (!string.IsNullOrWhiteSpace(list.GetStringAttribute("localId")) ||
+             list.Content.Any(item => item.Type == "taskItem" && !string.IsNullOrWhiteSpace(item.GetStringAttribute("localId"))))) {
+            diagnostics.Add(Warning(
+                "ADF_TASK_LOCAL_IDS_REGENERATED",
+                path,
+                "Markdown has no task identity syntax; taskList and taskItem localId attributes were omitted and will be regenerated when Markdown is imported."));
+        }
         for (int i = 0; i < list.Content.Count; i++) {
             AdfNode item = list.Content[i];
             if (i > 0) builder.AppendLine();

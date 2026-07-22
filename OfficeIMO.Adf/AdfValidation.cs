@@ -122,6 +122,9 @@ internal static class AdfValidator {
             !string.Equals(parentType, "orderedList", StringComparison.Ordinal)) {
             issues.Add(Error("ADF_LIST_ITEM_PARENT", path, "ADF listItem nodes require a bulletList or orderedList parent."));
         }
+        if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) && node.Content.Count == 0) {
+            issues.Add(Error("ADF_LIST_ITEM_CONTENT_REQUIRED", path + ".content", "ADF listItem nodes require at least one content node."));
+        }
         if (string.Equals(node.Type, "taskItem", StringComparison.Ordinal) && !string.Equals(parentType, "taskList", StringComparison.Ordinal)) {
             issues.Add(Error("ADF_TASK_ITEM_PARENT", path, "ADF taskItem nodes require a taskList parent."));
         }
@@ -144,6 +147,9 @@ internal static class AdfValidator {
         }
         if (string.Equals(node.Type, "media", StringComparison.Ordinal)) {
             ValidateMediaAttributes(node, path, issues);
+        }
+        if (string.Equals(node.Type, "inlineCard", StringComparison.Ordinal)) {
+            ValidateInlineCardAttributes(node, path, issues);
         }
         for (int i = 0; i < node.Marks.Count; i++) {
             AdfMark mark = node.Marks[i];
@@ -195,6 +201,20 @@ internal static class AdfValidator {
         }
         if (node.GetStringAttribute("collection") == null) {
             issues.Add(Error("ADF_MEDIA_COLLECTION", path + ".attrs.collection", "File and link ADF media require a string collection attribute."));
+        }
+    }
+
+    private static void ValidateInlineCardAttributes(AdfNode node, string path, List<AdfValidationIssue> issues) {
+        bool hasUrl = node.Attributes.TryGetValue("url", out System.Text.Json.JsonElement url);
+        bool hasData = node.Attributes.TryGetValue("data", out System.Text.Json.JsonElement data);
+        bool hasValidUrl = hasUrl && url.ValueKind == System.Text.Json.JsonValueKind.String && !string.IsNullOrWhiteSpace(url.GetString());
+        bool hasValidData = hasData && data.ValueKind == System.Text.Json.JsonValueKind.Object;
+
+        if ((hasValidUrl == hasValidData) || (hasUrl && hasData)) {
+            issues.Add(Error(
+                "ADF_INLINE_CARD_TARGET",
+                path + ".attrs",
+                "ADF inlineCard nodes require exactly one target: a non-empty string url or an object data attribute."));
         }
     }
 
