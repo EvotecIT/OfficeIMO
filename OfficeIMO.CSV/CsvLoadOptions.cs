@@ -13,6 +13,9 @@ public sealed class CsvLoadOptions
 {
     private const char DefaultDelimiter = ',';
 
+    /// <summary>Default maximum complete stream input size (256 MiB).</summary>
+    public const long DefaultMaxInputBytes = 256L * 1024L * 1024L;
+
     /// <summary>
     /// Gets or sets whether the first record in the file represents the header row. Default is <c>true</c>.
     /// Ignored when <see cref="Header"/> is provided; in that case the first record is treated as data.
@@ -147,6 +150,12 @@ public sealed class CsvLoadOptions
     /// Gets or sets an optional limit for decompressed bytes read from compressed CSV files.
     /// </summary>
     public long? MaxDecompressedBytes { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of bytes accepted by stream-based load APIs.
+    /// Defaults to 256 MiB so non-seekable and never-ending inputs cannot be buffered without bound.
+    /// </summary>
+    public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
     /// <summary>
     /// Gets or sets an optional cancellation token checked while reading records.

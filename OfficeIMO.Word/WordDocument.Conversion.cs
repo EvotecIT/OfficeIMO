@@ -193,15 +193,44 @@ namespace OfficeIMO.Word {
             WordDocumentConversionOptions options,
             CancellationToken cancellationToken) {
             if (options.LegacyDocImportOptions != null) {
-                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
-                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, sourcePath)) {
-                    LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
-                    return LoadLegacyDocFromNormalFlow(
-                        sourceBytes,
-                        sourcePath,
-                        saveOnDispose: false,
-                        readOnly: false,
-                        importOptions: importOptions);
+                LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
+                importOptions.Validate();
+                byte[] signature = new byte[WordDocumentLoadRouting.SignatureLength];
+                int signatureLength = 0;
+                using (FileStream source = File.OpenRead(sourcePath)) {
+                    while (signatureLength < signature.Length) {
+                        int read = await source.ReadAsync(
+                            signature,
+                            signatureLength,
+                            signature.Length - signatureLength,
+                            cancellationToken).ConfigureAwait(false);
+                        if (read == 0) break;
+                        signatureLength += read;
+                    }
+                }
+                if (signatureLength != signature.Length) {
+                    Array.Resize(ref signature, signatureLength);
+                }
+
+                bool mayBeLegacyDoc = !WordDocumentLoadRouting.HasZipSignature(signature)
+                    && (WordDocumentLoadRouting.HasOleCompoundSignature(signature)
+                        || WordDocumentLoadRouting.HasLegacyDocExtension(sourcePath));
+                if (mayBeLegacyDoc) {
+                    byte[] sourceBytes;
+                    using (FileStream source = File.OpenRead(sourcePath)) {
+                        sourceBytes = await OfficeStreamReader.ReadAllBytesAsync(
+                            source,
+                            cancellationToken,
+                            importOptions.MaxInputBytes).ConfigureAwait(false);
+                    }
+                    if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, sourcePath)) {
+                        return LoadLegacyDocFromNormalFlow(
+                            sourceBytes,
+                            sourcePath,
+                            saveOnDispose: false,
+                            readOnly: false,
+                            importOptions: importOptions);
+                    }
                 }
             }
 

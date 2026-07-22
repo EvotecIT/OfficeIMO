@@ -13,29 +13,12 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] acTables,
         int restartInterval,
         bool allowTruncated) {
-        if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
-        if (frame.ComponentCount != 1 && frame.ComponentCount != 3 && frame.ComponentCount != 4) {
-            throw new FormatException("Unsupported JPEG component count.");
-        }
-        if (scan.Ss != 0 || scan.Se != 63 || scan.Ah != 0 || scan.Al != 0) {
-            throw new FormatException("Invalid baseline JPEG scan parameters.");
-        }
-
-        EnsureStandardHuffmanTables(dcTables, acTables);
+        ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
 
         var states = state.Components;
         for (var i = 0; i < scan.ComponentIndices.Length; i++) {
             var componentIndex = scan.ComponentIndices[i];
             var comp = frame.Components[componentIndex];
-            if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
-                throw new FormatException("Missing JPEG quantization table.");
-            }
-            if (comp.DcTable >= dcTables.Length || !dcTables[comp.DcTable].IsValid) {
-                throw new FormatException("Missing JPEG DC Huffman table.");
-            }
-            if (comp.AcTable >= acTables.Length || !acTables[comp.AcTable].IsValid) {
-                throw new FormatException("Missing JPEG AC Huffman table.");
-            }
             states[componentIndex].Component = comp;
             states[componentIndex].PrevDc = 0;
         }
@@ -106,6 +89,37 @@ internal static partial class OfficeJpegReader {
         }
     }
 
+    private static void ValidateBaselineScan(
+        ScanHeader scan,
+        JpegFrame frame,
+        int[][] quantTables,
+        HuffmanTable[] dcTables,
+        HuffmanTable[] acTables) {
+        if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
+        if (frame.ComponentCount != 1 && frame.ComponentCount != 3 && frame.ComponentCount != 4) {
+            throw new FormatException("Unsupported JPEG component count.");
+        }
+        if (scan.Ss != 0 || scan.Se != 63 || scan.Ah != 0 || scan.Al != 0) {
+            throw new FormatException("Invalid baseline JPEG scan parameters.");
+        }
+
+        EnsureStandardHuffmanTables(dcTables, acTables);
+
+        for (var i = 0; i < scan.ComponentIndices.Length; i++) {
+            var componentIndex = scan.ComponentIndices[i];
+            var comp = frame.Components[componentIndex];
+            if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
+                throw new FormatException("Missing JPEG quantization table.");
+            }
+            if (comp.DcTable >= dcTables.Length || !dcTables[comp.DcTable].IsValid) {
+                throw new FormatException("Missing JPEG DC Huffman table.");
+            }
+            if (comp.AcTable >= acTables.Length || !acTables[comp.AcTable].IsValid) {
+                throw new FormatException("Missing JPEG AC Huffman table.");
+            }
+        }
+    }
+
     private static void DecodeProgressiveScan(
         OfficeByteView scanData,
         ScanHeader scan,
@@ -116,10 +130,7 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] acTables,
         int restartInterval,
         bool allowTruncated) {
-        EnsureStandardHuffmanTables(dcTables, acTables);
-        if (scan.Ss > 0 && scan.ComponentIndices.Length != 1) {
-            throw new FormatException("Progressive JPEG AC scans must contain exactly one component.");
-        }
+        ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
         // Progressive scans are lenient to match historical behavior.
         var reader = new JpegBitReader(scanData, allowTruncated);
         var mcuIndex = 0;
@@ -186,6 +197,30 @@ internal static partial class OfficeJpegReader {
                 }
 
                 mcuIndex++;
+            }
+        }
+    }
+
+    private static void ValidateProgressiveScan(
+        ScanHeader scan,
+        JpegFrame frame,
+        int[][] quantTables,
+        HuffmanTable[] dcTables,
+        HuffmanTable[] acTables) {
+        EnsureStandardHuffmanTables(dcTables, acTables);
+        if (scan.Ss > 0 && scan.ComponentIndices.Length != 1) {
+            throw new FormatException("Progressive JPEG AC scans must contain exactly one component.");
+        }
+        foreach (int componentIndex in scan.ComponentIndices) {
+            Component component = frame.Components[componentIndex];
+            if (component.QuantId >= quantTables.Length || quantTables[component.QuantId] is null) {
+                throw new FormatException("Missing JPEG quantization table.");
+            }
+            if (scan.Ss == 0 && (component.DcTable >= dcTables.Length || !dcTables[component.DcTable].IsValid)) {
+                throw new FormatException("Missing JPEG DC Huffman table.");
+            }
+            if (scan.Se > 0 && (component.AcTable >= acTables.Length || !acTables[component.AcTable].IsValid)) {
+                throw new FormatException("Missing JPEG AC Huffman table.");
             }
         }
     }

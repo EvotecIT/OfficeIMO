@@ -82,6 +82,31 @@ public class PdfPageImageRendererBatchTests {
             PdfPageImageRenderer.RenderPages(pdf, cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public void RenderPages_EnforcesPerPageAndAggregateEncodedOutputBudgets() {
+        byte[] pdf = BuildTwoPagePdf();
+
+        PdfReadLimitException perPage = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageImageRenderer.RenderPages(
+                pdf,
+                PdfPageSelection.From(1),
+                new PdfPageRenderOptions {
+                    Format = PdfPageRenderFormat.Svg,
+                    MaxOutputBytesPerPage = 1,
+                    ContinueOnError = false
+                }));
+        Assert.Equal(PdfReadLimitKind.RenderBytes, perPage.Kind);
+
+        PdfReadLimitException aggregate = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageImageRenderer.RenderPages(
+                pdf,
+                options: new PdfPageRenderOptions {
+                    Format = PdfPageRenderFormat.Svg,
+                    MaxTotalOutputBytes = 1
+                }));
+        Assert.Equal(PdfReadLimitKind.RenderBytes, aggregate.Kind);
+    }
+
     private static byte[] BuildTwoPagePdf() => PdfDocument.Create()
         .Paragraph(paragraph => paragraph.Text("Batch page one"))
         .PageBreak()

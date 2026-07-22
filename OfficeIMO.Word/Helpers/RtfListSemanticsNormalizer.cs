@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -16,6 +17,9 @@ namespace OfficeIMO.Word;
 /// </remarks>
 internal static class RtfListSemanticsNormalizer {
     private const string RtfContentType = "application/rtf";
+    private const int MaximumExistingRtfPartCount = 1_024;
+    private const long MaximumExistingRtfPartBytes = 16L * 1024L * 1024L;
+    private const long MaximumExistingRtfTotalBytes = 64L * 1024L * 1024L;
     private static readonly ConditionalWeakTable<MainDocumentPart, OccupiedIdentifierState> IdentifierStates =
         new ConditionalWeakTable<MainDocumentPart, OccupiedIdentifierState>();
 
@@ -53,13 +57,29 @@ internal static class RtfListSemanticsNormalizer {
     private static void CollectExistingIdentifiers(
         MainDocumentPart mainDocumentPart,
         IdentifierSets identifiers) {
+        int partCount = 0;
+        long totalBytes = 0;
         foreach (AlternativeFormatImportPart part in mainDocumentPart.AlternativeFormatImportParts) {
             if (!string.Equals(part.ContentType, RtfContentType, StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
+            partCount++;
+            if (partCount > MaximumExistingRtfPartCount) {
+                throw new InvalidDataException($"RTF altChunk count exceeds the configured limit of {MaximumExistingRtfPartCount}.");
+            }
+
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            long remaining = MaximumExistingRtfTotalBytes - totalBytes;
+            if (remaining <= 0) {
+                throw new InvalidDataException($"RTF altChunk bytes exceed the configured aggregate limit of {MaximumExistingRtfTotalBytes}.");
+            }
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, Math.Min(MaximumExistingRtfPartBytes, remaining));
+            totalBytes = checked(totalBytes + bytes.LongLength);
+            using var reader = new StreamReader(
+                new MemoryStream(bytes, writable: false),
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true);
             CollectIdentifiers(reader.ReadToEnd(), identifiers);
         }
     }

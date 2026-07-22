@@ -19,6 +19,7 @@ internal static partial class PdfOptimizer {
             throw new ArgumentOutOfRangeException(nameof(options), "Minimum stream compression size cannot be negative.");
         }
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum decoded image bytes must be positive.");
+        if (effectiveOptions.MaximumTotalDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum total decoded image bytes must be positive.");
         if (effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable && effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.XrefStream) throw new ArgumentOutOfRangeException(nameof(options), "Unsupported optimization xref format.");
         if (effectiveOptions.UseObjectStreams) effectiveOptions.XrefFormat = PdfOptimizationXrefFormat.XrefStream;
         if (effectiveOptions.Linearize && (effectiveOptions.UseObjectStreams || effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable)) {

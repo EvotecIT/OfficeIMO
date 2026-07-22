@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -8,6 +9,17 @@ public static class PdfVisualComparer {
     public static PdfVisualComparisonReport Compare(
         byte[] expectedPdf,
         byte[] actualPdf,
+        PdfPageSelection? selection = null,
+        PdfVisualComparisonOptions? options = null,
+        PdfReadOptions? expectedReadOptions = null,
+        PdfReadOptions? actualReadOptions = null) =>
+        Compare(expectedPdf, actualPdf, CancellationToken.None, selection, options, expectedReadOptions, actualReadOptions);
+
+    /// <summary>Compares all common pages or a selected page set with cooperative cancellation.</summary>
+    public static PdfVisualComparisonReport Compare(
+        byte[] expectedPdf,
+        byte[] actualPdf,
+        CancellationToken cancellationToken,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
         PdfReadOptions? expectedReadOptions = null,
@@ -25,23 +37,44 @@ public static class PdfVisualComparer {
 
         int commonPageCount = Math.Min(expected.Pages.Count, actual.Pages.Count);
         int[] pageNumbers = selection?.ToPageNumbers(expected.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, commonPageCount).ToArray();
+        if (pageNumbers.Length > effectiveOptions.MaxPages) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pageNumbers.Length);
+        }
         var pages = new List<PdfVisualPageComparison>(pageNumbers.Length);
+        long totalPixels = 0;
+        long totalOutputBytes = 0;
         for (int i = 0; i < pageNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
             if (pageNumber > actual.Pages.Count) {
                 structural.Add("Page " + pageNumber + " is missing from the actual document.");
                 continue;
             }
 
-            pages.Add(ComparePage(expected, actual, pageNumber, effectiveOptions, structural));
+            PdfVisualPageComparison page = ComparePage(
+                expected,
+                actual,
+                pageNumber,
+                effectiveOptions,
+                structural,
+                ref totalPixels,
+                cancellationToken);
+            totalOutputBytes = checked(totalOutputBytes + page.OutputByteLength);
+            if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
+            }
+            pages.Add(page);
         }
 
         return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly());
     }
 
-    private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural) {
+    private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
         OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, pageNumber);
         OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, pageNumber);
+        AddPixelBudget(expectedDrawing.Width, expectedDrawing.Height, options.Scale, options, ref totalPixels);
+        AddPixelBudget(actualDrawing.Width, actualDrawing.Height, options.Scale, options, ref totalPixels);
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] expectedPng = OfficeDrawingRasterRenderer.ToPng(expectedDrawing, options.Scale, options.Background);
         byte[] actualPng = OfficeDrawingRasterRenderer.ToPng(actualDrawing, options.Scale, options.Background);
         if (!OfficeRasterImageDecoder.TryDecode(expectedPng, out OfficeRasterImage? expectedImage) || expectedImage is null ||
@@ -55,6 +88,7 @@ public static class PdfVisualComparer {
 
         int width = Math.Max(expectedImage.Width, actualImage.Width);
         int height = Math.Max(expectedImage.Height, actualImage.Height);
+        AddPixelBudget(width, height, 1D, options, ref totalPixels);
         (int ExpectedX, int ExpectedY) = GetOffset(width, height, expectedImage.Width, expectedImage.Height, options.Alignment);
         (int ActualX, int ActualY) = GetOffset(width, height, actualImage.Width, actualImage.Height, options.Alignment);
         var diff = new OfficeRasterImage(width, height, OfficeColor.White);
@@ -63,6 +97,7 @@ public static class PdfVisualComparer {
         long channelDifferenceTotal = 0;
         int maximumDifference = 0;
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
                 if (options.IgnoredRegions.Any(region => region.Contains(x, y))) {
                     diff.SetPixel(x, y, OfficeColor.FromRgb(224, 224, 224));
@@ -92,6 +127,7 @@ public static class PdfVisualComparer {
 
         double ratio = compared == 0 ? 0D : different / (double)compared;
         double mean = compared == 0 ? 0D : channelDifferenceTotal / (double)(compared * 4L);
+        byte[] diffPng = OfficePngWriter.Encode(diff);
         return new PdfVisualPageComparison(
             pageNumber,
             ratio <= options.AllowedDifferenceRatio,
@@ -103,7 +139,20 @@ public static class PdfVisualComparer {
             mean,
             expectedPng,
             actualPng,
-            OfficePngWriter.Encode(diff));
+            diffPng);
+    }
+
+    private static void AddPixelBudget(double width, double height, double scale, PdfVisualComparisonOptions options, ref long totalPixels) {
+        int pixelWidth = checked((int)Math.Ceiling(width * scale));
+        int pixelHeight = checked((int)Math.Ceiling(height * scale));
+        long pixels = checked((long)pixelWidth * pixelHeight);
+        if (pixels > options.MaxPixelsPerImage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxPixelsPerImage, pixels);
+        }
+        totalPixels = checked(totalPixels + pixels);
+        if (totalPixels > options.MaxTotalPixels) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxTotalPixels, totalPixels);
+        }
     }
 
     private static (int X, int Y) GetOffset(int canvasWidth, int canvasHeight, int imageWidth, int imageHeight, PdfVisualPageAlignment alignment) =>

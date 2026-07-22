@@ -69,6 +69,21 @@ internal sealed class PdfDocumentSource {
         return FromBoundedStream(stream, effectiveOptions);
     }
 
+    /// <summary>
+    /// Reads and owns one bounded stream snapshot from the caller's current position.
+    /// </summary>
+    internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfReadOptions? options) {
+        Guard.NotNull(stream, nameof(stream));
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        long limit = effectiveOptions.Limits.MaxInputBytes;
+        try {
+            byte[] bytes = OfficeStreamReader.ReadRemainingBytes(stream, limit);
+            return FromOwnedBytes(bytes, effectiveOptions);
+        } catch (InvalidDataException) {
+            throw CreateInputLimitException(stream, limit, remainingOnly: true);
+        }
+    }
+
     /// <summary>Asynchronously reads and owns one bounded file snapshot.</summary>
     internal static async Task<PdfDocumentSource> FromPathAsync(
         string path,
@@ -162,11 +177,11 @@ internal sealed class PdfDocumentSource {
         }
     }
 
-    private static PdfReadLimitException CreateInputLimitException(Stream stream, long limit) {
+    private static PdfReadLimitException CreateInputLimitException(Stream stream, long limit, bool remainingOnly = false) {
         long actual = limit + 1;
         if (stream.CanSeek) {
             try {
-                actual = stream.Length;
+                actual = remainingOnly ? stream.Length - stream.Position : stream.Length;
             } catch (NotSupportedException) {
                 // The bounded reader already proved the limit was exceeded.
             }

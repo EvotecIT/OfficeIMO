@@ -51,6 +51,24 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void Pipeline_RejectsOversizedCustomStageArtifacts() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var options = new PdfUnderstandingPipelineOptions {
+            GlyphDecoding = new FixedGlyphStage(new[] {
+                new PdfTextSpan("one", "F1", 12, 10, 10, 20),
+                new PdfTextSpan("two", "F1", 12, 40, 10, 20)
+            }),
+            MaxRunsPerPage = 1
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
     public void AdvancedPipeline_GroupsRotatedBaselinesAndOrdersMultipleColumns() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {

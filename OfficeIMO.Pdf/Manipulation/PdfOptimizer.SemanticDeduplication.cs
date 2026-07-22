@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Pdf.Filters;
 
@@ -7,16 +8,47 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfOptimizer {
     private static void DeduplicateImages(Dictionary<int, PdfIndirectObject> objects, PdfOptimizationOptions options, List<PdfOptimizationAction> actions, List<PdfOptimizationSkippedAction> skippedActions) {
         var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        long totalDecodedBytes = 0;
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
             if (entry.Value.Value is not PdfStream stream || !string.Equals(ReadName(stream.Dictionary, "Subtype"), "Image", StringComparison.Ordinal)) continue;
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, options.MaximumDecodedImageBytes, out byte[] decoded, objects)) {
-                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "UnsupportedImageFilter", "Skipped semantic image deduplication because the image samples could not be decoded within the configured limit."));
+            long remainingDecodedBytes = options.MaximumTotalDecodedImageBytes - totalDecodedBytes;
+            if (remainingDecodedBytes <= 0) {
+                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "AggregateDecodeLimit", "Stopped semantic image deduplication after the aggregate decoded-image budget was exhausted."));
+                break;
+            }
+            int maximumDecodedBytes = (int)Math.Min(options.MaximumDecodedImageBytes, Math.Min(int.MaxValue, remainingDecodedBytes));
+            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out byte[] decoded, objects)) {
+                string reason = maximumDecodedBytes < options.MaximumDecodedImageBytes
+                    ? "AggregateDecodeLimit"
+                    : "UnsupportedImageFilter";
+                string description = reason == "AggregateDecodeLimit"
+                    ? "Stopped semantic image deduplication before decoding an image beyond the remaining aggregate budget."
+                    : "Skipped semantic image deduplication because the image samples could not be decoded within the configured limit.";
+                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, reason, description));
+                if (reason == "AggregateDecodeLimit") break;
                 continue;
             }
-            string fingerprint = BuildCanonicalDictionary(stream.Dictionary, "Length", "Filter", "DecodeParms") + "|" + Convert.ToBase64String(decoded);
+            if (decoded.LongLength > remainingDecodedBytes) {
+                // Defensive fallback for decoders that cannot enforce their output limit incrementally.
+                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "AggregateDecodeLimit", "Stopped semantic image deduplication after the aggregate decoded-image budget was exhausted."));
+                break;
+            }
+            totalDecodedBytes += decoded.LongLength;
+            byte[] digest = ComputeSha256(decoded);
+            string fingerprint = BuildCanonicalDictionary(stream.Dictionary, "Length", "Filter", "DecodeParms") + "|sha256:" + Convert.ToBase64String(digest);
             AddGroup(groups, fingerprint, entry.Key);
         }
         ApplyDuplicateGroups(objects, groups, "DeduplicateImage", "Reused a losslessly equivalent decoded image XObject.", actions);
+    }
+
+    private static byte[] ComputeSha256(byte[] value) {
+#if NET6_0_OR_GREATER
+        return SHA256.HashData(value);
+#else
+        using (SHA256 sha256 = SHA256.Create()) {
+            return sha256.ComputeHash(value);
+        }
+#endif
     }
 
     private static void DeduplicateTypedDictionaries(Dictionary<int, PdfIndirectObject> objects, string typeName, string actionKind, List<PdfOptimizationAction> actions) {

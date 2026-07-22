@@ -104,6 +104,18 @@ public partial class Word {
         Assert.NotEqual(100, int.Parse(listTableId.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    public void AddEmbeddedFragment_RejectsOversizedExistingRtfPartBeforeReadingItUnbounded() {
+        using WordDocument document = WordDocument.Create();
+        string oversized = "{\\rtf1 " + new string('A', 16 * 1024 * 1024) + "}";
+        document.AddEmbeddedFragment(oversized, WordAlternativeFormatImportPartType.Rtf);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.AddEmbeddedFragment(BulletListRtf, WordAlternativeFormatImportPartType.Rtf));
+
+        Assert.Contains("maximum size", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string ReadRtf(WordEmbeddedDocument embedded) =>
         Encoding.UTF8.GetString(embedded.ToBytes());
 

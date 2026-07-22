@@ -55,6 +55,7 @@ namespace OfficeIMO.Excel {
         private static bool CanCopyWorksheetPartGraphDirectly(ExcelDocument sourceDocument, WorksheetPart sourcePart) {
             WorkbookPart sourceWorkbookPart = sourceDocument.WorkbookPartRoot;
             if (sourcePart.IsRootElementLoaded
+                || sourceWorkbookPart.SharedStringTablePart != null
                 || sourceWorkbookPart.CellMetadataPart != null
                 || sourceDocument.WorkbookRoot.ExternalReferences != null
                 || sourceDocument.WorkbookRoot.DefinedNames?.Elements<DefinedName>().Any() == true
@@ -76,13 +77,6 @@ namespace OfficeIMO.Excel {
             WorkbookPart sourceWorkbookPart = sourceDocument.WorkbookPartRoot;
             if (sourceWorkbookPart.WorkbookStylesPart is WorkbookStylesPart sourceStylesPart) {
                 WorkbookPartRoot.AddPart(sourceStylesPart);
-            }
-
-            if (sourceWorkbookPart.SharedStringTablePart is SharedStringTablePart sourceSharedStringsPart) {
-                _sharedStringTablePart = WorkbookPartRoot.AddPart(sourceSharedStringsPart);
-                _sharedStringTableCount = -1;
-                _sharedStringCache.Clear();
-                _sharedStringLineBreakCache?.Clear();
             }
 
             ThemePart? sourceThemePart = sourceWorkbookPart.GetPartsOfType<ThemePart>().FirstOrDefault();

@@ -1,9 +1,20 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for preparing a dependency-free external PDF signature placeholder.</summary>
 public sealed class PdfExternalSignatureOptions {
+    /// <summary>Default maximum PDF source size accepted by one-shot signing APIs (512 MiB).</summary>
+    public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
+
     private string _fieldName = "Signature1";
     private int _reservedSignatureContentsBytes = 32768;
+
+    /// <summary>Maximum PDF source bytes accepted before signature preparation begins.</summary>
+    public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
+
+    /// <summary>Cancellation observed while reading and preparing a one-shot external signature.</summary>
+    public CancellationToken CancellationToken { get; set; }
 
     /// <summary>High-level signature intent. Approval is the default.</summary>
     public PdfSignatureProfile Profile { get; set; } = PdfSignatureProfile.Approval;

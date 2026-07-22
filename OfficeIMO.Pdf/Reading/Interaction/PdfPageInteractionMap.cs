@@ -128,18 +128,18 @@ public sealed class PdfPageInteractionMap {
                 continue;
             }
 
-            var elements = new List<string>();
             TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(span.Text);
+            int elementCount = 0;
             while (enumerator.MoveNext()) {
-                elements.Add((string)enumerator.Current!);
+                elementCount++;
             }
 
-            if (elements.Count == 0) {
+            if (elementCount == 0) {
                 continue;
             }
 
-            double totalAdvance = Math.Max(Math.Abs(span.Advance), elements.Count * Math.Max(1D, span.FontSize * 0.5D));
-            double elementAdvance = totalAdvance / elements.Count;
+            double totalAdvance = Math.Max(Math.Abs(span.Advance), elementCount * Math.Max(1D, span.FontSize * 0.5D));
+            double elementAdvance = totalAdvance / elementCount;
             double radians = span.RotationDegrees * Math.PI / 180D;
             double directionX = Math.Cos(radians);
             double directionY = Math.Sin(radians);
@@ -147,13 +147,13 @@ public sealed class PdfPageInteractionMap {
             double normalY = directionX;
             double ascent = Math.Max(1D, span.FontSize);
             double descent = Math.Max(0.5D, span.FontSize * 0.2D);
-            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                if (textIndex >= options.MaxTextRegions) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxTextRegions, textIndex + 1L);
-                }
-
-                double startAdvance = elementIndex * elementAdvance;
-                double endAdvance = (elementIndex + 1) * elementAdvance;
+            enumerator = StringInfo.GetTextElementEnumerator(span.Text);
+            int elementIndex = 0;
+            while (enumerator.MoveNext()) {
+                string element = (string)enumerator.Current!;
+                int currentElementIndex = elementIndex++;
+                double startAdvance = currentElementIndex * elementAdvance;
+                double endAdvance = (currentElementIndex + 1) * elementAdvance;
                 double startX = span.X + directionX * startAdvance;
                 double startY = span.Y + directionY * startAdvance;
                 double endX = span.X + directionX * endAdvance;
@@ -164,10 +164,13 @@ public sealed class PdfPageInteractionMap {
                 if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) {
                     continue;
                 }
+                if (textIndex >= options.MaxTextRegions) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxTextRegions, textIndex + 1L);
+                }
                 regions.Add(new PdfPageInteractionRegion(
                     PdfInteractionKind.Text,
                     quad,
-                    text: elements[elementIndex],
+                    text: element,
                     textIndex: textIndex));
                 textIndex++;
             }

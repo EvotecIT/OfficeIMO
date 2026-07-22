@@ -1,6 +1,28 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    private const int MaximumXrefObjectCharacters = 1_000_000;
+
+    private sealed class XrefObjectScanBudget {
+        private readonly long _maximum;
+        private long _used;
+
+        internal XrefObjectScanBudget(PdfReadLimits limits) {
+            MaximumPerObject = Math.Min(MaximumXrefObjectCharacters, limits.MaxObjectCharacters);
+            _maximum = limits.MaxInputBytes;
+        }
+
+        internal int MaximumPerObject { get; }
+
+        internal void Charge(long characters) {
+            if (characters <= 0) return;
+            _used = checked(_used + characters);
+            if (_used > _maximum) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, _maximum, _used);
+            }
+        }
+    }
+
     private static void ResolveIndirectStreamLengths(
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,
@@ -40,6 +62,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, int> parsedOffsets,
         HashSet<int> activeObjectNumbers,
         PdfReadLimits limits,
+        XrefObjectScanBudget scanBudget,
         out bool appliedClassicEntries) {
         appliedClassicEntries = false;
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -54,10 +77,11 @@ internal static partial class PdfSyntax {
 
         appliedClassicEntries = true;
         bool appliedXrefStream = false;
+        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var table in tables) {
-            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, activeObjectNumbers);
+            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, scanBudget, activeObjectNumbers, parsedObjectsByOffset);
             if (table.XrefStreamOffset.HasValue) {
-                appliedXrefStream = ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits) || appliedXrefStream;
+                appliedXrefStream = ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget) || appliedXrefStream;
             }
         }
 
@@ -70,7 +94,10 @@ internal static partial class PdfSyntax {
         Dictionary<int, int> parsedOffsets,
         string text,
         List<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
-        HashSet<int>? activeObjectNumbers = null) {
+        XrefObjectScanBudget scanBudget,
+        HashSet<int>? activeObjectNumbers = null,
+        Dictionary<int, PdfIndirectObject?>? parsedObjectsByOffset = null) {
+        parsedObjectsByOffset ??= new Dictionary<int, PdfIndirectObject?>();
         foreach (var entry in entries) {
             if (!entry.InUse) {
                 if (entry.ObjectNumber != 0) {
@@ -87,7 +114,14 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            if (TryParseIndirectObjectAt(pdf, text, entry.Offset, map, out var parsed) &&
+            if (!parsedObjectsByOffset.TryGetValue(entry.Offset, out PdfIndirectObject? parsed)) {
+                parsed = TryParseIndirectObjectAt(pdf, text, entry.Offset, map, scanBudget, out PdfIndirectObject candidate)
+                    ? candidate
+                    : null;
+                parsedObjectsByOffset[entry.Offset] = parsed;
+            }
+
+            if (parsed is not null &&
                 parsed.ObjectNumber == entry.ObjectNumber &&
                 parsed.Generation == entry.Generation) {
                 map[entry.ObjectNumber] = parsed;
@@ -176,7 +210,8 @@ internal static partial class PdfSyntax {
 
         int dictStart = text.IndexOf("<<", trailerIndex, StringComparison.Ordinal);
         if (dictStart >= 0) {
-            int dictEnd = FindDictEnd(text, dictStart, text.Length);
+            int dictionaryLimit = (int)Math.Min((long)text.Length, (long)dictStart + 1_000_002L);
+            int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit);
             if (dictEnd > dictStart) {
                 trailerRaw = SafeSlice(text, trailerIndex, dictEnd - trailerIndex, 1_000_000);
                 string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
@@ -207,7 +242,7 @@ internal static partial class PdfSyntax {
         return value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
-    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits) {
+    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
             if (entry.Value is PdfStream stream &&
@@ -233,16 +268,17 @@ internal static partial class PdfSyntax {
         }
 
         var classicPredecessors = GetClassicPredecessorTablesForXrefStreamChain(text, xrefStreams, activeXrefOffset);
+        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var table in classicPredecessors) {
-            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries);
+            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, scanBudget, parsedObjectsByOffset: parsedObjectsByOffset);
             if (table.XrefStreamOffset.HasValue) {
-                ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits);
+                ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget);
             }
         }
 
         foreach (int chainOffset in activeChainOffsets) {
             var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
-            ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, xrefStream.Stream, limits);
+            ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, xrefStream.Stream, limits, scanBudget);
         }
 
         return true;
@@ -337,7 +373,8 @@ internal static partial class PdfSyntax {
         Dictionary<int, int> parsedOffsets,
         string text,
         int xrefStreamOffset,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        XrefObjectScanBudget scanBudget) {
         PdfStream? targetStream = null;
         foreach (var entry in map.Values) {
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
@@ -355,7 +392,7 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, targetStream, limits);
+        ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, targetStream, limits, scanBudget);
         return true;
     }
 
@@ -365,9 +402,11 @@ internal static partial class PdfSyntax {
         Dictionary<int, int> parsedOffsets,
         string text,
         PdfStream xrefStream,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        XrefObjectScanBudget scanBudget) {
         byte[] data = Filters.StreamDecoder.Decode(xrefStream.Dictionary, xrefStream.Data, map, limits.MaxDecodedStreamBytes);
         var entries = ReadXrefStreamEntries(xrefStream.Dictionary, data).ToList();
+        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var entry in entries) {
             if (entry.Type == 0 &&
                 entry.ObjectNumber != 0) {
@@ -387,7 +426,14 @@ internal static partial class PdfSyntax {
 
             int offset = (int)entry.Field1;
             int generation = (int)entry.Field2;
-            if (TryParseIndirectObjectAt(pdf, text, offset, map, out var parsed) &&
+            if (!parsedObjectsByOffset.TryGetValue(offset, out PdfIndirectObject? parsed)) {
+                parsed = TryParseIndirectObjectAt(pdf, text, offset, map, scanBudget, out PdfIndirectObject candidate)
+                    ? candidate
+                    : null;
+                parsedObjectsByOffset[offset] = parsed;
+            }
+
+            if (parsed is not null &&
                 parsed.ObjectNumber == entry.ObjectNumber &&
                 parsed.Generation == generation) {
                 map[entry.ObjectNumber] = parsed;
@@ -570,13 +616,23 @@ internal static partial class PdfSyntax {
         return value;
     }
 
-    private static bool TryParseIndirectObjectAt(byte[] pdf, string text, int offset, Dictionary<int, PdfIndirectObject> map, out PdfIndirectObject parsed) {
+    private static bool TryParseIndirectObjectAt(byte[] pdf, string text, int offset, Dictionary<int, PdfIndirectObject> map, XrefObjectScanBudget scanBudget, out PdfIndirectObject parsed) {
         parsed = null!;
         if (offset < 0 || offset >= text.Length) {
             return false;
         }
 
-        if (!TryReadIndirectObjectHeaderAt(text, offset, text.Length, out IndirectObjectHeader header)) {
+        int scanLimit = (int)Math.Min(
+            (long)text.Length,
+            (long)offset + scanBudget.MaximumPerObject);
+        int chargedThrough = offset;
+        void ChargeThrough(int scannedThrough) {
+            int bounded = Math.Max(offset, Math.Min(scanLimit, scannedThrough));
+            scanBudget.Charge(bounded - chargedThrough);
+            chargedThrough = Math.Max(chargedThrough, bounded);
+        }
+        if (!TryReadIndirectObjectHeaderAt(text, offset, scanLimit, out IndirectObjectHeader header)) {
+            ChargeThrough(Math.Min(scanLimit, offset + 128));
             return false;
         }
 
@@ -585,13 +641,14 @@ internal static partial class PdfSyntax {
         int start = header.Index;
         int bodyStart = header.Index + header.Length;
         int valueStart = bodyStart;
-        while (valueStart < text.Length && char.IsWhiteSpace(text[valueStart])) {
+        while (valueStart < scanLimit && char.IsWhiteSpace(text[valueStart])) {
             valueStart++;
         }
 
-        if (valueStart + 1 < text.Length && text[valueStart] == '<' && text[valueStart + 1] == '<') {
+        if (valueStart + 1 < scanLimit && text[valueStart] == '<' && text[valueStart + 1] == '<') {
             int dictStart = valueStart;
-            int dictEnd = FindDictEnd(text, dictStart, text.Length);
+            int dictEnd = FindDictEnd(text, dictStart, scanLimit);
+            ChargeThrough(dictEnd > dictStart ? dictEnd + 2 : scanLimit);
             if (dictEnd > dictStart) {
                 string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
                 PdfDictionary? dict;
@@ -602,19 +659,20 @@ internal static partial class PdfSyntax {
                 }
 
                 int streamKw = dictEnd;
-                while (streamKw < text.Length && char.IsWhiteSpace(text[streamKw])) {
+                while (streamKw < scanLimit && char.IsWhiteSpace(text[streamKw])) {
                     streamKw++;
                 }
 
-                bool hasStream = streamKw + 6 <= text.Length &&
+                bool hasStream = streamKw + 6 <= scanLimit &&
                     string.CompareOrdinal(text, streamKw, "stream", 0, 6) == 0 &&
-                    HasKeywordBoundary(text, streamKw + 6, bodyStart, text.Length);
+                    HasKeywordBoundary(text, streamKw + 6, bodyStart, scanLimit);
                 if (hasStream) {
-                    int dataStart = SkipEOL(text, streamKw + 6, text.Length);
+                    int dataStart = SkipEOL(text, streamKw + 6, scanLimit);
                     int byteLen = -1;
                     TryGetResolvedLength(dict, map, out byteLen);
                     if (byteLen < 0) {
-                        int fallbackEnd = FindObjectEnd(text, start);
+                        int fallbackEnd = FindObjectEnd(text, start, maximumIndex: scanLimit);
+                        ChargeThrough(fallbackEnd > start ? fallbackEnd : scanLimit);
                         if (fallbackEnd < 0) {
                             return false;
                         }
@@ -636,7 +694,8 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int end = FindObjectEnd(text, start);
+        int end = FindObjectEnd(text, start, maximumIndex: scanLimit);
+        ChargeThrough(end > start ? end : scanLimit);
         if (end < 0) {
             return false;
         }

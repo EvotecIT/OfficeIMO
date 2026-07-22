@@ -115,6 +115,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeJpegCodec_RejectsExcessiveSamplingBeforeDecoderStateAllocation() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+            int startOfFrame = FindMarker(jpeg, 0xC0);
+            Assert.True(startOfFrame > 0);
+            jpeg[startOfFrame + 11] = 0x44;
+
+            FormatException exception = Assert.Throws<FormatException>(() => OfficeJpegCodec.Decode(jpeg));
+
+            Assert.Contains("sampling", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void OfficeJpegCodec_RejectsDuplicateScanComponentsBeforeDecoding() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+            int startOfScan = FindMarker(jpeg, 0xDA);
+            Assert.True(startOfScan > 0);
+            jpeg[startOfScan + 7] = jpeg[startOfScan + 5];
+
+            FormatException exception = Assert.Throws<FormatException>(() => OfficeJpegCodec.Decode(jpeg));
+
+            Assert.Contains("Duplicate", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_DecodesBaselineComponentsStoredInSeparateScans() {
             byte[] jpeg = BuildSeparateComponentBaselineJpeg();
 
@@ -138,6 +166,19 @@ namespace OfficeIMO.Tests {
             exposed[1] = 8;
 
             Assert.Equal(new byte[] { 1, 2, 3 }, metadata.Exif);
+        }
+
+        [Fact]
+        public void OfficeJpegCodec_RejectsOrientedDecodeBeforeAllocatingSecondRgbaBuffer() {
+            var source = new OfficeRasterImage(8, 8, OfficeColor.Red);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+            });
+            SetJpegFrameDimensions(jpeg, 5000, 5000);
+
+            FormatException exception = Assert.Throws<FormatException>(() => OfficeJpegCodec.Decode(jpeg));
+
+            Assert.Contains("dimensions exceed", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -235,6 +276,24 @@ namespace OfficeIMO.Tests {
                 }
             }
             return image;
+        }
+
+        private static byte[] CreateExifOrientation(ushort orientation) => new byte[] {
+            (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+            0x01, 0x00,
+            0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+            (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+
+        private static void SetJpegFrameDimensions(byte[] jpeg, ushort width, ushort height) {
+            int frame = FindMarker(jpeg, 0xC0);
+            if (frame < 0) frame = FindMarker(jpeg, 0xC2);
+            Assert.True(frame >= 0);
+            jpeg[frame + 5] = (byte)(height >> 8);
+            jpeg[frame + 6] = (byte)height;
+            jpeg[frame + 7] = (byte)(width >> 8);
+            jpeg[frame + 8] = (byte)width;
         }
 
         private static byte[] BuildSeparateComponentBaselineJpeg() {

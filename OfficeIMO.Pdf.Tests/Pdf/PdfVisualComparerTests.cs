@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -53,6 +54,28 @@ public class PdfVisualComparerTests {
         PdfVisualPageComparison page = Assert.Single(report.Pages);
         Assert.Equal(320, page.Width);
         Assert.Equal(420, page.Height);
+    }
+
+    [Fact]
+    public void Compare_EnforcesPagePixelOutputAndCancellationBudgets() {
+        byte[] pdf = BuildPdf("Bounded visual comparison");
+
+        PdfReadLimitException pixels = Assert.Throws<PdfReadLimitException>(() =>
+            PdfVisualComparer.Compare(pdf, pdf, options: new PdfVisualComparisonOptions {
+                MaxPixelsPerImage = 1
+            }));
+        Assert.Equal(PdfReadLimitKind.RenderPixels, pixels.Kind);
+
+        PdfReadLimitException output = Assert.Throws<PdfReadLimitException>(() =>
+            PdfVisualComparer.Compare(pdf, pdf, options: new PdfVisualComparisonOptions {
+                MaxTotalOutputBytes = 1
+            }));
+        Assert.Equal(PdfReadLimitKind.RenderBytes, output.Kind);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfVisualComparer.Compare(pdf, pdf, cancellationToken: cancellation.Token));
     }
 
     private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })

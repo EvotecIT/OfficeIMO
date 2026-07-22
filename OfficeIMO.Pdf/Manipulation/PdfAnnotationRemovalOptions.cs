@@ -16,4 +16,10 @@ public sealed class PdfAnnotationRemovalOptions {
 
     /// <summary>Remove popup annotations linked from matching annotations through /Popup.</summary>
     public bool RemoveMatchingPopups { get; set; } = true;
+
+    /// <summary>
+    /// Allows append-only removal even though prior revisions retain the removed annotation bytes.
+    /// Disabled by default because append-only output is not a sanitization boundary.
+    /// </summary>
+    public bool AllowResidualDataInAppendOnly { get; set; }
 }

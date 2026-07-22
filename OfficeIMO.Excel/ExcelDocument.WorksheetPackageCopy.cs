@@ -60,8 +60,8 @@ namespace OfficeIMO.Excel {
 
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                 if (!adoptedSourceIndexes) {
-                    RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                     WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
                     RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                     ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);

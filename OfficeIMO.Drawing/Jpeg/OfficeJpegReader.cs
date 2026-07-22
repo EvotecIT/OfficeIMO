@@ -127,7 +127,8 @@ internal static partial class OfficeJpegReader {
                 var scanData = data.Slice(offset, scanEnd - offset);
 
                 if (!progressive) {
-                    baselineState ??= BaselineState.Create(frame);
+                    ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
+                    baselineState ??= BaselineState.Create(frame, orientation);
                     DecodeBaselineScan(
                         scanData,
                         scan,
@@ -142,7 +143,8 @@ internal static partial class OfficeJpegReader {
                     continue;
                 }
 
-                progressiveState ??= ProgressiveState.Create(frame, quantTables);
+                ValidateProgressiveScan(scan, frame, quantTables, dcTables, acTables);
+                progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation);
                 DecodeProgressiveScan(
                     scanData,
                     scan,

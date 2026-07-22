@@ -77,7 +77,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// </summary>
         public static LegacyDocDocument Load(string path, LegacyDocImportOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            return Load(File.ReadAllBytes(path), options);
+            options ??= new LegacyDocImportOptions();
+            options.Validate();
+            using FileStream stream = File.OpenRead(path);
+            return Load(OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes), options);
         }
 
         /// <summary>
@@ -85,12 +88,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// </summary>
         public static LegacyDocDocument Load(Stream stream, LegacyDocImportOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
-            using var buffer = new MemoryStream();
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
-            stream.CopyTo(buffer);
-            return Load(buffer.ToArray(), options);
+            options ??= new LegacyDocImportOptions();
+            options.Validate();
+            return Load(OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes), options);
         }
 
         /// <summary>
@@ -100,6 +100,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyDocImportOptions();
             options.Validate();
+            if (bytes.Length > options.MaxInputBytes) {
+                throw new InvalidDataException($"Legacy DOC input exceeds the configured maximum size ({options.MaxInputBytes} bytes).");
+            }
 
             var document = new LegacyDocDocument();
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {

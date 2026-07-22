@@ -531,7 +531,9 @@ internal static partial class OfficeJpegReader {
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
             throw new FormatException(JpegDimensionsLimitMessage);
         }
-        if (components == 0) throw new FormatException("Invalid JPEG component count.");
+        if (components != 1 && components != 3 && components != 4) {
+            throw new FormatException("Unsupported JPEG component count.");
+        }
         if (data.Length < 6 + components * 3) throw new FormatException("Invalid JPEG SOF segment.");
 
         var frame = new JpegFrame {
@@ -544,13 +546,16 @@ internal static partial class OfficeJpegReader {
         var offset = 6;
         var maxH = 0;
         var maxV = 0;
+        var samplingUnits = 0;
         for (var i = 0; i < components; i++) {
             var id = data[offset++];
             var sampling = data[offset++];
             var h = sampling >> 4;
             var v = sampling & 0x0F;
             var qt = data[offset++];
-            if (h == 0 || v == 0) throw new FormatException("Invalid JPEG sampling factors.");
+            if (h == 0 || v == 0 || h > 4 || v > 4) throw new FormatException("Invalid JPEG sampling factors.");
+            samplingUnits = checked(samplingUnits + h * v);
+            if (samplingUnits > 10) throw new FormatException("JPEG sampling factors exceed supported limits.");
             if (qt >= 4) throw new FormatException("Unsupported JPEG quantization table.");
             frame.Components[i] = new Component {
                 Id = id,
@@ -568,10 +573,11 @@ internal static partial class OfficeJpegReader {
 
     private static ScanHeader ParseScanHeader(OfficeByteView data, ref JpegFrame frame) {
         var components = data[0];
-        if (components == 0) throw new FormatException("Invalid JPEG scan component count.");
+        if (components == 0 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");
         if (data.Length < 1 + components * 2 + 3) throw new FormatException("Invalid JPEG scan header.");
 
         var indices = new int[components];
+        var seenComponents = new bool[frame.ComponentCount];
         var offset = 1;
         for (var i = 0; i < components; i++) {
             var id = data[offset++];
@@ -580,6 +586,8 @@ internal static partial class OfficeJpegReader {
             var ac = table & 0x0F;
             var index = FindComponentIndex(frame.Components, id);
             if (index < 0) throw new FormatException("Unknown JPEG component in scan.");
+            if (seenComponents[index]) throw new FormatException("Duplicate JPEG component in scan.");
+            seenComponents[index] = true;
             frame.Components[index].DcTable = (byte)dc;
             frame.Components[index].AcTable = (byte)ac;
             indices[i] = index;
@@ -800,17 +808,22 @@ internal static partial class OfficeJpegReader {
         public int McuCols;
         public int McuRows;
 
-        public static BaselineState Create(JpegFrame frame) {
+        public static BaselineState Create(JpegFrame frame, int orientation) {
             var mcuWidth = frame.MaxH * 8;
             var mcuHeight = frame.MaxV * 8;
             var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
+            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
+            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
+            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
             for (var i = 0; i < frame.ComponentCount; i++) {
                 var component = frame.Components[i];
                 var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * component.H, JpegDimensionsLimitMessage);
                 var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * component.V, JpegDimensionsLimitMessage);
-                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol);
+                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes);
             }
 
             return new BaselineState {
@@ -840,16 +853,39 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerCol;
         public int PrevDc;
 
-        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol) {
+        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureByteCount((long)Stride * blocksPerCol * 8, JpegDimensionsLimitMessage);
+            var bufferLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
             Buffer = new int[bufferLength];
-            BlockCoeffs = new int[64];
-            BlockPixels = new int[64];
+            BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             PrevDc = 0;
+        }
+
+        public static BaselineComponentState FromDecodedBuffer(
+            Component component,
+            int blocksPerRow,
+            int blocksPerCol,
+            int stride,
+            int[] buffer) {
+            return new BaselineComponentState {
+                Component = component,
+                BlocksPerRow = blocksPerRow,
+                BlocksPerCol = blocksPerCol,
+                Stride = stride,
+                Buffer = buffer,
+                BlockCoeffs = Array.Empty<int>(),
+                BlockPixels = Array.Empty<int>()
+            };
+        }
+
+        private BaselineComponentState() {
+            Buffer = Array.Empty<int>();
+            BlockCoeffs = Array.Empty<int>();
+            BlockPixels = Array.Empty<int>();
         }
     }
 
@@ -858,7 +894,7 @@ internal static partial class OfficeJpegReader {
         public int McuCols;
         public int McuRows;
 
-        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables) {
+        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables, int orientation) {
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -867,6 +903,11 @@ internal static partial class OfficeJpegReader {
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
 
             var components = new ProgressiveComponentState[frame.ComponentCount];
+            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
+            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
+            if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
             for (var i = 0; i < frame.ComponentCount; i++) {
                 var comp = frame.Components[i];
                 if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
@@ -874,7 +915,7 @@ internal static partial class OfficeJpegReader {
                 }
                 var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
                 var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * comp.V, JpegDimensionsLimitMessage);
-                components[i] = new ProgressiveComponentState(comp, blocksPerRow, blocksPerCol);
+                components[i] = new ProgressiveComponentState(comp, blocksPerRow, blocksPerCol, ref aggregateBytes);
             }
 
             return new ProgressiveState {
@@ -900,11 +941,12 @@ internal static partial class OfficeJpegReader {
             var baselineStates = new BaselineComponentState[Components.Length];
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
-                var baseline = new BaselineComponentState(compState.Component, compState.BlocksPerRow, compState.BlocksPerCol) {
-                    Buffer = compState.Buffer,
-                    Stride = compState.Stride
-                };
-                baselineStates[i] = baseline;
+                baselineStates[i] = BaselineComponentState.FromDecodedBuffer(
+                    compState.Component,
+                    compState.BlocksPerRow,
+                    compState.BlocksPerCol,
+                    compState.Stride,
+                    compState.Buffer);
             }
 
             return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma);
@@ -928,17 +970,17 @@ internal static partial class OfficeJpegReader {
         public int Stride;
         public int PrevDc;
 
-        public ProgressiveComponentState(Component component, int blocksPerRow, int blocksPerCol) {
+        public ProgressiveComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            var coeffLength = OfficeRasterGuards.EnsureByteCount((long)BlocksPerRow * BlocksPerCol * 64, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureByteCount((long)Stride * blocksPerCol * 8, JpegDimensionsLimitMessage);
+            var coeffLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
+            var bufferLength = OfficeRasterGuards.EnsureInt32ArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
             Coeffs = new int[coeffLength];
             Buffer = new int[bufferLength];
-            BlockCoeffs = new int[64];
-            BlockPixels = new int[64];
+            BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             PrevDc = 0;
         }
     }

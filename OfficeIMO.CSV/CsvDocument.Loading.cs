@@ -281,7 +281,7 @@ public sealed partial class CsvDocument
 
         options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream);
+        byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes);
         return LoadInternal(
             () => CsvFile.OpenTextReader(
                 new MemoryStream(snapshot, writable: false),
@@ -310,7 +310,10 @@ public sealed partial class CsvDocument
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
         Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        byte[] snapshot = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        byte[] snapshot = await OfficeStreamReader.ReadAllBytesAsync(
+            stream,
+            cancellationToken,
+            resolved.MaxInputBytes).ConfigureAwait(false);
         return LoadInternal(
             () => CsvFile.OpenTextReader(
                 new MemoryStream(snapshot, writable: false),

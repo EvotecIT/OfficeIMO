@@ -516,7 +516,7 @@ internal static class MsgProjection {
     private static string? GetRtf(MapiPropertyBag properties, MsgParserState state, string location) {
         MapiProperty? property = properties.Find(MapiKnownProperties.PidTag.RtfCompressed);
         if (!(property?.Value is byte[] compressed)) return null;
-        if (!MapiCompressedRtfCodec.TryDecompress(compressed, state.Options.MaxDecodedPropertyBytes,
+        if (!MapiCompressedRtfCodec.TryDecompress(compressed, state.RemainingDecodedPropertyBytes,
             state.Diagnostics, string.Concat(location, "/rtf"), state.CancellationToken, out byte[] rtfBytes)) return null;
         state.CountDecodedBytes(rtfBytes.Length);
         char[] characters = new char[rtfBytes.Length];

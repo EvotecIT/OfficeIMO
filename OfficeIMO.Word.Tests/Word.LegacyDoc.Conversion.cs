@@ -84,8 +84,31 @@ namespace OfficeIMO.Tests {
                     LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
                 }));
 
-            Assert.Contains("configured limit of 1 byte", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("configured maximum size", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("1", exception.Message, StringComparison.Ordinal);
             Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
+        public void LegacyDoc_Convert_DoesNotApplyLegacyInputLimitToOpenXml() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Open XML source");
+                document.Save();
+            }
+
+            WordDocumentConversionResult result = WordDocument.Convert(
+                sourcePath,
+                destinationPath,
+                new WordDocumentConversionOptions {
+                    LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
+                });
+
+            Assert.Equal(destinationPath, result.RequireNoLoss());
+            using WordDocument converted = WordDocument.Load(destinationPath);
+            Assert.Equal(WordFileFormat.Doc, converted.SourceFormat);
+            Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Open XML source");
         }
 
         [Fact]

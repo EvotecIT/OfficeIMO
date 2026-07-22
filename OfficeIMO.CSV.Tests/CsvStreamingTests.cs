@@ -104,6 +104,23 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public async Task StreamLoads_EnforceCompleteInputLimitAndRestorePosition()
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n");
+        using var syncStream = new MemoryStream(bytes);
+        syncStream.Position = 3;
+        Assert.Throws<InvalidDataException>(() =>
+            CsvDocument.Load(syncStream, new CsvLoadOptions { MaxInputBytes = 8 }));
+        Assert.Equal(3, syncStream.Position);
+
+        using var asyncStream = new MemoryStream(bytes);
+        asyncStream.Position = 4;
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            CsvDocument.LoadAsync(asyncStream, new CsvLoadOptions { MaxInputBytes = 8 }));
+        Assert.Equal(4, asyncStream.Position);
+    }
+
+    [Fact]
     public void LoadOptionsClone_PreservesCallerErrorSinkWithoutMutatingMissingSink()
     {
         var originalError = new CsvParseError(1, "original", new FormatException("original"));

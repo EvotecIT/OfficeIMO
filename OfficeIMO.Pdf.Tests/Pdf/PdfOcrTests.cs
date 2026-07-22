@@ -49,11 +49,55 @@ public class PdfOcrTests {
             Selection = PdfPageSelection.From(2)
         });
         Assert.Equal(2, Assert.Single(selected.Pages).PageNumber);
+        Assert.Equal(new[] { 1, 2 }, selected.NativeDocument.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Contains(selected.NativeDocument.Pages[0].TextBlocks, block => block.Text.Contains("One", StringComparison.Ordinal));
+        Assert.Contains(selected.NativeDocument.Pages[1].TextBlocks, block => block.Text.Contains("Two", StringComparison.Ordinal));
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             PdfOcr.RecognizeAndMergeAsync(pdf, provider, cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_RejectsOversizedProviderArtifactsBeforeMerge() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native")).ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(new[] {
+            new PdfOcrWord("one", 10, 10, 10, 10, 0.9),
+            new PdfOcrWord("two", 30, 10, 10, 10, 0.9)
+        }));
+
+        PdfReadLimitException exception = await Assert.ThrowsAsync<PdfReadLimitException>(() =>
+            PdfOcr.RecognizeAndMergeAsync(pdf, provider, new PdfOcrMergeOptions {
+                MaxOcrWordsPerPage = 1
+            }));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_BoundsNativeOverlapWork() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First native block"))
+            .Paragraph(paragraph => paragraph.Text("Second native block"))
+            .ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(new[] {
+            new PdfOcrWord("scanned", 10, 10, 10, 10, 0.9)
+        }));
+
+        PdfReadLimitException exception = await Assert.ThrowsAsync<PdfReadLimitException>(() =>
+            PdfOcr.RecognizeAndMergeAsync(pdf, provider, new PdfOcrMergeOptions {
+                MaxNativeTextOverlapComparisonsPerPage = 1
+            }));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void PdfReadLimitKind_PreservesExistingInteractionRegionsValue() {
+        Assert.Equal(20, (int)PdfReadLimitKind.InteractionRegions);
     }
 
     private sealed class StubOcrProvider : IPdfOcrProvider {

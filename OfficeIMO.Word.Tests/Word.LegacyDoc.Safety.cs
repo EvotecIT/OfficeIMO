@@ -34,6 +34,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Load_StreamAndAsyncStreamEnforceCompleteInputLimit() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Bounded DOCX stream");
+            byte[] bytes = document.ToBytes();
+
+            using var syncStream = new MemoryStream(bytes);
+            Assert.Throws<InvalidDataException>(() => WordDocument.Load(
+                syncStream,
+                new WordLoadOptions { MaxInputBytes = bytes.Length - 1L }));
+
+            using var asyncStream = new MemoryStream(bytes);
+            await Assert.ThrowsAsync<InvalidDataException>(() => WordDocument.LoadAsync(
+                asyncStream,
+                new WordLoadOptions { MaxInputBytes = bytes.Length - 1L }));
+        }
+
+        [Fact]
         public void LegacyDoc_LoadResult_CachesCompactAndAdvancedReports() {
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
                 new MemoryStream(LegacyDocTestBuilder.CreateSimpleDoc("Summary paragraph")));
@@ -132,6 +149,21 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes,
                     new LegacyDocImportOptions { MaxDecodedImageBytes = 0 }));
+        }
+
+        [Fact]
+        public void LegacyDoc_AllPublicLoadShapesEnforceTheCompleteInputBudget() {
+            byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Bounded legacy input");
+            var options = new LegacyDocImportOptions { MaxInputBytes = bytes.Length - 1 };
+            string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            File.WriteAllBytes(path, bytes);
+
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes, options));
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(new MemoryStream(bytes), options));
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(path, options));
         }
 
         private static void AssertOleCompoundBytes(byte[] bytes) {
