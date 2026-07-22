@@ -37,6 +37,13 @@ namespace OfficeIMO.Excel {
                 _remainingSourceReads -= count;
                 return true;
             }
+
+            internal void RestoreUnusedSourceReads(long reserved, long consumed) {
+                long unused = reserved - consumed;
+                if (unused > 0) {
+                    _remainingSourceReads += unused;
+                }
+            }
         }
 
         internal static ExcelChartDataRange? TryExtractDataRange(ChartPart chartPart) {
@@ -758,8 +765,10 @@ namespace OfficeIMO.Excel {
             }
 
             var numericValues = new List<double>();
+            long consumedSourceReads = 0;
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
+                    consumedSourceReads++;
                     if (!sheet.TryGetCellText(row, column, out string? raw) ||
                         string.IsNullOrWhiteSpace(raw)) {
                         numericValues.Add(0D);
@@ -767,6 +776,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
+                        pointBudget.RestoreUnusedSourceReads(requestedPointCount, consumedSourceReads);
                         return false;
                     }
 
