@@ -22,6 +22,18 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task DirectSession_NormalizesSitePathBeforeResolvingApiRequests() {
+        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "page-adf.json"));
+        var handler = new RecordingHandler(_ => Response(HttpStatusCode.OK, fixture));
+        using ConfluenceClient client = CreateClient(handler, configure: options => options.SiteUri = new Uri("https://example.atlassian.net/wiki/"));
+
+        await client.GetPageAsync("123");
+
+        Uri requestUri = handler.Requests.Single().RequestUri!;
+        Assert.Equal("https://example.atlassian.net/wiki/api/v2/pages/123?body-format=atlas_doc_format", requestUri.AbsoluteUri);
+    }
+
+    [Fact]
     public async Task PageBatch_ExposesDecodedNextCursor() {
         var handler = new RecordingHandler(_ => Response(HttpStatusCode.OK, "{\"results\":[],\"_links\":{\"next\":\"/wiki/api/v2/pages?limit=25&cursor=abc%2B123\"}}"));
         using ConfluenceClient client = CreateClient(handler);

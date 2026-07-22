@@ -2,7 +2,7 @@ namespace OfficeIMO.Confluence;
 
 /// <summary>Options shared by Confluence Cloud requests.</summary>
 public sealed class ConfluenceSessionOptions {
-    /// <summary>Confluence site root, for example <c>https://example.atlassian.net/</c>.</summary>
+    /// <summary>Confluence site URL, for example <c>https://example.atlassian.net/wiki/</c>. Direct API requests use its origin.</summary>
     public Uri SiteUri { get; set; } = null!;
     /// <summary>
     /// Atlassian Cloud identifier used by OAuth 2.0 (3LO). When supplied, requests are routed through
@@ -35,7 +35,7 @@ public sealed class ConfluenceSession {
 
         _options = Clone(options);
         ApiBaseUri = string.IsNullOrWhiteSpace(_options.CloudId)
-            ? EnsureTrailingSlash(_options.SiteUri)
+            ? GetOriginRoot(_options.SiteUri)
             : new Uri("https://api.atlassian.com/ex/confluence/" + Uri.EscapeDataString(_options.CloudId!) + "/", UriKind.Absolute);
     }
 
@@ -60,7 +60,5 @@ public sealed class ConfluenceSession {
         RetryMaxDelay = source.RetryMaxDelay,
     };
 
-    private static Uri EnsureTrailingSlash(Uri uri) => uri.AbsoluteUri.EndsWith("/", StringComparison.Ordinal)
-        ? uri
-        : new Uri(uri.AbsoluteUri + "/", UriKind.Absolute);
+    private static Uri GetOriginRoot(Uri uri) => new Uri(uri.GetLeftPart(UriPartial.Authority) + "/", UriKind.Absolute);
 }

@@ -62,6 +62,37 @@ public sealed class AdfContractTests {
     }
 
     [Theory]
+    [InlineData("{\"type\":\"file\",\"collection\":\"files\"}", "ADF_MEDIA_ID")]
+    [InlineData("{\"type\":\"file\",\"id\":17,\"collection\":\"files\"}", "ADF_MEDIA_ID")]
+    [InlineData("{\"type\":\"link\",\"id\":\"media-1\"}", "ADF_MEDIA_COLLECTION")]
+    [InlineData("{\"type\":\"link\",\"id\":\"media-1\",\"collection\":42}", "ADF_MEDIA_COLLECTION")]
+    [InlineData("{\"type\":\"external\"}", "ADF_MEDIA_URL")]
+    [InlineData("{\"type\":\"external\",\"url\":42}", "ADF_MEDIA_URL")]
+    [InlineData("{\"type\":\"unknown\"}", "ADF_MEDIA_TYPE")]
+    [InlineData("{\"type\":42}", "ADF_MEDIA_TYPE")]
+    public void Validation_RequiresSchemaDefinedMediaSourceAttributes(string attributesJson, string expectedCode) {
+        AdfDocument document = AdfDocument.Parse(
+            "{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"mediaSingle\",\"content\":[{\"type\":\"media\",\"attrs\":" + attributesJson + "}]}]}");
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == expectedCode);
+        Assert.StartsWith("$.content[0].content[0].attrs.", issue.Path);
+    }
+
+    [Theory]
+    [InlineData("{\"type\":\"file\",\"id\":\"media-1\",\"collection\":\"files\"}")]
+    [InlineData("{\"type\":\"link\",\"id\":\"media-1\",\"collection\":\"\"}")]
+    [InlineData("{\"type\":\"external\",\"url\":\"\"}")]
+    public void Validation_AcceptsSchemaDefinedMediaSourceAttributes(string attributesJson) {
+        AdfDocument document = AdfDocument.Parse(
+            "{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"mediaSingle\",\"content\":[{\"type\":\"media\",\"attrs\":" + attributesJson + "}]}]}");
+
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Theory]
     [InlineData("text")]
     [InlineData("hardBreak")]
     [InlineData("mention")]
@@ -370,6 +401,22 @@ public sealed class AdfContractTests {
     }
 
     [Theory]
+    [InlineData("first\r\nsecond")]
+    [InlineData("first\rsecond")]
+    public void CodeBlockProjection_ReportsCarriageReturnLineEndingNormalization(string content) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("codeBlock") { Content = { AdfNode.TextNode(content) } });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.False(markdown.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(markdown.Report.Diagnostics, item => item.Code == "ADF_CODE_LINE_ENDINGS_NORMALIZED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
+        Assert.Equal("first\nsecond", Assert.Single(Assert.Single(roundTrip.Value.Content).Content).Text);
+    }
+
+    [Theory]
     [InlineData("# Heading")]
     [InlineData("> quote")]
     [InlineData("- item")]
@@ -519,6 +566,19 @@ public sealed class AdfContractTests {
         Assert.False(result.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_ATTRIBUTES_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
+    [Fact]
+    public void MarkdownProjection_ReportsDroppedRootExtensionProperties() {
+        var document = new AdfDocument();
+        document.ExtensionData["vendorRoot"] = JsonSerializer.SerializeToElement(true);
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode("Ready") } });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_ROOT_PROPERTIES_DROPPED");
+        Assert.Equal("$", diagnostic.Path);
     }
 
     [Fact]

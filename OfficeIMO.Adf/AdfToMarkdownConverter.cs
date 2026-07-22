@@ -7,6 +7,9 @@ namespace OfficeIMO.Adf;
 internal static class AdfToMarkdownConverter {
     internal static string Convert(AdfDocument document, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics) {
         var builder = new StringBuilder();
+        if (document.ExtensionData.Count > 0) {
+            diagnostics.Add(Warning("ADF_ROOT_PROPERTIES_DROPPED", "$", "ADF root extension properties cannot be represented in Markdown and were omitted."));
+        }
         for (int i = 0; i < document.Content.Count; i++) {
             AppendBlock(builder, document.Content[i], "$.content[" + i + "]", options, diagnostics, 0);
             if (i < document.Content.Count - 1 && !EndsWithBlankLine(builder)) builder.AppendLine().AppendLine();
@@ -32,6 +35,9 @@ internal static class AdfToMarkdownConverter {
                     diagnostics.Add(Warning("ADF_CODE_LANGUAGE_NORMALIZED", path, "ADF code-block language was normalized to one safe Markdown language token."));
                 }
                 string code = ExtractPlainText(node);
+                if (code.IndexOf('\r') >= 0) {
+                    diagnostics.Add(Warning("ADF_CODE_LINE_ENDINGS_NORMALIZED", path, "ADF code-block carriage-return line endings are normalized by Markdown round trips."));
+                }
                 string fence = MarkdownFence.BuildSafeFence(code);
                 builder.Append(fence).Append(language).AppendLine();
                 builder.Append(code);

@@ -139,6 +139,9 @@ internal static class AdfValidator {
                 issues.Add(Error("ADF_TASK_STATE", path + ".attrs.state", "ADF taskItem state must be 'TODO' or 'DONE'."));
             }
         }
+        if (string.Equals(node.Type, "media", StringComparison.Ordinal)) {
+            ValidateMediaAttributes(node, path, issues);
+        }
         for (int i = 0; i < node.Marks.Count; i++) {
             AdfMark mark = node.Marks[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
@@ -165,6 +168,30 @@ internal static class AdfValidator {
             issues.Add(Error("ADF_TASK_LIST_CHILD", path, "ADF taskList nodes may contain only taskItem or nested taskList nodes."));
         } else {
             issues.Add(Error("ADF_NODE_CHILD", path, "ADF node '" + parent.Type + "' cannot contain known child node '" + child.Type + "'."));
+        }
+    }
+
+    private static void ValidateMediaAttributes(AdfNode node, string path, List<AdfValidationIssue> issues) {
+        string? mediaType = node.GetStringAttribute("type");
+        if (!string.Equals(mediaType, "file", StringComparison.Ordinal) &&
+            !string.Equals(mediaType, "link", StringComparison.Ordinal) &&
+            !string.Equals(mediaType, "external", StringComparison.Ordinal)) {
+            issues.Add(Error("ADF_MEDIA_TYPE", path + ".attrs.type", "ADF media type must be 'file', 'link', or 'external'."));
+            return;
+        }
+
+        if (string.Equals(mediaType, "external", StringComparison.Ordinal)) {
+            if (node.GetStringAttribute("url") == null) {
+                issues.Add(Error("ADF_MEDIA_URL", path + ".attrs.url", "External ADF media requires a string url attribute."));
+            }
+            return;
+        }
+
+        if (string.IsNullOrEmpty(node.GetStringAttribute("id"))) {
+            issues.Add(Error("ADF_MEDIA_ID", path + ".attrs.id", "File and link ADF media require a non-empty string id attribute."));
+        }
+        if (node.GetStringAttribute("collection") == null) {
+            issues.Add(Error("ADF_MEDIA_COLLECTION", path + ".attrs.collection", "File and link ADF media require a string collection attribute."));
         }
     }
 
