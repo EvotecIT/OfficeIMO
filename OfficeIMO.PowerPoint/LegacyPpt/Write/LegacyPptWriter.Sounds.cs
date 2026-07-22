@@ -56,6 +56,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             private readonly List<LegacyPptWriterSound> _sounds = new();
             private readonly List<LegacyPptWriterSound> _newSounds = new();
             private uint _nextId;
+            private long _totalSoundBytes;
 
             internal LegacyPptWriterSoundCatalog() { }
 
@@ -73,6 +74,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         extension, source.BuiltInId, source.DataBytes,
                         isExisting: true);
                     _sounds.Add(sound);
+                    _totalSoundBytes = checked(_totalSoundBytes
+                        + source.DataBytes.Length);
                     string key = CreateSoundKey(sound.Name, sound.Extension,
                         sound.BuiltInId, sound.DataBytes);
                     if (!_soundsByKey.ContainsKey(key)) {
@@ -134,8 +137,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 if (name.Length == 0) name = "Sound";
                 byte[] bytes;
-                using (Stream input = mediaPart.GetStream(FileMode.Open, FileAccess.Read)) {
-                    bytes = OfficeStreamReader.ReadAllBytes(input);
+                if (!TryReadSoundBytes(mediaPart, out bytes, out reason)) {
+                    return false;
                 }
                 if (bytes.Length == 0) {
                     reason = "An embedded transition or action sound has an empty audio payload.";
@@ -160,6 +163,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 string key = CreateSoundKey(name, extension, builtInId: null, bytes);
                 if (_soundsByKey.TryGetValue(key, out sound)) return true;
+                if (!CanAddSoundBytes(bytes.Length, out reason)) return false;
                 if (_nextId >= int.MaxValue) {
                     reason = "The binary sound identifier range is exhausted.";
                     return false;
@@ -170,6 +174,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 _sounds.Add(sound);
                 _newSounds.Add(sound);
                 _soundsByKey.Add(key, sound);
+                _totalSoundBytes = checked(_totalSoundBytes + bytes.Length);
                 return true;
             }
 
@@ -202,9 +207,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 byte[] bytes;
-                using (Stream input = mediaPart.GetStream(FileMode.Open,
-                           FileAccess.Read)) {
-                    bytes = OfficeStreamReader.ReadAllBytes(input);
+                if (!TryReadSoundBytes(mediaPart, out bytes, out reason)) {
+                    return false;
                 }
                 if (bytes.Length == 0) {
                     reason = "An embedded media shape has an empty audio payload.";
@@ -216,6 +220,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 string key = CreateSoundKey(name, ".wav",
                     builtInId: null, bytes);
                 if (_soundsByKey.TryGetValue(key, out sound)) return true;
+                if (!CanAddSoundBytes(bytes.Length, out reason)) return false;
                 if (_nextId >= int.MaxValue) {
                     reason = "The binary sound identifier range is exhausted.";
                     return false;
@@ -225,7 +230,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 _sounds.Add(sound);
                 _newSounds.Add(sound);
                 _soundsByKey.Add(key, sound);
+                _totalSoundBytes = checked(_totalSoundBytes + bytes.Length);
                 return true;
+            }
+
+            private bool TryReadSoundBytes(MediaDataPart mediaPart,
+                out byte[] bytes, out string? reason) {
+                bytes = Array.Empty<byte>();
+                reason = null;
+                try {
+                    using Stream input = mediaPart.GetStream(FileMode.Open,
+                        FileAccess.Read);
+                    bytes = OfficeStreamReader.ReadAllBytes(input,
+                        MaximumSoundBytes);
+                    return true;
+                } catch (Exception exception) when (exception
+                    is IOException or InvalidDataException
+                        or NotSupportedException or OverflowException) {
+                    bytes = Array.Empty<byte>();
+                    reason = $"The embedded audio payload cannot be read within the {MaximumSoundBytes}-byte safety limit: {exception.Message}";
+                    return false;
+                }
+            }
+
+            private bool CanAddSoundBytes(int byteCount, out string? reason) {
+                long nextTotal = checked(_totalSoundBytes + byteCount);
+                if (nextTotal <= MaximumTotalSoundBytes) {
+                    reason = null;
+                    return true;
+                }
+                reason = $"Binary PowerPoint sound payloads cannot exceed {MaximumTotalSoundBytes} aggregate bytes.";
+                return false;
             }
 
             private static string CreateSoundKey(string name, string extension,

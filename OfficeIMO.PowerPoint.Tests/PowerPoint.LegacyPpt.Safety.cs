@@ -20,6 +20,25 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        [Theory]
+        [InlineData("masters")]
+        [InlineData("connectors")]
+        [InlineData("comments")]
+        [InlineData("ppt9")]
+        public void ImportOptions_RejectNonPositiveAggregateLimits(
+            string limit) {
+            var options = new LegacyPptImportOptions();
+            switch (limit) {
+                case "masters": options.MaxMasterCount = 0; break;
+                case "connectors": options.MaxConnectorRuleCount = 0; break;
+                case "comments": options.MaxCommentCount = 0; break;
+                case "ppt9": options.MaxTextStyle9EntryCount = 0; break;
+            }
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                options.Validate());
+        }
+
         [Fact]
         public void RecordReader_EnforcesNestingDepthBudget() {
             byte[] atom = CreateRecord(version: 0, payload: Array.Empty<byte>());

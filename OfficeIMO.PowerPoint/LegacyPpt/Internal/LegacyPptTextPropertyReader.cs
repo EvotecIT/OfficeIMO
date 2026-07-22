@@ -3,6 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Decodes reusable binary PowerPoint paragraph and character exceptions.</summary>
     internal static class LegacyPptTextPropertyReader {
+        private const int MaximumTabStopCount = 4096;
         private const uint CharacterStyleMask = 0x00003EB7U;
         private const uint CharacterTypefaceMask = 1U << 16;
         private const uint CharacterSizeMask = 1U << 17;
@@ -172,6 +173,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static IReadOnlyList<LegacyPptTabStop> ReadTabStops(
             LegacyPptTextPropertyCursor cursor) {
             ushort count = cursor.ReadUInt16();
+            if (count > MaximumTabStopCount) {
+                throw new InvalidDataException(
+                    $"A binary PowerPoint tab-stop list cannot contain more than {MaximumTabStopCount} entries.");
+            }
             var tabStops = new List<LegacyPptTabStop>(count);
             for (int index = 0; index < count; index++) {
                 short position = cursor.ReadInt16();

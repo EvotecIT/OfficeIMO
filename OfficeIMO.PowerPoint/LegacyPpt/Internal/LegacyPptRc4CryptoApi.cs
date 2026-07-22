@@ -129,11 +129,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static byte[] EncryptPackage(byte[] plainBytes,
             string password, int keySizeBits = DefaultKeySizeBits,
-            bool encryptDocumentProperties = true) {
+            bool encryptDocumentProperties = true,
+            bool allowUnencryptedCompoundStreams = false) {
             if (plainBytes == null) throw new ArgumentNullException(nameof(plainBytes));
             if (password == null) throw new ArgumentNullException(nameof(password));
             LegacyPptPackage package = LegacyPptPackage.Read(plainBytes,
                 new LegacyPptImportOptions());
+            EnsureNoUnexpectedClearTextStreams(package.CompoundFile,
+                allowUnencryptedCompoundStreams);
             uint encryptionPersistId = package.PersistObjectOffsets.Count == 0
                 ? 1U
                 : checked(package.PersistObjectOffsets.Keys.Max() + 1U);
@@ -185,6 +188,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             return package.RewriteCompoundStreams(replacements,
                 new[] { "EncryptedSummary" });
+        }
+
+        private static void EnsureNoUnexpectedClearTextStreams(
+            OfficeCompoundFile compound,
+            bool allowUnencryptedCompoundStreams) {
+            if (allowUnencryptedCompoundStreams) return;
+            string[] clearTextStreams = compound.Streams.Keys.Where(path =>
+                    !string.Equals(path, "PowerPoint Document",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(path, "Current User",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(path, "Pictures",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(path, "EncryptedSummary",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(path,
+                        "\u0005SummaryInformation",
+                        StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(path,
+                        "\u0005DocumentSummaryInformation",
+                        StringComparison.OrdinalIgnoreCase))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (clearTextStreams.Length == 0) return;
+            throw new NotSupportedException(
+                "Legacy RC4 CryptoAPI cannot encrypt these compound streams: "
+                + string.Join(", ", clearTextStreams)
+                + ". Remove them or explicitly set PowerPointSaveOptions.LegacyPptAllowUnencryptedCompoundStreams when clear-text retention is intentional.");
         }
 
         private static EncryptedPersistObject InspectEncryptedPersistObject(

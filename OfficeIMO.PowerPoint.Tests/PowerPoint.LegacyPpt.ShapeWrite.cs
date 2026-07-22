@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -320,6 +321,35 @@ namespace OfficeIMO.Tests {
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes,
                 projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void NativeWriter_RejectsGroupNestingBeyondSafetyLimit() {
+            using PowerPointPresentation source = PowerPointPresentation
+                .Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] {
+                slide.AddRectangle(100000, 100000, 500000, 500000),
+                slide.AddRectangle(700000, 100000, 500000, 500000)
+            }, "Group 0");
+            for (int depth = 1;
+                 depth <= LegacyPptWriter.MaximumGroupNestingDepth;
+                 depth++) {
+                group = slide.GroupShapes(new PowerPointShape[] {
+                    group,
+                    slide.AddRectangle(100000, 700000 + depth * 10000L,
+                        200000, 200000)
+                }, $"Group {depth}");
+            }
+
+            LegacyPptWritePreflightReport preflight = source
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Description.Contains("64 nested group levels",
+                    StringComparison.Ordinal));
         }
 
         [Fact]

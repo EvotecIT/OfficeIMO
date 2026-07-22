@@ -3,6 +3,8 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
+using System.Security.Cryptography;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -15,6 +17,16 @@ namespace OfficeIMO.PowerPoint {
         private string[] _legacyPptLinkedOleDetails = Array.Empty<string>();
         private string[] _legacyPptActiveXDetails = Array.Empty<string>();
         private string[] _legacyPptMediaDetails = Array.Empty<string>();
+        private bool _legacyPptHasVbaContent;
+        private bool _legacyPptHadProjectedVbaContent;
+        private byte[]? _legacyPptProjectedVbaDigest;
+        private bool _legacyPptHasEmbeddedOleContent;
+        private bool _legacyPptHasLinkedOleContent;
+        private bool _legacyPptHasActiveXContent;
+        private bool _legacyPptHasExternalHyperlinkContent;
+        private bool _legacyPptHasExternalMediaContent;
+        private bool _legacyPptHasRunProgramContent;
+        private bool _legacyPptHadProjectedRunProgramContent;
         private byte[]? _openXmlOriginalPackageBytes;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
@@ -95,6 +107,24 @@ namespace OfficeIMO.PowerPoint {
                         ? $"sound {media.SoundId.Value}"
                         : "native device reference")))
                 .ToArray();
+            _legacyPptHasVbaContent = legacy.HasVbaContent;
+            _legacyPptHadProjectedVbaContent = legacy.VbaProject != null;
+            _legacyPptProjectedVbaDigest = legacy.VbaProject == null
+                ? null
+                : ComputeSha256(legacy.VbaProject.GetBytes());
+            _legacyPptHasEmbeddedOleContent = legacy.HasEmbeddedOleContent;
+            _legacyPptHasLinkedOleContent = legacy.HasLinkedOleContent;
+            _legacyPptHasActiveXContent = legacy.HasActiveXContent;
+            _legacyPptHasExternalHyperlinkContent =
+                legacy.HasExternalHyperlinkContent;
+            _legacyPptHasExternalMediaContent =
+                legacy.HasExternalMediaContent;
+            _legacyPptHasRunProgramContent = legacy.HasRunProgramContent;
+            _legacyPptHadProjectedRunProgramContent =
+                EnumerateReferencedHyperlinks().Any(item =>
+                    string.Equals(item.Hyperlink.Action?.Value,
+                        "ppaction://program",
+                        StringComparison.OrdinalIgnoreCase));
             SourceFormat = sourceFormat;
         }
 
@@ -110,6 +140,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptLinkedOleDetails = Array.Empty<string>();
             _legacyPptActiveXDetails = Array.Empty<string>();
             _legacyPptMediaDetails = Array.Empty<string>();
+            ClearLegacyPptSecurityState();
             SourceFormat = PowerPointFileFormat.Pptx;
         }
 
@@ -130,6 +161,30 @@ namespace OfficeIMO.PowerPoint {
 
         internal IReadOnlyList<string> LegacyPptMediaDetails =>
             _legacyPptMediaDetails;
+
+        internal bool LegacyPptWillPreserveVbaContent =>
+            _legacyPptHasVbaContent
+            && (!_legacyPptHadProjectedVbaContent
+                || IsProjectedVbaContentUnchanged());
+        internal bool LegacyPptHasEmbeddedOleContent =>
+            _legacyPptHasEmbeddedOleContent;
+        internal bool LegacyPptHasLinkedOleContent =>
+            _legacyPptHasLinkedOleContent;
+        internal bool LegacyPptHasActiveXContent =>
+            _legacyPptHasActiveXContent;
+        internal bool LegacyPptWillPreserveExternalHyperlinkContent =>
+            _legacyPptHasExternalHyperlinkContent
+            && EnumerateReferencedHyperlinks().Any(item =>
+                IsExternalHyperlink(item.Part, item.Hyperlink));
+        internal bool LegacyPptHasExternalMediaContent =>
+            _legacyPptHasExternalMediaContent;
+        internal bool LegacyPptWillPreserveRunProgramContent =>
+            _legacyPptHasRunProgramContent
+            && (!_legacyPptHadProjectedRunProgramContent
+                || EnumerateReferencedHyperlinks().Any(item =>
+                    string.Equals(item.Hyperlink.Action?.Value,
+                        "ppaction://program",
+                        StringComparison.OrdinalIgnoreCase)));
 
         internal bool HasOnlyLegacyPptPreservableChanges => _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
@@ -164,6 +219,130 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptLinkedOleDetails = Array.Empty<string>();
             _legacyPptActiveXDetails = Array.Empty<string>();
             _legacyPptMediaDetails = Array.Empty<string>();
+            ClearLegacyPptSecurityState();
+        }
+
+        private void ClearLegacyPptSecurityState() {
+            _legacyPptHasVbaContent = false;
+            _legacyPptHadProjectedVbaContent = false;
+            _legacyPptProjectedVbaDigest = null;
+            _legacyPptHasEmbeddedOleContent = false;
+            _legacyPptHasLinkedOleContent = false;
+            _legacyPptHasActiveXContent = false;
+            _legacyPptHasExternalHyperlinkContent = false;
+            _legacyPptHasExternalMediaContent = false;
+            _legacyPptHasRunProgramContent = false;
+            _legacyPptHadProjectedRunProgramContent = false;
+        }
+
+        private bool IsProjectedVbaContentUnchanged() {
+            if (_legacyPptProjectedVbaDigest == null) return true;
+            VbaProjectPart? part = _presentationPart.VbaProjectPart;
+            if (part == null) return false;
+            try {
+                using Stream stream = part.GetStream(FileMode.Open,
+                    FileAccess.Read);
+                using SHA256 sha256 = SHA256.Create();
+                return sha256.ComputeHash(stream)
+                    .SequenceEqual(_legacyPptProjectedVbaDigest);
+            } catch (Exception exception) when (
+                exception is IOException
+                || exception is UnauthorizedAccessException
+                || exception is InvalidDataException) {
+                // A separate package-part finding will reject unreadable VBA.
+                // Remain conservative if that finding is bypassed.
+                return true;
+            }
+        }
+
+        private IEnumerable<(OpenXmlPart Part, A.HyperlinkType Hyperlink)>
+            EnumerateReferencedHyperlinks() {
+            foreach (SlidePart slidePart in _presentationPart.SlideParts) {
+                if (slidePart.Slide != null) {
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(slidePart,
+                                 slidePart.Slide)) {
+                        yield return item;
+                    }
+                }
+                if (slidePart.NotesSlidePart?.NotesSlide != null) {
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(
+                                 slidePart.NotesSlidePart,
+                                 slidePart.NotesSlidePart.NotesSlide)) {
+                        yield return item;
+                    }
+                }
+            }
+            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+                if (masterPart.SlideMaster != null) {
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(masterPart,
+                                 masterPart.SlideMaster)) {
+                        yield return item;
+                    }
+                }
+                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                    if (layoutPart.SlideLayout == null) continue;
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(layoutPart,
+                                 layoutPart.SlideLayout)) {
+                        yield return item;
+                    }
+                }
+            }
+            if (_presentationPart.NotesMasterPart?.NotesMaster != null) {
+                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                         in EnumerateReferencedHyperlinks(
+                             _presentationPart.NotesMasterPart,
+                             _presentationPart.NotesMasterPart.NotesMaster)) {
+                    yield return item;
+                }
+            }
+            if (_presentationPart.HandoutMasterPart?.HandoutMaster != null) {
+                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                         in EnumerateReferencedHyperlinks(
+                             _presentationPart.HandoutMasterPart,
+                             _presentationPart.HandoutMasterPart.HandoutMaster)) {
+                    yield return item;
+                }
+            }
+        }
+
+        private static IEnumerable<(OpenXmlPart Part,
+            A.HyperlinkType Hyperlink)> EnumerateReferencedHyperlinks(
+            OpenXmlPart part,
+            DocumentFormat.OpenXml.OpenXmlPartRootElement root) {
+            foreach (A.HyperlinkOnClick item in root
+                         .Descendants<A.HyperlinkOnClick>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
+            }
+            foreach (A.HyperlinkOnHover item in root
+                         .Descendants<A.HyperlinkOnHover>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
+            }
+            foreach (A.HyperlinkOnMouseOver item in root
+                         .Descendants<A.HyperlinkOnMouseOver>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
+            }
+        }
+
+        private static bool IsExternalHyperlink(OpenXmlPart part,
+            A.HyperlinkType hyperlink) {
+            string? relationshipId = hyperlink.Id?.Value;
+            return !string.IsNullOrEmpty(relationshipId)
+                && part.HyperlinkRelationships.Any(relationship =>
+                    relationship.IsExternal
+                    && string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
+        }
+
+        private static byte[] ComputeSha256(byte[] bytes) {
+            using SHA256 sha256 = SHA256.Create();
+            return sha256.ComputeHash(bytes);
         }
 
         internal static bool IsLegacyBinaryFormat(PowerPointFileFormat format) =>

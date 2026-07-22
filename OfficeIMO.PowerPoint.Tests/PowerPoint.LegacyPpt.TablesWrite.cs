@@ -175,5 +175,25 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.SolidFill>());
             Assert.Empty(projected.ValidateDocument());
         }
+
+        [Fact]
+        public void StaticTableRasterizationRejectsExcessiveRowCountBeforeMatrices() {
+            using PowerPointPresentation source = PowerPointPresentation.Create();
+            PowerPointTable table = source.AddSlide().AddTable(4097, 1);
+
+            bool rendered = PowerPointSlideImageRenderer.TryCreateTableDrawing(
+                table, out _, out string? reason);
+
+            Assert.False(rendered);
+            Assert.Contains("safe limit", reason,
+                StringComparison.OrdinalIgnoreCase);
+
+            PowerPointSlideVisualSnapshot snapshot = PowerPointSlideImageRenderer
+                .CreateSnapshot(table.OwnerSlide!,
+                    new PowerPointImageExportOptions());
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("safe limit",
+                    StringComparison.OrdinalIgnoreCase));
+        }
     }
 }

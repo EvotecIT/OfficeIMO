@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -15,35 +14,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (ownerPart == null) throw new ArgumentNullException(
                 nameof(ownerPart));
             if (background == null) return string.Empty;
-            var fingerprint = new StringBuilder(background.OuterXml);
+            using IncrementalHash fingerprint = LegacyPptProjectionDigest
+                .CreateBuilder();
+            LegacyPptProjectionDigest.Append(fingerprint,
+                background.OuterXml);
             foreach (A.Blip blip in background.Descendants<A.Blip>()) {
                 string? relationshipId = blip.Embed?.Value;
-                fingerprint.Append("\nimage:").Append(relationshipId);
+                LegacyPptProjectionDigest.Append(fingerprint,
+                    "image:" + relationshipId);
                 if (string.IsNullOrWhiteSpace(relationshipId)) continue;
                 try {
                     if (ownerPart.GetPartById(relationshipId!)
                             is not ImagePart imagePart) {
-                        fingerprint.Append("|not-image");
+                        LegacyPptProjectionDigest.Append(fingerprint,
+                            "not-image");
                         continue;
                     }
-                    fingerprint.Append('|').Append(imagePart.ContentType)
-                        .Append('|');
+                    LegacyPptProjectionDigest.Append(fingerprint,
+                        imagePart.ContentType);
                     using Stream stream = imagePart.GetStream(FileMode.Open,
                         FileAccess.Read);
                     using SHA256 sha256 = SHA256.Create();
-                    fingerprint.Append(Convert.ToBase64String(
-                        sha256.ComputeHash(stream)));
+                    LegacyPptProjectionDigest.Append(fingerprint,
+                        Convert.ToBase64String(sha256.ComputeHash(stream)));
                 } catch (Exception exception) when (exception
                     is ArgumentOutOfRangeException
                     or InvalidDataException
                     or IOException
                     or NotSupportedException
                     or UnauthorizedAccessException) {
-                    fingerprint.Append("|unreadable:")
-                        .Append(exception.GetType().Name);
+                    LegacyPptProjectionDigest.Append(fingerprint,
+                        "unreadable:" + exception.GetType().Name);
                 }
             }
-            return fingerprint.ToString();
+            return LegacyPptProjectionDigest.Finish(fingerprint);
         }
     }
 }

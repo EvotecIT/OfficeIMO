@@ -61,8 +61,21 @@ public static class EmailAddressBookEntryReader {
         ReaderEmailAddressBookOptions adapterOptions, CancellationToken cancellationToken) {
         OfflineAddressBookReaderOptions effective =
             ReaderEmailAddressBookOptionsCloner.CreateEffective(adapterOptions, readerOptions);
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
-            stream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
+        Stream parseStream;
+        bool ownsParseStream;
+        long? originalPosition = null;
+        if (stream.CanSeek) {
+            ReaderInputLimits.EnforceSeekableStreamSize(stream,
+                effective.MaxInputBytes);
+            originalPosition = stream.Position;
+            stream.Position = 0;
+            parseStream = stream;
+            ownsParseStream = false;
+        } else {
+            parseStream = ReaderInputLimits.EnsureSeekableReadStream(
+                stream, effective.MaxInputBytes, cancellationToken,
+                out ownsParseStream);
+        }
         try {
             using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(
                 parseStream, sourceName, effective, cancellationToken)) {
@@ -72,7 +85,11 @@ public static class EmailAddressBookEntryReader {
                 }
             }
         } finally {
-            if (ownsParseStream) parseStream.Dispose();
+            if (ownsParseStream) {
+                parseStream.Dispose();
+            } else if (originalPosition.HasValue && stream.CanSeek) {
+                stream.Position = originalPosition.Value;
+            }
         }
     }
 

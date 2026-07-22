@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>Writes bounded OfficeArt File BLIP Store Entry and image BLIP records.</summary>
 public static class OfficeArtBlipStoreEntryWriter {
     private const ushort OfficeArtFbse = 0xF007;
+    private const int MaximumImageBytes = 64 * 1024 * 1024;
 
     /// <summary>
     /// Creates one complete embedded FBSE record for a supported raster or
@@ -53,6 +54,11 @@ public static class OfficeArtBlipStoreEntryWriter {
         if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image data cannot be empty.",
+                nameof(imageBytes));
+        }
+        if (imageBytes.Length > MaximumImageBytes) {
+            throw new ArgumentException(
+                $"OfficeArt BLIP payloads cannot exceed {MaximumImageBytes} bytes.",
                 nameof(imageBytes));
         }
         if (string.IsNullOrWhiteSpace(contentType)) {

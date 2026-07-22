@@ -225,6 +225,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SoundCatalog_ReusesExistingSoundAtAggregateLimit() {
+            byte[] wave = CreateWavePayload();
+            var importedSound = new LegacyPptSound(7,
+                "OfficeIMO Chime", ".wav", builtInId: null, wave);
+            var catalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog(
+                new[] { importedSound }, soundIdSeed: 7);
+            typeof(LegacyPptWriter.LegacyPptWriterSoundCatalog)
+                .GetField("_totalSoundBytes",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(catalog, LegacyPptWriter.MaximumTotalSoundBytes);
+            using PowerPointPresentation source =
+                PowerPointPresentation.Create();
+            PowerPointSlide slide = source.AddSlide(
+                P.SlideLayoutValues.Blank);
+            MediaDataPart media = source.OpenXmlDocument.CreateMediaDataPart(
+                "audio/wav", ".wav");
+            using (var input = new MemoryStream(wave, writable: false)) {
+                media.FeedData(input);
+            }
+            AudioReferenceRelationship relationship = slide.SlidePart
+                .AddAudioReferenceRelationship(media);
+            var soundElement = new P.Sound {
+                Embed = relationship.Id,
+                Name = "OfficeIMO Chime"
+            };
+
+            Assert.True(catalog.TryGetOrAdd(slide.SlidePart, soundElement,
+                out LegacyPptWriter.LegacyPptWriterSound? sound,
+                out string? reason), reason);
+            Assert.Same(importedSound.DataBytes, sound!.DataBytes);
+            Assert.Equal(7U, sound.Id);
+        }
+
+        [Fact]
         public void NativeWriter_RejectsInconsistentAlternateContentTransitionSounds() {
             using PowerPointPresentation source =
                 PowerPointPresentation.Create();
@@ -322,9 +357,13 @@ namespace OfficeIMO.Tests {
                 imported.Slides[0].Shapes[0].Left += 1588;
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(preflight.CanWrite,
-                    string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.False(preflight.CanWrite);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -365,9 +404,13 @@ namespace OfficeIMO.Tests {
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(preflight.CanWrite,
-                    string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.False(preflight.CanWrite);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -407,9 +450,13 @@ namespace OfficeIMO.Tests {
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(preflight.CanWrite,
-                    string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.False(preflight.CanWrite);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

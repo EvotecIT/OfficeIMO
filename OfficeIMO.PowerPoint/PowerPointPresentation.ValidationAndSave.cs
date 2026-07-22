@@ -358,7 +358,8 @@ namespace OfficeIMO.PowerPoint {
                 ? _legacyPptPackage.EncryptedDocumentProperties ?? true
                 : options.LegacyPptEncryptDocumentProperties;
             return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes,
-                password, keySizeBits, encryptDocumentProperties);
+                password, keySizeBits, encryptDocumentProperties,
+                options?.LegacyPptAllowUnencryptedCompoundStreams == true);
         }
 
         private byte[] CreatePlainLegacyPptBytesForSave(
@@ -510,7 +511,8 @@ namespace OfficeIMO.PowerPoint {
             byte[] plainBytes = CreatePlainLegacyPptBytesForSave(options);
             return LegacyPptRc4CryptoApi.EncryptPackage(plainBytes, password,
                 options?.LegacyPptEncryptionKeySizeBits ?? 128,
-                options?.LegacyPptEncryptDocumentProperties ?? true);
+                options?.LegacyPptEncryptDocumentProperties ?? true,
+                options?.LegacyPptAllowUnencryptedCompoundStreams == true);
         }
 
         private static void EnsureDestinationFileWritable(string filePath) {

@@ -180,6 +180,39 @@ namespace OfficeIMO.Tests {
             Assert.Contains("color index", finding.Description, StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public void LegacyEncryption_LoadEncryptedPropagatesAggregateImportLimits() {
+            const string password = "encrypted-limits";
+            byte[] encryptedBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide first = source.AddSlide();
+                PowerPointSlide second = source.AddSlide();
+                AddAuthors(source, (0U, "Reviewer", "R", 2U));
+                AddComment(first, 0U, 1U, "First", DateTime.UtcNow,
+                    10, 20);
+                AddComment(second, 0U, 2U, "Second", DateTime.UtcNow,
+                    20, 30);
+                encryptedBytes = source.ToEncryptedBytes(password,
+                    PowerPointFileFormat.Ppt);
+            }
+            using var input = new MemoryStream(encryptedBytes,
+                writable: false);
+
+            InvalidDataException exception = Assert.Throws<
+                InvalidDataException>(() =>
+                PowerPointPresentation.LoadEncrypted(input, password,
+                    new PowerPointLoadOptions {
+                        LegacyPptImportOptions =
+                            new LegacyPptImportOptions {
+                                MaxCommentCount = 1
+                            }
+                    }));
+
+            Assert.Contains("comment count", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void AddAuthors(PowerPointPresentation presentation,
             params (uint Id, string Name, string Initials, uint LastIndex)[] authors) {
             CommentAuthorsPart part = presentation.OpenXmlDocument.PresentationPart!

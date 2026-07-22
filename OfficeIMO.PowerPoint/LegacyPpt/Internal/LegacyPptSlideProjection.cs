@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
                         .ColorMapOverride)?.OuterXml
                 ?? string.Empty;
-            return theme + "\n" + colorMap;
+            return LegacyPptProjectionDigest.Create(theme, colorMap);
         }
 
         internal static IReadOnlyList<string>

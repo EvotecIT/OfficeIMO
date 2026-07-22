@@ -14,7 +14,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptRecord? styleRecord,
             IReadOnlyDictionary<ushort, LegacyPptPictureBullet>?
                 pictureBullets = null,
-            bool malformedContainer = false) {
+            bool malformedContainer = false,
+            int maximumEntryCount = 100_000) {
             if (textBody == null) throw new ArgumentNullException(
                 nameof(textBody));
             if (styleRecord == null) {
@@ -33,7 +34,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 var cursor = new LegacyPptTextPropertyCursor(styleRecord,
                     "StyleTextProp9Atom");
                 var entries = new List<ParagraphProperties9>();
-                while (!cursor.IsAtEnd) entries.Add(ReadEntry(cursor));
+                while (!cursor.IsAtEnd) {
+                    if (entries.Count >= maximumEntryCount) {
+                        throw new InvalidDataException(
+                            $"The PPT9 extended-style entry count exceeds {maximumEntryCount}.");
+                    }
+                    entries.Add(ReadEntry(cursor));
+                }
                 return ApplyEntries(textBody, entries, pictureBullets,
                     malformedContainer);
             } catch (Exception exception) when (exception

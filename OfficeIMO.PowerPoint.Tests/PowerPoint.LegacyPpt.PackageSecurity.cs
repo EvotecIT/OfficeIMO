@@ -344,6 +344,18 @@ namespace OfficeIMO.Tests {
             Assert.True(neutral.HasRunProgramContent);
             Assert.Empty(neutral.Slides[0].Shapes.SelectMany(shape =>
                 shape.Interactions));
+            using (var preservationInput = new MemoryStream(malformed,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(preservationInput,
+                       new PowerPointLoadOptions {
+                           LegacyPptImportOptions =
+                               new LegacyPptImportOptions {
+                                   ReportUnsupportedContent = false
+                               }
+                       })) {
+                Assert.True(imported.LegacyPptWillPreserveRunProgramContent);
+            }
             var security = OfficePackageSecurityOptions.SecureDefaults;
             security.ExternalRelationships =
                 OfficePackageContentPolicy.Reject;
@@ -356,6 +368,122 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
                 exception.Rule);
+        }
+
+        [Theory]
+        [InlineData(0, false)]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(1, true)]
+        [InlineData(2, false)]
+        [InlineData(2, true)]
+        [InlineData(3, false)]
+        [InlineData(3, true)]
+        public void LegacyPreservationGateScansProjectedShapeRoots(
+            int targetKind, bool runProgram) {
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship relationship = slide.SlidePart
+                    .AddHyperlinkRelationship(new Uri(
+                        "https://example.test/preserved"), true);
+                ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!
+                    .Append(new A.HyperlinkOnClick {
+                        Id = relationship.Id,
+                        Action = runProgram ? "ppaction://program" : null
+                    });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(binary, writable: false);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            imported.Slides[0].SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>()
+                .ToList()
+                .ForEach(item => item.Remove());
+            SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
+                .SlideLayoutPart!;
+            DocumentFormat.OpenXml.OpenXmlPartRootElement root;
+            OpenXmlPart targetPart;
+            if (targetKind >= 2) {
+                imported.Slides[0].Notes.Text = "Speaker note";
+                NotesSlidePart notesPart = imported.Slides[0].SlidePart
+                    .NotesSlidePart!;
+                if (targetKind == 2) {
+                    root = notesPart.NotesSlide!;
+                    targetPart = notesPart;
+                } else {
+                    root = notesPart.NotesMasterPart!.NotesMaster!;
+                    targetPart = notesPart.NotesMasterPart;
+                }
+            } else {
+                if (targetKind == 0) {
+                    root = layoutPart.SlideMasterPart!.SlideMaster!;
+                    targetPart = layoutPart.SlideMasterPart;
+                } else {
+                    root = layoutPart.SlideLayout!;
+                    targetPart = layoutPart;
+                }
+            }
+            HyperlinkRelationship preservedRelationship = targetPart
+                .AddHyperlinkRelationship(
+                    new Uri("https://example.test/still-present"), true);
+            P.NonVisualDrawingProperties properties = root
+                .Descendants<P.NonVisualDrawingProperties>().First();
+            properties.Append(new A.HyperlinkOnClick {
+                Id = preservedRelationship.Id,
+                Action = runProgram ? "ppaction://program" : null
+            });
+
+            Assert.Equal(runProgram,
+                imported.LegacyPptWillPreserveRunProgramContent);
+            Assert.Equal(!runProgram,
+                imported.LegacyPptWillPreserveExternalHyperlinkContent);
+        }
+
+        [Fact]
+        public void LegacyPreservationGateDoesNotTreatInternalSlideJumpAsExternal() {
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship external = slide.SlidePart
+                    .AddHyperlinkRelationship(
+                        new Uri("https://example.test/remove"), true);
+                ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!
+                    .Append(new A.HyperlinkOnClick { Id = external.Id });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(binary, writable: false);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            SlidePart slidePart = imported.Slides[0].SlidePart;
+            slidePart.Slide!.Descendants<A.HyperlinkOnClick>()
+                .ToList().ForEach(item => item.Remove());
+            HyperlinkRelationship internalJump = slidePart
+                .AddHyperlinkRelationship(
+                    new Uri("../slides/slide2.xml", UriKind.Relative),
+                    false);
+            P.NonVisualDrawingProperties properties = slidePart.Slide
+                .Descendants<P.NonVisualDrawingProperties>().First();
+            properties.Append(new A.HyperlinkOnClick {
+                Id = internalJump.Id,
+                Action = "ppaction://hlinksldjump"
+            });
+
+            Assert.False(imported.LegacyPptWillPreserveExternalHyperlinkContent);
         }
 
         [Fact]

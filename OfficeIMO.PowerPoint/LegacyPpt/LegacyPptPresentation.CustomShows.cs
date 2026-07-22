@@ -9,6 +9,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordNamedShowSlides = 0x0412;
 
         private readonly List<LegacyPptCustomShow> _customShows = new();
+        private readonly Dictionary<string, LegacyPptCustomShow>
+            _uniqueEditableCustomShowsByName = new(StringComparer.Ordinal);
         private bool _customShowsAreEditable = true;
 
         /// <summary>Gets named custom slide shows in document order.</summary>
@@ -69,6 +71,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     LegacyPptDiagnosticSeverity.Warning,
                     $"Named show '{duplicate.Key}' occurs more than once; its actions are ambiguous and remain preserve-only.",
                     duplicate.First().RecordOffset);
+            }
+            foreach (IGrouping<string, LegacyPptCustomShow> group in
+                     _customShows.GroupBy(show => show.Name,
+                         StringComparer.Ordinal)) {
+                LegacyPptCustomShow[] candidates = group.Take(2).ToArray();
+                if (candidates.Length == 1 && candidates[0].IsEditable) {
+                    _uniqueEditableCustomShowsByName[group.Key] =
+                        candidates[0];
+                }
             }
         }
 
