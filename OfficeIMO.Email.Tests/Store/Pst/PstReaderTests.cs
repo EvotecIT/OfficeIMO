@@ -117,6 +117,35 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void EmbeddedPstObjectMetadataDoesNotReserveUndecodedPayloadBytes() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 16,
+            maxTotalAttachmentBytes: 16);
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+
+        EmailStoreItem item = session.ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentMetadata));
+
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+        Assert.Equal(5, attachment.MapiAttachMethod);
+        Assert.Null(attachment.EmbeddedDocument);
+    }
+
+    [Fact]
+    public void StoreProjectionOptionsPreserveSelectiveDecodedPropertyLimit() {
+        var storeOptions = new EmailStoreReaderOptions(maxDecodedPropertyBytesPerItem: 4_096);
+
+        EmailReaderOptions projectionOptions = EmailStoreMessageReader.CreateOptions(
+            storeOptions,
+            includeAttachmentContent: false,
+            maxDecodedPropertyBytes: 128);
+
+        Assert.Equal(128, projectionOptions.MaxDecodedPropertyBytes);
+    }
+
+    [Fact]
     public void PreservesEmbeddedAttachmentMetadataWhenDepthLimitIsZero() {
         using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
         var reader = new EmailStoreReader(new EmailStoreReaderOptions(maxNestedMessageDepth: 0));

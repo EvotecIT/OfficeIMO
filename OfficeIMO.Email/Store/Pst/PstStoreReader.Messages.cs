@@ -31,13 +31,16 @@ internal sealed partial class PstStoreReader {
     }
 
     private EmailDocument ReadItemDocument(ulong dataBid, ulong subnodeBid, string id, string? folderId,
-        EmailStoreFormat format, string location, int nestedDepth, EmailStoreItemReadOptions options) {
+        EmailStoreFormat format, string location, int nestedDepth, EmailStoreItemReadOptions options,
+        PstDecodedObjectBudget? decodedObjectBudget = null) {
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
             Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
         ISet<ushort>? includedPropertyIds = GetIncludedItemPropertyIds(options);
+        long maximumDecodedBytes = ResolveMaximumDecodedBytes(options, decodedObjectBudget);
         IReadOnlyList<MapiProperty> properties = ReadProperties(
             dataBid, subnodeBid, location, subnodes, includedPropertyIds: includedPropertyIds,
-            maximumDecodedBytes: options.MaxDecodedPropertyBytes);
+            maximumDecodedBytes: maximumDecodedBytes);
+        decodedObjectBudget?.AddProperties(properties);
         var document = new EmailDocument { Format = EmailFileFormat.Unknown };
         document.Properties["EmailStore:Format"] = format.ToString();
         document.Properties["EmailStore:ItemId"] = id;
@@ -45,13 +48,25 @@ internal sealed partial class PstStoreReader {
         foreach (MapiProperty property in properties) document.MapiProperties.Add(property);
 
         if (options.Includes(EmailStoreItemReadParts.Recipients)) {
-            ReadItemRecipients(document, subnodes, location);
+            ReadItemRecipients(document, subnodes, location, decodedObjectBudget);
         }
         if (options.Includes(EmailStoreItemReadParts.AttachmentMetadata)) {
-            ReadItemAttachments(document, subnodes, format, location, nestedDepth, options);
+            ReadItemAttachments(document, subnodes, format, location, nestedDepth, options,
+                decodedObjectBudget);
         }
-        if (options.Parts != EmailStoreItemReadParts.None) ProjectItem(document, properties, location);
+        if (options.Parts != EmailStoreItemReadParts.None) {
+            ProjectItem(document, properties, location,
+                ResolveMaximumDecodedBytes(options, decodedObjectBudget));
+            decodedObjectBudget?.AddProjectedBodies(document);
+        }
         return document;
+    }
+
+    private long ResolveMaximumDecodedBytes(
+        EmailStoreItemReadOptions options,
+        PstDecodedObjectBudget? decodedObjectBudget) {
+        long maximum = options.MaxDecodedPropertyBytes ?? _options.MaxDecodedPropertyBytesPerItem;
+        return decodedObjectBudget == null ? maximum : Math.Min(maximum, decodedObjectBudget.RemainingBytes);
     }
 
     private ISet<ushort>? GetIncludedItemPropertyIds(EmailStoreItemReadOptions options) {
@@ -69,12 +84,17 @@ internal sealed partial class PstStoreReader {
     }
 
     private void ReadItemRecipients(EmailDocument document,
-        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes, string location) {
+        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes, string location,
+        PstDecodedObjectBudget? decodedObjectBudget) {
         foreach (PstSubnodeReference recipientTable in subnodes.Values
             .Where(item => item.Type == 0x12).OrderBy(item => item.Nid)) {
             string recipientLocation = string.Concat(location, "/recipients/", FormatId(recipientTable.Nid));
             try {
-                foreach (EmailRecipient recipient in ReadRecipients(recipientTable, recipientLocation)) {
+                foreach (EmailRecipient recipient in ReadRecipients(
+                    recipientTable,
+                    recipientLocation,
+                    decodedObjectBudget?.RemainingBytes)) {
+                    decodedObjectBudget?.AddProperties(recipient.MapiProperties);
                     document.Recipients.Add(recipient);
                 }
             } catch (EmailStoreLimitExceededException) {
@@ -91,7 +111,8 @@ internal sealed partial class PstStoreReader {
 
     private void ReadItemAttachments(EmailDocument document,
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes, EmailStoreFormat format,
-        string location, int nestedDepth, EmailStoreItemReadOptions readOptions) {
+        string location, int nestedDepth, EmailStoreItemReadOptions readOptions,
+        PstDecodedObjectBudget? decodedObjectBudget) {
         int attachmentCount = 0;
         foreach (PstSubnodeReference attachmentNode in subnodes.Values
             .Where(item => item.Type == 0x05).OrderBy(item => item.Nid)) {
@@ -110,10 +131,12 @@ internal sealed partial class PstStoreReader {
                 ? null
                 : AttachmentMetadataPropertyIds;
             PstHeap heap = CreateHeap(attachmentNode.DataBid, attachmentNode.SubnodeBid,
-                attachmentSubnodes);
+                attachmentSubnodes, decodedObjectBudget?.RemainingBytes);
             IReadOnlyList<MapiProperty> attachmentProperties = ReadProperties(
                 heap, attachmentLocation, sourceHnids, includedPropertyIds,
-                DeferredAttachmentPropertyIds);
+                DeferredAttachmentPropertyIds,
+                maximumDecodedBytes: decodedObjectBudget?.RemainingBytes);
+            decodedObjectBudget?.AddProperties(attachmentProperties);
             long declaredLength = Math.Max(0,
                 attachmentProperties.GetNullableMapiValue(MapiKnownProperties.PidTag.AttachSize) ?? 0);
             MapiProperty? attachData = attachmentProperties.GetMapiProperty(
@@ -126,7 +149,8 @@ internal sealed partial class PstStoreReader {
             EmailAttachment attachment = PstAttachmentProjection.Create(
                 attachmentProperties, declaredLength);
 
-            if (attachment.MapiAttachMethod == 5) {
+            if (attachment.MapiAttachMethod == 5 &&
+                readOptions.Includes(EmailStoreItemReadParts.EmbeddedItems)) {
                 ReserveEmbeddedAttachment(declaredLength);
             }
 
@@ -135,11 +159,13 @@ internal sealed partial class PstStoreReader {
                 sourceHnids.TryGetValue(MapiKnownProperties.PidTag.AttachData.PropertyId!.Value,
                     out uint contentHnid)) {
                 ReadAttachmentContent(attachment, attachmentProperties, heap, contentHnid,
-                    declaredLength, readOptions.PreferStreamingAttachmentContent);
+                    declaredLength, readOptions.PreferStreamingAttachmentContent,
+                    decodedObjectBudget);
             }
             if (readOptions.Includes(EmailStoreItemReadParts.EmbeddedItems)) {
                 TryReadEmbeddedMessage(attachment, attachmentSubnodes, sourceHnids,
-                    format, attachmentLocation, nestedDepth, readOptions);
+                    format, attachmentLocation, nestedDepth, readOptions,
+                    decodedObjectBudget);
             }
             document.Attachments.Add(attachment);
         }
@@ -147,7 +173,8 @@ internal sealed partial class PstStoreReader {
 
     private void ReadAttachmentContent(EmailAttachment attachment,
         IReadOnlyList<MapiProperty> properties, PstHeap heap, uint contentHnid,
-        long declaredLength, bool preferStreaming) {
+        long declaredLength, bool preferStreaming,
+        PstDecodedObjectBudget? decodedObjectBudget) {
         if (declaredLength > _options.MaxAttachmentBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
                 declaredLength, _options.MaxAttachmentBytes);
@@ -155,7 +182,10 @@ internal sealed partial class PstStoreReader {
         if (declaredLength > 0) CountAttachmentBytes(declaredLength);
 
         if (_options.RetainAttachmentContent && !preferStreaming) {
-            byte[] content = heap.ResolveHnid(contentHnid, _options.MaxAttachmentBytes);
+            long maximumContentBytes = decodedObjectBudget == null
+                ? _options.MaxAttachmentBytes
+                : Math.Min(_options.MaxAttachmentBytes, decodedObjectBudget.RemainingBytes);
+            byte[] content = heap.ResolveHnid(contentHnid, maximumContentBytes);
             if (content.LongLength > _options.MaxAttachmentBytes) {
                 throw new EmailStoreLimitExceededException(
                     nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
@@ -165,6 +195,7 @@ internal sealed partial class PstStoreReader {
                 CountAttachmentBytes(content.LongLength - declaredLength);
             }
             attachment.Content = content;
+            decodedObjectBudget?.Add(content.LongLength);
             attachment.Length = content.LongLength;
             MapiProperty? contentProperty = properties.GetMapiProperty(MapiKnownProperties.PidTag.AttachData);
             if (contentProperty != null) {
@@ -199,7 +230,8 @@ internal sealed partial class PstStoreReader {
     private void TryReadEmbeddedMessage(EmailAttachment attachment,
         IReadOnlyDictionary<uint, PstSubnodeReference> attachmentSubnodes,
         IReadOnlyDictionary<ushort, uint> sourceHnids, EmailStoreFormat format,
-        string location, int nestedDepth, EmailStoreItemReadOptions readOptions) {
+        string location, int nestedDepth, EmailStoreItemReadOptions readOptions,
+        PstDecodedObjectBudget? parentDecodedObjectBudget) {
         if (attachment.MapiAttachMethod != 5 ||
             !sourceHnids.TryGetValue(MapiKnownProperties.PidTag.AttachData.GetStandardPropertyId(), out uint embeddedNid) ||
             (embeddedNid & 0x1F) == 0 ||
@@ -215,18 +247,20 @@ internal sealed partial class PstStoreReader {
         }
 
         string embeddedId = FormatId(embeddedNode.Nid);
+        var decodedObjectBudget = parentDecodedObjectBudget ??
+            new PstDecodedObjectBudget(_options.MaxAttachmentBytes);
+        long bytesBefore = decodedObjectBudget.ConsumedBytes;
         long maximumDecodedBytes = Math.Min(
             readOptions.MaxDecodedPropertyBytes ?? _options.MaxDecodedPropertyBytesPerItem,
-            _options.MaxAttachmentBytes);
+            decodedObjectBudget.RemainingBytes);
         var embeddedReadOptions = new EmailStoreItemReadOptions(
             readOptions.Parts, maximumDecodedBytes,
             readOptions.PreferStreamingAttachmentContent);
         EmailDocument embeddedDocument = ReadItemDocument(
             embeddedNode.DataBid, embeddedNode.SubnodeBid, embeddedId, folderId: null,
             format, string.Concat(location, "/embedded/", embeddedId), nestedDepth + 1,
-            embeddedReadOptions);
-        long observedBytes = CountDecodedPropertyBytes(embeddedDocument.MapiProperties,
-            _options.MaxAttachmentBytes);
+            embeddedReadOptions, decodedObjectBudget);
+        long observedBytes = decodedObjectBudget.ConsumedBytes - bytesBefore;
         if (observedBytes > attachment.Length) {
             CountAttachmentBytes(observedBytes - attachment.Length);
             attachment.Length = observedBytes;
@@ -234,28 +268,16 @@ internal sealed partial class PstStoreReader {
         attachment.EmbeddedDocument = embeddedDocument;
     }
 
-    private static long CountDecodedPropertyBytes(
-        IEnumerable<MapiProperty> properties,
-        long maximumBytes) {
-        long total = 0;
-        foreach (MapiProperty property in properties) {
-            long length = property.RawData?.LongLength ?? 0;
-            if (length > maximumBytes - total) {
-                long actual = length > long.MaxValue - total ? long.MaxValue : total + length;
-                throw new EmailStoreLimitExceededException(
-                    nameof(EmailStoreReaderOptions.MaxAttachmentBytes), actual, maximumBytes);
-            }
-            total += length;
-        }
-        return total;
-    }
-
-    private void ProjectItem(EmailDocument document, IReadOnlyList<MapiProperty> properties, string location) {
+    private void ProjectItem(EmailDocument document, IReadOnlyList<MapiProperty> properties,
+        string location, long? maximumDecodedBytes = null) {
         int? codePage = properties.GetNullableMapiValue(MapiKnownProperties.PidTag.MessageCodepage) ??
             properties.GetNullableMapiValue(MapiKnownProperties.PidTag.InternetCodepage) ??
             properties.GetNullableMapiValue(MapiKnownProperties.PidTag.CodePageId);
         EmailReadResult projection = EmailMapiProjection.Project(document, codePage, location: location,
-            options: EmailStoreMessageReader.CreateOptions(_options, includeAttachmentContent: false),
+            options: EmailStoreMessageReader.CreateOptions(
+                _options,
+                includeAttachmentContent: false,
+                maxDecodedPropertyBytes: maximumDecodedBytes),
             cancellationToken: _cancellationToken);
         foreach (EmailDiagnostic diagnostic in projection.Diagnostics) {
             _diagnostics.Add(new EmailStoreDiagnostic(
@@ -270,15 +292,18 @@ internal sealed partial class PstStoreReader {
         }
     }
 
-    private IReadOnlyList<EmailRecipient> ReadRecipients(PstSubnodeReference table, string location) {
+    private IReadOnlyList<EmailRecipient> ReadRecipients(PstSubnodeReference table, string location,
+        long? maximumDecodedBytes = null) {
+        long effectiveMaximum = maximumDecodedBytes ?? _options.MaxDecodedPropertyBytesPerItem;
         PstDataTree data = Ndb.ReadDataTree(
-            table.DataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
+            table.DataBid, effectiveMaximum, _cancellationToken);
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
             Ndb.ReadSubnodes(table.SubnodeBid, _cancellationToken);
         var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
         IReadOnlyList<IReadOnlyList<MapiProperty>> rows = new PstTableContextReader(
             heap, Ndb.IsUnicode, _options, _cancellationToken,
-            message => AddTableCellDiagnostic(message, location)).ReadRows();
+            message => AddTableCellDiagnostic(message, location),
+            effectiveMaximum).ReadRows();
         var recipients = new List<EmailRecipient>(rows.Count);
         foreach (IReadOnlyList<MapiProperty> row in rows) {
             _namedProperties.Apply(row);
@@ -315,7 +340,7 @@ internal sealed partial class PstStoreReader {
         try {
             IReadOnlyDictionary<uint, PstSubnodeReference> subnodes = knownSubnodes ??
                 Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
-            PstHeap heap = CreateHeap(dataBid, subnodeBid, subnodes);
+            PstHeap heap = CreateHeap(dataBid, subnodeBid, subnodes, maximumDecodedBytes);
             return ReadProperties(heap, location, sourceHnids, includedPropertyIds,
                 deferredPropertyIds: null, applyNamedProperties: applyNamedProperties,
                 maximumDecodedBytes: maximumDecodedBytes);
@@ -332,9 +357,12 @@ internal sealed partial class PstStoreReader {
     }
 
     private PstHeap CreateHeap(ulong dataBid, ulong subnodeBid,
-        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes) {
+        IReadOnlyDictionary<uint, PstSubnodeReference> subnodes,
+        long? maximumDecodedBytes = null) {
         PstDataTree data = Ndb.OpenDataTree(
-            dataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
+            dataBid,
+            maximumDecodedBytes ?? _options.MaxDecodedPropertyBytesPerItem,
+            _cancellationToken);
         return new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
     }
 

@@ -96,13 +96,14 @@ public static class HtmlAccessibilitySemantics {
         int depth) {
         if (element == null) return string.Empty;
         if (depth > MaximumAriaResolutionDepth) return string.Empty;
+        if (!context.TryConsumeTraversalWork()) return string.Empty;
         if (!resolutionPath.Add(element)) return string.Empty;
 
         try {
             string labelledBy = ResolveLabelledBy(element, resolutionPath, context, depth);
             if (labelledBy.Length > 0) return labelledBy;
 
-            string ariaLabel = NormalizeText(element.GetAttribute("aria-label"));
+            string ariaLabel = context.NormalizeText(element.GetAttribute("aria-label"));
             if (ariaLabel.Length > 0) return ariaLabel;
 
             string tagName = element.TagName;
@@ -110,12 +111,12 @@ public static class HtmlAccessibilitySemantics {
                  || tagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
                  || tagName.Equals("AREA", StringComparison.OrdinalIgnoreCase))
                 && element.HasAttribute("alt")) {
-                return NormalizeText(element.GetAttribute("alt"));
+                return context.NormalizeText(element.GetAttribute("alt"));
             }
             if (tagName.Equals("INPUT", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)
                 && element.HasAttribute("alt")) {
-                return NormalizeText(element.GetAttribute("alt"));
+                return context.NormalizeText(element.GetAttribute("alt"));
             }
             if (tagName.Equals("SVG", StringComparison.OrdinalIgnoreCase)) {
                 IElement? titleElement = element.Children.FirstOrDefault(static child =>
@@ -129,7 +130,7 @@ public static class HtmlAccessibilitySemantics {
                 if (text.Length > 0) return text;
             }
 
-            return NormalizeText(element.GetAttribute("title"));
+            return context.NormalizeText(element.GetAttribute("title"));
         } finally {
             resolutionPath.Remove(element);
         }
@@ -214,7 +215,26 @@ public static class HtmlAccessibilitySemantics {
 
     internal sealed class HtmlAccessibleNameContext {
         private const int MaximumAggregateNameCharacters = 4 * 1024 * 1024;
+        private const int MaximumTraversalWork = 4 * 1024 * 1024;
         private int _remainingCharacters = MaximumAggregateNameCharacters;
+        private int _remainingTraversalWork = MaximumTraversalWork;
+
+        internal bool TryConsumeTraversalWork(int units = 1) {
+            if (units <= 0) units = 1;
+            if (_remainingTraversalWork < units) {
+                _remainingTraversalWork = 0;
+                return false;
+            }
+            _remainingTraversalWork -= units;
+            return true;
+        }
+
+        internal string NormalizeText(string? value) {
+            if (string.IsNullOrEmpty(value) || !TryConsumeTraversalWork(value!.Length)) {
+                return string.Empty;
+            }
+            return HtmlAccessibilitySemantics.NormalizeText(value);
+        }
 
         internal string Limit(string value) {
             if (_remainingCharacters <= 0 || value.Length == 0) return string.Empty;
@@ -225,7 +245,7 @@ public static class HtmlAccessibilitySemantics {
         }
 
         internal string GetBoundedText(IElement? element) {
-            if (element == null || _remainingCharacters <= 0) return string.Empty;
+            if (element == null || _remainingCharacters <= 0 || !TryConsumeTraversalWork()) return string.Empty;
             var builder = new System.Text.StringBuilder(MaximumAccessibleNameCharacters);
             var stack = new Stack<INode>();
             for (int index = element.ChildNodes.Length - 1; index >= 0; index--) {
@@ -233,9 +253,14 @@ public static class HtmlAccessibilitySemantics {
             }
             bool pendingSpace = false;
             while (stack.Count > 0 && builder.Length < MaximumAccessibleNameCharacters) {
+                if (!TryConsumeTraversalWork()) break;
                 INode node = stack.Pop();
                 if (node.NodeType == NodeType.Text) {
-                    string text = NormalizeText(node.TextContent);
+                    string? sourceText = node.TextContent;
+                    if (string.IsNullOrEmpty(sourceText) || !TryConsumeTraversalWork(sourceText!.Length)) {
+                        continue;
+                    }
+                    string text = HtmlAccessibilitySemantics.NormalizeText(sourceText);
                     if (text.Length == 0) continue;
                     if (pendingSpace && builder.Length < MaximumAccessibleNameCharacters) builder.Append(' ');
                     int available = MaximumAccessibleNameCharacters - builder.Length;

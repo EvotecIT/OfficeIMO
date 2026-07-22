@@ -7,15 +7,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     internal static class XlsbFormulaEncoder {
         private const int MaximumFormulaCharacters = 8_192;
         private const int MaximumControlFunctionDepth = 64;
+        private const int MaximumFormulaOperators = 256;
 
         internal static bool TryEncode(string formulaText, out byte[] formulaPayload, out string? reason) {
             formulaPayload = Array.Empty<byte>();
             if (formulaText == null) throw new ArgumentNullException(nameof(formulaText));
-            if (formulaText.Length > MaximumFormulaCharacters) {
+        if (formulaText.Length > MaximumFormulaCharacters) {
                 reason = $"Formula text exceeds the supported limit of {MaximumFormulaCharacters} characters.";
-                return false;
-            }
-            if (!TryEncodeTokens(formulaText, depth: 0, out byte[] biff12Tokens, out reason)) return false;
+            return false;
+        }
+        if (ExceedsSyntacticNestingLimit(formulaText)) {
+            reason = $"Formula syntactic nesting exceeds the supported depth of {MaximumControlFunctionDepth}.";
+            return false;
+        }
+        if (!TryEncodeTokens(formulaText, depth: 0, out byte[] biff12Tokens, out reason)) return false;
 
             using var payload = new MemoryStream(checked(biff12Tokens.Length + 10));
             WriteUInt16(payload, 0); // grbit
@@ -24,6 +29,46 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt32(payload, 0); // cbExtra
             formulaPayload = payload.ToArray();
             return true;
+        }
+
+        private static bool ExceedsSyntacticNestingLimit(string formulaText) {
+            int parenthesisDepth = 0;
+            int unaryRun = 0;
+            int operators = 0;
+            bool quoted = false;
+            for (int index = 0; index < formulaText.Length; index++) {
+                char current = formulaText[index];
+                if (current == '"') {
+                    if (quoted && index + 1 < formulaText.Length && formulaText[index + 1] == '"') {
+                        index++;
+                        continue;
+                    }
+                    quoted = !quoted;
+                    unaryRun = 0;
+                    continue;
+                }
+                if (quoted) continue;
+                if (current == '(') {
+                    parenthesisDepth++;
+                    if (parenthesisDepth > MaximumControlFunctionDepth) return true;
+                    unaryRun = 0;
+                } else if (current == ')') {
+                    if (parenthesisDepth > 0) parenthesisDepth--;
+                    unaryRun = 0;
+                } else if (current == '+' || current == '-') {
+                    unaryRun++;
+                    if (unaryRun > MaximumControlFunctionDepth) return true;
+                    if (++operators > MaximumFormulaOperators) return true;
+                } else if (current == '*' || current == '/' || current == '^' ||
+                           current == '&' || current == '=' || current == '<' ||
+                           current == '>' || current == '%') {
+                    unaryRun = 0;
+                    if (++operators > MaximumFormulaOperators) return true;
+                } else if (!char.IsWhiteSpace(current)) {
+                    unaryRun = 0;
+                }
+            }
+            return false;
         }
 
         private static bool TryEncodeTokens(string formulaText, int depth,

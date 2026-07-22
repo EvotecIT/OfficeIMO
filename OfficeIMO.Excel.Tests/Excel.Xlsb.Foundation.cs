@@ -145,6 +145,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_FormulaEncoder_RejectsDeepLegacyParserNesting() {
+            string formula = new string('(', 65) + "1" + new string(')', 65);
+
+            Assert.False(XlsbFormulaEncoder.TryEncode(
+                formula, out _, out string? reason));
+            Assert.Contains("nesting", reason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_FormulaEncoder_RejectsExcessiveLegacyOperatorChains() {
+            string postfix = "1" + new string('%', 300);
+            string binary = string.Join("+", Enumerable.Repeat("1", 300));
+
+            Assert.False(XlsbFormulaEncoder.TryEncode(postfix, out _, out string? postfixReason));
+            Assert.False(XlsbFormulaEncoder.TryEncode(binary, out _, out string? binaryReason));
+            Assert.Contains("nesting", postfixReason, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("nesting", binaryReason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Xlsb_WorkbookReader_EnforcesRowMetadataBudget() {
             byte[] package;
             using (ExcelDocument document = ExcelDocument.Create()) {
