@@ -1450,6 +1450,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_FiniteDashLengthsRenderWhenTheirCycleOverflows() {
+            OfficeRasterImage dashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage patterned = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(dashed).DrawDashedLine(
+                0D, 3D, 31D, 3D, OfficeColor.Black, 1D, double.MaxValue, double.MaxValue);
+            new OfficeRasterCanvas(patterned).DrawPatternedLine(
+                0D, 4D, 31D, 4D, OfficeColor.Black, 1D, new[] { double.MaxValue, double.MaxValue });
+
+            Assert.Contains(Enumerable.Range(0, dashed.Width), x => dashed.GetPixel(x, 3).A > 0);
+            Assert.Contains(Enumerable.Range(0, patterned.Width), x => patterned.GetPixel(x, 4).A > 0);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_OddDashPatternsPreserveAlternatingParityAcrossWrap() {
             OfficeRasterImage odd = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
             OfficeRasterImage duplicated = new OfficeRasterImage(32, 8, OfficeColor.Transparent);

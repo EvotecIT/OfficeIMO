@@ -182,10 +182,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double cycle = dashLength + gapLength;
-        if (!IsFinite(cycle) || cycle <= 0D) {
-            return;
-        }
+        double cycle = SaturatingDashCycle(dashLength, gapLength);
 
         OfficePoint clippedStart = start;
         OfficePoint clippedEnd = end;
@@ -248,7 +245,8 @@ public sealed partial class OfficeRasterCanvas {
 
         double cycle = 0D;
         for (int i = 0; i < dashPattern.Count; i++) {
-            cycle += dashPattern[i];
+            cycle = SaturatingDashCycle(cycle, dashPattern[i]);
+            if (cycle == double.MaxValue) break;
         }
 
         if (!IsFinite(cycle) || cycle <= 0D) {
@@ -307,6 +305,11 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
         patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
+    }
+
+    private static double SaturatingDashCycle(double left, double right) {
+        if (!IsFinite(left) || !IsFinite(right) || left < 0D || right < 0D) return 0D;
+        return left > double.MaxValue - right ? double.MaxValue : left + right;
     }
 
     private static void NormalizeRasterDashLengths(ref double dashLength, ref double gapLength) {
