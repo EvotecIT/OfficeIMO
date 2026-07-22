@@ -101,6 +101,7 @@ namespace OfficeIMO.Tests {
                 sheetData.Append(new X.Row { RowIndex = index });
             }
             sheetData.Append(new X.Row { RowIndex = 100001U, Height = 60D, CustomHeight = true });
+            sheetData.Append(new X.Row { RowIndex = 100001U, Height = 30D, CustomHeight = true });
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(80, snapshot.HeightPixels);

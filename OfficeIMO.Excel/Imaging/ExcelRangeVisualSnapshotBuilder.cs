@@ -1446,15 +1446,14 @@ namespace OfficeIMO.Excel {
 
             int lastVisibleColumn = columnsByIndex.Keys.Max();
             int lastVisibleRow = rowsByIndex.Keys.Max();
-            if (columnIndex > lastVisibleColumn || rowIndex > lastVisibleRow ||
-                (toColumnIndex.HasValue && toColumnIndex.Value < firstColumn) ||
-                (toRowIndex.HasValue && toRowIndex.Value < firstRow) ||
-                (columnIndex < firstColumn && (long)firstColumn - columnIndex > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
-                (rowIndex < firstRow && (long)firstRow - rowIndex > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
-                (toColumnIndex.HasValue && toColumnIndex.Value > lastVisibleColumn &&
-                    Math.Abs((long)toColumnIndex.Value - columnIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
-                (toRowIndex.HasValue && toRowIndex.Value > lastVisibleRow &&
-                    Math.Abs((long)toRowIndex.Value - rowIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells)) {
+            if (DistanceOutsideRange(columnIndex, firstColumn, lastVisibleColumn) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                DistanceOutsideRange(rowIndex, firstRow, lastVisibleRow) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                (toColumnIndex.HasValue &&
+                    (DistanceOutsideRange(toColumnIndex.Value, firstColumn, lastVisibleColumn) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                     Math.Abs((long)toColumnIndex.Value - columnIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells)) ||
+                (toRowIndex.HasValue &&
+                    (DistanceOutsideRange(toRowIndex.Value, firstRow, lastVisibleRow) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
+                     Math.Abs((long)toRowIndex.Value - rowIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells))) {
                 return false;
             }
 
@@ -1475,6 +1474,14 @@ namespace OfficeIMO.Excel {
                 x + width > 0D &&
                 y < rangeHeight &&
                 y + height > 0D;
+        }
+
+        private static long DistanceOutsideRange(int value, int first, int last) {
+            if (value < first) {
+                return (long)first - value;
+            }
+
+            return value > last ? (long)value - last : 0L;
         }
 
         private static bool TryGetAnchor(

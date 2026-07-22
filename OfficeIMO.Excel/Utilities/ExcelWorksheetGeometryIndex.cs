@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel.Utilities {
                 if (remainingColumnWork <= 0) {
                     break;
                 }
+                remainingColumnWork--;
 
                 if (definition.Min?.Value is not uint minimum ||
                     definition.Max?.Value is not uint maximum ||
@@ -157,6 +158,7 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             var heights = new double[1048577];
+            var assigned = new bool[1048577];
             int processedRowDefinitions = 0;
             foreach (X.Row row in _sheetData?.Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
                 if (processedRowDefinitions >= MaximumOverflowRowDefinitionWork) {
@@ -164,10 +166,12 @@ namespace OfficeIMO.Excel.Utilities {
                 }
                 processedRowDefinitions++;
 
-                if (row.RowIndex?.Value is not uint rowIndex || rowIndex == 0U || rowIndex > 1048576U || _rows.ContainsKey((int)rowIndex)) {
+                if (row.RowIndex?.Value is not uint rowIndex || rowIndex == 0U || rowIndex > 1048576U ||
+                    _rows.ContainsKey((int)rowIndex) || assigned[rowIndex]) {
                     continue;
                 }
 
+                assigned[rowIndex] = true;
                 heights[rowIndex] = row.Hidden?.Value == true
                     ? -1D
                     : row.Height?.Value > 0D && row.CustomHeight?.Value == true
