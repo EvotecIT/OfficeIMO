@@ -91,6 +91,23 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void PdfReadPage_ChargesRepeatedContentStreamReferencesPerOccurrence() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 4 0 R] >>",
+            BuildStream("BT ET"));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = 9 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
+    [Fact]
     public void PdfReadPage_BoundsNestedFormContentAgainstPageBudget() {
         const string pageContent = "/Fx Do";
         const string formContent = "BT (Nested) Tj ET";
@@ -289,6 +306,22 @@ public sealed class PdfResourceBudgetSecurityTests {
             PdfAttachmentExtractor.ExtractAttachments(objects, trailer, limits));
 
         Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfAttachmentExtractor_CountsOnlyIndirectNameTreeNodes() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Kids [5 0 R] >> >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [] >>");
+        (System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects, string trailer) = PdfSyntax.ParseObjects(pdf);
+        var limits = new PdfReadLimits { MaxNameTreeNodes = 1 };
+
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(objects, trailer, limits);
+
+        Assert.Empty(attachments);
     }
 
     [Fact]

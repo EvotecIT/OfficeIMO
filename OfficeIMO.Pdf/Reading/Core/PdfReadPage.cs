@@ -1445,6 +1445,7 @@ public sealed partial class PdfReadPage {
 
         internal byte[] Decode(PdfStream stream) {
             if (_decodedStreams.TryGetValue(stream, out byte[]? cached)) {
+                Charge(cached.LongLength);
                 return cached;
             }
 
@@ -1469,16 +1470,19 @@ public sealed partial class PdfReadPage {
                     (long)_page._limits.MaxPageContentBytes + 1L);
             }
 
-            _decodedBytes += decoded.LongLength;
+            Charge(decoded.LongLength);
+            _decodedStreams[stream] = decoded;
+            return decoded;
+        }
+
+        private void Charge(long decodedBytes) {
+            _decodedBytes += decodedBytes;
             if (_decodedBytes > _page._limits.MaxPageContentBytes) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.PageContentBytes,
                     _page._limits.MaxPageContentBytes,
                     _decodedBytes);
             }
-
-            _decodedStreams[stream] = decoded;
-            return decoded;
         }
     }
 }

@@ -176,17 +176,19 @@ internal static class PdfAttachmentExtractor {
         PdfReadLimits limits,
         int depth,
         ref int traversedNodes) {
-        int treeObjectNumber = treeObject is PdfReference treeReference ? treeReference.ObjectNumber : 0;
-        if (treeObjectNumber > 0 && !visitedTrees.Add(treeObjectNumber)) {
-            return;
+        if (treeObject is PdfReference treeReference) {
+            if (!visitedTrees.Add(treeReference.ObjectNumber)) {
+                return;
+            }
+
+            traversedNodes++;
+            if (traversedNodes > limits.MaxNameTreeNodes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, limits.MaxNameTreeNodes, traversedNodes);
+            }
         }
 
         if (depth > limits.MaxNameTreeDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeDepth, limits.MaxNameTreeDepth, depth);
-        }
-        traversedNodes++;
-        if (traversedNodes > limits.MaxNameTreeNodes) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, limits.MaxNameTreeNodes, traversedNodes);
         }
 
         if (ResolveDictionary(objects, treeObject) is not PdfDictionary tree) {
