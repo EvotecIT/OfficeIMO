@@ -81,8 +81,10 @@ public class PdfReadLimitTests {
     [Fact]
     public void OneShotExternalSignatureBoundsAndCancelsStreamInputBeforeCallingSigner() {
         byte[] pdf = BuildPdf();
+        byte[] prefixed = new byte[pdf.Length + 5];
+        Buffer.BlockCopy(pdf, 0, prefixed, 5, pdf.Length);
         var signer = new RecordingExternalSigner();
-        using var stream = new MemoryStream(pdf);
+        using var stream = new MemoryStream(prefixed);
         stream.Position = 5;
 
         PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
@@ -102,6 +104,19 @@ public class PdfReadLimitTests {
                 signer,
                 new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
         Assert.False(signer.WasCalled);
+
+        using var currentPositionStream = new MemoryStream(prefixed);
+        currentPositionStream.Position = 5;
+        var currentPositionSigner = new RecordingExternalSigner();
+
+        PdfExternalSignatureCompletion completion = PdfIncrementalUpdater.SignExternal(
+            currentPositionStream,
+            currentPositionSigner,
+            new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length });
+
+        Assert.True(currentPositionSigner.WasCalled);
+        Assert.Equal(currentPositionStream.Length, currentPositionStream.Position);
+        Assert.True(completion.Pdf.Length > pdf.Length);
     }
 
     [Fact]

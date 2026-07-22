@@ -50,13 +50,13 @@ internal static partial class PdfIncrementalUpdater {
         ValidateSigningInput(0, effectiveOptions);
         byte[] pdf;
         try {
-            pdf = OfficeStreamReader.ReadAllBytes(
+            pdf = OfficeStreamReader.ReadRemainingBytes(
                 input,
                 effectiveOptions.CancellationToken,
                 effectiveOptions.MaxInputBytes);
         } catch (InvalidDataException) {
             long observedBytes = input.CanSeek
-                ? input.Length
+                ? Math.Max(0L, input.Length - input.Position)
                 : checked(effectiveOptions.MaxInputBytes + 1L);
             throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes,
                 effectiveOptions.MaxInputBytes, observedBytes);

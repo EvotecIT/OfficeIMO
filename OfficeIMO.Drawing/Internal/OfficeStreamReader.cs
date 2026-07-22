@@ -22,8 +22,19 @@ namespace OfficeIMO.Drawing.Internal {
         /// Reads from the caller's current position through the end of the stream without rewinding.
         /// </summary>
         public static byte[] ReadRemainingBytes(Stream source, long? maxBytes = null) {
+            return ReadRemainingBytes(source, CancellationToken.None, maxBytes);
+        }
+
+        /// <summary>
+        /// Reads from the caller's current position through the end of the stream without rewinding,
+        /// with cooperative cancellation.
+        /// </summary>
+        public static byte[] ReadRemainingBytes(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes = null) {
             ValidateRemainingSource(source, maxBytes);
-            return ReadToEnd(source, CancellationToken.None, maxBytes);
+            return ReadToEnd(source, cancellationToken, maxBytes);
         }
 
         /// <summary>Reads a complete artifact with cooperative cancellation.</summary>
