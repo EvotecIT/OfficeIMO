@@ -12,7 +12,13 @@ namespace OfficeIMO.Excel {
         private const int MaxChartDataPoints = 1_000_000;
 
         private sealed class ChartDataPointBudget {
-            private long _remaining = MaxChartDataPoints;
+            private long _remaining;
+
+            internal ChartDataPointBudget() : this(MaxChartDataPoints) { }
+
+            internal ChartDataPointBudget(long maximum) {
+                _remaining = maximum;
+            }
 
             internal bool TryCharge(long count) {
                 if (count < 0 || count > _remaining) {
@@ -318,7 +324,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) {
+        internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) =>
+            TryReadChartDataCore(chartPart, contextSheet, new ChartDataPointBudget());
+
+        private static ExcelChartData? TryReadChartDataCore(
+            ChartPart chartPart,
+            ExcelSheet contextSheet,
+            ChartDataPointBudget pointBudget) {
             try {
                 var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
                 var plotArea = chart?.GetFirstChild<PlotArea>();
@@ -331,7 +343,6 @@ namespace OfficeIMO.Excel {
                     return null;
                 }
 
-                var pointBudget = new ChartDataPointBudget();
                 if (!TryReadCategoryValues(seriesList[0], contextSheet, pointBudget, out IReadOnlyList<string>? categories) || categories == null || categories.Count == 0) {
                     return null;
                 }
@@ -345,11 +356,15 @@ namespace OfficeIMO.Excel {
                         : $"Series {i + 1}";
                     IReadOnlyList<double>? xValues = null;
                     if (seriesElement is ScatterChartSeries scatterSeries) {
-                        NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                        NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
-                        if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out xValues) &&
-                            !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out xValues)) {
-                            TryReadCachedNumberValues(xReference, pointBudget, out xValues);
+                        if (i == 0) {
+                            xValues = ParseNumericCategories(categories);
+                        } else {
+                            NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
+                            NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
+                            if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out xValues) &&
+                                !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out xValues)) {
+                                TryReadCachedNumberValues(xReference, pointBudget, out xValues);
+                            }
                         }
                     }
 
