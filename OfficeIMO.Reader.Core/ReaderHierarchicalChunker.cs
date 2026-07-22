@@ -202,10 +202,6 @@ public static partial class ReaderHierarchicalChunker {
         }
         int inspectedPageBlocks = 0;
         for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
-            if (pageIndexValue >= maximumInputChunks) {
-                yield return FallbackBlock.LimitMarker;
-                yield break;
-            }
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentPage page = pages[pageIndexValue];
             if (page?.Blocks == null) continue;
@@ -245,7 +241,7 @@ public static partial class ReaderHierarchicalChunker {
             ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var byId = new Dictionary<string, OfficeDocumentPage>(StringComparer.Ordinal);
         int visited = 0;
-        for (int pageIndex = 0; pageIndex < pages.Count && pageIndex < maximumBlocks; pageIndex++) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentPage page = pages[pageIndex];
             if (page?.Blocks == null) continue;

@@ -713,6 +713,8 @@ internal static class HtmlPdfRenderedConverter {
                 yield return text.Font.FamilyName;
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
                 foreach (string familyNames in EnumerateDrawingFontFamilyLists(effectGroup.Drawing.Elements)) yield return familyNames;
+            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+                foreach (string familyNames in EnumerateDrawingFontFamilyLists(tilingPattern.Tile.Elements)) yield return familyNames;
             }
         }
     }

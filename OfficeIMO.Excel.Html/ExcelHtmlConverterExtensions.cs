@@ -144,7 +144,10 @@ public static partial class ExcelHtmlConverterExtensions {
         }
         ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, maxColumns);
         if (rowCount == 0 || columnCount == 0 || maxRows == 0 || maxColumns == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, maxRows, maxColumns) && mergeMap.Count == 0)) {
-            body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
+            body.Append(rowCount > 0 && columnCount > 0
+                ? "<p class=\"officeimo-muted\">No cells within export limits.</p>"
+                : "<p class=\"officeimo-muted\">No used cells.</p>");
+            AppendSheetTruncationDiagnostics(body, maxRows, rowCount, maxColumns, columnCount);
             AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");
             return;
@@ -208,23 +211,32 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
-        if (maxColumns < columnCount) {
-            body.Append("<p class=\"officeimo-diagnostic\">Columns truncated: ")
-                .Append(maxColumns.ToString(CultureInfo.InvariantCulture))
-                .Append(" of ")
-                .Append(columnCount.ToString(CultureInfo.InvariantCulture))
-                .Append(" exported.</p>");
-        }
-        if (maxRows < rowCount) {
-            body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
-                .Append(maxRows.ToString(CultureInfo.InvariantCulture))
-                .Append(" of ")
-                .Append(rowCount.ToString(CultureInfo.InvariantCulture))
-                .Append(" exported.</p>");
-        }
+        AppendSheetTruncationDiagnostics(body, maxRows, rowCount, maxColumns, columnCount);
 
         AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
         body.Append("</section>");
+    }
+
+    private static void AppendSheetTruncationDiagnostics(
+        StringBuilder body,
+        int exportedRows,
+        int totalRows,
+        int exportedColumns,
+        int totalColumns) {
+        if (exportedColumns < totalColumns) {
+            body.Append("<p class=\"officeimo-diagnostic\">Columns truncated: ")
+                .Append(exportedColumns.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(totalColumns.ToString(CultureInfo.InvariantCulture))
+                .Append(" exported.</p>");
+        }
+        if (exportedRows < totalRows) {
+            body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
+                .Append(exportedRows.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(totalRows.ToString(CultureInfo.InvariantCulture))
+                .Append(" exported.</p>");
+        }
     }
 
     private static bool SheetHasUsedCells(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {

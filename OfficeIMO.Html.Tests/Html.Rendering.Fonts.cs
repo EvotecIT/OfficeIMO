@@ -226,6 +226,41 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByRepeatedSvgBackgroundText() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null
+            || string.IsNullOrWhiteSpace(fontPath)
+            || !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) {
+            return;
+        }
+
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24'>"
+            + "<text x='2' y='17' font-family='Pdf Tile Demo' font-size='12'>TiledFontMarker</text></svg>";
+        string html = "<style>@font-face{font-family:'Pdf Tile Demo';src:url(\"data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "\") format('truetype')}</style><div style=\"width:240px;height:48px;background-image:url('data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "');background-size:120px 24px;background-repeat:repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        byte[] pdf = result.ToBytes();
+
+        HtmlRenderDrawing background = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
+        Assert.Single(background.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Contains("TiledFontMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontsWithoutConsumingStandardFontSlots() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null

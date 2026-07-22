@@ -346,7 +346,7 @@ public static partial class OfficeSvgDrawingReader {
 
             if (!string.IsNullOrWhiteSpace(currentColorText) &&
                 !currentColorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase) &&
-                !OfficeColor.TryParse(currentColorText.Trim(), out currentColor)) return false;
+                !TrySvgColor(currentColorText.Trim(), out currentColor)) return false;
 
             if (string.IsNullOrWhiteSpace(colorText)) color = OfficeColor.Black;
             else if (colorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) color = currentColor;

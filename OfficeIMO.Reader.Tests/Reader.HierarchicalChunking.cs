@@ -377,6 +377,32 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_InheritsPageLocationBeyondInputChunkOrdinal() {
+        var block = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { block },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = Array.Empty<OfficeDocumentBlock>() },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { block } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
     public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
         ReaderChunk source = CreateChunk("stable-id", "body");
         source.Location.Page = null;

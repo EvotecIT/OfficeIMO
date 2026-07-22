@@ -601,8 +601,9 @@ public class DrawingSvgReaderTests {
     [Fact]
     public void SvgReaderResolvesRgbaCurrentColorInGradientStops() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
-            + "<defs><linearGradient id='paint' style='color:rgba(36,87,166,0.502)'>"
-            + "<stop stop-color='currentColor'/><stop offset='1' stop-color='white'/></linearGradient></defs>"
+            + "<defs><linearGradient id='paint'>"
+            + "<stop style='color:rgba(36,87,166,0.502);stop-color:currentColor'/>"
+            + "<stop offset='1' color='rgb(10%,20%,30%)' stop-color='currentColor'/></linearGradient></defs>"
             + "<rect width='10' height='10' fill='url(#paint)'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
@@ -610,6 +611,7 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0, unsupported);
         OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(Assert.Single(drawing!.Shapes).Shape.FillGradient);
         Assert.Equal(OfficeColor.FromRgba(36, 87, 166, 128), gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.FromRgb(26, 51, 76), gradient.Stops[gradient.Stops.Count - 1].Color);
     }
 
     [Fact]
