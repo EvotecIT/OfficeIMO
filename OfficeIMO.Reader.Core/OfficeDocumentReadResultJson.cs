@@ -131,30 +131,26 @@ public static partial class OfficeDocumentReadResultJson {
         OfficeDocumentReadResult result,
         string schemaId,
         int schemaVersion) {
-        if (string.Equals(result.SchemaId, schemaId, StringComparison.Ordinal) && result.SchemaVersion == schemaVersion) {
-            return result;
-        }
-
         return new OfficeDocumentReadResult {
             SchemaId = schemaId,
             SchemaVersion = schemaVersion,
             Kind = result.Kind,
-            Source = result.Source,
-            CapabilitiesUsed = result.CapabilitiesUsed,
+            Source = result.Source ?? new OfficeDocumentSource(),
+            CapabilitiesUsed = result.CapabilitiesUsed ?? Array.Empty<string>(),
             Markdown = result.Markdown,
             Html = result.Html,
             Json = result.Json,
-            Chunks = result.Chunks,
-            Metadata = result.Metadata,
-            Pages = result.Pages,
-            Blocks = result.Blocks,
-            Tables = result.Tables,
-            Assets = result.Assets,
-            Links = result.Links,
-            Forms = result.Forms,
-            OcrCandidates = result.OcrCandidates,
-            Visuals = result.Visuals,
-            Diagnostics = result.Diagnostics
+            Chunks = result.Chunks ?? Array.Empty<ReaderChunk>(),
+            Metadata = result.Metadata ?? Array.Empty<OfficeDocumentMetadataEntry>(),
+            Pages = result.Pages ?? Array.Empty<OfficeDocumentPage>(),
+            Blocks = result.Blocks ?? Array.Empty<OfficeDocumentBlock>(),
+            Tables = result.Tables ?? Array.Empty<ReaderTable>(),
+            Assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>(),
+            Links = result.Links ?? Array.Empty<OfficeDocumentLink>(),
+            Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
+            OcrCandidates = result.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>(),
+            Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
+            Diagnostics = result.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>()
         };
     }
 

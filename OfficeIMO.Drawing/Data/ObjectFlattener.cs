@@ -193,7 +193,7 @@ namespace OfficeIMO.Drawing {
             }
 
             if (IsValueTuple(type)) {
-                int fieldCount = GetValueTupleFields(type).Length;
+                int fieldCount = GetValueTupleItemCount(type);
                 return fieldCount > 0 ? fieldCount : type.IsGenericType ? type.GetGenericArguments().Length : 0;
             }
 
@@ -281,9 +281,12 @@ namespace OfficeIMO.Drawing {
             }
 #endif
 
-            // Fallback: reflect public instance fields Item1..ItemN
-            var fields = GetValueTupleFields(obj.GetType());
             int idx = 1;
+            FlattenValueTupleFields(obj, dict, prefix, depth, opts, ref idx);
+        }
+
+        private static void FlattenValueTupleFields(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, ref int idx) {
+            var fields = GetValueTupleFields(obj.GetType());
             foreach (var f in fields) {
                 var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
                 var val = f.GetValue(obj);
@@ -295,6 +298,12 @@ namespace OfficeIMO.Drawing {
                     FlattenInternal(val, dict, path, depth + 1, opts);
                 }
                 idx++;
+            }
+
+            FieldInfo? restField = GetValueTupleRestField(obj.GetType());
+            object? rest = restField?.GetValue(obj);
+            if (rest != null && IsValueTuple(rest.GetType())) {
+                FlattenValueTupleFields(rest, dict, prefix, depth, opts, ref idx);
             }
         }
 
@@ -354,8 +363,7 @@ namespace OfficeIMO.Drawing {
         private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
-                // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)
-                int itemCount = GetValueTupleFields(type).Length;
+                int itemCount = GetValueTupleItemCount(type);
                 // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
                 if (itemCount == 0 && type.IsGenericType)
                     itemCount = type.GetGenericArguments().Length;
@@ -394,6 +402,27 @@ namespace OfficeIMO.Drawing {
 
         private static FieldInfo[] GetValueTupleFields(Type valueTupleType)
             => _valueTupleFieldCache.GetOrAdd(valueTupleType, CreateValueTupleFields);
+
+        private static int GetValueTupleItemCount(Type valueTupleType) {
+            int count = GetValueTupleFields(valueTupleType).Length;
+            FieldInfo? restField = GetValueTupleRestField(valueTupleType);
+            if (restField != null && IsValueTuple(restField.FieldType)) {
+                count += GetValueTupleItemCount(restField.FieldType);
+            }
+            return count;
+        }
+
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2070",
+            Justification = "ValueTuple.Rest is part of the runtime tuple contract; the generic Flatten<T> and GetPaths(Type) entry points preserve public fields for the supplied tuple type.")]
+        private static FieldInfo? GetValueTupleRestField(Type valueTupleType) {
+            try {
+                return valueTupleType.GetField("Rest", BindingFlags.Public | BindingFlags.Instance);
+            } catch {
+                return null;
+            }
+        }
 
         [UnconditionalSuppressMessage(
             "Trimming",

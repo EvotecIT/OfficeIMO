@@ -188,6 +188,44 @@ public sealed class ReaderContractTests {
         Assert.Equal(0, result.SchemaVersion);
     }
 
+    [Fact]
+    public void OfficeDocumentReadResultJson_NormalizesRequiredNullMembersWithoutMutatingInput() {
+        var result = new OfficeDocumentReadResult {
+            Source = null!,
+            CapabilitiesUsed = null!,
+            Chunks = null!,
+            Metadata = null!,
+            Pages = null!,
+            Blocks = null!,
+            Tables = null!,
+            Assets = null!,
+            Links = null!,
+            Forms = null!,
+            OcrCandidates = null!,
+            Visuals = null!,
+            Diagnostics = null!
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+
+        Assert.NotNull(restored.Source);
+        Assert.Empty(restored.CapabilitiesUsed);
+        Assert.Empty(restored.Chunks);
+        Assert.Empty(restored.Metadata);
+        Assert.Empty(restored.Pages);
+        Assert.Empty(restored.Blocks);
+        Assert.Empty(restored.Tables);
+        Assert.Empty(restored.Assets);
+        Assert.Empty(restored.Links);
+        Assert.Empty(restored.Forms);
+        Assert.Empty(restored.OcrCandidates);
+        Assert.Empty(restored.Visuals);
+        Assert.Empty(restored.Diagnostics);
+        Assert.Null(result.Source);
+        Assert.Null(result.Chunks);
+    }
+
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]

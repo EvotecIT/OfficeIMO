@@ -29,6 +29,21 @@ public sealed class DrawingObjectFlattenerTests {
         Assert.True(values.ContainsKey("Name"));
     }
 
+    [Fact]
+    public void FlattenAndGetPathsRetainLongValueTupleElements() {
+        var tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var flattener = new ObjectFlattener();
+        var options = new ObjectFlattenerOptions();
+
+        Dictionary<string, object?> values = flattener.Flatten(tuple, options);
+        List<string> paths = flattener.GetPaths(tuple.GetType(), options);
+
+        Assert.Equal(9, values.Count);
+        Assert.Equal(8, values["Item8"]);
+        Assert.Equal(9, values["Item9"]);
+        Assert.Equal(Enumerable.Range(1, 9).Select(index => $"Item{index}"), paths);
+    }
+
     private sealed class ContactRow {
         public string Name { get; } = "Alice";
 
