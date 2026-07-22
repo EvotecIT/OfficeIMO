@@ -18,12 +18,12 @@ permissions:
 
 jobs:
   website-build:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@6c7eee8e2a224a0a75497ba8a42aadaaee6a7a26
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@cf36f78b0559ddc640a5ca5b32362d2803e2293c
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 6c7eee8e2a224a0a75497ba8a42aadaaee6a7a26
+      powerforge_ref: cf36f78b0559ddc640a5ca5b32362d2803e2293c
       report_artifact_name: powerforge-website-reports
