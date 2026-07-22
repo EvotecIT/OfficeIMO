@@ -251,32 +251,42 @@ internal static class MarkdownToRtfConverter {
         int parentLevel,
         MarkdownToRtfConversionContext context,
         IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
-        var pending = new Queue<ListItem>();
-        EnqueueListItems(listBlock, pending);
+        var pending = new Stack<object>();
+        PushListItems(listBlock, pending);
         while (pending.Count > 0) {
-            ListItem item = pending.Dequeue();
+            object next = pending.Pop();
+            if (next is IMarkdownBlock continuationBlock) {
+                ConvertNestedContinuationBlock(document, continuationBlock, parentLevel, context, footnoteDefinitions);
+                continue;
+            }
+
+            ListItem item = (ListItem)next;
             AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.Content, document, context, InlineStyle.Normal, footnoteDefinitions);
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
                 AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.AdditionalParagraphs[paragraphIndex], document, context, InlineStyle.Normal, footnoteDefinitions);
             }
 
-            for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
+            for (int childIndex = item.ChildBlocks.Count - 1; childIndex >= 0; childIndex--) {
                 IMarkdownBlock child = item.ChildBlocks[childIndex];
+                if (IsRenderedListItemParagraphBlock(item, child)) {
+                    continue;
+                }
+
                 if (child is UnorderedListBlock || child is OrderedListBlock) {
-                    EnqueueListItems(child, pending);
-                } else if (!IsRenderedListItemParagraphBlock(item, child)) {
-                    ConvertNestedContinuationBlock(document, child, parentLevel, context, footnoteDefinitions);
+                    PushListItems(child, pending);
+                } else {
+                    pending.Push(child);
                 }
             }
         }
     }
 
-    private static void EnqueueListItems(IMarkdownBlock listBlock, Queue<ListItem> pending) {
+    private static void PushListItems(IMarkdownBlock listBlock, Stack<object> pending) {
         IReadOnlyList<ListItem> items = listBlock is UnorderedListBlock unorderedList
             ? unorderedList.Items
             : ((OrderedListBlock)listBlock).Items;
-        for (int index = 0; index < items.Count; index++) {
-            pending.Enqueue(items[index]);
+        for (int index = items.Count - 1; index >= 0; index--) {
+            pending.Push(items[index]);
         }
     }
 

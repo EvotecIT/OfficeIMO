@@ -45,6 +45,24 @@ public class RtfMarkdownSecurityLimitTests {
     }
 
     [Fact]
+    public void MarkdownListConversionPreservesDepthFirstOrderWhenFlatteningCappedLists() {
+        ListItem nested = ListItem.Text("AlphaChild");
+        ListItem first = ListItem.Text("AlphaParent");
+        first.NestedBlocks.Add(new UnorderedListBlock { Items = { nested } });
+        ListItem second = ListItem.Text("BetaSibling");
+        ListItem root = ListItem.Text("Root");
+        root.NestedBlocks.Add(new UnorderedListBlock { Items = { first, second } });
+        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+
+        string roundTrip = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 }).ToMarkdown();
+
+        int firstIndex = roundTrip.IndexOf("AlphaParent", StringComparison.Ordinal);
+        int childIndex = roundTrip.IndexOf("AlphaChild", StringComparison.Ordinal);
+        int secondIndex = roundTrip.IndexOf("BetaSibling", StringComparison.Ordinal);
+        Assert.True(firstIndex >= 0 && childIndex > firstIndex && secondIndex > childIndex, roundTrip);
+    }
+
+    [Fact]
     public void CodeBlockInfoBookmarkPayloadIsBounded() {
         string infoString = new string('x', 2_000);
         MarkdownDoc markdown = MarkdownDoc.Create().Add(new CodeBlock(infoString, "value"));
