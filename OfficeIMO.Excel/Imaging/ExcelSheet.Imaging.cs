@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
             HeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
-                ? GetHeaderFooter()
+                ? GetHeaderFooter(resolved.MaximumTotalSourceImageBytes)
                 : null;
             OfficeImageExportConsumer accept =
                 OfficeImageExportBatchProcessor.CreateGuardedConsumer(

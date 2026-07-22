@@ -98,7 +98,7 @@ internal static partial class PdfRedactionApplier {
 
         bool changed = false;
         if (allStreamsDecoded && contentSegments.Count > 0) {
-            string combinedContent = string.Join("\n", contentSegments);
+            string combinedContent = string.Concat(contentSegments);
             return ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber);
         }
 

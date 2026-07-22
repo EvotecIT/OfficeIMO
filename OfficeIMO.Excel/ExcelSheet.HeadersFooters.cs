@@ -111,7 +111,14 @@ namespace OfficeIMO.Excel {
         /// Returns a snapshot of the current header and footer strings (odd pages) split into left/center/right sections,
         /// including flags and whether a picture placeholder (&amp;G) is present.
         /// </summary>
-        public HeaderFooterSnapshot GetHeaderFooter() {
+        public HeaderFooterSnapshot GetHeaderFooter() =>
+            GetHeaderFooter(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes);
+
+        internal HeaderFooterSnapshot GetHeaderFooter(long maximumTotalSourceImageBytes) {
+            if (maximumTotalSourceImageBytes <= 0L) {
+                throw new ArgumentOutOfRangeException(nameof(maximumTotalSourceImageBytes));
+            }
+
             var ws = WorksheetRoot;
             var hf = ws.GetFirstChild<HeaderFooter>();
             string oddHeader = hf?.OddHeader?.Text ?? string.Empty;
@@ -128,7 +135,7 @@ namespace OfficeIMO.Excel {
             var (ehl, ehc, ehr) = ParseHeaderFooterSections(evenHeader);
             var (efl, efc, efr) = ParseHeaderFooterSections(evenFooter);
 
-            Dictionary<string, HeaderFooterImageSnapshot> imagesByShapeId = ReadHeaderFooterImages();
+            Dictionary<string, HeaderFooterImageSnapshot> imagesByShapeId = ReadHeaderFooterImages(maximumTotalSourceImageBytes);
             bool hasHeaderImageRel = imagesByShapeId.ContainsKey("LH") || imagesByShapeId.ContainsKey("CH") || imagesByShapeId.ContainsKey("RH");
             bool hasFooterImageRel = imagesByShapeId.ContainsKey("LF") || imagesByShapeId.ContainsKey("CF") || imagesByShapeId.ContainsKey("RF");
             try {
@@ -184,7 +191,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages() {
+        private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages(long maximumTotalSourceImageBytes) {
             var images = new Dictionary<string, HeaderFooterImageSnapshot>(StringComparer.OrdinalIgnoreCase);
             VmlDrawingPart? vmlPart = null;
             try {
@@ -200,7 +207,7 @@ namespace OfficeIMO.Excel {
                 return images;
             }
 
-            long remainingSourceImageBytes = ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes;
+            long remainingSourceImageBytes = maximumTotalSourceImageBytes;
 
             XDocument vmlDocument;
             try {

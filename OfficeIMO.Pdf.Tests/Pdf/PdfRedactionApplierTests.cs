@@ -135,6 +135,17 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_PreservesTokensSplitAcrossPageContentStreamsWhenLocatingForms() {
+        byte[] source = BuildSplitFormTransformOperandRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Split form secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Split form secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Split form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_ScrubsMatchedTextInsideNestedFormXObjects() {
         byte[] source = BuildNestedFormXObjectRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Nested secret account 123-45");
@@ -415,6 +426,21 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitFormTransformOperandRedactionSource() {
+        const string formContent = "BT\n/F1 12 Tf\n0 0 Td\n(Split form secret) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 7 0 R >> >> /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 1")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\n/Fm1 Do\nQ\n")),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
