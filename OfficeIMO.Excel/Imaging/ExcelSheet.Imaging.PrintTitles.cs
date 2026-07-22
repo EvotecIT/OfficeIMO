@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options,
+            HeaderFooterSnapshot? headerFooterSnapshot,
             int pageNumber,
             int pageCount,
             CancellationToken cancellationToken = default) {
@@ -48,6 +49,7 @@ namespace OfficeIMO.Excel {
                     format,
                     result,
                     options,
+                    headerFooterSnapshot,
                     pageNumber,
                     pageCount,
                     ref rasterState);

@@ -71,6 +71,28 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ScrubsTextPositionedByOuterGraphicsTransform() {
+        byte[] source = BuildTransformedTextRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Transformed secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Transformed secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Transformed secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsTextPositionedByTransformFromPriorContentStream() {
+        byte[] source = BuildSplitTransformedTextRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Split transformed secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Split transformed secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Split transformed secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_IgnoresEndTextOperatorInsideLiteralStringsWhenScrubbingTextObjects() {
         byte[] source = BuildLiteralEndTextOperatorRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "SSN ET 123");
@@ -297,6 +319,32 @@ public class PdfRedactionApplierTests {
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildTransformedTextRedactionSource() {
+        const string streamContent = "q\n2 0 0 2 100 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Transformed secret) Tj\nET\nQ\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitTransformedTextRedactionSource() {
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 100 100 cm\n")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n0 0 Td\n(Split transformed secret) Tj\nET\nQ\n"))
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);

@@ -307,12 +307,20 @@ public static partial class OfficeTextLayoutEngine {
     private static IReadOnlyList<OfficeRichTextRun> NormalizeRichTextRuns(
         IReadOnlyList<OfficeRichTextRun> runs,
         CancellationToken cancellationToken = default) {
-        var normalized = new List<OfficeRichTextRun>(runs.Count);
-        for (int i = 0; i < runs.Count; i++) {
+        int runCapacity = Math.Min(runs.Count, MaximumLayoutTextRuns);
+        var normalized = new List<OfficeRichTextRun>(runCapacity);
+        int remainingCharacters = MaximumLayoutTextCharacters;
+        for (int i = 0; i < runs.Count && i < MaximumLayoutTextRuns && remainingCharacters > 0; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
+            string text = run.Text ?? string.Empty;
+            if (text.Length > remainingCharacters) {
+                int length = remainingCharacters;
+                if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
+                text = text.Substring(0, length) + "...";
+            }
             normalized.Add(new OfficeRichTextRun(
-                run.Text,
+                text,
                 NormalizePositive(run.FontSize, 1D),
                 run.Color,
                 run.Bold,
@@ -321,6 +329,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.FontFamily,
                 run.Strikethrough,
                 run.BackgroundColor));
+            remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
         }
 
         return normalized;

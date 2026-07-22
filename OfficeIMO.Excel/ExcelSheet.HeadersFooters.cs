@@ -200,6 +200,8 @@ namespace OfficeIMO.Excel {
                 return images;
             }
 
+            long remainingSourceImageBytes = ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes;
+
             XDocument vmlDocument;
             try {
                 using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -226,7 +228,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, out HeaderFooterImageSnapshot? image)) {
+                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out HeaderFooterImageSnapshot? image)) {
                     images[shapeId!] = image!;
                 }
             }
@@ -234,7 +236,13 @@ namespace OfficeIMO.Excel {
             return images;
         }
 
-        private static bool TryReadHeaderFooterImage(VmlDrawingPart vmlPart, string relationshipId, string? style, HeaderFooterPosition position, out HeaderFooterImageSnapshot? image) {
+        private static bool TryReadHeaderFooterImage(
+            VmlDrawingPart vmlPart,
+            string relationshipId,
+            string? style,
+            HeaderFooterPosition position,
+            ref long remainingSourceImageBytes,
+            out HeaderFooterImageSnapshot? image) {
             image = null;
             ImagePart imagePart;
             try {
@@ -247,16 +255,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            byte[] bytes;
-            using (Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read))
-            using (var destination = new MemoryStream()) {
-                source.CopyTo(destination);
-                bytes = destination.ToArray();
-            }
-
-            if (bytes.Length == 0) {
-                return false;
-            }
+            using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            if (!ExcelImageExportLimits.TryReadSourceImageBytes(source, remainingSourceImageBytes, out byte[] bytes)) return false;
+            remainingSourceImageBytes -= bytes.LongLength;
 
             double widthPoints = TryReadStylePoints(style, "width") ?? 0D;
             double heightPoints = TryReadStylePoints(style, "height") ?? 0D;

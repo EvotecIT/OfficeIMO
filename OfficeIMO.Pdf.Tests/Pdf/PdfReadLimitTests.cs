@@ -10,6 +10,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReadLimitTests {
     [Fact]
+    public void TrailerFallbackDoesNotCopyTheUnboundedRemainderOfTheInput() {
+        string source = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\n" +
+            new string('X', 2_000_000);
+        byte[] bytes = PdfEncoding.Latin1GetBytes(source);
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = bytes.Length,
+                MaxObjectCharacters = 128
+            }
+        };
+
+        (Dictionary<int, PdfIndirectObject> objects, string trailerRaw) = PdfSyntax.ParseObjects(bytes, options);
+
+        Assert.Single(objects);
+        Assert.InRange(trailerRaw.Length, 1, options.Limits.MaxObjectCharacters);
+        Assert.Contains("/Root 1 0 R", trailerRaw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DefaultReadLimitsAreIndependentAcrossOptionInstances() {
         var first = new PdfReadOptions();
         var second = new PdfReadOptions();

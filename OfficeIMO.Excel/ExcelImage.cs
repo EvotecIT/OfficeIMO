@@ -242,6 +242,20 @@ namespace OfficeIMO.Excel {
             return destination.ToArray();
         }
 
+        internal bool TryReadBytes(out byte[] bytes) =>
+            TryReadBytes(ExcelImageExportLimits.MaximumSourceImageBytes, out bytes);
+
+        internal bool TryReadBytes(long remainingAggregateBytes, out byte[] bytes) {
+            ImagePart? imagePart = ImagePart;
+            if (imagePart == null) {
+                bytes = Array.Empty<byte>();
+                return false;
+            }
+
+            using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            return ExcelImageExportLimits.TryReadSourceImageBytes(source, remainingAggregateBytes, out bytes);
+        }
+
         /// <summary>
         /// Sets image title and description metadata.
         /// </summary>

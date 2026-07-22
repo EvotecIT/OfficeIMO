@@ -296,7 +296,14 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static IReadOnlyList<string> SplitTextElements(string text) {
-        return OfficeTextElements.Split(text, includeEmptyElement: true);
+        var elements = new List<string>();
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            elements.Add(element);
+            if (elements.Count >= MaximumLayoutLines) break;
+        }
+
+        if (elements.Count == 0) elements.Add(string.Empty);
+        return elements;
     }
 
     private static IReadOnlyList<OfficeRichTextRun> SplitRichTextElements(IReadOnlyList<OfficeRichTextRun> runs) {
@@ -319,6 +326,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.FontFamily,
                     run.Strikethrough,
                     run.BackgroundColor));
+                if (elements.Count >= MaximumLayoutLines) return elements;
             }
         }
 
@@ -326,5 +334,8 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static string NormalizeStackedText(string? text) =>
-        ExpandTabs(text ?? string.Empty).Replace("\r\n", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+        LimitLayoutText(ExpandTabs(LimitLayoutText(text ?? string.Empty)))
+            .Replace("\r\n", string.Empty)
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty);
 }

@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
+            HeaderFooterSnapshot? headerFooterSnapshot = resolved.SplitByManualPageBreaks
+                ? GetHeaderFooter()
+                : null;
             OfficeImageExportConsumer accept =
                 OfficeImageExportBatchProcessor.CreateGuardedConsumer(
                     resolved,
@@ -55,7 +58,7 @@ namespace OfficeIMO.Excel {
                     cancellationToken);
             for (int index = 0; index < ranges.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                accept(RenderWorksheetImageResult(format, ranges[index], resolved, index + 1, ranges.Count, cancellationToken));
+                accept(RenderWorksheetImageResult(format, ranges[index], resolved, headerFooterSnapshot, index + 1, ranges.Count, cancellationToken));
             }
         }
 

@@ -570,6 +570,7 @@ namespace OfficeIMO.Excel {
                 return images;
             }
 
+            long remainingSourceImageBytes = options.MaximumTotalSourceImageBytes;
             foreach (ExcelImage image in sheet.Images) {
                 bool absoluteAnchor = image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight);
                 if (!absoluteAnchor && !options.IncludeHidden && IsHiddenAnchorInRange(image.RowIndex, image.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions)) {
@@ -607,12 +608,16 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                byte[] bytes = image.ToBytes();
                 string source = GetImageDiagnosticSource(sheet, image);
-                if (bytes.Length == 0) {
-                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, "Worksheet image bytes could not be read.", source));
+                if (!image.TryReadBytes(remainingSourceImageBytes, out byte[] bytes)) {
+                    string message = remainingSourceImageBytes < ExcelImageExportLimits.MaximumSourceImageBytes
+                        ? "Worksheet image was omitted because the aggregate source-image budget was exhausted."
+                        : "Worksheet image bytes could not be read within the configured source-image limit.";
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, message, source));
                     continue;
                 }
+
+                remainingSourceImageBytes -= bytes.LongLength;
 
                 bool identifiedImage = OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info);
                 OfficeImageFormat detectedFormat = identifiedImage

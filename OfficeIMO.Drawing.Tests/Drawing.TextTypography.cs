@@ -58,6 +58,79 @@ public class DrawingTextTypographyTests {
     }
 
     [Fact]
+    public void TextLayout_BoundsAdversarialWrappingAndUsesLogarithmicStartTrimming() {
+        string oversized = new string('A', 200_000);
+        int trimMeasurements = 0;
+        OfficeTextLine trimmed = OfficeTextLayoutEngine.TrimLineStartToWidth(
+            oversized,
+            fontSize: 1,
+            maxWidth: 10,
+            (value, _) => {
+                trimMeasurements++;
+                return value?.Length ?? 0;
+            },
+            out bool clipped);
+
+        Assert.True(clipped);
+        Assert.Equal("...AAAAAAA", trimmed.Text);
+        Assert.InRange(trimMeasurements, 1, 32);
+
+        IReadOnlyList<OfficeTextLine> wrapped = OfficeTextLayoutEngine.WrapLines(
+            oversized,
+            fontSize: 1,
+            maxWidth: 1,
+            (value, _) => value?.Length ?? 0);
+        Assert.Equal(4_096, wrapped.Count);
+        Assert.All(wrapped, line => Assert.InRange(line.Text.Length, 1, 1));
+
+        int maximumMeasuredCharacters = 0;
+        OfficeTextBlockLayout singleLine = OfficeTextLayoutEngine.LayoutTextBlock(
+            new string('\t', 200_000),
+            fontSize: 1,
+            maxWidth: 200_000,
+            maxHeight: 10,
+            lineHeightFactor: 1,
+            minimumFontSize: 1,
+            (value, _) => {
+                maximumMeasuredCharacters = Math.Max(maximumMeasuredCharacters, value?.Length ?? 0);
+                return value?.Length ?? 0;
+            },
+            wrap: false,
+            forceSingleLine: true,
+            shrinkToFit: false,
+            overflowBehavior: OfficeTextOverflowBehavior.Ellipsis);
+        Assert.Single(singleLine.Lines);
+        Assert.InRange(maximumMeasuredCharacters, 1, 100_003);
+
+        OfficeTextBlockLayout stacked = OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            oversized,
+            fontSize: 1,
+            maxWidth: 1,
+            maxHeight: 1_000_000,
+            lineHeightFactor: 1,
+            minimumFontSize: 1,
+            (value, _) => value?.Length ?? 0,
+            shrinkToFit: false);
+        Assert.Equal(4_096, stacked.Lines.Count);
+    }
+
+    [Fact]
+    public void FitWrappedText_ClipsToVisibleHeightAfterShrinkToFit() {
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.FitWrappedText(
+            string.Join("\n", Enumerable.Repeat("line", 100)),
+            fontSize: 10,
+            maxWidth: 100,
+            maxHeight: 24,
+            lineHeightFactor: 1.2,
+            minimumFontSize: 5,
+            (value, size) => (value?.Length ?? 0) * size);
+
+        Assert.True(layout.Clipped);
+        Assert.InRange(layout.Lines.Count, 1, 4);
+        Assert.True(layout.Height <= 24D);
+    }
+
+    [Fact]
     public void TextLigatures_PreferLongestStandardLatinMatch() {
         Assert.True(OfficeTextLigatures.TryGetLatinPresentationForm("office", 1, out int scalar, out int length));
         Assert.Equal(0xFB03, scalar);

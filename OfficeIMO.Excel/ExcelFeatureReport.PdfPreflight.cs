@@ -335,9 +335,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            byte[] bytes = image.ToBytes();
-            if (bytes.Length == 0) {
-                reason = "image has empty bytes.";
+            if (!image.TryReadBytes(out byte[] bytes)) {
+                reason = "image bytes are empty or exceed the PDF preflight source-image limit.";
                 return false;
             }
 

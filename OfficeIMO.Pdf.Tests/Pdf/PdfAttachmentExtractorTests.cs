@@ -108,6 +108,16 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void ExtractAttachments_DeduplicatesManyAnnotationAliasesBeforePayloadDecode() {
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
+            BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 1_000));
+
+        PdfExtractedAttachment attachment = Assert.Single(attachments);
+        Assert.Equal("alias-0.txt", attachment.FileName);
+        Assert.Equal("payload", Encoding.ASCII.GetString(attachment.Bytes));
+    }
+
+    [Fact]
     public void ExtractAttachments_SupportsPathStreamAndDirectoryOutputs() {
         byte[] payload = Encoding.UTF8.GetBytes("directory payload");
         byte[] pdf = PdfDocument.Create()
@@ -261,6 +271,33 @@ public class PdfAttachmentExtractorTests {
             "%%EOF"
         });
 
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildRepeatedFileAttachmentAnnotationPdf(int annotationCount) {
+        var annotationReferences = new StringBuilder();
+        var annotationObjects = new StringBuilder();
+        var nameEntries = new StringBuilder();
+        for (int index = 0; index < annotationCount; index++) {
+            int fileSpecObjectNumber = 6 + (index * 2);
+            int annotationObjectNumber = fileSpecObjectNumber + 1;
+            nameEntries.Append("(alias-").Append(index).Append(".txt) ").Append(fileSpecObjectNumber).Append(" 0 R ");
+            annotationReferences.Append(annotationObjectNumber).Append(" 0 R ");
+            annotationObjects
+                .Append(fileSpecObjectNumber).Append(" 0 obj\n<< /Type /Filespec /F (alias-")
+                .Append(index).Append(".txt) /EF << /F 5 0 R >> >>\nendobj\n")
+                .Append(annotationObjectNumber).Append(" 0 obj\n<< /Type /Annot /Subtype /FileAttachment /FS ")
+                .Append(fileSpecObjectNumber).Append(" 0 R >>\nendobj\n");
+        }
+
+        string pdf = "%PDF-1.4\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [" + nameEntries + "] >> >> >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [" + annotationReferences + "] >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "5 0 obj\n<< /Type /EmbeddedFile /Length 7 >>\nstream\npayload\nendstream\nendobj\n" +
+            annotationObjects +
+            "trailer\n<< /Root 1 0 R /Size " + (6 + (annotationCount * 2)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\n%%EOF";
         return Encoding.ASCII.GetBytes(pdf);
     }
 

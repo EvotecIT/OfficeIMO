@@ -1850,6 +1850,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportEnforcesAggregateSourceImageBudget() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("Images");
+            byte[] image = CreateSolidPng(12, 10, OfficeColor.FromRgb(37, 99, 235));
+            sheet.AddImage(1, 1, image, "image/png", widthPixels: 12, heightPixels: 10, name: "First");
+            sheet.AddImage(2, 1, image, "image/png", widthPixels: 12, heightPixels: 10, name: "Second");
+            var options = new ExcelImageExportOptions {
+                MaximumTotalEncodedBytes = 1,
+                MaximumTotalSourceImageBytes = image.LongLength
+            };
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B3").CreateVisualSnapshot(options);
+
+            Assert.Single(snapshot.Images);
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == ExcelImageExportDiagnosticCodes.ImageBytesMissing &&
+                diagnostic.Message.Contains("aggregate source-image budget", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void ExcelImageExportLimitsRejectOversizedSeekableSourceBeforeReading() {
+            using var source = new LengthOnlyImageStream(ExcelImageExportLimits.MaximumSourceImageBytes + 1L);
+
+            bool success = ExcelImageExportLimits.TryReadSourceImageBytes(source, out byte[] bytes);
+
+            Assert.False(success);
+            Assert.Empty(bytes);
+            Assert.Equal(0, source.ReadCount);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportIncludesAndClipsImagesOverlappingSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -5059,6 +5091,36 @@ namespace OfficeIMO.Tests {
                 image = new OfficeRasterImage(2, 2, _color);
                 return true;
             }
+        }
+
+        private sealed class LengthOnlyImageStream : Stream {
+            private long _position;
+
+            internal LengthOnlyImageStream(long length) {
+                Length = length;
+            }
+
+            internal int ReadCount { get; private set; }
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => false;
+            public override long Length { get; }
+            public override long Position { get => _position; set => _position = value; }
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) {
+                ReadCount++;
+                return 0;
+            }
+            public override long Seek(long offset, SeekOrigin origin) {
+                _position = origin == SeekOrigin.Begin
+                    ? offset
+                    : origin == SeekOrigin.Current
+                        ? _position + offset
+                        : Length + offset;
+                return _position;
+            }
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
     }
 }
