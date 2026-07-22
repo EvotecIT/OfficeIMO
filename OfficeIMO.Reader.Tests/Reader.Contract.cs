@@ -226,6 +226,45 @@ public sealed class ReaderContractTests {
         Assert.Null(result.Chunks);
     }
 
+    [Fact]
+    public void OfficeDocumentReadResultJson_SortsAttributeDictionariesWithoutMutatingInput() {
+        var metadataAttributes = new Dictionary<string, string> {
+            ["zeta"] = "last",
+            ["alpha"] = "first"
+        };
+        var diagnosticAttributes = new Dictionary<string, string> {
+            ["zeta"] = "last",
+            ["alpha"] = "first"
+        };
+        var result = new OfficeDocumentReadResult {
+            Metadata = new[] {
+                new OfficeDocumentMetadataEntry {
+                    Id = "metadata-1",
+                    Category = "core",
+                    Name = "fixture",
+                    Attributes = metadataAttributes
+                }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic {
+                    Code = "fixture",
+                    Message = "Fixture",
+                    Attributes = diagnosticAttributes
+                }
+            }
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.Equal(new[] { "alpha", "zeta" }, parsed.RootElement.GetProperty("metadata")[0]
+            .GetProperty("attributes").EnumerateObject().Select(property => property.Name));
+        Assert.Equal(new[] { "alpha", "zeta" }, parsed.RootElement.GetProperty("diagnostics")[0]
+            .GetProperty("attributes").EnumerateObject().Select(property => property.Name));
+        Assert.Equal(new[] { "zeta", "alpha" }, metadataAttributes.Keys);
+        Assert.Equal(new[] { "zeta", "alpha" }, diagnosticAttributes.Keys);
+    }
+
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]

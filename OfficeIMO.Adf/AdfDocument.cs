@@ -182,6 +182,14 @@ internal static class AdfJsonValue {
         if (value is DateTimeOffset dateTimeOffset) return JsonValue.Create(dateTimeOffset);
         if (value is Uri uri) return JsonValue.Create(uri.ToString());
 
+        if (value is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
+            var result = new JsonObject();
+            foreach (KeyValuePair<string, object?> entry in readOnlyDictionary) {
+                result[entry.Key] = CreateNode(entry.Value);
+            }
+            return result;
+        }
+
         if (value is IDictionary dictionary) {
             var result = new JsonObject();
             foreach (DictionaryEntry entry in dictionary) {
