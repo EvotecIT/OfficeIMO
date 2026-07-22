@@ -246,13 +246,13 @@ namespace OfficeIMO.PowerPoint {
                 if (timing == null) continue;
                 var slideItems = new List<AnimationInspectionItem>();
                 InspectAnimationTree(timing, options, ref visitedElements, nodes.Count, slideItems);
-                Dictionary<uint, string?> shapeNames = slide
-                    .EnumerateShapesDeep(slide.Shapes.Concat(slide.GetInheritedShapesForExport()))
-                    .Where(shape => shape.Id.HasValue)
-                    .GroupBy(shape => shape.Id!.Value)
-                    .ToDictionary(group => group.Key, group => group.First().Name);
-                foreach (AnimationInspectionItem item in slideItems) {
-                    uint? shapeId = ParseUInt(GetAttribute(item.Target, "spid"));
+                uint?[] shapeIds = slideItems
+                    .Select(item => ParseUInt(GetAttribute(item.Target, "spid")))
+                    .ToArray();
+                Dictionary<uint, string?> shapeNames = ResolveAnimationShapeNames(slide, shapeIds);
+                for (int itemIndex = 0; itemIndex < slideItems.Count; itemIndex++) {
+                    AnimationInspectionItem item = slideItems[itemIndex];
+                    uint? shapeId = shapeIds[itemIndex];
                     string? shapeName = shapeId.HasValue && shapeNames.TryGetValue(shapeId.Value, out string? resolvedName)
                         ? resolvedName
                         : null;
@@ -264,6 +264,23 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             return new PowerPointAnimationReport(nodes);
+        }
+
+        private static Dictionary<uint, string?> ResolveAnimationShapeNames(
+            PowerPointSlide slide,
+            IEnumerable<uint?> shapeIds) {
+            var unresolvedShapeIds = new HashSet<uint>(shapeIds.Where(shapeId => shapeId.HasValue)
+                .Select(shapeId => shapeId!.Value));
+            var shapeNames = new Dictionary<uint, string?>();
+            if (unresolvedShapeIds.Count == 0) return shapeNames;
+
+            foreach (PowerPointShape shape in slide
+                         .EnumerateShapesDeep(slide.Shapes.Concat(slide.GetInheritedShapesForExport()))) {
+                if (!shape.Id.HasValue || !unresolvedShapeIds.Remove(shape.Id.Value)) continue;
+                shapeNames.Add(shape.Id.Value, shape.Name);
+                if (unresolvedShapeIds.Count == 0) break;
+            }
+            return shapeNames;
         }
 
         private static void InspectAnimationTree(Timing timing, PowerPointAnimationInspectionOptions options,

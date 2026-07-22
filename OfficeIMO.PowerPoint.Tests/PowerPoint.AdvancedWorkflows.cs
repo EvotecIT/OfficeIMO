@@ -125,6 +125,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AnimationInspectionSkipsShapeTraversalForUntargetedTimingNodes() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    ShapeTree shapeTree = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!;
+                    for (uint shapeId = 100U; shapeId < 10_101U; shapeId++) {
+                        shapeTree.Append(new Shape(
+                            new NonVisualShapeProperties(
+                                new NonVisualDrawingProperties { Id = shapeId, Name = "Shape " + shapeId },
+                                new NonVisualShapeDrawingProperties(),
+                                new ApplicationNonVisualDrawingProperties()),
+                            new ShapeProperties()));
+                    }
+                    slide.SlidePart.Slide.Timing = new Timing(
+                        new TimeNodeList(new ParallelTimeNode(new CommonTimeNode { Id = 1U })));
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+                Assert.True(reopened.Slides[0].Shapes.Count > 10_000);
+                PowerPointAnimationNode node = Assert.Single(reopened.InspectAnimations().Nodes);
+
+                Assert.Equal(PowerPointAnimationKind.Parallel, node.Kind);
+                Assert.Null(node.ShapeId);
+                Assert.Null(node.ShapeName);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void SemanticSmartArtWorkflowsRoundTripEditableNodeText() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

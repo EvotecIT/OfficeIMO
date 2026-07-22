@@ -13,18 +13,28 @@ namespace OfficeIMO.Excel {
 
         private sealed class ChartDataPointBudget {
             private long _remaining;
+            private long _remainingSourceReads;
 
             internal ChartDataPointBudget() : this(MaxChartDataPoints) { }
 
             internal ChartDataPointBudget(long maximum) {
                 _remaining = maximum;
+                _remainingSourceReads = maximum;
             }
 
+            internal bool CanCharge(long count) => count >= 0 && count <= _remaining;
+
             internal bool TryCharge(long count) {
-                if (count < 0 || count > _remaining) {
+                if (!CanCharge(count)) {
                     return false;
                 }
                 _remaining -= count;
+                return true;
+            }
+
+            internal bool TryChargeSourceRead(long count) {
+                if (count < 0 || count > _remainingSourceReads) return false;
+                _remainingSourceReads -= count;
                 return true;
             }
         }
@@ -723,7 +733,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
+            long requestedPointCount = (long)(r2 - r1 + 1) * (c2 - c1 + 1);
+            if (!pointBudget.CanCharge(requestedPointCount) ||
+                !pointBudget.TryChargeSourceRead(requestedPointCount)) {
                 return false;
             }
 
@@ -734,8 +746,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (textValues.Count == 0 || !pointBudget.TryCharge(requestedPointCount)) return false;
             values = textValues;
-            return textValues.Count > 0;
+            return true;
         }
 
         private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
@@ -752,7 +765,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
+            long requestedPointCount = (long)(r2 - r1 + 1) * (c2 - c1 + 1);
+            if (!pointBudget.CanCharge(requestedPointCount) ||
+                !pointBudget.TryChargeSourceRead(requestedPointCount)) {
                 return false;
             }
 
@@ -773,8 +788,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (numericValues.Count == 0 || !pointBudget.TryCharge(requestedPointCount)) {
+                return false;
+            }
             values = numericValues;
-            return numericValues.Count > 0;
+            return true;
         }
 
         private static bool TryGetChartElementType(OpenXmlElement element, out ExcelChartType chartType) {
