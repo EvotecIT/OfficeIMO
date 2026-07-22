@@ -83,7 +83,9 @@ public class PdfDebuggerTests {
             .Paragraph(paragraph => paragraph.Text("Current-position debugger"))
             .ToBytes();
         byte[] prefixed = new byte[source.Length + 5];
-        Array.Fill(prefixed, (byte)0xFF, 0, 5);
+        for (int index = 0; index < 5; index++) {
+            prefixed[index] = 0xFF;
+        }
         Buffer.BlockCopy(source, 0, prefixed, 5, source.Length);
 
         using var stream = new MemoryStream(prefixed);
