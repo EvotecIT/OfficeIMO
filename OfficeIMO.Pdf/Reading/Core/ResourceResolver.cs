@@ -356,7 +356,7 @@ internal static partial class ResourceResolver {
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, int maxDecodedTextCharacters) {
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return bytes => font.CMap.MapBytes(bytes, maxDecodedTextCharacters);
-        var baseDecoder = BuildBaseEncodingDecoder(font.Encoding);
+        var baseDecoder = BuildBaseEncodingDecoder(font.Encoding, maxDecodedTextCharacters);
         if (font.Differences is not null && font.Differences.Count > 0) {
             var differences = font.Differences;
             return bytes => DecodeWithDifferences(bytes, differences, baseDecoder, maxDecodedTextCharacters);
@@ -365,16 +365,16 @@ internal static partial class ResourceResolver {
         return baseDecoder;
     }
 
-    private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding) {
+    private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding, int maxDecodedTextCharacters) {
         if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
-            return PdfStandardEncoding.Decode;
+            return bytes => PdfStandardEncoding.Decode(bytes, maxDecodedTextCharacters);
         }
 
         if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
-            return PdfMacRomanEncoding.Decode;
+            return bytes => PdfMacRomanEncoding.Decode(bytes, maxDecodedTextCharacters);
         }
 
-        return PdfWinAnsiEncoding.Decode;
+        return bytes => PdfWinAnsiEncoding.Decode(bytes, maxDecodedTextCharacters);
     }
 
     private static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
@@ -514,6 +514,9 @@ internal static partial class ResourceResolver {
         System.Func<byte[], string> baseDecoder,
         int maxDecodedTextCharacters) {
         if (bytes is null || bytes.Length == 0) return string.Empty;
+        if (bytes.LongLength > maxDecodedTextCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, bytes.LongLength);
+        }
         var builder = new System.Text.StringBuilder(bytes.Length);
         for (int i = 0; i < bytes.Length; i++) {
             int code = bytes[i];

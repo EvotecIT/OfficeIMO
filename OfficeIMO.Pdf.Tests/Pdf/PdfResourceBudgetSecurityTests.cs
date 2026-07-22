@@ -70,6 +70,46 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void PdfReadPage_BoundsNestedFormContentAgainstPageBudget() {
+        const string pageContent = "/Fx Do";
+        const string formContent = "BT (Nested) Tj ET";
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fx 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStream(pageContent),
+            BuildStream(formContent, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = pageContent.Length + formContent.Length - 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_ToDrawingChargesAnnotationAppearancesToPageBudget() {
+        const string appearanceContent = "BT (Annotation) Tj ET";
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [5 0 R] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Type /Annot /Subtype /FreeText /Rect [0 0 10 10] /AP << /N 6 0 R >> >>",
+            BuildStream(appearanceContent, "/Type /XObject /Subtype /Form /BBox [0 0 10 10]"));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = appearanceContent.Length - 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
+    [Fact]
     public void PdfReadPage_SharesActualTextBudgetAcrossRepeatedForms() {
         const string pageContent = "/Fx Do /Fx Do";
         const string formContent = "/Span << /ActualText (123456) >> BDC BT (A) Tj ET EMC";
@@ -152,6 +192,59 @@ public sealed class PdfResourceBudgetSecurityTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(pdf, options));
 
         Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadDocument_BoundsEmbeddedFileNameTreeDepth() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 5 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Kids [6 0 R] >>",
+            "<< /Kids [7 0 R] >>",
+            "<< /Names [] >>");
+        (System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects, string trailer) = PdfSyntax.ParseObjects(pdf);
+        var limits = new PdfReadLimits { MaxNameTreeDepth = 1 };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfAttachmentExtractor.ExtractAttachments(objects, trailer, limits));
+
+        Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_BoundsBaseAndFallbackFontDecodingBeforeAllocation() {
+        byte[] baseFontPdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStream("BT /F1 12 Tf (AB) Tj ET"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+        byte[] fallbackFontPdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream("BT /Missing 12 Tf (AB) Tj ET"));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
+        };
+
+        PdfReadLimitException baseException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(baseFontPdf, options).Pages[0].ExtractText());
+        PdfReadLimitException fallbackException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(fallbackFontPdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, baseException.Kind);
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, fallbackException.Kind);
+    }
+
+    [Fact]
+    public void StandardEncoding_BoundsLigatureExpansionBeforeBuildingOutput() {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfStandardEncoding.Decode(new byte[] { 174 }, maxOutputCharacters: 1));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
     }
 
     [Fact]

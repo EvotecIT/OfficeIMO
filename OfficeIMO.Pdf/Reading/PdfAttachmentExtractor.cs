@@ -92,7 +92,8 @@ internal static class PdfAttachmentExtractor {
             ResolveDictionary(objects, namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("EmbeddedFiles", out var embeddedFilesTreeObject)) {
             var visitedTrees = new HashSet<int>();
-            ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees, decodedEmbeddedStreams, effectiveLimits.MaxDecodedStreamBytes);
+            int traversedNameTreeNodes = 0;
+            ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees, decodedEmbeddedStreams, effectiveLimits, 0, ref traversedNameTreeNodes);
         }
 
         foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
@@ -172,10 +173,20 @@ internal static class PdfAttachmentExtractor {
         List<PdfExtractedAttachment> attachments,
         HashSet<int> visitedTrees,
         Dictionary<PdfStream, byte[]> decodedEmbeddedStreams,
-        int maximumDecodedStreamBytes) {
+        PdfReadLimits limits,
+        int depth,
+        ref int traversedNodes) {
         int treeObjectNumber = treeObject is PdfReference treeReference ? treeReference.ObjectNumber : 0;
         if (treeObjectNumber > 0 && !visitedTrees.Add(treeObjectNumber)) {
             return;
+        }
+
+        if (depth > limits.MaxNameTreeDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeDepth, limits.MaxNameTreeDepth, depth);
+        }
+        traversedNodes++;
+        if (traversedNodes > limits.MaxNameTreeNodes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, limits.MaxNameTreeNodes, traversedNodes);
         }
 
         if (ResolveDictionary(objects, treeObject) is not PdfDictionary tree) {
@@ -189,7 +200,7 @@ internal static class PdfAttachmentExtractor {
                 }
 
                 PdfObject fileSpecObject = names.Items[i + 1];
-                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles", decodedEmbeddedStreams, maximumDecodedStreamBytes);
+                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles", decodedEmbeddedStreams, limits.MaxDecodedStreamBytes);
                 if (attachment != null) {
                     attachments.Add(attachment);
                 }
@@ -198,7 +209,7 @@ internal static class PdfAttachmentExtractor {
 
         if (ResolveObject(objects, tree.Items.TryGetValue("Kids", out var kidsObject) ? kidsObject : null) is PdfArray kids) {
             foreach (PdfObject kid in kids.Items) {
-                ReadEmbeddedFilesNameTree(objects, kid, attachments, visitedTrees, decodedEmbeddedStreams, maximumDecodedStreamBytes);
+                ReadEmbeddedFilesNameTree(objects, kid, attachments, visitedTrees, decodedEmbeddedStreams, limits, depth + 1, ref traversedNodes);
             }
         }
     }

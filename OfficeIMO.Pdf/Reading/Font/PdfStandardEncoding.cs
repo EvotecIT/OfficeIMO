@@ -4,8 +4,20 @@ internal static class PdfStandardEncoding {
     private static readonly string[] Map = BuildMap();
 
     public static string Decode(byte[] bytes) {
+        return Decode(bytes, int.MaxValue);
+    }
+
+    public static string Decode(byte[] bytes, int maxOutputCharacters) {
         if (bytes is null || bytes.Length == 0) return string.Empty;
-        var builder = new System.Text.StringBuilder(bytes.Length);
+        long decodedLength = 0L;
+        for (int i = 0; i < bytes.Length; i++) {
+            decodedLength += Map[bytes[i]].Length;
+            if (decodedLength > maxOutputCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, decodedLength);
+            }
+        }
+
+        var builder = new System.Text.StringBuilder((int)decodedLength);
         for (int i = 0; i < bytes.Length; i++) {
             builder.Append(Map[bytes[i]]);
         }
