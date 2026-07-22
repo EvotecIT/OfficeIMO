@@ -249,19 +249,61 @@ namespace OfficeIMO.PowerPoint {
 
         private IEnumerable<A.HyperlinkType> EnumerateReferencedHyperlinks() {
             foreach (SlidePart slidePart in _presentationPart.SlideParts) {
-                if (slidePart.Slide == null) continue;
-                foreach (A.HyperlinkOnClick item in slidePart.Slide
-                             .Descendants<A.HyperlinkOnClick>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+                if (slidePart.Slide != null) {
+                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                                 slidePart.Slide)) {
+                        yield return item;
+                    }
                 }
-                foreach (A.HyperlinkOnHover item in slidePart.Slide
-                             .Descendants<A.HyperlinkOnHover>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+                if (slidePart.NotesSlidePart?.NotesSlide != null) {
+                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                                 slidePart.NotesSlidePart.NotesSlide)) {
+                        yield return item;
+                    }
                 }
-                foreach (A.HyperlinkOnMouseOver item in slidePart.Slide
-                             .Descendants<A.HyperlinkOnMouseOver>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+            }
+            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+                if (masterPart.SlideMaster != null) {
+                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                                 masterPart.SlideMaster)) {
+                        yield return item;
+                    }
                 }
+                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                    if (layoutPart.SlideLayout == null) continue;
+                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                                 layoutPart.SlideLayout)) {
+                        yield return item;
+                    }
+                }
+            }
+            if (_presentationPart.NotesMasterPart?.NotesMaster != null) {
+                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                             _presentationPart.NotesMasterPart.NotesMaster)) {
+                    yield return item;
+                }
+            }
+            if (_presentationPart.HandoutMasterPart?.HandoutMaster != null) {
+                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                             _presentationPart.HandoutMasterPart.HandoutMaster)) {
+                    yield return item;
+                }
+            }
+        }
+
+        private static IEnumerable<A.HyperlinkType> EnumerateReferencedHyperlinks(
+            DocumentFormat.OpenXml.OpenXmlPartRootElement root) {
+            foreach (A.HyperlinkOnClick item in root
+                         .Descendants<A.HyperlinkOnClick>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+            }
+            foreach (A.HyperlinkOnHover item in root
+                         .Descendants<A.HyperlinkOnHover>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+            }
+            foreach (A.HyperlinkOnMouseOver item in root
+                         .Descendants<A.HyperlinkOnMouseOver>()) {
+                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
             }
         }
 
