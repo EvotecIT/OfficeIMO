@@ -47,7 +47,7 @@ public static class CsvFile
         ValidateMaxDecompressedBytes(options);
 
         Stream input = WrapReadStream(source, compressionType, leaveOpen);
-        if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             bool leaveBoundedInputOpen = compressionType == CsvCompressionType.None && leaveOpen;
             input = new CsvBoundedReadStream(input, maxBytesLimit, leaveBoundedInputOpen);
@@ -59,7 +59,7 @@ public static class CsvFile
             encoding,
             detectEncodingFromByteOrderMarks: true,
             bufferSize,
-            leaveOpen: compressionType == CsvCompressionType.None && leaveOpen && options.MaxDecompressedBytes is null);
+            leaveOpen: compressionType == CsvCompressionType.None && leaveOpen);
     }
 
     /// <summary>
@@ -157,7 +157,7 @@ public static class CsvFile
 
         var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
         Stream stream = WrapReadStream(fileStream, compressionType, leaveOpen: false);
-        if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);
         }

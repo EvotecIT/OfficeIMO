@@ -653,6 +653,27 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void Load_DoesNotApplyDecompressionLimitToPlainCsvFiles()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Plain." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            File.WriteAllText(path, "Name,Value\nAlpha,1\n");
+
+            CsvDocument document = CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 1 });
+
+            Assert.Equal("Alpha", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void Save_InvalidCompressionLevelDoesNotTruncateExistingFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.InvalidCompressionLevel." + Guid.NewGuid().ToString("N") + ".csv.gz");

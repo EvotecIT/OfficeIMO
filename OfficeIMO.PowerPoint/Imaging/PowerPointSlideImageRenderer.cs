@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme, PowerPointImageExportOptions options, int groupDepth) {
-            if (groupDepth >= options.MaxGroupShapeDepth) {
+            if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
                 AddUnsupportedShapeDiagnostic(diagnostics, groupShape,
                     "Skipped nested PowerPoint group content because MaxGroupShapeDepth was reached.");
                 return;

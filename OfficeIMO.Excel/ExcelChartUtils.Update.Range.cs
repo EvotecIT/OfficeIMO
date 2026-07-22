@@ -552,16 +552,6 @@ namespace OfficeIMO.Excel {
             }
 
             var pointBudget = new ChartDataPointBudget();
-            if (!pointBudget.TryCharge(data.Categories.Count)) {
-                return data;
-            }
-            foreach (ExcelChartSeries existingSeries in data.Series) {
-                if (!pointBudget.TryCharge(existingSeries.Values.Count) ||
-                    (existingSeries.XValues != null && !pointBudget.TryCharge(existingSeries.XValues.Count))) {
-                    return data;
-                }
-            }
-
             var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
             int seriesOrder = 0;
             foreach (OpenXmlElement seriesElement in GetChartSeries(plotArea)) {

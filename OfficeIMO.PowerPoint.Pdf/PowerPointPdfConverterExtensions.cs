@@ -297,7 +297,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 IncludeTextBoxes = options.IncludeTextBoxes,
                 IncludeTables = options.IncludeTables,
                 IncludeCharts = options.IncludeCharts,
-                MaxGroupShapeDepth = options.MaxGroupShapeDepth > 0 ? options.MaxGroupShapeDepth : 32
+                MaxGroupShapeDepth = options.MaxGroupShapeDepth
             });
         canvas.Drawing(snapshot.Drawing, x, y, width, height);
         foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
