@@ -3576,6 +3576,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImagePdfCompatibilityPreservesMalformedPngDiagnostics() {
+        byte[] invalidCrc = OnePixelPng.ToArray();
+        invalidCrc[^1] ^= 0x01;
+
+        bool valid = OfficeImagePdfCompatibility.TryValidate(
+            invalidCrc,
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason);
+
+        Assert.False(valid);
+        Assert.Null(imageInfo);
+        Assert.Contains("invalid CRC", unsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesPngWithoutDecodingPixels() {
         var image = OfficeImageReader.Identify(OnePixelPng);
 
@@ -3594,6 +3609,16 @@ public partial class DrawingTests {
         malformed[23] = 2;
 
         bool identified = OfficeImageReader.TryIdentify(malformed, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsPngWithoutACompleteContainer() {
+        byte[] truncated = OnePixelPng.Take(33).ToArray();
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
 
         Assert.False(identified);
         Assert.Equal(OfficeImageFormat.Unknown, image.Format);

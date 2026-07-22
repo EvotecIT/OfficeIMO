@@ -68,15 +68,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             for (int i = 0; i < pieceCount; i++) {
                 int cpStart = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + (i * 4));
                 int cpEnd = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + ((i + 1) * 4));
-                if (cpStart < 0 || cpEnd < cpStart || cpEnd > totalCharacterCount) {
-                    error = "The PLCFPCD character positions are not monotonic or exceed the FIB character count.";
+                if (cpStart < 0 || cpEnd < cpStart) {
+                    error = "The PLCFPCD character positions are not monotonic.";
                     return false;
                 }
                 if (cpEnd == cpStart) {
                     continue;
                 }
 
-                int decodedCharacterCount = cpEnd - cpStart;
+                int decodedCharacterCount = Math.Min(cpEnd, totalCharacterCount) - cpStart;
+                if (decodedCharacterCount <= 0) {
+                    break;
+                }
                 appendedCharacterCount += decodedCharacterCount;
                 if (appendedCharacterCount > maxDecodedCharacters || appendedCharacterCount > totalCharacterCount) {
                     error = "The PLCFPCD decoded character count exceeds MaxDecodedCharacters.";
