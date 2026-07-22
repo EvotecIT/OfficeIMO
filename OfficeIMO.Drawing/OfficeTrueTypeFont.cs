@@ -211,6 +211,25 @@ public sealed partial class OfficeTrueTypeFont {
         return width;
     }
 
+    internal IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
+        var widths = new double[elements.Count];
+        double scale = ScaleFor(fontSize);
+        ushort? previous = null;
+        for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+            string text = elements[elementIndex];
+            double width = 0D;
+            for (int textIndex = 0; textIndex < text.Length;) {
+                int scalar = ReadScalar(text, ref textIndex);
+                ushort glyph = MapGlyph(scalar);
+                if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
+                width += AdvanceWidth(glyph) * scale;
+                previous = glyph;
+            }
+            widths[elementIndex] = width;
+        }
+        return widths;
+    }
+
     public double LineHeight(double fontSize) {
         return Math.Max(1, _ascender - _descender) * ScaleFor(fontSize);
     }

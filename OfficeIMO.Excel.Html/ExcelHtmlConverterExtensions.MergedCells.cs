@@ -34,14 +34,8 @@ public static partial class ExcelHtmlConverterExtensions {
             lastColumn = Math.Max(lastColumn, merge.EndColumn);
         }
 
-        lastRow = Math.Min(lastRow, AddBounded(firstRow, maximumRows - 1));
-        lastColumn = Math.Min(lastColumn, AddBounded(firstColumn, maximumColumns - 1));
-
         return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
     }
-
-    private static int AddBounded(int value, int offset) =>
-        value > int.MaxValue - offset ? int.MaxValue : value + offset;
 
     private static ExcelMergeExportMap BuildMergeExportMap(
         IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges,

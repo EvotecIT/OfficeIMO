@@ -11,6 +11,7 @@ namespace OfficeIMO.Reader;
 public static partial class ReaderHierarchicalChunker {
     private static readonly ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath> FallbackHeadingIdentities =
         new ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath>();
+    private static readonly ReaderChunk FallbackInputLimitMarker = new ReaderChunk();
 
     /// <summary>Chunks an already-read rich document.</summary>
     public static ReaderChunkHierarchyResult Chunk(
@@ -53,11 +54,15 @@ public static partial class ReaderHierarchicalChunker {
         while (!state.OutputLimitReached) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!enumerator.MoveNext()) break;
+            ReaderChunk? chunk = enumerator.Current;
+            if (ReferenceEquals(chunk, FallbackInputLimitMarker)) {
+                state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
+                break;
+            }
             if (inputIndex >= options.MaxInputChunks) {
                 state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
                 break;
             }
-            ReaderChunk? chunk = enumerator.Current;
             if (chunk == null) {
                 state.AddDiagnostic("hierarchical-null-input-chunk", "A null input chunk was skipped.");
                 inputIndex++;
@@ -118,6 +123,10 @@ public static partial class ReaderHierarchicalChunker {
         var headings = new List<FallbackHeading>();
         int index = 0;
         foreach (FallbackBlock fallback in EnumerateFallbackBlocks(document, maximumInputChunks, cancellationToken)) {
+            if (fallback.IsLimitMarker) {
+                yield return FallbackInputLimitMarker;
+                yield break;
+            }
             OfficeDocumentBlock block = fallback.Block;
             string text = block.Text ?? string.Empty;
             bool isHeading = string.Equals(block.Kind?.Trim(), "heading", StringComparison.OrdinalIgnoreCase);
@@ -177,10 +186,13 @@ public static partial class ReaderHierarchicalChunker {
         PageBlockIndex pageIndex = IndexPageBlocks(pages, maximumInputChunks, cancellationToken);
         int inspectedBlocks = 0;
         IReadOnlyList<OfficeDocumentBlock> documentBlocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();
-        for (int blockIndex = 0;
-             blockIndex < documentBlocks.Count && inspectedBlocks < maximumInputChunks;
-             blockIndex++, inspectedBlocks++) {
+        for (int blockIndex = 0; blockIndex < documentBlocks.Count; blockIndex++) {
+            if (inspectedBlocks >= maximumInputChunks) {
+                yield return FallbackBlock.LimitMarker;
+                yield break;
+            }
             cancellationToken.ThrowIfCancellationRequested();
+            inspectedBlocks++;
             OfficeDocumentBlock block = documentBlocks[blockIndex];
             if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
             if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page) && !string.IsNullOrWhiteSpace(block.Id)) {
@@ -188,17 +200,22 @@ public static partial class ReaderHierarchicalChunker {
             }
             yield return new FallbackBlock(block, page);
         }
-        for (int pageIndexValue = 0;
-             pageIndexValue < pages.Count && pageIndexValue < maximumInputChunks && inspectedBlocks < maximumInputChunks;
-             pageIndexValue++) {
+        for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
+            if (pageIndexValue >= maximumInputChunks || inspectedBlocks >= maximumInputChunks) {
+                yield return FallbackBlock.LimitMarker;
+                yield break;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentPage page = pages[pageIndexValue];
             if (page?.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
-            for (int blockIndex = 0;
-                 blockIndex < pageBlocks.Count && inspectedBlocks < maximumInputChunks;
-                 blockIndex++, inspectedBlocks++) {
+            for (int blockIndex = 0; blockIndex < pageBlocks.Count; blockIndex++) {
+                if (inspectedBlocks >= maximumInputChunks) {
+                    yield return FallbackBlock.LimitMarker;
+                    yield break;
+                }
                 cancellationToken.ThrowIfCancellationRequested();
+                inspectedBlocks++;
                 OfficeDocumentBlock block = pageBlocks[blockIndex];
                 if (TryRegisterFallbackBlock(block, seen, seenIds)) yield return new FallbackBlock(block, page);
             }
@@ -486,10 +503,20 @@ public static partial class ReaderHierarchicalChunker {
         internal FallbackBlock(OfficeDocumentBlock block, OfficeDocumentPage? page) {
             Block = block;
             Page = page;
+            IsLimitMarker = false;
         }
+
+        private FallbackBlock(bool isLimitMarker) {
+            Block = null!;
+            Page = null;
+            IsLimitMarker = isLimitMarker;
+        }
+
+        internal static FallbackBlock LimitMarker { get; } = new FallbackBlock(true);
 
         internal OfficeDocumentBlock Block { get; }
         internal OfficeDocumentPage? Page { get; }
+        internal bool IsLimitMarker { get; }
     }
 
     private readonly struct FallbackHeading {

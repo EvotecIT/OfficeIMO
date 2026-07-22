@@ -4,6 +4,31 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(true, false, 3)]
+    [InlineData(false, true, 2)]
+    public void OfficeDrawingTilingPattern_PreservesSingleAxisRepetition(bool repeatX, bool repeatY, int expectedCount) {
+        var tile = new OfficeDrawing(2D, 2D);
+        OfficeShape square = OfficeShape.Rectangle(2D, 2D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        tile.AddShape(square, 0D, 0D);
+        var drawing = new OfficeDrawing(6D, 4D);
+
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 6D, 4D),
+            2D,
+            2D,
+            repeatX: repeatX,
+            repeatY: repeatY);
+
+        OfficeDrawingTilingPattern pattern = Assert.Single(drawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(repeatX, pattern.RepeatX);
+        Assert.Equal(repeatY, pattern.RepeatY);
+        Assert.Equal(expectedCount, pattern.GetTileTransforms().Count);
+    }
+
     [Fact]
     public void OfficeDrawingTilingPattern_RepeatsVectorContentWithGaps() {
         var tile = new OfficeDrawing(2D, 2D);

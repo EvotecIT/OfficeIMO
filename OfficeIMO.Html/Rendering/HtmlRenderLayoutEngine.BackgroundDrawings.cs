@@ -25,7 +25,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pattern.VerticalStep,
             originX: tile.X - area.X,
             originY: tile.Y - area.Y,
-            maximumTileCount: maximumTileCount);
+            maximumTileCount: maximumTileCount,
+            repeatX: pattern.RepeatX,
+            repeatY: pattern.RepeatY);
         visuals.Add(HtmlRenderDrawing.CreateShared(
             patternDrawing,
             area.X,

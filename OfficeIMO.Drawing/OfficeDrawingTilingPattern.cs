@@ -20,6 +20,22 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
         double originX = 0D,
         double originY = 0D,
         int maximumTileCount = 16384,
+        double opacity = 1D)
+        : this(tile, area, horizontalStep, verticalStep, true, true, transform, originX, originY, maximumTileCount, opacity) {
+    }
+
+    /// <summary>Creates a bounded vector tiling pattern with independent axis repetition.</summary>
+    public OfficeDrawingTilingPattern(
+        OfficeDrawing tile,
+        OfficeImagePlacement area,
+        double horizontalStep,
+        double verticalStep,
+        bool repeatX,
+        bool repeatY,
+        OfficeTransform? transform = null,
+        double originX = 0D,
+        double originY = 0D,
+        int maximumTileCount = 16384,
         double opacity = 1D) {
         if (tile == null) throw new ArgumentNullException(nameof(tile));
         if (tile.Width <= 0D || tile.Height <= 0D) throw new ArgumentException("Pattern tile dimensions must be positive.", nameof(tile));
@@ -39,6 +55,8 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
         OriginY = originY;
         MaximumTileCount = maximumTileCount;
         Opacity = opacity;
+        RepeatX = repeatX;
+        RepeatY = repeatY;
         _ = GetTileTransforms(maximumTileCount);
     }
 
@@ -69,6 +87,12 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
     /// <summary>Pattern opacity from zero through one.</summary>
     public double Opacity { get; }
 
+    /// <summary>Whether the origin tile repeats horizontally.</summary>
+    public bool RepeatX { get; }
+
+    /// <summary>Whether the origin tile repeats vertically.</summary>
+    public bool RepeatY { get; }
+
     internal OfficeDrawing InnerTile => _tile;
 
     /// <summary>Returns the bounded transforms needed to paint this pattern.</summary>
@@ -85,10 +109,18 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
         double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
         double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
         double maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
-        long firstColumn = (long)Math.Floor((minX - OriginX - _tile.Width) / HorizontalStep) + 1L;
-        long lastColumn = (long)Math.Ceiling((maxX - OriginX) / HorizontalStep) - 1L;
-        long firstRow = (long)Math.Floor((minY - OriginY - _tile.Height) / VerticalStep) + 1L;
-        long lastRow = (long)Math.Ceiling((maxY - OriginY) / VerticalStep) - 1L;
+        long firstColumn = RepeatX
+            ? (long)Math.Floor((minX - OriginX - _tile.Width) / HorizontalStep) + 1L
+            : 0L;
+        long lastColumn = RepeatX
+            ? (long)Math.Ceiling((maxX - OriginX) / HorizontalStep) - 1L
+            : OriginX < maxX && OriginX + _tile.Width > minX ? 0L : -1L;
+        long firstRow = RepeatY
+            ? (long)Math.Floor((minY - OriginY - _tile.Height) / VerticalStep) + 1L
+            : 0L;
+        long lastRow = RepeatY
+            ? (long)Math.Ceiling((maxY - OriginY) / VerticalStep) - 1L
+            : OriginY < maxY && OriginY + _tile.Height > minY ? 0L : -1L;
         long columns = Math.Max(0L, lastColumn - firstColumn + 1L);
         long rows = Math.Max(0L, lastRow - firstRow + 1L);
         long count = columns == 0L || rows == 0L || columns > long.MaxValue / rows ? (columns == 0L || rows == 0L ? 0L : long.MaxValue) : columns * rows;
@@ -106,7 +138,7 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
     }
 
     internal override OfficeDrawingElement CloneElement() => new OfficeDrawingTilingPattern(
-        _tile, Area, HorizontalStep, VerticalStep, Transform, OriginX, OriginY, MaximumTileCount, Opacity);
+        _tile, Area, HorizontalStep, VerticalStep, RepeatX, RepeatY, Transform, OriginX, OriginY, MaximumTileCount, Opacity);
 
     private static double ValidateStep(double value, string parameterName) {
         EnsureFinite(value, parameterName);

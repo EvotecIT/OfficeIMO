@@ -94,6 +94,25 @@ public sealed class OfficeFontFaceCollection {
         return true;
     }
 
+    internal bool TryMeasureTextElements(
+        string text,
+        IReadOnlyList<string> elements,
+        double fontSize,
+        string? familyNames,
+        OfficeFontStyle style,
+        out IReadOnlyList<double> widths) {
+        widths = Array.Empty<double>();
+        if (string.IsNullOrEmpty(text) || elements.Count == 0 || fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
+            return false;
+        }
+
+        OfficeTrueTypeFont? font = ResolveForText(text, familyNames, style, out OfficeFontStyle _);
+        if (font == null) return false;
+
+        widths = font.MeasureTextElements(elements, fontSize);
+        return true;
+    }
+
     /// <summary>
     /// Splits text into grapheme-safe runs using the first scoped family whose selected face covers each text element.
     /// Unresolved elements retain the original family list for platform or adapter fallback.

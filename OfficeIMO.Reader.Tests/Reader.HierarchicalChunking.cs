@@ -328,6 +328,30 @@ public sealed class ReaderHierarchicalChunkingTests {
 
         Assert.Single(result.Chunks);
         Assert.Equal(2, blocks.ReadCount);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_ReportsInputLimitWhenFallbackBlocksAreTruncated() {
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "first", Text = "first" },
+                new OfficeDocumentBlock { Id = "second", Text = "second" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
     }
 
     [Fact]

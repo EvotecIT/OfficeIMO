@@ -9,6 +9,25 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_KeepsRtlGlyphPositionsAlignedWithScopedFontKerning() {
+        byte[] fontData = CreateHtmlRenderTestFont(0x05D0, kerningAdjustment: -100);
+        string encoded = Convert.ToBase64String(fontData);
+        string html = "<style>@font-face{font-family:'Kerned Hebrew';src:url('data:font/ttf;base64,"
+            + encoded
+            + "')}</style><p dir='rtl' style=\"margin:0;font-family:'Kerned Hebrew';font-size:20px\">\u05D0\u05D0\u05D0</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "\u05D0\u05D0\u05D0");
+        IReadOnlyList<HtmlRenderText> glyphs = group.Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(3, glyphs.Count);
+        Assert.Equal(group.X, glyphs.Min(glyph => glyph.X), 6);
+        Assert.Equal(group.X + group.Width, glyphs.Max(glyph => glyph.X + glyph.Width), 6);
+    }
+
+    [Fact]
     public void HtmlRender_UsesSharedGlyphCoveragePlanAcrossFontFamilyFallbacks() {
         string emoji = char.ConvertFromUtf32(0x1F600);
         byte[] emojiFont = CreateHtmlRenderTestFont(0x1F600);
@@ -278,7 +297,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
-    private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {
+    private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600, short kerningAdjustment = 0) {
         byte[] cmap = CreateHtmlRenderFormat12Cmap(scalar);
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
@@ -289,6 +308,7 @@ public sealed partial class HtmlRenderingTests {
             ("loca", new byte[4]),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
         };
+        if (kerningAdjustment != 0) tables.Add(("kern", CreateHtmlRenderKerningTable(kerningAdjustment)));
         int directoryLength = 12 + tables.Count * 16;
         var offsets = new int[tables.Count];
         int length = directoryLength;
@@ -309,6 +329,19 @@ public sealed partial class HtmlRenderingTests {
         }
 
         return font;
+    }
+
+    private static byte[] CreateHtmlRenderKerningTable(short adjustment) {
+        var table = new byte[24];
+        WriteHtmlRenderUInt16(table, 2, 1);
+        WriteHtmlRenderUInt16(table, 6, 20);
+        WriteHtmlRenderUInt16(table, 8, 1);
+        WriteHtmlRenderUInt16(table, 10, 1);
+        WriteHtmlRenderUInt16(table, 12, 6);
+        WriteHtmlRenderUInt16(table, 18, 1);
+        WriteHtmlRenderUInt16(table, 20, 1);
+        WriteHtmlRenderUInt16(table, 22, unchecked((ushort)adjustment));
+        return table;
     }
 
     private static byte[] CreateHtmlRenderFormat12Cmap(int scalar) {

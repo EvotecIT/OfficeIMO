@@ -108,6 +108,22 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderPreservesThePathBudgetAfterMalformedPathData() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+            + "<path d='M0 0 L nope' stroke='red'/>"
+            + "<path d='M1 1 L10 10' stroke='blue'/>"
+            + "<polyline points='1,10 5,15 10,10' stroke='green'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(2, drawing!.Shapes.Count);
+        Assert.Contains(drawing.Shapes, item => item.Shape.StrokeColor == OfficeColor.Blue);
+        Assert.Contains(drawing.Shapes, item => item.Shape.StrokeColor == OfficeColor.Green);
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

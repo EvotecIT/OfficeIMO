@@ -62,12 +62,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {
+        IReadOnlyList<string> elements = OfficeTextElements.Enumerate(group.Text).ToList();
+        bool hasContextualWidths = _fonts.TryMeasureTextElements(
+            group.Text,
+            elements,
+            font.Size,
+            font.FamilyName,
+            font.Style,
+            out IReadOnlyList<double> contextualWidths);
         double right = x + group.Width;
-        foreach (string element in OfficeTextElements.Enumerate(group.Text)) {
+        for (int index = 0; index < elements.Count; index++) {
             CheckCancellation();
-            double width = Math.Max(0.01D, MeasureText(element, font));
-            right -= width;
-            result.Add(new InlinePaintSegment(element, right, width));
+            string element = elements[index];
+            double advance = hasContextualWidths ? contextualWidths[index] : MeasureText(element, font);
+            right -= advance;
+            result.Add(new InlinePaintSegment(element, right, Math.Max(0.01D, advance)));
         }
     }
 
