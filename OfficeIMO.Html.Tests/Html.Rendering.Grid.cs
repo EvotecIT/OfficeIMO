@@ -369,6 +369,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutDepth), exception.LimitSource);
     }
 
+    [Fact]
+    public void HtmlGrid_Charges_Dense_Auto_Placement_Probes_To_The_Layout_Budget() {
+        var html = new StringBuilder("<div style='display:grid;grid-template-columns:repeat(32,1fr);grid-auto-flow:row dense'>");
+        for (int index = 0; index < 256; index++) html.Append("<span>").Append(index).Append("</span>");
+        html.Append("</div>");
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions { MaxLayoutOperations = 4_000 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
+    }
+
     private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 

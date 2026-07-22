@@ -693,6 +693,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
+    [Fact]
+    public void HtmlFlexColumn_Reflows_Percentage_Children_When_Main_Size_Becomes_Definite() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <div style="display:flex;flex-direction:column;width:100px;height:40px;align-items:flex-start">
+              <div id="item" style="flex:none;width:100px;background:#eeeeee">
+                <div id="percent-child" style="height:50%;background:#2563eb">Marker</div>
+              </div>
+            </div>
+            """, 120D);
+
+        HtmlRenderShape item = FindFlexShape(rendered, "div#item");
+        HtmlRenderShape child = FindFlexShape(rendered, "div#percent-child");
+
+        Assert.Equal(item.Height * 0.5D, child.Height, 3);
+    }
+
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,

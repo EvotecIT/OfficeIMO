@@ -75,7 +75,15 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         unsupportedPictures++;
                     }
                 } else if (shape is PowerPointTable table) {
-                    OdpTable converted = targetSlide.AddTable(ToOdfRect(table), Math.Max(1, table.Rows), Math.Max(1, table.Columns), table.Name);
+                    int rowCount = Math.Max(1, table.Rows);
+                    if (rowCount > effective.MaxTableRows) {
+                        throw new InvalidDataException($"PowerPoint table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
+                    }
+                    int columnCount = Math.Max(1, table.Columns);
+                    if (columnCount > effective.MaxTableColumns) {
+                        throw new InvalidDataException($"PowerPoint table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
+                    }
+                    OdpTable converted = targetSlide.AddTable(ToOdfRect(table), rowCount, columnCount, table.Name);
                     CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
                     for (int row = 0; row < table.Rows; row++) {

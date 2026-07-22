@@ -155,17 +155,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
-        EnsureDepth(depth, element);
+    private void ChargeLayoutOperation(string source) {
         _layoutOperationCount++;
         if (_layoutOperationCount > _options.MaxLayoutOperations) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded,
-                "HTML layout exceeded the configured operation limit at " + HtmlRenderStyleResolver.DescribeSource(element) + ".",
+                "HTML layout exceeded the configured operation limit at " + source + ".",
                 nameof(HtmlRenderOptions.MaxLayoutOperations),
                 _layoutOperationCount,
                 _options.MaxLayoutOperations);
         }
+    }
+
+    private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
+        EnsureDepth(depth, element);
+        ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);

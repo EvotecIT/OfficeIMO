@@ -9,6 +9,7 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private const int AntiAliasSamples = 3;
     private const double MinimumDashSegmentAdvance = 1E-9D;
+    private const double MinimumRasterDashLength = 0.25D;
     private static readonly OfficeTrueTypeFont? DefaultFont = OfficeTrueTypeFont.TryLoadDefault();
     private readonly OfficeRasterImage? _image;
     private readonly OfficeRasterRenderTarget? _target;

@@ -128,4 +128,18 @@ public sealed class OpenDocumentConversionContracts {
 
         Assert.Contains("columns (3)", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void PowerPointToOdpRejectsTablesBeyondConfiguredBounds() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide().AddTablePoints(1, 3, 10, 10, 120, 40);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            source.ToOpenDocumentResult(new PowerPointOpenDocumentConversionOptions {
+                MaxTableRows = 2,
+                MaxTableColumns = 2
+            }));
+
+        Assert.Contains("columns (3)", exception.Message, StringComparison.Ordinal);
+    }
 }

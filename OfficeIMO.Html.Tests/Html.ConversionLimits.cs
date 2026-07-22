@@ -195,6 +195,19 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlConversionDocument_Counts_Unsupported_Css_Before_Cascade_Filtering() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssRules = 1;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a'>x</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssRuleLimitExceeded, exception.Code);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_LoadStopsAtTheSharedCharacterBudgetAndRestoresTheStream() {
         byte[] bytes = Encoding.UTF8.GetBytes("<p>stream content</p>");
         using var stream = new MemoryStream(bytes);

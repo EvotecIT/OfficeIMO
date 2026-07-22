@@ -176,6 +176,7 @@ public sealed partial class OfficeRasterCanvas {
         double dashLength,
         double gapLength,
         ref double patternPosition) {
+        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
         double length = Distance(start.X, start.Y, end.X, end.Y);
         if (!IsFinite(length) || length <= 0D) {
             return;
@@ -243,6 +244,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        dashPattern = NormalizeRasterDashPattern(dashPattern);
+
         double cycle = 0D;
         for (int i = 0; i < dashPattern.Count; i++) {
             cycle += dashPattern[i];
@@ -304,5 +307,27 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
         patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
+    }
+
+    private static void NormalizeRasterDashLengths(ref double dashLength, ref double gapLength) {
+        double smallest = gapLength > 0D ? Math.Min(dashLength, gapLength) : dashLength;
+        if (!IsFinite(smallest) || smallest <= 0D || smallest >= MinimumRasterDashLength) return;
+        double scale = MinimumRasterDashLength / smallest;
+        dashLength *= scale;
+        gapLength *= scale;
+    }
+
+    private static IReadOnlyList<double> NormalizeRasterDashPattern(IReadOnlyList<double> pattern) {
+        double smallest = double.MaxValue;
+        for (int index = 0; index < pattern.Count; index++) {
+            double length = pattern[index];
+            if (IsFinite(length) && length > 0D) smallest = Math.Min(smallest, length);
+        }
+        if (smallest == double.MaxValue || smallest >= MinimumRasterDashLength) return pattern;
+
+        double scale = MinimumRasterDashLength / smallest;
+        var normalized = new double[pattern.Count];
+        for (int index = 0; index < pattern.Count; index++) normalized[index] = pattern[index] * scale;
+        return normalized;
     }
 }

@@ -317,7 +317,7 @@ internal static partial class RtfDocumentWriter {
             builder.Append(@"\ls");
             builder.Append(paragraph.ListId.Value.ToString(CultureInfo.InvariantCulture));
             builder.Append(@"\ilvl");
-            builder.Append((paragraph.ListLevel ?? 0).ToString(CultureInfo.InvariantCulture));
+            builder.Append(Math.Min(8, Math.Max(0, paragraph.ListLevel ?? 0)).ToString(CultureInfo.InvariantCulture));
         }
 
         WriteParagraphFrame(builder, paragraph.Frame);

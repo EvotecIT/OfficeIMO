@@ -176,7 +176,7 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void EnsureListLevel(RtfListDefinition definition, RtfParagraph paragraph) {
-        int levelIndex = paragraph.ListLevel ?? 0;
+        int levelIndex = Math.Min(8, Math.Max(0, paragraph.ListLevel ?? 0));
         if (definition.Levels.Any(level => level.LevelIndex == levelIndex)) {
             return;
         }

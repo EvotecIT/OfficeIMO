@@ -57,9 +57,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (FlexItem item in line.Items) {
                 string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
                 double targetCrossSize = alignment == "stretch" && !item.HasExplicitCrossSize && !HasColumnFlexCrossAutoMargin(item.Style) ? line.CrossSize : item.CrossBasis;
+                bool mainSizeWasDefinite = item.Style.ExplicitHeight.HasValue;
                 bool canReuseInitialLayout = Math.Abs(targetCrossSize - item.InitialCrossSize) <= 0.0001D
                     && Math.Abs(line.CrossSize - item.InitialCrossSize) <= 0.0001D
-                    && Math.Abs(item.MainSize - item.Block!.Height) <= 0.0001D;
+                    && Math.Abs(item.MainSize - item.Block!.Height) <= 0.0001D
+                    && (!hasDefiniteHeight || mainSizeWasDefinite);
                 ApplyColumnFlexCrossSize(item, targetCrossSize);
                 ApplyColumnFlexMainSize(item);
                 if (!canReuseInitialLayout) item.Block = LayoutFlexItem(item, Math.Max(1D, line.CrossSize), style, depth + 1);

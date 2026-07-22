@@ -144,20 +144,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return GridLine.Auto;
     }
 
-    private static int FindGridColumn(HashSet<long> occupied, int row, int rowSpan, int columnSpan, int columnCount) {
+    private int FindGridColumn(HashSet<long> occupied, int row, int rowSpan, int columnSpan, int columnCount) {
         for (int column = 0; column + columnSpan <= columnCount; column++) {
             if (CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return column;
         }
         return columnCount;
     }
 
-    private static int FindGridRow(HashSet<long> occupied, int column, int rowSpan, int columnSpan) {
+    private int FindGridRow(HashSet<long> occupied, int column, int rowSpan, int columnSpan) {
         for (int row = 0; ; row++) {
             if (CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return row;
         }
     }
 
-    private static void FindAutomaticGridPosition(HashSet<long> occupied, int rowSpan, int columnSpan, int columnCount, ref int row, ref int column) {
+    private void FindAutomaticGridPosition(HashSet<long> occupied, int rowSpan, int columnSpan, int columnCount, ref int row, ref int column) {
         for (;;) {
             if (column + columnSpan <= columnCount && CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return;
             column++;
@@ -168,7 +168,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void FindAutomaticGridPositionColumn(HashSet<long> occupied, int rowSpan, int columnSpan, int rowCount, ref int row, ref int column) {
+    private void FindAutomaticGridPositionColumn(HashSet<long> occupied, int rowSpan, int columnSpan, int rowCount, ref int row, ref int column) {
         for (;;) {
             if (row + rowSpan <= rowCount && CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return;
             row++;
@@ -179,18 +179,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool CanPlaceGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+    private bool CanPlaceGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
             for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                ChargeLayoutOperation("CSS grid placement");
                 if (occupied.Contains(GridCellKey(row + rowOffset, column + columnOffset))) return false;
             }
         }
         return true;
     }
 
-    private static void MarkGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+    private void MarkGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
             for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                ChargeLayoutOperation("CSS grid placement");
                 occupied.Add(GridCellKey(row + rowOffset, column + columnOffset));
             }
         }
