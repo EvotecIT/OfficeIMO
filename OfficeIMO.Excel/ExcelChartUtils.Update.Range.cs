@@ -709,8 +709,7 @@ namespace OfficeIMO.Excel {
         private static bool TryReadReferencedTextValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<string>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
-                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2) ||
-                !pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
                 return false;
             }
 
@@ -718,6 +717,10 @@ namespace OfficeIMO.Excel {
             try {
                 sheet = contextSheet.Document[sheetName];
             } catch {
+                return false;
+            }
+
+            if (!pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
                 return false;
             }
 
@@ -735,8 +738,7 @@ namespace OfficeIMO.Excel {
         private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
-                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2) ||
-                !pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
                 return false;
             }
 
@@ -744,6 +746,10 @@ namespace OfficeIMO.Excel {
             try {
                 sheet = contextSheet.Document[sheetName];
             } catch {
+                return false;
+            }
+
+            if (!pointBudget.TryCharge((long)(r2 - r1 + 1) * (c2 - c1 + 1))) {
                 return false;
             }
 

@@ -303,6 +303,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeMissingChartSourcesBeforeCacheFallback() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 2L },
+                culture: null)!;
+            object?[] missingReference = { sheet, "Missing!$A$1:$A$1000000", budget, null };
+            var cache = new NumberingCache(
+                new PointCount { Val = 2U },
+                new NumericPoint(new NumericValue("10")) { Index = 0U },
+                new NumericPoint(new NumericValue("20")) { Index = 1U });
+            object?[] cachedValues = { cache, budget, null };
+
+            Assert.False((bool)readReference.Invoke(null, missingReference)!);
+            Assert.True((bool)readCache.Invoke(null, cachedValues)!);
+            Assert.Equal(new[] { 10D, 20D }, (IReadOnlyList<double>)cachedValues[2]!);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReusesFirstScatterXValuesWithinAggregateBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("ScatterBudget");
