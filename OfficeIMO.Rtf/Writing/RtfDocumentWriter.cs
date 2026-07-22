@@ -4,6 +4,7 @@ internal static partial class RtfDocumentWriter {
     public static string Write(RtfDocument document, RtfWriteOptions options) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new RtfWriteOptions();
+        RtfTableTraversalGuard.ValidateDocument(document);
         int unicodeSkipCount = GetUnicodeSkipCount(document.Settings);
 
         var builder = new StringBuilder();

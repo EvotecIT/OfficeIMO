@@ -9,6 +9,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFlexColumn_NestedDefaultLayoutsRemainLinear() {
+        var html = new StringBuilder();
+        for (int index = 0; index < 24; index++) html.Append("<div style='display:flex;flex-direction:column'>");
+        html.Append("<span>LinearLeaf</span>");
+        for (int index = 0; index < 24; index++) html.Append("</div>");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            MaxLayoutOperations = 100
+        });
+
+        Assert.Contains("LinearLeaf", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_StopsRepeatedReflowAtOperationLimit() {
+        var html = new StringBuilder();
+        for (int index = 0; index < 12; index++) html.Append("<div style='display:flex;flex-direction:column;align-items:flex-start'>");
+        html.Append("<span>BoundedLeaf</span>");
+        for (int index = 0; index < 12; index++) html.Append("</div>");
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions { MaxLayoutOperations = 20 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlFlexRow_AppliesGapMainDistributionAndCrossAlignment() {
         const string html = """
             <div id="flex" style="display:flex;width:300px;height:80px;gap:10px;justify-content:space-between;align-items:center">

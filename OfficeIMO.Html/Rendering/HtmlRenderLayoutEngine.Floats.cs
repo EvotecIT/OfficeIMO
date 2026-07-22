@@ -33,13 +33,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             element));
     }
 
-    private bool ContainsFloatingDescendant(IElement element, double containingWidth, HtmlRenderBoxStyle parentStyle) {
+    private bool ContainsFloatingDescendant(IElement element, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
+        EnsureDepth(depth, element);
         if (_containsInFlowFloatCache.TryGetValue(element, out bool cached)) return cached;
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, containingWidth, parentStyle);
             if (style.Display == "none" || ShouldExtractOutOfFlow(style)) continue;
-            if (style.FloatSide != "none" || ContainsFloatingDescendant(child, containingWidth, style)) {
+            if (style.FloatSide != "none" || ContainsFloatingDescendant(child, containingWidth, style, depth + 1)) {
                 _containsInFlowFloatCache[element] = true;
                 return true;
             }

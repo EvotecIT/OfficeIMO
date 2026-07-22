@@ -326,24 +326,13 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double length = Distance(x1, y1, x2, y2);
-        if (length <= 0D) {
+        if (!IsFinite(length) || length <= 0D) {
             return;
         }
-
-        double position = 0D;
-        while (position < length) {
-            double next = Math.Min(length, position + dashLength);
-            double startT = position / length;
-            double endT = next / length;
-            DrawLineSegment(
-                x1 + ((x2 - x1) * startT),
-                y1 + ((y2 - y1) * startT),
-                x1 + ((x2 - x1) * endT),
-                y1 + ((y2 - y1) * endT),
-                color,
-                thickness);
-            position = next + gapLength;
-        }
+        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
+        double cycle = dashLength + gapLength;
+        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
+        DrawDashedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, dashLength, gapLength, ref patternPosition);
     }
 
     /// <summary>Draws a line segment using a shared Office stroke dash style.</summary>
@@ -388,7 +377,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double length = Distance(x1, y1, x2, y2);
-        if (length <= 0D) {
+        if (!IsFinite(length) || length <= 0D) {
             return;
         }
 
@@ -403,29 +392,11 @@ public sealed partial class OfficeRasterCanvas {
             DrawLine(x1, y1, x2, y2, color, thickness);
             return;
         }
-
-        double position = 0D;
-        int patternIndex = 0;
-        bool draw = true;
-        while (position < length) {
-            double segment = pattern[patternIndex];
-            double next = Math.Min(length, position + segment);
-            if (draw && next > position) {
-                double startT = position / length;
-                double endT = next / length;
-                DrawLineSegment(
-                    x1 + ((x2 - x1) * startT),
-                    y1 + ((y2 - y1) * startT),
-                    x1 + ((x2 - x1) * endT),
-                    y1 + ((y2 - y1) * endT),
-                    color,
-                    thickness);
-            }
-
-            position = next;
-            patternIndex = (patternIndex + 1) % pattern.Count;
-            draw = !draw;
-        }
+        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
+        double cycle = 0D;
+        for (int index = 0; index < pattern.Count; index++) cycle += pattern[index];
+        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
+        DrawPatternedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, pattern, ref patternPosition);
     }
 
     /// <summary>Draws an elliptical arc using center/radius coordinates and optional rotation.</summary>

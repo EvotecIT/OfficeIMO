@@ -10,6 +10,32 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_RejectRowsAndColumnsBeforeAllocatingLayoutTracks() {
+        var rowOptions = new HtmlRenderOptions { MaxTableRows = 1 };
+        HtmlDomLimitException rowException = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render("<table><tr><td>A</td></tr><tr><td>B</td></tr></table>", rowOptions));
+        Assert.Equal(HtmlRenderDiagnosticCodes.TableLimitExceeded, rowException.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxTableRows), rowException.LimitSource);
+
+        var columnOptions = new HtmlRenderOptions { MaxTableColumns = 2 };
+        HtmlDomLimitException columnException = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render("<table><col span='1000'><tr><td>A</td></tr></table>", columnOptions));
+        Assert.Equal(HtmlRenderDiagnosticCodes.TableLimitExceeded, columnException.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxTableColumns), columnException.LimitSource);
+    }
+
+    [Fact]
+    public void HtmlTables_BoundCollapsedBorderCandidateExpansion() {
+        const string html = "<table style='border-collapse:collapse'><tr><td style='border:1px solid red'>A</td><td style='border:1px solid red'>B</td></tr></table>";
+        var options = new HtmlRenderOptions { MaxCollapsedTableBorderSegments = 2 };
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlRenderTestDriver.Render(html, options));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.CollapsedTableBorderLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxCollapsedTableBorderSegments), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlTableCell_StacksBlockDescendantsAndRetainsHeadingSemantics() {
         const string html = """
             <table style="width:320px;border-collapse:collapse">

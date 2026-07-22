@@ -11,7 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         string axis) {
         var tracks = new List<GridTrack>();
-        AddGridTrackTokens(value, reference, percentageReferenceIsDefinite, style, source, axis, tracks);
+        AddGridTrackTokens(value, reference, percentageReferenceIsDefinite, style, source, axis, tracks, depth: 0);
         return tracks;
     }
 
@@ -22,7 +22,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         string source,
         string axis,
-        ICollection<GridTrack> tracks) {
+        ICollection<GridTrack> tracks,
+        int depth) {
+        if (depth > _options.MaxLayoutDepth) {
+            throw new HtmlDomLimitException(
+                HtmlRenderDiagnosticCodes.DepthLimitExceeded,
+                "Nested CSS grid functions exceeded the configured layout depth.",
+                nameof(HtmlRenderOptions.MaxLayoutDepth),
+                depth,
+                _options.MaxLayoutDepth);
+        }
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
         if (normalized == "none") return;
         foreach (string token in HtmlRenderCssValues.SplitWhitespace(normalized)) {
@@ -42,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && (string.Equals(arguments[0], "auto-fit", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(arguments[0], "auto-fill", StringComparison.OrdinalIgnoreCase))) {
                     var pattern = new List<GridTrack>();
-                    AddGridTrackTokens(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis, pattern);
+                    AddGridTrackTokens(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis, pattern, depth + 1);
                     double responsiveGap = axis.IndexOf("columns", StringComparison.Ordinal) >= 0 ? style.ColumnGap : style.RowGap;
                     double patternMinimum = pattern.Sum(GridTrackMinimumForRepeat) + responsiveGap * Math.Max(0, pattern.Count - 1);
                     if (!percentageReferenceIsDefinite || pattern.Count == 0 || patternMinimum <= 0D) {

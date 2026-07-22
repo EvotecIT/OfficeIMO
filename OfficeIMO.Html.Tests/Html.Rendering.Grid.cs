@@ -335,6 +335,40 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(HtmlRenderDiagnosticCodes.GridTrackLimitExceeded, exception.Code);
     }
 
+    [Fact]
+    public void HtmlGrid_BoundsAuthoredLineNumbersBeforeIntegerArithmetic() {
+        var options = new HtmlRenderOptions { MaxGridTracks = 16 };
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render("<div style='display:grid'><span style='grid-column:2147483647 / span 2'>A</span></div>", options));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.GridTrackLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxGridTracks), exception.LimitSource);
+    }
+
+    [Fact]
+    public void HtmlGrid_ColumnFlowAcceptsItemSpansBeyondExplicitRows() {
+        const string html = "<div style='display:grid;grid-auto-flow:column;grid-template-rows:20px;grid-auto-rows:20px'>"
+            + "<span id='tall' style='grid-row:span 2;background:red'>A</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 100D);
+
+        Assert.Equal(40D, FindGridShape(rendered, "span#tall").Height, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_BoundsNestedRepeatFunctionDepth() {
+        string tracks = "1px";
+        for (int index = 0; index < 8; index++) tracks = "repeat(auto-fit," + tracks + ")";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render("<div style='display:grid;grid-template-columns:" + tracks + "'><span>A</span></div>",
+                new HtmlRenderOptions { MaxLayoutDepth = 4 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.DepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutDepth), exception.LimitSource);
+    }
+
     private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 

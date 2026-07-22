@@ -158,10 +158,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result;
     }
 
-    private static int DetermineDeclaredColumnCount(IElement table) {
-        int count = 0;
-        foreach (IElement element in table.QuerySelectorAll("col").Where(candidate => BelongsToTableColumn(candidate, table))) count += ReadSpan(element.GetAttribute("span"), 1000);
-        return count;
+    private int DetermineDeclaredColumnCount(IElement table) {
+        long count = 0;
+        foreach (IElement element in table.QuerySelectorAll("col").Where(candidate => BelongsToTableColumn(candidate, table))) {
+            count += ReadSpan(element.GetAttribute("span"), 1000);
+            EnsureTableColumnLimit(count);
+        }
+        return (int)count;
     }
 
     private static bool BelongsToTableColumn(IElement column, IElement table) {

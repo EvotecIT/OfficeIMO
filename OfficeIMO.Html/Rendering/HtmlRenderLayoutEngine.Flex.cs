@@ -390,6 +390,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double MainSize { get; set; }
         internal double MainOffset { get; set; }
         internal double CrossBasis { get; set; }
+        internal double InitialCrossSize { get; set; }
         internal double CrossOffset { get; set; }
         internal bool HasExplicitCrossSize { get; set; }
         internal HtmlRenderFlowBlock? Block { get; set; }

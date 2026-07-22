@@ -130,6 +130,18 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum generated columns accepted in one multi-column formatting context.</summary>
     public int MaxColumnCount { get; set; } = 64;
 
+    /// <summary>Maximum rows accepted in one rendered HTML table.</summary>
+    public int MaxTableRows { get; set; } = 4_096;
+
+    /// <summary>Maximum columns accepted in one rendered HTML table.</summary>
+    public int MaxTableColumns { get; set; } = 1_024;
+
+    /// <summary>Maximum candidate edge segments resolved for one collapsed-border table.</summary>
+    public int MaxCollapsedTableBorderSegments { get; set; } = 100_000;
+
+    /// <summary>Maximum element layout operations allowed in one render.</summary>
+    public int MaxLayoutOperations { get; set; } = 1_000_000;
+
     /// <summary>Gets the CSS media context selected by the current render mode.</summary>
     public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 
@@ -178,6 +190,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxGradientStops = MaxGradientStops;
         target.MaxGridTracks = MaxGridTracks;
         target.MaxColumnCount = MaxColumnCount;
+        target.MaxTableRows = MaxTableRows;
+        target.MaxTableColumns = MaxTableColumns;
+        target.MaxCollapsedTableBorderSegments = MaxCollapsedTableBorderSegments;
+        target.MaxLayoutOperations = MaxLayoutOperations;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
         return target;
     }
@@ -244,6 +260,18 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         }
         if (MaxColumnCount <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxColumnCount), "Maximum multi-column count must be positive.");
+        }
+        if (MaxTableRows <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTableRows), "Maximum table row count must be positive.");
+        }
+        if (MaxTableColumns <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTableColumns), "Maximum table column count must be positive.");
+        }
+        if (MaxCollapsedTableBorderSegments <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxCollapsedTableBorderSegments), "Maximum collapsed table border segment count must be positive.");
+        }
+        if (MaxLayoutOperations <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxLayoutOperations), "Maximum layout operation count must be positive.");
         }
 
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == System.Threading.Timeout.InfiniteTimeSpan) {

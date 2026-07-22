@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     internal static string Write(RtfDocument document, RtfToHtmlOptions options) {
+        RtfTableTraversalGuard.ValidateDocument(document);
         string newline = options.GetNewLine();
         var builder = new StringBuilder();
 

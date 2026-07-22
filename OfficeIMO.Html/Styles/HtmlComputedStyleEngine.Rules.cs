@@ -97,7 +97,8 @@ public static partial class HtmlComputedStyleEngine {
         var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < styleRule.Style.Length; i++) {
             string propertyName = styleRule.Style[i];
-            if (!string.IsNullOrWhiteSpace(propertyName)) {
+            if (!string.IsNullOrWhiteSpace(propertyName)
+                && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 declarations[propertyName] = new StyleDeclaration(
                     styleRule.Style.GetPropertyValue(propertyName),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));

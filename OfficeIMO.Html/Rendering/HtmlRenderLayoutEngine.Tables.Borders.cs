@@ -134,7 +134,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    private static void AddCollapsedColumnRange(
+    private void AddCollapsedColumnRange(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         int start,
         int end,
@@ -148,7 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddVerticalBorderRange(winners, end, 0, rowCount, borders.Right, origin, ref sourceOrder);
     }
 
-    private static void AddCollapsedRowGroupBorders(
+    private void AddCollapsedRowGroupBorders(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         IReadOnlyList<TableRowLayout> rows,
         int columnCount,
@@ -171,7 +171,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void AddHorizontalBorderRange(
+    private void AddHorizontalBorderRange(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         int boundary,
         int start,
@@ -184,7 +184,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void AddVerticalBorderRange(
+    private void AddVerticalBorderRange(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         int boundary,
         int start,
@@ -197,14 +197,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void AddCollapsedBorderCandidate(
+    private void AddCollapsedBorderCandidate(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         CollapsedBorderKey key,
         HtmlRenderBorderSide border,
         CollapsedBorderOrigin origin,
         int sourceOrder) {
+        if (border.Style == "none") return;
         var candidate = new CollapsedBorderCandidate(border, origin, sourceOrder);
-        if (!winners.TryGetValue(key, out CollapsedBorderCandidate current) || CompareCollapsedBorders(candidate, current) >= 0) winners[key] = candidate;
+        if (winners.TryGetValue(key, out CollapsedBorderCandidate current)) {
+            if (CompareCollapsedBorders(candidate, current) >= 0) winners[key] = candidate;
+            return;
+        }
+        if (winners.Count >= _options.MaxCollapsedTableBorderSegments) {
+            throw new HtmlDomLimitException(
+                HtmlRenderDiagnosticCodes.CollapsedTableBorderLimitExceeded,
+                "Collapsed table border resolution exceeded the configured segment limit.",
+                nameof(HtmlRenderOptions.MaxCollapsedTableBorderSegments),
+                winners.Count + 1L,
+                _options.MaxCollapsedTableBorderSegments);
+        }
+        winners[key] = candidate;
     }
 
     private static int CompareCollapsedBorders(CollapsedBorderCandidate left, CollapsedBorderCandidate right) {

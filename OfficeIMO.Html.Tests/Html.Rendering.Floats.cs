@@ -9,6 +9,19 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFloats_ApplyLayoutDepthBeforeScanningNestedDescendants() {
+        string html = "<span>" + string.Concat(Enumerable.Repeat("<span>", 12))
+            + "<span style='float:left'>Float</span>"
+            + string.Concat(Enumerable.Repeat("</span>", 12)) + "</span>";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxLayoutDepth = 8 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.DepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutDepth), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlFloatLeft_WrapsLineBandsAndRestoresFullWidthBelowFloat() {
         const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
             + "<span id='left-float' style='float:left;width:30px;height:20px;background:#ff0000'></span>"

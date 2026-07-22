@@ -186,7 +186,14 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        OfficePoint clippedStart = start;
+        OfficePoint clippedEnd = end;
+        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
+            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
+            return;
+        }
+        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
+        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
         double position = 0D;
         while (position < length) {
             bool inDash = patternPosition < dashLength || gapLength == 0D;
@@ -207,10 +214,10 @@ public sealed partial class OfficeRasterCanvas {
                 double startT = position / length;
                 double endT = next / length;
                 DrawLineSegment(
-                    start.X + ((end.X - start.X) * startT),
-                    start.Y + ((end.Y - start.Y) * startT),
-                    start.X + ((end.X - start.X) * endT),
-                    start.Y + ((end.Y - start.Y) * endT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
                     color,
                     thickness);
             }
@@ -221,6 +228,7 @@ public sealed partial class OfficeRasterCanvas {
                 patternPosition -= cycle;
             }
         }
+        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
     }
 
     private void DrawPatternedPathSegment(
@@ -244,7 +252,14 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        OfficePoint clippedStart = start;
+        OfficePoint clippedEnd = end;
+        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
+            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
+            return;
+        }
+        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
+        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
         double position = 0D;
         while (position < length) {
             int patternIndex = 0;
@@ -274,10 +289,10 @@ public sealed partial class OfficeRasterCanvas {
                 double startT = position / length;
                 double endT = next / length;
                 DrawLineSegment(
-                    start.X + ((end.X - start.X) * startT),
-                    start.Y + ((end.Y - start.Y) * startT),
-                    start.X + ((end.X - start.X) * endT),
-                    start.Y + ((end.Y - start.Y) * endT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
                     color,
                     thickness);
             }
@@ -288,5 +303,6 @@ public sealed partial class OfficeRasterCanvas {
                 patternPosition -= cycle;
             }
         }
+        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
     }
 }

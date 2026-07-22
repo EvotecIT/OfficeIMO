@@ -195,6 +195,35 @@ public class RtfNestedTableTests {
             warning.Code == "NestedTableFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
 
+    [Fact]
+    public void Conversion_Surfaces_Reject_Table_Nesting_Beyond_Shared_Limit() {
+        RtfDocument document = CreateNestedDocument(RtfTableTraversalGuard.MaximumDepth + 1);
+
+        AssertTableDepthLimit(() => document.ToRtf());
+        AssertTableDepthLimit(() => document.ToHtml());
+        AssertTableDepthLimit(() => document.ToMarkdown());
+        AssertTableDepthLimit(() => document.ToPdfDocument());
+        AssertTableDepthLimit(() => document.ToWordDocument());
+    }
+
+    [Fact]
+    public void Word_To_Rtf_Rejects_Table_Nesting_Beyond_Shared_Limit() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(1, 1);
+        for (int depth = 1; depth < RtfTableTraversalGuard.MaximumDepth + 1; depth++) {
+            table = table.Rows[0].Cells[0].AddTable(1, 1);
+        }
+
+        AssertTableDepthLimit(() => document.ToRtfDocument());
+    }
+
+    [Fact]
+    public void Shared_Table_Nesting_Limit_Allows_The_Maximum_Depth() {
+        RtfDocument document = CreateNestedDocument(RtfTableTraversalGuard.MaximumDepth);
+
+        RtfTableTraversalGuard.ValidateDocument(document);
+    }
+
     private static RtfDocument CreateNestedDocument() {
         RtfDocument document = RtfDocument.Create();
         RtfTable outer = document.AddTable(1, 1);
@@ -204,6 +233,22 @@ public class RtfNestedTableTests {
         nested.Rows[0].Cells[0].AddParagraph("Inner A");
         nested.Rows[0].Cells[1].AddParagraph("Inner B");
         return document;
+    }
+
+    private static RtfDocument CreateNestedDocument(int tableDepth) {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(1, 1);
+        for (int depth = 1; depth < tableDepth; depth++) {
+            table = table.Rows[0].Cells[0].AddTable(1, 1);
+        }
+
+        table.Rows[0].Cells[0].AddParagraph("Deepest table");
+        return document;
+    }
+
+    private static void AssertTableDepthLimit(Action action) {
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(action);
+        Assert.Contains(RtfTableTraversalGuard.MaximumDepth.ToString(), exception.Message, StringComparison.Ordinal);
     }
 
     private static int CountOccurrences(string value, string token) {

@@ -8,6 +8,7 @@ internal static partial class RtfPdfConverter {
             throw new ArgumentNullException(nameof(document));
         }
 
+        RtfTableTraversalGuard.ValidateDocument(document);
         RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");

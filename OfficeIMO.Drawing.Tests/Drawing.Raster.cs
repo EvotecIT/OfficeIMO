@@ -1412,6 +1412,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_ClipsHugeDashedAndPatternedLinesBeforeIteration() {
+            OfficeRasterImage dashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage patterned = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(dashed).DrawDashedLine(-1_000_000_000D, 3D, 1_000_000_000D, 3D, OfficeColor.Black, 1D, 2D, 2D);
+            new OfficeRasterCanvas(patterned).DrawPatternedLine(-1_000_000_000D, 4D, 1_000_000_000D, 4D, OfficeColor.Black, 1D, new[] { 2D, 2D });
+
+            Assert.Contains(Enumerable.Range(0, dashed.Width), x => dashed.GetPixel(x, 3).A > 0);
+            Assert.Contains(Enumerable.Range(0, patterned.Width), x => patterned.GetPixel(x, 4).A > 0);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_DrawsStyledDashDotDotLines() {
             OfficeRasterImage image = new OfficeRasterImage(64, 14, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

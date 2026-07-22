@@ -38,6 +38,7 @@ public static partial class WordRtfConverterExtensions {
     public static WordDocument ToWordDocument(this RtfDocument rtfDocument) {
         if (rtfDocument == null) throw new ArgumentNullException(nameof(rtfDocument));
 
+        RtfTableTraversalGuard.ValidateDocument(rtfDocument);
         WordDocument document = WordDocument.Create();
         ApplyDocumentInfo(rtfDocument, document);
         ApplyCustomMetadata(rtfDocument, document);
