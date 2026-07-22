@@ -1436,6 +1436,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_ClippedTinyDashPhaseMatchesQuantizedPattern() {
+            OfficeRasterImage tinyDashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage quantizedDashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage tinyPatterned = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage quantizedPatterned = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(tinyDashed).DrawDashedLine(-3.625D, 3D, 31D, 3D, OfficeColor.Black, 1D, 0.00000001D, 0.00000001D);
+            new OfficeRasterCanvas(quantizedDashed).DrawDashedLine(-3.625D, 3D, 31D, 3D, OfficeColor.Black, 1D, 0.25D, 0.25D);
+            new OfficeRasterCanvas(tinyPatterned).DrawPatternedLine(-3.625D, 4D, 31D, 4D, OfficeColor.Black, 1D, new[] { 0.00000001D, 0.00000001D });
+            new OfficeRasterCanvas(quantizedPatterned).DrawPatternedLine(-3.625D, 4D, 31D, 4D, OfficeColor.Black, 1D, new[] { 0.25D, 0.25D });
+
+            Assert.Equal(quantizedDashed.GetPixels(), tinyDashed.GetPixels());
+            Assert.Equal(quantizedPatterned.GetPixels(), tinyPatterned.GetPixels());
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_DrawsStyledDashDotDotLines() {
             OfficeRasterImage image = new OfficeRasterImage(64, 14, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

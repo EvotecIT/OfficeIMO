@@ -330,6 +330,7 @@ public sealed partial class OfficeRasterCanvas {
         if (!IsFinite(length) || length <= 0D) {
             return;
         }
+        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
         if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
         double cycle = dashLength + gapLength;
         double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
@@ -393,11 +394,12 @@ public sealed partial class OfficeRasterCanvas {
             DrawLine(x1, y1, x2, y2, color, thickness);
             return;
         }
+        IReadOnlyList<double> rasterPattern = NormalizeRasterDashPattern(pattern);
         if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
         double cycle = 0D;
-        for (int index = 0; index < pattern.Count; index++) cycle += pattern[index];
+        for (int index = 0; index < rasterPattern.Count; index++) cycle += rasterPattern[index];
         double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
-        DrawPatternedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, pattern, ref patternPosition);
+        DrawPatternedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, rasterPattern, ref patternPosition);
     }
 
     /// <summary>Draws an elliptical arc using center/radius coordinates and optional rotation.</summary>
