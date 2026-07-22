@@ -162,9 +162,7 @@ public sealed class OfficeFontFaceCollection {
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         var result = new List<OfficeFontFace>();
         var added = new HashSet<OfficeFontFace>();
-        foreach (string rawFamily in familyNames.Split(',')) {
-            string family = CleanFamilyName(rawFamily);
-            if (family.Length == 0) continue;
+        foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
             OfficeFontFace? exact = null;
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
