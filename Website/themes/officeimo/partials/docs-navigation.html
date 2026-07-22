@@ -1,0 +1,20 @@
+<nav class="imo-docs__nav" aria-label="Documentation">
+  {{ if navigation.menus && navigation.menus.size > 0 }}
+    {{ for menu in navigation.menus }}
+      {{ if menu.name == "docs" }}
+        {{ for item in menu.items }}
+          {{ if item.items && item.items.size > 0 }}
+            {{~ is_open = false ~}}
+            {{~ for child in item.items ~}}{{~ if page.url == child.url ~}}{{~ is_open = true ~}}{{~ end ~}}{{~ end ~}}
+            <details class="imo-docs__group" open{{ if is_open }} data-current="true"{{ end }}>
+              <summary class="imo-docs__group-title">{{ item.title }}</summary>
+              <ul class="imo-docs__list">{{ for child in item.items }}<li><a href="{{ child.url }}" class="imo-docs__link{{ if page.url == child.url }} active{{ end }}"{{ if page.url == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}</ul>
+            </details>
+          {{ else }}
+            <a href="{{ item.url }}" class="imo-docs__link imo-docs__link--top{{ if page.url == item.url }} active{{ end }}">{{ item.title }}</a>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+</nav>

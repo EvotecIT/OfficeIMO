@@ -1,23 +1,29 @@
 {
-  "title": "Get Started in Three Steps",
+  "title": "Start with what you need to do",
   "steps": [
     {
       "step": 1,
-      "title": "Install the Package",
-      "description": "Add the NuGet package for the document format you need, or install the PSWriteOffice PowerShell module. Targets .NET 8+, .NET Standard 2.0, and .NET Framework 4.7.2.",
+      "title": "Create and edit",
+      "description": "Build Word, Excel, PowerPoint, PDF, Visio, Markdown, CSV, and other document formats from typed .NET APIs.",
       "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'/></svg>"
     },
     {
       "step": 2,
-      "title": "Write Fluent Code",
-      "description": "Use the intuitive, object-oriented API to create, read, or edit documents. Available in C# with fluent builders and PowerShell with DSL aliases.",
+      "title": "Convert and render",
+      "description": "Move content between Office, PDF, HTML, Markdown, OpenDocument, RTF, and Google Workspace with focused converter packages.",
       "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'/></svg>"
     },
     {
       "step": 3,
-      "title": "Get Perfect Documents",
-      "description": "Output standards-compliant Office documents that open flawlessly in Microsoft Office, LibreOffice, and Google Docs. No manual XML wrangling required.",
+      "title": "Read and extract",
+      "description": "Normalize text, tables, metadata, images, and chunks for search, review, ingestion, and AI-assisted workflows.",
       "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>"
+    },
+    {
+      "step": 4,
+      "title": "Automate with PowerShell",
+      "description": "Use PSWriteOffice for scheduled reports, administration scripts, build pipelines, and repeatable document jobs.",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg>"
     }
   ]
 }

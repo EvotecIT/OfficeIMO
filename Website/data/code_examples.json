@@ -1,6 +1,6 @@
 {
-  "title": "Multiple Ways to Build Documents",
-  "description": "The same site should support hand-written .NET code, higher-level builders, and PowerShell automation without looking like separate products.",
+  "title": "Use the language that fits your workflow",
+  "description": "Call focused .NET packages from applications and services, or use PSWriteOffice for script-first document automation.",
   "tabs": [
     {
       "id": "word",

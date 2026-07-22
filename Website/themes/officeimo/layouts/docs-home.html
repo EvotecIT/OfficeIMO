@@ -1,293 +1,53 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ page.title }} | {{ site.name }} Docs</title>
-  {{ description_meta_html }}
-  {{ canonical_html }}
-  {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
-  {{ include "theme-tokens" }}
-  {{ assets.critical_css_html }}
-  {{ assets.preloads_html }}
-  {{ extra_css_html }}
-  {{ assets.css_html }}
-  {{ opengraph_html }}
-  {{ structured_data_html }}
+  {{ description_meta_html }}{{ canonical_html }}{{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}{{ assets.critical_css_html }}{{ assets.preloads_html }}{{ extra_css_html }}{{ assets.css_html }}{{ opengraph_html }}{{ structured_data_html }}
 </head>
-<body class="imo-body imo-body--docs">
+<body class="imo-body imo-body--docs imo-body--docs-home">
   <a class="imo-skip-link" href="#content">Skip to main content</a>
-
   {{ include "header" }}
+  <div class="imo-docs-toolbar"><div class="imo-container imo-docs-toolbar__inner"><span class="imo-docs-toolbar__brand">OfficeIMO Docs</span><a class="imo-docs-toolbar__search" href="/search/"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search documentation</span><kbd>/</kbd></a><div class="imo-docs-toolbar__links"><a href="/api/">API Reference</a><a href="/downloads/">Packages</a><a href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></div></div></div>
   <div class="imo-docs">
-    <button class="imo-docs__sidebar-toggle" type="button" aria-label="Toggle documentation menu" aria-expanded="false">
-      <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Menu
-    </button>
-    <aside class="imo-docs__sidebar">
-      <nav class="imo-docs__nav" aria-label="Documentation">
-        {{ if navigation.menus && navigation.menus.size > 0 }}
-          {{ for menu in navigation.menus }}
-            {{ if menu.name == "docs" }}
-              {{ for item in menu.items }}
-                {{ if item.items && item.items.size > 0 }}
-                  {{~ is_open = false ~}}
-                  {{~ for child in item.items ~}}
-                    {{~ if page.url == child.url ~}}
-                      {{~ is_open = true ~}}
-                    {{~ end ~}}
-                  {{~ end ~}}
-                  <details class="imo-docs__group" open{{ if is_open }} data-current="true"{{ end }}>
-                    <summary class="imo-docs__group-title">{{ item.title }}</summary>
-                    <ul class="imo-docs__list">
-                      {{ for child in item.items }}
-                      <li>
-                        <a href="{{ child.url }}" class="imo-docs__link{{ if page.url == child.url }} active{{ end }}"{{ if page.url == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a>
-                      </li>
-                      {{ end }}
-                    </ul>
-                  </details>
-                {{ else }}
-                  <a href="{{ item.url }}" class="imo-docs__link imo-docs__link--top{{ if page.url == item.url }} active{{ end }}">{{ item.title }}</a>
-                {{ end }}
-              {{ end }}
-            {{ end }}
-          {{ end }}
-        {{ end }}
-      </nav>
-    </aside>
-    <div class="imo-docs__sidebar-overlay" hidden></div>
-
-    <main id="content" class="imo-docs__main">
+    <button class="imo-docs__sidebar-toggle" type="button" aria-label="Toggle documentation menu" aria-expanded="false"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Menu</button>
+    <aside class="imo-docs__sidebar">{{ include "docs-navigation" }}</aside><div class="imo-docs__sidebar-overlay" hidden></div>
+    <main id="content" class="imo-docs__main imo-docs__main--home">
       <article class="imo-docs__article">
-        <header class="imo-docs__header">
-          <div class="imo-docs__header-top">
-            <h1>{{ page.title }}</h1>
-            {{ if page.edit_url }}
-            <a href="{{ page.edit_url }}" target="_blank" rel="noopener noreferrer" class="imo-docs__edit-link">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit on GitHub
-            </a>
-            {{ end }}
+        <header class="imo-docs-home-hero"><p class="imo-docs-home-hero__eyebrow">Documentation</p><h1>Build a document.<br><span>Know every step.</span></h1><p>Start with a real workflow, choose the package that owns it, and move into generated API detail when you need exact types and members.</p><div class="imo-docs-home-hero__actions"><a class="imo-btn imo-btn-primary" href="/docs/getting-started/quickstart/">Open quick start</a><a class="imo-btn imo-btn-ghost" href="/api/">Browse API reference</a></div></header>
+
+        <section class="imo-docs-paths" aria-labelledby="docs-paths-title">
+          <div class="imo-docs-section-heading"><p>Choose a path</p><h2 id="docs-paths-title">What are you trying to do?</h2></div>
+          <div class="imo-docs-paths__grid">
+            <a class="imo-docs-path" href="/docs/word/"><span>01</span><h3>Create documents</h3><p>Word, Excel, PowerPoint, PDF, OneNote, Visio, and OpenDocument.</p></a>
+            <a class="imo-docs-path" href="/docs/converters/word-html/"><span>02</span><h3>Convert and render</h3><p>Office, PDF, HTML, Markdown, RTF, images, and open formats.</p></a>
+            <a class="imo-docs-path" href="/docs/reader/"><span>03</span><h3>Read and extract</h3><p>Normalized content for search, review, ingestion, and AI workflows.</p></a>
+            <a class="imo-docs-path" href="/docs/pswriteoffice/"><span>04</span><h3>Automate with PowerShell</h3><p>Script-first document jobs, reports, and pipeline output.</p></a>
           </div>
-          {{ if page.description }}
-          <p class="imo-docs__description">{{ page.description }}</p>
-          {{ end }}
-        </header>
+        </section>
 
-        <div class="imo-docs-overview">
-          <section class="imo-docs-overview__panel">
-            <div>
-              <span class="imo-docs-overview__eyebrow">Start here</span>
-              <h2 class="imo-docs-overview__title">Use guides for workflow decisions, then drop into API pages when you need type-level detail</h2>
-              <p class="imo-docs-overview__copy">The docs landing page is meant to answer which package or workflow you should use. Start with getting started if you are new to the suite, or jump straight into the guide family that matches the document format you need to generate, convert, or automate.</p>
-            </div>
-            <div class="imo-docs-overview__actions">
-              <a href="/docs/getting-started/" class="imo-btn imo-btn-primary">Open Getting Started</a>
-              <a href="/api/" class="imo-btn imo-btn-ghost">Browse API Reference</a>
-            </div>
-          </section>
+        <section class="imo-docs-start" aria-labelledby="docs-start-title">
+          <div class="imo-docs-section-heading"><p>Core entry points</p><h2 id="docs-start-title">Start with a document family</h2></div>
+          <div class="imo-docs-start__grid">
+            <a href="/docs/word/"><strong>Word</strong><span>DOCX creation, editing, templates, and review</span></a>
+            <a href="/docs/excel/"><strong>Excel</strong><span>XLSX worksheets, tables, formulas, and charts</span></a>
+            <a href="/docs/powerpoint/"><strong>PowerPoint</strong><span>PPTX slides, layouts, charts, and notes</span></a>
+            <a href="/docs/pdf/"><strong>PDF</strong><span>Authoring, inspection, operations, rendering, and security</span></a>
+            <a href="/docs/email/"><strong>Email</strong><span>EML, MSG, stores, calendars, and contacts</span></a>
+            <a href="/docs/onenote/"><strong>OneNote</strong><span>Native sections, notebooks, packages, and conversion</span></a>
+            <a href="/docs/html/"><strong>HTML</strong><span>Web archives, resource policy, projection, and rendering</span></a>
+            <a href="/docs/open-document/"><strong>OpenDocument</strong><span>ODT, ODS, ODP, and Office adapters</span></a>
+            <a href="/docs/google-workspace/"><strong>Google Workspace</strong><span>Docs, Sheets, Slides, Drive, and synchronization</span></a>
+          </div>
+        </section>
 
-          <section class="imo-docs-overview__group" aria-labelledby="docs-group-start">
-            <div class="imo-docs-overview__group-header">
-              <div>
-                <span class="imo-docs-overview__eyebrow">Foundation</span>
-                <h2 id="docs-group-start">Get productive before you choose a deeper guide</h2>
-              </div>
-              <p>These pages answer install, first-run, framework, platform, and package-selection questions for the whole OfficeIMO family.</p>
-            </div>
-            <div class="imo-docs-card-grid imo-docs-card-grid--compact">
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-accent);">
-                <div class="imo-docs-card__header">
-                  <h3>Installation</h3>
-                  <span class="imo-badge">NuGet and Gallery</span>
-                </div>
-                <p class="imo-docs-card__desc">Install the right .NET package or the PSWriteOffice module, and understand how the suite is split across focused libraries.</p>
-                <p class="imo-docs-card__best">Use this first if you are deciding what to install for a new project.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/getting-started/installation/" class="imo-docs-card__primary">Open Installation Guide</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-success);">
-                <div class="imo-docs-card__header">
-                  <h3>Quick Start</h3>
-                  <span class="imo-badge">First file</span>
-                </div>
-                <p class="imo-docs-card__desc">Generate a real document quickly and use working starter examples to orient yourself before diving into larger workflows.</p>
-                <p class="imo-docs-card__best">Use this when you want a short path from install to a successful output file.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/getting-started/quickstart/" class="imo-docs-card__primary">Open Quick Start Guide</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: #8b5cf6;">
-                <div class="imo-docs-card__header">
-                  <h3>Platform Support</h3>
-                  <span class="imo-badge">Targets and AOT</span>
-                </div>
-                <p class="imo-docs-card__desc">Confirm framework support, cross-platform expectations, and trimming or AOT guidance before you commit to a deployment model.</p>
-                <p class="imo-docs-card__best">Use this when you are validating runtime, OS, or publish constraints.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/getting-started/platform-support/" class="imo-docs-card__primary">Open Platform Support Guide</a>
-                  <a href="/docs/advanced/aot-trimming/" class="imo-docs-card__secondary">AOT and trimming</a>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="imo-docs-overview__group" aria-labelledby="docs-group-guides">
-            <div class="imo-docs-overview__group-header">
-              <div>
-                <span class="imo-docs-overview__eyebrow">Guides by package</span>
-                <h2 id="docs-group-guides">Choose the document workflow you want to build</h2>
-              </div>
-              <p>Each guide family starts with an overview page, then moves into focused pages for the most common authoring patterns in that package.</p>
-            </div>
-            <div class="imo-docs-card-grid">
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-word);">
-                <div class="imo-docs-card__header">
-                  <h3>Word Documents</h3>
-                  <span class="imo-badge">Authoring</span>
-                </div>
-                <p class="imo-docs-card__desc">Paragraphs, tables, images, bookmarks, headers, footers, and document structure for `.docx` generation and editing.</p>
-                <p class="imo-docs-card__best">Best for: reports, templated documents, generated letters, and rich Word layouts.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/word/" class="imo-docs-card__primary">Open Word Guide</a>
-                  <a href="/api/word/" class="imo-docs-card__secondary">Word API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-excel);">
-                <div class="imo-docs-card__header">
-                  <h3>Excel Workbooks</h3>
-                  <span class="imo-badge">Reporting</span>
-                </div>
-                <p class="imo-docs-card__desc">Worksheets, tables, ranges, formulas, validation, and chart-driven spreadsheet workflows.</p>
-                <p class="imo-docs-card__best">Best for: exports, operational reporting, and workbook generation from application data.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/excel/" class="imo-docs-card__primary">Open Excel Guide</a>
-                  <a href="/api/excel/" class="imo-docs-card__secondary">Excel API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-powerpoint);">
-                <div class="imo-docs-card__header">
-                  <h3>PowerPoint Presentations</h3>
-                  <span class="imo-badge">Slides</span>
-                </div>
-                <p class="imo-docs-card__desc">Slide composition, shapes, text, images, charts, and repeatable deck assembly patterns.</p>
-                <p class="imo-docs-card__best">Best for: generated status decks, slide automation, and presentation pipelines.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/powerpoint/" class="imo-docs-card__primary">Open PowerPoint Guide</a>
-                  <a href="/api/powerpoint/" class="imo-docs-card__secondary">PowerPoint API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-markdown);">
-                <div class="imo-docs-card__header">
-                  <h3>Markdown</h3>
-                  <span class="imo-badge">Builder and AST</span>
-                </div>
-                <p class="imo-docs-card__desc">Fluent markdown building, parser and AST concepts, HTML rendering, and content-pipeline patterns.</p>
-                <p class="imo-docs-card__best">Best for: markdown generation, parsing pipelines, renderer hosts, and structured text workflows.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/markdown/" class="imo-docs-card__primary">Open Markdown Guide</a>
-                  <a href="/api/markdown/" class="imo-docs-card__secondary">Markdown API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-csv);">
-                <div class="imo-docs-card__header">
-                  <h3>CSV</h3>
-                  <span class="imo-badge">Schemas and streaming</span>
-                </div>
-                <p class="imo-docs-card__desc">Typed CSV models, validation, schema control, headers, and stream-oriented import and export workflows.</p>
-                <p class="imo-docs-card__best">Best for: stable CSV pipelines where structure and validation matter as much as data values.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/csv/" class="imo-docs-card__primary">Open CSV Guide</a>
-                  <a href="/api/csv/" class="imo-docs-card__secondary">CSV API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: var(--imo-visio);">
-                <div class="imo-docs-card__header">
-                  <h3>Visio Diagrams</h3>
-                  <span class="imo-badge">Shapes and connectors</span>
-                </div>
-                <p class="imo-docs-card__desc">Pages, shapes, connectors, and diagram authoring patterns for generated `.vsdx` output.</p>
-                <p class="imo-docs-card__best">Best for: generated diagrams, process maps, and documentation visuals.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/visio/" class="imo-docs-card__primary">Open Visio Guide</a>
-                  <a href="/api/visio/" class="imo-docs-card__secondary">Visio API</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: #8b5cf6;">
-                <div class="imo-docs-card__header">
-                  <h3>Reader and Extraction</h3>
-                  <span class="imo-badge">Ingestion</span>
-                </div>
-                <p class="imo-docs-card__desc">Unified extraction, chunking, normalization, and ingestion-oriented workflows across document inputs.</p>
-                <p class="imo-docs-card__best">Best for: search indexing, content ingestion, and AI-oriented preprocessing stages.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/reader/" class="imo-docs-card__primary">Open Reader Guide</a>
-                  <a href="/api/reader/" class="imo-docs-card__secondary">Reader API</a>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="imo-docs-overview__group" aria-labelledby="docs-group-workflows">
-            <div class="imo-docs-overview__group-header">
-              <div>
-                <span class="imo-docs-overview__eyebrow">Automation and converters</span>
-                <h2 id="docs-group-workflows">Use higher-level workflows when C# package docs are not the whole story</h2>
-              </div>
-              <p>These guides focus on PowerShell automation, document conversion, and deployment details that span more than one package.</p>
-            </div>
-            <div class="imo-docs-card-grid imo-docs-card-grid--compact">
-              <article class="imo-docs-card" style="--docs-accent: #38bdf8;">
-                <div class="imo-docs-card__header">
-                  <h3>PSWriteOffice</h3>
-                  <span class="imo-badge">PowerShell</span>
-                </div>
-                <p class="imo-docs-card__desc">Cmdlets and DSL-oriented automation for Word, Excel, PowerPoint, Markdown, and CSV workflows.</p>
-                <p class="imo-docs-card__best">Best for: scheduled reporting, GitHub Actions, and script-first document generation.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/pswriteoffice/" class="imo-docs-card__primary">Open PSWriteOffice Guide</a>
-                  <a href="/api/powershell/" class="imo-docs-card__secondary">Cmdlet reference</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: #fb923c;">
-                <div class="imo-docs-card__header">
-                  <h3>Word to HTML</h3>
-                  <span class="imo-badge">Converter</span>
-                </div>
-                <p class="imo-docs-card__desc">Bidirectional conversion between Word documents and HTML using the conversion package family.</p>
-                <p class="imo-docs-card__best">Best for: publishing, sanitizing, or round-tripping document content to web formats.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/converters/word-html/" class="imo-docs-card__primary">Open Word to HTML Guide</a>
-                </div>
-              </article>
-              <article class="imo-docs-card" style="--docs-accent: #c084fc;">
-                <div class="imo-docs-card__header">
-                  <h3>Word to Markdown</h3>
-                  <span class="imo-badge">Converter</span>
-                </div>
-                <p class="imo-docs-card__desc">Convert between Word and Markdown when your workflow crosses repository docs and generated Office output.</p>
-                <p class="imo-docs-card__best">Best for: documentation pipelines, content migration, and markdown-centric exports.</p>
-                <div class="imo-docs-card__links">
-                  <a href="/docs/converters/word-markdown/" class="imo-docs-card__primary">Open Word to Markdown Guide</a>
-                </div>
-              </article>
-            </div>
-          </section>
-        </div>
-
-        <div class="imo-docs__content imo-docs__content--reference imo-prose">
-{{ content }}
-        </div>
+        <section class="imo-docs-reference"><div><p class="imo-docs-reference__eyebrow">Know the package already?</p><h2>Jump to generated reference.</h2><p>API pages are generated from the repository source and include signatures, inheritance, member navigation, and source links.</p></div><a class="imo-btn imo-btn-primary" href="/api/">Open API catalog</a></section>
+        <details class="imo-docs-home-reference"><summary>Package feeds, license, and source links</summary><div class="imo-docs__content imo-prose">{{ content }}</div></details>
       </article>
     </main>
   </div>
-
-  {{ include "footer" }}
-
-  {{ assets.js_html }}
-  {{ extra_scripts_html }}
+  {{ include "footer" }}{{ assets.js_html }}{{ extra_scripts_html }}
 </body>
 </html>

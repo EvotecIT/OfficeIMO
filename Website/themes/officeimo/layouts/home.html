@@ -7,7 +7,7 @@
   {{ description_meta_html }}
   {{ canonical_html }}
   {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
   {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
@@ -24,12 +24,10 @@
   <main id="content" class="imo-main imo-main--home">
     {{ include "sections/hero" }}
     {{ include "sections/trust-banner" }}
-    {{ include "sections/format-ribbon" }}
-    {{ include "sections/stats" }}
     {{ include "sections/how-it-works" }}
+    {{ include "sections/format-ribbon" }}
     {{ include "sections/product-family" }}
     {{ include "sections/code-examples" }}
-    {{ include "sections/comparison-strip" }}
     {{ include "sections/showcase-preview" }}
     {{ include "sections/faq-preview" }}
     {{ include "sections/cta" }}

@@ -47,8 +47,8 @@
       "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04)"
     },
     "layout": {
-      "maxWidth": "1200px",
-      "maxWidthWide": "1400px"
+      "maxWidth": "1180px",
+      "maxWidthWide": "1440px"
     }
   },
   "features": ["docs", "blog", "apiDocs"]

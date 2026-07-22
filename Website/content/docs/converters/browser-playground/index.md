@@ -1,111 +1,43 @@
 ---
-title: Browser Conversion Playground
-description: Static Blazor WebAssembly conversion path for OfficeIMO.com and GitHub Pages-style hosting.
+title: Browser Converter
+description: Run supported OfficeIMO conversions locally through the WebAssembly app on OfficeIMO.com.
 order: 90
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/converters/browser-playground/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/converters/browser-playground/" />'
 ---
 
-The OfficeIMO browser conversion playground is a lightweight static route picker backed by a Blazor WebAssembly converter hosted by OfficeIMO.com. The page shows live and planned conversion routes immediately, then loads the WebAssembly engine only when a live route is selected.
+The [browser converter](/playground/) is a static Blazor WebAssembly application. Supported conversions execute inside the current tab; selected files are not uploaded to OfficeIMO.
 
-## Boundary
+## Supported browser routes
 
-The browser playground can use:
+| Source | Output | Engine |
+|---|---|---|
+| DOCX | PDF | `OfficeIMO.Word.Pdf` |
+| XLSX | PDF | `OfficeIMO.Excel.Pdf` |
+| PPTX | PDF | `OfficeIMO.PowerPoint.Pdf` |
+| Markdown | HTML preview and download | `OfficeIMO.MarkdownRenderer` |
+| HTML | Markdown | `OfficeIMO.Markdown.Html` |
+| Markdown | DOCX | `OfficeIMO.Word.Markdown` |
 
-- OfficeIMO byte and stream APIs;
-- Blazor WebAssembly;
-- static files published with the website;
-- local browser file upload and download APIs.
+The app includes sample inputs for every route. Uploads are limited to 25 MB so the browser tab remains responsive. Conversion warnings stay visible with the result instead of being hidden behind a successful download.
 
-It should not require:
+## Privacy and hosting
 
-- Office automation;
-- LibreOffice or a server-side conversion process;
-- native graphics dependencies;
-- Redis, queues, databases, or background jobs;
-- private server storage.
+Browser-local processing is the strongest privacy default for a public demo because document bytes do not cross a server boundary. It is not the right execution model for every production workload.
 
-## Current Scope
+Host OfficeIMO in your own service when you need larger inputs, authentication, queues, storage, audit logs, or formats that are not suitable for WebAssembly. In that model, your organization owns the transport, access, logging, and retention policy.
 
-The current live browser version supports:
+## Publishing contract
 
-- DOCX to PDF;
-- XLSX to PDF;
-- PPTX to PDF;
-- Markdown to HTML;
-- HTML to Markdown;
-- Markdown to DOCX;
-- structured diagnostics for unsupported features, font gaps, and large files.
+The website pipeline builds the converter from its project source and mounts the published `wwwroot` output under `/apps/officeimo-converter/`. This keeps the deployed WebAssembly assets and integrity metadata aligned with the source in the same build.
 
-The playground includes small built-in DOCX, XLSX, and PPTX samples plus Markdown and HTML samples so browser smoke tests can prove conversion without uploading local files. User-selected files still use the same byte and stream conversion path.
-
-Basic DOCX, XLSX, and PPTX conversion can produce `%PDF` bytes inside the browser runtime. A richer Word fixture still exposes a Unicode/font embedding gap, so diagnostics remain part of the public surface.
-
-The text workspace calls `OfficeIMO.MarkdownRenderer`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Word.Markdown` directly from WebAssembly. It can render Markdown HTML previews, download Markdown converted from HTML, and generate DOCX bytes from Markdown.
-
-The `/playground/` shell should not force users through a separate "full app" choice. It displays the usable conversion routes up front and passes the selected route to `/apps/officeimo-converter/?route=...` when the engine iframe is created.
-
-## Engine Map
-
-The playground also shows OfficeIMO conversion families that should become richer playground, CLI, PowerShell, MCP, plugin, skill, or server routes:
-
-- DOCX to Markdown;
-- DOCX to HTML through the Markdown bridge;
-- HTML to DOCX;
-- Markdown to PDF through Markdown to Word and the PDF engine;
-- Excel to CSV, JSON-style records, HTML tables, and sheet previews;
-- CSV or JSON to Excel workbook generation;
-- Reader extraction to Markdown, JSON, chunks, tables, and assets;
-- PDF split, merge, stamp, inspect, extract, fill, and metadata workflows;
-- OfficeIMO.Markup exporters for Word, Excel, PowerPoint, C#, and PowerShell;
-- repeatable agent tools exposed through MCP servers, Codex skills, and release/build plugins.
-
-## Static Mount
-
-Published app output should land under:
-
-```text
-Website/static/apps/officeimo-converter/
-```
-
-The public URL should be:
-
-```text
-/apps/officeimo-converter/
-```
-
-The website page at `/playground/` displays a static route board under the OfficeIMO site chrome and lazy-loads the mounted app iframe only after a live route button is used.
-
-## Validation
-
-Before publishing a playground build:
+For a local production-shaped publish:
 
 ```powershell
-dotnet build Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release
-dotnet publish Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release -o Website\_temp\officeimo-converter-publish
+pwsh -NoProfile -File .\Website\build.ps1 -PowerForgeRoot C:\path\to\PSPublishModule
 ```
 
-Copy the published static app from:
+Use `-Dev` for a faster content/API build. The converter project itself can be checked directly with:
 
-```text
-Website/_temp/officeimo-converter-publish/wwwroot/
+```powershell
+dotnet build .\Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release
 ```
-
-into:
-
-```text
-Website/static/apps/officeimo-converter/
-```
-
-Do not publish directly into `Website/static/apps/officeimo-converter/`, because the Blazor publish layout places the GitHub Pages-ready app under `wwwroot/`.
-
-Then verify in a real browser:
-
-- `/playground/` shows the conversion routes without loading the WebAssembly iframe.
-- Selecting a live route creates an iframe for `/apps/officeimo-converter/?route=...`.
-- DOCX to PDF returns bytes beginning with `%PDF`.
-- XLSX to PDF returns bytes beginning with `%PDF`.
-- PPTX to PDF returns bytes beginning with `%PDF`.
-- Markdown to HTML renders an HTML preview and download.
-- HTML to Markdown returns Markdown text and download.
-- Markdown to DOCX returns downloadable DOCX bytes.
-- Known unsupported Word font cases produce actionable diagnostics.

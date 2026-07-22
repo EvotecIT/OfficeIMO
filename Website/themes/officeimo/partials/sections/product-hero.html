@@ -1,97 +1,67 @@
-<!-- Product Hero Section -->
+{{ install_cmd = page.install ?? page.meta.install ?? "" }}
+{{ nuget_pkg = page.nuget ?? page.meta.nuget ?? "" }}
+{{ docs_link = page.docs_url ?? page.meta.docs_url ?? "/docs/" }}
+{{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
+{{ product_label = page.product_label ?? page.meta.product_label ?? "Document library" }}
 <section class="imo-product-hero" aria-labelledby="imo-product-hero-title"
-  {{ if page.product_color }}style="--imo-product-color: {{ page.product_color }}"{{ end }}>
-  <div class="imo-product-hero__bg"></div>
+  {{ if page.product_color }}style="--product-color: {{ page.product_color }}"{{ end }}>
   <div class="imo-container imo-product-hero__inner">
+    <div class="imo-product-hero__copy">
+      <p class="imo-product-hero__eyebrow">{{ product_label }}</p>
+      <h1 id="imo-product-hero-title" class="imo-product-hero__title">{{ page.title }}</h1>
+      {{ if page.description }}<p class="imo-product-hero__desc">{{ page.description }}</p>{{ end }}
 
-    <h1 id="imo-product-hero-title" class="imo-product-hero__title">{{ page.title }}</h1>
+      <div class="imo-product-hero__meta" aria-label="Product characteristics">
+        <span class="imo-product-hero__meta-item">MIT licensed</span>
+        <span class="imo-product-hero__meta-item">No Office required</span>
+        <span class="imo-product-hero__meta-item">Cross-platform .NET</span>
+      </div>
 
-    {{ if page.description }}
-    <p class="imo-product-hero__desc">{{ page.description }}</p>
-    {{ end }}
+      <div class="imo-product-hero__actions">
+        <a href="{{ docs_link }}" class="imo-btn imo-btn-primary">Start with the guide</a>
+        {{ if api_link != "" }}<a href="{{ api_link }}" class="imo-btn imo-btn-ghost">Browse API</a>{{ end }}
+        {{ if nuget_pkg != "" }}<a href="https://www.nuget.org/packages/{{ nuget_pkg }}" class="imo-btn imo-btn-ghost" target="_blank" rel="noopener">View package</a>{{ end }}
+      </div>
 
-    {{ install_cmd = page.install ?? page.meta.install ?? "" }}
-    {{ nuget_pkg = page.nuget ?? page.meta.nuget ?? "" }}
-    {{ docs_link = page.docs_url ?? page.meta.docs_url ?? "/docs/" }}
-    {{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
-    {{ preview_id = page.preview_id ?? page.meta.preview_id ?? "" }}
-    {{ preview = null }}
-    {{ if preview_id != "" && data.product_previews }}
-      {{ for item in data.product_previews }}
-        {{ if item.id == preview_id }}
-          {{ preview = item }}
-        {{ end }}
-      {{ end }}
-    {{ end }}
-
-    {{ if install_cmd != "" }}
-    <div class="imo-install" style="max-width:480px;margin:0 auto 2rem;box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 40px rgba(56,189,248,0.04);">
-      <code class="imo-install__code">{{ install_cmd }}</code>
-      <button class="imo-install__copy" type="button" aria-label="Copy install command" data-copy="{{ install_cmd }}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-      </button>
-    </div>
-    {{ end }}
-
-    <div class="imo-product-hero__links">
-      {{ if nuget_pkg != "" }}
-      <a href="https://www.nuget.org/packages/{{ nuget_pkg }}" class="imo-btn imo-btn-ghost" target="_blank" rel="noopener">
-        NuGet Package
-      </a>
-      {{ end }}
-      <a href="{{ docs_link }}" class="imo-btn imo-btn-primary">
-        Documentation
-      </a>
-      {{ if api_link != "" }}
-      <a href="{{ api_link }}" class="imo-btn imo-btn-ghost">
-        API Reference
-      </a>
+      {{ if install_cmd != "" }}
+      <div class="imo-product-install-command">
+        <span>Install</span>
+        <code>{{ install_cmd }}</code>
+        <button class="imo-install__copy" type="button" aria-label="Copy install command" data-copy="{{ install_cmd }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+      </div>
       {{ end }}
     </div>
 
-    {{ if preview }}
-    <section class="imo-product-hero__preview" aria-label="{{ preview.title }}">
-      <div class="imo-product-hero__preview-copy">
-        {{ if preview.eyebrow }}<p class="imo-product-hero__preview-eyebrow">{{ preview.eyebrow }}</p>{{ end }}
-        <h2 class="imo-product-hero__preview-title">{{ preview.title }}</h2>
-        {{ if preview.description }}<p class="imo-product-hero__preview-desc">{{ preview.description }}</p>{{ end }}
-
-        {{ if preview.metrics && preview.metrics.size > 0 }}
-        <div class="imo-product-hero__preview-metrics">
-          {{ for metric in preview.metrics }}
-          <div class="imo-product-hero__preview-metric">
-            <span class="imo-product-hero__preview-metric-value">{{ metric.value }}</span>
-            <span class="imo-product-hero__preview-metric-label">{{ metric.label }}</span>
+    <div class="imo-product-proof" aria-label="{{ page.title }} workflow preview">
+      <div class="imo-product-proof__window">
+        <div class="imo-product-proof__chrome"><i></i><i></i><i></i><span>Generated output · {{ page.title }}</span></div>
+        <div class="imo-product-proof__canvas">
+          <div class="imo-product-proof__document">
+            {{ if nuget_pkg == "OfficeIMO.Word" }}
+            <span class="imo-product-proof__label">DOCX · GENERATED</span>
+            <p class="imo-product-proof__overline">NORTHWIND OPERATIONS</p>
+            <h2>Quarterly operations review</h2>
+            <p>Structured output built from application data, with reusable styles and a document model you can inspect.</p>
+            <div class="imo-product-proof__metrics" aria-hidden="true"><span><small>Revenue</small><strong>$4.8m</strong></span><span><small>Growth</small><strong>12.4%</strong></span><span><small>Regions</small><strong>6</strong></span></div>
+            <div class="imo-product-proof__report-table" aria-hidden="true"><b>Region</b><b>Revenue</b><b>Status</b><span>Europe</span><span>$1.8m</span><span>On plan</span><span>Americas</span><span>$2.1m</span><span>Leading</span></div>
+            {{ else }}
+            <span class="imo-product-proof__label">GENERATED OUTPUT</span>
+            <h2>Ready for your workflow</h2>
+            <p>Build, inspect, and transform documents through a focused API.</p>
+            <div class="imo-product-proof__lines"><i></i><i></i><i></i></div>
+            <div class="imo-product-proof__table"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            {{ end }}
           </div>
-          {{ end }}
+          <aside class="imo-product-proof__status">
+            <span>DOCUMENT MAP</span><strong>Title and summary</strong>
+            <span>CONTENT</span><strong>Metrics and table</strong>
+            <span>VALIDATION</span><strong>Package passed</strong>
+          </aside>
         </div>
-        {{ end }}
-
-        {{ if preview.steps && preview.steps.size > 0 }}
-        <ol class="imo-product-hero__preview-steps">
-          {{ for step in preview.steps }}
-          <li>{{ step }}</li>
-          {{ end }}
-        </ol>
-        {{ end }}
       </div>
-
-      {{ if preview.artifacts && preview.artifacts.size > 0 }}
-      <div class="imo-product-hero__preview-surface" aria-hidden="true">
-        {{ for artifact in preview.artifacts }}
-        <article class="imo-product-hero__artifact">
-          <div class="imo-product-hero__artifact-topline">
-            <span class="imo-product-hero__artifact-kind">{{ artifact.kind }}</span>
-            <span class="imo-product-hero__artifact-name">{{ artifact.name }}</span>
-          </div>
-          {{ if artifact.summary }}<p class="imo-product-hero__artifact-summary">{{ artifact.summary }}</p>{{ end }}
-          {{ if artifact.detail }}<p class="imo-product-hero__artifact-detail">{{ artifact.detail }}</p>{{ end }}
-        </article>
-        {{ end }}
-      </div>
-      {{ end }}
-    </section>
-    {{ end }}
-
+      <div class="imo-product-proof__code"><span>C#</span>{{ if nuget_pkg == "OfficeIMO.Word" }}<code>using var document = WordDocument.Create("report.docx");<br>document.AddParagraph("Quarterly operations review");<br>document.Save();</code>{{ else }}<code>using var document = CreateDocument();<br>document.Save();</code>{{ end }}</div>
+    </div>
   </div>
 </section>

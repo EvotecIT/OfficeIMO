@@ -22,7 +22,7 @@
   "featureContracts": {
     "apiDocs": {
       "requiredPartials": ["api-header", "api-footer", "theme-tokens"],
-      "cssHrefs": ["/css/app.css", "/css/api.css"],
+      "cssHrefs": ["/themes/officeimo/assets/app.css", "/themes/officeimo/assets/api.css", "/themes/officeimo/assets/visual-system.css"],
       "requiredCssSelectors": [
         ".api-layout",
         ".api-sidebar",
@@ -63,9 +63,9 @@
       "requiredPartials": ["header", "footer", "sidebar", "toc", "theme-tokens"]
     },
     "blog": {
-      "requiredLayouts": ["page"],
+      "requiredLayouts": ["blog-home", "blog-post"],
       "requiredSurfaces": ["blog"],
-      "cssHrefs": ["/css/app.css"],
+      "cssHrefs": ["/themes/officeimo/assets/app.css"],
       "requiredCssSelectors": [
         ".imo-editorial-list",
         ".imo-editorial-list-blog",
@@ -120,7 +120,7 @@
       "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)"
     },
     "layout": {
-      "maxWidth": "1200px"
+      "maxWidth": "1180px"
     }
   }
 }

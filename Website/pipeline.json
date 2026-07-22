@@ -94,6 +94,38 @@
       "skipIfProjectMissing": true
     },
     {
+      "task": "dotnet-build",
+      "id": "build-html",
+      "project": "../OfficeIMO.Html/OfficeIMO.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-email",
+      "project": "../OfficeIMO.Email/OfficeIMO.Email.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-onenote",
+      "project": "../OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-open-document",
+      "project": "../OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
       "task": "release-hub",
       "id": "build-release-hub",
       "dependsOn": ["build-word"],
@@ -330,6 +362,19 @@
       "workingDirectory": ".."
     },
     {
+      "task": "exec",
+      "id": "generate-benchmark-overview",
+      "dependsOn": ["generate-excel-benchmark-data"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./Build/Generate-BenchmarkWebsiteOverview.ps1"
+      ],
+      "workingDirectory": ".."
+    },
+    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
@@ -344,13 +389,26 @@
         "build-reader",
         "build-pdf",
         "build-word-pdf",
+        "build-html",
+        "build-email",
+        "build-onenote",
+        "build-open-document",
         "build-release-hub",
         "build-ecosystem-stats",
-        "generate-excel-benchmark-data"
+        "generate-benchmark-overview"
       ],
       "config": "./site.json",
       "out": "./_site",
       "clean": true
+    },
+    {
+      "task": "overlay",
+      "id": "deploy-theme-css",
+      "dependsOn": "build-site",
+      "source": "./themes/officeimo/assets",
+      "destination": "./_site/css",
+      "clean": false,
+      "include": "**/*, *"
     },
     {
       "task": "exec",
@@ -385,7 +443,7 @@
     {
       "task": "verify",
       "id": "verify-site",
-      "dependsOn": ["build-site", "verify-excel-benchmark-page"],
+      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page"],
       "config": "./site.json"
     },
     {
@@ -403,7 +461,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Word",
@@ -425,7 +483,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Excel",
@@ -446,7 +504,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Markdown",
@@ -467,7 +525,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.PowerPoint",
@@ -488,7 +546,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.CSV",
@@ -509,10 +567,115 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Visio",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
+      "id": "build-apidocs-pdf",
+      "dependsOn": ["build-pdf", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.xml",
+      "assembly": "../OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.dll",
+      "out": "./_site/api/pdf",
+      "title": "OfficeIMO.Pdf API Reference",
+      "baseUrl": "/api/pdf",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.Pdf",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
+      "id": "build-apidocs-html",
+      "dependsOn": ["build-html", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.Html/bin/Release/net8.0/OfficeIMO.Html.xml",
+      "assembly": "../OfficeIMO.Html/bin/Release/net8.0/OfficeIMO.Html.dll",
+      "out": "./_site/api/html",
+      "title": "OfficeIMO.Html API Reference",
+      "baseUrl": "/api/html",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.Html",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
+      "id": "build-apidocs-email",
+      "dependsOn": ["build-email", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.Email/bin/Release/net8.0/OfficeIMO.Email.xml",
+      "assembly": "../OfficeIMO.Email/bin/Release/net8.0/OfficeIMO.Email.dll",
+      "out": "./_site/api/email",
+      "title": "OfficeIMO.Email API Reference",
+      "baseUrl": "/api/email",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.Email",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
+      "id": "build-apidocs-onenote",
+      "dependsOn": ["build-onenote", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.OneNote/bin/Release/net8.0/OfficeIMO.OneNote.xml",
+      "assembly": "../OfficeIMO.OneNote/bin/Release/net8.0/OfficeIMO.OneNote.dll",
+      "out": "./_site/api/onenote",
+      "title": "OfficeIMO.OneNote API Reference",
+      "baseUrl": "/api/onenote",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.OneNote",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
+      "id": "build-apidocs-open-document",
+      "dependsOn": ["build-open-document", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.OpenDocument/bin/Release/net8.0/OfficeIMO.OpenDocument.xml",
+      "assembly": "../OfficeIMO.OpenDocument/bin/Release/net8.0/OfficeIMO.OpenDocument.dll",
+      "out": "./_site/api/open-document",
+      "title": "OfficeIMO.OpenDocument API Reference",
+      "baseUrl": "/api/open-document",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.OpenDocument",
       "injectCriticalCss": true
     },
     {
@@ -530,7 +693,7 @@
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Reader",
@@ -556,7 +719,7 @@
       "docsHome": "/products/pswriteoffice/",
       "nav": "./site.json",
       "navContextPath": "/",
-      "css": "/css/app.css,/css/api.css",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
       "injectCriticalCss": true
     },
     {
@@ -569,6 +732,11 @@
         "build-apidocs-powerpoint",
         "build-apidocs-csv",
         "build-apidocs-visio",
+        "build-apidocs-pdf",
+        "build-apidocs-html",
+        "build-apidocs-email",
+        "build-apidocs-onenote",
+        "build-apidocs-open-document",
         "build-apidocs-reader",
         "build-apidocs-powershell"
       ],
@@ -580,6 +748,11 @@
         "./_site/api/powerpoint/xrefmap.json",
         "./_site/api/csv/xrefmap.json",
         "./_site/api/visio/xrefmap.json",
+        "./_site/api/pdf/xrefmap.json",
+        "./_site/api/html/xrefmap.json",
+        "./_site/api/email/xrefmap.json",
+        "./_site/api/onenote/xrefmap.json",
+        "./_site/api/open-document/xrefmap.json",
         "./_site/api/reader/xrefmap.json",
         "./_site/api/powershell/xrefmap.json"
       ],
@@ -590,7 +763,7 @@
     {
       "task": "build",
       "id": "build-site-xref-refresh",
-      "dependsOn": "merge-xref",
+      "dependsOn": ["merge-xref", "deploy-theme-css"],
       "config": "./site.json",
       "out": "./_site",
       "clean": false
@@ -662,9 +835,58 @@
       "cacheHeadersOut": "_headers"
     },
     {
+      "task": "exec",
+      "id": "test-browser-converter",
+      "dependsOn": "optimize-site",
+      "command": "dotnet",
+      "argsList": [
+        "test",
+        "./Apps/OfficeIMO.Web.Converter.Tests/OfficeIMO.Web.Converter.Tests.csproj",
+        "-c",
+        "Release",
+        "--nologo",
+        "--logger",
+        "console;verbosity=minimal"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "dotnet-publish",
+      "id": "publish-browser-converter",
+      "dependsOn": "test-browser-converter",
+      "project": "./Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj",
+      "out": "./_temp/converter-publish",
+      "configuration": "Release",
+      "baseHref": "/apps/officeimo-converter/"
+    },
+    {
+      "task": "overlay",
+      "id": "overlay-browser-converter",
+      "dependsOn": "publish-browser-converter",
+      "source": "./_temp/converter-publish/wwwroot",
+      "destination": "./_site/apps/officeimo-converter",
+      "clean": true,
+      "include": "**/*, *"
+    },
+    {
+      "task": "exec",
+      "id": "verify-browser-converter",
+      "dependsOn": "overlay-browser-converter",
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ConverterPublish.ps1",
+        "-SiteRoot",
+        "./_site"
+      ],
+      "workingDirectory": "."
+    },
+    {
       "task": "agent-ready",
       "id": "agent-ready",
-      "dependsOn": "optimize-site",
+      "dependsOn": "verify-browser-converter",
       "skipModes": ["dev"],
       "operation": "prepare",
       "config": "./site.json",
@@ -703,7 +925,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/"
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/html/"
     },
     {
       "task": "doctor",
@@ -718,7 +940,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/"
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/html/"
     }
   ]
 }

@@ -1,122 +1,67 @@
 [
   {
-    "id": "word",
-    "title": "OfficeIMO.Word",
-    "tagline": "Create and edit .docx documents with a friendly object model",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/></svg>",
-    "install": "dotnet add package OfficeIMO.Word",
-    "url": "/products/word/",
-    "secondary_url": "/docs/word/",
-    "secondary_label": "Word Docs",
-    "highlights": ["Paragraphs", "Tables", "Converters"],
-    "family": "core",
-    "tag": "Most Popular",
-    "badge": null,
-    "color": "#2563eb"
+    "id": "word", "title": "OfficeIMO.Word", "tagline": "Create and edit DOCX documents with a focused object model.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 3h7l5 5v13H7z'/><path d='M14 3v6h6M10 13h6m-6 4h6'/></svg>",
+    "install": "dotnet add package OfficeIMO.Word", "url": "/products/word/", "secondary_url": "/docs/word/", "secondary_label": "Guide", "highlights": ["DOCX", "Templates", "Review"], "family": "create", "tag": "Popular", "color": "#2563eb"
   },
   {
-    "id": "excel",
-    "title": "OfficeIMO.Excel",
-    "tagline": "Read and write .xlsx workbooks with tables, charts, and formatting",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>",
-    "install": "dotnet add package OfficeIMO.Excel",
-    "url": "/products/excel/",
-    "secondary_url": "/docs/excel/",
-    "secondary_label": "Excel Docs",
-    "highlights": ["Worksheets", "Charts", "Validation"],
-    "family": "core",
-    "tag": null,
-    "badge": null,
-    "color": "#059669"
+    "id": "excel", "title": "OfficeIMO.Excel", "tagline": "Read and write XLSX workbooks, tables, charts, and formulas.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M3 10h18M9 4v16m6-10v10'/></svg>",
+    "install": "dotnet add package OfficeIMO.Excel", "url": "/products/excel/", "secondary_url": "/docs/excel/", "secondary_label": "Guide", "highlights": ["XLSX", "Charts", "Validation"], "family": "create", "color": "#059669"
   },
   {
-    "id": "powerpoint",
-    "title": "OfficeIMO.PowerPoint",
-    "tagline": "Generate .pptx presentations with slides, charts, and shapes",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/><path d='M15 3v6h6'/></svg>",
-    "install": "dotnet add package OfficeIMO.PowerPoint",
-    "url": "/products/powerpoint/",
-    "secondary_url": "/docs/powerpoint/",
-    "secondary_label": "PowerPoint Docs",
-    "highlights": ["Slides", "Charts", "Notes"],
-    "family": "core",
-    "tag": "Decks",
-    "badge": null,
-    "color": "#dc2626"
+    "id": "powerpoint", "title": "OfficeIMO.PowerPoint", "tagline": "Generate PPTX presentations with slides, charts, notes, and shapes.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='2'/><path d='M8 16V8h4a3 3 0 010 6H8'/></svg>",
+    "install": "dotnet add package OfficeIMO.PowerPoint", "url": "/products/powerpoint/", "secondary_url": "/docs/powerpoint/", "secondary_label": "Guide", "highlights": ["PPTX", "Charts", "Notes"], "family": "create", "color": "#dc2626"
   },
   {
-    "id": "markdown",
-    "title": "OfficeIMO.Markdown",
-    "tagline": "Build, parse, and render Markdown with a typed AST and fluent API",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 8l-4 4 4 4m10-8l4 4-4 4M14 4l-4 16'/></svg>",
-    "install": "dotnet add package OfficeIMO.Markdown",
-    "url": "/products/markdown/",
-    "secondary_url": "/docs/markdown/",
-    "secondary_label": "Markdown Docs",
-    "highlights": ["Builder", "Typed AST", "HTML"],
-    "family": "core",
-    "tag": "Docs",
-    "badge": null,
-    "color": "#7c3aed"
+    "id": "pdf", "title": "OfficeIMO.Pdf", "tagline": "Create, inspect, edit, merge, sign, validate, and render PDF files.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 3h7l5 5v13H7z'/><path d='M14 3v6h6M9 16h6'/></svg>",
+    "install": "dotnet add package OfficeIMO.Pdf", "url": "/products/pdf/", "secondary_url": "/docs/pdf/", "secondary_label": "Guide", "highlights": ["PDF", "Signing", "Rendering"], "family": "create", "tag": "First-party", "color": "#ef4444"
   },
   {
-    "id": "csv",
-    "title": "OfficeIMO.CSV",
-    "tagline": "Typed CSV workflows with schema validation and streaming",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4'/></svg>",
-    "install": "dotnet add package OfficeIMO.CSV",
-    "url": "/products/csv/",
-    "secondary_url": "/docs/csv/",
-    "secondary_label": "CSV Docs",
-    "highlights": ["Schema", "Streaming", "AOT"],
-    "family": "core",
-    "tag": "Data",
-    "badge": null,
-    "color": "#0891b2"
+    "id": "onenote", "title": "OfficeIMO.OneNote", "tagline": "Work with native OneNote sections, notebooks, tables of contents, and packages offline.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M5 4h13a2 2 0 012 2v14H7a2 2 0 01-2-2z'/><path d='M8 4v16m3-12v8l4-8v8'/></svg>",
+    "install": "dotnet add package OfficeIMO.OneNote", "url": "/products/onenote/", "secondary_url": "/docs/onenote/", "secondary_label": "Guide", "highlights": ["ONE", "ONEPKG", "Offline"], "family": "create", "tag": "New", "color": "#7c3aed"
   },
   {
-    "id": "visio",
-    "title": "OfficeIMO.Visio",
-    "tagline": "Create .vsdx diagrams with shapes, connectors, and pages",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5'/></svg>",
-    "install": "dotnet add package OfficeIMO.Visio",
-    "url": "/products/visio/",
-    "secondary_url": "/docs/visio/",
-    "secondary_label": "Visio Docs",
-    "highlights": ["Diagrams", "Connectors", "Pages"],
-    "family": "core",
-    "tag": "Diagrams",
-    "badge": null,
-    "color": "#ea580c"
+    "id": "email", "title": "OfficeIMO.Email", "tagline": "Read and write email, Outlook items, mailbox stores, calendars, and contacts.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/></svg>",
+    "install": "dotnet add package OfficeIMO.Email", "url": "/products/email/", "secondary_url": "/docs/email/", "secondary_label": "Guide", "highlights": ["EML", "MSG", "PST / OST"], "family": "formats", "tag": "Outlook data", "color": "#0284c7"
   },
   {
-    "id": "reader",
-    "title": "OfficeIMO.Reader",
-    "tagline": "Unified document extraction from Word, Excel, PowerPoint, and more",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/></svg>",
-    "install": "dotnet add package OfficeIMO.Reader.All",
-    "url": "/products/reader/",
-    "secondary_url": "/docs/reader/",
-    "secondary_label": "Reader Docs",
-    "highlights": ["Extraction", "Chunking", "RAG"],
-    "family": "ecosystem",
-    "tag": "AI / Search",
-    "badge": null,
-    "color": "#4f46e5"
+    "id": "opendocument", "title": "OfficeIMO.OpenDocument", "tagline": "Create and edit ODT, ODS, and ODP without LibreOffice or Office.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 3h7l5 5v13H7z'/><path d='M14 3v6h6M10 13h6m-6 4h4'/></svg>",
+    "install": "dotnet add package OfficeIMO.OpenDocument", "url": "/products/open-document/", "secondary_url": "/docs/open-document/", "secondary_label": "Guide", "highlights": ["ODT", "ODS", "ODP"], "family": "formats", "color": "#0f766e"
   },
   {
-    "id": "pswriteoffice",
-    "title": "PSWriteOffice",
-    "tagline": "PowerShell module for creating Office documents with DSL aliases",
-    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg>",
-    "install": "Install-Module PSWriteOffice",
-    "url": "/products/pswriteoffice/",
-    "secondary_url": "/docs/pswriteoffice/",
-    "secondary_label": "PS Docs",
-    "highlights": ["PowerShell", "DSL", "Automation"],
-    "family": "ecosystem",
-    "tag": "PowerShell",
-    "badge": null,
-    "color": "#d97706"
+    "id": "html", "title": "OfficeIMO.Html", "tagline": "Parse HTML and MHTML, apply resource policy, and render to document or image formats.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M8 9l-4 3 4 3m8-6l4 3-4 3m-2-9l-4 12'/></svg>",
+    "install": "dotnet add package OfficeIMO.Html", "url": "/products/html/", "secondary_url": "/docs/html/", "secondary_label": "Guide", "highlights": ["HTML", "MHTML", "Images"], "family": "formats", "color": "#ea580c"
+  },
+  {
+    "id": "markdown", "title": "OfficeIMO.Markdown", "tagline": "Build, parse, transform, and render Markdown with a typed AST.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16v12H4z'/><path d='M7 15V9l3 3 3-3v6m3-3h2m-1-1v4'/></svg>",
+    "install": "dotnet add package OfficeIMO.Markdown", "url": "/products/markdown/", "secondary_url": "/docs/markdown/", "secondary_label": "Guide", "highlights": ["Markdown", "AST", "HTML"], "family": "formats", "color": "#6366f1"
+  },
+  {
+    "id": "visio", "title": "OfficeIMO.Visio", "tagline": "Create VSDX diagrams with pages, shapes, connectors, and metadata.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='3' width='7' height='7'/><circle cx='17' cy='17' r='4'/><path d='M10 7h4a3 3 0 013 3v3'/></svg>",
+    "install": "dotnet add package OfficeIMO.Visio", "url": "/products/visio/", "secondary_url": "/docs/visio/", "secondary_label": "Guide", "highlights": ["VSDX", "Diagrams", "Connectors"], "family": "formats", "color": "#0891b2"
+  },
+  {
+    "id": "reader", "title": "OfficeIMO.Reader", "tagline": "Extract normalized text, tables, metadata, assets, and chunks across document families.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5h7a3 3 0 013 3v11H7a3 3 0 00-3 2z'/><path d='M20 5h-3a3 3 0 00-3 3v11h3a3 3 0 013 2z'/></svg>",
+    "install": "dotnet add package OfficeIMO.Reader.All", "url": "/products/reader/", "secondary_url": "/docs/reader/", "secondary_label": "Guide", "highlights": ["Extraction", "Chunking", "Search / AI"], "family": "workflow", "tag": "Unified", "color": "#4f46e5"
+  },
+  {
+    "id": "google", "title": "OfficeIMO.GoogleWorkspace", "tagline": "Translate Office content to and from Docs, Sheets, and Slides with explicit fidelity decisions.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 3l3 5 6 1-4 4 1 6-6-3-6 3 1-6-4-4 6-1z'/></svg>",
+    "install": "dotnet add package OfficeIMO.GoogleWorkspace", "url": "/products/google-workspace/", "secondary_url": "/docs/google-workspace/", "secondary_label": "Guide", "highlights": ["Docs", "Sheets", "Slides"], "family": "workflow", "color": "#4285f4"
+  },
+  {
+    "id": "pswriteoffice", "title": "PSWriteOffice", "tagline": "Create, convert, and inspect documents from PowerShell scripts and automation jobs.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='4' width='18' height='16' rx='2'/><path d='M7 9l3 3-3 3m5 0h5'/></svg>",
+    "install": "Install-Module PSWriteOffice", "url": "/products/pswriteoffice/", "secondary_url": "/docs/pswriteoffice/", "secondary_label": "Guide", "highlights": ["PowerShell", "Pipelines", "Automation"], "family": "workflow", "tag": "PowerShell", "color": "#d97706"
   }
 ]

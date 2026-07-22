@@ -7,7 +7,7 @@
   {{ description_meta_html }}
   {{ canonical_html }}
   {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
   {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
@@ -82,26 +82,12 @@
               </div>
             </div>
 
-            <aside class="imo-downloads__hero-panel" aria-label="Download telemetry">
-              <div class="imo-downloads__stat-grid">
-                <article class="imo-downloads__stat">
-                  <span class="imo-downloads__stat-value">{{ tracked_package_count }}</span>
-                  <span class="imo-downloads__stat-label">tracked packages and modules</span>
-                </article>
-                <article class="imo-downloads__stat">
-                  <span class="imo-downloads__stat-value">{{ if telemetry_available }}{{ tracked_downloads }}{{ else }}&mdash;{{ end }}</span>
-                  <span class="imo-downloads__stat-label">NuGet downloads across tracked OfficeIMO packages (when telemetry is available)</span>
-                </article>
-                <article class="imo-downloads__stat">
-                  <span class="imo-downloads__stat-value">{{ tracked_nuget_count }}</span>
-                  <span class="imo-downloads__stat-label">NuGet packages surfaced on this page</span>
-                </article>
-                <article class="imo-downloads__stat">
-                  <span class="imo-downloads__stat-value">{{ latest_release.title ?? latest_tag }}</span>
-                  <span class="imo-downloads__stat-label">latest stable release used for archive links</span>
-                </article>
-              </div>
-              <p class="imo-downloads__panel-note">NuGet telemetry is generated from PowerForge ecosystem stats for the <code>Evotec</code> owner and filtered to the OfficeIMO family on this page. The total is omitted when the feed is not refreshed, including fast offline development builds. PSWriteOffice links directly to the PowerShell Gallery because its public feed is currently unreliable for automated totals.</p>
+            <aside class="imo-downloads__hero-panel" aria-label="Choose an installation channel">
+              <p class="imo-downloads__panel-eyebrow">Recommended path</p>
+              <h2>Install the smallest package that owns your workflow.</h2>
+              <div class="imo-downloads__quick-command"><span>.NET</span><code>dotnet add package OfficeIMO.Word</code></div>
+              <div class="imo-downloads__quick-command"><span>PowerShell</span><code>Install-Module PSWriteOffice</code></div>
+              <ul class="imo-downloads__channel-notes"><li>NuGet and PowerShell Gallery are the normal consumer channels.</li><li>Release archives preserve exact published artifacts.</li><li>The API site describes repository source; package feeds show installable releases.</li></ul>
             </aside>
           </div>
         </section>
@@ -195,7 +181,7 @@
             <div>
               <div class="imo-downloads__eyebrow">Release handoff</div>
               <h2>Need the exact packaged artifact instead of a package-manager install?</h2>
-              <p>The stable release links above point straight at the matching archive from the current latest stable release. Use them when you need a zip artifact, a pinned package payload, or a release page for changelog context.</p>
+              <p>Use a release archive when you need a zip artifact, a pinned package payload, or changelog context for a coordinated release. Package-manager installs remain the best default for applications and scripts.</p>
             </div>
             <div class="imo-downloads__release-actions">
               {{ if latest_release }}

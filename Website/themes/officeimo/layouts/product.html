@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ page.title }} | {{ site.name }}</title>
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
   {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
   {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
@@ -20,6 +20,7 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
 
   {{ include "header" }}
+  {{ include "product-subnav" }}
 
   <main id="content" class="imo-main imo-main--product">
     {{ include "sections/product-hero" }}
@@ -29,6 +30,13 @@
 {{ content }}
       </div>
     </div>
+
+    <section class="imo-product-next">
+      <div class="imo-container imo-product-next__inner">
+        <div><p class="imo-product-next__eyebrow">Next step</p><h2>Turn the package into a working document.</h2><p>Follow a focused guide, inspect the generated API reference, or try a browser-safe conversion.</p></div>
+        <div class="imo-product-next__actions"><a class="imo-btn imo-btn-primary" href="{{ page.docs_url ?? page.meta.docs_url ?? "/docs/" }}">Open the guide</a><a class="imo-btn imo-btn-ghost" href="/playground/">Open converter</a></div>
+      </div>
+    </section>
   </main>
 
   {{ include "footer" }}

@@ -1,24 +1,27 @@
 {
   "schemaVersion": 1,
-  "generatedUtc": "2026-05-31T19:07:42.1270946Z",
+  "generatedUtc": "2026-05-31T18:44:43.8878299+00:00",
   "runMode": "quick",
   "publish": false,
   "framework": ".NET 8.0.27",
   "meta": {
-    "commit": "739260639fd1e6a5da184b34d285a6cf5233c49b",
-    "branch": "codex/excel-performance-worst-offenders",
-    "dotnetSdk": "10.0.300",
-    "runtime": ".NET 9.0.14",
-    "osDescription": "Microsoft Windows 10.0.26200",
-    "osArchitecture": "X64",
-    "processArchitecture": "X64",
+    "commit": null,
+    "branch": null,
+    "dotnetSdk": null,
+    "runtime": ".NET 8.0.27",
+    "osDescription": null,
+    "osArchitecture": null,
+    "processArchitecture": null,
     "machineName": "EVOMAGIC",
-    "processorCount": 32
+    "processorCount": null
   },
   "source": {
     "summaryPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json",
     "manifestPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-suite-manifest.json",
-    "packageProfilePaths": []
+    "packageProfilePaths": [
+      ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json",
+      ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json"
+    ]
   },
   "howToRead": [
     "Mean: average elapsed time for the measured operation. Lower is better.",
@@ -31,12 +34,13 @@
   "notes": [
     "Generated from OfficeIMO.Excel comparison-suite artifacts.",
     "Additional focused package-profile artifacts can be included without changing the benchmark harness.",
+    "Generated provenance comes from the committed benchmark evidence, not the website build environment.",
     "Website consumers should read this generated JSON instead of hand-maintained benchmark rows."
   ],
   "metrics": {
-    "scenarioGroups": 272,
-    "matrixRows": 272,
-    "measurementRows": 1098,
+    "scenarioGroups": 274,
+    "matrixRows": 274,
+    "measurementRows": 1106,
     "libraries": [
       "ClosedXML",
       "EPPlus",
@@ -50,15 +54,18 @@
     "libraryCount": 8,
     "rowCounts": [
       2500,
-      25000
+      10000,
+      25000,
+      300000
     ],
     "artifactKinds": [
       "dense-helloworld-comparison",
+      "focused-package-profile",
       "package-profile",
       "speed-comparison"
     ],
-    "artifactKindCount": 3,
-    "focusedProfileCount": 0
+    "artifactKindCount": 4,
+    "focusedProfileCount": 2
   },
   "matrix": {
     "libraries": [
@@ -16104,6 +16111,124 @@
             "ratioToFastestText": "1.46x",
             "allocatedRatioToFastestText": "1.97x",
             "packageRatioToFastestText": null
+          },
+          {
+            "library": "Sylvan.Data.Excel",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          }
+        ]
+      },
+      {
+        "rowCount": 10000,
+        "workload": "package",
+        "category": "Package size",
+        "scenario": "write-blog-2023-20-string-columns",
+        "artifactKind": "focused-package-profile",
+        "fastestLibrary": "OfficeIMO.Excel",
+        "fastestMeanMilliseconds": 33.01176666666667,
+        "fastestMeanText": "33.01 ms",
+        "fastestAllocatedText": "7.6 MB",
+        "fastestPackageText": "880.4 KB",
+        "cells": [
+          {
+            "library": "ClosedXML",
+            "measured": true,
+            "style": "slow",
+            "meanMilliseconds": 725.2960666666667,
+            "meanText": "725.30 ms",
+            "allocatedText": "280.2 MB",
+            "packageText": "1,015.4 KB",
+            "ratioToFastest": 21.9708,
+            "ratioToFastestText": "22.0x",
+            "allocatedRatioToFastestText": "37.1x",
+            "packageRatioToFastestText": "1.15x"
+          },
+          {
+            "library": "EPPlus",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "EPPlus 4.5.3.3",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "ExcelDataReader",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "LargeXlsx",
+            "measured": true,
+            "style": "slow",
+            "meanMilliseconds": 88.91429999999998,
+            "meanText": "88.91 ms",
+            "allocatedText": "3.1 MB",
+            "packageText": "970.2 KB",
+            "ratioToFastest": 2.6934,
+            "ratioToFastestText": "2.69x",
+            "allocatedRatioToFastestText": "0.40x",
+            "packageRatioToFastestText": "1.10x"
+          },
+          {
+            "library": "MiniExcel",
+            "measured": true,
+            "style": "slow",
+            "meanMilliseconds": 142.47433333333333,
+            "meanText": "142.47 ms",
+            "allocatedText": "96.2 MB",
+            "packageText": "957.6 KB",
+            "ratioToFastest": 4.3159,
+            "ratioToFastestText": "4.32x",
+            "allocatedRatioToFastestText": "12.7x",
+            "packageRatioToFastestText": "1.09x"
+          },
+          {
+            "library": "OfficeIMO.Excel",
+            "measured": true,
+            "style": "fastest",
+            "meanMilliseconds": 33.01176666666667,
+            "meanText": "33.01 ms",
+            "allocatedText": "7.6 MB",
+            "packageText": "880.4 KB",
+            "ratioToFastest": 1.0,
+            "ratioToFastestText": "1x",
+            "allocatedRatioToFastestText": "1x",
+            "packageRatioToFastestText": "1x"
           },
           {
             "library": "Sylvan.Data.Excel",
@@ -32167,6 +32292,124 @@
             "packageRatioToFastestText": null
           }
         ]
+      },
+      {
+        "rowCount": 300000,
+        "workload": "package",
+        "category": "Package size",
+        "scenario": "write-blog-2023-20-string-columns",
+        "artifactKind": "focused-package-profile",
+        "fastestLibrary": "LargeXlsx",
+        "fastestMeanMilliseconds": 636.4665,
+        "fastestMeanText": "636.47 ms",
+        "fastestAllocatedText": "93.1 MB",
+        "fastestPackageText": "28.6 MB",
+        "cells": [
+          {
+            "library": "ClosedXML",
+            "measured": true,
+            "style": "slow",
+            "meanMilliseconds": 15891.9085,
+            "meanText": "15.89 s",
+            "allocatedText": "8.51 GB",
+            "packageText": "31.0 MB",
+            "ratioToFastest": 24.969,
+            "ratioToFastestText": "25.0x",
+            "allocatedRatioToFastestText": "93.6x",
+            "packageRatioToFastestText": "1.08x"
+          },
+          {
+            "library": "EPPlus",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "EPPlus 4.5.3.3",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "ExcelDataReader",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          },
+          {
+            "library": "LargeXlsx",
+            "measured": true,
+            "style": "fastest",
+            "meanMilliseconds": 636.4665,
+            "meanText": "636.47 ms",
+            "allocatedText": "93.1 MB",
+            "packageText": "28.6 MB",
+            "ratioToFastest": 1.0,
+            "ratioToFastestText": "1x",
+            "allocatedRatioToFastestText": "1x",
+            "packageRatioToFastestText": "1x"
+          },
+          {
+            "library": "MiniExcel",
+            "measured": true,
+            "style": "slow",
+            "meanMilliseconds": 2280.2683,
+            "meanText": "2.28 s",
+            "allocatedText": "2.46 GB",
+            "packageText": "28.5 MB",
+            "ratioToFastest": 3.5827,
+            "ratioToFastestText": "3.58x",
+            "allocatedRatioToFastestText": "27.1x",
+            "packageRatioToFastestText": "1x"
+          },
+          {
+            "library": "OfficeIMO.Excel",
+            "measured": true,
+            "style": "mid",
+            "meanMilliseconds": 701.6502,
+            "meanText": "701.65 ms",
+            "allocatedText": "173.4 MB",
+            "packageText": "26.6 MB",
+            "ratioToFastest": 1.1024,
+            "ratioToFastestText": "1.10x",
+            "allocatedRatioToFastestText": "1.86x",
+            "packageRatioToFastestText": "0.93x"
+          },
+          {
+            "library": "Sylvan.Data.Excel",
+            "measured": false,
+            "style": "missing",
+            "meanMilliseconds": null,
+            "meanText": null,
+            "allocatedText": null,
+            "packageText": null,
+            "ratioToFastest": null,
+            "ratioToFastestText": null,
+            "allocatedRatioToFastestText": null,
+            "packageRatioToFastestText": null
+          }
+        ]
       }
     ]
   },
@@ -32484,6 +32727,18 @@
       "biggestLossRatioToBestText": "1.46x"
     },
     {
+      "rowCount": 10000,
+      "artifactKind": "focused-package-profile",
+      "workload": "package",
+      "category": "Package size",
+      "officeImoWins": 1,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
+    },
+    {
       "rowCount": 25000,
       "artifactKind": "dense-helloworld-comparison",
       "workload": "read",
@@ -32794,6 +33049,18 @@
       "biggestLossBestLibrary": "LargeXlsx",
       "biggestLossRatioToBest": 1.3395846895082182,
       "biggestLossRatioToBestText": "1.34x"
+    },
+    {
+      "rowCount": 300000,
+      "artifactKind": "focused-package-profile",
+      "workload": "package",
+      "category": "Package size",
+      "officeImoWins": 0,
+      "officeImoLosses": 1,
+      "biggestLossScenario": "write-blog-2023-20-string-columns",
+      "biggestLossBestLibrary": "LargeXlsx",
+      "biggestLossRatioToBest": 1.1024,
+      "biggestLossRatioToBestText": "1.10x"
     }
   ]
 }

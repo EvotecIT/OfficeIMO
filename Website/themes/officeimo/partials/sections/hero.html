@@ -1,54 +1,70 @@
 {{ if data.hero }}
 <section class="imo-hero">
   <div class="imo-container imo-hero__inner">
-    {{ if data.hero.badge }}
-    <div class="imo-hero__badge"><span class="imo-dot"></span>{{ data.hero.badge }}</div>
-    {{ end }}
-
-    <h1 class="imo-hero__title">{{ data.hero.title }}</h1>
-
-    {{ if data.hero.tagline }}
-    <p class="imo-hero__desc">{{ data.hero.tagline }}</p>
-    {{ end }}
-
-    {{ if data.hero.ctas && data.hero.ctas.size > 0 }}
-    <div class="imo-hero__actions">
-      {{ for cta in data.hero.ctas }}
-      <a class="imo-btn {{ if cta.style == "primary" }}imo-btn-primary{{ else }}imo-btn-ghost{{ end }}" href="{{ cta.href }}"{{ if cta.external }} target="_blank" rel="noopener"{{ end }}>{{ cta.label }}</a>
+    <div class="imo-hero__copy">
+      {{ if data.hero.badge }}
+      <div class="imo-hero__badge"><span class="imo-dot"></span>{{ data.hero.badge }}</div>
       {{ end }}
-    </div>
-    {{ end }}
 
-    {{ if data.hero.install }}
-    <div class="imo-hero__install">
-      <div class="imo-install">
-        <span class="imo-install__label">.NET</span>
-        <code class="imo-install__code">{{ data.hero.install.dotnet }}</code>
-        <button class="imo-install__copy" type="button" data-copy="{{ data.hero.install.dotnet }}" aria-label="Copy">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        </button>
+      <h1 class="imo-hero__title">Office Documents <span>Without Office</span></h1>
+
+      {{ if data.hero.tagline }}
+      <p class="imo-hero__desc">{{ data.hero.tagline }}</p>
+      {{ end }}
+
+      {{ if data.hero.ctas && data.hero.ctas.size > 0 }}
+      <div class="imo-hero__actions">
+        {{ for cta in data.hero.ctas }}
+        <a class="imo-btn {{ if cta.style == "primary" }}imo-btn-primary{{ else }}imo-btn-ghost{{ end }}" href="{{ cta.href }}"{{ if cta.external }} target="_blank" rel="noopener"{{ end }}>{{ cta.label }}</a>
+        {{ end }}
       </div>
-      <div class="imo-install">
-        <span class="imo-install__label">PowerShell</span>
-        <code class="imo-install__code">{{ data.hero.install.powershell }}</code>
-        <button class="imo-install__copy" type="button" data-copy="{{ data.hero.install.powershell }}" aria-label="Copy">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        </button>
+      {{ end }}
+
+      {{ if data.hero.badges && data.hero.badges.size > 0 }}
+      <div class="imo-hero__badges" aria-label="Project characteristics">
+        {{ for badge in data.hero.badges }}
+        {{ if badge.href }}
+        <a class="imo-hero__badge-link" href="{{ badge.href }}">{{ badge.label }}</a>
+        {{ else }}
+        <span class="imo-hero__badge-link">{{ badge.label }}</span>
+        {{ end }}
+        {{ end }}
+      </div>
+      {{ end }}
+    </div>
+
+    <div class="imo-hero-proof" aria-label="Examples of generated OfficeIMO documents">
+      <article class="imo-proof-document imo-proof-document--word">
+        <div class="imo-proof-document__header"><span>DOCX</span><small>Generated report</small></div>
+        <h2>Project Overview</h2>
+        <h3>Executive summary</h3>
+        <p>Structured document output with headings, paragraphs, tables, images, and metadata.</p>
+        <div class="imo-proof-document__image" aria-hidden="true"></div>
+        <div class="imo-proof-document__lines" aria-hidden="true"><i></i><i></i><i></i></div>
+      </article>
+
+      <article class="imo-proof-sheet">
+        <div class="imo-proof-sheet__header"><span>XLSX</span><strong>Sales analytics</strong></div>
+        <div class="imo-proof-sheet__table" aria-hidden="true">
+          <span>Region</span><span>Revenue</span><span>Growth</span>
+          <span>North America</span><span>$1.24M</span><span>12.4%</span>
+          <span>Europe</span><span>$987K</span><span>9.7%</span>
+          <span>Asia Pacific</span><span>$1.10M</span><span>15.6%</span>
+        </div>
+        <div class="imo-proof-sheet__bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </article>
+
+      <article class="imo-proof-slide">
+        <div class="imo-proof-slide__header"><span>PPTX</span><small>Quarterly results</small></div>
+        <div class="imo-proof-slide__chart" aria-hidden="true"><i></i></div>
+        <p>Repeatable presentations from application data.</p>
+      </article>
+
+      <div class="imo-proof-code">
+        <div class="imo-proof-code__tabs"><span class="is-active">.NET</span><span>PowerShell</span></div>
+        <code>using var doc = WordDocument.Create("report.docx");<br>doc.AddParagraph("Quarterly report");<br>doc.Save();</code>
       </div>
     </div>
-    {{ end }}
-
-    {{ if data.hero.badges && data.hero.badges.size > 0 }}
-    <div class="imo-hero__badges">
-      {{ for badge in data.hero.badges }}
-      {{ if badge.href }}
-      <a class="imo-hero__badge-link" href="{{ badge.href }}" target="_blank" rel="noopener">{{ badge.label }}</a>
-      {{ else }}
-      <span class="imo-hero__badge-link">{{ badge.label }}</span>
-      {{ end }}
-      {{ end }}
-    </div>
-    {{ end }}
   </div>
 </section>
 {{ end }}

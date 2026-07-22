@@ -11,8 +11,7 @@
     <link rel="alternate" hreflang="en" href="https://officeimo.com/apps/officeimo-converter/" />
     <link rel="alternate" hreflang="x-default" href="https://officeimo.com/apps/officeimo-converter/" />
     <link rel="preload" id="webassembly" />
-    <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
-    <link rel="stylesheet" href="/css/app.css" />
+    <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
     <link rel="stylesheet" href="converter.css" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="importmap"></script>
@@ -32,7 +31,6 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">x</span>
     </div>
-    <script src="converter-interop.js"></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>
 
