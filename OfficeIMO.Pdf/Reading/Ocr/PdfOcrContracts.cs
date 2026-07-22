@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,16 +35,53 @@ public sealed class PdfOcrRequest {
 
 /// <summary>OCR provider response for one page.</summary>
 public sealed class PdfOcrResponse {
+    private const int AbsoluteMaximumWords = 1_000_000;
+    private const int AbsoluteMaximumDiagnostics = 100_000;
+    private const int AbsoluteMaximumTextCharacters = 16 * 1024 * 1024;
     /// <summary>Creates a provider response.</summary>
     public PdfOcrResponse(IEnumerable<PdfOcrWord> words, IEnumerable<string>? diagnostics = null) {
         Guard.NotNull(words as object, nameof(words));
-        Words = words.ToArray();
-        Diagnostics = diagnostics?.ToArray() ?? Array.Empty<string>();
+        Words = MaterializeWords(words);
+        Diagnostics = MaterializeDiagnostics(diagnostics);
     }
     /// <summary>Recognized words in pixel coordinates from the top-left.</summary>
     public IReadOnlyList<PdfOcrWord> Words { get; }
     /// <summary>Provider diagnostics retained in the merge report.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+
+    private static ReadOnlyCollection<PdfOcrWord> MaterializeWords(IEnumerable<PdfOcrWord> words) {
+        var result = new List<PdfOcrWord>();
+        long characters = 0;
+        foreach (PdfOcrWord word in words) {
+            if (word == null) throw new ArgumentException("OCR words cannot contain null entries.", nameof(words));
+            if (result.Count >= AbsoluteMaximumWords) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, AbsoluteMaximumWords, result.Count + 1L);
+            }
+            characters = checked(characters + word.Text.Length);
+            if (characters > AbsoluteMaximumTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, AbsoluteMaximumTextCharacters, characters);
+            }
+            result.Add(word);
+        }
+        return result.AsReadOnly();
+    }
+
+    private static IReadOnlyList<string> MaterializeDiagnostics(IEnumerable<string>? diagnostics) {
+        if (diagnostics == null) return Array.Empty<string>();
+        var result = new List<string>();
+        long characters = 0;
+        foreach (string diagnostic in diagnostics) {
+            if (result.Count >= AbsoluteMaximumDiagnostics) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, AbsoluteMaximumDiagnostics, result.Count + 1L);
+            }
+            characters = checked(characters + (diagnostic?.Length ?? 0));
+            if (characters > AbsoluteMaximumTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, AbsoluteMaximumTextCharacters, characters);
+            }
+            result.Add(diagnostic ?? string.Empty);
+        }
+        return result.AsReadOnly();
+    }
 }
 
 /// <summary>One OCR word in rendered pixel coordinates.</summary>

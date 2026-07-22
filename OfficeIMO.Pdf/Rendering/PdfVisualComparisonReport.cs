@@ -75,4 +75,5 @@ public sealed class PdfVisualPageComparison {
     public byte[] ActualPng => (byte[])_actualPng.Clone();
     /// <summary>Highlighted diff PNG.</summary>
     public byte[] DiffPng => (byte[])_diffPng.Clone();
+    internal long OutputByteLength => checked(_expectedPng.LongLength + _actualPng.LongLength + _diffPng.LongLength);
 }

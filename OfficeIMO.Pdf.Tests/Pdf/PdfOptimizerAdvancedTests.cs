@@ -136,5 +136,14 @@ public class PdfOptimizerAdvancedTests {
         Assert.Contains(result.Actions, static action => action.Kind == "DeduplicateImage");
         Assert.Single(PdfReadDocument.Open(result.Bytes).Pages[0].GetImagePlacements().Select(static placement => placement.ObjectNumber).Distinct());
         Assert.True(result.PreservationReport.IsPreserved);
+
+        options.MaximumTotalDecodedImageBytes = 4;
+        PdfOptimizationActionResult limited = PdfOptimizer.Optimize(source, options);
+        Assert.DoesNotContain(limited.Actions, static action => action.Kind == "DeduplicateImage");
+        Assert.Contains(limited.SkippedActions, static action =>
+            action.Kind == "DeduplicateImage" && action.Reason == "AggregateDecodeLimit");
+
+        options.MaximumTotalDecodedImageBytes = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfOptimizer.Optimize(source, options));
     }
 }

@@ -30,6 +30,16 @@ public sealed class PdfUnderstandingPipelineOptions {
     public PdfTextLayoutOptions Layout { get; set; } = new PdfTextLayoutOptions();
     /// <summary>Maximum selected pages processed by one run.</summary>
     public int MaxPages { get; set; } = 1000;
+    /// <summary>Maximum decoded text runs retained for one page.</summary>
+    public int MaxRunsPerPage { get; set; } = 100_000;
+    /// <summary>Maximum decoded text characters retained for one page.</summary>
+    public int MaxTextCharactersPerPage { get; set; } = 4 * 1024 * 1024;
+    /// <summary>Maximum grouped words retained for one page.</summary>
+    public int MaxWordsPerPage { get; set; } = 100_000;
+    /// <summary>Maximum grouped lines retained for one page.</summary>
+    public int MaxLinesPerPage { get; set; } = 50_000;
+    /// <summary>Maximum regions and semantic elements retained for one page.</summary>
+    public int MaxRegionsPerPage { get; set; } = 10_000;
 }
 
 /// <summary>Runs a bounded, typed, pluggable PDF text-understanding pipeline.</summary>
@@ -42,6 +52,7 @@ public sealed class PdfUnderstandingPipeline {
     private readonly IPdfSemanticClassificationStage _semanticClassification;
     private readonly PdfTextLayoutOptions _layout;
     private readonly int _maxPages;
+    private readonly PdfUnderstandingPipelineOptions _limits;
 
     /// <summary>Creates a pipeline, using the lightweight built-in stage for each unspecified slot.</summary>
     public PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions? options = null) {
@@ -54,7 +65,13 @@ public sealed class PdfUnderstandingPipeline {
         _semanticClassification = effective.SemanticClassification ?? PdfFastUnderstandingStages.SemanticClassification;
         _layout = effective.Layout ?? throw new ArgumentNullException(nameof(options), "Layout options cannot be null.");
         _maxPages = effective.MaxPages;
+        _limits = effective;
         if (_maxPages <= 0) throw new ArgumentOutOfRangeException(nameof(options), effective.MaxPages, "Maximum pages must be positive.");
+        ValidateLimit(effective.MaxRunsPerPage, nameof(effective.MaxRunsPerPage));
+        ValidateLimit(effective.MaxTextCharactersPerPage, nameof(effective.MaxTextCharactersPerPage));
+        ValidateLimit(effective.MaxWordsPerPage, nameof(effective.MaxWordsPerPage));
+        ValidateLimit(effective.MaxLinesPerPage, nameof(effective.MaxLinesPerPage));
+        ValidateLimit(effective.MaxRegionsPerPage, nameof(effective.MaxRegionsPerPage));
     }
 
     /// <summary>Runs all stages for all pages or a caller-ordered page selection.</summary>
@@ -66,7 +83,7 @@ public sealed class PdfUnderstandingPipeline {
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
-            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber));
+            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber, cancellationToken));
         }
         return new PdfUnderstandingResult(pages.AsReadOnly());
     }
@@ -78,21 +95,38 @@ public sealed class PdfUnderstandingPipeline {
         return Run(document, selector.ResolveSelection(document.Pages.Count), cancellationToken);
     }
 
-    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber) {
-        var context = new PdfUnderstandingPageContext(page, pageNumber, _layout);
+    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
+        var context = new PdfUnderstandingPageContext(
+            page,
+            pageNumber,
+            _layout,
+            _limits.MaxTextCharactersPerPage,
+            _limits.MaxWordsPerPage);
         var trace = new List<PdfUnderstandingStageTrace>(6);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
+        EnsureCount(runs.Count, _limits.MaxRunsPerPage);
+        EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("glyph-decoding", _glyphDecoding.GetType(), 0, runs.Count));
         IReadOnlyList<PdfUnderstandingWord> words = NotNull(_wordGrouping.GroupWords(context, runs), nameof(IPdfWordGroupingStage));
+        EnsureCount(words.Count, _limits.MaxWordsPerPage);
+        EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
+        cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("word-grouping", _wordGrouping.GetType(), runs.Count, words.Count));
         IReadOnlyList<PdfUnderstandingLine> lines = NotNull(_lineGrouping.GroupLines(context, words), nameof(IPdfLineGroupingStage));
+        EnsureCount(lines.Count, _limits.MaxLinesPerPage);
+        cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("line-grouping", _lineGrouping.GetType(), words.Count, lines.Count));
         IReadOnlyList<PdfUnderstandingRegion> regions = NotNull(_pageSegmentation.Segment(context, lines), nameof(IPdfPageSegmentationStage));
+        EnsureCount(regions.Count, _limits.MaxRegionsPerPage);
+        cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("page-segmentation", _pageSegmentation.GetType(), lines.Count, regions.Count));
         IReadOnlyList<PdfUnderstandingRegion> ordered = NotNull(_readingOrder.Order(context, regions), nameof(IPdfReadingOrderStage));
+        EnsureCount(ordered.Count, _limits.MaxRegionsPerPage);
         trace.Add(new PdfUnderstandingStageTrace("reading-order", _readingOrder.GetType(), regions.Count, ordered.Count));
         IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = BuildReadingOrderEvidence(ordered, _readingOrder.GetType());
         IReadOnlyList<PdfUnderstandingSemanticElement> elements = NotNull(_semanticClassification.Classify(context, ordered), nameof(IPdfSemanticClassificationStage));
+        EnsureCount(elements.Count, _limits.MaxRegionsPerPage);
         trace.Add(new PdfUnderstandingStageTrace("semantic-classification", _semanticClassification.GetType(), ordered.Count, elements.Count));
         return new PdfUnderstandingPageResult(pageNumber, runs, words, lines, regions, ordered, readingOrderEvidence, elements, trace.AsReadOnly());
     }
@@ -112,6 +146,22 @@ public sealed class PdfUnderstandingPipeline {
     }
 
     private static IReadOnlyList<T> NotNull<T>(IReadOnlyList<T>? value, string stage) => value ?? throw new InvalidOperationException(stage + " returned null.");
+
+    private static void ValidateLimit(int value, string name) {
+        if (value <= 0) throw new ArgumentOutOfRangeException(name);
+    }
+
+    private static void EnsureCount(int actual, int maximum) {
+        if (actual > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, actual);
+    }
+
+    private static void EnsureTextCharacters(IEnumerable<string?> values, int maximum) {
+        long total = 0;
+        foreach (string? value in values) {
+            total = checked(total + (value?.Length ?? 0));
+            if (total > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, total);
+        }
+    }
 }
 
 internal static class PdfFastUnderstandingStages {
@@ -138,6 +188,9 @@ internal static class PdfFastUnderstandingStages {
                     int start = cursor;
                     while (cursor < text.Length && !char.IsWhiteSpace(text[cursor])) cursor++;
                     if (cursor <= start) continue;
+                    if (words.Count >= context.MaxWordsPerPage) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, context.MaxWordsPerPage, words.Count + 1L);
+                    }
                     double perCharacter = run.Advance > 0D && text.Length > 0 ? run.Advance / text.Length : run.FontSize * 0.55D;
                     double xStart = run.X + (start * perCharacter);
                     double xEnd = xStart + ((cursor - start) * perCharacter);

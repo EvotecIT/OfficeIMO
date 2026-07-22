@@ -17,6 +17,7 @@ internal static class PdfAttachmentEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
         IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target);
+        ValidateAttachmentGraph(output, target.Count, readOptions);
         if (validations.Any(static validation => !validation.IsValid)) throw new InvalidOperationException("PDF attachment post-save validation failed; the artifact was not returned.");
         var preservationOptions = new PdfRewritePreservationOptions { OriginalReadOptions = readOptions, PreserveEmbeddedFiles = false, PreserveRevisionStructure = false };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
@@ -36,6 +37,7 @@ internal static class PdfAttachmentEditor {
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) || root.Value is not PdfDictionary catalog) throw new InvalidOperationException("PDF catalog is not readable.");
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         names?.Items.Remove("EmbeddedFiles");
+        RemoveExistingEmbeddedFileGraph(objects);
         PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         if (attachments.Count == 0) return;
 
@@ -59,6 +61,89 @@ internal static class PdfAttachmentEditor {
         foreach ((string name, PdfReference reference) in nameEntries) { nameArray.Items.Add(new PdfStringObj(name, true)); nameArray.Items.Add(reference); }
         var embeddedFiles = new PdfDictionary(); embeddedFiles.Items["Names"] = nameArray; names.Items["EmbeddedFiles"] = embeddedFiles;
         if (associated.Items.Count > 0) catalog.Items["AF"] = associated;
+    }
+
+    private static void RemoveExistingEmbeddedFileGraph(Dictionary<int, PdfIndirectObject> objects) {
+        var removedObjectNumbers = new HashSet<int>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            PdfDictionary? dictionary = indirect.Value is PdfStream stream
+                ? stream.Dictionary
+                : indirect.Value as PdfDictionary;
+            if (dictionary == null) continue;
+            if (indirect.Value is PdfStream &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "EmbeddedFile", StringComparison.Ordinal)) {
+                removedObjectNumbers.Add(indirect.ObjectNumber);
+            }
+            if (dictionary.Items.ContainsKey("EF")) removedObjectNumbers.Add(indirect.ObjectNumber);
+        }
+
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            ScrubEmbeddedFileReferences(indirect.Value, removedObjectNumbers, new HashSet<PdfObject>());
+        }
+        foreach (int objectNumber in removedObjectNumbers) objects.Remove(objectNumber);
+    }
+
+    private static void ScrubEmbeddedFileReferences(
+        PdfObject value,
+        ISet<int> removedObjectNumbers,
+        ISet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        if (value is PdfStream stream) {
+            ScrubEmbeddedFileReferences(stream.Dictionary, removedObjectNumbers, visited);
+            return;
+        }
+        if (value is PdfDictionary dictionary) {
+            dictionary.Items.Remove("EF");
+            foreach (string key in dictionary.Items.Keys.ToArray()) {
+                PdfObject child = dictionary.Items[key];
+                if (child is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber)) {
+                    dictionary.Items.Remove(key);
+                    continue;
+                }
+                if (child is PdfArray array) {
+                    RemoveEmbeddedFileReferences(array, removedObjectNumbers, visited);
+                    if (array.Items.Count == 0 && (key == "AF" || key == "Names")) dictionary.Items.Remove(key);
+                } else if (child is not PdfReference) {
+                    ScrubEmbeddedFileReferences(child, removedObjectNumbers, visited);
+                }
+            }
+            return;
+        }
+        if (value is PdfArray values) RemoveEmbeddedFileReferences(values, removedObjectNumbers, visited);
+    }
+
+    private static void RemoveEmbeddedFileReferences(
+        PdfArray array,
+        ISet<int> removedObjectNumbers,
+        ISet<PdfObject> visited) {
+        for (int index = array.Items.Count - 1; index >= 0; index--) {
+            PdfObject child = array.Items[index];
+            if (child is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber)) {
+                array.Items.RemoveAt(index);
+            } else if (child is not PdfReference) {
+                ScrubEmbeddedFileReferences(child, removedObjectNumbers, visited);
+            }
+        }
+    }
+
+    private static void ValidateAttachmentGraph(byte[] pdf, int expectedCount, PdfReadOptions? readOptions) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        int embeddedStreams = 0;
+        int fileSpecifications = 0;
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            PdfDictionary? dictionary = indirect.Value is PdfStream stream
+                ? stream.Dictionary
+                : indirect.Value as PdfDictionary;
+            if (dictionary == null) continue;
+            if (indirect.Value is PdfStream &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "EmbeddedFile", StringComparison.Ordinal)) {
+                embeddedStreams++;
+            }
+            if (dictionary.Items.ContainsKey("EF")) fileSpecifications++;
+        }
+        if (embeddedStreams != expectedCount || fileSpecifications != expectedCount) {
+            throw new InvalidOperationException("PDF attachment post-save validation found hidden or missing embedded-file objects.");
+        }
     }
 
     private static PdfDictionary BuildEmbeddedFileDictionary(PdfEmbeddedFile attachment, byte[] data) {

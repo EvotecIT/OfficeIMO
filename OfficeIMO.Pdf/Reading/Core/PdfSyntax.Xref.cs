@@ -176,7 +176,8 @@ internal static partial class PdfSyntax {
 
         int dictStart = text.IndexOf("<<", trailerIndex, StringComparison.Ordinal);
         if (dictStart >= 0) {
-            int dictEnd = FindDictEnd(text, dictStart, text.Length);
+            int dictionaryLimit = (int)Math.Min((long)text.Length, (long)dictStart + 1_000_002L);
+            int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit);
             if (dictEnd > dictStart) {
                 trailerRaw = SafeSlice(text, trailerIndex, dictEnd - trailerIndex, 1_000_000);
                 string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);

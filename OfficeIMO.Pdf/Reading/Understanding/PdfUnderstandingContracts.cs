@@ -24,13 +24,16 @@ public enum PdfUnderstandingSemanticKind {
 
 /// <summary>Page and option context shared by understanding stages.</summary>
 public sealed class PdfUnderstandingPageContext {
-    internal PdfUnderstandingPageContext(PdfReadPage page, int pageNumber, PdfTextLayoutOptions options) {
+    internal PdfUnderstandingPageContext(PdfReadPage page, int pageNumber, PdfTextLayoutOptions options,
+        int maxTextCharactersPerPage, int maxWordsPerPage) {
         Page = page;
         PageNumber = pageNumber;
         LayoutOptions = options;
         (double width, double height) = page.GetPageSize();
         Width = width;
         Height = height;
+        MaxTextCharactersPerPage = maxTextCharactersPerPage;
+        MaxWordsPerPage = maxWordsPerPage;
     }
 
     /// <summary>Parsed source page.</summary>
@@ -43,6 +46,10 @@ public sealed class PdfUnderstandingPageContext {
     public double Height { get; }
     /// <summary>Layout options supplied to the pipeline.</summary>
     public PdfTextLayoutOptions LayoutOptions { get; }
+    /// <summary>Maximum decoded text characters accepted for this page.</summary>
+    public int MaxTextCharactersPerPage { get; }
+    /// <summary>Maximum word artifacts accepted for this page.</summary>
+    public int MaxWordsPerPage { get; }
 }
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>

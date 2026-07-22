@@ -60,20 +60,22 @@ public sealed class PdfExternalSignaturePreparation {
     /// <summary>Bytes covered by the /ByteRange and intended for external digest/signing.</summary>
     public byte[] SignedContent {
         get {
-            using var stream = new MemoryStream();
-            stream.Write(_preparedPdf, (int)ByteRangeValues[0], (int)ByteRangeValues[1]);
-            stream.Write(_preparedPdf, (int)ByteRangeValues[2], (int)ByteRangeValues[3]);
-            return stream.ToArray();
+            int firstLength = checked((int)ByteRangeValues[1]);
+            int secondLength = checked((int)ByteRangeValues[3]);
+            var result = new byte[checked(firstLength + secondLength)];
+            Buffer.BlockCopy(_preparedPdf, checked((int)ByteRangeValues[0]), result, 0, firstLength);
+            Buffer.BlockCopy(_preparedPdf, checked((int)ByteRangeValues[2]), result, firstLength, secondLength);
+            return result;
         }
     }
 
     /// <summary>Computes the SHA-256 digest of <see cref="SignedContent"/> for external signing services.</summary>
-#pragma warning disable CA1850
     public byte[] ComputeSha256Digest() {
-        using SHA256 sha256 = SHA256.Create();
-        return sha256.ComputeHash(SignedContent);
+        using IncrementalHash sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        sha256.AppendData(_preparedPdf, checked((int)ByteRangeValues[0]), checked((int)ByteRangeValues[1]));
+        sha256.AppendData(_preparedPdf, checked((int)ByteRangeValues[2]), checked((int)ByteRangeValues[3]));
+        return sha256.GetHashAndReset();
     }
-#pragma warning restore CA1850
 
     /// <summary>
     /// Completes this in-memory preparation with detached CMS or timestamp bytes.

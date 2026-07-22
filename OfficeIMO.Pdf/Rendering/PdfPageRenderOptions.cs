@@ -35,6 +35,10 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         get => MaximumRasterPixels;
         set => MaximumRasterPixels = value;
     }
+    /// <summary>Maximum encoded output bytes retained for one page.</summary>
+    public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
+    /// <summary>Maximum aggregate encoded output bytes retained for one batch.</summary>
+    public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
     internal double GetScale(OfficeDrawing drawing) {
@@ -53,6 +57,8 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         if (Dpi.HasValue && !IsPositiveFinite(Dpi.Value)) throw new ArgumentOutOfRangeException(nameof(Dpi), Dpi, "DPI must be positive and finite.");
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value <= 0) throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
+        if (MaxOutputBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytesPerPage));
+        if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
     }
 
     private static bool IsPositiveFinite(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
@@ -102,4 +108,5 @@ public sealed class PdfPageRenderResult {
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics { get; }
     /// <summary>True when output bytes were produced.</summary>
     public bool Succeeded => _bytes is not null;
+    internal long OutputByteLength => _bytes?.LongLength ?? 0L;
 }

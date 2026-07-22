@@ -12,7 +12,10 @@ public class PdfIncrementalAnnotationEditorTests {
         PdfAnnotationEditResult result = PdfAnnotationEditor.UpdateAnnotation(
             signedPdf,
             annotationObjectNumber,
-            new PdfAnnotationUpdateOptions { Contents = "Updated after certification" });
+            new PdfAnnotationUpdateOptions {
+                Contents = "Updated after certification",
+                AllowResidualDataInAppendOnly = true
+            });
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
         Assert.NotNull(result.SignatureMutationReport);
@@ -29,12 +32,28 @@ public class PdfIncrementalAnnotationEditorTests {
 
         PdfAnnotationEditResult result = PdfAnnotationEditor.RemoveAnnotations(
             signedPdf,
-            new PdfAnnotationRemovalOptions { Subtype = "Text" });
+            new PdfAnnotationRemovalOptions {
+                Subtype = "Text",
+                AllowResidualDataInAppendOnly = true
+            });
 
         Assert.True(result.Applied);
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
         Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
         Assert.Empty(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Text"));
+    }
+
+    [Fact]
+    public void CertifiedP3AnnotationRemovalRejectsResidualDataByDefault() {
+        (byte[] signedPdf, _) = BuildCertifiedAnnotatedPdf(
+            PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfAnnotationEditor.RemoveAnnotations(
+                signedPdf,
+                new PdfAnnotationRemovalOptions { Subtype = "Text" }));
+
+        Assert.Contains("prior revisions", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -96,7 +115,8 @@ public class PdfIncrementalAnnotationEditorTests {
         PdfAnnotationEditResult result = PdfAnnotationEditor.UpdateAnnotation(signedPdf, annotationObjectNumber, new PdfAnnotationUpdateOptions {
             Rectangle = new[] { 24D, 40D, 144D, 56D },
             QuadPoints = new[] { 24D, 56D, 144D, 56D, 24D, 40D, 144D, 40D },
-            RegenerateAppearance = true
+            RegenerateAppearance = true,
+            AllowResidualDataInAppendOnly = true
         });
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);

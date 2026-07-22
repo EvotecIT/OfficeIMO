@@ -8,9 +8,20 @@ internal static partial class PdfPageEditor {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
+        long limit = PdfReadOptions.Default.Limits.MaxInputBytes;
+        long observedBytes = limit + 1L;
+        if (stream.CanSeek) {
+            try {
+                observedBytes = Math.Max(0L, stream.Length - stream.Position);
+            } catch (NotSupportedException) {
+                // The bounded reader will still enforce the limit while consuming the stream.
+            }
+        }
+        try {
+            return OfficeStreamReader.ReadRemainingBytes(stream, limit);
+        } catch (InvalidDataException) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, observedBytes);
+        }
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {

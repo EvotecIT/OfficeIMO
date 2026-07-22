@@ -17,6 +17,8 @@ internal sealed class MsgParserState {
 
     internal long DecodedPropertyBytes { get; private set; }
 
+    internal long RemainingDecodedPropertyBytes => Options.MaxDecodedPropertyBytes - DecodedPropertyBytes;
+
     internal int AttachmentCount { get; private set; }
 
     internal long TotalAttachmentBytes { get; private set; }

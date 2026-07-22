@@ -5,6 +5,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeRasterGuards {
     internal const long MaximumPixels = 50_000_000L;
     internal const int MaximumEncodedBytes = 128 * 1024 * 1024;
+    internal const long MaximumDecodedBytes = 256L * 1024L * 1024L;
 
     public static void EnsurePayloadWithinLimits(int length, string message) {
         if (length < 0 || length > MaximumEncodedBytes) throw new FormatException(message);
@@ -30,6 +31,19 @@ internal static class OfficeRasterGuards {
     public static int EnsureByteCount(long bytes, string message) {
         if (bytes <= 0 || bytes > int.MaxValue || bytes > MaximumEncodedBytes) throw new FormatException(message);
         return (int)bytes;
+    }
+
+    public static int EnsureInt32ArrayLength(long elements, ref long aggregateBytes, string message) {
+        if (elements <= 0 || elements > int.MaxValue) throw new FormatException(message);
+        long bytes;
+        try {
+            bytes = checked(elements * sizeof(int));
+            aggregateBytes = checked(aggregateBytes + bytes);
+        } catch (OverflowException) {
+            throw new FormatException(message);
+        }
+        if (aggregateBytes > MaximumDecodedBytes) throw new FormatException(message);
+        return (int)elements;
     }
 
     public static byte[] AllocatePixelBuffer(int width, int height, string message) =>

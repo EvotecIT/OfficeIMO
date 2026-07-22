@@ -54,7 +54,10 @@ public sealed class PdfOptimizationOptions {
     public bool Linearize { get; set; }
 
     /// <summary>Maximum decoded image bytes considered for semantic image deduplication.</summary>
-    public int MaximumDecodedImageBytes { get; set; } = 256 * 1024 * 1024;
+    public int MaximumDecodedImageBytes { get; set; } = 64 * 1024 * 1024;
+
+    /// <summary>Maximum aggregate decoded image bytes inspected for semantic deduplication.</summary>
+    public long MaximumTotalDecodedImageBytes { get; set; } = 256L * 1024L * 1024L;
 
     /// <summary>Return the original PDF bytes when the optimized output would not be smaller.</summary>
     public bool KeepOriginalWhenNotSmaller { get; set; } = true;
@@ -92,6 +95,7 @@ public sealed class PdfOptimizationOptions {
             XrefFormat = XrefFormat,
             Linearize = Linearize,
             MaximumDecodedImageBytes = MaximumDecodedImageBytes,
+            MaximumTotalDecodedImageBytes = MaximumTotalDecodedImageBytes,
             Profile = Profile,
             KeepOriginalWhenNotSmaller = KeepOriginalWhenNotSmaller,
             MinimumStreamCompressionBytes = MinimumStreamCompressionBytes

@@ -17,7 +17,13 @@ internal static class PdfOcr {
         PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions);
-        PdfLogicalDocument logical = PdfLogicalDocument.From(readDocument);
+        int[] selectedPages = effectiveOptions.Selection?.ToPageNumbers(
+            readDocument.Pages.Count,
+            nameof(effectiveOptions.Selection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
+        if (selectedPages.Length > effectiveOptions.MaxPages) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
+        }
+        PdfLogicalDocument logical = PdfLogicalDocument.FromPageNumbers(readDocument, null, selectedPages);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Dpi = effectiveOptions.Dpi,
@@ -42,6 +48,7 @@ internal static class PdfOcr {
     }
 
     private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options) {
+        ValidateProviderResponse(nativePage, response, options);
         var diagnostics = new List<string>(response.Diagnostics);
         var accepted = new List<PdfRecognizedWord>();
         int lowConfidence = 0;
@@ -71,7 +78,7 @@ internal static class PdfOcr {
             int y = left.Y.CompareTo(right.Y);
             return y != 0 ? y : left.X.CompareTo(right.X);
         });
-        string text = BuildMergedText(nativePage, accepted);
+        string text = BuildMergedText(nativePage, accepted, options.MaxMergedTextCharactersPerPage);
         return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text);
     }
 
@@ -94,7 +101,7 @@ internal static class PdfOcr {
         return false;
     }
 
-    private static string BuildMergedText(PdfLogicalPage page, List<PdfRecognizedWord> words) {
+    private static string BuildMergedText(PdfLogicalPage page, List<PdfRecognizedWord> words, int maximumCharacters) {
         var items = new List<(double Y, double X, string Text)>(page.TextBlocks.Count + words.Count);
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfLogicalTextBlock block = page.TextBlocks[i];
@@ -102,7 +109,39 @@ internal static class PdfOcr {
         }
 
         for (int i = 0; i < words.Count; i++) items.Add((words[i].Y, words[i].X, words[i].Text));
-        return string.Join(Environment.NewLine, items.OrderBy(static item => item.Y).ThenBy(static item => item.X).Select(static item => item.Text));
+        var builder = new System.Text.StringBuilder(Math.Min(maximumCharacters, 4096));
+        foreach ((double _, double _, string text) in items.OrderBy(static item => item.Y).ThenBy(static item => item.X)) {
+            int separatorLength = builder.Length == 0 ? 0 : Environment.NewLine.Length;
+            long projected = (long)builder.Length + separatorLength + text.Length;
+            if (projected > maximumCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, projected);
+            }
+            if (separatorLength > 0) builder.AppendLine();
+            builder.Append(text);
+        }
+        return builder.ToString();
+    }
+
+    private static void ValidateProviderResponse(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrMergeOptions options) {
+        if (response.Words.Count > options.MaxOcrWordsPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxOcrWordsPerPage, response.Words.Count);
+        }
+        if (response.Diagnostics.Count > options.MaxDiagnosticsPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, response.Diagnostics.Count);
+        }
+        if (nativePage.TextBlocks.Count > options.MaxNativeTextBlocksPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxNativeTextBlocksPerPage, nativePage.TextBlocks.Count);
+        }
+        EnsureCharacters(response.Words.Select(static word => word.Text), options.MaxOcrTextCharactersPerPage);
+        EnsureCharacters(response.Diagnostics, options.MaxDiagnosticCharactersPerPage);
+    }
+
+    private static void EnsureCharacters(IEnumerable<string> values, int maximum) {
+        long total = 0;
+        foreach (string value in values) {
+            total = checked(total + value.Length);
+            if (total > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximum, total);
+        }
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

@@ -64,6 +64,25 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void Edit_RemoveDeletesUnreferencedEmbeddedFileObjectsFromTheRewrittenGraph() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("Attachment graph cleanup"))
+            .AttachFile("hidden-marker.txt", Encoding.ASCII.GetBytes("hidden-attachment-marker"), "text/plain")
+            .ToBytes();
+
+        byte[] output = PdfAttachmentEditor.Remove(source, "hidden-marker.txt").ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(output));
+        Assert.DoesNotContain(objects.Values, static item =>
+            item.Value is PdfStream stream &&
+            string.Equals(stream.Dictionary.Get<PdfName>("Type")?.Name, "EmbeddedFile", StringComparison.Ordinal));
+        Assert.DoesNotContain(objects.Values, static item =>
+            (item.Value as PdfDictionary)?.Items.ContainsKey("EF") == true);
+        Assert.DoesNotContain("hidden-attachment-marker", PdfEncoding.Latin1GetString(output), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadDocument_AppliesDecodedStreamLimitToPageAssociatedFiles() {
         byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };

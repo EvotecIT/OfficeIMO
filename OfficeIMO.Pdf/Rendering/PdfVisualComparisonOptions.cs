@@ -47,10 +47,22 @@ public sealed class PdfVisualComparisonOptions {
     public OfficeColor Background { get; set; } = OfficeColor.White;
     /// <summary>Ignored comparison regions in output pixel coordinates.</summary>
     public IList<PdfPixelRegion> IgnoredRegions => _ignoredRegions;
+    /// <summary>Maximum pages compared by one call.</summary>
+    public int MaxPages { get; set; } = 100;
+    /// <summary>Maximum raster pixels allocated for one expected, actual, or diff page image.</summary>
+    public long MaxPixelsPerImage { get; set; } = 20_000_000L;
+    /// <summary>Maximum aggregate raster pixels allocated across the comparison.</summary>
+    public long MaxTotalPixels { get; set; } = 100_000_000L;
+    /// <summary>Maximum aggregate PNG bytes retained in the comparison report.</summary>
+    public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
 
     internal void Validate() {
         if (Scale <= 0D || double.IsNaN(Scale) || double.IsInfinity(Scale)) throw new ArgumentOutOfRangeException(nameof(Scale));
         if (AllowedDifferenceRatio < 0D || AllowedDifferenceRatio > 1D || double.IsNaN(AllowedDifferenceRatio)) throw new ArgumentOutOfRangeException(nameof(AllowedDifferenceRatio));
         if (Alignment < PdfVisualPageAlignment.TopLeft || Alignment > PdfVisualPageAlignment.Center) throw new ArgumentOutOfRangeException(nameof(Alignment));
+        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
+        if (MaxPixelsPerImage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerImage));
+        if (MaxTotalPixels <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPixels));
+        if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
     }
 }

@@ -18,6 +18,14 @@ namespace OfficeIMO.Drawing.Internal {
         public static byte[] ReadAllBytes(Stream source, long? maxBytes = null) =>
             ReadAllBytes(source, CancellationToken.None, maxBytes);
 
+        /// <summary>
+        /// Reads from the caller's current position through the end of the stream without rewinding.
+        /// </summary>
+        public static byte[] ReadRemainingBytes(Stream source, long? maxBytes = null) {
+            ValidateRemainingSource(source, maxBytes);
+            return ReadToEnd(source, CancellationToken.None, maxBytes);
+        }
+
         /// <summary>Reads a complete artifact with cooperative cancellation.</summary>
         public static byte[] ReadAllBytes(
             Stream source,
@@ -81,6 +89,15 @@ namespace OfficeIMO.Drawing.Internal {
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length > maxBytes.Value) {
                 throw new InvalidDataException($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
+            }
+        }
+
+        private static void ValidateRemainingSource(Stream source, long? maxBytes) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
+            if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            if (source.CanSeek && maxBytes.HasValue && source.Length - source.Position > maxBytes.Value) {
+                throw new InvalidDataException($"Remaining stream content exceeds the configured maximum size ({maxBytes.Value} bytes).");
             }
         }
 

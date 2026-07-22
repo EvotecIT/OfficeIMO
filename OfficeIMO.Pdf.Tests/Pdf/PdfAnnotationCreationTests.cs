@@ -116,9 +116,15 @@ public class PdfAnnotationCreationTests {
         PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(added.Bytes, readOptions).GetAnnotationsBySubtype("Text"));
         PdfAnnotationEditResult updated = added.ToDocument().Annotations.Update(
             annotation.ObjectNumber!.Value,
-            new PdfAnnotationUpdateOptions { Contents = "Updated encrypted note" });
+            new PdfAnnotationUpdateOptions {
+                Contents = "Updated encrypted note",
+                AllowResidualDataInAppendOnly = true
+            });
         PdfAnnotationEditResult removed = updated.ToDocument().Annotations.Remove(
-            new PdfAnnotationRemovalOptions { ObjectNumber = annotation.ObjectNumber });
+            new PdfAnnotationRemovalOptions {
+                ObjectNumber = annotation.ObjectNumber,
+                AllowResidualDataInAppendOnly = true
+            });
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, added.MutationPlan.ExecutionMode);
         Assert.Equal("Updated encrypted note", Assert.Single(PdfInspector.Inspect(updated.Bytes, readOptions).GetAnnotationsBySubtype("Text")).Contents);

@@ -47,6 +47,9 @@ internal static partial class PdfAnnotationEditor {
             readOptions,
             executionPreference: effectiveOptions.ExecutionPreference);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
+            if (!effectiveOptions.AllowResidualDataInAppendOnly) {
+                throw new NotSupportedException("Append-only annotation removal retains the original annotation bytes in prior revisions. Use a permitted full rewrite for sanitization or explicitly allow residual data.");
+            }
             return RemoveAnnotationsIncrementally(pdf, effectiveOptions, mutationPlan, readOptions);
         }
 
@@ -142,6 +145,9 @@ internal static partial class PdfAnnotationEditor {
             readOptions,
             executionPreference: options.ExecutionPreference);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
+            if (!options.AllowResidualDataInAppendOnly) {
+                throw new NotSupportedException("Append-only annotation updates retain replaced annotation data in prior revisions. Use a permitted full rewrite for sanitization or explicitly allow residual data.");
+            }
             return UpdateAnnotationIncrementally(pdf, objectNumber, options, mutationPlan, readOptions);
         }
 

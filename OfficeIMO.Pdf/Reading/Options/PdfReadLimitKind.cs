@@ -62,6 +62,15 @@ public enum PdfReadLimitKind {
     /// <summary>Output pixels requested for one managed rendered page.</summary>
     RenderPixels,
 
+    /// <summary>Rendered bytes retained by one managed render operation.</summary>
+    RenderBytes,
+
     /// <summary>Selectable text regions requested for one page interaction map.</summary>
-    InteractionRegions
+    InteractionRegions,
+
+    /// <summary>Intermediate artifacts produced by the PDF understanding pipeline.</summary>
+    UnderstandingArtifacts,
+
+    /// <summary>Words, text, or diagnostics returned by an OCR provider.</summary>
+    OcrArtifacts
 }

@@ -56,6 +56,23 @@ public class PdfOcrTests {
             PdfOcr.RecognizeAndMergeAsync(pdf, provider, cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public async Task RecognizeAndMergeAsync_RejectsOversizedProviderArtifactsBeforeMerge() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native")).ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(new[] {
+            new PdfOcrWord("one", 10, 10, 10, 10, 0.9),
+            new PdfOcrWord("two", 30, 10, 10, 10, 0.9)
+        }));
+
+        PdfReadLimitException exception = await Assert.ThrowsAsync<PdfReadLimitException>(() =>
+            PdfOcr.RecognizeAndMergeAsync(pdf, provider, new PdfOcrMergeOptions {
+                MaxOcrWordsPerPage = 1
+            }));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
     private sealed class StubOcrProvider : IPdfOcrProvider {
         private readonly Func<PdfOcrRequest, PdfOcrResponse> _response;
         public StubOcrProvider(Func<PdfOcrRequest, PdfOcrResponse> response) { _response = response; }

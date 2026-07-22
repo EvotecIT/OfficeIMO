@@ -22,9 +22,15 @@ internal static partial class PdfPageImageRenderer {
         }
 
         var results = new List<PdfPageRenderResult>(pages.Length);
+        long totalOutputBytes = 0;
         for (int i = 0; i < pages.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            results.Add(RenderPage(document, pages[i], effectiveOptions, cancellationToken));
+            PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, cancellationToken);
+            totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
+            if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
+            }
+            results.Add(result);
         }
 
         return results.AsReadOnly();
@@ -75,6 +81,9 @@ internal static partial class PdfPageImageRenderer {
             byte[] bytes = options.Format == PdfPageRenderFormat.Png
                 ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec)
                 : OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale);
+            if (bytes.LongLength > options.MaxOutputBytesPerPage) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
+            }
             timer.Stop();
             return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, capabilityDiagnostics);
         } catch (OperationCanceledException) {

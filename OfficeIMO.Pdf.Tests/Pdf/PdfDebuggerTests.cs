@@ -53,4 +53,27 @@ public class PdfDebuggerTests {
         Assert.Throws<PdfPasswordRequiredException>(() => PdfDebugger.Dump(encrypted));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDebugger.Dump(encrypted, new PdfDebuggerOptions { MaxContentOperatorsPerPage = 0 }, new PdfReadOptions { Password = "open" }));
     }
+
+    [Fact]
+    public void Dump_PathAndStreamEnforceParserInputBudgetBeforeBuffering() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded debugger")).ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.Length - 1L }
+        };
+
+        using var stream = new MemoryStream(source);
+        PdfReadLimitException streamException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDebugger.Dump(stream, readOptions: readOptions));
+        Assert.Equal(PdfReadLimitKind.InputBytes, streamException.Kind);
+
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Debugger." + Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            File.WriteAllBytes(path, source);
+            PdfReadLimitException pathException = Assert.Throws<PdfReadLimitException>(() =>
+                PdfDebugger.Dump(path, readOptions: readOptions));
+            Assert.Equal(PdfReadLimitKind.InputBytes, pathException.Kind);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

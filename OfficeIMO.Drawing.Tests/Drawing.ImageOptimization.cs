@@ -115,6 +115,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeJpegCodec_RejectsExcessiveSamplingBeforeDecoderStateAllocation() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+            int startOfFrame = FindMarker(jpeg, 0xC0);
+            Assert.True(startOfFrame > 0);
+            jpeg[startOfFrame + 11] = 0x44;
+
+            FormatException exception = Assert.Throws<FormatException>(() => OfficeJpegCodec.Decode(jpeg));
+
+            Assert.Contains("sampling", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_DecodesBaselineComponentsStoredInSeparateScans() {
             byte[] jpeg = BuildSeparateComponentBaselineJpeg();
 

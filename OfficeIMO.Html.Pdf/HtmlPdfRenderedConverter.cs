@@ -9,6 +9,7 @@ namespace OfficeIMO.Html.Pdf;
 
 internal static class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
+    private const int MaximumSystemFontFamilyCandidates = 32;
 
     internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
@@ -102,7 +103,7 @@ internal static class HtmlPdfRenderedConverter {
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
-            RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots);
+            RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(
@@ -573,7 +574,8 @@ internal static class HtmlPdfRenderedConverter {
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
         ISet<string> activeWebFontFamilies,
-        ISet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        ISet<PdfCore.PdfStandardFont> reservedFontSlots,
+        CancellationToken cancellationToken) {
         List<HtmlRenderText> textRuns = EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))
             .OfType<HtmlRenderText>()
             .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
@@ -581,7 +583,9 @@ internal static class HtmlPdfRenderedConverter {
 
         foreach (string familyName in textRuns
                      .SelectMany(text => EnumerateFamilies(text.Font.FamilyName))
-                     .Distinct(StringComparer.OrdinalIgnoreCase)) {
+                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                     .Take(MaximumSystemFontFamilyCandidates)) {
+            cancellationToken.ThrowIfCancellationRequested();
             List<HtmlRenderText> familyRuns = textRuns
                 .Where(text => EnumerateFamilies(text.Font.FamilyName).Contains(familyName, StringComparer.OrdinalIgnoreCase))
                 .ToList();

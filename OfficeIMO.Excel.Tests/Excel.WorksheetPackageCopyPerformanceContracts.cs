@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_CopyWorksheetFrom_PackageModeEmptyTargetAdoptsSourceIndexes() {
+        public void Test_CopyWorksheetFrom_PackageModeRewritesSharedStringsWithoutAdoptingSourceTable() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyIndexedSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyIndexedTarget.xlsx");
 
@@ -32,9 +32,7 @@ namespace OfficeIMO.Tests {
                     "Imported",
                     SheetNameValidationMode.Sanitize,
                     new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
-                Assert.False(copied.WorksheetPart.IsRootElementLoaded);
                 targetDocument.Save();
-                Assert.False(copied.WorksheetPart.IsRootElementLoaded);
                 targetDocument.AddWorksheet("AfterCopy").CellValue(1, 1, "New shared string");
                 targetDocument.Save();
             }
@@ -42,11 +40,16 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
                 WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
                 Assert.NotNull(workbookPart.SharedStringTablePart);
+                Assert.Equal(
+                    new[] { "New shared string" },
+                    workbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>()
+                        .Select(static item => item.InnerText));
                 WorksheetPart importedPart = workbookPart.WorksheetParts.Single(part =>
                     part.TableDefinitionParts.Any(tablePart => tablePart.Table?.Name?.Value == "SourceSales"));
                 Cell header = importedPart.Worksheet.Descendants<Cell>()
                     .Single(cell => cell.CellReference?.Value == "A1");
-                Assert.Equal(CellValues.SharedString, header.DataType?.Value);
+                Assert.Equal(CellValues.InlineString, header.DataType?.Value);
+                Assert.Equal("Region", header.InnerText);
                 Assert.NotNull(header.StyleIndex);
                 Assert.NotEqual(0U, header.StyleIndex!.Value);
             }

@@ -34,6 +34,7 @@ internal static partial class PdfRedactionApplier {
             else if (op == "c") { StartPath(args, ref pathStart); for (int i = Math.Max(0, args.Count - 6); i + 1 < args.Count; i += 2) AddPoint(ctm, args[i].Number, args[i + 1].Number, ref minX, ref minY, ref maxX, ref maxY); }
             else if (op == "v" || op == "y") { StartPath(args, ref pathStart); for (int i = Math.Max(0, args.Count - 4); i + 1 < args.Count; i += 2) AddPoint(ctm, args[i].Number, args[i + 1].Number, ref minX, ref minY, ref maxX, ref maxY); }
             else if (op == "re" && args.Count >= 4) { StartPath(args, ref pathStart); int start = args.Count - 4; double x = args[start].Number, y = args[start + 1].Number, width = args[start + 2].Number, height = args[start + 3].Number; AddPoint(ctm, x, y, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x + width, y, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x, y + height, ref minX, ref minY, ref maxX, ref maxY); AddPoint(ctm, x + width, y + height, ref minX, ref minY, ref maxX, ref maxY); }
+            else if (op == "n") { pathStart = -1; minX = minY = double.MaxValue; maxX = maxY = double.MinValue; }
             else if (IsPathPaintOperator(op)) { if (pathStart >= 0 && maxX > minX && maxY > minY && areas.Any(area => Intersects(area.X, area.Y, area.Width, area.Height, minX, minY, maxX - minX, maxY - minY))) ranges.Add(new RemovalRange(pathStart, opEnd)); pathStart = -1; minX = minY = double.MaxValue; maxX = maxY = double.MinValue; }
             args.Clear();
         }
@@ -42,5 +43,5 @@ internal static partial class PdfRedactionApplier {
 
     private static void StartPath(List<ImageContentOperand> args, ref int pathStart) { if (pathStart < 0 && args.Count > 0) pathStart = args[0].Start; }
     private static void AddPoint(Matrix2D transform, double x, double y, ref double minX, ref double minY, ref double maxX, ref double maxY) { var point = transform.Transform(x, y); minX = Math.Min(minX, point.X); minY = Math.Min(minY, point.Y); maxX = Math.Max(maxX, point.X); maxY = Math.Max(maxY, point.Y); }
-    private static bool IsPathPaintOperator(string value) => value == "S" || value == "s" || value == "f" || value == "F" || value == "f*" || value == "B" || value == "B*" || value == "b" || value == "b*" || value == "n";
+    private static bool IsPathPaintOperator(string value) => value == "S" || value == "s" || value == "f" || value == "F" || value == "f*" || value == "B" || value == "B*" || value == "b" || value == "b*";
 }

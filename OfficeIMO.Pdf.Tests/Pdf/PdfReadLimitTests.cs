@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Filters;
@@ -75,6 +76,44 @@ public class PdfReadLimitTests {
 
         Assert.True(completion.Pdf.LongLength > readOptions.Limits.MaxInputBytes);
         Assert.Single(completion.ToDocument().Inspect().FormFields);
+    }
+
+    [Fact]
+    public void OneShotExternalSignatureBoundsAndCancelsStreamInputBeforeCallingSigner() {
+        byte[] pdf = BuildPdf();
+        var signer = new RecordingExternalSigner();
+        using var stream = new MemoryStream(pdf);
+        stream.Position = 5;
+
+        PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.SignExternal(
+                stream,
+                signer,
+                new PdfExternalSignatureOptions { MaxInputBytes = pdf.Length - 1L }));
+        Assert.Equal(PdfReadLimitKind.InputBytes, limit.Kind);
+        Assert.Equal(5, stream.Position);
+        Assert.False(signer.WasCalled);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfIncrementalUpdater.SignExternal(
+                stream,
+                signer,
+                new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+        Assert.False(signer.WasCalled);
+    }
+
+    [Fact]
+    public void PageCompositionRejectsOversizedRemainingStreamBeforeReading() {
+        using var stream = new LengthOnlyReadStream(
+            PdfReadOptions.Default.Limits.MaxInputBytes + 1L);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageEditor.DeletePages(stream, 1));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+        Assert.False(stream.WasRead);
     }
 
     [Fact]
@@ -850,6 +889,42 @@ public class PdfReadLimitTests {
 
         public override void Flush() { }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class LengthOnlyReadStream : Stream {
+        private long _position;
+
+        internal LengthOnlyReadStream(long length) {
+            Length = length;
+        }
+
+        internal bool WasRead { get; private set; }
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length { get; }
+        public override long Position {
+            get => _position;
+            set => _position = value;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            WasRead = true;
+            return 0;
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) {
+            _position = origin switch {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => _position + offset,
+                SeekOrigin.End => Length + offset,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin))
+            };
+            return _position;
+        }
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
