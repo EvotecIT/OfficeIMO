@@ -580,7 +580,7 @@ namespace OfficeIMO.Excel {
             }
 
             var pointBudget = new ChartDataPointBudget();
-            var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
+            var scatterXValuesByIndex = new Dictionary<int, IReadOnlyList<double>>();
             int seriesOrder = 0;
             foreach (OpenXmlElement seriesElement in GetChartSeries(plotArea)) {
                 int index = seriesOrder++;
@@ -593,44 +593,30 @@ namespace OfficeIMO.Excel {
                 }
 
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
                 NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
                 if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out IReadOnlyList<double>? xValues) &&
                     !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out xValues)) {
                     TryReadCachedNumberValues(xReference, pointBudget, out xValues);
                 }
 
-                TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedYValues);
-                TryReadCachedNumberValues(yReference, pointBudget, out IReadOnlyList<double>? cachedYValues);
-                IReadOnlyList<double>? yValues = referencedYValues;
-                if (xValues != null &&
-                    referencedYValues != null &&
-                    referencedYValues.Count != xValues.Count &&
-                    cachedYValues != null &&
-                    cachedYValues.Count == xValues.Count) {
-                    yValues = cachedYValues;
-                }
-
-                yValues ??= cachedYValues;
-                if (xValues != null || yValues != null) {
-                    scatterValuesByIndex[index] = (xValues, yValues);
+                if (xValues != null) {
+                    scatterXValuesByIndex[index] = xValues;
                 }
             }
 
-            if (scatterValuesByIndex.Count == 0) {
+            if (scatterXValuesByIndex.Count == 0) {
                 return data;
             }
 
             var series = new List<ExcelChartSeries>(data.Series.Count);
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
-                if (!scatterValuesByIndex.TryGetValue(i, out var cachedValues)) {
+                if (!scatterXValuesByIndex.TryGetValue(i, out IReadOnlyList<double>? xValues)) {
                     series.Add(current);
                     continue;
                 }
 
-                IReadOnlyList<double> values = cachedValues.YValues ?? current.Values;
-                series.Add(current.WithValuesAndXValues(values, cachedValues.XValues ?? current.XValues));
+                series.Add(current.WithXValues(xValues));
             }
 
             return new ExcelChartData(data.Categories, series);

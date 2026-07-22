@@ -395,6 +395,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotRechargeMaterializedScatterYValues() {
+            const uint pointsPerSeries = 200_000U;
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("ScatterXYBudget");
+            for (int column = 1; column <= 8; column++) {
+                sheet.CellValue(1, column, column);
+            }
+            sheet.AddScatterChartFromRanges(
+                new[] {
+                    new ExcelChartSeriesRange("One", "A1:A1", "B1:B1"),
+                    new ExcelChartSeriesRange("Two", "C1:C1", "D1:D1"),
+                    new ExcelChartSeriesRange("Three", "E1:E1", "F1:F1"),
+                    new ExcelChartSeriesRange("Four", "G1:G1", "H1:H1")
+                },
+                row: 1,
+                column: 10,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "XY budget");
+
+            ChartPart chartPart = GetFirstChartPart(document);
+            foreach (ScatterChartSeries chartSeries in chartPart.ChartSpace!.Descendants<ScatterChartSeries>()) {
+                ReplaceWithLargeNumberCache(chartSeries.GetFirstChild<XValues>()!.GetFirstChild<NumberReference>()!, pointsPerSeries);
+                ReplaceWithLargeNumberCache(chartSeries.GetFirstChild<YValues>()!.GetFirstChild<NumberReference>()!, pointsPerSeries);
+            }
+            chartPart.ChartSpace.Save();
+
+            string[] categories = new string[(int)pointsPerSeries];
+            double[] values = new double[(int)pointsPerSeries];
+            var input = new ExcelChartData(
+                categories,
+                Enumerable.Range(1, 4).Select(index => new ExcelChartSeries("Series " + index, values, ExcelChartType.Scatter)));
+
+            ExcelChartData result = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, input, sheet);
+
+            Assert.All(result.Series, series => {
+                Assert.NotNull(series.XValues);
+                Assert.Equal((int)pointsPerSeries, series.XValues!.Count);
+            });
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotChargeReferencedSeriesNamesToDataPointBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("CaptionBudget");
@@ -441,6 +483,13 @@ namespace OfficeIMO.Tests {
         private static object CreateChartDataPointBudget(Type utilities) {
             Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
             return Activator.CreateInstance(budgetType, nonPublic: true)!;
+        }
+
+        private static void ReplaceWithLargeNumberCache(NumberReference reference, uint pointCount) {
+            reference.RemoveAllChildren();
+            reference.Append(new NumberingCache(
+                new PointCount { Val = pointCount },
+                new NumericPoint(new NumericValue("1")) { Index = 0U }));
         }
 
         [Fact]
