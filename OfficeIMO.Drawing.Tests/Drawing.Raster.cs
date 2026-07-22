@@ -1177,6 +1177,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_CapsRichTextLinesBeforeHeightClipping() {
+            string text = string.Join("\n", Enumerable.Repeat("A", 5_000));
+
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun(text, 1D, OfficeColor.Black) },
+                10D,
+                100_000D,
+                lineHeightFactor: 1D,
+                static (value, size, _) => (value?.Length ?? 0) * size,
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+            Assert.True(layout.Clipped);
+            Assert.Equal(4_096, layout.Lines.Count);
+        }
+
+        [Fact]
         public void OfficeTextPlacement_ResolvesSharedHorizontalAndVerticalCoordinates() {
             Assert.Equal(10D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Left));
             Assert.Equal(60D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Center));

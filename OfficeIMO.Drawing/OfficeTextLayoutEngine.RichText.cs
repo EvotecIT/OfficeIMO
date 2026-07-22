@@ -244,8 +244,15 @@ public static partial class OfficeTextLayoutEngine {
 
         foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (lines.Count >= MaximumLayoutLines) {
+                clipped = true;
+                break;
+            }
             if (token.HardBreak) {
-                AddRichTextLine(lines, builder);
+                if (!AddRichTextLine(lines, builder)) {
+                    clipped = true;
+                    break;
+                }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
                 continue;
             }
@@ -257,7 +264,10 @@ public static partial class OfficeTextLayoutEngine {
             double tokenWidth = Measure(token.Text, token.Run.FontSize, token.Run.FontFamily, measure);
             double availableWidth = Math.Max(0D, width - builder.OffsetX);
             if (wrap && builder.Width + tokenWidth > availableWidth && !builder.IsEmpty) {
-                AddRichTextLine(lines, builder);
+                if (!AddRichTextLine(lines, builder)) {
+                    clipped = true;
+                    break;
+                }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
                 if (token.IsWhitespace) {
                     continue;
@@ -267,20 +277,25 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             if (wrap && tokenWidth > availableWidth && builder.IsEmpty) {
-                AddBrokenRichTextToken(
+                if (!AddBrokenRichTextToken(
                     lines,
                     builder,
                     token,
                     width,
                     measure,
                     paragraphIndent,
-                    cancellationToken);
+                    cancellationToken)) {
+                    clipped = true;
+                    break;
+                }
             } else {
                 builder.Add(token.Run, token.Text);
             }
         }
 
-        AddRichTextLine(lines, builder);
+        if (!clipped && !AddRichTextLine(lines, builder)) {
+            clipped = true;
+        }
         if (lines.Count == 0) {
             lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()));
         }
@@ -436,7 +451,7 @@ public static partial class OfficeTextLayoutEngine {
         word.Clear();
     }
 
-    private static void AddBrokenRichTextToken(
+    private static bool AddBrokenRichTextToken(
         List<OfficeRichTextLine> lines,
         RichTextLineBuilder builder,
         RichTextToken token,
@@ -446,25 +461,38 @@ public static partial class OfficeTextLayoutEngine {
         CancellationToken cancellationToken) {
         foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (lines.Count >= MaximumLayoutLines) {
+                builder.Clear();
+                return false;
+            }
             double width = Measure(textElement, token.Run.FontSize, token.Run.FontFamily, measure);
             double availableWidth = Math.Max(0D, maxWidth - builder.OffsetX);
             if (builder.Width + width > availableWidth && !builder.IsEmpty) {
-                AddRichTextLine(lines, builder);
+                if (!AddRichTextLine(lines, builder)) {
+                    return false;
+                }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
             }
 
             builder.Add(token.Run, textElement);
         }
+
+        return true;
     }
 
-    private static void AddRichTextLine(List<OfficeRichTextLine> lines, RichTextLineBuilder builder) {
+    private static bool AddRichTextLine(List<OfficeRichTextLine> lines, RichTextLineBuilder builder) {
+        if (lines.Count >= MaximumLayoutLines) {
+            builder.Clear();
+            return false;
+        }
         if (builder.IsEmpty) {
             lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), offsetX: builder.OffsetX));
-            return;
+            return true;
         }
 
         lines.Add(builder.ToLine());
         builder.Clear();
+        return true;
     }
 
     private static OfficeRichTextLine TrimRichTextLineToWidthWithEllipsis(OfficeRichTextLine line, double maxWidth, Func<string?, double, string?, double> measure) {
