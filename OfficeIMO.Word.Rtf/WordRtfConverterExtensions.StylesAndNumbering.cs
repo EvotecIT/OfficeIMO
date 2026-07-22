@@ -8,6 +8,8 @@ using OfficeIMO.Rtf.Writing;
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
+    private const int MaximumWordListLevel = 8;
+
     private static void CopyWordStylesAndNumbering(WordDocument source, RtfDocument destination) {
         Styles? styles = source._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
         if (styles != null) {
@@ -71,9 +73,14 @@ public static partial class WordRtfConverterExtensions {
             int? id = abstractNum.AbstractNumberId?.Value;
             if (!id.HasValue) continue;
             RtfListDefinition definition = destination.AddListDefinition(id.Value);
+            var seenLevels = new HashSet<int>();
             foreach (Level wordLevel in abstractNum.Elements<Level>().OrderBy(level => level.LevelIndex?.Value ?? 0)) {
                 NumberFormatValues? format = wordLevel.NumberingFormat?.Val?.Value;
                 int levelIndex = wordLevel.LevelIndex?.Value ?? definition.Levels.Count;
+                ValidateWordListLevel(levelIndex);
+                if (!seenLevels.Add(levelIndex)) {
+                    throw new InvalidDataException($"Word numbering definition {id.Value} contains duplicate level {levelIndex}.");
+                }
                 while (definition.Levels.Count < levelIndex) {
                     definition.AddLevel();
                 }
@@ -94,11 +101,15 @@ public static partial class WordRtfConverterExtensions {
             int? abstractId = instance.AbstractNumId?.Val?.Value;
             if (!id.HasValue || !abstractId.HasValue) continue;
             RtfListOverride item = destination.AddListOverride(id.Value, abstractId.Value);
+            int overrideIndex = 0;
             foreach (LevelOverride wordOverride in instance.Elements<LevelOverride>()) {
+                int effectiveLevelIndex = wordOverride.LevelIndex?.Value ?? overrideIndex;
+                ValidateWordListLevel(effectiveLevelIndex);
                 RtfListLevelOverride levelOverride = item.AddLevelOverride();
-                levelOverride.LevelIndex = wordOverride.LevelIndex?.Value;
+                levelOverride.LevelIndex = effectiveLevelIndex;
                 levelOverride.StartAt = wordOverride.StartOverrideNumberingValue?.Val?.Value;
                 levelOverride.OverrideStartAt = levelOverride.StartAt.HasValue;
+                overrideIndex++;
             }
         }
     }
@@ -108,11 +119,17 @@ public static partial class WordRtfConverterExtensions {
         if (main == null) return;
         StyleDefinitionsPart stylePart = main.StyleDefinitionsPart ?? main.AddNewPart<StyleDefinitionsPart>();
         stylePart.Styles ??= new Styles();
+        var stylesById = new Dictionary<string, Style>(StringComparer.Ordinal);
+        foreach (Style existingStyle in stylePart.Styles.Elements<Style>()) {
+            string? existingId = existingStyle.StyleId?.Value;
+            if (!string.IsNullOrEmpty(existingId)) stylesById[existingId!] = existingStyle;
+        }
         foreach (RtfStyle style in source.Styles) {
             string wordStyleId = GetWordStyleId(style.Id, style.Kind);
-            Style? existing = stylePart.Styles.Elements<Style>().FirstOrDefault(item => string.Equals(item.StyleId?.Value, wordStyleId, StringComparison.Ordinal));
-            existing?.Remove();
-            stylePart.Styles.Append(CreateWordStyle(style, source));
+            if (stylesById.TryGetValue(wordStyleId, out Style? existing)) existing.Remove();
+            Style converted = CreateWordStyle(style, source);
+            stylePart.Styles.Append(converted);
+            stylesById[wordStyleId] = converted;
         }
 
         ApplyRtfNumbering(source, main);
@@ -238,6 +255,11 @@ public static partial class WordRtfConverterExtensions {
         document.Styles.Any(style => style.Id == id && style.Kind == kind);
 
     private static string GetWordStyleId(int id, RtfStyleKind kind) => "Rtf" + (kind == RtfStyleKind.Character ? "C" : kind == RtfStyleKind.Table ? "T" : "P") + id.ToString(CultureInfo.InvariantCulture);
+    private static void ValidateWordListLevel(int levelIndex) {
+        if (levelIndex < 0 || levelIndex > MaximumWordListLevel) {
+            throw new InvalidDataException($"Word numbering level {levelIndex} is outside the supported range 0-{MaximumWordListLevel}.");
+        }
+    }
     private static int? ResolveStyleReference(string? id, IReadOnlyDictionary<string, int> ids) => id != null && ids.TryGetValue(id, out int value) ? value : null;
     private static RtfStyleKind ToRtfStyleKind(StyleValues? kind) => kind == StyleValues.Character ? RtfStyleKind.Character : kind == StyleValues.Table ? RtfStyleKind.Table : RtfStyleKind.Paragraph;
     private static StyleValues ToWordStyleKind(RtfStyleKind kind) => kind == RtfStyleKind.Character ? StyleValues.Character : kind == RtfStyleKind.Table ? StyleValues.Table : StyleValues.Paragraph;

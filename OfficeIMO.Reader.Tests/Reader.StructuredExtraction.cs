@@ -75,12 +75,32 @@ public sealed class ReaderStructuredExtractionTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeDocumentStructuredExtractor.Extract(
             new OfficeDocumentReadResult(),
             new OfficeDocumentStructuredExtractionOptions { MaxRecords = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeDocumentStructuredExtractor.Extract(
+            new OfficeDocumentReadResult(),
+            new OfficeDocumentStructuredExtractionOptions { MaxChartContentCharacters = 0 }));
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => OfficeDocumentStructuredExtractor.Extract(
             CreateRepresentativeDocument(),
             cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void Extract_SkipsOversizedChartJsonBeforeParsing() {
+        var document = new OfficeDocumentReadResult {
+            Visuals = new[] {
+                new ReaderVisual { Kind = "chart", SourceName = "Oversized", Content = "{\"type\":\"bar\"}" }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(
+            document,
+            new OfficeDocumentStructuredExtractionOptions { MaxChartContentCharacters = 8 });
+
+        OfficeDocumentStructuredRecord record = Assert.Single(result.Records, item => item.Category == "chart-summary");
+        Assert.Equal("true", record.Attributes["contentSkipped"]);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "structured-chart-content-limit");
     }
 
     [Fact]

@@ -59,6 +59,9 @@ public sealed class OfficeDocumentStructuredExtractionOptions {
     /// <summary>Maximum copied source diagnostics. Default: 1,000.</summary>
     public int MaxDiagnostics { get; set; } = 1_000;
 
+    /// <summary>Maximum characters parsed from one chart JSON payload. Default: 1,000,000.</summary>
+    public int MaxChartContentCharacters { get; set; } = 1_000_000;
+
     internal OfficeDocumentStructuredExtractionOptions Clone() => new OfficeDocumentStructuredExtractionOptions {
         IncludeMetadata = IncludeMetadata,
         IncludeForms = IncludeForms,
@@ -74,7 +77,8 @@ public sealed class OfficeDocumentStructuredExtractionOptions {
         MaxSectionCharacters = MaxSectionCharacters,
         MaxTables = MaxTables,
         MaxForms = MaxForms,
-        MaxDiagnostics = MaxDiagnostics
+        MaxDiagnostics = MaxDiagnostics,
+        MaxChartContentCharacters = MaxChartContentCharacters
     };
 }
 

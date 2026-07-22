@@ -192,6 +192,33 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_Bridge_Rejects_Numbering_Levels_Outside_Word_Range() {
+        using WordDocument word = WordDocument.Create();
+        MainDocumentPart main = word._wordprocessingDocument.MainDocumentPart!;
+        NumberingDefinitionsPart numberingPart = main.AddNewPart<NumberingDefinitionsPart>();
+        numberingPart.Numbering = new Numbering(
+            new AbstractNum(
+                new Level(new NumberingFormat { Val = NumberFormatValues.Decimal }) { LevelIndex = 9 }) {
+                AbstractNumberId = 10
+            });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => word.ToRtfDocument());
+
+        Assert.Contains("outside the supported range", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rtf_Bridge_Maps_Large_Style_Sets_Without_Repeated_Scans() {
+        RtfDocument rtf = RtfDocument.Create();
+        for (int index = 0; index < 1_000; index++) rtf.AddStyle(index + 1, "Style " + index);
+
+        using WordDocument word = rtf.ToWordDocument();
+
+        Styles styles = word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Assert.Equal(1_000, styles.Elements<Style>().Count(style => style.StyleId?.Value?.StartsWith("RtfP", StringComparison.Ordinal) == true));
+    }
+
+    [Fact]
     public void Word_ToRtf_Result_Reports_Unsupported_Content_Inside_Table_Cells() {
         using WordDocument word = WordDocument.Create();
         WordTable table = word.AddTable(1, 1);

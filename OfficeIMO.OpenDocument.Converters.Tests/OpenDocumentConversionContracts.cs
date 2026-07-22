@@ -113,4 +113,19 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal("Speaker note", roundTripSlide.GetSpeakerNotesText());
         Assert.Equal(SlideTransition.Fade, roundTripSlide.Transition);
     }
+
+    [Fact]
+    public void OdpToPowerPointRejectsTablesBeyondConfiguredBounds() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpSlide slide = source.AddSlide("Bounded");
+        slide.AddTable(OdfRect.FromCentimeters(1, 1, 10, 4), 1, 3);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            source.ToPowerPointPresentationResult(new PowerPointOpenDocumentConversionOptions {
+                MaxTableRows = 2,
+                MaxTableColumns = 2
+            }));
+
+        Assert.Contains("columns (3)", exception.Message, StringComparison.Ordinal);
+    }
 }

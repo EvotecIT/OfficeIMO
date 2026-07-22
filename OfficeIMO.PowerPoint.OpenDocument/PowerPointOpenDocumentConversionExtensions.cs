@@ -15,7 +15,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
     public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();
+        PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
         target.Metadata.Title = source.BuiltinDocumentProperties.Title;
@@ -153,7 +153,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
     public static OdfConversionResult<PowerPointPresentation> ToPowerPointPresentationResult(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();
+        PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointPresentation target = PowerPointPresentation.Create();
         var report = new OdfConversionReport("ODP", "PPTX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
@@ -229,7 +229,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     }
                 } else if (shape is OdpTable table) {
                     int rowCount = Math.Max(1, table.Rows.Count);
+                    if (rowCount > effective.MaxTableRows) {
+                        throw new InvalidDataException($"ODP table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
+                    }
                     int columnCount = Math.Max(1, table.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
+                    if (columnCount > effective.MaxTableColumns) {
+                        throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
+                    }
                     PowerPointTable converted = targetSlide.AddTable(rowCount, columnCount, ToPowerPointBox(table.Bounds));
                     converted.Name = table.Name;
                     CopyShapeAppearance(table, converted, effective);
@@ -297,6 +303,15 @@ public static class PowerPointOpenDocumentConversionExtensions {
                 "The source ODP feature cannot be transferred to PPTX by this adapter.");
         }
         return new OdfConversionResult<PowerPointPresentation>(target, report);
+    }
+
+    private static PowerPointOpenDocumentConversionOptions NormalizeOptions(PowerPointOpenDocumentConversionOptions? options) {
+        PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();
+        if (effective.MaxTableRows <= 0) throw new ArgumentOutOfRangeException(nameof(options), effective.MaxTableRows,
+            $"{nameof(PowerPointOpenDocumentConversionOptions.MaxTableRows)} must be positive.");
+        if (effective.MaxTableColumns <= 0) throw new ArgumentOutOfRangeException(nameof(options), effective.MaxTableColumns,
+            $"{nameof(PowerPointOpenDocumentConversionOptions.MaxTableColumns)} must be positive.");
+        return effective;
     }
 
     private static void ApplyOdpRun(OdpRun source, PowerPointTextRun target, PowerPointOpenDocumentConversionOptions options) {
