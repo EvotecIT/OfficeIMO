@@ -20,11 +20,10 @@ namespace OfficeIMO.Excel {
             get {
                 var drawingPart = _worksheetPart.DrawingsPart;
                 if (drawingPart?.WorksheetDrawing == null) return Enumerable.Empty<ExcelChart>();
-                ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(_worksheetPart);
                 return drawingPart.WorksheetDrawing
                     .Descendants<Xdr.GraphicFrame>()
                     .Where(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null)
-                    .Select(frame => new ExcelChart(frame, drawingPart, this, worksheetGeometry: geometry))
+                    .Select(frame => new ExcelChart(frame, drawingPart, this))
                     .ToList();
             }
         }

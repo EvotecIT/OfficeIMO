@@ -20,16 +20,14 @@ namespace OfficeIMO.Excel {
         private readonly ExcelDocument _document;
         private readonly string _sheetName;
         private ExcelChartDataRange? _dataRange;
-        private ExcelWorksheetGeometryIndex? _worksheetGeometry;
 
-        internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null, ExcelWorksheetGeometryIndex? worksheetGeometry = null) {
+        internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
             _frame = frame ?? throw new ArgumentNullException(nameof(frame));
             _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             _document = sheet.Document;
             _sheetName = sheet.Name;
             _dataRange = dataRange;
-            _worksheetGeometry = worksheetGeometry;
         }
 
         /// <summary>
@@ -462,8 +460,8 @@ namespace OfficeIMO.Excel {
             return 0;
         }
 
-        private ExcelWorksheetGeometryIndex GetWorksheetGeometry(WorksheetPart? worksheetPart) =>
-            _worksheetGeometry ??= ExcelWorksheetGeometryIndex.Create(worksheetPart);
+        private static ExcelWorksheetGeometryIndex GetWorksheetGeometry(WorksheetPart? worksheetPart) =>
+            ExcelWorksheetGeometryIndex.Create(worksheetPart);
 
         private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, WorksheetPart? worksheetPart, ExcelWorksheetGeometryIndex geometry, bool horizontal, out int pixels) {
             pixels = 0;
@@ -491,7 +489,7 @@ namespace OfficeIMO.Excel {
             int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
             long totalPixels = Math.Max(1L, basePixels + offsetPixels);
             pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, totalPixels));
-            return pixels > 1;
+            return pixels > 0;
         }
 
         private static double GetDefaultMaximumDigitWidth(WorksheetPart? worksheetPart) {
