@@ -90,10 +90,16 @@ internal sealed partial class PstStoreReader {
             .Where(item => item.Type == 0x12).OrderBy(item => item.Nid)) {
             string recipientLocation = string.Concat(location, "/recipients/", FormatId(recipientTable.Nid));
             try {
+                long? maximumRecipientBytes = decodedObjectBudget == null
+                    ? null
+                    : GetEmbeddedMessageMaximumDecodedBytes(
+                        _options.MaxDecodedPropertyBytesPerItem,
+                        decodedObjectBudget,
+                        _options.MaxAttachmentBytes);
                 foreach (EmailRecipient recipient in ReadRecipients(
                     recipientTable,
                     recipientLocation,
-                    decodedObjectBudget?.RemainingBytes)) {
+                    maximumRecipientBytes)) {
                     decodedObjectBudget?.AddProperties(recipient.MapiProperties);
                     document.Recipients.Add(recipient);
                 }
