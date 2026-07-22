@@ -115,6 +115,21 @@ public class ReaderOpenDocumentModularTests {
 
     }
 
+    [Fact]
+    public void RegisteredAdapterReportsOdtColumnTruncationSeparately() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 257, "Wide");
+        table.Cell(0, 256).Text = "Truncated column";
+
+        ReaderChunk chunk = Assert.Single(CreateReader().Read(document.ToBytes(), "wide.odt"));
+
+        ReaderTable extracted = Assert.Single(chunk.Tables!);
+        Assert.True(extracted.Truncated);
+        Assert.Equal(256, extracted.Columns.Count);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("columns were truncated", StringComparison.Ordinal));
+        Assert.DoesNotContain(chunk.Warnings!, warning => warning.Contains("rows were truncated", StringComparison.Ordinal));
+    }
+
     private static OfficeDocumentReader CreateReader() {
         return new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().Build();
     }

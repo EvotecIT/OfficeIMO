@@ -54,6 +54,8 @@ internal static partial class OpenDocumentReaderAdapter {
         int columnCount = selectedRows.Length == 0
             ? 0
             : Math.Min(MaximumTableColumns, selectedRows.Max(row => row.Cells.Count));
+        bool rowsTruncated = rows.Count > maximumRows;
+        bool columnsTruncated = selectedRows.Any(row => row.Cells.Count > MaximumTableColumns);
         string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
         var values = new List<IReadOnlyList<string>>(selectedRows.Length);
         foreach (OdtTableRow row in selectedRows) {
@@ -67,7 +69,7 @@ internal static partial class OpenDocumentReaderAdapter {
             Columns = columns,
             Rows = values,
             TotalRowCount = rows.Count,
-            Truncated = rows.Count > maximumRows || selectedRows.Any(row => row.Cells.Count > MaximumTableColumns),
+            Truncated = rowsTruncated || columnsTruncated,
             Location = new ReaderLocation { Path = sourceName, BlockIndex = blockIndex, SourceBlockIndex = blockIndex, SourceBlockKind = "table" }
         };
         string text = string.Join(Environment.NewLine, values.Select(row => string.Join("\t", row)));
@@ -79,8 +81,16 @@ internal static partial class OpenDocumentReaderAdapter {
             Text = text,
             Markdown = markdown,
             Tables = new[] { readerTable },
-            Warnings = readerTable.Truncated ? new[] { "Table rows were truncated due to MaxTableRows." } : null
+            Warnings = BuildTableWarnings(rowsTruncated, columnsTruncated)
         };
+    }
+
+    private static IReadOnlyList<string>? BuildTableWarnings(bool rowsTruncated, bool columnsTruncated) {
+        if (!rowsTruncated && !columnsTruncated) return null;
+        var warnings = new List<string>(2);
+        if (rowsTruncated) warnings.Add("Table rows were truncated due to MaxTableRows.");
+        if (columnsTruncated) warnings.Add("Table columns were truncated to 256 columns for bounded extraction.");
+        return warnings;
     }
 
     private static string BuildTableMarkdown(IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows) {

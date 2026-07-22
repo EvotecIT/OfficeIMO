@@ -29,6 +29,33 @@ public partial class DrawingTests {
         Assert.Equal(expectedCount, pattern.GetTileTransforms().Count);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void OfficeDrawingTilingPattern_PreservesRepeatAxesWhenTinted(bool repeatX, bool repeatY) {
+        var tile = new OfficeDrawing(2D, 2D);
+        OfficeShape square = OfficeShape.Rectangle(2D, 2D);
+        square.FillColor = OfficeColor.Red;
+        square.StrokeWidth = 0D;
+        tile.AddShape(square, 0D, 0D);
+        var drawing = new OfficeDrawing(6D, 4D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 6D, 4D),
+            2D,
+            2D,
+            repeatX,
+            repeatY);
+
+        drawing.ApplyColorTint(OfficeColor.Blue);
+
+        OfficeDrawingTilingPattern pattern = Assert.Single(drawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(repeatX, pattern.RepeatX);
+        Assert.Equal(repeatY, pattern.RepeatY);
+        OfficeDrawingShape shape = Assert.Single(pattern.Tile.Elements.OfType<OfficeDrawingShape>());
+        Assert.Equal(OfficeColor.Blue, shape.Shape.FillColor);
+    }
+
     [Fact]
     public void OfficeDrawingTilingPattern_RepeatsVectorContentWithGaps() {
         var tile = new OfficeDrawing(2D, 2D);

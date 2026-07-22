@@ -48,7 +48,8 @@ public sealed partial class OfficeDrawing {
                 OfficeDrawing tile = pattern.InnerTile.Clone();
                 tile.ApplyColorTint(tint);
                 replacement = new OfficeDrawingTilingPattern(
-                    tile, pattern.Area, pattern.HorizontalStep, pattern.VerticalStep, pattern.Transform,
+                    tile, pattern.Area, pattern.HorizontalStep, pattern.VerticalStep,
+                    pattern.RepeatX, pattern.RepeatY, pattern.Transform,
                     pattern.OriginX, pattern.OriginY, pattern.MaximumTileCount, pattern.Opacity);
             }
 

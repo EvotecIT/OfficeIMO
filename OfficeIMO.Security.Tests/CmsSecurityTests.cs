@@ -214,6 +214,10 @@ public sealed class CmsSecurityTests {
             encoded,
             Encoding.UTF8.GetBytes("different signature bytes"),
             trust);
+        Rfc3161TimestampVerificationResult untrusted = Rfc3161TimestampVerifier.Verify(
+            encoded,
+            timestampedData,
+            new CertificateValidationOptions { ChainEvaluator = static (_, _) => false });
         DateTime explicitVerificationTime = generationTime.AddSeconds(30);
         DateTime? observedExplicitVerificationTime = null;
         var explicitTrust = new CertificateValidationOptions {
@@ -234,6 +238,8 @@ public sealed class CmsSecurityTests {
         Assert.Equal("2.16.840.1.101.3.4.2.1", valid.MessageImprintAlgorithmOid);
         Assert.Equal(SecurityValidationStatus.Invalid, tampered.Status);
         Assert.Contains(tampered.Findings, finding => finding.Code == "TimestampImprintMismatch");
+        Assert.Equal(SecurityValidationStatus.Invalid, untrusted.Status);
+        Assert.Equal(SecurityValidationStatus.Invalid, untrusted.CertificateValidation.ChainStatus);
     }
 
     private static CmsVerificationOptions TrustSelfSigned() {
