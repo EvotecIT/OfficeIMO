@@ -215,11 +215,14 @@ public sealed class AdfContractTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Validation_RequiresStringHrefOnLinkMarks(bool addNonStringHref) {
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(false, "")]
+    [InlineData(false, " ")]
+    public void Validation_RequiresNonEmptyStringHrefOnLinkMarks(bool addNonStringHref, string? href) {
         var link = new AdfMark("link");
         if (addNonStringHref) link.SetAttribute("href", 42);
+        else if (href != null) link.SetAttribute("href", href);
         var document = new AdfDocument();
         document.Content.Add(new AdfNode("paragraph") {
             Content = { AdfNode.TextNode("broken", new[] { link }) }

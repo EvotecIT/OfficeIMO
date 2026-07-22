@@ -143,8 +143,8 @@ internal static class AdfValidator {
             AdfMark mark = node.Marks[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
-            if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && mark.GetStringAttribute("href") == null) {
-                issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a string href attribute."));
+            if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(mark.GetStringAttribute("href"))) {
+                issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a non-empty string href attribute."));
             }
         }
         for (int i = 0; i < node.Content.Count; i++) {
