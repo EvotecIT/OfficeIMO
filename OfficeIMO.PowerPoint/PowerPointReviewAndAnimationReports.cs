@@ -269,8 +269,13 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectAnimationTree(Timing timing, PowerPointAnimationInspectionOptions options,
             ref int visitedElements, int existingAnimationCount, IList<AnimationInspectionItem> destination) {
             var stack = new Stack<(OpenXmlElement Element, int Depth, AnimationInspectionItem? Owner)>();
+            int scheduledElements = visitedElements;
             for (int childIndex = timing.ChildElements.Count - 1; childIndex >= 0; childIndex--) {
+                if (scheduledElements >= options.MaxXmlElements) {
+                    throw new InvalidDataException("Animation inspection exceeded MaxXmlElements.");
+                }
                 stack.Push((timing.ChildElements[childIndex], 1, null));
+                scheduledElements++;
             }
             while (stack.Count > 0) {
                 (OpenXmlElement element, int depth, AnimationInspectionItem? owner) = stack.Pop();
@@ -292,7 +297,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 for (int childIndex = element.ChildElements.Count - 1; childIndex >= 0; childIndex--) {
+                    if (scheduledElements >= options.MaxXmlElements) {
+                        throw new InvalidDataException("Animation inspection exceeded MaxXmlElements.");
+                    }
+                    if ((scheduledElements & 0xFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
                     stack.Push((element.ChildElements[childIndex], depth + 1, childOwner));
+                    scheduledElements++;
                 }
             }
         }

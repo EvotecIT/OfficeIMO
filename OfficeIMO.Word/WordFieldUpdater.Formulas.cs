@@ -938,8 +938,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class FormulaExpressionParser {
+            private const int MaxExpressionLength = 16_384;
+            private const int MaxSyntaxDepth = 128;
             private readonly string _expression;
             private int _position;
+            private int _syntaxDepth;
 
             private FormulaExpressionParser(string expression) {
                 _expression = expression;
@@ -948,6 +951,11 @@ namespace OfficeIMO.Word {
             internal static bool TryEvaluate(string expression, out decimal result, out string? diagnostic) {
                 result = 0m;
                 diagnostic = null;
+
+                if (expression.Length > MaxExpressionLength) {
+                    diagnostic = $"Formula expression exceeds the supported length of {MaxExpressionLength} characters.";
+                    return false;
+                }
 
                 try {
                     var parser = new FormulaExpressionParser(expression);
@@ -977,26 +985,31 @@ namespace OfficeIMO.Word {
             private char CurrentChar => IsAtEnd ? '\0' : _expression[_position];
 
             private decimal ParseComparison() {
-                decimal value = ParseExpression();
+                EnterSyntax();
+                try {
+                    decimal value = ParseExpression();
 
-                while (true) {
-                    SkipWhitespace();
+                    while (true) {
+                        SkipWhitespace();
 
-                    if (TryConsume("<>")) {
-                        value = value != ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("<=")) {
-                        value = value <= ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume(">=")) {
-                        value = value >= ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("=")) {
-                        value = value == ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("<")) {
-                        value = value < ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume(">")) {
-                        value = value > ParseExpression() ? 1m : 0m;
-                    } else {
-                        return value;
+                        if (TryConsume("<>")) {
+                            value = value != ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("<=")) {
+                            value = value <= ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume(">=")) {
+                            value = value >= ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("=")) {
+                            value = value == ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("<")) {
+                            value = value < ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume(">")) {
+                            value = value > ParseExpression() ? 1m : 0m;
+                        } else {
+                            return value;
+                        }
                     }
+                } finally {
+                    _syntaxDepth--;
                 }
             }
 
@@ -1038,33 +1051,50 @@ namespace OfficeIMO.Word {
             }
 
             private decimal ParsePower() {
-                decimal value = ParseUnary();
-                SkipWhitespace();
-
-                if (!TryConsume('^')) {
-                    return value;
+                var operands = new List<decimal> { ParseUnary() };
+                while (true) {
+                    SkipWhitespace();
+                    if (!TryConsume('^')) {
+                        break;
+                    }
+                    operands.Add(ParseUnary());
                 }
 
-                decimal exponent = ParsePower();
-                if (decimal.Truncate(exponent) != exponent) {
-                    throw new InvalidOperationException("Formula exponent must be an integer.");
+                decimal value = operands[operands.Count - 1];
+                for (int i = operands.Count - 2; i >= 0; i--) {
+                    if (decimal.Truncate(value) != value) {
+                        throw new InvalidOperationException("Formula exponent must be an integer.");
+                    }
+                    value = DecimalPower(operands[i], value);
                 }
-
-                return DecimalPower(value, exponent);
+                return value;
             }
 
             private decimal ParseUnary() {
-                SkipWhitespace();
+                EnterSyntax();
+                try {
+                    SkipWhitespace();
 
-                if (TryConsume('+')) {
-                    return ParseUnary();
+                    if (TryConsume('+')) {
+                        return ParseUnary();
+                    }
+
+                    if (TryConsume('-')) {
+                        return -ParseUnary();
+                    }
+
+                    return ParsePostfix();
+                } finally {
+                    _syntaxDepth--;
                 }
+            }
 
-                if (TryConsume('-')) {
-                    return -ParseUnary();
+            private void EnterSyntax() {
+                _syntaxDepth++;
+                if (_syntaxDepth > MaxSyntaxDepth) {
+                    _syntaxDepth--;
+                    throw new InvalidOperationException($"Formula expression exceeds the supported syntax depth of {MaxSyntaxDepth}.");
                 }
-
-                return ParsePostfix();
             }
 
             private decimal ParsePostfix() {

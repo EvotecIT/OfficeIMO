@@ -166,6 +166,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_RejectsNonMonotonicPieceTableCharacterPositions() {
+            byte[] wordDocumentStream = new byte[0x900];
+            WriteUInt16LittleEndian(wordDocumentStream, 0, 0xA5EC);
+            WriteUInt16LittleEndian(wordDocumentStream, 0x02, 0x00C1);
+            WriteInt32LittleEndian(wordDocumentStream, 0x4C, 4);
+            WriteInt32LittleEndian(wordDocumentStream, 0x1A2, 0);
+            WriteInt32LittleEndian(wordDocumentStream, 0x1A6, 45);
+            wordDocumentStream[0x800] = (byte)'A';
+            wordDocumentStream[0x801] = (byte)'B';
+            wordDocumentStream[0x802] = (byte)'C';
+            wordDocumentStream[0x803] = (byte)'D';
+
+            byte[] tableStream = new byte[45];
+            tableStream[0] = 0x02;
+            WriteInt32LittleEndian(tableStream, 1, 40);
+            WriteInt32LittleEndian(tableStream, 5, 0);
+            WriteInt32LittleEndian(tableStream, 9, 4);
+            WriteInt32LittleEndian(tableStream, 13, 0);
+            WriteInt32LittleEndian(tableStream, 17, 4);
+            int compressedOffset = unchecked((int)(0x40000000U | 0x1000U));
+            WriteInt32LittleEndian(tableStream, 23, compressedOffset);
+            WriteInt32LittleEndian(tableStream, 31, compressedOffset);
+            WriteInt32LittleEndian(tableStream, 39, compressedOffset);
+
+            Assert.True(OfficeIMO.Word.LegacyDoc.Model.LegacyDocFib.TryRead(
+                wordDocumentStream,
+                out OfficeIMO.Word.LegacyDoc.Model.LegacyDocFib fib,
+                out string? fibError), fibError);
+
+            Assert.False(OfficeIMO.Word.LegacyDoc.Model.LegacyDocPieceTable.TryRead(
+                wordDocumentStream,
+                tableStream,
+                fib,
+                maxDecodedCharacters: 4,
+                out _,
+                out string? error));
+            Assert.Contains("not monotonic", error, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void LegacyDoc_AllPublicLoadShapesEnforceTheCompleteInputBudget() {
             byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Bounded legacy input");
             var options = new LegacyDocImportOptions { MaxInputBytes = bytes.Length - 1 };

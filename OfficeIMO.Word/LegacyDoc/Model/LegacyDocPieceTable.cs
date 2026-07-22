@@ -64,16 +64,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int cpArrayOffset = pcdOffset;
             int pcdArrayOffset = cpArrayOffset + ((pieceCount + 1) * 4);
 
+            long appendedCharacterCount = 0;
             for (int i = 0; i < pieceCount; i++) {
                 int cpStart = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + (i * 4));
                 int cpEnd = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + ((i + 1) * 4));
-                if (cpEnd <= cpStart) {
+                if (cpStart < 0 || cpEnd < cpStart || cpEnd > totalCharacterCount) {
+                    error = "The PLCFPCD character positions are not monotonic or exceed the FIB character count.";
+                    return false;
+                }
+                if (cpEnd == cpStart) {
                     continue;
                 }
 
-                int decodedCharacterCount = Math.Min(cpEnd, totalCharacterCount) - cpStart;
-                if (decodedCharacterCount <= 0) {
-                    break;
+                int decodedCharacterCount = cpEnd - cpStart;
+                appendedCharacterCount += decodedCharacterCount;
+                if (appendedCharacterCount > maxDecodedCharacters || appendedCharacterCount > totalCharacterCount) {
+                    error = "The PLCFPCD decoded character count exceeds MaxDecodedCharacters.";
+                    return false;
                 }
 
                 uint fcCompressed = unchecked((uint)LegacyDocFib.ReadInt32(tableStream, pcdArrayOffset + (i * 8) + 2));

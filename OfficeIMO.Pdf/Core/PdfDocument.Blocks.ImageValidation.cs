@@ -73,6 +73,22 @@ public sealed partial class PdfDocument {
                     wasTranscoded: false);
             }
 
+            // Metadata identification deliberately rejects PNG dimensions that exceed the
+            // shared raster budget. Preserve the PDF writer's more specific validation
+            // diagnostic instead of collapsing those payloads into an unknown header.
+            if (LooksLikePng(data)) {
+                if (PdfWriter.TryGetPngImageData(data, out PdfWriter.PdfImageStream pngImage, out string? pngReason)) {
+                    return new PreparedImage(
+                        (byte[])data.Clone(),
+                        new OfficeImageInfo(OfficeImageFormat.Png, pngImage.PixelWidth, pngImage.PixelHeight),
+                        OfficeImageFormat.Png,
+                        wasTranscoded: false);
+                }
+
+                string suffix = string.IsNullOrWhiteSpace(pngReason) ? string.Empty : " " + pngReason;
+                throw new NotSupportedException(SupportedImageMessage + suffix);
+            }
+
             throw new NotSupportedException(SupportedImageMessage + " The source image header is not recognized.");
         }
 
@@ -127,4 +143,9 @@ public sealed partial class PdfDocument {
         data[1] == 0xD8 &&
         data[data.Length - 2] == 0xFF &&
         data[data.Length - 1] == 0xD9;
+
+    private static bool LooksLikePng(byte[] data) =>
+        data.Length >= 8 &&
+        data[0] == 137 && data[1] == 80 && data[2] == 78 && data[3] == 71 &&
+        data[4] == 13 && data[5] == 10 && data[6] == 26 && data[7] == 10;
 }

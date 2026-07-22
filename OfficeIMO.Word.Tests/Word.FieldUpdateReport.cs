@@ -2025,6 +2025,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_EvaluatesLongExponentChainsWithoutParserRecursion() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.FormulaExponentChain.docx");
+            string expression = string.Join(" ^ ", Enumerable.Repeat("1", 4096));
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Formula: ")._paragraph.Append(BuildSimpleField(" = " + expression + " ", "stale"));
+                document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            WordFieldUpdateResult result = Assert.Single(loaded.UpdateFieldsAndGetReport().Results);
+
+            Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+            Assert.Equal("1", result.ResultText);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_AppliesFormulaNumericPictureSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.FormulaNumericPictures.docx");
 
