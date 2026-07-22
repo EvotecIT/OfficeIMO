@@ -65,8 +65,9 @@ namespace OfficeIMO.Excel {
 
             xPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPixels(absoluteAnchor.Position?.X?.Value ?? 0L));
             yPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPixels(absoluteAnchor.Position?.Y?.Value ?? 0L));
-            widthPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cx?.Value, GetAnchorWidthPixels()));
-            heightPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cy?.Value, GetAnchorHeightPixels()));
+            (int fallbackWidthPixels, int fallbackHeightPixels) = GetAnchorSizePixels();
+            widthPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cx?.Value, fallbackWidthPixels));
+            heightPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPixels(absoluteAnchor.Extent?.Cy?.Value, fallbackHeightPixels));
             return widthPixels > 0 && heightPixels > 0;
         }
 
@@ -124,6 +125,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels();
             snapshot = new ExcelChartSnapshot(
                 Name,
                 Title,
@@ -133,8 +135,8 @@ namespace OfficeIMO.Excel {
                 GetAnchorColumn(),
                 GetAnchorOffsetXPixels(),
                 GetAnchorOffsetYPixels(),
-                GetAnchorWidthPixels(),
-                GetAnchorHeightPixels(),
+                anchorWidthPixels,
+                anchorHeightPixels,
                 CreateImageExportStyle(),
                 CreateImageExportLayout(),
                 CreateImageExportDiagnostics());
@@ -419,26 +421,18 @@ namespace OfficeIMO.Excel {
             return EmuOffsetToPixels(ParseEmuOffset(marker?.RowOffset?.Text));
         }
 
-        private int GetAnchorWidthPixels() {
+        private (int WidthPixels, int HeightPixels) GetAnchorSizePixels() {
             Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
-            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, GetWorksheetGeometry(worksheetPart), horizontal: true, out int widthPixels)) {
-                return widthPixels;
+            if (twoCellAnchor?.FromMarker != null && twoCellAnchor.ToMarker != null) {
+                WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+                ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(worksheetPart);
+                bool hasWidth = TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, geometry, horizontal: true, out int widthPixels);
+                bool hasHeight = TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, geometry, horizontal: false, out int heightPixels);
+                return (hasWidth ? widthPixels : 480, hasHeight ? heightPixels : 320);
             }
 
-            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cx?.Value;
-            return EmuToPixels(emu, 480);
-        }
-
-        private int GetAnchorHeightPixels() {
-            Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
-            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, worksheetPart, GetWorksheetGeometry(worksheetPart), horizontal: false, out int heightPixels)) {
-                return heightPixels;
-            }
-
-            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cy?.Value;
-            return EmuToPixels(emu, 320);
+            Xdr.Extent? extent = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent;
+            return (EmuToPixels(extent?.Cx?.Value, 480), EmuToPixels(extent?.Cy?.Value, 320));
         }
 
         private int GetDrawingOrder() {
@@ -459,9 +453,6 @@ namespace OfficeIMO.Excel {
 
             return 0;
         }
-
-        private static ExcelWorksheetGeometryIndex GetWorksheetGeometry(WorksheetPart? worksheetPart) =>
-            ExcelWorksheetGeometryIndex.Create(worksheetPart);
 
         private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, WorksheetPart? worksheetPart, ExcelWorksheetGeometryIndex geometry, bool horizontal, out int pixels) {
             pixels = 0;

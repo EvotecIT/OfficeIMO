@@ -1449,10 +1449,12 @@ namespace OfficeIMO.Excel {
             if (columnIndex > lastVisibleColumn || rowIndex > lastVisibleRow ||
                 (toColumnIndex.HasValue && toColumnIndex.Value < firstColumn) ||
                 (toRowIndex.HasValue && toRowIndex.Value < firstRow) ||
-                Math.Abs((long)columnIndex - firstColumn) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
-                Math.Abs((long)rowIndex - firstRow) > ExcelImageExportLimits.MaximumAnchorSpanCells ||
-                (toColumnIndex.HasValue && Math.Abs((long)toColumnIndex.Value - columnIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
-                (toRowIndex.HasValue && Math.Abs((long)toRowIndex.Value - rowIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells)) {
+                (columnIndex < firstColumn && (long)firstColumn - columnIndex > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
+                (rowIndex < firstRow && (long)firstRow - rowIndex > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
+                (toColumnIndex.HasValue && toColumnIndex.Value > lastVisibleColumn &&
+                    Math.Abs((long)toColumnIndex.Value - columnIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells) ||
+                (toRowIndex.HasValue && toRowIndex.Value > lastVisibleRow &&
+                    Math.Abs((long)toRowIndex.Value - rowIndex) > ExcelImageExportLimits.MaximumAnchorSpanCells)) {
                 return false;
             }
 

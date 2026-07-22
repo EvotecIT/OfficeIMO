@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.Utilities {
     internal sealed class ExcelWorksheetGeometryIndex {
         private const int MaximumColumnDefinitionWork = 100_000;
         private const int MaximumIndexedRows = 100_000;
+        private const int MaximumOverflowRowDefinitionWork = 1_048_576;
         private readonly X.Column?[] _columns;
         private readonly IReadOnlyDictionary<int, X.Row> _rows;
         private readonly X.SheetData? _sheetData;
@@ -65,10 +66,14 @@ namespace OfficeIMO.Excel.Utilities {
 
             X.SheetData? sheetData = worksheet?.GetFirstChild<X.SheetData>();
             var rows = new Dictionary<int, X.Row>();
+            int processedRowDefinitions = 0;
+            bool rowIndexMayBeTruncated = false;
             foreach (X.Row row in sheetData?.Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
-                if (rows.Count >= MaximumIndexedRows) {
+                if (processedRowDefinitions >= MaximumIndexedRows) {
+                    rowIndexMayBeTruncated = true;
                     break;
                 }
+                processedRowDefinitions++;
 
                 if (row.RowIndex?.Value is uint rowIndex && rowIndex > 0U && rowIndex <= 1048576U) {
                     int index = (int)rowIndex;
@@ -82,7 +87,7 @@ namespace OfficeIMO.Excel.Utilities {
                 columns,
                 rows,
                 sheetData,
-                rows.Count >= MaximumIndexedRows,
+                rowIndexMayBeTruncated,
                 defaultColumnWidth,
                 defaultRowHeight);
         }
@@ -152,7 +157,13 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             var heights = new double[1048577];
+            int processedRowDefinitions = 0;
             foreach (X.Row row in _sheetData?.Elements<X.Row>() ?? Enumerable.Empty<X.Row>()) {
+                if (processedRowDefinitions >= MaximumOverflowRowDefinitionWork) {
+                    break;
+                }
+                processedRowDefinitions++;
+
                 if (row.RowIndex?.Value is not uint rowIndex || rowIndex == 0U || rowIndex > 1048576U || _rows.ContainsKey((int)rowIndex)) {
                     continue;
                 }
