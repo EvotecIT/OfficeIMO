@@ -355,6 +355,28 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_Does_Not_Report_Input_Truncation_For_Duplicate_Page_Blocks() {
+        var block = new OfficeDocumentBlock { Id = "same", Text = "body" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { block },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Blocks = new[] { block } } }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
     public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
         ReaderChunk source = CreateChunk("stable-id", "body");
         source.Location.Page = null;

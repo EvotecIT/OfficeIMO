@@ -200,8 +200,9 @@ public static partial class ReaderHierarchicalChunker {
             }
             yield return new FallbackBlock(block, page);
         }
+        int inspectedPageBlocks = 0;
         for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
-            if (pageIndexValue >= maximumInputChunks || inspectedBlocks >= maximumInputChunks) {
+            if (pageIndexValue >= maximumInputChunks) {
                 yield return FallbackBlock.LimitMarker;
                 yield break;
             }
@@ -210,14 +211,20 @@ public static partial class ReaderHierarchicalChunker {
             if (page?.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
             for (int blockIndex = 0; blockIndex < pageBlocks.Count; blockIndex++) {
-                if (inspectedBlocks >= maximumInputChunks) {
+                if (inspectedPageBlocks >= maximumInputChunks) {
                     yield return FallbackBlock.LimitMarker;
                     yield break;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                inspectedBlocks++;
+                inspectedPageBlocks++;
                 OfficeDocumentBlock block = pageBlocks[blockIndex];
-                if (TryRegisterFallbackBlock(block, seen, seenIds)) yield return new FallbackBlock(block, page);
+                if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
+                if (inspectedBlocks >= maximumInputChunks) {
+                    yield return FallbackBlock.LimitMarker;
+                    yield break;
+                }
+                inspectedBlocks++;
+                yield return new FallbackBlock(block, page);
             }
         }
     }

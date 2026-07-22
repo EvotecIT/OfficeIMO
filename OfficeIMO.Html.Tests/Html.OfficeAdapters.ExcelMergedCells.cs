@@ -111,6 +111,22 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     }
 
     [Fact]
+    public void ExcelHtml_Reports_Column_Truncation_In_Semantic_Exports() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("Columns");
+        sheet.CellValue(1, 1, "Visible");
+        sheet.CellValue(1, 4, "Truncated");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            MaxColumnsPerSheet = 2
+        });
+
+        Assert.Contains("Columns truncated: 2 of 4 exported.", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Truncated</td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExcelHtml_EmptyHugeMergeUsesTheBoundedProbeWindow() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("EmptyBounded");

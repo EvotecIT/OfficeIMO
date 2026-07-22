@@ -208,6 +208,13 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
+        if (maxColumns < columnCount) {
+            body.Append("<p class=\"officeimo-diagnostic\">Columns truncated: ")
+                .Append(maxColumns.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(columnCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" exported.</p>");
+        }
         if (maxRows < rowCount) {
             body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
                 .Append(maxRows.ToString(CultureInfo.InvariantCulture))
