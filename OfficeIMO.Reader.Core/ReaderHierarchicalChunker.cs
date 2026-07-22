@@ -183,8 +183,8 @@ public static partial class ReaderHierarchicalChunker {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
-        PageBlockIndex pageIndex = IndexPageBlocks(pages, maximumInputChunks, cancellationToken);
         int maximumInspections = (int)Math.Min(int.MaxValue, (long)maximumInputChunks * 4L);
+        PageBlockIndex pageIndex = IndexPageBlocks(pages, maximumInspections, cancellationToken);
         int emittedBlocks = 0;
         int inspectedDocumentBlocks = 0;
         IReadOnlyList<OfficeDocumentBlock> documentBlocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();

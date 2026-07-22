@@ -427,6 +427,32 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_InheritsPageLocationPastUnrelatedPageBlocks() {
+        var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        var unrelated = new OfficeDocumentBlock { Id = "unrelated", Text = "other" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { retained },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = new[] { unrelated } },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { retained } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(2, chunk.Location.Page);
+    }
+
+    [Fact]
     public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
         ReaderChunk source = CreateChunk("stable-id", "body");
         source.Location.Page = null;
