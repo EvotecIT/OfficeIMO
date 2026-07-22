@@ -63,14 +63,35 @@ internal static class PdfSemanticRepairDiagnostics {
     private static void ValidateNameTrees(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, IReadOnlyList<PdfReadPage> pages, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         if (names is null) return;
+        int traversedNameTreeNodes = 0;
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
-            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics);
+            ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics, 0, ref traversedNameTreeNodes);
         }
 
-        if (names.Items.TryGetValue("Dests", out PdfObject? destinations)) ValidateDestinationTree(objects, destinations, new HashSet<int>(), new HashSet<int>(pages.Select(static page => page.ObjectNumber)), options, diagnostics);
+        if (names.Items.TryGetValue("Dests", out PdfObject? destinations)) {
+            int traversedDestinationTreeNodes = 0;
+            ValidateDestinationTree(
+                objects,
+                destinations,
+                new HashSet<int>(),
+                new HashSet<int>(pages.Select(static page => page.ObjectNumber)),
+                options,
+                diagnostics,
+                0,
+                ref traversedDestinationTreeNodes);
+        }
     }
 
-    private static void ValidateNameTreeNode(Dictionary<int, PdfIndirectObject> objects, PdfObject nodeObject, string treeName, HashSet<int> visited, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
+    private static void ValidateNameTreeNode(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject nodeObject,
+        string treeName,
+        HashSet<int> visited,
+        PdfReadOptions options,
+        List<PdfRepairDiagnostic> diagnostics,
+        int depth,
+        ref int traversedNodes) {
+        EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         if (nodeObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return;
         PdfDictionary? node = ResolveDictionary(objects, nodeObject);
         if (node is null) { AddDefect(options, diagnostics, "InvalidNameTreeNode", "The " + treeName + " name tree contains a node that does not resolve to a dictionary.", nodeObject is PdfReference missing ? missing.ObjectNumber : null, recovered: false); return; }
@@ -80,16 +101,35 @@ internal static class PdfSemanticRepairDiagnostics {
         bool hasKids = kids is not null;
         if (hasNames && hasKids) AddDefect(options, diagnostics, "MixedNameTreeNode", "The " + treeName + " name-tree node contains both /Names and /Kids and was left unchanged to avoid changing lookup semantics.", FindObjectNumber(objects, node), recovered: false);
         if (hasNames && pairs!.Items.Count % 2 != 0) AddDefect(options, diagnostics, "OddNameTreePairs", "The " + treeName + " name-tree /Names array has an unmatched key or value and was left unchanged.", FindObjectNumber(objects, node), recovered: false);
-        if (hasKids) foreach (PdfObject kid in kids!.Items) ValidateNameTreeNode(objects, kid, treeName, visited, options, diagnostics);
+        if (hasKids) foreach (PdfObject kid in kids!.Items) ValidateNameTreeNode(objects, kid, treeName, visited, options, diagnostics, depth + 1, ref traversedNodes);
     }
 
-    private static void ValidateDestinationTree(Dictionary<int, PdfIndirectObject> objects, PdfObject nodeObject, HashSet<int> visited, HashSet<int> pageObjectNumbers, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
+    private static void ValidateDestinationTree(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject nodeObject,
+        HashSet<int> visited,
+        HashSet<int> pageObjectNumbers,
+        PdfReadOptions options,
+        List<PdfRepairDiagnostic> diagnostics,
+        int depth,
+        ref int traversedNodes) {
+        EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
         if (nodeObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return;
         PdfDictionary? node = ResolveDictionary(objects, nodeObject); if (node is null) return;
         if (ResolveArray(objects, node.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null) is PdfArray pairs) {
             for (int i = 1; i < pairs.Items.Count; i += 2) if (!IsValidDestination(objects, pairs.Items[i], pageObjectNumbers)) AddDefect(options, diagnostics, "BrokenNamedDestination", "A named destination does not resolve to a reachable page and was left unchanged for caller review.", FindObjectNumber(objects, node), recovered: false);
         }
-        if (ResolveArray(objects, node.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? kidsObject : null) is PdfArray kids) foreach (PdfObject kid in kids.Items) ValidateDestinationTree(objects, kid, visited, pageObjectNumbers, options, diagnostics);
+        if (ResolveArray(objects, node.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? kidsObject : null) is PdfArray kids) foreach (PdfObject kid in kids.Items) ValidateDestinationTree(objects, kid, visited, pageObjectNumbers, options, diagnostics, depth + 1, ref traversedNodes);
+    }
+
+    private static void EnsureNameTreeBudget(PdfReadLimits limits, int depth, int traversedNodes) {
+        if (depth > limits.MaxNameTreeDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeDepth, limits.MaxNameTreeDepth, depth);
+        }
+
+        if (traversedNodes > limits.MaxNameTreeNodes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, limits.MaxNameTreeNodes, traversedNodes);
+        }
     }
 
     private static bool IsValidDestination(Dictionary<int, PdfIndirectObject> objects, PdfObject destinationObject, HashSet<int> pageObjectNumbers) {

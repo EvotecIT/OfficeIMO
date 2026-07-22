@@ -25,11 +25,14 @@ internal static partial class ResourceResolver {
         return fonts;
     }
 
-    public static Dictionary<string, System.Func<byte[], string>> GetFontDecoders(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
+    public static Dictionary<string, System.Func<byte[], string>> GetFontDecoders(
+        PdfDictionary page,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters) {
         var map = new Dictionary<string, System.Func<byte[], string>>(System.StringComparer.Ordinal);
         var fonts = GetFontsForPage(page, objects);
         foreach (var kv in fonts) {
-            var dec = BuildDecoderForFont(kv.Value);
+            var dec = BuildDecoderForFont(kv.Value, maxDecodedTextCharacters);
             map[kv.Key] = dec;
         }
         return map;
@@ -59,7 +62,7 @@ internal static partial class ResourceResolver {
                 var widths = ResolveArray(fontVal.Items.TryGetValue("Widths", out var wobj) ? wobj : null, objects);
                 if (widths is null) {
                     if (PdfWriter.TryGetStandardFontByBaseFontName(fontResource.BaseFont, out var standardFont)) {
-                        var decoder = BuildDecoderForFont(fontResource);
+                        var decoder = BuildDecoderForFont(fontResource, PdfReadLimits.DefaultMaxDecodedTextCharacters);
                         map[kv.Key] = bytes => PdfWriter.EstimateSimpleTextWidth1000(decoder(bytes), standardFont);
                     } else {
                         map[kv.Key] = bytes => (bytes?.Length ?? 0) * 500.0;
@@ -148,13 +151,16 @@ internal static partial class ResourceResolver {
         return sum;
     }
 
-    public static Dictionary<string, System.Func<byte[], string>> GetFontDecodersForForm(PdfDictionary formDict, Dictionary<int, PdfIndirectObject> objects) {
+    public static Dictionary<string, System.Func<byte[], string>> GetFontDecodersForForm(
+        PdfDictionary formDict,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters) {
         var map = new Dictionary<string, System.Func<byte[], string>>(System.StringComparer.Ordinal);
         if (!formDict.Items.TryGetValue("Resources", out var resObj)) return map;
         var res = ResolveDict(resObj, objects);
         if (res is null) return map;
         foreach (var kv in GetFontsForResources(res, objects)) {
-            map[kv.Key] = BuildDecoderForFont(kv.Value);
+            map[kv.Key] = BuildDecoderForFont(kv.Value, maxDecodedTextCharacters);
         }
 
         return map;
@@ -347,13 +353,13 @@ internal static partial class ResourceResolver {
         "," +
         imageMaskColor.A.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
+    private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, int maxDecodedTextCharacters) {
         // Prefer font-specific ToUnicode map when present
-        if (font.HasToUnicode && font.CMap is not null) return font.CMap.MapBytes;
+        if (font.HasToUnicode && font.CMap is not null) return bytes => font.CMap.MapBytes(bytes, maxDecodedTextCharacters);
         var baseDecoder = BuildBaseEncodingDecoder(font.Encoding);
         if (font.Differences is not null && font.Differences.Count > 0) {
             var differences = font.Differences;
-            return bytes => DecodeWithDifferences(bytes, differences, baseDecoder);
+            return bytes => DecodeWithDifferences(bytes, differences, baseDecoder, maxDecodedTextCharacters);
         }
 
         return baseDecoder;
@@ -502,16 +508,24 @@ internal static partial class ResourceResolver {
         return map.Count == 0 ? null : map;
     }
 
-    private static string DecodeWithDifferences(byte[] bytes, IReadOnlyDictionary<int, string> differences, System.Func<byte[], string> baseDecoder) {
+    private static string DecodeWithDifferences(
+        byte[] bytes,
+        IReadOnlyDictionary<int, string> differences,
+        System.Func<byte[], string> baseDecoder,
+        int maxDecodedTextCharacters) {
         if (bytes is null || bytes.Length == 0) return string.Empty;
         var builder = new System.Text.StringBuilder(bytes.Length);
         for (int i = 0; i < bytes.Length; i++) {
             int code = bytes[i];
-            if (differences.TryGetValue(code, out string? value)) {
-                builder.Append(value);
-            } else {
-                builder.Append(baseDecoder(new[] { bytes[i] }));
+            string value = differences.TryGetValue(code, out string? difference)
+                ? difference!
+                : baseDecoder(new[] { bytes[i] });
+            long nextLength = (long)builder.Length + value.Length;
+            if (nextLength > maxDecodedTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, nextLength);
             }
+
+            builder.Append(value);
         }
 
         return builder.ToString();

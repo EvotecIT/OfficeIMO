@@ -21,6 +21,12 @@ namespace OfficeIMO.Excel {
         /// <summary>Maximum cells materialized by a data-reader chunk or schema sample.</summary>
         public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
 
+        /// <summary>Maximum cells materialized by one dense range read. Default: 1,000,000.</summary>
+        public long MaxRangeCells { get; set; } = 1_000_000L;
+
+        /// <summary>Maximum out-of-order rows retained by one typed streaming read. Default: 8,192.</summary>
+        public int MaxPendingTypedRows { get; set; } = 8_192;
+
         /// <summary>
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.

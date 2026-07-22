@@ -410,11 +410,21 @@ namespace OfficeIMO.Excel {
 
             var height = r2 - r1 + 1;
             var width = c2 - c1 + 1;
+            long cellCount = (long)height * width;
+            if (_opt.MaxRangeCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(_opt.MaxRangeCells), "Maximum dense range cell count must be positive.");
+            }
+
+            if (cellCount > _opt.MaxRangeCells) {
+                throw new InvalidDataException(
+                    $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
+            }
+
             var result = new object?[height, width];
 
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            int workload = height * width;
+            int workload = checked((int)cellCount);
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
                     if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))

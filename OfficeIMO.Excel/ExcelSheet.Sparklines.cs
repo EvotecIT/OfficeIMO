@@ -11,6 +11,8 @@ namespace OfficeIMO.Excel {
     /// Helpers for adding sparklines to worksheets.
     /// </summary>
     public partial class ExcelSheet {
+        private const int MaximumExpandedSparklines = 10_000;
+
         /// <summary>
         /// Adds sparklines to the worksheet.
         /// </summary>
@@ -189,6 +191,7 @@ namespace OfficeIMO.Excel {
 
             var references = new List<SparklineReference>();
             if (locationAddress.ColumnCount == 1 && dataAddress.RowCount == locationAddress.RowCount) {
+                EnsureSparklineExpansionWithinLimit(locationAddress.RowCount, nameof(locationRange));
                 for (int offset = 0; offset < locationAddress.RowCount; offset++) {
                     int dataRow = dataAddress.Row1 + offset;
                     int locationRow = locationAddress.Row1 + offset;
@@ -201,6 +204,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (locationAddress.RowCount == 1 && dataAddress.ColumnCount == locationAddress.ColumnCount) {
+                EnsureSparklineExpansionWithinLimit(locationAddress.ColumnCount, nameof(locationRange));
                 for (int offset = 0; offset < locationAddress.ColumnCount; offset++) {
                     int dataColumn = dataAddress.Column1 + offset;
                     int locationColumn = locationAddress.Column1 + offset;
@@ -216,6 +220,15 @@ namespace OfficeIMO.Excel {
                 "LocationRange spans multiple cells, but DataRange does not match by row or by column. " +
                 "Use a single destination cell, one data row per destination row, or one data column per destination column.",
                 nameof(locationRange));
+        }
+
+        private static void EnsureSparklineExpansionWithinLimit(int count, string parameterName) {
+            if (count > MaximumExpandedSparklines) {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    count,
+                    $"A sparkline range may expand to at most {MaximumExpandedSparklines.ToString(CultureInfo.InvariantCulture)} entries.");
+            }
         }
 
         private static bool TryParseSparklineRange(string text, out SparklineRange range) {

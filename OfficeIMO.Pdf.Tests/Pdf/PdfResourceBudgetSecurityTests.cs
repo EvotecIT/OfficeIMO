@@ -1,0 +1,194 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public sealed class PdfResourceBudgetSecurityTests {
+    [Fact]
+    public void ToUnicodeCMap_IgnoresSourceCodesLongerThanPdfLimit() {
+        const string source = "1 beginbfchar\n<0102030405> <0041>\nendbfchar";
+
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
+
+        Assert.Equal("\u0001\u0002\u0003\u0004\u0005", cmap!.MapBytes(new byte[] { 1, 2, 3, 4, 5 }));
+    }
+
+    [Fact]
+    public void ToUnicodeCMap_RejectsOversizedDestinationAndOutputExpansion() {
+        string oversizedDestination = string.Concat(Enumerable.Repeat("0041", 4097));
+        string source = "2 beginbfchar\n<01> <" + oversizedDestination + ">\n<02> <0041004200430044>\nendbfchar";
+
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
+        Assert.Equal("\u0001", cmap!.MapBytes(new byte[] { 1 }));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            cmap.MapBytes(new byte[] { 2, 2, 2 }, maxOutputCharacters: 10));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
+    [Fact]
+    public void TextContentParser_BoundsRepeatedActualTextExpansion() {
+        const string content =
+            "/Span /Shared BDC BT /F1 12 Tf (A) Tj ET EMC " +
+            "/Span /Shared BDC BT /F1 12 Tf (B) Tj ET EMC";
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content,
+                static (_, bytes) => Encoding.ASCII.GetString(bytes),
+                static (_, bytes) => bytes.Length * 500D,
+                actualTextForProperty: static _ => "123456",
+                maxActualTextCharacters: 10));
+
+        Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_BoundsAggregateContentStreamBytes() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 5 0 R] >>",
+            "<< /Length 5 >>\nstream\nBT ET\nendstream",
+            "<< /Length 5 >>\nstream\nBT ET\nendstream");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = 9 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_SharesActualTextBudgetAcrossRepeatedForms() {
+        const string pageContent = "/Fx Do /Fx Do";
+        const string formContent = "/Span << /ActualText (123456) >> BDC BT (A) Tj ET EMC";
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fx 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStream(pageContent),
+            BuildStream(formContent, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxActualTextCharacters = 10 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_ToDrawingSharesDecodedTextBudgetAcrossAnnotationAppearances() {
+        const string appearanceContent = "BT /F1 12 Tf (123456) Tj ET";
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Font << /F1 8 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Type /Annot /Subtype /FreeText /Rect [0 0 10 10] /Contents (First) /AP << /N 7 0 R >> >>",
+            "<< /Type /Annot /Subtype /FreeText /Rect [20 0 30 10] /Contents (Second) /AP << /N 7 0 R >> >>",
+            BuildStream(appearanceContent, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 8 0 R >> >>"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedTextCharacters = 10 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
+    [Fact]
+    public void StreamDecoder_RejectsOversizedPredictorRowBeforeAllocation() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(12);
+        decodeParameters.Items["Columns"] = new PdfNumber(100_000_000);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+
+        byte[] encoded;
+        using (var buffer = new MemoryStream()) {
+            using (var compressor = new DeflateStream(buffer, CompressionLevel.Optimal, leaveOpen: true)) {
+                compressor.WriteByte(0);
+            }
+            encoded = buffer.ToArray();
+        }
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            StreamDecoder.Decode(dictionary, encoded, maxOutputBytes: 64));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+    }
+
+    [Fact]
+    public void PdfReadDocument_BoundsNamedDestinationTreeDepth() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 5 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Kids [6 0 R] >>",
+            "<< /Kids [7 0 R] >>",
+            "<< /Names [(Target) [3 0 R /Fit]] >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeDepth = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.NameTreeDepth, exception.Kind);
+    }
+
+    [Fact]
+    public void ContentStructureExtractor_RejectsHostileLeaderTextInLinearTime() {
+        string hostile = "Label" + new string('-', 200_000) + "!";
+        var spans = new[] { new PdfTextSpan(hostile, "F1", 12, 0, 100, hostile.Length) };
+        var timer = Stopwatch.StartNew();
+
+        StructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
+
+        timer.Stop();
+        Assert.Empty(page.LeaderRows);
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Leader parsing exceeded the linear-time test budget: " + timer.Elapsed + ".");
+    }
+
+    [Fact]
+    public void ContentStructureExtractor_DoesNotTreatUnicodeDigitsAsAsciiPageNumbers() {
+        const string text = "Contents.... ９";
+        var spans = new[] { new PdfTextSpan(text, "F1", 12, 0, 100, text.Length) };
+
+        StructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
+
+        Assert.Empty(page.Toc);
+    }
+
+    private static string BuildStream(string content, string dictionaryEntries = "") =>
+        "<< " + dictionaryEntries + " /Length " + Encoding.ASCII.GetByteCount(content) + " >>\nstream\n" + content + "\nendstream";
+
+    private static byte[] BuildPdfObjects(params string[] bodies) {
+        var builder = new StringBuilder("%PDF-1.7\n");
+        for (int index = 0; index < bodies.Length; index++) {
+            builder.Append(index + 1).Append(" 0 obj\n").Append(bodies[index]).Append("\nendobj\n");
+        }
+
+        builder.Append("trailer\n<< /Root 1 0 R /Size ")
+            .Append(bodies.Length + 1)
+            .Append(" >>\nstartxref\n0\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+}

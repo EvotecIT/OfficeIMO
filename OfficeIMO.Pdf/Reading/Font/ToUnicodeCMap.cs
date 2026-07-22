@@ -5,6 +5,9 @@ namespace OfficeIMO.Pdf;
 internal sealed class ToUnicodeCMap {
     private const int MaxMappings = 65536;
     private const int MaxRangeMappings = 4096;
+    private const int MaxSourceCodeBytes = 4;
+    private const int MaxDestinationTextCharacters = 4096;
+    private const int MaxDestinationHexCharactersWithWhitespace = MaxDestinationTextCharacters * 8;
 
     private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
@@ -99,9 +102,17 @@ internal sealed class ToUnicodeCMap {
         }
 
         _processedMappings++;
+        if (dstHex.Length > MaxDestinationHexCharactersWithWhitespace) {
+            return;
+        }
+
         srcHex = RemoveHexWhitespace(srcHex);
         dstHex = RemoveHexWhitespace(dstHex);
         if (srcHex.Length % 2 != 0) srcHex = "0" + srcHex;
+        if (srcHex.Length == 0 || srcHex.Length / 2 > MaxSourceCodeBytes || dstHex.Length > MaxDestinationTextCharacters * 4) {
+            return;
+        }
+
         _maxKeyBytes = Math.Max(_maxKeyBytes, srcHex.Length / 2);
         string key = srcHex.ToUpperInvariant();
         // dst may be multi-codepoints; keep as UTF-16 string
@@ -170,7 +181,13 @@ internal sealed class ToUnicodeCMap {
         return new string(chars.ToArray());
     }
 
-    public string MapBytes(byte[] bytes) {
+    public string MapBytes(byte[] bytes) => MapBytes(bytes, PdfReadLimits.DefaultMaxDecodedTextCharacters);
+
+    internal string MapBytes(byte[] bytes, int maxOutputCharacters) {
+        if (maxOutputCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxOutputCharacters), maxOutputCharacters, "Maximum decoded text characters must be positive.");
+        }
+
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < bytes.Length;) {
             // Greedy match up to _maxKeyBytes (1-2 bytes typical)
@@ -180,6 +197,12 @@ internal sealed class ToUnicodeCMap {
                 string key = ByteSliceToHex(bytes, i, len);
                 if (_map.TryGetValue(key, out var s)) { mapped = s; used = len; break; }
             }
+            int appendLength = mapped?.Length ?? 1;
+            long nextLength = (long)sb.Length + appendLength;
+            if (nextLength > maxOutputCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, nextLength);
+            }
+
             if (mapped is null) { sb.Append((char)bytes[i]); i++; } else { sb.Append(mapped); i += used; }
         }
         return sb.ToString();

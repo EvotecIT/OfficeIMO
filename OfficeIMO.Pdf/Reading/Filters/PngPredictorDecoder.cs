@@ -1,7 +1,11 @@
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class PngPredictorDecoder {
-    public static byte[] Decode(byte[] data, int columns, int colors = 1, int bitsPerComponent = 8) {
+    public static byte[] Decode(byte[] data, int columns, int colors, int bitsPerComponent, int maxOutputBytes) {
+        if (maxOutputBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), maxOutputBytes, "Maximum decoded stream bytes must be positive.");
+        }
+
         if (data == null || data.Length == 0) {
             return Array.Empty<byte>();
         }
@@ -10,13 +14,32 @@ internal static class PngPredictorDecoder {
         bitsPerComponent = Math.Max(1, bitsPerComponent);
         columns = Math.Max(1, columns);
 
-        int bytesPerPixel = Math.Max(1, (colors * bitsPerComponent + 7) / 8);
-        int rowLength = (columns * colors * bitsPerComponent + 7) / 8;
-        if (rowLength <= 0) {
-            return data;
+        long bitsPerPixel = ((long)colors * bitsPerComponent) + 7L;
+        long rowBits;
+        try {
+            rowBits = checked((long)columns * colors * bitsPerComponent);
+        } catch (OverflowException) {
+            throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
         }
 
-        var output = new byte[(data.Length / (rowLength + 1) + 1) * rowLength];
+        long rowLengthValue = (rowBits + 7L) / 8L;
+        if (rowLengthValue <= 0L || rowLengthValue > maxOutputBytes) {
+            throw CreateDecodedLimitException(maxOutputBytes, Math.Max(rowLengthValue, (long)maxOutputBytes + 1L));
+        }
+
+        int rowLength = (int)rowLengthValue;
+        int bytesPerPixel = (int)Math.Max(1L, bitsPerPixel / 8L);
+        long encodedRowLength = rowLengthValue + 1L;
+        if (data.LongLength % encodedRowLength != 0L) {
+            throw new FormatException("PNG predictor row exceeds decoded stream length.");
+        }
+
+        long outputLength = (data.LongLength / encodedRowLength) * rowLengthValue;
+        if (outputLength > maxOutputBytes) {
+            throw CreateDecodedLimitException(maxOutputBytes, outputLength);
+        }
+
+        var output = new byte[(int)outputLength];
         int outputOffset = 0;
         int inputOffset = 0;
         var previousRow = new byte[rowLength];
@@ -77,6 +100,9 @@ internal static class PngPredictorDecoder {
         Buffer.BlockCopy(output, 0, trimmed, 0, outputOffset);
         return trimmed;
     }
+
+    private static PdfReadLimitException CreateDecodedLimitException(int maximum, long actual) =>
+        PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximum, actual);
 
     private static int PaethPredictor(int left, int up, int upLeft) {
         int prediction = left + up - upLeft;

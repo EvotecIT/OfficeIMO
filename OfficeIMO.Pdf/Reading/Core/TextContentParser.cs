@@ -66,6 +66,43 @@ internal static class TextContentParser {
         }
     }
 
+    internal sealed class TextOutputBudget {
+        private readonly int _maxActualTextCharacters;
+        private readonly int _maxDecodedTextCharacters;
+        private long _actualTextCharacters;
+        private long _decodedTextCharacters;
+
+        internal TextOutputBudget(int maxActualTextCharacters, int maxDecodedTextCharacters) {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
+#else
+            if (maxActualTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
+            if (maxDecodedTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
+#endif
+            _maxActualTextCharacters = maxActualTextCharacters;
+            _maxDecodedTextCharacters = maxDecodedTextCharacters;
+        }
+
+        internal void ChargeActualText(int characters) {
+            long next = _actualTextCharacters + characters;
+            if (next > _maxActualTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+            }
+
+            _actualTextCharacters = next;
+        }
+
+        internal void ChargeDecodedText(int characters) {
+            long next = _decodedTextCharacters + characters;
+            if (next > _maxDecodedTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maxDecodedTextCharacters, next);
+            }
+
+            _decodedTextCharacters = next;
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -131,7 +168,24 @@ internal static class TextContentParser {
         bool useLogicalTextFilters = true,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
+        int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
+        TextOutputBudget? textOutputBudget = null) {
+#if NET8_0_OR_GREATER
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
+#else
+        if (maxActualTextCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
+        }
+        if (maxDecodedTextCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
+        }
+#endif
+
+        textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
+
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -549,11 +603,13 @@ internal static class TextContentParser {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
                 textOut = actualTextState.ActualText;
+                textOutputBudget.ChargeActualText(textOut.Length);
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
                     AddTextSpan(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
+                textOutputBudget.ChargeDecodedText(textOut.Length);
                 AddTextSpan(textOut);
             }
 

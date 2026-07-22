@@ -11,7 +11,8 @@ public sealed partial class PdfReadDocument {
         if (catalog.Items.TryGetValue("Names", out var namesObject) &&
             ResolveDict(namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("JavaScript", out var javaScriptNameTree)) {
-            AddCatalogActionsFromNameTree(javaScriptNameTree, result, new HashSet<int>());
+            int traversedNameTreeNodes = 0;
+            AddCatalogActionsFromNameTree(javaScriptNameTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
         }
 
         if (catalog.Items.TryGetValue("OpenAction", out var openAction)) {
@@ -31,7 +32,10 @@ public sealed partial class PdfReadDocument {
     private void AddCatalogActionsFromNameTree(
         PdfObject treeObject,
         List<PdfCatalogAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        int depth,
+        ref int traversedNodes) {
+        EnsureNameTreeBudget(depth, ++traversedNodes);
         HashSet<int> pathReferences = visitedReferences;
         if (treeObject is PdfReference reference) {
             if (visitedReferences.Contains(reference.ObjectNumber) ||
@@ -40,7 +44,7 @@ public sealed partial class PdfReadDocument {
             }
 
             pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
-            AddCatalogActionsFromNameTree(indirect.Value, result, pathReferences);
+            AddCatalogActionsFromNameTree(indirect.Value, result, pathReferences, depth, ref traversedNodes);
             return;
         }
 
@@ -60,7 +64,7 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddCatalogActionsFromNameTree(kid, result, new HashSet<int>(pathReferences));
+                AddCatalogActionsFromNameTree(kid, result, new HashSet<int>(pathReferences), depth + 1, ref traversedNodes);
             }
         }
     }

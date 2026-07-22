@@ -115,7 +115,8 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(
         PdfDictionary? resources,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null) {
+        Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? resourceCache = null,
+        TextContentParser.TextOutputBudget? textOutputBudget = null) {
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
         if (resources == null || !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) return result;
         PdfDictionary? patterns = ResolveDictionary(patternObject);
@@ -137,6 +138,7 @@ public sealed partial class PdfReadPage {
             PdfPageTilingPatternResource? pattern = TryReadTilingPattern(
                 stream,
                 resources,
+                textOutputBudget,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
@@ -150,7 +152,11 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private bool TryReadTilingPattern(PdfObject? value, PdfDictionary parentResources, out PdfPageTilingPatternResource pattern) {
+    private bool TryReadTilingPattern(
+        PdfObject? value,
+        PdfDictionary parentResources,
+        TextContentParser.TextOutputBudget? textOutputBudget,
+        out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
         int? tilingType;
@@ -167,7 +173,7 @@ public sealed partial class PdfReadPage {
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height);
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget());
         Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
             ? ReadPatternMatrix(matrixObject)
             : Matrix2D.Identity;
@@ -187,7 +193,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         (double X1, double Y1, double X2, double Y2) box,
         double width,
-        double height) {
+        double height,
+        TextContentParser.TextOutputBudget textOutputBudget) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(DecodeIfNeeded(stream));
@@ -196,15 +203,35 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives.Add, activeForms, includeTilingPatterns: false);
+        CollectVisualPrimitivesAndForms(
+            content,
+            resources,
+            transform,
+            width,
+            height,
+            primitives.Add,
+            activeForms,
+            includeTilingPatterns: false,
+            textOutputBudget: textOutputBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
-        Dictionary<string, Func<byte[], string>> decoders = ResourceResolver.GetFontDecodersForForm(stream.Dictionary, _objects);
+        Dictionary<string, Func<byte[], string>> decoders = ResourceResolver.GetFontDecodersForForm(stream.Dictionary, _objects, _limits.MaxDecodedTextCharacters);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProviders(stream.Dictionary, _objects);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
-        CollectTextAndForms(transformedContent, resources, decoders, widthProviders, fonts, spans, activeForms, height, paintOrderOffset: -transformedOffset, useLogicalTextFilters: false);
+        CollectTextAndForms(
+            transformedContent,
+            resources,
+            decoders,
+            widthProviders,
+            fonts,
+            spans,
+            activeForms,
+            height,
+            paintOrderOffset: -transformedOffset,
+            useLogicalTextFilters: false,
+            textOutputBudget: textOutputBudget);
         for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
 
         var placements = new List<PdfImagePlacement>();

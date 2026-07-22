@@ -115,6 +115,7 @@ namespace OfficeIMO.Excel {
 
         private static class TypedObjectBindingCache<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TTarget> where TTarget : new() {
             private const int HeaderBindingCacheLimit = 64;
+            private const int HeaderBindingCacheCharacterLimit = 65_536;
 
             internal static readonly PropertyInfo[] WritableProperties = typeof(TTarget)
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
@@ -134,6 +135,10 @@ namespace OfficeIMO.Excel {
                     return WritablePropertyOrderBindings;
                 }
 
+                if (!CanCacheHeaders(headers)) {
+                    return CreateHeaderBindings(headers);
+                }
+
                 string key = CreateHeaderBindingKey(headers);
                 if (HeaderBindings.TryGetValue(key, out var cached)) {
                     return cached;
@@ -145,6 +150,18 @@ namespace OfficeIMO.Excel {
                 }
 
                 return created;
+            }
+
+            private static bool CanCacheHeaders(string[] headers) {
+                long characters = 0;
+                for (int index = 0; index < headers.Length; index++) {
+                    characters += headers[index]?.Length ?? 0;
+                    if (characters > HeaderBindingCacheCharacterLimit) {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private static Dictionary<PropertyInfo, TypedPropertyBinding<TTarget>> CreateBindings() {

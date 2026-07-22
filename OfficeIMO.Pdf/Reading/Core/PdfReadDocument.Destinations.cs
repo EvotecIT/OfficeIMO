@@ -37,7 +37,8 @@ public sealed partial class PdfReadDocument {
         if (catalog.Items.TryGetValue("Names", out var namesObject) &&
             ResolveDict(namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("Dests", out var namedDestinationTree)) {
-            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>());
+            int traversedNameTreeNodes = 0;
+            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
         }
 
         return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
@@ -46,14 +47,17 @@ public sealed partial class PdfReadDocument {
     private void AddNamedDestinationsFromNameTree(
         PdfObject treeObject,
         List<PdfNamedDestination> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        int depth,
+        ref int traversedNodes) {
+        EnsureNameTreeBudget(depth, ++traversedNodes);
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
                 return;
             }
 
-            AddNamedDestinationsFromNameTree(indirect.Value, result, visitedReferences);
+            AddNamedDestinationsFromNameTree(indirect.Value, result, visitedReferences, depth, ref traversedNodes);
             return;
         }
 
@@ -74,8 +78,18 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddNamedDestinationsFromNameTree(kid, result, visitedReferences);
+                AddNamedDestinationsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes);
             }
+        }
+    }
+
+    private void EnsureNameTreeBudget(int depth, int traversedNodes) {
+        if (depth > _options.Limits.MaxNameTreeDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeDepth, _options.Limits.MaxNameTreeDepth, depth);
+        }
+
+        if (traversedNodes > _options.Limits.MaxNameTreeNodes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.NameTreeNodes, _options.Limits.MaxNameTreeNodes, traversedNodes);
         }
     }
 
