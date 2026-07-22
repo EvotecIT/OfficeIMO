@@ -28,9 +28,10 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
                 .Where(format => format.Generation == OfficeFormatGeneration.Modern)
                 .Select(format => format.Extension)
                 .ToArray(),
+            DefaultMaxInputBytes = PowerPointReaderAdapter.DefaultModernMaxInputBytes,
             ReadDocumentPath = (path, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
-            ProbeStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
+            ProbeStream = (stream, sourceName, readerOptions, token) => PowerPointReaderAdapter.ProbeEncryptedOpenXml(stream, sourceName, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
         }, replaceExisting);

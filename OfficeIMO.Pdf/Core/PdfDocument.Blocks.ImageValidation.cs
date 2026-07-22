@@ -89,6 +89,13 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + suffix);
         }
 
+        if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
+                sourceInfo,
+                OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                out string? transcodeLimitReason)) {
+            throw new NotSupportedException(SupportedImageMessage + " " + transcodeLimitReason);
+        }
+
         if (!OfficeImagePngConverter.TryConvertToPng(data, out byte[] normalizedPng)) {
             throw new NotSupportedException(
                 $"{SupportedImageMessage} Detected {sourceInfo.Format} ({sourceInfo.MimeType}), but it could not be normalized.");

@@ -48,8 +48,10 @@ public sealed partial class IcsDocument {
                 }
             }
             var active = new HashSet<ContentLineComponent> { calendar };
+            Dictionary<(string Name, string Uid), ContentLineComponent> recurrenceMasters =
+                BuildRecurrenceMasterIndex(calendar);
             foreach (ContentLineComponent component in calendar.Components)
-                ValidateComponent(component, calendar, issues, active, depth: 2);
+                ValidateComponent(component, calendar, issues, active, recurrenceMasters, depth: 2);
             ValidateTimeZoneReferences(calendar, definedTimeZones, issues,
                 new HashSet<ContentLineComponent>(), depth: 1);
         }
@@ -57,7 +59,9 @@ public sealed partial class IcsDocument {
     }
 
     private static void ValidateComponent(ContentLineComponent component, ContentLineComponent parent,
-        ICollection<ContentLineValidationIssue> issues, ISet<ContentLineComponent> active, int depth) {
+        ICollection<ContentLineValidationIssue> issues, ISet<ContentLineComponent> active,
+        IReadOnlyDictionary<(string Name, string Uid), ContentLineComponent> recurrenceMasters,
+        int depth) {
         if (depth > ContentLineComponent.MaximumTraversalDepth) {
             issues.Add(Issue("ICAL_COMPONENT_DEPTH_EXCEEDED",
                 "The mutable iCalendar component graph exceeds the supported nesting depth.",
@@ -162,7 +166,7 @@ public sealed partial class IcsDocument {
                 ValidateFreeBusyWindow(component, issues);
             }
             if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL")
-                ValidateRecurrenceIdentifier(component, parent, issues);
+                ValidateRecurrenceIdentifier(component, recurrenceMasters, issues);
             if (name == "STANDARD" || name == "DAYLIGHT")
                 ValidateTimeZoneObservanceTimes(component, issues);
 
@@ -192,10 +196,26 @@ public sealed partial class IcsDocument {
             }
 
             foreach (ContentLineComponent child in component.Components)
-                ValidateComponent(child, component, issues, active, depth + 1);
+                ValidateComponent(child, component, issues, active, recurrenceMasters, depth + 1);
         } finally {
             active.Remove(component);
         }
+    }
+
+    private static Dictionary<(string Name, string Uid), ContentLineComponent> BuildRecurrenceMasterIndex(
+        ContentLineComponent calendar) {
+        var masters = new Dictionary<(string Name, string Uid), ContentLineComponent>();
+        foreach (ContentLineComponent component in calendar.Components) {
+            if (component.GetFirstProperty("RECURRENCE-ID") != null) continue;
+            string? uid = component.GetFirstProperty("UID")?.Value;
+            if (string.IsNullOrWhiteSpace(uid)) continue;
+            string name = component.Name.ToUpperInvariant();
+            if (name == "VEVENT" || name == "VTODO" || name == "VJOURNAL") {
+                var key = (name, uid!);
+                if (!masters.ContainsKey(key)) masters.Add(key, component);
+            }
+        }
+        return masters;
     }
 
     private static void ValidateUniquePrimaryComponentIdentifiers(ContentLineComponent calendar,

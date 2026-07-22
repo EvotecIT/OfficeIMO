@@ -21,7 +21,7 @@ public sealed class ReaderOptions {
 
     /// <summary>
     /// Optional maximum input size in bytes enforced by <see cref="OfficeDocumentReader"/> when reading from a file or seekable stream.
-    /// When null, no size limit is enforced.
+    /// When null, a registered format handler may apply its documented default; otherwise no size limit is enforced.
     /// </summary>
     public long? MaxInputBytes { get; set; }
 

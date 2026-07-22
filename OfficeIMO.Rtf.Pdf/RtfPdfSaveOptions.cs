@@ -6,6 +6,9 @@ namespace OfficeIMO.Rtf.Pdf;
 /// Controls conversion from an RTF document model to a first-party PDF document.
 /// </summary>
 public sealed class RtfPdfSaveOptions {
+    /// <summary>Default number of distinct document font families allowed to probe installed system fonts.</summary>
+    public const int DefaultMaximumSystemFontFamilies = 32;
+
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>Creates RTF to PDF save options.</summary>
     public RtfPdfSaveOptions() {
@@ -52,6 +55,12 @@ public sealed class RtfPdfSaveOptions {
     /// <summary>When true, footnote, endnote, and annotation bodies referenced by runs are appended to PDF output.</summary>
     public bool IncludeNotes { get; set; } = true;
 
+    /// <summary>
+    /// Maximum number of distinct RTF font families allowed to trigger installed-font resolution.
+    /// Additional families use dependency-free PDF fallbacks. Set to zero to disable system-font probes.
+    /// </summary>
+    public int MaximumSystemFontFamilies { get; set; } = DefaultMaximumSystemFontFamilies;
+
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
     internal RtfPdfSaveOptions CloneForConversion() {
         if (DefaultImageWidth <= 0) {
@@ -60,6 +69,9 @@ public sealed class RtfPdfSaveOptions {
 
         if (DefaultImageHeight <= 0) {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageHeight), "Default image height must be greater than zero.");
+        }
+        if (MaximumSystemFontFamilies < 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumSystemFontFamilies));
         }
 
         return new RtfPdfSaveOptions {
@@ -73,7 +85,8 @@ public sealed class RtfPdfSaveOptions {
             IncludeMetadata = IncludeMetadata,
             IncludeTables = IncludeTables,
             IncludeHeaderFooters = IncludeHeaderFooters,
-            IncludeNotes = IncludeNotes
+            IncludeNotes = IncludeNotes,
+            MaximumSystemFontFamilies = MaximumSystemFontFamilies
         };
     }
 

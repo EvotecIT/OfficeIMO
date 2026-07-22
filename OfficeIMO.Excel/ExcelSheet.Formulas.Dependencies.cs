@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
             string formula,
             FormulaDependencyAliasCatalog aliases,
             FormulaDependencyTableCatalog tables) {
-            if (string.IsNullOrWhiteSpace(formula)) {
+            if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return Array.Empty<string>();
             }
 

@@ -136,18 +136,17 @@ public sealed partial class IcsDocument {
             end.Kind == IcsTemporalValueKind.UtcDateTime && end.CompareClockTo(start) > 0;
     }
 
-    private static void ValidateRecurrenceIdentifier(ContentLineComponent component, ContentLineComponent parent,
+    private static void ValidateRecurrenceIdentifier(ContentLineComponent component,
+        IReadOnlyDictionary<(string Name, string Uid), ContentLineComponent> recurrenceMasters,
         ICollection<ContentLineValidationIssue> issues) {
         ContentLineProperty? recurrenceProperty = component.GetFirstProperty("RECURRENCE-ID");
         if (recurrenceProperty == null) return;
         ValidateRecurrenceIdentifierRange(component, recurrenceProperty, issues);
         ContentLineProperty? uidProperty = component.GetFirstProperty("UID");
         if (uidProperty == null || string.IsNullOrWhiteSpace(uidProperty.Value)) return;
-        ContentLineComponent? master = parent.Components.FirstOrDefault(candidate =>
-            !ReferenceEquals(candidate, component) &&
-            string.Equals(candidate.Name, component.Name, StringComparison.OrdinalIgnoreCase) &&
-            candidate.GetFirstProperty("RECURRENCE-ID") == null &&
-            string.Equals(candidate.GetFirstProperty("UID")?.Value, uidProperty.Value, StringComparison.Ordinal));
+        recurrenceMasters.TryGetValue(
+            (component.Name.ToUpperInvariant(), uidProperty.Value),
+            out ContentLineComponent? master);
         ContentLineProperty? masterStartProperty = master?.GetFirstProperty("DTSTART");
         if (!IcsTemporalValue.TryParse(masterStartProperty, out IcsTemporalValue start) ||
             !IcsTemporalValue.TryParse(recurrenceProperty, out IcsTemporalValue recurrence)) return;

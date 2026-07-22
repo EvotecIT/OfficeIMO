@@ -130,17 +130,12 @@ public sealed class OfficeFontFaceCollection {
 
     internal OfficeTrueTypeFont? Resolve(string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
-        if (string.IsNullOrWhiteSpace(familyNames) || _faces.Count == 0) {
+        if (string.IsNullOrEmpty(familyNames) || _faces.Count == 0) {
             return null;
         }
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
-        foreach (string rawFamily in familyNames!.Split(',')) {
-            string family = CleanFamilyName(rawFamily);
-            if (family.Length == 0) {
-                continue;
-            }
-
+        foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
@@ -182,13 +177,10 @@ public sealed class OfficeFontFaceCollection {
 
     private OfficeTrueTypeFont? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {
         resolvedFace = null;
-        if (string.IsNullOrWhiteSpace(familyNames) || _faces.Count == 0) return null;
+        if (string.IsNullOrEmpty(familyNames) || _faces.Count == 0) return null;
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
-        foreach (string rawFamily in familyNames!.Split(',')) {
-            string family = CleanFamilyName(rawFamily);
-            if (family.Length == 0) continue;
-
+        foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
             OfficeFontFace? exact = null;
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
@@ -219,14 +211,4 @@ public sealed class OfficeFontFaceCollection {
         return value.Length > 0;
     }
 
-    private static string CleanFamilyName(string familyName) {
-        string value = familyName.Trim();
-        while (value.Length >= 2
-               && ((value[0] == '"' && value[value.Length - 1] == '"')
-                   || (value[0] == '\'' && value[value.Length - 1] == '\''))) {
-            value = value.Substring(1, value.Length - 2).Trim();
-        }
-
-        return value;
-    }
 }

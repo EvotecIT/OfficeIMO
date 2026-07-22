@@ -5,6 +5,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Shared font-resolution diagnostics for dependency-free image exporters.</summary>
 public static class OfficeImageExportFontDiagnostics {
+    private const int MaximumDiagnosticLookups = 256;
+    private const int MaximumDiagnosticElements = 4096;
+    private const int MaximumDiagnosticDepth = 64;
     /// <summary>
     /// Reports when the renderer cannot use the first requested font family/style and must select
     /// a later family or the managed stroke fallback.
@@ -16,7 +19,7 @@ public static class OfficeImageExportFontDiagnostics {
         OfficeFontStyle style = OfficeFontStyle.Regular,
         string? source = null) {
         if (fonts == null) throw new ArgumentNullException(nameof(fonts));
-        if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return null;
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(familyNames)) return null;
 
         List<string> families = ParseFamilies(familyNames!);
         if (families.Count == 0 || IsGenericFamily(families[0])) return null;
@@ -67,17 +70,25 @@ public static class OfficeImageExportFontDiagnostics {
         if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        AppendDrawing(drawing, diagnostics, seen, source);
+        int remainingLookups = MaximumDiagnosticLookups;
+        int remainingElements = MaximumDiagnosticElements;
+        AppendDrawing(drawing, diagnostics, seen, source, ref remainingLookups, ref remainingElements, depth: 0);
     }
 
     private static void AppendDrawing(
         OfficeDrawing drawing,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
         HashSet<string> seen,
-        string? source) {
+        string? source,
+        ref int remainingLookups,
+        ref int remainingElements,
+        int depth) {
+        if (depth > MaximumDiagnosticDepth) return;
         foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (remainingLookups == 0 || remainingElements-- == 0) return;
             switch (element) {
                 case OfficeDrawingText text:
+                    remainingLookups--;
                     Append(
                         drawing.Fonts.CreateSubstitutionDiagnostic(
                             text.Text,
@@ -89,6 +100,7 @@ public static class OfficeImageExportFontDiagnostics {
                     break;
                 case OfficeDrawingRichText richText:
                     foreach (OfficeRichTextRun run in richText.Runs) {
+                        if (remainingLookups-- == 0) return;
                         OfficeFontStyle style =
                             (run.Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) |
                             (run.Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -103,16 +115,20 @@ public static class OfficeImageExportFontDiagnostics {
                     }
                     break;
                 case OfficeDrawingGroup group:
-                    AppendDrawing(group.InnerDrawing, diagnostics, seen, source);
+                    AppendDrawing(group.InnerDrawing, diagnostics, seen, source,
+                        ref remainingLookups, ref remainingElements, depth + 1);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendDrawing(effectGroup.InnerDrawing, diagnostics, seen, source);
+                    AppendDrawing(effectGroup.InnerDrawing, diagnostics, seen, source,
+                        ref remainingLookups, ref remainingElements, depth + 1);
                     if (effectGroup.SoftMask != null) {
-                        AppendDrawing(effectGroup.SoftMask.InnerDrawing, diagnostics, seen, source);
+                        AppendDrawing(effectGroup.SoftMask.InnerDrawing, diagnostics, seen, source,
+                            ref remainingLookups, ref remainingElements, depth + 1);
                     }
                     break;
                 case OfficeDrawingTilingPattern pattern:
-                    AppendDrawing(pattern.InnerTile, diagnostics, seen, source);
+                    AppendDrawing(pattern.InnerTile, diagnostics, seen, source,
+                        ref remainingLookups, ref remainingElements, depth + 1);
                     break;
             }
         }
@@ -148,23 +164,7 @@ public static class OfficeImageExportFontDiagnostics {
     }
 
     private static List<string> ParseFamilies(string familyNames) {
-        var families = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string rawFamily in familyNames.Split(',')) {
-            string family = CleanFamilyName(rawFamily);
-            if (family.Length > 0 && seen.Add(family)) families.Add(family);
-        }
-        return families;
-    }
-
-    private static string CleanFamilyName(string familyName) {
-        string value = familyName.Trim();
-        while (value.Length >= 2 &&
-               ((value[0] == '"' && value[value.Length - 1] == '"') ||
-                (value[0] == '\'' && value[value.Length - 1] == '\''))) {
-            value = value.Substring(1, value.Length - 2).Trim();
-        }
-        return value;
+        return OfficeFontFamilyParser.Parse(familyNames);
     }
 
     private static bool IsGenericFamily(string family) {

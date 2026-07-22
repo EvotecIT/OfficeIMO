@@ -108,6 +108,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static int[] BuildOpenGroupingParenthesisDepths(string formula) {
+            if (formula.Length > MaxSupportedFormulaLength) {
+                throw new InvalidOperationException("Formula exceeds the supported dependency-analysis length.");
+            }
             var depths = new int[formula.Length + 1];
             var parentheses = new Stack<bool>();
             int groupingDepth = 0;

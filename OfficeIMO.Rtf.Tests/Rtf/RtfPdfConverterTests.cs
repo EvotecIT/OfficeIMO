@@ -9,6 +9,16 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfPdfConverterTests {
     [Fact]
+    public void RtfPdfSaveOptionsRejectNegativeSystemFontBudget() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("bounded font resolution");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdf(new RtfPdfSaveOptions {
+            MaximumSystemFontFamilies = -1
+        }));
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_ResourcePolicyControlsSystemFontEmbedding() {
         string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
@@ -29,6 +39,29 @@ public class RtfPdfConverterTests {
         Assert.NotEmpty(balanced.Options.EmbeddedFonts);
         Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(portable.ToBytes()).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("RTF font policy marker", PdfCore.PdfReadDocument.Open(balanced.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_CountsDistinctSystemFontFamiliesOnce() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int missingFontId = document.AddFont("OfficeIMO Definitely Missing Font");
+        document.Settings.SetDefaultFont(missingFontId);
+        int installedFontId = document.AddFont(installedFamily);
+        document.AddParagraph().AddText("missing default").FontId = missingFontId;
+        document.AddParagraph().AddText("installed run").FontId = installedFontId;
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
+            MaximumSystemFontFamilies = 2
+        });
+
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "SystemFontResolutionLimitExceeded");
+        Assert.Contains(result.Value.Options.EmbeddedFonts.Keys, slot =>
+            result.Value.Options.EmbeddedFontFamilySlotMatches(slot, installedFamily));
     }
 
     [Fact]

@@ -14,7 +14,8 @@ public sealed class PdfTableExtractionScopeReport {
         int linkCount,
         int formWidgetCount,
         int annotationCount,
-        int pageActionCount) {
+        int pageActionCount,
+        bool analysisTruncated) {
         SourcePageCount = sourcePageCount;
         PagesWithTables = pagesWithTables;
         DetectedTableCount = detectedTableCount;
@@ -25,6 +26,7 @@ public sealed class PdfTableExtractionScopeReport {
         FormWidgetCount = formWidgetCount;
         AnnotationCount = annotationCount;
         PageActionCount = pageActionCount;
+        AnalysisTruncated = analysisTruncated;
     }
 
     /// <summary>Number of logical source pages inspected.</summary>
@@ -67,10 +69,17 @@ public sealed class PdfTableExtractionScopeReport {
     public int PageActionCount { get; }
 
     /// <summary>
+    /// True when bounded text/table correlation stopped before every visible text block could be classified.
+    /// Exact omission counts describe only blocks classified before the limit was reached.
+    /// </summary>
+    public bool AnalysisTruncated { get; }
+
+    /// <summary>
     /// Gets whether visible or interactive page content existed outside the detected tables.
     /// This is expected for table-only extraction and is separate from truncation within a table.
     /// </summary>
     public bool HasOmittedPageContent =>
+        AnalysisTruncated ||
         NonTableTextBlockCount > 0 ||
         VectorPrimitiveCount > 0 ||
         ImageCount > 0 ||

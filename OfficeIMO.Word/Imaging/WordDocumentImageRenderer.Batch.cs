@@ -51,6 +51,11 @@ namespace OfficeIMO.Word {
                 cancellationToken,
                 options.CancellationCheckpoint);
             (int firstPage, int count) = ResolveBatchPageRange(options, sectionPageCounts);
+            if (count > options.MaximumOutputCount) {
+                throw new InvalidOperationException(
+                    "Word page snapshot count exceeds " + nameof(OfficeImageExportOptions.MaximumOutputCount) +
+                    ": " + count + " requested, " + options.MaximumOutputCount + " allowed.");
+            }
             var snapshots = new List<WordDocumentVisualSnapshot>(count);
             for (int index = 0; index < count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();

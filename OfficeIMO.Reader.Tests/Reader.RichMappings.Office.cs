@@ -167,6 +167,27 @@ public sealed class ReaderOfficeRichMappingTests {
     }
 
     [Fact]
+    public void DocumentReader_WordChunksDoNotDuplicateOversizedHyperlinkDestinations() {
+        string destination = "https://example.test/" + new string('a', 3000);
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            document.AddParagraph().AddHyperLink(new string('x', 1000), new Uri(destination));
+            document.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.Word().ReadDocument(
+            stream,
+            "bounded-hyperlink.docx",
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.All(result.Chunks, chunk => Assert.True((chunk.Markdown?.Length ?? 0) <= 256));
+        Assert.DoesNotContain(result.Chunks, chunk => (chunk.Markdown ?? string.Empty).Contains(destination, StringComparison.Ordinal));
+        Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
+            warning => warning.Contains("hyperlink destination", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void DocumentReader_ExcelRichMapping_UsesFormalTablesCellLinksAndProperties() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {

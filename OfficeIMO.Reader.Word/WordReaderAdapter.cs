@@ -44,7 +44,12 @@ internal static class WordReaderAdapter {
     }
 
     private static WordDocument Load(string path, ReaderOptions options) {
-        var loadOptions = new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly };
+        var loadOptions = new WordLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
+                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                : null
+        };
         try { return WordDocument.Load(path, loadOptions); }
         catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
             return WordDocument.LoadEncrypted(path, options.OpenPassword!, loadOptions);
@@ -52,7 +57,12 @@ internal static class WordReaderAdapter {
     }
 
     private static WordDocument Load(Stream stream, ReaderOptions options) {
-        var loadOptions = new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly };
+        var loadOptions = new WordLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
+                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                : null
+        };
         try { return WordDocument.Load(stream, loadOptions); }
         catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
             if (stream.CanSeek) stream.Position = 0;
@@ -157,23 +167,30 @@ internal static class WordReaderAdapter {
         foreach (WordRunSnapshot run in paragraph.Runs) {
             int firstRunFragmentIndex = fragments.Count;
             string runText = run.Text ?? string.Empty;
+            int maximumLinkDestinationLength = Math.Min(2048, Math.Max(0, limit / 4));
+            bool renderHyperlink = run.IsHyperlink &&
+                !string.IsNullOrWhiteSpace(run.HyperlinkUri) &&
+                run.HyperlinkUri!.Length <= maximumLinkDestinationLength;
+            if (run.IsHyperlink && !string.IsNullOrWhiteSpace(run.HyperlinkUri) && !renderHyperlink) {
+                warningList.Add("Word hyperlink destination exceeded the bounded Markdown link budget; visible text was emitted without duplicating the destination.");
+            }
             if (runText.Length > 0) {
                 int offset = 0;
                 while (offset < runText.Length) {
-                    int sourceLength = FindRunSourceLength(run, runText, offset, prefix.Length, limit);
+                    int sourceLength = FindRunSourceLength(run, runText, offset, prefix.Length, limit, renderHyperlink);
                     if (sourceLength == 0) {
                         sourceLength = GetUnicodeSafeLength(runText, offset, Math.Min(limit, runText.Length - offset));
                         warningList.Add("Word paragraph contains an atomic formatted run whose Markdown exceeds MaxChars; the complete Markdown construct was preserved.");
                     }
 
                     string sourcePart = runText.Substring(offset, sourceLength);
-                    string markdownPart = prefix + RenderRunText(run, sourcePart);
+                    string markdownPart = prefix + RenderRunText(run, sourcePart, renderHyperlink);
                     fragments.Add(new ParagraphRepresentation(sourcePart, markdownPart));
                     prefix = string.Empty;
                     offset += sourceLength;
                 }
             } else {
-                string renderedEmptyRun = RenderRunText(run, string.Empty);
+                string renderedEmptyRun = RenderRunText(run, string.Empty, renderHyperlink);
                 if (renderedEmptyRun.Length > 0) {
                     AddAtomicMarkdownFragment(fragments, prefix + renderedEmptyRun, limit, warningList);
                     prefix = string.Empty;
@@ -222,15 +239,15 @@ internal static class WordReaderAdapter {
         return CombineParagraphFragments(fragments, limit);
     }
 
-    private static string RenderRunText(WordRunSnapshot run, string sourceText) {
+    private static string RenderRunText(WordRunSnapshot run, string sourceText, bool renderHyperlink) {
         string markdown = sourceText;
-        if (run.IsHyperlink && !string.IsNullOrWhiteSpace(run.HyperlinkUri)) markdown = $"[{markdown}]({run.HyperlinkUri})";
+        if (renderHyperlink) markdown = $"[{markdown}]({run.HyperlinkUri})";
         if (run.Bold && markdown.Length > 0) markdown = "**" + markdown + "**";
         if (run.Italic && markdown.Length > 0) markdown = "*" + markdown + "*";
         return markdown;
     }
 
-    private static int FindRunSourceLength(WordRunSnapshot run, string value, int offset, int markdownPrefixLength, int limit) {
+    private static int FindRunSourceLength(WordRunSnapshot run, string value, int offset, int markdownPrefixLength, int limit, bool renderHyperlink) {
         int maximum = Math.Min(limit, value.Length - offset);
         int low = 1;
         int high = maximum;
@@ -242,7 +259,7 @@ internal static class WordReaderAdapter {
                 low = midpoint + 1;
                 continue;
             }
-            int renderedLength = markdownPrefixLength + RenderRunText(run, value.Substring(offset, candidate)).Length;
+            int renderedLength = markdownPrefixLength + RenderRunText(run, value.Substring(offset, candidate), renderHyperlink).Length;
             if (renderedLength <= limit) {
                 best = candidate;
                 low = midpoint + 1;

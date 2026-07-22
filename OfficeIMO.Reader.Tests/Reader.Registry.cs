@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Word;
 using System.Text;
 using Xunit;
@@ -48,7 +49,7 @@ public sealed partial class ReaderRegistryTests {
             openXml.Extensions);
         Assert.True(openXml.SupportsPath);
         Assert.True(openXml.SupportsStream);
-        Assert.Null(openXml.DefaultMaxInputBytes);
+        Assert.Equal(PowerPointReaderAdapter.DefaultModernMaxInputBytes, openXml.DefaultMaxInputBytes);
         Assert.Equal(ReaderInputKind.PowerPoint, binary.Kind);
         Assert.Equal(
             PowerPointFormatCatalog.All
@@ -61,11 +62,21 @@ public sealed partial class ReaderRegistryTests {
         Assert.True(binary.SupportsStream);
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
             binary.DefaultMaxInputBytes);
-        Assert.Null(OfficeIMO.Reader.Tests.ReaderTestReaders.All
-            .GetHandlerDefaultMaxInputBytes("deck.pptx"));
+        Assert.Equal(PowerPointReaderAdapter.DefaultModernMaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("deck.pptx"));
         Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes(
                 "deck.ppt"));
+    }
+
+    [Fact]
+    public void PowerPointReader_UnknownStreamNameKeepsLegacyParserAtLegacyLimit() {
+        PowerPointLoadOptions options = PowerPointReaderAdapter.CreateLoadOptions(
+            new ReaderOptions(),
+            sourceName: null);
+
+        Assert.Equal(PowerPointReaderAdapter.DefaultModernMaxInputBytes, options.PackageSecurity!.MaxPackageBytes);
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes, options.LegacyPptImportOptions!.MaxInputBytes);
     }
 
     [Fact]

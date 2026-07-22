@@ -130,6 +130,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_VisualSnapshotBatchEnforcesMaximumOutputCount() {
+            using WordDocument document = CreateThreePageDocument();
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                document.CreateVisualSnapshots(new WordImageExportOptions {
+                    MaximumOutputCount = 2
+                }));
+
+            Assert.Contains(nameof(OfficeImageExportOptions.MaximumOutputCount), exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public async Task WordDocument_VisualSnapshotBatchCancelsDuringASingleLargeRun() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph(new string('x', 2000000));

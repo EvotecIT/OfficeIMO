@@ -143,7 +143,9 @@ public static class PowerPointExtractionExtensions {
                 listContentIndents.Clear();
                 markdown.Append("### ").AppendLine(text);
             } else {
-                int level = Math.Max(0, paragraph.Level ?? 0);
+                // DrawingML list levels are defined only for levels 0-8. Clamp untrusted
+                // package values before they can drive indentation allocation.
+                int level = Math.Min(8, Math.Max(0, paragraph.Level ?? 0));
                 if (kind == ParagraphMarkdownKind.NumberedList) {
                     RemoveListState(numberingState, level,
                         includeLevel: false);

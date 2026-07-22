@@ -212,6 +212,20 @@ namespace OfficeIMO.Tests {
                 markdown, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void ExtractMarkdownChunks_ClampsMalformedListLevelsBeforeIndentAllocation() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextBox text = presentation.AddSlide().AddTextBox(string.Empty);
+            PowerPointParagraph paragraph = text.AddParagraph("Bounded child");
+            paragraph.SetBullet();
+            paragraph.Paragraph.ParagraphProperties!.Level = 1_000_000;
+
+            string markdown = presentation.ExtractMarkdownChunks().Single().Markdown;
+
+            Assert.Contains(new string(' ', 32) + "-", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain(new string(' ', 36) + "-", markdown, StringComparison.Ordinal);
+        }
+
         private static void AppendNotesParagraph(string filePath, string text) {
             using PresentationDocument document = PresentationDocument.Open(filePath, true);
             NotesSlidePart notesPart = document.PresentationPart!.SlideParts.First().NotesSlidePart!;

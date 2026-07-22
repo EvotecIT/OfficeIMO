@@ -13,7 +13,9 @@ namespace OfficeIMO.Excel {
             MissingCachedResults = formulas.Count(formula => !formula.HasCachedValue);
             DirtyFormulas = formulas.Count(formula => formula.IsDirty);
             DependencyGraph = ExcelFormulaDependencyGraph.Create(formulas);
-            DependencyIssueCount = formulas.Sum(formula => formula.DependencyIssues.Count) + DependencyGraph.CircularReferenceCount;
+            DependencyIssueCount = formulas.Sum(formula => formula.DependencyIssues.Count) +
+                DependencyGraph.CircularReferenceCount +
+                (DependencyGraph.AnalysisTruncated ? 1 : 0);
         }
 
         /// <summary>Formula cells discovered in workbook order.</summary>
@@ -91,6 +93,9 @@ namespace OfficeIMO.Excel {
                     .Where(formula => formula.DependencyIssues.Count > 0)
                     .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
                     .Concat(DependencyGraph.CircularReferences.Select(circular => $"Circular reference: {string.Join(" -> ", circular.References)}"))
+                    .Concat(DependencyGraph.AnalysisTruncated
+                        ? new[] { DependencyGraph.AnalysisTruncationReason! }
+                        : Array.Empty<string>())
                     .ToArray();
                 throw new InvalidOperationException("Formula dependency issues: " + string.Join(", ", issues));
             }
@@ -113,6 +118,7 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Dependency issues: {DependencyIssueCount}");
             builder.AppendLine($"Maximum formula dependency depth: {DependencyGraph.MaximumDependencyDepth}");
             builder.AppendLine($"Circular reference groups: {DependencyGraph.CircularReferenceCount}");
+            builder.AppendLine($"Dependency graph analysis complete: {(DependencyGraph.AnalysisTruncated ? "no" : "yes")}");
             builder.AppendLine();
             builder.AppendLine("| Sheet | Cell | Formula | Supported | Cached | Dirty | Dependencies | Dependency issues | Reason |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
@@ -151,15 +157,19 @@ namespace OfficeIMO.Excel {
     /// Workbook-level dependency graph built from formula inspection metadata.
     /// </summary>
     public sealed class ExcelFormulaDependencyGraph {
+        private const int MaximumFormulaDependenciesPerCell = 4096;
+        private const int MaximumFormulaGraphEdges = 100_000;
         private readonly Dictionary<string, ExcelFormulaDependencyNode> _nodesByReference;
 
         private ExcelFormulaDependencyGraph(
             IReadOnlyList<ExcelFormulaDependencyNode> nodes,
             IReadOnlyList<ExcelFormulaCircularReference> circularReferences,
-            int maximumDependencyDepth) {
+            int maximumDependencyDepth,
+            string? analysisTruncationReason) {
             Nodes = nodes;
             CircularReferences = circularReferences;
             MaximumDependencyDepth = maximumDependencyDepth;
+            AnalysisTruncationReason = analysisTruncationReason;
             _nodesByReference = nodes.ToDictionary(node => node.Reference, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -184,8 +194,14 @@ namespace OfficeIMO.Excel {
         /// <summary>True when one or more circular formula-reference groups were detected.</summary>
         public bool HasCircularReferences => CircularReferenceCount > 0;
 
+        /// <summary>True when resource limits stopped dependency-edge discovery before the graph was complete.</summary>
+        public bool AnalysisTruncated => AnalysisTruncationReason != null;
+
+        /// <summary>Reason dependency-edge discovery was truncated, or null when the graph is complete.</summary>
+        public string? AnalysisTruncationReason { get; }
+
         /// <summary>True when at least one formula node has dependency diagnostics.</summary>
-        public bool HasDependencyIssues => HasCircularReferences || Nodes.Any(node => node.HasDependencyIssues);
+        public bool HasDependencyIssues => AnalysisTruncated || HasCircularReferences || Nodes.Any(node => node.HasDependencyIssues);
 
         internal static ExcelFormulaDependencyGraph Create(IReadOnlyList<ExcelFormulaCellInfo> formulas) {
             var builders = new Dictionary<string, ExcelFormulaDependencyNodeBuilder>(StringComparer.OrdinalIgnoreCase);
@@ -224,17 +240,44 @@ namespace OfficeIMO.Excel {
                 });
             }
 
+            int remainingGraphEdges = MaximumFormulaGraphEdges;
+            string? analysisTruncationReason = null;
             foreach (ExcelFormulaCellInfo formula in formulas) {
                 string sourceReference = FormatReference(formula.SheetName, formula.CellReference);
+                int formulaDependencyCount = 0;
+                bool formulaTruncated = false;
+                bool graphTruncated = false;
                 foreach (string dependency in formula.Dependencies) {
-                    foreach (string targetReference in FindCoveredFormulaReferences(dependency, builders, formulaCellsBySheet)) {
+                    using IEnumerator<string> targets = FindCoveredFormulaReferences(
+                        dependency,
+                        builders,
+                        formulaCellsBySheet).GetEnumerator();
+                    while (targets.MoveNext()) {
+                        if (remainingGraphEdges == 0) {
+                            graphTruncated = true;
+                            analysisTruncationReason =
+                                $"Formula dependency graph exceeded the global limit of {MaximumFormulaGraphEdges} edges.";
+                            break;
+                        }
+                        if (formulaDependencyCount == MaximumFormulaDependenciesPerCell) {
+                            formulaTruncated = true;
+                            analysisTruncationReason ??=
+                                $"One or more formulas exceeded the limit of {MaximumFormulaDependenciesPerCell} formula dependencies.";
+                            break;
+                        }
+                        string targetReference = targets.Current;
                         if (builders.TryGetValue(sourceReference, out ExcelFormulaDependencyNodeBuilder? sourceNode)
                             && builders.TryGetValue(targetReference, out ExcelFormulaDependencyNodeBuilder? dependencyNode)) {
-                            sourceNode.FormulaDependencies.Add(targetReference);
-                            dependencyNode.Dependents.Add(sourceReference);
+                            if (sourceNode.FormulaDependencies.Add(targetReference)) {
+                                dependencyNode.Dependents.Add(sourceReference);
+                                formulaDependencyCount++;
+                                remainingGraphEdges--;
+                            }
                         }
                     }
+                    if (graphTruncated || formulaTruncated) break;
                 }
+                if (graphTruncated) break;
             }
 
             ExcelFormulaDependencyAnalysisResult analysis = ExcelFormulaDependencyAnalysis.Analyze(
@@ -250,7 +293,11 @@ namespace OfficeIMO.Excel {
             var circularReferences = analysis.CircularReferenceGroups
                 .Select(references => new ExcelFormulaCircularReference(references))
                 .ToList();
-            return new ExcelFormulaDependencyGraph(nodes, circularReferences, analysis.MaximumDepth);
+            return new ExcelFormulaDependencyGraph(
+                nodes,
+                circularReferences,
+                analysis.MaximumDepth,
+                analysisTruncationReason);
         }
 
         /// <summary>
@@ -272,6 +319,8 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Formula dependency edges: {EdgeCount}");
             builder.AppendLine($"Maximum dependency depth: {MaximumDependencyDepth}");
             builder.AppendLine($"Circular reference groups: {CircularReferenceCount}");
+            builder.AppendLine($"Analysis complete: {(AnalysisTruncated ? "no" : "yes")}");
+            if (AnalysisTruncationReason != null) builder.AppendLine($"Analysis issue: {AnalysisTruncationReason}");
             builder.AppendLine();
             builder.AppendLine("| Formula | Dependencies | Formula dependencies | Dependents | Depth | Circular | Dependency issues |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");

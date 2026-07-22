@@ -762,11 +762,14 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         Math.Max(1D, Math.Min(2D, (topY - bottomY) * 0.18D));
 
     private static void AppendSquigglyLine(StringBuilder builder, double startX, double endX, double baseY, double amplitude) {
-        double step = amplitude * 2D;
+        const int maximumSegments = 512;
+        double width = Math.Max(0D, endX - startX);
+        double step = Math.Max(amplitude * 2D, width / maximumSegments);
         builder.Append(FormatCoordinate(startX)).Append(' ').Append(FormatCoordinate(baseY)).Append(" m ");
         double x = startX;
         bool up = true;
-        while (x + step < endX) {
+        int segmentCount = 0;
+        while (x + step < endX && segmentCount++ < maximumSegments) {
             x += step;
             double y = up ? baseY + amplitude : baseY - amplitude;
             builder.Append(FormatCoordinate(x)).Append(' ').Append(FormatCoordinate(y)).Append(" l ");
