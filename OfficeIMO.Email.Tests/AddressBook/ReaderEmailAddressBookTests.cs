@@ -45,6 +45,23 @@ public sealed class ReaderEmailAddressBookTests {
     }
 
     [Fact]
+    public void SeekableItemReaderParsesFromStartAndRestoresCallerPosition() {
+        byte[] oab = new OabV4Fixture().Build();
+        using var stream = new MemoryStream(oab, writable: false);
+        stream.Position = 17;
+
+        ReaderEmailAddressBookEntryResult result = Assert.Single(
+            EmailAddressBookEntryReader.Read(stream, "positioned.oab",
+                addressBookOptions: new ReaderEmailAddressBookOptions {
+                    MaxEntries = 1
+                }));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Ada Lovelace", result.Summary!.DisplayName);
+        Assert.Equal(17, stream.Position);
+    }
+
+    [Fact]
     public void MembershipValuesAreExplicitlyOptIn() {
         byte[] oab = new OabV4Fixture().Build();
         var query = new OfflineAddressBookSearchQuery(

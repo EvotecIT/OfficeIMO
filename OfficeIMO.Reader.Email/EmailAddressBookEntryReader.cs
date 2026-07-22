@@ -63,9 +63,12 @@ public static class EmailAddressBookEntryReader {
             ReaderEmailAddressBookOptionsCloner.CreateEffective(adapterOptions, readerOptions);
         Stream parseStream;
         bool ownsParseStream;
+        long? originalPosition = null;
         if (stream.CanSeek) {
             ReaderInputLimits.EnforceSeekableStreamSize(stream,
                 effective.MaxInputBytes);
+            originalPosition = stream.Position;
+            stream.Position = 0;
             parseStream = stream;
             ownsParseStream = false;
         } else {
@@ -82,7 +85,11 @@ public static class EmailAddressBookEntryReader {
                 }
             }
         } finally {
-            if (ownsParseStream) parseStream.Dispose();
+            if (ownsParseStream) {
+                parseStream.Dispose();
+            } else if (originalPosition.HasValue && stream.CanSeek) {
+                stream.Position = originalPosition.Value;
+            }
         }
     }
 
