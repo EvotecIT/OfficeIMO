@@ -35,7 +35,6 @@ public sealed partial class PdfReadDocument {
         HashSet<int> visitedReferences,
         int depth,
         ref int traversedNodes) {
-        EnsureNameTreeBudget(depth, ++traversedNodes);
         HashSet<int> pathReferences = visitedReferences;
         if (treeObject is PdfReference reference) {
             if (visitedReferences.Contains(reference.ObjectNumber) ||
@@ -48,6 +47,7 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
+        EnsureNameTreeBudget(depth, ++traversedNodes);
         if (treeObject is not PdfDictionary tree) {
             return;
         }
