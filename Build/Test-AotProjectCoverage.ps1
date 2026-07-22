@@ -17,7 +17,7 @@ $libraryHostPath = Join-Path $RepositoryRoot 'OfficeIMO.All.AotSmoke\OfficeIMO.A
 $referencedLibraries = @($libraryHost.Project.ItemGroup.ProjectReference |
     ForEach-Object { [string] $_.Include } |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-    ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_) } |
+    ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Replace('\', '/')) } |
     Sort-Object -Unique)
 $rootedLibraries = @($libraryHost.Project.ItemGroup.TrimmerRootAssembly |
     ForEach-Object { [string] $_.Include } |

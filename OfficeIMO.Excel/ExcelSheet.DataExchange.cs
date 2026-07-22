@@ -66,26 +66,50 @@ namespace OfficeIMO.Excel {
 
         private static string DataTableToJson(DataTable table, JsonSerializerOptions? options) {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            return DataTableToJsonStreaming(table, options);
+            if (options == null) {
+                return DataTableToJsonStreaming(table);
+            }
+
+            return DataTableToJsonWithOptions(table, options);
         }
 
-        private static string DataTableToJsonStreaming(DataTable table, JsonSerializerOptions? options = null) {
-            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options);
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+        private static string DataTableToJsonWithOptions(DataTable table, JsonSerializerOptions options) {
+            int columnCount = table.Columns.Count;
+            string[] columnNames = new string[columnCount];
+            for (int column = 0; column < columnCount; column++) {
+                columnNames[column] = table.Columns[column].ColumnName;
+            }
+
+            var rows = new List<Dictionary<string, object?>>(table.Rows.Count);
+            foreach (DataRow row in table.Rows) {
+                var item = new Dictionary<string, object?>(columnCount, StringComparer.OrdinalIgnoreCase);
+                for (int column = 0; column < columnCount; column++) {
+                    item[columnNames[column]] = row.IsNull(column) ? null : row[column];
+                }
+
+                rows.Add(item);
+            }
+
+            return JsonSerializer.Serialize(rows, options);
+        }
+
+        private static string DataTableToJsonStreaming(DataTable table) {
+            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options: null);
             int estimatedCapacity = EstimateJsonCapacity(table, propertyNames);
-            var writerOptions = new JsonWriterOptions {
-                Encoder = options?.Encoder,
-                Indented = options?.WriteIndented ?? false
-            };
 #if NET6_0_OR_GREATER
             var buffer = new ArrayBufferWriter<byte>(estimatedCapacity);
-            using (var writer = new Utf8JsonWriter(buffer, writerOptions)) {
+            using (var writer = new Utf8JsonWriter(buffer)) {
                 WriteDataTableJson(table, propertyNames, writer);
             }
 
             return Encoding.UTF8.GetString(buffer.WrittenSpan);
 #else
             using var stream = new MemoryStream(estimatedCapacity);
-            using (var writer = new Utf8JsonWriter(stream, writerOptions)) {
+            using (var writer = new Utf8JsonWriter(stream)) {
                 WriteDataTableJson(table, propertyNames, writer);
             }
 

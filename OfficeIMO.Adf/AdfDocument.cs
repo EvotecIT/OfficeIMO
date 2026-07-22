@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
@@ -195,6 +197,19 @@ internal static class AdfJsonValue {
             return result;
         }
 
-        throw new NotSupportedException($"ADF attribute type '{value.GetType().FullName}' needs the SetAttribute overload with source-generated JsonTypeInfo metadata.");
+        return CreateNodeWithRuntimeSerializer(value);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "This compatibility branch is reached only on dynamic-code runtimes. NativeAOT callers use JSON-compatible scalar/collection values or the JsonTypeInfo overload.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "This compatibility branch is reached only on dynamic-code runtimes. NativeAOT callers use JSON-compatible scalar/collection values or the JsonTypeInfo overload.")]
+    private static JsonNode? CreateNodeWithRuntimeSerializer(object value) {
+#if NET5_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported) {
+            throw new NotSupportedException($"ADF attribute type '{value.GetType().FullName}' needs the SetAttribute overload with source-generated JsonTypeInfo metadata in NativeAOT applications.");
+        }
+#endif
+        return JsonSerializer.SerializeToNode(value, value.GetType());
     }
 }

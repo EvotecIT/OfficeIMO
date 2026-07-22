@@ -172,6 +172,22 @@ public sealed class ReaderContractTests {
         Assert.Equal("42", diagnostic.Attributes["limit"]);
     }
 
+    [Fact]
+    public void OfficeDocumentReadResultJson_SerializesNormalizedSchemaWithoutMutatingInput() {
+        var result = new OfficeDocumentReadResult {
+            SchemaId = string.Empty,
+            SchemaVersion = 0
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+
+        Assert.Equal(OfficeDocumentReadResultSchema.Id, restored.SchemaId);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, restored.SchemaVersion);
+        Assert.Equal(string.Empty, result.SchemaId);
+        Assert.Equal(0, result.SchemaVersion);
+    }
+
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]

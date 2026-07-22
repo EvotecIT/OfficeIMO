@@ -72,7 +72,7 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureDiagnosticContracts(result.Diagnostics);
 
         ReaderJsonSerializerContext context = CreateContext(indented, propertyNameCaseInsensitive: false);
-        return JsonSerializer.Serialize(result, context.OfficeDocumentReadResult);
+        return JsonSerializer.Serialize(NormalizeForSerialization(result, schemaId, schemaVersion), context.OfficeDocumentReadResult);
     }
 
     /// <summary>
@@ -125,6 +125,37 @@ public static partial class OfficeDocumentReadResultJson {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         });
+    }
+
+    private static OfficeDocumentReadResult NormalizeForSerialization(
+        OfficeDocumentReadResult result,
+        string schemaId,
+        int schemaVersion) {
+        if (string.Equals(result.SchemaId, schemaId, StringComparison.Ordinal) && result.SchemaVersion == schemaVersion) {
+            return result;
+        }
+
+        return new OfficeDocumentReadResult {
+            SchemaId = schemaId,
+            SchemaVersion = schemaVersion,
+            Kind = result.Kind,
+            Source = result.Source,
+            CapabilitiesUsed = result.CapabilitiesUsed,
+            Markdown = result.Markdown,
+            Html = result.Html,
+            Json = result.Json,
+            Chunks = result.Chunks,
+            Metadata = result.Metadata,
+            Pages = result.Pages,
+            Blocks = result.Blocks,
+            Tables = result.Tables,
+            Assets = result.Assets,
+            Links = result.Links,
+            Forms = result.Forms,
+            OcrCandidates = result.OcrCandidates,
+            Visuals = result.Visuals,
+            Diagnostics = result.Diagnostics
+        };
     }
 
     private static void EnsureRequiredTopLevelProperties(JsonElement root) {

@@ -8,6 +8,20 @@ namespace OfficeIMO.Adf.Tests;
 
 public sealed class AdfContractTests {
     [Fact]
+    public void SetAttribute_PreservesCustomJsonValuesOnDynamicRuntimes() {
+        var node = new AdfNode("extension").SetAttribute("parameters", new {
+            html = "<strong>Ready</strong>",
+            enabled = true,
+            levels = new[] { 1, 2 }
+        });
+
+        JsonElement parameters = node.Attributes["parameters"];
+        Assert.Equal("<strong>Ready</strong>", parameters.GetProperty("html").GetString());
+        Assert.True(parameters.GetProperty("enabled").GetBoolean());
+        Assert.Equal(2, parameters.GetProperty("levels").GetArrayLength());
+    }
+
+    [Fact]
     public void ParseWrite_PreservesUnknownNodesMarksAttributesAndProperties() {
         const string json = "{\"version\":1,\"type\":\"doc\",\"vendorRoot\":{\"enabled\":true},\"content\":[{\"type\":\"vendorPanel\",\"attrs\":{\"tone\":\"blue\"},\"vendorNode\":17,\"content\":[{\"type\":\"text\",\"text\":\"Hello\",\"marks\":[{\"type\":\"vendorMark\",\"attrs\":{\"x\":1},\"vendorMarkProperty\":\"kept\"}]}]}]}";
 
