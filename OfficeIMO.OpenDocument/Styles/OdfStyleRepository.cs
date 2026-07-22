@@ -154,7 +154,7 @@ public sealed class OdfStyleRepository {
     }
 
     internal static bool TryParseFamily(string? value, out OdfStyleFamily family) {
-        foreach (OdfStyleFamily candidate in Enum.GetValues(typeof(OdfStyleFamily))) {
+        foreach (OdfStyleFamily candidate in global::OfficeIMO.Internal.EnumCompat.GetValues<OdfStyleFamily>()) {
             if (string.Equals(FamilyToken(candidate), value, StringComparison.Ordinal)) {
                 family = candidate;
                 return true;

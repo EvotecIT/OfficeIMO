@@ -58,7 +58,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsApiDocumentResponse response;
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
                 response = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(token.AccessToken, HttpMethod.Get, uri, null,
-                    GoogleWorkspaceRequestSafety.Safe, "Google Docs API", report, cancellationToken).ConfigureAwait(false);
+                    GoogleWorkspaceRequestSafety.Safe, "Google Docs API", report,
+                    GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse, cancellationToken).ConfigureAwait(false);
             }
 
             WordDocument document = Project(response, options, report);

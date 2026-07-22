@@ -74,6 +74,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveAboutFormats,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -94,6 +95,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -129,6 +131,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFileList,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -140,11 +143,11 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Folder name is required.", nameof(name));
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(_options.WriteScopes, report, "Google Drive folder creation", cancellationToken).ConfigureAwait(false);
-            var payload = new {
-                name,
-                mimeType = GoogleDriveMimeTypes.Folder,
-                parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
-            };
+            var payload = GoogleDriveJson.ToNode(new GoogleDriveFilePayload {
+                Name = name,
+                MimeType = GoogleDriveMimeTypes.Folder,
+                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
+            }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
             string uri = $"https://www.googleapis.com/drive/v3/files?supportsAllDrives={Bool(_options.SupportsAllDrives)}&fields={Escape(DefaultFileFields)}";
             return await _transport.SendJsonAsync<GoogleDriveFile>(
                 token,
@@ -154,6 +157,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -166,10 +170,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             ValidateId(fileId, nameof(fileId));
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(_options.WriteScopes, report, "Google Drive file copy", cancellationToken).ConfigureAwait(false);
-            var payload = new {
-                name,
-                parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
-            };
+            var payload = GoogleDriveJson.ToNode(new GoogleDriveFilePayload {
+                Name = name,
+                Parents = string.IsNullOrWhiteSpace(parentId) ? null : new[] { parentId },
+            }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
             string uri = $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/copy?supportsAllDrives={Bool(_options.SupportsAllDrives)}&fields={Escape(DefaultFileFields)}";
             return await _transport.SendJsonAsync<GoogleDriveFile>(
                 token,
@@ -179,6 +183,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -209,10 +214,11 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 token,
                 new HttpMethod("PATCH"),
                 $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}?{string.Join("&", query)}",
-                new { },
+                new System.Text.Json.Nodes.JsonObject(),
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -241,6 +247,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleSharedDrive,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -288,7 +295,16 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             TranslationReport report,
             CancellationToken cancellationToken) {
             string uri = $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}?fields={Escape(fields)}&supportsAllDrives={Bool(_options.SupportsAllDrives)}";
-            return _transport.SendJsonAsync<GoogleDriveFile>(token, HttpMethod.Get, uri, null, GoogleWorkspaceRequestSafety.Safe, "Google Drive API", report, cancellationToken);
+            return _transport.SendJsonAsync(
+                token,
+                HttpMethod.Get,
+                uri,
+                null,
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Drive API",
+                report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
+                cancellationToken);
         }
 
         internal Task DeleteFileWithTokenAsync(
@@ -304,6 +320,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.Object,
                 cancellationToken);
         }
 

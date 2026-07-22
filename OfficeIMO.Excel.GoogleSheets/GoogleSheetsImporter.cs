@@ -102,6 +102,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     GoogleWorkspaceRequestSafety.Safe,
                     "Google Sheets API",
                     report,
+                    GoogleSheetsJsonSerializerContext.Default.GoogleSheetsNativeSpreadsheet,
                     cancellationToken).ConfigureAwait(false);
             }
 

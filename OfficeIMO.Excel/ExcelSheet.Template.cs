@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -67,6 +68,7 @@ namespace OfficeIMO.Excel {
         /// <param name="templateRow">1-based row number containing template markers.</param>
         /// <param name="rows">Row models. Each model is bound to one copied row.</param>
         /// <param name="options">Optional template binding options.</param>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplateRows<T>(int templateRow, IEnumerable<T> rows, ExcelTemplateOptions? options = null) {
             if (rows == null) throw new ArgumentNullException(nameof(rows));
             var bindings = rows

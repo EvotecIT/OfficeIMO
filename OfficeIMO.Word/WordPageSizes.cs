@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
                 if (pageSize != null) {
-                    foreach (WordPageSize wordPageSize in Enum.GetValues(typeof(WordPageSize))) {
+                    foreach (WordPageSize wordPageSize in global::OfficeIMO.Internal.EnumCompat.GetValues<WordPageSize>()) {
                         if (wordPageSize == WordPageSize.Unknown) {
                             continue;
                         }

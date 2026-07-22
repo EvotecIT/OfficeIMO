@@ -380,13 +380,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OpenXmlPart AddNewPartWithContentType(OpenXmlPartContainer container, OpenXmlPart sourcePart, string relationshipId) {
-            MethodInfo method = AddNewPartWithContentTypeMethod.MakeGenericMethod(sourcePart.GetType());
-            return (OpenXmlPart)method.Invoke(container, new object[] { sourcePart.ContentType, relationshipId })!;
+            return PowerPointPartFactory.AddNewPartLike(container, sourcePart, relationshipId);
         }
 
         private static OpenXmlPart AddExistingPart(OpenXmlPartContainer container, OpenXmlPart sourcePart, string relationshipId) {
-            MethodInfo method = AddPartWithIdMethod.MakeGenericMethod(sourcePart.GetType());
-            return (OpenXmlPart)method.Invoke(container, new object[] { sourcePart, relationshipId })!;
+            return container.AddPart(sourcePart, relationshipId);
         }
 
         private static void CopyPartData(OpenXmlPart sourcePart, OpenXmlPart targetPart) {
@@ -447,18 +445,8 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
 
-                if (rel is AudioReferenceRelationship) {
-                    if (TryAddMediaReferenceRelationship(target, "AddAudioReferenceRelationship", targetMediaPart, rel.Id)) {
-                        continue;
-                    }
-                } else if (rel is VideoReferenceRelationship) {
-                    if (TryAddMediaReferenceRelationship(target, "AddVideoReferenceRelationship", targetMediaPart, rel.Id)) {
-                        continue;
-                    }
-                } else {
-                    if (TryAddMediaReferenceRelationship(target, "AddMediaReferenceRelationship", targetMediaPart, rel.Id)) {
-                        continue;
-                    }
+                if (TryAddMediaReferenceRelationship(target, rel, targetMediaPart)) {
+                    continue;
                 }
 
                 if (!samePackage) {
@@ -467,16 +455,48 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool TryAddMediaReferenceRelationship(OpenXmlPartContainer target, string methodName,
-            MediaDataPart mediaPart, string relationshipId) {
-            MethodInfo? method = target.GetType().GetMethod(methodName,
-                new[] { typeof(MediaDataPart), typeof(string) });
-            if (method == null) {
-                return false;
+        private static bool TryAddMediaReferenceRelationship(
+            OpenXmlPartContainer target,
+            DataPartReferenceRelationship sourceRelationship,
+            MediaDataPart mediaPart) {
+            string relationshipId = sourceRelationship.Id;
+            if (sourceRelationship is AudioReferenceRelationship) {
+                return TryAddAudioReferenceRelationship(target, mediaPart, relationshipId);
             }
 
-            method.Invoke(target, new object[] { mediaPart, relationshipId });
-            return true;
+            if (sourceRelationship is VideoReferenceRelationship) {
+                switch (target) {
+                    case SlidePart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    case SlideLayoutPart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    case SlideMasterPart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    case NotesSlidePart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    case NotesMasterPart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    case HandoutMasterPart part: part.AddVideoReferenceRelationship(mediaPart, relationshipId); return true;
+                    default: return false;
+                }
+            }
+
+            switch (target) {
+                case SlidePart part: part.AddMediaReferenceRelationship(mediaPart, relationshipId); return true;
+                case SlideLayoutPart part: part.AddMediaReferenceRelationship(mediaPart, relationshipId); return true;
+                case SlideMasterPart part: part.AddMediaReferenceRelationship(mediaPart, relationshipId); return true;
+                default: return false;
+            }
+        }
+
+        private static bool TryAddAudioReferenceRelationship(
+            OpenXmlPartContainer target,
+            MediaDataPart mediaPart,
+            string relationshipId) {
+            switch (target) {
+                case SlidePart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                case SlideLayoutPart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                case SlideMasterPart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                case NotesSlidePart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                case NotesMasterPart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                case HandoutMasterPart part: part.AddAudioReferenceRelationship(mediaPart, relationshipId); return true;
+                default: return false;
+            }
         }
 
         private static OpenXmlPackage? GetPackage(OpenXmlPartContainer container) {
@@ -492,69 +512,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static MediaDataPart CreateMediaDataPart(OpenXmlPackage targetPackage, string contentType) {
-            if (TryInvokeCreateMediaDataPart(targetPackage, new[] { typeof(string) }, new object[] { contentType }, out MediaDataPart? mediaPart) &&
-                mediaPart != null) {
-                return mediaPart;
-            }
-
-            MediaDataPartType? mediaType = TryGetMediaDataPartType(contentType);
-            if (mediaType.HasValue &&
-                TryInvokeCreateMediaDataPart(targetPackage, new[] { typeof(MediaDataPartType) }, new object[] { mediaType.Value }, out mediaPart) &&
-                mediaPart != null) {
-                return mediaPart;
-            }
-
-            throw new InvalidOperationException($"Unable to create a media data part for content type '{contentType}'.");
-        }
-
-        private static bool TryInvokeCreateMediaDataPart(
-            OpenXmlPackage targetPackage,
-            Type[] parameterTypes,
-            object[] args,
-            out MediaDataPart? mediaPart) {
-            mediaPart = null;
-            MethodInfo? method = targetPackage.GetType().GetMethod("CreateMediaDataPart", parameterTypes);
-            if (method == null) {
-                return false;
-            }
-
-            mediaPart = (MediaDataPart?)method.Invoke(targetPackage, args);
-            return mediaPart != null;
-        }
-
-        private static MediaDataPartType? TryGetMediaDataPartType(string contentType) {
-            if (string.IsNullOrWhiteSpace(contentType)) {
-                return null;
-            }
-
-            return contentType.ToLowerInvariant() switch {
-                "audio/aiff" => MediaDataPartType.Aiff,
-                "audio/x-aiff" => MediaDataPartType.Aiff,
-                "audio/midi" => MediaDataPartType.Midi,
-                "audio/x-midi" => MediaDataPartType.Midi,
-                "audio/mpeg" => MediaDataPartType.Mp3,
-                "audio/mp3" => MediaDataPartType.Mp3,
-                "audio/wav" => MediaDataPartType.Wav,
-                "audio/x-wav" => MediaDataPartType.Wav,
-                "audio/x-ms-wma" => MediaDataPartType.Wma,
-                "audio/wma" => MediaDataPartType.Wma,
-                "audio/ogg" => MediaDataPartType.OggAudio,
-                "application/ogg" => MediaDataPartType.OggAudio,
-                "audio/mpegurl" => MediaDataPartType.MpegUrl,
-                "application/vnd.ms-asf" => MediaDataPartType.Asx,
-                "video/x-msvideo" => MediaDataPartType.Avi,
-                "video/avi" => MediaDataPartType.Avi,
-                "video/mpeg" => MediaDataPartType.MpegVideo,
-                "video/mpg" => MediaDataPartType.Mpg,
-                "video/mp4" => MediaDataPartType.MpegVideo,
-                "video/quicktime" => MediaDataPartType.Quicktime,
-                "video/x-ms-wmv" => MediaDataPartType.Wmv,
-                "video/x-ms-wmx" => MediaDataPartType.Wmx,
-                "video/x-ms-wvx" => MediaDataPartType.Wvx,
-                "video/ogg" => MediaDataPartType.OggVideo,
-                "video/vc1" => MediaDataPartType.VC1,
-                _ => null
-            };
+            return targetPackage.CreateMediaDataPart(contentType);
         }
 
         private static bool ShouldSharePart(OpenXmlPart part) {

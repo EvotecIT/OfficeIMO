@@ -14,7 +14,8 @@ public static class OfficeDocumentStructuredExtractionJson {
             throw new InvalidOperationException(
                 $"Structured extraction schema '{result.SchemaId}' version {result.SchemaVersion} is not supported.");
         }
-        return JsonSerializer.Serialize(result, CreateOptions(indented));
+        var context = new ReaderJsonSerializerContext(CreateOptions(indented));
+        return JsonSerializer.Serialize(result, context.OfficeDocumentStructuredExtractionResult);
     }
 
     /// <summary>Serializes a current structured extraction result.</summary>
@@ -28,7 +29,6 @@ public static class OfficeDocumentStructuredExtractionJson {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
         return options;
     }
 }

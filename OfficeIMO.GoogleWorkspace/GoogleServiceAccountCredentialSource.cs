@@ -2,7 +2,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
@@ -59,15 +58,19 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSessionOptions? sessionOptions = null) {
             if (string.IsNullOrWhiteSpace(serviceAccountJson)) throw new ArgumentException("Service account JSON is required.", nameof(serviceAccountJson));
 
-            var payload = JsonSerializer.Deserialize<GoogleServiceAccountJsonPayload>(serviceAccountJson);
-            if (payload == null) throw new InvalidOperationException("Service account JSON could not be parsed.");
-            if (string.IsNullOrWhiteSpace(payload.ClientEmail)) throw new InvalidOperationException("Service account JSON is missing client_email.");
-            if (string.IsNullOrWhiteSpace(payload.PrivateKey)) throw new InvalidOperationException("Service account JSON is missing private_key.");
+            using JsonDocument document = JsonDocument.Parse(serviceAccountJson);
+            JsonElement payload = document.RootElement;
+            if (payload.ValueKind != JsonValueKind.Object) throw new InvalidOperationException("Service account JSON could not be parsed.");
+            string? clientEmail = ReadString(payload, "client_email");
+            string? privateKey = ReadString(payload, "private_key");
+            string? tokenUri = ReadString(payload, "token_uri");
+            if (string.IsNullOrWhiteSpace(clientEmail)) throw new InvalidOperationException("Service account JSON is missing client_email.");
+            if (string.IsNullOrWhiteSpace(privateKey)) throw new InvalidOperationException("Service account JSON is missing private_key.");
 
             return new GoogleServiceAccountCredentialSource(
-                payload.ClientEmail!,
-                payload.PrivateKey!,
-                payload.TokenUri,
+                clientEmail!,
+                privateKey!,
+                tokenUri,
                 sessionOptions);
         }
 
@@ -131,18 +134,26 @@ namespace OfficeIMO.GoogleWorkspace {
                 throw new HttpRequestException($"Google token exchange failed with status code {(int)response.StatusCode}: {responseBody}");
             }
 
-            var tokenResponse = JsonSerializer.Deserialize<GoogleOAuthTokenResponse>(responseBody);
-            if (tokenResponse == null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken)) {
+            using JsonDocument tokenDocument = JsonDocument.Parse(responseBody);
+            JsonElement tokenResponse = tokenDocument.RootElement;
+            string? accessToken = tokenResponse.ValueKind == JsonValueKind.Object
+                ? ReadString(tokenResponse, "access_token")
+                : null;
+            if (string.IsNullOrWhiteSpace(accessToken)) {
                 throw new InvalidOperationException("Google token response did not contain access_token.");
             }
 
-            DateTimeOffset expiresAt = now.AddSeconds(tokenResponse.ExpiresIn > 0 ? tokenResponse.ExpiresIn : TokenLifetime.TotalSeconds);
-            string accessToken = tokenResponse.AccessToken!;
-            IReadOnlyList<string> grantedScopes = string.IsNullOrWhiteSpace(tokenResponse.Scope)
+            int expiresIn = tokenResponse.TryGetProperty("expires_in", out JsonElement expiresElement)
+                && expiresElement.TryGetInt32(out int parsedExpiresIn)
+                ? parsedExpiresIn
+                : 0;
+            string? grantedScope = ReadString(tokenResponse, "scope");
+            DateTimeOffset expiresAt = now.AddSeconds(expiresIn > 0 ? expiresIn : TokenLifetime.TotalSeconds);
+            IReadOnlyList<string> grantedScopes = string.IsNullOrWhiteSpace(grantedScope)
                 ? scopes
-                : tokenResponse.Scope!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                : grantedScope!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            return new GoogleWorkspaceAccessToken(accessToken, expiresAt, grantedScopes);
+            return new GoogleWorkspaceAccessToken(accessToken!, expiresAt, grantedScopes);
         }
 
         private string CreateSignedJwtAssertion(IReadOnlyList<string> scopes, DateTimeOffset now) {
@@ -150,19 +161,22 @@ namespace OfficeIMO.GoogleWorkspace {
             long expiresAt = now.Add(TokenLifetime).ToUnixTimeSeconds();
 
             string headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
-            var payload = new Dictionary<string, object?> {
-                ["iss"] = ClientEmail,
-                ["scope"] = string.Join(" ", scopes),
-                ["aud"] = TokenEndpoint,
-                ["iat"] = issuedAt,
-                ["exp"] = expiresAt,
-            };
-
-            if (UseDomainWideDelegation && !string.IsNullOrWhiteSpace(SubjectUser)) {
-                payload["sub"] = SubjectUser;
+            string payloadJson;
+            using (var payloadStream = new MemoryStream()) {
+                using (var writer = new Utf8JsonWriter(payloadStream)) {
+                    writer.WriteStartObject();
+                    writer.WriteString("iss", ClientEmail);
+                    writer.WriteString("scope", string.Join(" ", scopes));
+                    writer.WriteString("aud", TokenEndpoint);
+                    writer.WriteNumber("iat", issuedAt);
+                    writer.WriteNumber("exp", expiresAt);
+                    if (UseDomainWideDelegation && !string.IsNullOrWhiteSpace(SubjectUser)) {
+                        writer.WriteString("sub", SubjectUser);
+                    }
+                    writer.WriteEndObject();
+                }
+                payloadJson = Encoding.UTF8.GetString(payloadStream.ToArray());
             }
-
-            string payloadJson = JsonSerializer.Serialize(payload);
 
             string encodedHeader = Base64UrlEncode(Encoding.UTF8.GetBytes(headerJson));
             string encodedPayload = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));
@@ -198,26 +212,11 @@ namespace OfficeIMO.GoogleWorkspace {
                 .Replace('/', '_');
         }
 
-        private sealed class GoogleServiceAccountJsonPayload {
-            [JsonPropertyName("client_email")]
-            public string? ClientEmail { get; set; }
-
-            [JsonPropertyName("private_key")]
-            public string? PrivateKey { get; set; }
-
-            [JsonPropertyName("token_uri")]
-            public string? TokenUri { get; set; }
-        }
-
-        private sealed class GoogleOAuthTokenResponse {
-            [JsonPropertyName("access_token")]
-            public string? AccessToken { get; set; }
-
-            [JsonPropertyName("expires_in")]
-            public int ExpiresIn { get; set; }
-
-            [JsonPropertyName("scope")]
-            public string? Scope { get; set; }
+        private static string? ReadString(JsonElement parent, string propertyName) {
+            return parent.TryGetProperty(propertyName, out JsonElement value)
+                && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
         }
     }
 

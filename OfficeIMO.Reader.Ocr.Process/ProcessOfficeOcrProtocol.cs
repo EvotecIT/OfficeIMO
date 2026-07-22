@@ -69,14 +69,13 @@ public static class ProcessOfficeOcrProtocol {
     /// <summary>Current protocol version.</summary>
     public const int Version = 1;
 
-    private static readonly JsonSerializerOptions JsonOptions = CreateOptions();
-
     /// <summary>Serializes a process request using camel-case properties and string enum values.</summary>
     public static string SerializeRequest(ProcessOfficeOcrRequest request, bool indented = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         JsonSerializerOptions options = CreateOptions();
         options.WriteIndented = indented;
-        return JsonSerializer.Serialize(request, options);
+        var context = new ProcessOfficeOcrJsonSerializerContext(options);
+        return JsonSerializer.Serialize(request, context.ProcessOfficeOcrRequest);
     }
 
     /// <summary>Serializes an engine result suitable for the process response file.</summary>
@@ -84,7 +83,8 @@ public static class ProcessOfficeOcrProtocol {
         if (result == null) throw new ArgumentNullException(nameof(result));
         JsonSerializerOptions options = CreateOptions();
         options.WriteIndented = indented;
-        return JsonSerializer.Serialize(new ProcessOfficeOcrResponse { Result = result }, options);
+        var context = new ProcessOfficeOcrJsonSerializerContext(options);
+        return JsonSerializer.Serialize(new ProcessOfficeOcrResponse { Result = result }, context.ProcessOfficeOcrResponse);
     }
 
     /// <summary>Deserializes an engine result from the process response file.</summary>
@@ -95,7 +95,8 @@ public static class ProcessOfficeOcrProtocol {
             if (!HasProperty(document.RootElement, "schemaId")) throw new InvalidDataException("OCR process response did not contain schemaId.");
             if (!HasProperty(document.RootElement, "schemaVersion")) throw new InvalidDataException("OCR process response did not contain schemaVersion.");
         }
-        ProcessOfficeOcrResponse? response = JsonSerializer.Deserialize<ProcessOfficeOcrResponse>(json, JsonOptions);
+        var context = new ProcessOfficeOcrJsonSerializerContext(CreateOptions());
+        ProcessOfficeOcrResponse? response = JsonSerializer.Deserialize(json, context.ProcessOfficeOcrResponse);
         if (response == null) throw new InvalidDataException("OCR process response was empty.");
         if (!string.Equals(response.SchemaId, ResponseSchemaId, StringComparison.Ordinal)) throw new InvalidDataException("OCR process response schema id is not supported.");
         if (response.SchemaVersion != Version) throw new InvalidDataException("OCR process response schema version is not supported.");
@@ -114,7 +115,16 @@ public static class ProcessOfficeOcrProtocol {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true
         };
-        options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
+}
+
+[JsonSourceGenerationOptions(
+    GenerationMode = JsonSourceGenerationMode.Metadata,
+    PropertyNameCaseInsensitive = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    UseStringEnumConverter = true)]
+[JsonSerializable(typeof(ProcessOfficeOcrRequest))]
+[JsonSerializable(typeof(ProcessOfficeOcrResponse))]
+internal sealed partial class ProcessOfficeOcrJsonSerializerContext : JsonSerializerContext {
 }

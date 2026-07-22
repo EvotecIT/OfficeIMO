@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         GoogleWorkspaceRequestSafety.Safe,
                         "Google Sheets API",
                         batch.Report,
+                        GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiSpreadsheetMetadataResponse,
                         cancellationToken).ConfigureAwait(false);
 
                     var existingSheets = existingResponse.Sheets
@@ -97,7 +98,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheets.Keys);
                     var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheets, sheetIdMap);
 
-                    await transport.SendJsonAsync<object>(
+                    await transport.SendJsonAsync<GoogleSheetsApiBatchUpdatePayload, object>(
                         accessToken.AccessToken,
                         HttpMethod.Post,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
@@ -105,6 +106,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         GoogleWorkspaceRequestSafety.NonIdempotent,
                         "Google Sheets API",
                         batch.Report,
+                        GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
+                        GoogleSheetsJsonSerializerContext.Default.Object,
                         cancellationToken).ConfigureAwait(false);
 
                     await SendValuesAsync(
@@ -160,7 +163,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
                 var sheetIdMapForCreate = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch);
                 var createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch, sheetIdMapForCreate);
-                var createResponse = await transport.SendJsonAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
+                var createResponse = await transport.SendJsonAsync<GoogleSheetsApiCreateSpreadsheetPayload, GoogleSheetsApiCreateSpreadsheetResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://sheets.googleapis.com/v4/spreadsheets",
@@ -168,6 +171,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     GoogleWorkspaceRequestSafety.NonIdempotent,
                     "Google Sheets API",
                     batch.Report,
+                    GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetPayload,
+                    GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiCreateSpreadsheetResponse,
                     cancellationToken).ConfigureAwait(false);
 
                 await SendValuesAsync(
@@ -356,7 +361,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             while (completed < total) {
                 var payload = new GoogleSheetsApiBatchUpdateValuesPayload();
                 payload.Data.AddRange(allValues.Data.Skip(completed).Take(execution.MaxValueRangesPerRequest));
-                await transport.SendJsonAsync<object>(
+                await transport.SendJsonAsync<GoogleSheetsApiBatchUpdateValuesPayload, object>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values:batchUpdate",
@@ -364,6 +369,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     GoogleWorkspaceRequestSafety.Idempotent,
                     "Google Sheets API",
                     batch.Report,
+                    GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdateValuesPayload,
+                    GoogleSheetsJsonSerializerContext.Default.Object,
                     cancellationToken).ConfigureAwait(false);
                 completed += payload.Data.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("values", completed, total));
@@ -392,7 +399,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             while (completed < total) {
                 var payload = new GoogleSheetsApiBatchUpdatePayload();
                 payload.Requests.AddRange(allRequests.Requests.Skip(completed).Take(execution.MaxStructuralRequestsPerBatch));
-                await transport.SendJsonAsync<object>(
+                await transport.SendJsonAsync<GoogleSheetsApiBatchUpdatePayload, object>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}:batchUpdate",
@@ -400,6 +407,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     GoogleWorkspaceRequestSafety.NonIdempotent,
                     "Google Sheets API",
                     report,
+                    GoogleSheetsJsonSerializerContext.Default.GoogleSheetsApiBatchUpdatePayload,
+                    GoogleSheetsJsonSerializerContext.Default.Object,
                     cancellationToken).ConfigureAwait(false);
                 completed += payload.Requests.Count;
                 execution.Progress?.Report(new GoogleSheetsExportProgress("structure", completed, total));

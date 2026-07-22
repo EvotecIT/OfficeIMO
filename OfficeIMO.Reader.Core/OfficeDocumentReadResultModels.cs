@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace OfficeIMO.Reader;
 
@@ -393,6 +394,7 @@ public sealed class OfficeDocumentAsset {
     /// <summary>
     /// Optional in-memory payload for callers that request materializable assets. This payload is not included in JSON transport output.
     /// </summary>
+    [JsonIgnore]
     public byte[]? PayloadBytes { get; set; }
 
     /// <summary>

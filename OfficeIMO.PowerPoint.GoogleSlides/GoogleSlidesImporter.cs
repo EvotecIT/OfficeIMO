@@ -36,7 +36,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.PresentationsReadonly }, cancellationToken).ConfigureAwait(false);
             using var transport = new GoogleWorkspaceHttpTransport(session.Options);
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,
-                $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
+                $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
+                GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);
             PowerPointPresentation presentation = await ProjectAsync(response, transport, token.AccessToken, report, cancellationToken).ConfigureAwait(false);
             report.Add(TranslationSeverity.Info, "NativeImport", "Slides, text boxes, core text styles, tables, images, geometry, and speaker-note text were projected into OfficeIMO.", code: "SLIDES.IMPORT.NATIVE", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report, response), report);

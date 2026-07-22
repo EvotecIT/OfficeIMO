@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -67,6 +68,7 @@ namespace OfficeIMO.Excel {
         /// <param name="sheetNameSelector">Optional generated sheet name selector. The index is zero-based.</param>
         /// <param name="options">Optional template binding options.</param>
         /// <returns>Total marker replacements across all generated sheets.</returns>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplateSheets<T>(
             string templateSheetName,
             IEnumerable<T> models,
@@ -125,6 +127,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders across all worksheets using public properties from the supplied model.
         /// Nested properties are exposed as dotted marker names, for example {{Customer.Name}}.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, IFormatProvider? provider = null, bool throwOnMissing = false) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(model), ExcelTemplateOptions.Create(provider, throwOnMissing));
@@ -134,6 +137,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders across all worksheets using public properties from the supplied model and options.
         /// Nested properties are exposed as dotted marker names, for example {{Customer.Name}}.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, ExcelTemplateOptions options) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -170,6 +174,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Inspects {{Marker}} placeholders across all worksheets and reports which markers are missing from public properties on the supplied model.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateInspection InspectTemplate(object model) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return InspectTemplate(ExcelTemplateBindingHelper.Create(model));

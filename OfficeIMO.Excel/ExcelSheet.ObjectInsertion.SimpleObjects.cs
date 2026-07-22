@@ -11,7 +11,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private bool TryInsertSimpleObjectRowsAsDeferredDirectSave<T>(
+        private bool TryInsertSimpleObjectRowsAsDeferredDirectSave<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             IReadOnlyList<T> rows,
             bool includeHeaders,
             int startRow) {
@@ -19,9 +20,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool requireRuntimeTypeCheck = !typeof(T).IsValueType && !typeof(T).IsSealed;
-            Type rowType = requireRuntimeTypeCheck ? rows[0]?.GetType() ?? typeof(object) : typeof(T);
-            if (rowType == typeof(object)) {
+            Type rowType = typeof(T);
+            if (rowType == typeof(object) || rowType.IsInterface || rowType.IsAbstract) {
                 return false;
             }
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             var values = new object?[checked(rows.Count * getters.Length)];
             for (int r = 0; r < rows.Count; r++) {
                 object? row = rows[r];
-                if (row == null || requireRuntimeTypeCheck && row.GetType() != rowType) {
+                if (row == null || row.GetType() != rowType) {
                     return false;
                 }
 
@@ -53,7 +53,8 @@ namespace OfficeIMO.Excel {
             return TryInsertCellValuesAsDeferredDirectSave(Name, headers, plan.ColumnTypes, values, headers.Length, rows.Count, startRow, includeHeaders, range);
         }
 
-        private bool TryInsertSimpleObjectRowsAsCellValues<T>(
+        private bool TryInsertSimpleObjectRowsAsCellValues<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             IReadOnlyList<T> rows,
             bool includeHeaders,
             int startRow) {
@@ -61,9 +62,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool requireRuntimeTypeCheck = !typeof(T).IsValueType && !typeof(T).IsSealed;
-            Type rowType = requireRuntimeTypeCheck ? rows[0]?.GetType() ?? typeof(object) : typeof(T);
-            if (rowType == typeof(object)) {
+            Type rowType = typeof(T);
+            if (rowType == typeof(object) || rowType.IsInterface || rowType.IsAbstract) {
                 return false;
             }
 
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
 
             for (int r = 0; r < rows.Count; r++) {
                 object? item = rows[r];
-                if (item == null || requireRuntimeTypeCheck && item.GetType() != rowType) {
+                if (item == null || item.GetType() != rowType) {
                     return false;
                 }
 
@@ -104,10 +104,18 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static SimpleObjectExportPlan GetSimpleObjectExportPlan(Type type)
-            => SimpleObjectExportPlans.GetOrAdd(type, CreateSimpleObjectExportPlan);
+        private static SimpleObjectExportPlan GetSimpleObjectExportPlan(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type) {
+            if (SimpleObjectExportPlans.TryGetValue(type, out SimpleObjectExportPlan? existing)) {
+                return existing;
+            }
 
-        private static SimpleObjectExportPlan CreateSimpleObjectExportPlan(Type type) {
+            SimpleObjectExportPlan created = CreateSimpleObjectExportPlan(type);
+            return SimpleObjectExportPlans.GetOrAdd(type, created);
+        }
+
+        private static SimpleObjectExportPlan CreateSimpleObjectExportPlan(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type) {
             var properties = GetSimpleObjectExportProperties(type);
             if (properties.Length == 0) {
                 return SimpleObjectExportPlan.NotSupported;
@@ -127,30 +135,11 @@ namespace OfficeIMO.Excel {
             return new SimpleObjectExportPlan(headers, getters, InferSimpleObjectExportColumnTypes(properties), canUseDirectSave: true);
         }
 
-        private static SimpleObjectExportValueGetter CreateSimpleObjectExportValueGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null) {
-                return row => property.GetValue(row, null);
-            }
+        private static SimpleObjectExportValueGetter CreateSimpleObjectExportValueGetter(PropertyInfo property)
+            => row => property.GetValue(row, null);
 
-            try {
-                return (SimpleObjectExportValueGetter)CreateSimpleObjectExportValueGetterMethod
-                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return row => property.GetValue(row, null);
-            }
-        }
-
-        private static readonly MethodInfo CreateSimpleObjectExportValueGetterMethod =
-            typeof(ExcelSheet).GetMethod(nameof(CreateSimpleObjectExportValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static SimpleObjectExportValueGetter CreateSimpleObjectExportValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
-            return row => getter((TTarget)row!);
-        }
-
-        private static PropertyInfo[] GetSimpleObjectExportProperties(Type type) {
+        private static PropertyInfo[] GetSimpleObjectExportProperties(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type) {
             var properties = type.GetProperties().Where(property => property.CanRead).ToArray();
             if (properties.Length == 0) {
                 return Array.Empty<PropertyInfo>();

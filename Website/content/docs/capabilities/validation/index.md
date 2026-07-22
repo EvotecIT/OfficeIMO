@@ -22,7 +22,7 @@ OfficeIMO support is reported at the level that was actually validated. A projec
 
 Conceptual pages describe the intended workflow and link into generated reference for exact APIs. The [component catalog](/docs/capabilities/packages/) is generated from all production project files. PSWriteOffice counts come from its module manifest and fail validation if a cmdlet belongs to no documentation family or more than one total is reported.
 
-The AOT page is maintained against checked-in executable smoke scenarios and records the runtime identifiers that were published and run. A repository script reproduces both passing paths and known compiler blockers. The matrix uses “not tested” instead of guessing from dependency size, annotations, or whether a project looks like a good candidate.
+The NativeAOT page is maintained against checked-in executable scenarios for authoring, extraction, and rendering. A repository script publishes each application, runs semantic assertions, and can write a machine-readable result. Package-wide trim and AOT analyzer builds complement those runtime checks without being presented as a substitute for them.
 
 ## Validate your own document corpus
 

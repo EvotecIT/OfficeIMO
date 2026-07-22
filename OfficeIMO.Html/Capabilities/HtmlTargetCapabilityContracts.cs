@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>Single built-in capability and public-surface registry for HTML conversion targets.</summary>
 public static class HtmlTargetCapabilityContracts {
     private static readonly HtmlSemanticFeature[] AllFeatures =
-        (HtmlSemanticFeature[])Enum.GetValues(typeof(HtmlSemanticFeature));
+        global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>();
 
     private static readonly IReadOnlyList<HtmlTargetCapabilityContract> Contracts = new[] {
         Create(

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordDocument {
         private static void AddTableStyles(Styles styles, bool overrideExisting) {
-            var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
+            var listOfTableStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordTableStyle>();
             foreach (var style in listOfTableStyles) {
                 var definition = WordTableStyles.GetStyleDefinition(style);
                 var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId?.Value == definition.StyleId?.Value);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Word {
             AddTableStyles(styles1, false);
 
             // TODO: load all styles to document, probably we should load those in use
-            var listOfStyles = (WordParagraphStyles[])Enum.GetValues(typeof(WordParagraphStyles));
+            var listOfStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>();
             foreach (var style in listOfStyles) {
                 var styleDef = WordParagraphStyle.GetStyleDefinition(style);
                 if (styleDef != null) {
@@ -201,7 +201,7 @@ namespace OfficeIMO.Word {
                 styles1.Append((Style)custom.CloneNode(true));
             }
             // TODO: load only needed character styles
-            var listOfCharStyles = (WordCharacterStyles[])Enum.GetValues(typeof(WordCharacterStyles));
+            var listOfCharStyles = global::OfficeIMO.Internal.EnumCompat.GetValues<WordCharacterStyles>();
             foreach (var style in listOfCharStyles) {
                 styles1.Append(WordCharacterStyle.GetStyleDefinition(style));
             }

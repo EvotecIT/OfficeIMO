@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
@@ -12,11 +13,6 @@ using OfficeIMO.Markup.Word;
 using OfficeIMO.Excel;
 
 internal static class Program {
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
-
     public static async Task<int> Main(string[] args) {
         try {
             var options = CliOptions.Parse(args);
@@ -38,10 +34,10 @@ internal static class Program {
             switch (options.Command.ToLowerInvariant()) {
                 case "parse":
                 case "preview":
-                    WriteJson(new MarkupEnvelope(ToDocumentDto(result.Document), result.Diagnostics.Select(ToDiagnosticDto).ToList()));
+                    WriteJson(new MarkupEnvelope(ToDocumentDto(result.Document), result.Diagnostics.Select(ToDiagnosticDto).ToList()), MarkupCliJsonSerializerContext.Default.MarkupEnvelope);
                     return 0;
                 case "validate":
-                    WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), result.HasErrors));
+                    WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), result.HasErrors), MarkupCliJsonSerializerContext.Default.ValidationEnvelope);
                     return result.HasErrors ? 1 : 0;
                 case "emit":
                     return await EmitAsync(result, options).ConfigureAwait(false);
@@ -81,7 +77,7 @@ internal static class Program {
 
     private static async Task<int> EmitAsync(OfficeMarkupParseResult result, CliOptions options) {
         if (result.HasErrors) {
-            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), Console.Error);
+            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), MarkupCliJsonSerializerContext.Default.ValidationEnvelope, Console.Error);
             return 1;
         }
 
@@ -104,7 +100,7 @@ internal static class Program {
 
     private static int Export(OfficeMarkupParseResult result, CliOptions options) {
         if (result.HasErrors) {
-            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), Console.Error);
+            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), MarkupCliJsonSerializerContext.Default.ValidationEnvelope, Console.Error);
             return 1;
         }
 
@@ -128,7 +124,7 @@ internal static class Program {
                     MermaidRendererPath = options.MermaidRendererPath,
                     RenderMermaidDiagrams = options.RenderMermaidDiagrams
                 });
-                WriteJson(new ExportEnvelope(outputPath!, target));
+                WriteJson(new ExportEnvelope(outputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
                 return 0;
             case "xlsx":
             case "excel":
@@ -145,7 +141,7 @@ internal static class Program {
                     ValidateOpenXml = options.WorkbookValidateOpenXml,
                     SafeRepairDefinedNames = options.WorkbookRepairDefinedNames
                 });
-                WriteJson(new ExportEnvelope(workbookOutputPath!, target));
+                WriteJson(new ExportEnvelope(workbookOutputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
                 return 0;
             case "docx":
             case "word":
@@ -163,7 +159,7 @@ internal static class Program {
                         ? Environment.CurrentDirectory
                         : Path.GetDirectoryName(documentInputPath)
                 });
-                WriteJson(new ExportEnvelope(documentOutputPath!, target));
+                WriteJson(new ExportEnvelope(documentOutputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
                 return 0;
             default:
                 throw new InvalidOperationException($"Unsupported export target '{options.Target}'.");
@@ -219,9 +215,9 @@ internal static class Program {
         return fullPath;
     }
 
-    private static void WriteJson<T>(T value, TextWriter? writer = null) {
+    private static void WriteJson<T>(T value, JsonTypeInfo<T> typeInfo, TextWriter? writer = null) {
         writer ??= Console.Out;
-        writer.WriteLine(JsonSerializer.Serialize(value, JsonOptions));
+        writer.WriteLine(JsonSerializer.Serialize(value, typeInfo));
     }
 
     private static OfficeMarkupDocumentDto ToDocumentDto(OfficeMarkupDocument document) {
@@ -652,4 +648,11 @@ internal sealed class OfficeMarkupDiagnosticDto {
     public string Message { get; set; } = string.Empty;
     public string? NodeKind { get; set; }
     public string? NodeSourceText { get; set; }
+}
+
+[JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(MarkupEnvelope))]
+[JsonSerializable(typeof(ValidationEnvelope))]
+[JsonSerializable(typeof(ExportEnvelope))]
+internal sealed partial class MarkupCliJsonSerializerContext : JsonSerializerContext {
 }

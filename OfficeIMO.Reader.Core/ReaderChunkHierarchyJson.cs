@@ -19,8 +19,8 @@ public static class ReaderChunkHierarchyJson {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
-        return JsonSerializer.Serialize(result, options);
+        var context = new ReaderJsonSerializerContext(options);
+        return JsonSerializer.Serialize(result, context.ReaderChunkHierarchyResult);
     }
 
     /// <summary>Serializes a current hierarchy result.</summary>

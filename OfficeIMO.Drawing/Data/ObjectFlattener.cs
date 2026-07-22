@@ -140,9 +140,6 @@ namespace OfficeIMO.Drawing {
         private static readonly ConcurrentDictionary<Type, ObjectFlattenerProperty[]> _propertyCache = new();
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
-        private static readonly Type? _iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
-        private static readonly PropertyInfo? _iTupleLengthProperty = _iTupleType?.GetProperty("Length");
-        private static readonly PropertyInfo? _iTupleItemProperty = _iTupleType?.GetProperty("Item");
 
         /// <summary>
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
@@ -266,14 +263,11 @@ namespace OfficeIMO.Drawing {
         }
 
         private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
-            // Try ITuple via reflection (available on newer frameworks). Avoids compile-time dependency for netstandard2.0
-            if (_iTupleType != null && _iTupleLengthProperty != null && _iTupleItemProperty != null && _iTupleType.IsAssignableFrom(obj.GetType())) {
-                int length = Convert.ToInt32(_iTupleLengthProperty.GetValue(obj, null));
-                var indexArguments = new object[1];
-                for (int i = 0; i < length; i++) {
+            // ITuple exposes tuple items without reflecting over runtime-generated accessors.
+            if (obj is System.Runtime.CompilerServices.ITuple tuple) {
+                for (int i = 0; i < tuple.Length; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
-                    indexArguments[0] = i;
-                    var val = _iTupleItemProperty.GetValue(obj, indexArguments);
+                    var val = tuple[i];
                     if (val == null) {
                         dict[path] = ApplyNullPolicy(path, null, opts);
                     } else if (IsSimple(val.GetType())) {
@@ -351,6 +345,10 @@ namespace OfficeIMO.Drawing {
             }
         }
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2072",
+            Justification = "The public GetPaths(Type) boundary requires public properties and fields, and recursive expansion is explicitly selected by the caller. NativeAOT callers that expand nested models must preserve those nested model members as part of their application contract.")]
         private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
@@ -395,6 +393,10 @@ namespace OfficeIMO.Drawing {
         private static FieldInfo[] GetValueTupleFields(Type valueTupleType)
             => _valueTupleFieldCache.GetOrAdd(valueTupleType, CreateValueTupleFields);
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2070",
+            Justification = "ValueTuple fields are part of the runtime tuple contract; the generic Flatten<T> and GetPaths(Type) entry points preserve public fields for the supplied tuple type.")]
         private static FieldInfo[] CreateValueTupleFields(Type valueTupleType) {
             try {
                 return valueTupleType
@@ -476,6 +478,10 @@ namespace OfficeIMO.Drawing {
             return _collectionMapAccessorCache.GetOrAdd(key, CreateCollectionMapAccessors);
         }
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2075",
+            Justification = "Collection column mapping is an explicit property-name contract. NativeAOT callers preserve the mapped item model's public properties through the containing generic row model.")]
         private static CollectionMapAccessors CreateCollectionMapAccessors(CollectionMapAccessorKey key) {
             var keyProperty = key.ItemType.GetProperty(key.KeyProperty);
             var valueProperty = key.ItemType.GetProperty(key.ValueProperty);
@@ -488,6 +494,10 @@ namespace OfficeIMO.Drawing {
                 CreateObjectFlattenerPropertyGetter(valueProperty));
         }
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2070",
+            Justification = "The generic Flatten<T> and GetPaths(Type) entry points preserve public properties for the supplied row type. Reflection is limited to reading those public properties and does not generate code at runtime.")]
         private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .OrderBy(p => p.MetadataToken)
@@ -501,18 +511,7 @@ namespace OfficeIMO.Drawing {
         }
 
         private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null) {
-                return row => property.GetValue(row, null);
-            }
-
-            try {
-                return (ObjectFlattenerPropertyGetter)CreateObjectFlattenerPropertyGetterMethod
-                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return row => property.GetValue(row, null);
-            }
+            return row => property.GetValue(row, null);
         }
 
         private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, ObjectFlattenerProperty[] props) {
@@ -522,14 +521,6 @@ namespace OfficeIMO.Drawing {
                     paths.Add(path);
                 }
             }
-        }
-
-        private static readonly MethodInfo CreateObjectFlattenerPropertyGetterMethod =
-            typeof(ObjectFlattener).GetMethod(nameof(CreateObjectFlattenerPropertyGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetterCore<TTarget, TValue>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
-            return row => getter((TTarget)row!);
         }
 
         private static string LastSegment(string path) {

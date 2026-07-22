@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -166,7 +167,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects.
         /// </summary>
-        public PowerPointTable AddTable<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null,
+        public PowerPointTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null,
             bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -436,7 +437,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using centimeter measurements.
         /// </summary>
-        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+        public PowerPointTable AddTableCm<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
             bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm) {
             return AddTable(data, configure, includeHeaders,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -448,7 +449,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using centimeter measurements.
         /// </summary>
-        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, double leftCm, double topCm, double widthCm,
+        public PowerPointTable AddTableCm<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddTableCm(data, configure: null, includeHeaders: true, leftCm, topCm, widthCm, heightCm);
         }
@@ -456,7 +457,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using inch measurements.
         /// </summary>
-        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+        public PowerPointTable AddTableInches<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
             bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches) {
             return AddTable(data, configure, includeHeaders,
                 PowerPointUnits.FromInches(leftInches),
@@ -468,7 +469,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using inch measurements.
         /// </summary>
-        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, double leftInches, double topInches,
+        public PowerPointTable AddTableInches<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddTableInches(data, configure: null, includeHeaders: true, leftInches, topInches, widthInches,
                 heightInches);
@@ -477,7 +478,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using point measurements.
         /// </summary>
-        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+        public PowerPointTable AddTablePoints<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
             bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints) {
             return AddTable(data, configure, includeHeaders,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -489,7 +490,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects using point measurements.
         /// </summary>
-        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, double leftPoints, double topPoints,
+        public PowerPointTable AddTablePoints<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddTablePoints(data, configure: null, includeHeaders: true, leftPoints, topPoints, widthPoints,
                 heightPoints);

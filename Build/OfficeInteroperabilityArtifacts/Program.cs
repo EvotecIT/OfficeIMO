@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -10,27 +11,20 @@ string outputDirectory = GetOption(args, "--output")
 outputDirectory = Path.GetFullPath(outputDirectory);
 Directory.CreateDirectory(outputDirectory);
 
-var artifacts = new List<object>();
+var artifacts = new List<InteroperabilityArtifact>();
 CreateWordArtifact(outputDirectory, artifacts);
 CreateExcelArtifacts(outputDirectory, artifacts);
 CreatePowerPointArtifact(outputDirectory, artifacts);
 
-var manifest = new {
-    schemaVersion = 1,
-    producer = "OfficeIMO",
-    artifacts
-};
+var manifest = new InteroperabilityManifest(1, "OfficeIMO", artifacts);
 string manifestPath = Path.Combine(outputDirectory, "officeimo-artifacts.json");
 File.WriteAllText(
     manifestPath,
-    JsonSerializer.Serialize(manifest, new JsonSerializerOptions {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
-    }) + Environment.NewLine,
+    JsonSerializer.Serialize(manifest, InteroperabilityJsonSerializerContext.Default.InteroperabilityManifest) + Environment.NewLine,
     new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 Console.WriteLine($"Generated {artifacts.Count} OfficeIMO binary interoperability artifacts in {outputDirectory}.");
 
-static void CreateWordArtifact(string outputDirectory, ICollection<object> artifacts) {
+static void CreateWordArtifact(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-word-source.docx");
     string destination = Path.Combine(outputDirectory, "officeimo-word-generated.doc");
     using (WordDocument document = WordDocument.Create(source)) {
@@ -41,7 +35,7 @@ static void CreateWordArtifact(string outputDirectory, ICollection<object> artif
     artifacts.Add(CreateArtifact("Word.Doc", "doc", destination));
 }
 
-static void CreateExcelArtifacts(string outputDirectory, ICollection<object> artifacts) {
+static void CreateExcelArtifacts(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-excel-source.xlsx");
     using (ExcelDocument document = ExcelDocument.Create(source)) {
         ExcelSheet sheet = document.AddWorksheet("Compatibility");
@@ -59,7 +53,7 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<object> art
     }
 }
 
-static void CreatePowerPointArtifact(string outputDirectory, ICollection<object> artifacts) {
+static void CreatePowerPointArtifact(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-powerpoint-source.pptx");
     string destination = Path.Combine(outputDirectory, "officeimo-powerpoint-generated.ppt");
     using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
@@ -70,12 +64,11 @@ static void CreatePowerPointArtifact(string outputDirectory, ICollection<object>
     artifacts.Add(CreateArtifact("PowerPoint.Ppt", "ppt", destination));
 }
 
-static object CreateArtifact(string formatId, string format, string path) => new {
+static InteroperabilityArtifact CreateArtifact(string formatId, string format, string path) => new(
     formatId,
     format,
-    file = Path.GetFileName(path),
-    sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant()
-};
+    Path.GetFileName(path),
+    Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
 
 static string? GetOption(string[] values, string name) {
     for (int index = 0; index < values.Length; index++) {
@@ -84,4 +77,12 @@ static string? GetOption(string[] values, string name) {
         return values[index + 1];
     }
     return null;
+}
+
+internal sealed record InteroperabilityManifest(int SchemaVersion, string Producer, IReadOnlyList<InteroperabilityArtifact> Artifacts);
+internal sealed record InteroperabilityArtifact(string FormatId, string Format, string File, string Sha256);
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
+[JsonSerializable(typeof(InteroperabilityManifest))]
+internal sealed partial class InteroperabilityJsonSerializerContext : JsonSerializerContext {
 }

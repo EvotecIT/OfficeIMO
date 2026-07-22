@@ -92,6 +92,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         GoogleWorkspaceRequestSafety.Safe,
                         "Google Docs API",
                         batch.Report,
+                        GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse,
                         cancellationToken).ConfigureAwait(false);
 
                     ConfigureExistingDocumentWrite(batch, existingDocument, effectiveOptions);
@@ -155,14 +156,17 @@ namespace OfficeIMO.Word.GoogleDocs {
                     };
                 }
 
-                var createResponse = await transport.SendJsonAsync<GoogleDocsApiCreateDocumentResponse>(
+                GoogleDocsApiCreateDocumentPayload createPayload = GoogleDocsApiPayloadBuilder.BuildCreateDocumentPayload(batch);
+                var createResponse = await transport.SendJsonAsync<GoogleDocsApiCreateDocumentPayload, GoogleDocsApiCreateDocumentResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://docs.googleapis.com/v1/documents",
-                    GoogleDocsApiPayloadBuilder.BuildCreateDocumentPayload(batch),
+                    createPayload,
                     GoogleWorkspaceRequestSafety.NonIdempotent,
                     "Google Docs API",
                     batch.Report,
+                    GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentPayload,
+                    GoogleDocsJsonSerializerContext.Default.GoogleDocsApiCreateDocumentResponse,
                     cancellationToken).ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(createResponse.DocumentId)) {

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -30,6 +31,7 @@ namespace OfficeIMO.Excel {
         /// <param name="include">True to keep and bind the block; false to remove it.</param>
         /// <param name="model">Model used when the block is included.</param>
         /// <param name="options">Optional template binding options.</param>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, object model, ExcelTemplateOptions? options = null) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include, ExcelTemplateBindingHelper.Create(model), options ?? new ExcelTemplateOptions());

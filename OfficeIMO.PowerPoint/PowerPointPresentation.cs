@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
@@ -33,19 +32,6 @@ namespace OfficeIMO.PowerPoint {
         private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
         private const string DefaultSectionName = "Section 1";
         private const string TableStylesResourceName = "OfficeIMO.PowerPoint.Resources.tableStyles.xml";
-        private static readonly MethodInfo AddNewPartWithContentTypeMethod =
-            typeof(OpenXmlPartContainer)
-                .GetMethods()
-                .Single(m => m.Name == "AddNewPart" &&
-                             m.IsGenericMethodDefinition &&
-                             m.GetParameters().Length == 2);
-        private static readonly MethodInfo AddPartWithIdMethod =
-            typeof(OpenXmlPartContainer)
-                .GetMethods()
-                .Single(m => m.Name == "AddPart" &&
-                             m.IsGenericMethodDefinition &&
-                             m.GetParameters().Length == 2);
-
         private PowerPointPresentation(PresentationDocument document, string filePath, bool isNewPresentation) {
             _document = document;
             _filePath = filePath;

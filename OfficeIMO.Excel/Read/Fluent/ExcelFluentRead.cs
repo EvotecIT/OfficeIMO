@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>
         /// Maps rows (excluding header) to instances of T by matching headers to property names.
         /// </summary>
-        public IEnumerable<T> AsObjects<T>() where T : new() {
+        public IEnumerable<T> AsObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>() where T : new() {
             using var rdr = ExcelDocumentReader.Wrap(_doc._spreadSheetDocument, _options);
             return rdr.GetSheet(_sheetName).ReadObjects<T>(_a1);
         }

@@ -280,7 +280,7 @@ public static class MarkdownVisualContract {
         return element.ValueKind switch {
             JsonValueKind.Object => CanonicalizeObject(element),
             JsonValueKind.Array => CanonicalizeArray(element),
-            JsonValueKind.String => JsonSerializer.Serialize(element.GetString() ?? string.Empty),
+            JsonValueKind.String => QuoteJsonString(element.GetString() ?? string.Empty),
             JsonValueKind.Number => element.GetRawText(),
             JsonValueKind.True => "true",
             JsonValueKind.False => "false",
@@ -305,7 +305,7 @@ public static class MarkdownVisualContract {
             }
 
             var property = properties[i];
-            sb.Append(JsonSerializer.Serialize(property.Name))
+            sb.Append(QuoteJsonString(property.Name))
               .Append(':')
               .Append(CanonicalizeJson(property.Value));
         }
@@ -328,6 +328,8 @@ public static class MarkdownVisualContract {
         sb.Append(']');
         return sb.ToString();
     }
+
+    private static string QuoteJsonString(string value) => "\"" + JsonEncodedText.Encode(value).ToString() + "\"";
 
     private static string NormalizeLineEndings(string value) {
         return value

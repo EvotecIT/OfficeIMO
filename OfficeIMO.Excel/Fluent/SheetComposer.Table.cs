@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Table rendering for SheetComposer.
@@ -7,7 +9,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// Flattens a sequence of objects into a table and renders it with a header row.
         /// Returns the A1 range used for the table.
         /// </summary>
-        public string TableFrom<T>(IEnumerable<T> items, string? title = null,
+        public string TableFrom<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> items, string? title = null,
             System.Action<ObjectFlattenerOptions>? configure = null,
             TableStyle style = TableStyle.TableStyleMedium9,
             bool autoFilter = true,
@@ -147,7 +149,7 @@ namespace OfficeIMO.Excel.Fluent {
             return range;
         }
 
-        private static List<System.Collections.Generic.Dictionary<string, object?>> FlattenTableRows<T>(
+        private static List<System.Collections.Generic.Dictionary<string, object?>> FlattenTableRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
             IEnumerable<T>? items,
             ObjectFlattener flattener,
             ObjectFlattenerOptions options) {

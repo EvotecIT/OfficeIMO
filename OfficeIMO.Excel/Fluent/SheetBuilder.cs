@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Data;
 using System.Reflection;
@@ -51,7 +52,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// Generates rows from a sequence of objects using the object flattener.
         /// Produces a header row from flattened property paths, then data rows.
         /// </summary>
-        public SheetBuilder RowsFrom<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null) {
+        public SheetBuilder RowsFrom<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (data == null) throw new ArgumentNullException(nameof(data));
 
@@ -158,7 +159,7 @@ namespace OfficeIMO.Excel.Fluent {
             return projected;
         }
 
-        private bool TryRowsFromSimpleFastPath<T>(IReadOnlyList<T> rows, int startRow) {
+        private bool TryRowsFromSimpleFastPath<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IReadOnlyList<T> rows, int startRow) {
             if (Sheet == null) {
                 return false;
             }
@@ -406,6 +407,7 @@ namespace OfficeIMO.Excel.Fluent {
             return headers.Count > 0;
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "RowsFrom limits inferred DataColumn types to supported scalar framework types; custom runtime types fall back to object/string cell storage.")]
         private static DataTable CreateRowsFromDataTable(IReadOnlyList<string> headers, IReadOnlyList<object?[]> rowValues) {
             var table = new DataTable("RowsFrom") {
                 Locale = CultureInfo.InvariantCulture
@@ -436,6 +438,7 @@ namespace OfficeIMO.Excel.Fluent {
         private static RowsFromSimpleTypePlan GetRowsFromSimpleTypePlan(Type type)
             => RowsFromSimpleTypePlans.GetOrAdd(type, CreateRowsFromSimpleTypePlan);
 
+        [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "RowsFrom<T> preserves public properties on T; this cache only discovers those public row properties.")]
         private static RowsFromSimpleTypePlan CreateRowsFromSimpleTypePlan(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null)
@@ -492,26 +495,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         private static RowsFromSimpleValueGetter CreateRowsFromSimpleValueGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null) {
-                return property.GetValue;
-            }
-
-            try {
-                return (RowsFromSimpleValueGetter)CreateRowsFromSimpleValueGetterMethod
-                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return property.GetValue;
-            }
-        }
-
-        private static readonly MethodInfo CreateRowsFromSimpleValueGetterMethod =
-            typeof(SheetBuilder).GetMethod(nameof(CreateRowsFromSimpleValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static RowsFromSimpleValueGetter CreateRowsFromSimpleValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
-            return row => getter((TTarget)row!);
+            return property.GetValue;
         }
 
         private static bool IsRowsFromDirectSaveScalarType(Type type) {

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -11,6 +12,7 @@ namespace OfficeIMO.Excel {
             return new Dictionary<string, object?>(values, StringComparer.OrdinalIgnoreCase);
         }
 
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         internal static Dictionary<string, object?> Create(object model) {
             if (model is IDictionary<string, object?> objectDictionary) {
                 return Create(objectDictionary);
@@ -21,6 +23,7 @@ namespace OfficeIMO.Excel {
             return values;
         }
 
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         private static void AddBindings(IDictionary<string, object?> values, string? prefix, object? source, int depth) {
             if (source == null || depth > 8) {
                 return;

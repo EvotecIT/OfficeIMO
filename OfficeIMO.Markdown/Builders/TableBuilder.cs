@@ -46,12 +46,14 @@ public sealed class TableBuilder {
     /// - a POCO → two columns Property/Value.
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
+    [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     public TableBuilder FromAny(object? data) { return FromAny(data, _defaultOptions); }
 
     /// <summary>
     /// Populates the table from arbitrary data with options (include/exclude/order).
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
+    [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     public TableBuilder FromAny(object? data, TableFromOptions? options) {      
         if (data is null) return this;
         if (data is string || data.GetType().IsPrimitive) {
@@ -135,6 +137,8 @@ public sealed class TableBuilder {
     /// <summary>
     /// Populates the table from arbitrary data using an inline options configuration.
     /// </summary>
+    [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
+    [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     public TableBuilder FromAny(object? data, System.Action<TableFromOptions> configure) {
         var opts = new TableFromOptions();
         configure(opts);
@@ -271,6 +275,8 @@ public sealed class TableBuilder {
         return value.ToString() ?? string.Empty;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime dictionary element types.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime dictionary element types.")]
     private bool TryFromDictionarySequence(List<object?> items, object firstNonNull, TableFromOptions? options) {
         if (!IsDictionaryLike(firstNonNull)) return false;
 
@@ -338,6 +344,8 @@ public sealed class TableBuilder {
         return headerKeys;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime interfaces.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime interfaces.")]
     private static bool IsDictionaryLike(object item) {
         if (item is System.Collections.IDictionary) return true;
         var type = item.GetType();
@@ -346,6 +354,8 @@ public sealed class TableBuilder {
         return false;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime dictionary entries.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime dictionary entries.")]
     private static List<System.Collections.Generic.KeyValuePair<string, object?>> EnumerateDictionaryEntries(object? item) {
         var entries = new List<System.Collections.Generic.KeyValuePair<string, object?>>();
         if (item is null) return entries;
@@ -368,6 +378,8 @@ public sealed class TableBuilder {
         return entries;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime key/value pairs.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime key/value pairs.")]
     private static bool TryExtractKeyValue(object entry, out object? key, out object? value) {
         if (entry is System.Collections.DictionaryEntry de) {
             key = de.Key;
@@ -388,6 +400,8 @@ public sealed class TableBuilder {
         return true;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime dictionary types.")]
+    [RequiresDynamicCode("Constructs a runtime KeyValuePair type for compatibility input.")]
     private bool TryFromReadOnlyDictionary(object data) {
         if (data is null) return false;
         var roInterface = FindGenericInterface(data.GetType(), typeof(System.Collections.Generic.IReadOnlyDictionary<,>));
@@ -398,6 +412,8 @@ public sealed class TableBuilder {
         return AddKeyValueRows((System.Collections.IEnumerable)data, kvpType, requireStringKey: false);
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime key/value sequence types.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime key/value sequence types.")]
     private bool TryFromStringObjectKeyValuePairs(object data) {
         if (data is null || data is string) return false;
         var kvpType = GetKeyValuePairElementType(data.GetType());
@@ -408,6 +424,8 @@ public sealed class TableBuilder {
         return AddKeyValueRows((System.Collections.IEnumerable)data, kvpType, requireStringKey: true);
     }
 
+    [RequiresUnreferencedCode("Reads Key and Value properties from an arbitrary runtime KeyValuePair type.")]
+    [RequiresDynamicCode("Reads a runtime-constructed KeyValuePair type.")]
     private bool AddKeyValueRows(System.Collections.IEnumerable source, System.Type kvpType, bool requireStringKey) {
         if (kvpType is null || !kvpType.IsGenericType || kvpType.GetGenericTypeDefinition() != typeof(KeyValuePair<,>)) return false;
         var args = kvpType.GetGenericArguments();
@@ -433,6 +451,8 @@ public sealed class TableBuilder {
         return true;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime interfaces.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime interfaces.")]
     private static System.Type? FindGenericInterface(System.Type type, System.Type genericTypeDefinition) {
         if (type.IsGenericType && type.GetGenericTypeDefinition() == genericTypeDefinition) return type;
         foreach (var iface in type.GetInterfaces()) {
@@ -441,6 +461,8 @@ public sealed class TableBuilder {
         return null;
     }
 
+    [RequiresUnreferencedCode("Inspects arbitrary runtime interfaces.")]
+    [RequiresDynamicCode("Inspects arbitrary runtime interfaces.")]
     private static System.Type? GetKeyValuePairElementType(System.Type type) {
         if (type.IsArray) {
             var element = type.GetElementType();
@@ -468,10 +490,11 @@ public sealed class TableBuilder {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, (System.Reflection.PropertyInfo? Key, System.Reflection.PropertyInfo? Value)> _kvpAccessors = new();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> _propsCache = new();
     private static System.Reflection.PropertyInfo[] GetReadableProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t) {
-        return _propsCache.GetOrAdd(t, static tArg =>
-            tArg.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
-                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-                .ToArray());
+        if (_propsCache.TryGetValue(t, out var cached)) return cached;
+        var discovered = t.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+            .ToArray();
+        return _propsCache.GetOrAdd(t, discovered);
     }
 
     private static System.Reflection.PropertyInfo[] SelectProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t, TableFromOptions? options) {

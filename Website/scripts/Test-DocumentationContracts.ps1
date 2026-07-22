@@ -45,11 +45,11 @@ if ($catalog.repository.productionComponentCount -ne @($catalog.components).Coun
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 144
+    projectCount = 145
     productionComponentCount = 89
     testProjectCount = 29
     benchmarkProjectCount = 12
-    validationProjectCount = 15
+    validationProjectCount = 16
     apiReferenceCount = 17
     conceptualPageCount = 69
 }

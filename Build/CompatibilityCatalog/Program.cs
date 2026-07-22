@@ -47,34 +47,26 @@ foreach ((string fileName, string content) in outputs) {
 Console.WriteLine($"Generated {outputs.Count} compatibility catalog artifacts in {Path.GetFullPath(outputDirectory)}.");
 
 static string SerializeFormats() {
-    var model = new {
-        schemaVersion = 1,
-        families = new[] {
+    var model = new FormatCatalogModel(
+        1,
+        new[] {
             CreateFamily("Word", WordFormatCatalog.All),
             CreateFamily("Excel", ExcelFormatCatalog.All),
             CreateFamily("PowerPoint", PowerPointFormatCatalog.All)
-        }
-    };
-    var options = new JsonSerializerOptions {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-    options.Converters.Add(new JsonStringEnumConverter());
-    return EnsureFinalNewline(JsonSerializer.Serialize(model, options));
+        });
+    return EnsureFinalNewline(JsonSerializer.Serialize(model, CompatibilityCatalogJsonSerializerContext.Default.FormatCatalogModel));
 }
 
-static object CreateFamily(string id, IReadOnlyList<OfficeFormatDescriptor> formats) => new {
+static FormatFamilyModel CreateFamily(string id, IReadOnlyList<OfficeFormatDescriptor> formats) => new(
     id,
-    formats = formats.Select(format => new {
+    formats.Select(format => new FormatDescriptorModel(
         format.Id,
         format.Extension,
-        format.Family,
-        format.DocumentKind,
-        format.Generation,
-        format.Encoding,
-        format.IsMacroEnabled
-    }).ToArray()
-};
+        format.Family.ToString(),
+        format.DocumentKind.ToString(),
+        format.Generation.ToString(),
+        format.Encoding.ToString(),
+        format.IsMacroEnabled)).ToArray());
 
 static string CreateReadme(IEnumerable<(string Name, OfficeCapabilityCatalog Catalog)> catalogs) {
     var markdown = new StringBuilder();
@@ -119,3 +111,19 @@ static string? GetOption(string[] values, string name) {
 
 static string EnsureFinalNewline(string value) => Normalize(value).TrimEnd('\n') + "\n";
 static string Normalize(string value) => value.Replace("\r\n", "\n").Replace("\r", "\n");
+
+internal sealed record FormatCatalogModel(int SchemaVersion, IReadOnlyList<FormatFamilyModel> Families);
+internal sealed record FormatFamilyModel(string Id, IReadOnlyList<FormatDescriptorModel> Formats);
+internal sealed record FormatDescriptorModel(
+    string Id,
+    string Extension,
+    string Family,
+    string DocumentKind,
+    string Generation,
+    string Encoding,
+    bool IsMacroEnabled);
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
+[JsonSerializable(typeof(FormatCatalogModel))]
+internal sealed partial class CompatibilityCatalogJsonSerializerContext : JsonSerializerContext {
+}

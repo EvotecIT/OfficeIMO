@@ -106,7 +106,7 @@ public sealed partial class PdfDocument {
             requested = operations.Distinct().OrderBy(static operation => operation).ToArray();
         } else {
 #pragma warning disable CA2263 // Generic Enum.GetValues is unavailable on netstandard2.0 and net472.
-            requested = Enum.GetValues(typeof(PdfMutationOperation)).Cast<PdfMutationOperation>().OrderBy(static operation => operation).ToArray();
+            requested = global::OfficeIMO.Internal.EnumCompat.GetValues<PdfMutationOperation>().OrderBy(static operation => operation).ToArray();
 #pragma warning restore CA2263
         }
         if (requested.Length == 0) throw new ArgumentException("At least one mutation operation is required.", nameof(operations));

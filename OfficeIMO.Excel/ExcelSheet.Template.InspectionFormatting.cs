@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -11,6 +12,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders in text cells on this worksheet using public properties from the supplied model.
         /// Nested properties are exposed as dotted marker names, for example {{Customer.Name}}.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, IFormatProvider? provider = null, bool throwOnMissing = false) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return ApplyTemplate(ExcelTemplateBindingHelper.Create(model), provider, throwOnMissing);
@@ -20,6 +22,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders in text cells on this worksheet using public properties from the supplied model and options.
         /// Nested properties are exposed as dotted marker names, for example {{Customer.Name}}.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, ExcelTemplateOptions options) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -44,6 +47,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Inspects {{Marker}} placeholders on this worksheet and reports which markers are missing from public properties on the supplied model.
         /// </summary>
+        [RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateInspection InspectTemplate(object model) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return InspectTemplate(ExcelTemplateBindingHelper.Create(model));

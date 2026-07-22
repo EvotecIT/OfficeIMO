@@ -516,34 +516,22 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var innerTextProperty = value.GetType().GetProperty("InnerText");
-            string? innerText = innerTextProperty?.GetValue(value, null)?.ToString();
+            string? innerText = (value as OpenXmlSimpleType)?.InnerText;
             if (!string.IsNullOrWhiteSpace(innerText)) {
                 string normalizedInnerText = innerText!;
                 return char.ToUpperInvariant(normalizedInnerText[0]) + normalizedInnerText.Substring(1);
             }
 
-            var valueField = value.GetType().GetField("_value", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            string? fieldValue = valueField?.GetValue(value)?.ToString();
-            if (!string.IsNullOrWhiteSpace(fieldValue)) {
-                string normalizedFieldValue = fieldValue!;
-                return char.ToUpperInvariant(normalizedFieldValue[0]) + normalizedFieldValue.Substring(1);
+            var text = value.ToString();
+            if (string.IsNullOrWhiteSpace(text)) {
+                return null;
             }
 
-            var text = value.ToString();
-            if (!string.IsNullOrWhiteSpace(text) && text.IndexOf("{", StringComparison.Ordinal) < 0) {
+            if (text!.IndexOf("{", StringComparison.Ordinal) >= 0) {
                 return text;
             }
 
-            var property = value.GetType().GetProperty("Value");
-            object? rawValueObject = property?.GetValue(value, null);
-            string? rawValue = rawValueObject as string ?? rawValueObject?.ToString();
-            if (string.IsNullOrWhiteSpace(rawValue)) {
-                return string.IsNullOrWhiteSpace(text) ? null : text;
-            }
-
-            string normalized = rawValue ?? string.Empty;
-            return char.ToUpperInvariant(normalized[0]) + normalized.Substring(1);
+            return char.ToUpperInvariant(text[0]) + text.Substring(1);
         }
 
         private static double? ConvertTwipsToPoints(uint? twips) {

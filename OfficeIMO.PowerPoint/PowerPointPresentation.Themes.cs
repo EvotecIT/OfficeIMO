@@ -117,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var colors = new Dictionary<PowerPointThemeColor, string>();
-            foreach (PowerPointThemeColor color in Enum.GetValues(typeof(PowerPointThemeColor))) {
+            foreach (PowerPointThemeColor color in global::OfficeIMO.Internal.EnumCompat.GetValues<PowerPointThemeColor>()) {
                 OpenXmlCompositeElement? element = GetColorElement(scheme, color);
                 string? hexValue = GetThemeColorValue(element);
                 if (!string.IsNullOrEmpty(hexValue)) {

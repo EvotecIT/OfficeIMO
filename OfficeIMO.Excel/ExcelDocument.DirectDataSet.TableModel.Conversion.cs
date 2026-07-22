@@ -1,6 +1,7 @@
 using System.Data;
 using System.Globalization;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using DocumentFormat.OpenXml;
@@ -10,6 +11,12 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private sealed partial class DirectDataSetTableModel {
+#if NET5_0_OR_GREATER
+            [UnconditionalSuppressMessage(
+                "Trimming",
+                "IL2072",
+                Justification = "OfficeIMO preserves the DataTable column type supplied by the caller. Framework scalar types used by the AOT-safe tabular APIs are statically rooted; applications that use custom DataColumn types must preserve those model members at the application boundary.")]
+#endif
             internal DataTable ToDataTable() {
                 if (_sourceTable != null) {
                     return _sourceTable;

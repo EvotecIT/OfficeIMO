@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
@@ -28,6 +31,8 @@ namespace OfficeIMO.GoogleWorkspace {
             }
         }
 
+        [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
+        [RequiresDynamicCode("Use the overload that accepts JsonTypeInfo<TResponse> in NativeAOT applications.")]
         public Task<TResponse> SendJsonAsync<TResponse>(
             string accessToken,
             HttpMethod method,
@@ -50,7 +55,65 @@ namespace OfficeIMO.GoogleWorkspace {
                 cancellationToken);
         }
 
-        public async Task<TResponse> SendAsync<TResponse>(
+        /// <summary>
+        /// Sends a typed JSON payload and deserializes the response with source-generated metadata.
+        /// </summary>
+        public Task<TResponse> SendJsonAsync<TRequest, TResponse>(
+            string accessToken,
+            HttpMethod method,
+            string uri,
+            TRequest payload,
+            GoogleWorkspaceRequestSafety requestSafety,
+            string serviceName,
+            TranslationReport report,
+            JsonTypeInfo<TRequest> requestTypeInfo,
+            JsonTypeInfo<TResponse> responseTypeInfo,
+            CancellationToken cancellationToken = default) {
+            if (requestTypeInfo == null) throw new ArgumentNullException(nameof(requestTypeInfo));
+            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            return SendAsync(
+                accessToken,
+                method,
+                uri,
+                () => new StringContent(JsonSerializer.Serialize(payload, requestTypeInfo), Encoding.UTF8, "application/json"),
+                requestSafety,
+                serviceName,
+                report,
+                responseTypeInfo,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Sends an optional JSON node and deserializes the response with source-generated metadata.
+        /// </summary>
+        public Task<TResponse> SendJsonAsync<TResponse>(
+            string accessToken,
+            HttpMethod method,
+            string uri,
+            JsonNode? payload,
+            GoogleWorkspaceRequestSafety requestSafety,
+            string serviceName,
+            TranslationReport report,
+            JsonTypeInfo<TResponse> responseTypeInfo,
+            CancellationToken cancellationToken = default) {
+            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            return SendAsync(
+                accessToken,
+                method,
+                uri,
+                payload == null
+                    ? null
+                    : (() => new StringContent(payload.ToJsonString(JsonOptions), Encoding.UTF8, "application/json")),
+                requestSafety,
+                serviceName,
+                report,
+                responseTypeInfo,
+                cancellationToken);
+        }
+
+        [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
+        [RequiresDynamicCode("Use the overload that accepts JsonTypeInfo<TResponse> in NativeAOT applications.")]
+        public Task<TResponse> SendAsync<TResponse>(
             string accessToken,
             HttpMethod method,
             string uri,
@@ -59,6 +122,54 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             CancellationToken cancellationToken = default) {
+            return SendAsyncCore(
+                accessToken,
+                method,
+                uri,
+                contentFactory,
+                requestSafety,
+                serviceName,
+                report,
+                body => JsonSerializer.Deserialize<TResponse>(body, JsonOptions),
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Sends a request and deserializes the response with source-generated metadata.
+        /// </summary>
+        public Task<TResponse> SendAsync<TResponse>(
+            string accessToken,
+            HttpMethod method,
+            string uri,
+            Func<HttpContent?>? contentFactory,
+            GoogleWorkspaceRequestSafety requestSafety,
+            string serviceName,
+            TranslationReport report,
+            JsonTypeInfo<TResponse> responseTypeInfo,
+            CancellationToken cancellationToken = default) {
+            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            return SendAsyncCore(
+                accessToken,
+                method,
+                uri,
+                contentFactory,
+                requestSafety,
+                serviceName,
+                report,
+                body => JsonSerializer.Deserialize(body, responseTypeInfo),
+                cancellationToken);
+        }
+
+        private async Task<TResponse> SendAsyncCore<TResponse>(
+            string accessToken,
+            HttpMethod method,
+            string uri,
+            Func<HttpContent?>? contentFactory,
+            GoogleWorkspaceRequestSafety requestSafety,
+            string serviceName,
+            TranslationReport report,
+            Func<string, TResponse?> deserialize,
+            CancellationToken cancellationToken) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -87,7 +198,7 @@ namespace OfficeIMO.GoogleWorkspace {
                     return default!;
                 }
 
-                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
+                var result = deserialize(body);
                 if (result == null) {
                     throw new InvalidOperationException($"{serviceName} response from '{effectiveUri}' could not be deserialized.");
                 }
@@ -287,10 +398,23 @@ namespace OfficeIMO.GoogleWorkspace {
             return Headers.TryGetValue(name, out var values) ? values.FirstOrDefault() : null;
         }
 
+        [RequiresUnreferencedCode("Use DeserializeJson(JsonTypeInfo<T>) in trimmed applications.")]
+        [RequiresDynamicCode("Use DeserializeJson(JsonTypeInfo<T>) in NativeAOT applications.")]
         public T DeserializeJson<T>() {
             var value = JsonSerializer.Deserialize<T>(Body, new JsonSerializerOptions {
                 PropertyNameCaseInsensitive = true,
             });
+            if (value == null) {
+                throw new InvalidOperationException("The Google Workspace response body could not be deserialized.");
+            }
+
+            return value;
+        }
+
+        /// <summary>Deserializes the response body with source-generated JSON metadata.</summary>
+        public T DeserializeJson<T>(JsonTypeInfo<T> typeInfo) {
+            if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+            var value = JsonSerializer.Deserialize(Body, typeInfo);
             if (value == null) {
                 throw new InvalidOperationException("The Google Workspace response body could not be deserialized.");
             }

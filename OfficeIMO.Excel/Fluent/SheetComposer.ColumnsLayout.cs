@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.Fluent {
             /// Renders a table inside this column starting at the current row and returns the A1 range.
             /// This variant avoids freezing panes to prevent conflicts when multiple tables are placed per sheet.
             /// </summary>
-            public string TableFrom<T>(IEnumerable<T> items, string? title = null,
+            public string TableFrom<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> items, string? title = null,
                 System.Action<ObjectFlattenerOptions>? configure = null,
                 TableStyle style = TableStyle.TableStyleMedium9,
                 bool autoFilter = true,

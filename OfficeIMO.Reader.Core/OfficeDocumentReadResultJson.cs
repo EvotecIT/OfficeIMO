@@ -71,7 +71,8 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
         EnsureDiagnosticContracts(result.Diagnostics);
 
-        return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
+        ReaderJsonSerializerContext context = CreateContext(indented, propertyNameCaseInsensitive: false);
+        return JsonSerializer.Serialize(result, context.OfficeDocumentReadResult);
     }
 
     /// <summary>
@@ -105,7 +106,8 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureKnownTopLevelProperties(root);
         EnsureNestedTransportContracts(root);
 
-        OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
+        ReaderJsonSerializerContext context = CreateContext(indented: false, propertyNameCaseInsensitive: true);
+        OfficeDocumentReadResult? result = JsonSerializer.Deserialize(json, context.OfficeDocumentReadResult);
         if (result == null) {
             throw new JsonException("The document read result payload produced a null result.");
         }
@@ -116,19 +118,13 @@ public static partial class OfficeDocumentReadResultJson {
         return result;
     }
 
-    private static JsonSerializerOptions CreateOptions(bool indented) {
-        return new JsonSerializerOptions {
+    private static ReaderJsonSerializerContext CreateContext(bool indented, bool propertyNameCaseInsensitive) {
+        return new ReaderJsonSerializerContext(new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = propertyNameCaseInsensitive,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
-        };
-    }
-
-    private static JsonSerializerOptions CreateReadOptions() {
-        var options = new JsonSerializerOptions {
-            PropertyNameCaseInsensitive = true
-        };
-        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
-        return options;
+        });
     }
 
     private static void EnsureRequiredTopLevelProperties(JsonElement root) {

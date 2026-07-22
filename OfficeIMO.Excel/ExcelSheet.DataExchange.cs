@@ -66,43 +66,26 @@ namespace OfficeIMO.Excel {
 
         private static string DataTableToJson(DataTable table, JsonSerializerOptions? options) {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            if (options == null) {
-                return DataTableToJsonStreaming(table);
-            }
-
-            int columnCount = table.Columns.Count;
-            string[] columnNames = new string[columnCount];
-            for (int column = 0; column < columnCount; column++) {
-                columnNames[column] = table.Columns[column].ColumnName;
-            }
-
-            var rows = new List<Dictionary<string, object?>>(table.Rows.Count);
-            foreach (DataRow row in table.Rows) {
-                var item = new Dictionary<string, object?>(columnCount, StringComparer.OrdinalIgnoreCase);
-                for (int column = 0; column < columnCount; column++) {
-                    object? value = row.IsNull(column) ? null : row[column];
-                    item[columnNames[column]] = value;
-                }
-
-                rows.Add(item);
-            }
-
-            return JsonSerializer.Serialize(rows, options);
+            return DataTableToJsonStreaming(table, options);
         }
 
-        private static string DataTableToJsonStreaming(DataTable table) {
-            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns);
+        private static string DataTableToJsonStreaming(DataTable table, JsonSerializerOptions? options = null) {
+            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options);
             int estimatedCapacity = EstimateJsonCapacity(table, propertyNames);
+            var writerOptions = new JsonWriterOptions {
+                Encoder = options?.Encoder,
+                Indented = options?.WriteIndented ?? false
+            };
 #if NET6_0_OR_GREATER
             var buffer = new ArrayBufferWriter<byte>(estimatedCapacity);
-            using (var writer = new Utf8JsonWriter(buffer)) {
+            using (var writer = new Utf8JsonWriter(buffer, writerOptions)) {
                 WriteDataTableJson(table, propertyNames, writer);
             }
 
             return Encoding.UTF8.GetString(buffer.WrittenSpan);
 #else
             using var stream = new MemoryStream(estimatedCapacity);
-            using (var writer = new Utf8JsonWriter(stream)) {
+            using (var writer = new Utf8JsonWriter(stream, writerOptions)) {
                 WriteDataTableJson(table, propertyNames, writer);
             }
 
@@ -160,6 +143,18 @@ namespace OfficeIMO.Excel {
                 case Guid guid:
                     writer.WriteStringValue(guid);
                     return;
+                case TimeSpan timeSpan:
+                    writer.WriteStringValue(timeSpan.ToString("c", CultureInfo.InvariantCulture));
+                    return;
+                case char character:
+                    writer.WriteStringValue(character.ToString());
+                    return;
+                case byte[] bytes:
+                    writer.WriteBase64StringValue(bytes);
+                    return;
+                case JsonElement element:
+                    element.WriteTo(writer);
+                    return;
                 case float floatValue:
                     writer.WriteNumberValue(floatValue);
                     return;
@@ -181,16 +176,29 @@ namespace OfficeIMO.Excel {
                 case ulong ulongValue:
                     writer.WriteNumberValue(ulongValue);
                     return;
+#if NET6_0_OR_GREATER
+                case DateOnly dateOnly:
+                    writer.WriteStringValue(dateOnly.ToString("O", CultureInfo.InvariantCulture));
+                    return;
+                case TimeOnly timeOnly:
+                    writer.WriteStringValue(timeOnly.ToString("O", CultureInfo.InvariantCulture));
+                    return;
+#endif
                 default:
-                    JsonSerializer.Serialize(writer, value, value.GetType());
+                    writer.WriteStringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
                     return;
             }
         }
 
-        private static JsonEncodedText[] CreateJsonPropertyNames(DataColumnCollection columns) {
+        private static JsonEncodedText[] CreateJsonPropertyNames(DataColumnCollection columns, JsonSerializerOptions? options) {
             var propertyNames = new JsonEncodedText[columns.Count];
             for (int i = 0; i < propertyNames.Length; i++) {
-                propertyNames[i] = JsonEncodedText.Encode(columns[i].ColumnName);
+                string columnName = columns[i].ColumnName;
+                if (options?.DictionaryKeyPolicy != null) {
+                    columnName = options.DictionaryKeyPolicy.ConvertName(columnName);
+                }
+
+                propertyNames[i] = JsonEncodedText.Encode(columnName, options?.Encoder);
             }
 
             return propertyNames;

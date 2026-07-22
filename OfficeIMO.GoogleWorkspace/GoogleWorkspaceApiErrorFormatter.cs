@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace OfficeIMO.GoogleWorkspace {
     public static class GoogleWorkspaceApiErrorFormatter {
@@ -8,37 +7,49 @@ namespace OfficeIMO.GoogleWorkspace {
                 return null;
             }
 
-            var oauthError = TryDeserialize<GoogleOAuthErrorEnvelope>(responseBody);
-            if (oauthError != null && !string.IsNullOrWhiteSpace(oauthError.Error)) {
-                return string.IsNullOrWhiteSpace(oauthError.ErrorDescription)
-                    ? oauthError.Error
-                    : oauthError.Error + " (" + oauthError.ErrorDescription + ")";
-            }
-
-            var apiError = TryDeserialize<GoogleApiErrorEnvelope>(responseBody);
-            if (apiError?.Error == null) {
+            JsonElement root;
+            try {
+                using JsonDocument document = JsonDocument.Parse(responseBody);
+                root = document.RootElement.Clone();
+            } catch (JsonException) {
                 return null;
             }
 
+            if (!root.TryGetProperty("error", out JsonElement error)) {
+                return null;
+            }
+
+            if (error.ValueKind == JsonValueKind.String) {
+                string? code = error.GetString();
+                if (string.IsNullOrWhiteSpace(code)) return null;
+                string? description = root.TryGetProperty("error_description", out JsonElement descriptionElement)
+                    && descriptionElement.ValueKind == JsonValueKind.String
+                    ? descriptionElement.GetString()
+                    : null;
+                return string.IsNullOrWhiteSpace(description)
+                    ? code
+                    : code + " (" + description + ")";
+            }
+
+            if (error.ValueKind != JsonValueKind.Object) return null;
+
             var parts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(apiError.Error.Status)) {
-                parts.Add(apiError.Error.Status!);
+            string? status = ReadString(error, "status");
+            if (!string.IsNullOrWhiteSpace(status)) {
+                parts.Add(status!);
             }
 
-            if (!string.IsNullOrWhiteSpace(apiError.Error.Message)) {
-                parts.Add(apiError.Error.Message!);
+            string? message = ReadString(error, "message");
+            if (!string.IsNullOrWhiteSpace(message)) {
+                parts.Add(message!);
             }
 
-            var reason = apiError.Error.Errors?
-                .Select(error => error.Reason)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? reason = ReadFirstErrorValue(error, "reason");
             if (!string.IsNullOrWhiteSpace(reason)) {
                 parts.Add("reason=" + reason);
             }
 
-            var domain = apiError.Error.Errors?
-                .Select(error => error.Domain)
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            string? domain = ReadFirstErrorValue(error, "domain");
             if (!string.IsNullOrWhiteSpace(domain)) {
                 parts.Add("domain=" + domain);
             }
@@ -50,44 +61,25 @@ namespace OfficeIMO.GoogleWorkspace {
             return string.Join("; ", parts);
         }
 
-        private static T? TryDeserialize<T>(string json) where T : class {
-            try {
-                return JsonSerializer.Deserialize<T>(json);
-            } catch (JsonException) {
+        private static string? ReadString(JsonElement parent, string propertyName) {
+            return parent.TryGetProperty(propertyName, out JsonElement value)
+                && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+        }
+
+        private static string? ReadFirstErrorValue(JsonElement error, string propertyName) {
+            if (!error.TryGetProperty("errors", out JsonElement errors) || errors.ValueKind != JsonValueKind.Array) {
                 return null;
             }
-        }
 
-        private sealed class GoogleOAuthErrorEnvelope {
-            [JsonPropertyName("error")]
-            public string? Error { get; set; }
+            foreach (JsonElement item in errors.EnumerateArray()) {
+                if (item.ValueKind != JsonValueKind.Object) continue;
+                string? value = ReadString(item, propertyName);
+                if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
 
-            [JsonPropertyName("error_description")]
-            public string? ErrorDescription { get; set; }
-        }
-
-        private sealed class GoogleApiErrorEnvelope {
-            [JsonPropertyName("error")]
-            public GoogleApiErrorBody? Error { get; set; }
-        }
-
-        private sealed class GoogleApiErrorBody {
-            [JsonPropertyName("message")]
-            public string? Message { get; set; }
-
-            [JsonPropertyName("status")]
-            public string? Status { get; set; }
-
-            [JsonPropertyName("errors")]
-            public List<GoogleApiErrorItem>? Errors { get; set; }
-        }
-
-        private sealed class GoogleApiErrorItem {
-            [JsonPropertyName("reason")]
-            public string? Reason { get; set; }
-
-            [JsonPropertyName("domain")]
-            public string? Domain { get; set; }
+            return null;
         }
     }
 }

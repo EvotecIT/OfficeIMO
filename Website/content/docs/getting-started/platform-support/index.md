@@ -38,17 +38,13 @@ The `.NET Framework 4.7.2` target is included for some packages only when buildi
 
 For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and first-party drawing helpers. The main PDF caveat is layout fidelity: `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` are dependency-light, but host fonts and source templates still affect the rendered result.
 
-## AOT Compilation
+## NativeAOT
 
-OfficeIMO does **not** have one identical AOT story across every package.
+OfficeIMO supports NativeAOT for its standard in-process document workflows. The repository publishes and executes native applications on `win-x64` and `linux-x64` for Word, typed Excel tables, PowerPoint charts and relationship cloning, Markdown, CSV, the complete 30-handler local Reader adapter preset, and HTML/PDF/image rendering.
 
-- **Published and executed scenarios:** Word create/save/reload, Markdown rendering, CSV parsing, Reader CSV extraction, and HTML-to-SVG/PNG/searchable-PDF rendering
-- **Current native compiler blockers:** Excel (`IL2072`) and PowerPoint (`IL2060`, `IL2075`, `IL2087`, `IL3050`)
-- **Not tested:** package and adapter paths outside the executable matrix
+All production projects are also built with the .NET trimming and AOT analyzers. Optional cloud authentication, external OCR executables, and WPF/WebView2 keep their own provider or desktop-runtime deployment requirements.
 
-The smoke applications isolate each dependency graph, run semantic assertions, and are repeated by CI for the supported paths. Some projects also enable trimming polyfills, but those flags are not a compatibility guarantee.
-
-See [AOT and Trimming](/docs/advanced/aot-trimming) for more detailed guidance.
+See [NativeAOT Deployment](/docs/advanced/aot-trimming/) for the publish settings, tested workflows, typed-API guidance, and integration boundaries.
 
 ## IL Trimming
 
@@ -61,7 +57,7 @@ When publishing trimmed applications, start with a conservative configuration an
 </PropertyGroup>
 ```
 
-If your workload uses Open XML-heavy paths, expect to validate trimming warnings rather than assuming they are harmless.
+Resolve trimming warnings at the call site. Prefer typed OfficeIMO APIs; preserve members explicitly only when your application intentionally selects runtime types or plug-ins dynamically.
 
 ## Minimum Visual Studio Version
 
