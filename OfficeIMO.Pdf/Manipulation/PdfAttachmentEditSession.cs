@@ -27,7 +27,9 @@ public sealed class PdfAttachmentEditSession {
         IEnumerable<PdfEmbeddedFile> attachments) {
         var retainedOriginalNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (PdfEmbeddedFile attachment in attachments) {
-            retainedOriginalNames.TryAdd(attachment.FileName, attachment.FileName);
+            if (!retainedOriginalNames.ContainsKey(attachment.FileName)) {
+                retainedOriginalNames.Add(attachment.FileName, attachment.FileName);
+            }
         }
         return retainedOriginalNames;
     }

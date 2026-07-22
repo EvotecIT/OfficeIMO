@@ -76,4 +76,26 @@ public class PdfDebuggerTests {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void Dump_StreamReadsFromCurrentPosition() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Current-position debugger"))
+            .ToBytes();
+        byte[] prefixed = new byte[source.Length + 5];
+        Array.Fill(prefixed, (byte)0xFF, 0, 5);
+        Buffer.BlockCopy(source, 0, prefixed, 5, source.Length);
+
+        using var stream = new MemoryStream(prefixed);
+        stream.Position = 5;
+
+        PdfDebuggerReport report = PdfDebugger.Dump(
+            stream,
+            readOptions: new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxInputBytes = source.Length }
+            });
+
+        Assert.Single(report.Pages);
+        Assert.Equal(stream.Length, stream.Position);
+    }
 }

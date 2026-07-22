@@ -46,7 +46,7 @@ internal static class PdfDebugger {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        PdfDocumentSource source = PdfDocumentSource.FromStream(stream, readOptions);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, readOptions);
         return Dump(source.Bytes, options, source.Options);
     }
 
