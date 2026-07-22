@@ -2,6 +2,8 @@
 title: "Open Formats and Text Automation"
 description: "Use the smaller PSWriteOffice families for text, interchange, open formats, and managed message workflows."
 layout: docs
+aliases:
+  - /docs/pswriteoffice/markdown/
 ---
 
 PSWriteOffice is not limited to the three desktop Office formats. Smaller command families expose the same managed-engine approach for text, interchange, open document, and email workflows.

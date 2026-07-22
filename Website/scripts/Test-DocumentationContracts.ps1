@@ -33,6 +33,12 @@ foreach ($doc in $docs) {
     }
 }
 
+$openTextFormatsPath = Join-Path $docsRoot 'pswriteoffice\open-text-formats\index.md'
+$openTextFormats = Get-Content -LiteralPath $openTextFormatsPath -Raw
+if ($openTextFormats -notmatch '(?m)^\s*-\s+/docs/pswriteoffice/markdown/\s*$') {
+    Add-Failure 'The retired PSWriteOffice Markdown URL is not preserved as an alias of the open and text formats guide.'
+}
+
 $catalogPath = Join-Path $SiteRoot 'data\documentation_catalog.json'
 $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 if ($catalog.repository.productionComponentCount -ne @($catalog.components).Count) {
@@ -45,7 +51,7 @@ $expectedRepositoryCounts = [ordered]@{
     benchmarkProjectCount = 12
     validationProjectCount = 15
     apiReferenceCount = 17
-    conceptualPageCount = 70
+    conceptualPageCount = 69
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)
