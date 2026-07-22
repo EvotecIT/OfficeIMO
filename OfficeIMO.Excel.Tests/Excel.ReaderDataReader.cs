@@ -219,6 +219,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_XmlFastPathDoesNotChargeUnusedChunkBuffer() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "First");
+                sheet.CellValue(5000, 1000, "Last");
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:ALL5000", schemaSampleRows: 0);
+
+            Assert.Equal(1000, dataReader.FieldCount);
+            Assert.True(dataReader.Read());
+            Assert.True(dataReader.IsDBNull(0));
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesValuesAfterTypedAccess() {
             var expectedDate = new DateTime(2026, 7, 9);
             using var memory = new MemoryStream();
