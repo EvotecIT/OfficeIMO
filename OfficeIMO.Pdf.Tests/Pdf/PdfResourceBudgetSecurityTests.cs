@@ -253,6 +253,26 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void PdfReadDocument_AppliesNodeBudgetSeparatelyToEachCatalogNameTree() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 5 0 R /JavaScript 6 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [(Target) [3 0 R /Fit]] >>",
+            "<< /Names [(Open) 7 0 R] >>",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        Assert.Equal("Target", Assert.Single(document.NamedDestinations).Name);
+        Assert.Equal("Open", Assert.Single(document.CatalogActions).Name);
+    }
+
+    [Fact]
     public void PdfReadDocument_BoundsEmbeddedFileNameTreeDepth() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 5 0 R >> >>",

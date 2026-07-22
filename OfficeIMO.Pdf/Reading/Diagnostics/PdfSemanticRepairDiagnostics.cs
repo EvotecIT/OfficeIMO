@@ -63,8 +63,8 @@ internal static class PdfSemanticRepairDiagnostics {
     private static void ValidateNameTrees(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, IReadOnlyList<PdfReadPage> pages, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         if (names is null) return;
-        int traversedNameTreeNodes = 0;
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
+            int traversedNameTreeNodes = 0;
             ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics, 0, ref traversedNameTreeNodes);
         }
 
