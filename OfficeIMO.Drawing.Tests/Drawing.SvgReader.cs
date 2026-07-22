@@ -413,6 +413,20 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderDoesNotExhaustPathBudgetForMalformedPointLists() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<polygon points='0,0 nope'/><polyline points='0,0 1'/><path d='M10 0 L20 10' stroke='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(2, unsupported);
+        OfficeDrawingShape shape = Assert.Single(drawing!.Shapes);
+        Assert.Equal(OfficeColor.Lime, shape.Shape.StrokeColor);
+        Assert.Equal(2, shape.Shape.PathCommands.Count);
+    }
+
+    [Fact]
     public void SvgReaderRejectsTransformArgumentsBeyondSupportedArity() {
         var arguments = new StringBuilder("0");
         for (int index = 1; index < 1000; index++) arguments.Append(" 0");

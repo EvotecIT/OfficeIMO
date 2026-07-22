@@ -336,12 +336,14 @@ public static partial class OfficeSvgDrawingReader {
     private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX,
         double viewY, bool close, ref int pathCommands) {
         int remainingCommands = MaximumSvgPathCommands - pathCommands;
-        if (remainingCommands <= 0
-            || !TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
-                out IReadOnlyList<double> values)
-            || values.Count < 4
-            || values.Count % 2 != 0) {
+        if (remainingCommands <= 0) {
             pathCommands = MaximumSvgPathCommands;
+            return null;
+        }
+        bool parsed = TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
+            out IReadOnlyList<double> values, out bool limitExceeded);
+        if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
+            if (limitExceeded) pathCommands = MaximumSvgPathCommands;
             return null;
         }
         int commandCount = values.Count / 2;
@@ -696,15 +698,23 @@ public static partial class OfficeSvgDrawingReader {
         TryParseNumberList(value, int.MaxValue, out values);
 
     private static bool TryParseNumberList(string? value, int maximumValues,
-        out IReadOnlyList<double> values) {
+        out IReadOnlyList<double> values) =>
+        TryParseNumberList(value, maximumValues, out values, out _);
+
+    private static bool TryParseNumberList(string? value, int maximumValues,
+        out IReadOnlyList<double> values, out bool limitExceeded) {
         var result = new List<double>(Math.Min(maximumValues, 16));
         values = result;
+        limitExceeded = false;
         if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
         int index = 0;
         while (index < value!.Length) {
             while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
             if (index >= value.Length) break;
-            if (result.Count >= maximumValues) return false;
+            if (result.Count >= maximumValues) {
+                limitExceeded = true;
+                return false;
+            }
             int start = index;
             while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') index++;
             int length = index - start;
