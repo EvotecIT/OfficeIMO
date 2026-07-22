@@ -1,5 +1,6 @@
 ---
 title: "OfficeIMO.OpenDocument"
+hero_title_html: "OfficeIMO.<wbr>OpenDocument"
 description: "Create and edit ODT, ODS, and ODP files and connect them to Office and PDF conversion workflows."
 layout: product
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/open-document/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/open-document/" />'

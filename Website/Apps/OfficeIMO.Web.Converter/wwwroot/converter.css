@@ -1,24 +1,24 @@
 :root {
   color-scheme: light;
-  --ocx-bg: #f7f8fb;
-  --ocx-bg-alt: #eef2f7;
+  --ocx-bg: #ffffff;
+  --ocx-bg-alt: #f5f7fb;
   --ocx-panel: #ffffff;
-  --ocx-border: #dce2eb;
-  --ocx-border-strong: #c7d0dd;
-  --ocx-text: #14213a;
-  --ocx-muted: #5c6b82;
-  --ocx-blue: #2563eb;
-  --ocx-blue-dark: #1d4ed8;
-  --ocx-action-bg: #2563eb;
-  --ocx-action-hover: #1d4ed8;
+  --ocx-border: #d9e1ec;
+  --ocx-border-strong: #bcc8d8;
+  --ocx-text: #0b1830;
+  --ocx-muted: #40516c;
+  --ocx-blue: #145df5;
+  --ocx-blue-dark: #0f4dd4;
+  --ocx-action-bg: #145df5;
+  --ocx-action-hover: #0f4dd4;
   --ocx-action-text: #ffffff;
   --ocx-cyan: #0891b2;
   --ocx-focus: #1d4ed8;
   --ocx-green: #059669;
   --ocx-red: #dc2626;
-  --ocx-code-bg: #f3f6fb;
-  --ocx-code-border: #c7d1df;
-  --ocx-code-text: #172033;
+  --ocx-code-bg: #f6f8fc;
+  --ocx-code-border: #c7d2e2;
+  --ocx-code-text: #111d33;
   --ocx-code-muted: #596579;
   --ocx-code-accent: #075985;
   --ocx-shadow: 0 18px 48px rgba(20, 33, 58, 0.1);
@@ -26,15 +26,15 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --ocx-bg: #08111f;
-  --ocx-bg-alt: #0d1728;
-  --ocx-panel: #111d30;
-  --ocx-border: #25354c;
-  --ocx-border-strong: #344963;
-  --ocx-text: #edf3fb;
-  --ocx-muted: #a6b3c7;
-  --ocx-blue: #6da6ff;
-  --ocx-blue-dark: #91bcff;
+  --ocx-bg: #07101e;
+  --ocx-bg-alt: #0c1728;
+  --ocx-panel: #111f33;
+  --ocx-border: #2a3b54;
+  --ocx-border-strong: #3b5272;
+  --ocx-text: #f3f7fd;
+  --ocx-muted: #bcc9da;
+  --ocx-blue: #74a9ff;
+  --ocx-blue-dark: #9bc2ff;
   --ocx-action-bg: #2563eb;
   --ocx-action-hover: #1d4ed8;
   --ocx-action-text: #ffffff;
@@ -42,10 +42,10 @@
   --ocx-focus: #91bcff;
   --ocx-green: #34d399;
   --ocx-red: #fb7185;
-  --ocx-code-bg: #0b1730;
-  --ocx-code-border: #2b4061;
-  --ocx-code-text: #e6edf7;
-  --ocx-code-muted: #9aa9bd;
+  --ocx-code-bg: #091426;
+  --ocx-code-border: #304765;
+  --ocx-code-text: #eef4fc;
+  --ocx-code-muted: #aebcd0;
   --ocx-code-accent: #7dd3fc;
   --ocx-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
 }
@@ -88,6 +88,10 @@
   background: color-mix(in srgb, var(--ocx-panel) 94%, transparent);
   backdrop-filter: blur(14px) saturate(130%);
 }
+
+.ocx-embedded .ocx-appbar { display: none; }
+
+.ocx-embedded .ocx-intro { padding-top: 2.8rem; }
 
 .ocx-brand {
   display: flex;
@@ -531,7 +535,15 @@
   .ocx-route-picker { grid-template-columns: 1fr; }
   .ocx-route-arrow { margin: -0.2rem auto; transform: rotate(90deg); }
   .ocx-local-banner { align-items: flex-start; flex-wrap: wrap; }
-  .ocx-local-banner code { width: 100%; margin-left: 1.05rem; }
+  .ocx-local-banner code {
+    width: 100%;
+    margin-left: 1.05rem;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+    text-overflow: clip;
+    white-space: normal;
+  }
   .ocx-route-grid { grid-template-columns: 1fr; }
   .ocx-section-heading { align-items: flex-start; flex-direction: column; gap: 0.4rem; }
   .ocx-input-panel,

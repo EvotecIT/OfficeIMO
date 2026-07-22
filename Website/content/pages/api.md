@@ -34,5 +34,12 @@ layout: api-home
     <a class="imo-api-catalog-card" href="/api/powershell/"><strong>PSWriteOffice</strong><span>Generated cmdlet syntax, parameters, examples, aliases, and related commands</span><small>Open cmdlet reference →</small></a>
   </div></section>
 
+  <section class="imo-api-family" aria-labelledby="api-cloud"><div class="imo-api-family__heading"><p>Cloud workflows</p><h2 id="api-cloud">Connect Office and Google Workspace</h2></div><div class="imo-api-catalog-grid">
+    <a class="imo-api-catalog-card" href="/api/google-workspace/"><strong>OfficeIMO.GoogleWorkspace</strong><span>Sessions, scopes, transport, retries, diagnostics, and fidelity planning</span><small>Open core reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/google-workspace-drive/"><strong>GoogleWorkspace.Drive</strong><span>Files, folders, shared drives, permissions, revisions, and change feeds</span><small>Open Drive reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/google-workspace-auth/"><strong>GoogleWorkspace.Auth</strong><span>Google APIs authentication adapters, PKCE, and token-storage boundaries</span><small>Open auth reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/google-workspace-sync/"><strong>GoogleWorkspace.Sync</strong><span>Checkpoints, dry-run plans, approvals, apply outcomes, and synchronization</span><small>Open sync reference →</small></a>
+  </div></section>
+
   <aside class="imo-api-source-note"><div><strong>Reference and releases are different channels.</strong><p>These pages describe the repository source used for this site build. Package feeds on the downloads page show what consumers can install today.</p></div><a href="/downloads/">Compare package versions →</a></aside>
 </section>

@@ -6,6 +6,7 @@ product_color: "#4285f4"
 install: "dotnet add package OfficeIMO.GoogleWorkspace"
 nuget: "OfficeIMO.GoogleWorkspace"
 docs_url: "/docs/google-workspace/"
+api_url: "/api/google-workspace/"
 ---
 
 ## Office and Google Workspace without a second document model

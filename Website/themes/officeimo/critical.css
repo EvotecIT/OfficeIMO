@@ -146,12 +146,20 @@ svg {
   background: rgba(255, 255, 255, 0.97);
 }
 .imo-dropdown--mega {
-  min-width: 540px;
+  width: min(calc(var(--imo-menu-columns, 2) * 250px + 2rem), calc(100vw - 2rem));
+  min-width: min(250px, calc(100vw - 2rem));
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: repeat(var(--imo-menu-columns, 2), minmax(0, 1fr));
   gap: 0.5rem;
   padding: 1.25rem;
 }
+.imo-nav__item.is-open > .imo-dropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(calc(-50% + var(--imo-menu-shift, 0px))) translateY(0);
+}
+.imo-nav__item.is-open .imo-chevron { transform: rotate(180deg); }
 .imo-dropdown__group {
   display: flex;
   min-width: 0;
@@ -344,6 +352,9 @@ svg {
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.02em;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
 }
 .imo-product-hero__desc {
   max-width: 520px;
@@ -745,7 +756,8 @@ svg {
   }
   .imo-nav {
     position: fixed;
-    inset: 64px 0 0 0;
+    inset: 64px 0 auto 0;
+    height: calc(100dvh - 64px);
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
@@ -766,6 +778,11 @@ svg {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+  }
+  .imo-nav__item.is-open > .imo-dropdown {
+    left: auto;
+    width: 100%;
+    transform: none;
   }
   .imo-dropdown--mega {
     min-width: 0;
