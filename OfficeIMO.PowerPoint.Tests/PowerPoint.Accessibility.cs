@@ -244,6 +244,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageFingerprintPreservesUnsavedSlideRoots() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddRectanglePoints(10, 10, 20, 20, "Unsaved shape");
+
+            _ = PowerPointPackageFingerprint.Create(presentation.OpenXmlDocument);
+
+            Assert.Single(slide.Shapes);
+            Assert.Empty(slide.ClassicAnimations);
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
