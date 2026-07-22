@@ -323,6 +323,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureAlignsModifiedParagraphBeyondBoundedInsertionWindow() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_inserted_paragraph_range.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Status: Pending");
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_inserted_paragraph_range.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                for (int index = 0; index < 300; index++) {
+                    doc.AddParagraph("Evidence row " + index);
+                }
+
+                doc.AddParagraph("Status: Approved");
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(300, result.Findings.Count(finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText?.StartsWith("Evidence row ", StringComparison.Ordinal) == true));
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText == "Status: Approved");
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText?.StartsWith("Evidence row ", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
         public void CompareStructureReadsExplicitNormalFootnotes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_explicit_normal_footnote.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {

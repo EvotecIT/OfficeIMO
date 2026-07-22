@@ -234,6 +234,20 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            int trailingTargetStart = Math.Max(boundedTargetEnd, targetEnd - MaxComparisonAlignmentWindow);
+            for (int index = trailingTargetStart; index < targetEnd && bestSimilarity < 1; index++) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index]);
+                double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index]);
+                if (visibleSimilarity < bestVisibleSimilarity ||
+                    (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
+                    continue;
+                }
+
+                bestVisibleSimilarity = visibleSimilarity;
+                bestSimilarity = similarity;
+                bestIndex = index;
+            }
+
             return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart])
                 ? bestIndex
                 : targetStart;
@@ -260,6 +274,20 @@ namespace OfficeIMO.Word {
                 if (similarity >= 1) {
                     break;
                 }
+            }
+
+            int trailingSourceStart = Math.Max(boundedSourceEnd, sourceEnd - MaxComparisonAlignmentWindow);
+            for (int index = trailingSourceStart; index < sourceEnd && bestSimilarity < 1; index++) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph);
+                double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph);
+                if (visibleSimilarity < bestVisibleSimilarity ||
+                    (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
+                    continue;
+                }
+
+                bestVisibleSimilarity = visibleSimilarity;
+                bestSimilarity = similarity;
+                bestIndex = index;
             }
 
             return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph)
