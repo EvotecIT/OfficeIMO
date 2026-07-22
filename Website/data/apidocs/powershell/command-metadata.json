@@ -1770,9 +1770,9 @@
       "name": "Export-OfficeCsv",
       "kind": "Cmdlet",
       "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.DataTable.cs",
-      "sourceLine": 10,
-      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.DataTable.cs#L10"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.cs",
+      "sourceLine": 29,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.cs#L29"
     },
     {
       "name": "Export-OfficeExcel",
