@@ -510,32 +510,24 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static int FindPresenterNotesMarker(string normalizedMarkdown) {
-        int searchStart = normalizedMarkdown.Length - 1;
-        while (searchStart >= 0) {
-            int marker = normalizedMarkdown.LastIndexOf("### Notes", searchStart, StringComparison.OrdinalIgnoreCase);
-            if (marker < 0) {
-                return -1;
+        int lastMarker = -1;
+        int lineStart = 0;
+        while (lineStart <= normalizedMarkdown.Length) {
+            int lineEnd = normalizedMarkdown.IndexOf('\n', lineStart);
+            if (lineEnd < 0) lineEnd = normalizedMarkdown.Length;
+            int contentStart = lineStart;
+            int contentEnd = lineEnd;
+            while (contentStart < contentEnd && char.IsWhiteSpace(normalizedMarkdown[contentStart])) contentStart++;
+            while (contentEnd > contentStart && char.IsWhiteSpace(normalizedMarkdown[contentEnd - 1])) contentEnd--;
+            const string markerText = "### Notes";
+            if (contentEnd - contentStart == markerText.Length &&
+                string.Compare(normalizedMarkdown, contentStart, markerText, 0, markerText.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                lastMarker = contentStart;
             }
-
-            int lineStart = marker;
-            while (lineStart > 0 && normalizedMarkdown[lineStart - 1] != '\n') {
-                lineStart--;
-            }
-
-            int lineEnd = normalizedMarkdown.IndexOf('\n', marker);
-            if (lineEnd < 0) {
-                lineEnd = normalizedMarkdown.Length;
-            }
-
-            string line = normalizedMarkdown.Substring(lineStart, lineEnd - lineStart).Trim();
-            if (line.Equals("### Notes", StringComparison.OrdinalIgnoreCase)) {
-                return marker;
-            }
-
-            searchStart = marker - 1;
+            if (lineEnd == normalizedMarkdown.Length) break;
+            lineStart = lineEnd + 1;
         }
-
-        return -1;
+        return lastMarker;
     }
 
     private static bool TryAddChartByKind(PptCore.PowerPointSlide slide, string chartKind, PptCore.PowerPointChartData data, double left, double top, double width, double height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) {

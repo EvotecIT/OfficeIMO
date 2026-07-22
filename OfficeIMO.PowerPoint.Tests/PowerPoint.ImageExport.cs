@@ -503,6 +503,24 @@ namespace OfficeIMO.Tests {
                     StringComparison.OrdinalIgnoreCase));
         }
 
+        [Fact]
+        public void PowerPointSlide_SharedSnapshotStopsAtConfiguredGroupDepth() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 10, 10, 20, 20);
+            PowerPointAutoShape second = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 40, 10, 20, 20);
+            PowerPointAutoShape third = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 70, 10, 20, 20);
+            PowerPointGroupShape inner = slide.GroupShapes(new PowerPointShape[] { first, second }, "Inner");
+            slide.GroupShapes(new PowerPointShape[] { inner, third }, "Outer");
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                new PowerPointImageExportOptions { MaxGroupShapeDepth = 1 });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains(nameof(PowerPointImageExportOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
+        }
+
         private static void AddShapeLinearGradient(Shape shape, bool rotateWithShape,
             double angleDegrees = 0D) {
             shape.ShapeProperties!.Append(new A.GradientFill(

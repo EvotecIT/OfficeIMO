@@ -384,6 +384,22 @@ public class PdfImageExtractorTests {
     }
 
     [Fact]
+    public void ExtractImages_RejectsImageMaskDimensionsThatOverflowDecodedBuffers() {
+        byte[] source = BuildImagePdfWithColorSpace(
+            "/DeviceGray",
+            int.MaxValue,
+            int.MaxValue,
+            1,
+            "@",
+            " /ImageMask true");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(source));
+
+        Assert.False(image.IsImageFile);
+        Assert.NotEqual("png", image.FileExtension);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingIndexedStreamsToRgbPngFiles() {
         byte[] source = BuildUnfilteredIndexedRgbInvertedDecodeImagePdf();
 

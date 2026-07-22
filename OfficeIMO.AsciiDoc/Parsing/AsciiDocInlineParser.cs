@@ -19,7 +19,10 @@ internal sealed class AsciiDocInlineParser {
         int textStart = start;
         int index = start;
         while (index < end) {
-            if (IsEscaped(index, start)) { index += Math.Min(2, end - index); continue; }
+            // An escape consumes itself and the following character. Because the parser
+            // advances past both characters, it never lands on an escaped backslash and
+            // does not need to rescan the preceding run for every slash.
+            if (_factory.Source.Text[index] == '\\') { index += Math.Min(2, end - index); continue; }
             AsciiDocInline? item = TryParseExplicit(index, end, depth, out int next);
             if (item == null) { index++; continue; }
             AddText(textStart, index, items, syntax);
@@ -141,13 +144,6 @@ internal sealed class AsciiDocInlineParser {
         if (_nodeCount > _options.MaximumInlineNodeCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumInlineNodeCount.");
         items.Add(item);
         syntaxNodes.Add(item.Syntax);
-    }
-
-    private bool IsEscaped(int index, int rangeStart) {
-        if (_factory.Source.Text[index] != '\\') return false;
-        int slashes = 0;
-        for (int current = index - 1; current >= rangeStart && _factory.Source.Text[current] == '\\'; current--) slashes++;
-        return slashes % 2 == 0;
     }
 
     private static bool TryGetStyle(char marker, out AsciiDocInlineStyle style) {

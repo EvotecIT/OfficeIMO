@@ -58,4 +58,38 @@ public class HtmlOfficeAdaptersExcelSemantics {
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
         Assert.Empty(Assert.Single(workbook.Sheets).GetMergedRanges());
     }
+
+    [Fact]
+    public void ExcelHtml_TwoCellImageFallsBackBeforeEnumeratingAnOversizedAnchor() {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
+        string html = "<section class='officeimo-sheet' data-officeimo-sheet='Images'><table><tr><td>A</td></tr></table>"
+            + "<section class='officeimo-images'><ul><li data-officeimo-anchor='twoCell' data-officeimo-row='1' data-officeimo-column='1' "
+            + "data-officeimo-to-row='1048576' data-officeimo-to-column='16384'><span class='officeimo-feature-label'>Huge</span>"
+            + "<img src='data:image/png;base64," + png + "'></li></ul></section></section>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { MaxTableCells = 4 });
+        using ExcelDocument workbook = result.Value;
+        ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
+
+        Assert.False(image.HasTwoCellAnchor);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("two-cell anchor", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ExcelHtml_SvgIdNamespacingRewritesIdsAndReferencesInOnePass() {
+        System.Reflection.MethodInfo method = typeof(ExcelHtmlConverterExtensions).GetMethod(
+            "NamespaceSvgIds", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        const string svg = "<svg><defs><linearGradient id=\"g\"/><clipPath id='c'/></defs><rect fill=\"url(#g)\" clip-path=\"url(#c)\"/><use href=\"#g\" xlink:href='#c'/></svg>";
+
+        string namespaced = (string)method.Invoke(null, new object[] { svg, "sheet-" })!;
+
+        Assert.Contains("id=\"sheet-g\"", namespaced, StringComparison.Ordinal);
+        Assert.Contains("id='sheet-c'", namespaced, StringComparison.Ordinal);
+        Assert.Contains("url(#sheet-g)", namespaced, StringComparison.Ordinal);
+        Assert.Contains("url(#sheet-c)", namespaced, StringComparison.Ordinal);
+        Assert.Contains("href=\"#sheet-g\"", namespaced, StringComparison.Ordinal);
+        Assert.Contains("xlink:href='#sheet-c'", namespaced, StringComparison.Ordinal);
+    }
 }

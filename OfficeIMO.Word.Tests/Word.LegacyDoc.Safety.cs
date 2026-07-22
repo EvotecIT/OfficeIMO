@@ -139,6 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(importOptionsType.GetProperty("ReportUnsupportedFeatures"));
             Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxInputBytes)));
             Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxDecodedImageBytes)));
+            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxDecodedCharacters)));
             Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.ReportUnsupportedContent)));
         }
 
@@ -149,6 +150,19 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes,
                     new LegacyDocImportOptions { MaxDecodedImageBytes = 0 }));
+        }
+
+        [Fact]
+        public void LegacyDoc_RejectsPieceTablesBeyondDecodedCharacterBudgetBeforeAllocation() {
+            byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Decoded character budget");
+
+            OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument result =
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes,
+                    new LegacyDocImportOptions { MaxDecodedCharacters = 4 });
+
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == "DOC-PIECE-TABLE-INVALID" &&
+                diagnostic.Message.Contains(nameof(LegacyDocImportOptions.MaxDecodedCharacters), StringComparison.Ordinal));
         }
 
         [Fact]

@@ -235,6 +235,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRejectsUnboundedChartFormulaRangesBeforeEnumeration() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object?[] args = { sheet, "Data!$A$1:$XFD$1048576", null };
+
+            bool read = (bool)method.Invoke(null, args)!;
+
+            Assert.False(read);
+            Assert.Null(args[2]);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsOversizedChartCachePointCountsBeforeAllocation() {
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var cache = new DocumentFormat.OpenXml.Drawing.Charts.NumberingCache(
+                new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 1_000_001U });
+            object?[] args = { cache, null };
+
+            bool read = (bool)method.Invoke(null, args)!;
+
+            Assert.False(read);
+            Assert.Null(args[1]);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesReferencedValuesWhenVerticalSeriesIsNonAdjacent() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

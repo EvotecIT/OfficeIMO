@@ -72,18 +72,25 @@ internal sealed class OdsFormulaParser {
         OdsFormulaOperand left = ParsePostfix();
         if (_current.Kind == OdsFormulaTokenKind.Caret) {
             Take();
-            OdsFormulaValue right = ParseUnary().RequireScalar();
-            left = Scalar(NumericBinary(OdsFormulaTokenKind.Caret, left.RequireScalar(), right));
+            EnterSyntax();
+            try {
+                OdsFormulaValue right = ParseUnary().RequireScalar();
+                left = Scalar(NumericBinary(OdsFormulaTokenKind.Caret, left.RequireScalar(), right));
+            } finally { _syntaxDepth--; }
         }
         return left;
     }
 
     private OdsFormulaOperand ParseUnary() {
-        if (_current.Kind == OdsFormulaTokenKind.Plus) { Take(); return ParseUnary(); }
-        if (_current.Kind == OdsFormulaTokenKind.Minus) {
-            Take();
-            OdsFormulaValue value = ParseUnary().RequireScalar();
-            return value.Kind == OdsFormulaValueKind.Error ? Scalar(value) : Scalar(Number(-RequireNumber(value)));
+        if (_current.Kind == OdsFormulaTokenKind.Plus || _current.Kind == OdsFormulaTokenKind.Minus) {
+            bool negate = Take().Kind == OdsFormulaTokenKind.Minus;
+            EnterSyntax();
+            try {
+                OdsFormulaOperand operand = ParseUnary();
+                if (!negate) return operand;
+                OdsFormulaValue value = operand.RequireScalar();
+                return value.Kind == OdsFormulaValueKind.Error ? Scalar(value) : Scalar(Number(-RequireNumber(value)));
+            } finally { _syntaxDepth--; }
         }
         return ParsePower();
     }

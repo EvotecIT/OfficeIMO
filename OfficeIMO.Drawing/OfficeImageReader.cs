@@ -176,6 +176,10 @@ public static partial class OfficeImageReader {
 
         int width = ReadInt32BigEndian(data, 16);
         int height = ReadInt32BigEndian(data, 20);
+        if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _) ||
+            !OfficePngReader.TryGetFrameCount(data, out _)) {
+            return false;
+        }
         double dpiX = 96.0;
         double dpiY = 96.0;
 

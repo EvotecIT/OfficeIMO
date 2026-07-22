@@ -70,4 +70,13 @@ public sealed class AsciiDocInlineParsingTests {
 
         Assert.Throws<InvalidDataException>(() => AsciiDocDocument.Parse("*one* {two} three", options));
     }
+
+    [Fact]
+    public void LongEscapeRuns_AreParsedLosslesslyWithoutBackwardRescanning() {
+        string source = new string('\\', 100_000) + "*literal*\n";
+
+        AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
+
+        Assert.Equal(source, document.ToAsciiDoc());
+    }
 }

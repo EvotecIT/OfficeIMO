@@ -641,7 +641,7 @@ public static partial class ExcelHtmlConverterExtensions {
             return svg;
         }
 
-        var ids = new SortedSet<string>(StringComparer.Ordinal);
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(svg, "\\bid=(['\\\"])(?<id>[^'\\\"]+)\\1")) {
             string id = match.Groups["id"].Value;
             if (id.Length > 0 && !id.StartsWith(prefix, StringComparison.Ordinal)) {
@@ -649,20 +649,22 @@ public static partial class ExcelHtmlConverterExtensions {
             }
         }
 
-        string namespaced = svg;
-        foreach (string id in ids.OrderByDescending(item => item.Length)) {
-            string replacement = prefix + id;
-            namespaced = namespaced
-                .Replace("id=\"" + id + "\"", "id=\"" + replacement + "\"")
-                .Replace("id='" + id + "'", "id='" + replacement + "'")
-                .Replace("url(#" + id + ")", "url(#" + replacement + ")")
-                .Replace("href=\"#" + id + "\"", "href=\"#" + replacement + "\"")
-                .Replace("href='#" + id + "'", "href='#" + replacement + "'")
-                .Replace("xlink:href=\"#" + id + "\"", "xlink:href=\"#" + replacement + "\"")
-                .Replace("xlink:href='#" + id + "'", "xlink:href='#" + replacement + "'");
-        }
-
-        return namespaced;
+        if (ids.Count == 0) return svg;
+        const string references = "\\bid=(?<idq>['\"])(?<id>[^'\"]+)\\k<idq>|url\\(#(?<url>[^)]+)\\)|(?<hrefName>(?:xlink:)?href)=(?<hrefq>['\"])#(?<href>[^'\"]+)\\k<hrefq>";
+        return System.Text.RegularExpressions.Regex.Replace(svg, references, match => {
+            if (match.Groups["id"].Success) {
+                string id = match.Groups["id"].Value;
+                return ids.Contains(id) ? "id=" + match.Groups["idq"].Value + prefix + id + match.Groups["idq"].Value : match.Value;
+            }
+            if (match.Groups["url"].Success) {
+                string id = match.Groups["url"].Value;
+                return ids.Contains(id) ? "url(#" + prefix + id + ")" : match.Value;
+            }
+            string href = match.Groups["href"].Value;
+            return ids.Contains(href)
+                ? match.Groups["hrefName"].Value + "=" + match.Groups["hrefq"].Value + "#" + prefix + href + match.Groups["hrefq"].Value
+                : match.Value;
+        });
     }
 
     private static string CreateDiagnosticGroupKey(OfficeImageExportDiagnostic diagnostic) {

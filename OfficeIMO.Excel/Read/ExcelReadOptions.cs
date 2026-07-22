@@ -9,6 +9,18 @@ namespace OfficeIMO.Excel {
         private int _maxSharedStringItemCharacters = 32_767;
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
 
+        /// <summary>Maximum columns exposed by one range data reader.</summary>
+        public int MaxDataReaderColumns { get; set; } = 16_384;
+
+        /// <summary>Maximum worksheet rows materialized in one data-reader chunk.</summary>
+        public int MaxDataReaderChunkRows { get; set; } = 8_192;
+
+        /// <summary>Maximum rows retained for data-reader schema inference.</summary>
+        public int MaxDataReaderSchemaSampleRows { get; set; } = 4_096;
+
+        /// <summary>Maximum cells materialized by a data-reader chunk or schema sample.</summary>
+        public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
+
         /// <summary>
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.

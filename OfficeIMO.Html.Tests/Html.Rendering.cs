@@ -1107,6 +1107,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_ChargesRepeatedMarginTextToTheLayoutBudgetBeforeAllocation() {
+        string html = "<style>@page { @top-left { content:\"" + new string('A', 500) + "\"; } }</style><p>Body</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            MaxLayoutOperations = 100
+        };
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_AppliesNamedPageMastersAndNamedPseudoPages() {
         string words = string.Join(" ", Enumerable.Range(0, 150).Select(index => "word" + index.ToString("D3")));
         string html = """

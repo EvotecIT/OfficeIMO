@@ -5,20 +5,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const uint CompressedTextFlag = 0x40000000;
         private const uint FcMask = 0x3FFFFFFF;
 
-        internal static bool TryRead(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, out LegacyDocTextContent content, out string? error) {
+        internal static bool TryRead(byte[] wordDocumentStream, byte[] tableStream, LegacyDocFib fib, int maxDecodedCharacters, out LegacyDocTextContent content, out string? error) {
             content = new LegacyDocTextContent(string.Empty, Array.Empty<LegacyDocTextCharacter>());
             error = null;
-            int totalCharacterCount = checked(fib.CcpText
+            long totalCharacterCountLong = (long)fib.CcpText
                 + fib.CcpFtn
                 + fib.CcpHdd
                 + fib.CcpAtn
                 + fib.CcpEdn
                 + fib.CcpTxbx
-                + fib.CcpHdrTxbx);
+                + fib.CcpHdrTxbx;
 
-            if (totalCharacterCount == 0) {
+            if (totalCharacterCountLong == 0) {
                 return true;
             }
+            if (totalCharacterCountLong < 0 || totalCharacterCountLong > maxDecodedCharacters || totalCharacterCountLong > int.MaxValue) {
+                error = "The FIB decoded character count exceeds MaxDecodedCharacters.";
+                return false;
+            }
+            int totalCharacterCount = (int)totalCharacterCountLong;
 
             if (fib.FcClx < 0 || fib.LcbClx <= 0 || fib.FcClx + fib.LcbClx > tableStream.Length) {
                 error = "The FIB points outside the selected table stream for the CLX piece table.";

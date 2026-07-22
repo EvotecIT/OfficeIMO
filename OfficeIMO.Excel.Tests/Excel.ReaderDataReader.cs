@@ -84,6 +84,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_RejectsRangesBeyondBufferedCellBudget() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Header");
+            }
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReadOptions {
+                MaxDataReaderBufferedCells = 2
+            });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                reader.GetSheet("Data").ReadRangeAsDataReader("A1:C2"));
+
+            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutHeadersPreservesBlankRowsInsideRange() {
             using var memory = new MemoryStream();
 

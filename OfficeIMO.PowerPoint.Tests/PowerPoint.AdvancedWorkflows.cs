@@ -106,6 +106,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AnimationInspectionBoundsTraversalAndProjectedNodes() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.SlidePart.Slide!.Timing = new Timing(
+                new TimeNodeList(
+                    new ParallelTimeNode(new CommonTimeNode { Id = 1U }),
+                    new ParallelTimeNode(new CommonTimeNode { Id = 2U })));
+
+            InvalidDataException nodeException = Assert.Throws<InvalidDataException>(() =>
+                presentation.InspectAnimations(new PowerPointAnimationInspectionOptions { MaxAnimationNodes = 1 }));
+            InvalidDataException elementException = Assert.Throws<InvalidDataException>(() =>
+                presentation.InspectAnimations(new PowerPointAnimationInspectionOptions { MaxXmlElements = 1 }));
+
+            Assert.Contains(nameof(PowerPointAnimationInspectionOptions.MaxAnimationNodes), nodeException.Message, StringComparison.Ordinal);
+            Assert.Contains(nameof(PowerPointAnimationInspectionOptions.MaxXmlElements), elementException.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SemanticSmartArtWorkflowsRoundTripEditableNodeText() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

@@ -11,6 +11,9 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>Maximum aggregate decoded OfficeArt image bytes retained during import.</summary>
         public int MaxDecodedImageBytes { get; set; } = 64 * 1024 * 1024;
 
+        /// <summary>Maximum number of text characters decoded from the legacy piece table.</summary>
+        public int MaxDecodedCharacters { get; set; } = 16 * 1024 * 1024;
+
         /// <summary>
         /// When true, known unsupported legacy content is reported as diagnostics.
         /// </summary>
@@ -19,6 +22,7 @@ namespace OfficeIMO.Word.LegacyDoc {
         internal void Validate() {
             if (MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
             if (MaxDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedImageBytes));
+            if (MaxDecodedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedCharacters));
         }
 
     }

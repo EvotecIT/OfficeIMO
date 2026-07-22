@@ -1506,11 +1506,13 @@ namespace OfficeIMO.Word {
                 }
 
                 bool negativeExponent = power < 0;
-                power = Math.Abs(power);
-
+                long remaining = Math.Abs((long)power);
                 decimal result = 1m;
-                for (int i = 0; i < power; i++) {
-                    result *= value;
+                decimal factor = value;
+                while (remaining > 0) {
+                    if ((remaining & 1L) != 0) result *= factor;
+                    remaining >>= 1;
+                    if (remaining > 0) factor *= factor;
                 }
 
                 return negativeExponent ? 1m / result : result;

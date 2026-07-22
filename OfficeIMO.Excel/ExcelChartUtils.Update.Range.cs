@@ -9,6 +9,8 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
+        private const int MaxChartDataPoints = 1_000_000;
+
         internal static ExcelChartDataRange? TryExtractDataRange(ChartPart chartPart) {
             var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
             var plotArea = chart?.GetFirstChild<PlotArea>();
@@ -54,7 +56,7 @@ namespace OfficeIMO.Excel {
             int valueColumns = valC2 - valC1 + 1;
             bool horizontal = categoryRows == 1 && categoryColumns > 1 && valueRows == 1 && valueColumns == categoryColumns && valC1 == c1 && valC2 == c2;
             int categoryCount = horizontal ? categoryColumns : categoryRows;
-            if (categoryCount <= 0) return null;
+            if (categoryCount <= 0 || (long)categoryCount * seriesList.Count > MaxChartDataPoints) return null;
 
             if (horizontal) {
                 if (valR1 != r1 + 1 || !HorizontalSeriesRangesAreContiguous(seriesList, sheetName, valR1, c1, c2)) {
@@ -259,6 +261,8 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelChartData? TryReadChartData(ExcelSheet sheet, ExcelChartDataRange range) {
             try {
+                if (range.CategoryCount <= 0 || range.SeriesCount <= 0 ||
+                    (long)range.CategoryCount * range.SeriesCount > MaxChartDataPoints) return null;
                 var categories = new List<string>(range.CategoryCount);
                 for (int i = 0; i < range.CategoryCount; i++) {
                     int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.CategoryStartRow;
@@ -583,7 +587,7 @@ namespace OfficeIMO.Excel {
 
             uint? pointCount = container.GetFirstChild<PointCount>()?.Val?.Value;
             if (pointCount.HasValue) {
-                if (pointCount.Value > int.MaxValue) {
+                if (pointCount.Value > MaxChartDataPoints) {
                     return false;
                 }
 
@@ -611,6 +615,7 @@ namespace OfficeIMO.Excel {
 
             var numericValues = new List<double>();
             foreach (NumericPoint point in container.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
+                if (numericValues.Count >= MaxChartDataPoints) return false;
                 string? text = point.NumericValue?.Text;
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                     return false;
@@ -630,17 +635,21 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            values = cache.Elements<StringPoint>()
+            string[] cachedValues = cache.Elements<StringPoint>()
                 .OrderBy(point => point.Index?.Value ?? uint.MaxValue)
                 .Select(point => point.NumericValue?.Text ?? string.Empty)
+                .Take(MaxChartDataPoints + 1)
                 .ToArray();
+            if (cachedValues.Length > MaxChartDataPoints) return false;
+            values = cachedValues;
             return values.Count > 0;
         }
 
         private static bool TryReadReferencedTextValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<string>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
-                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2) ||
+                (long)(r2 - r1 + 1) * (c2 - c1 + 1) > MaxChartDataPoints) {
                 return false;
             }
 
@@ -665,7 +674,8 @@ namespace OfficeIMO.Excel {
         private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<double>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
-                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
+                !TryParseRange(range, out int r1, out int c1, out int r2, out int c2) ||
+                (long)(r2 - r1 + 1) * (c2 - c1 + 1) > MaxChartDataPoints) {
                 return false;
             }
 

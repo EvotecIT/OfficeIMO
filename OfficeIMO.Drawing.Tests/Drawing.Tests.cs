@@ -3599,6 +3599,28 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
+    [Fact]
+    public void OfficeImageReaderRejectsPngWithoutACompleteContainer() {
+        byte[] truncated = OnePixelPng.Take(33).ToArray();
+
+        bool identified = OfficeImageReader.TryIdentify(truncated, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsPngDimensionsBeyondRasterLimits() {
+        byte[] oversized = OnePixelPng.ToArray();
+        oversized[16] = 0x7F;
+        oversized[20] = 0x7F;
+
+        bool identified = OfficeImageReader.TryIdentify(oversized, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Theory]
     [InlineData(0x00, 0x00)]
     [InlineData(0xFF, 0xD9)]

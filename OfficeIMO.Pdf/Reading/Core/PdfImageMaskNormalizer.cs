@@ -13,6 +13,7 @@ internal static class PdfImageMaskNormalizer {
         if (width <= 0 ||
             height <= 0 ||
             !IsImageMask(stream, objects) ||
+            !PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 2, out _, out int scanlineBytes) ||
             !TryReadDecodedStreamBytes(stream, objects, out var maskPixels)) {
             return false;
         }
@@ -34,7 +35,7 @@ internal static class PdfImageMaskNormalizer {
         }
 
         var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, 1, objects);
-        byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        byte[] scanlines = new byte[scanlineBytes];
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
             int sourceRow = row * sourceRowLength;

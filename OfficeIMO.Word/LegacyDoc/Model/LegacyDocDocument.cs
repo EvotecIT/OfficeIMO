@@ -162,7 +162,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
             EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
-            if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out LegacyDocTextContent textContent, out string? textError)) {
+            if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, options.MaxDecodedCharacters, out LegacyDocTextContent textContent, out string? textError)) {
                 AddError("DOC-PIECE-TABLE-INVALID", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }

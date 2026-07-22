@@ -645,6 +645,14 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void LoadOptions_BoundsCompressedInputByDefault()
+    {
+        var options = new CsvLoadOptions();
+
+        Assert.Equal(CsvLoadOptions.DefaultMaxInputBytes, options.MaxDecompressedBytes);
+    }
+
+    [Fact]
     public void Save_InvalidCompressionLevelDoesNotTruncateExistingFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.InvalidCompressionLevel." + Guid.NewGuid().ToString("N") + ".csv.gz");

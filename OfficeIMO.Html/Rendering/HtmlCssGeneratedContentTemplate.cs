@@ -12,8 +12,21 @@ internal sealed class HtmlCssGeneratedContentTemplate {
 
     internal bool IsEmpty => _segments.Count == 0;
 
+    internal int GetRenderedLength(int pageNumber, int pageCount) {
+        int length = 0;
+        foreach (Segment segment in _segments) {
+            int segmentLength = segment.Counter == CounterKind.Page
+                ? pageNumber.ToString(CultureInfo.InvariantCulture).Length
+                : segment.Counter == CounterKind.Pages
+                    ? pageCount.ToString(CultureInfo.InvariantCulture).Length
+                    : segment.Text.Length;
+            length = checked(length + segmentLength);
+        }
+        return length;
+    }
+
     internal string Render(int pageNumber, int pageCount) {
-        var text = new StringBuilder();
+        var text = new StringBuilder(GetRenderedLength(pageNumber, pageCount));
         foreach (Segment segment in _segments) {
             if (segment.Counter == CounterKind.Page) text.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
             else if (segment.Counter == CounterKind.Pages) text.Append(pageCount.ToString(CultureInfo.InvariantCulture));

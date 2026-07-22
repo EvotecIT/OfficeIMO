@@ -57,10 +57,12 @@ internal static partial class ResourceResolver {
         if (bitsPerComponent is not (0 or 1)) {
             return false;
         }
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 4, out int pixelCount, out int scanlineBytes)) {
+            return false;
+        }
 
         byte[] maskPixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        int pixelCount = width * height;
-        byte[] scanlines = new byte[(1 + width * 4) * height];
+        byte[] scanlines = new byte[scanlineBytes];
         for (int sampleIndex = 0; sampleIndex < pixelCount; sampleIndex++) {
             if (!TryReadIndexedSample(maskPixels, width, sampleIndex, 1, out int sample)) {
                 return false;
