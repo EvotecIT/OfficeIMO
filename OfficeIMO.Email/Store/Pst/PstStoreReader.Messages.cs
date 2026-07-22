@@ -250,9 +250,10 @@ internal sealed partial class PstStoreReader {
         var decodedObjectBudget = parentDecodedObjectBudget ??
             new PstDecodedObjectBudget(_options.MaxAttachmentBytes);
         long bytesBefore = decodedObjectBudget.ConsumedBytes;
-        long maximumDecodedBytes = Math.Min(
+        long maximumDecodedBytes = GetEmbeddedMessageMaximumDecodedBytes(
             readOptions.MaxDecodedPropertyBytes ?? _options.MaxDecodedPropertyBytesPerItem,
-            decodedObjectBudget.RemainingBytes);
+            decodedObjectBudget,
+            _options.MaxAttachmentBytes);
         var embeddedReadOptions = new EmailStoreItemReadOptions(
             readOptions.Parts, maximumDecodedBytes,
             readOptions.PreferStreamingAttachmentContent);
@@ -266,6 +267,22 @@ internal sealed partial class PstStoreReader {
             attachment.Length = observedBytes;
         }
         attachment.EmbeddedDocument = embeddedDocument;
+    }
+
+    internal static long GetEmbeddedMessageMaximumDecodedBytes(
+        long requestedMaximum,
+        PstDecodedObjectBudget decodedObjectBudget,
+        long maximumAttachmentBytes) {
+        if (decodedObjectBudget.RemainingBytes <= 0) {
+            long actual = decodedObjectBudget.ConsumedBytes == long.MaxValue
+                ? long.MaxValue
+                : decodedObjectBudget.ConsumedBytes + 1L;
+            throw new EmailStoreLimitExceededException(
+                nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
+                actual,
+                maximumAttachmentBytes);
+        }
+        return Math.Min(requestedMaximum, decodedObjectBudget.RemainingBytes);
     }
 
     private void ProjectItem(EmailDocument document, IReadOnlyList<MapiProperty> properties,

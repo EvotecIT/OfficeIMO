@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the largest accepted BIFF12 record payload. The default is 64 MiB.</summary>
         public int MaxRecordBytes { get; set; } = 64 * 1024 * 1024;
 
-        /// <summary>Gets or sets the aggregate BIFF12 record limit across one workbook import.</summary>
-        public int MaxRecordCount { get; set; } = 1_000_000;
+        /// <summary>Gets or sets the aggregate BIFF12 record limit across one workbook import. The default is 8,000,000.</summary>
+        public int MaxRecordCount { get; set; } = 8_000_000;
 
         /// <summary>Gets or sets the maximum number of worksheets accepted from one workbook.</summary>
         public int MaxWorksheets { get; set; } = 16_384;

@@ -117,6 +117,19 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void ExhaustedEmbeddedPstObjectBudgetReportsTheAttachmentLimit() {
+        var budget = new PstDecodedObjectBudget(16);
+        budget.Add(16);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(() =>
+            PstStoreReader.GetEmbeddedMessageMaximumDecodedBytes(128, budget, 16));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.Equal(17, exception.Actual);
+        Assert.Equal(16, exception.Maximum);
+    }
+
+    [Fact]
     public void EmbeddedPstObjectMetadataDoesNotReserveUndecodedPayloadBytes() {
         using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
         var options = new EmailStoreReaderOptions(

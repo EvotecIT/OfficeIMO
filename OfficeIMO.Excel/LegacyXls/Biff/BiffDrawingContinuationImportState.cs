@@ -30,13 +30,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (!BiffDrawingMetadataReader.TryRead(record, _sheetName, out LegacyXlsDrawingRecord? drawingRecord, _decodedImageBudget)) {
+            bool requiresContinuation = TryGetRequiredPayloadLength(record.Payload, out int requiredPayloadLength)
+                && requiredPayloadLength > record.Payload.Length;
+            LegacyXlsDecodedImageBudget? preliminaryBudget = requiresContinuation ? null : _decodedImageBudget;
+            if (!BiffDrawingMetadataReader.TryRead(record, _sheetName, out LegacyXlsDrawingRecord? drawingRecord, preliminaryBudget)) {
                 return false;
             }
 
             _drawingRecords.Add(drawingRecord!);
-            if (!TryGetRequiredPayloadLength(record.Payload, out int requiredPayloadLength)
-                || requiredPayloadLength <= record.Payload.Length) {
+            if (!requiresContinuation) {
                 if (!drawingRecord!.HasSupportedDrawingMetadata) {
                     AddUnsupportedFeature(
                         unsupportedFeatures,

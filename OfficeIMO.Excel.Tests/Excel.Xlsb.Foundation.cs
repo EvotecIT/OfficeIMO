@@ -11,6 +11,13 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void Xlsb_DefaultRecordBudgetCanRepresentTheDefaultCellBudget() {
+            var options = new XlsbImportOptions();
+
+            Assert.True(options.MaxRecordCount > options.MaxCells);
+        }
+
+        [Fact]
         public void Xlsb_RecordReader_FramesCanonicalWorkbookBoundaryRecords() {
             byte[] bytes = {
                 0x83, 0x01, 0x00, // BrtBeginBook (131), empty payload

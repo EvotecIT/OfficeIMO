@@ -9,6 +9,7 @@ internal sealed class PstTableContextReader {
     private readonly CancellationToken _cancellationToken;
     private readonly Action<string>? _reportCellWarning;
     private readonly long _maximumDecodedPropertyBytes;
+    private readonly bool _hasMaximumDecodedPropertyBytesOverride;
 
     internal PstTableContextReader(PstHeap heap, bool isUnicode, EmailStoreReaderOptions options,
         CancellationToken cancellationToken, Action<string>? reportCellWarning = null,
@@ -18,6 +19,7 @@ internal sealed class PstTableContextReader {
         _options = options;
         _cancellationToken = cancellationToken;
         _reportCellWarning = reportCellWarning;
+        _hasMaximumDecodedPropertyBytesOverride = maximumDecodedPropertyBytes.HasValue;
         _maximumDecodedPropertyBytes = maximumDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem;
     }
 
@@ -61,8 +63,10 @@ internal sealed class PstTableContextReader {
             throw CreateTableInfoException(info, columnCount, rowSize, existenceOffset,
                 rowIndexHid, rowsHnid, "row-index", exception);
         }
-        IEnumerable<byte[]> rowBlocks = _heap.EnumerateHnidBlocks(
-            rowsHnid, Math.Min(_options.MaxDecodedTableBytes, _maximumDecodedPropertyBytes));
+        long maximumRowMatrixBytes = GetMaximumRowMatrixBytes(
+            _options,
+            _hasMaximumDecodedPropertyBytesOverride ? _maximumDecodedPropertyBytes : null);
+        IEnumerable<byte[]> rowBlocks = _heap.EnumerateHnidBlocks(rowsHnid, maximumRowMatrixBytes);
         long decodedBytes = 0;
         using (var cursor = new PstTableRowCursor(rowBlocks, rowSize)) {
             foreach (int rowIndex in rowIndexes.OrderBy(index => index)) {
@@ -86,6 +90,13 @@ internal sealed class PstTableContextReader {
             }
         }
     }
+
+    internal static long GetMaximumRowMatrixBytes(
+        EmailStoreReaderOptions options,
+        long? maximumDecodedPropertyBytes) =>
+        maximumDecodedPropertyBytes.HasValue
+            ? Math.Min(options.MaxDecodedTableBytes, maximumDecodedPropertyBytes.Value)
+            : options.MaxDecodedTableBytes;
 
     private static InvalidDataException CreateTableInfoException(
         byte[] info, int columnCount, int rowSize, int existenceOffset,
