@@ -99,6 +99,32 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void Edit_RetainsStandaloneFileAttachmentAnnotationWhenAddingAnotherAttachment() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildStandaloneFileAttachmentAnnotationPdf();
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(source, "page.txt"));
+
+        byte[] output = PdfAttachmentEditor.Add(
+            source,
+            new PdfEmbeddedFile("new.txt", Encoding.UTF8.GetBytes("new payload"), "text/plain")).ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+
+        Assert.Single(objects.Values, static item =>
+            (item.Value as PdfDictionary)?.Get<PdfName>("Subtype")?.Name == "FileAttachment");
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "page.txt"));
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "new.txt"));
+    }
+
+    [Fact]
+    public void EditSession_AllowsDuplicateNamesAlreadyPresentInTheSource() {
+        var session = new PdfAttachmentEditSession(new[] {
+            new PdfEmbeddedFile("duplicate.txt", new byte[] { 1 }),
+            new PdfEmbeddedFile("duplicate.txt", new byte[] { 2 })
+        });
+
+        Assert.Equal(2, session.Attachments.Count);
+    }
+
+    [Fact]
     public void Edit_RemovesFileAttachmentAnnotationWhenItsPayloadIsRemoved() {
         byte[] source = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
 

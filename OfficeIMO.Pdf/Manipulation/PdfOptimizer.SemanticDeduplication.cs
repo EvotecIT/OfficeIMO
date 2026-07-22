@@ -11,11 +11,25 @@ internal static partial class PdfOptimizer {
         long totalDecodedBytes = 0;
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
             if (entry.Value.Value is not PdfStream stream || !string.Equals(ReadName(stream.Dictionary, "Subtype"), "Image", StringComparison.Ordinal)) continue;
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, options.MaximumDecodedImageBytes, out byte[] decoded, objects)) {
-                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "UnsupportedImageFilter", "Skipped semantic image deduplication because the image samples could not be decoded within the configured limit."));
+            long remainingDecodedBytes = options.MaximumTotalDecodedImageBytes - totalDecodedBytes;
+            if (remainingDecodedBytes <= 0) {
+                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "AggregateDecodeLimit", "Stopped semantic image deduplication after the aggregate decoded-image budget was exhausted."));
+                break;
+            }
+            int maximumDecodedBytes = (int)Math.Min(options.MaximumDecodedImageBytes, Math.Min(int.MaxValue, remainingDecodedBytes));
+            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out byte[] decoded, objects)) {
+                string reason = maximumDecodedBytes < options.MaximumDecodedImageBytes
+                    ? "AggregateDecodeLimit"
+                    : "UnsupportedImageFilter";
+                string description = reason == "AggregateDecodeLimit"
+                    ? "Stopped semantic image deduplication before decoding an image beyond the remaining aggregate budget."
+                    : "Skipped semantic image deduplication because the image samples could not be decoded within the configured limit.";
+                skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, reason, description));
+                if (reason == "AggregateDecodeLimit") break;
                 continue;
             }
-            if (decoded.LongLength > options.MaximumTotalDecodedImageBytes - totalDecodedBytes) {
+            if (decoded.LongLength > remainingDecodedBytes) {
+                // Defensive fallback for decoders that cannot enforce their output limit incrementally.
                 skippedActions.Add(new PdfOptimizationSkippedAction("DeduplicateImage", entry.Key, stream.Data.LongLength, "AggregateDecodeLimit", "Stopped semantic image deduplication after the aggregate decoded-image budget was exhausted."));
                 break;
             }

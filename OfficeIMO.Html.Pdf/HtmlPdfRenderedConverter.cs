@@ -9,7 +9,8 @@ namespace OfficeIMO.Html.Pdf;
 
 internal static class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
-    private const int MaximumSystemFontFamilyCandidates = 32;
+    private const int MaximumSystemFontFamilyCandidates = 512;
+    private const int MaximumLoadedSystemFontFamilies = 32;
 
     internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
@@ -580,6 +581,7 @@ internal static class HtmlPdfRenderedConverter {
             .OfType<HtmlRenderText>()
             .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
             .ToList();
+        int loadedFamilyCount = 0;
 
         foreach (string familyName in textRuns
                      .SelectMany(text => EnumerateFamilies(text.Font.FamilyName))
@@ -593,12 +595,15 @@ internal static class HtmlPdfRenderedConverter {
                 continue;
             }
 
-                if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family) || family == null) {
-                    continue;
-                }
+            if (loadedFamilyCount >= MaximumLoadedSystemFontFamilies) break;
+
+            if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family) || family == null) {
+                continue;
+            }
 
             pdf.Options.RegisterNamedFontFamily(CreateCoverageSafeFontFamily(family, familyRuns));
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
+            loadedFamilyCount++;
         }
     }
 

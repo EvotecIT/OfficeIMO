@@ -2,7 +2,6 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     private const int MaximumXrefObjectCharacters = 1_000_000;
-    private const int MaximumXrefObjectScanMultiplier = 16;
 
     private sealed class XrefObjectScanBudget {
         private readonly long _maximum;
@@ -10,9 +9,7 @@ internal static partial class PdfSyntax {
 
         internal XrefObjectScanBudget(PdfReadLimits limits) {
             MaximumPerObject = Math.Min(MaximumXrefObjectCharacters, limits.MaxObjectCharacters);
-            _maximum = Math.Min(
-                limits.MaxInputBytes,
-                checked((long)MaximumPerObject * MaximumXrefObjectScanMultiplier));
+            _maximum = limits.MaxInputBytes;
         }
 
         internal int MaximumPerObject { get; }

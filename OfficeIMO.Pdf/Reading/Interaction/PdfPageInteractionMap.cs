@@ -122,7 +122,6 @@ public sealed class PdfPageInteractionMap {
         List<PdfPageInteractionRegion> regions) {
         IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
         int textIndex = 0;
-        int processedTextElements = 0;
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
             if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && !options.IncludeInvisibleText)) {
@@ -133,10 +132,6 @@ public sealed class PdfPageInteractionMap {
             int elementCount = 0;
             while (enumerator.MoveNext()) {
                 elementCount++;
-                processedTextElements++;
-                if (processedTextElements > options.MaxTextRegions) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxTextRegions, processedTextElements);
-                }
             }
 
             if (elementCount == 0) {
@@ -168,6 +163,9 @@ public sealed class PdfPageInteractionMap {
                     normalX, normalY, ascent, descent, pageHeight);
                 if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) {
                     continue;
+                }
+                if (textIndex >= options.MaxTextRegions) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxTextRegions, textIndex + 1L);
                 }
                 regions.Add(new PdfPageInteractionRegion(
                     PdfInteractionKind.Text,

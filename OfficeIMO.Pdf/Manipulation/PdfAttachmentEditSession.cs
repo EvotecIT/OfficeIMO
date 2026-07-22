@@ -7,10 +7,10 @@ public sealed class PdfAttachmentEditSession {
 
     internal PdfAttachmentEditSession(IEnumerable<PdfEmbeddedFile> attachments) {
         _attachments = attachments.Select(static file => file.Clone()).ToList();
-        _retainedOriginalNames = _attachments.ToDictionary(
-            static file => file.FileName,
-            static file => file.FileName,
-            StringComparer.Ordinal);
+        _retainedOriginalNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (PdfEmbeddedFile attachment in _attachments) {
+            _retainedOriginalNames.TryAdd(attachment.FileName, attachment.FileName);
+        }
     }
 
     /// <summary>Current attachment snapshots in edit order.</summary>

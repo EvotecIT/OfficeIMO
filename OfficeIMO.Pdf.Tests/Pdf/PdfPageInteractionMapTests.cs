@@ -1,4 +1,6 @@
 using OfficeIMO.Pdf;
+using System.Globalization;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -66,5 +68,26 @@ public class PdfPageInteractionMapTests {
 
         Assert.Equal(PdfReadLimitKind.InteractionRegions, exception.Kind);
         Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void InteractionMap_CountsOnlyTextRegionsThatIntersectThePage() {
+        const string content = "BT /F1 12 Tf 10000 10000 Td (off-page text) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(
+            source,
+            1,
+            new PdfPageInteractionOptions { MaxTextRegions = 1 });
+
+        Assert.Empty(map.TextRegions);
     }
 }
