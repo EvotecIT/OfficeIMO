@@ -400,6 +400,54 @@ public sealed class AdfContractTests {
         Assert.Equal(content, Assert.Single(codeBlock.Content).Text);
     }
 
+    [Fact]
+    public void CodeBlockProjection_PreventsLanguageFromExtendingTildeFence() {
+        const string content = "````\n~";
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("codeBlock") {
+            Content = { AdfNode.TextNode(content) }
+        }.SetAttribute("language", "~~~"));
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode("After") } });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.StartsWith("~~~\n", markdown.Value.Replace("\r\n", "\n"));
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_CODE_LANGUAGE_NORMALIZED");
+        Assert.Collection(
+            roundTrip.Value.Content,
+            codeBlock => Assert.Equal(content, Assert.Single(codeBlock.Content).Text),
+            paragraph => Assert.Equal("After", Assert.Single(paragraph.Content).Text));
+    }
+
+    [Fact]
+    public void CodeBlockProjection_ReportsDroppedAttributesAndExtensionProperties() {
+        var codeBlock = new AdfNode("codeBlock") { Content = { AdfNode.TextNode("Get-Date") } };
+        codeBlock.SetAttribute("uniqueId", "code-1");
+        codeBlock.ExtensionData["vendorCodeOption"] = JsonSerializer.SerializeToElement(true);
+        var document = new AdfDocument(new[] { codeBlock });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_CODE_PROPERTIES_DROPPED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
+    [Fact]
+    public void Validation_RejectsMarksInsideCodeBlockText() {
+        var codeBlock = new AdfNode("codeBlock") {
+            Content = { AdfNode.TextNode("Get-Date", new[] { new AdfMark("strong") }) }
+        };
+        var document = new AdfDocument(new[] { codeBlock });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == "ADF_CODE_MARKS_NOT_ALLOWED");
+        Assert.Equal("$.content[0].content[0].marks", issue.Path);
+    }
+
     [Theory]
     [InlineData("first\r\nsecond")]
     [InlineData("first\rsecond")]

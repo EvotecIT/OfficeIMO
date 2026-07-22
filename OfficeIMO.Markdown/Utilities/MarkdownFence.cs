@@ -101,7 +101,7 @@ public static class MarkdownFence {
 
     /// <summary>
     /// Normalizes an external language value to the first Markdown-safe fenced-code language token.
-    /// Whitespace, control characters, and backticks terminate the token.
+    /// Whitespace, control characters, and fence-marker characters terminate the token.
     /// </summary>
     /// <param name="language">External language value.</param>
     /// <returns>A single safe language token, or an empty string when none is present.</returns>
@@ -115,7 +115,8 @@ public static class MarkdownFence {
         while (length < value.Length
                && !char.IsWhiteSpace(value[length])
                && !char.IsControl(value[length])
-               && value[length] != '`') {
+               && value[length] != '`'
+               && value[length] != '~') {
             length++;
         }
 

@@ -31,6 +31,9 @@ internal static class AdfToMarkdownConverter {
             case "codeBlock":
                 string rawLanguage = node.GetStringAttribute("language") ?? string.Empty;
                 string language = MarkdownFence.NormalizeLanguageToken(rawLanguage);
+                if (node.ExtensionData.Count > 0 || node.Attributes.Keys.Any(key => !string.Equals(key, "language", StringComparison.Ordinal))) {
+                    diagnostics.Add(Warning("ADF_CODE_PROPERTIES_DROPPED", path, "ADF code-block properties other than language cannot be represented in Markdown and were omitted."));
+                }
                 if (!string.Equals(language, rawLanguage, StringComparison.Ordinal)) {
                     diagnostics.Add(Warning("ADF_CODE_LANGUAGE_NORMALIZED", path, "ADF code-block language was normalized to one safe Markdown language token."));
                 }

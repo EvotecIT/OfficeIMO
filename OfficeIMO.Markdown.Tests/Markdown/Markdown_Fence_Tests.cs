@@ -69,6 +69,16 @@ public class Markdown_Fence_Tests {
     }
 
     [Theory]
+    [InlineData("powershell", "powershell")]
+    [InlineData("powershell options", "powershell")]
+    [InlineData("csharp`unsafe", "csharp")]
+    [InlineData("powershell~unsafe", "powershell")]
+    [InlineData("~~~", "")]
+    public void NormalizeLanguageToken_StopsBeforeFenceMarkers(string language, string expected) {
+        Assert.Equal(expected, MarkdownFence.NormalizeLanguageToken(language));
+    }
+
+    [Theory]
     [InlineData("a`b", "``a`b``")]
     [InlineData("`edge`", "`` `edge` ``")]
     [InlineData("`edge", "`` `edge ``")]

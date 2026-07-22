@@ -114,6 +114,9 @@ internal static class AdfValidator {
         if (isKnownNode && !isTextNode && node.Marks.Count > 0) {
             issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "ADF marks are allowed only on text nodes."));
         }
+        if (isTextNode && string.Equals(parentType, "codeBlock", StringComparison.Ordinal) && node.Marks.Count > 0) {
+            issues.Add(Error("ADF_CODE_MARKS_NOT_ALLOWED", path + ".marks", "ADF code-block text cannot contain marks."));
+        }
         if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) &&
             !string.Equals(parentType, "bulletList", StringComparison.Ordinal) &&
             !string.Equals(parentType, "orderedList", StringComparison.Ordinal)) {
