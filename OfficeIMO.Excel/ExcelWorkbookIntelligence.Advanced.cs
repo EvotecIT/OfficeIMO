@@ -400,6 +400,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Validates all workbook template markers against an object model before applying the template.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateBindingReport ValidateTemplateBindings(object model) {
             if (model == null) throw new ArgumentNullException(nameof(model));
             return new ExcelTemplateBindingReport(InspectTemplate(model));

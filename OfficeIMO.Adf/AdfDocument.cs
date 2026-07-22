@@ -1,4 +1,10 @@
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace OfficeIMO.Adf;
 
@@ -75,7 +81,15 @@ public sealed class AdfNode {
     /// <summary>Sets a JSON-compatible attribute value.</summary>
     public AdfNode SetAttribute<T>(string name, T value) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
-        Attributes[name] = JsonSerializer.SerializeToElement(value).Clone();
+        Attributes[name] = AdfJsonValue.Create(value);
+        return this;
+    }
+
+    /// <summary>Sets a custom attribute using source-generated JSON metadata.</summary>
+    public AdfNode SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+        Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;
     }
 
@@ -112,7 +126,15 @@ public sealed class AdfMark {
     /// <summary>Sets a JSON-compatible mark attribute.</summary>
     public AdfMark SetAttribute<T>(string name, T value) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
-        Attributes[name] = JsonSerializer.SerializeToElement(value).Clone();
+        Attributes[name] = AdfJsonValue.Create(value);
+        return this;
+    }
+
+    /// <summary>Sets a custom mark attribute using source-generated JSON metadata.</summary>
+    public AdfMark SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
+        if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+        Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;
     }
 
@@ -121,4 +143,81 @@ public sealed class AdfMark {
         Attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+}
+
+internal static class AdfJsonValue {
+    internal static JsonElement Create(object? value) {
+        if (value is JsonElement element) return element.Clone();
+        if (value is JsonDocument document) return document.RootElement.Clone();
+
+        JsonNode? node = CreateNode(value);
+        using var buffer = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(buffer)) {
+            if (node == null) writer.WriteNullValue();
+            else node.WriteTo(writer);
+        }
+        using JsonDocument parsed = JsonDocument.Parse(buffer.ToArray());
+        return parsed.RootElement.Clone();
+    }
+
+    private static JsonNode? CreateNode(object? value) {
+        if (value == null) return null;
+        if (value is JsonNode node) return node.DeepClone();
+        if (value is string text) return JsonValue.Create(text);
+        if (value is bool boolean) return JsonValue.Create(boolean);
+        if (value is byte byteValue) return JsonValue.Create(byteValue);
+        if (value is sbyte signedByteValue) return JsonValue.Create(signedByteValue);
+        if (value is short shortValue) return JsonValue.Create(shortValue);
+        if (value is ushort unsignedShortValue) return JsonValue.Create(unsignedShortValue);
+        if (value is int intValue) return JsonValue.Create(intValue);
+        if (value is uint unsignedIntValue) return JsonValue.Create(unsignedIntValue);
+        if (value is long longValue) return JsonValue.Create(longValue);
+        if (value is ulong unsignedLongValue) return JsonValue.Create(unsignedLongValue);
+        if (value is float floatValue) return JsonValue.Create(floatValue);
+        if (value is double doubleValue) return JsonValue.Create(doubleValue);
+        if (value is decimal decimalValue) return JsonValue.Create(decimalValue);
+        if (value is char character) return JsonValue.Create(character.ToString());
+        if (value is Guid guid) return JsonValue.Create(guid);
+        if (value is DateTime dateTime) return JsonValue.Create(dateTime);
+        if (value is DateTimeOffset dateTimeOffset) return JsonValue.Create(dateTimeOffset);
+        if (value is Uri uri) return JsonValue.Create(uri.ToString());
+
+        if (value is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
+            var result = new JsonObject();
+            foreach (KeyValuePair<string, object?> entry in readOnlyDictionary) {
+                result[entry.Key] = CreateNode(entry.Value);
+            }
+            return result;
+        }
+
+        if (value is IDictionary dictionary) {
+            var result = new JsonObject();
+            foreach (DictionaryEntry entry in dictionary) {
+                if (entry.Key is not string key) throw new NotSupportedException("ADF JSON object keys must be strings.");
+                result[key] = CreateNode(entry.Value);
+            }
+            return result;
+        }
+
+        if (value is IEnumerable sequence) {
+            var result = new JsonArray();
+            foreach (object? item in sequence) result.Add(CreateNode(item));
+            return result;
+        }
+
+        return CreateNodeWithRuntimeSerializer(value);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "This compatibility branch is reached only on dynamic-code runtimes. NativeAOT callers use JSON-compatible scalar/collection values or the JsonTypeInfo overload.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "This compatibility branch is reached only on dynamic-code runtimes. NativeAOT callers use JSON-compatible scalar/collection values or the JsonTypeInfo overload.")]
+    private static JsonNode? CreateNodeWithRuntimeSerializer(object value) {
+#if NET5_0_OR_GREATER
+        if (!RuntimeFeature.IsDynamicCodeSupported) {
+            throw new NotSupportedException($"ADF attribute type '{value.GetType().FullName}' needs the SetAttribute overload with source-generated JsonTypeInfo metadata in NativeAOT applications.");
+        }
+#endif
+        return JsonSerializer.SerializeToNode(value, value.GetType());
+    }
 }

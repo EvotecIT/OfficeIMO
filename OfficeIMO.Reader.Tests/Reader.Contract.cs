@@ -172,6 +172,99 @@ public sealed class ReaderContractTests {
         Assert.Equal("42", diagnostic.Attributes["limit"]);
     }
 
+    [Fact]
+    public void OfficeDocumentReadResultJson_SerializesNormalizedSchemaWithoutMutatingInput() {
+        var result = new OfficeDocumentReadResult {
+            SchemaId = string.Empty,
+            SchemaVersion = 0
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+
+        Assert.Equal(OfficeDocumentReadResultSchema.Id, restored.SchemaId);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, restored.SchemaVersion);
+        Assert.Equal(string.Empty, result.SchemaId);
+        Assert.Equal(0, result.SchemaVersion);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_NormalizesRequiredNullMembersWithoutMutatingInput() {
+        var result = new OfficeDocumentReadResult {
+            Source = null!,
+            CapabilitiesUsed = null!,
+            Chunks = null!,
+            Metadata = null!,
+            Pages = null!,
+            Blocks = null!,
+            Tables = null!,
+            Assets = null!,
+            Links = null!,
+            Forms = null!,
+            OcrCandidates = null!,
+            Visuals = null!,
+            Diagnostics = null!
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+
+        Assert.NotNull(restored.Source);
+        Assert.Empty(restored.CapabilitiesUsed);
+        Assert.Empty(restored.Chunks);
+        Assert.Empty(restored.Metadata);
+        Assert.Empty(restored.Pages);
+        Assert.Empty(restored.Blocks);
+        Assert.Empty(restored.Tables);
+        Assert.Empty(restored.Assets);
+        Assert.Empty(restored.Links);
+        Assert.Empty(restored.Forms);
+        Assert.Empty(restored.OcrCandidates);
+        Assert.Empty(restored.Visuals);
+        Assert.Empty(restored.Diagnostics);
+        Assert.Null(result.Source);
+        Assert.Null(result.Chunks);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_SortsAttributeDictionariesWithoutMutatingInput() {
+        var metadataAttributes = new Dictionary<string, string> {
+            ["zeta"] = "last",
+            ["alpha"] = "first"
+        };
+        var diagnosticAttributes = new Dictionary<string, string> {
+            ["zeta"] = "last",
+            ["alpha"] = "first"
+        };
+        var result = new OfficeDocumentReadResult {
+            Metadata = new[] {
+                new OfficeDocumentMetadataEntry {
+                    Id = "metadata-1",
+                    Category = "core",
+                    Name = "fixture",
+                    Attributes = metadataAttributes
+                }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic {
+                    Code = "fixture",
+                    Message = "Fixture",
+                    Attributes = diagnosticAttributes
+                }
+            }
+        };
+
+        string json = OfficeDocumentReadResultJson.Serialize(result);
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.Equal(new[] { "alpha", "zeta" }, parsed.RootElement.GetProperty("metadata")[0]
+            .GetProperty("attributes").EnumerateObject().Select(property => property.Name));
+        Assert.Equal(new[] { "alpha", "zeta" }, parsed.RootElement.GetProperty("diagnostics")[0]
+            .GetProperty("attributes").EnumerateObject().Select(property => property.Name));
+        Assert.Equal(new[] { "zeta", "alpha" }, metadataAttributes.Keys);
+        Assert.Equal(new[] { "zeta", "alpha" }, diagnosticAttributes.Keys);
+    }
+
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]

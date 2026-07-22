@@ -4,8 +4,6 @@ description: Build visually structured PowerPoint decks with design briefs, sema
 order: 32
 ---
 
-# Designer Decks
-
 Designer decks sit between fully manual slide placement and fixed templates. You describe brand, purpose, content, and preferences; OfficeIMO.PowerPoint can propose deterministic visual directions, explain why one direction fits, and render editable slides from semantic content.
 
 Use this when a generated deck should feel designed without forcing every caller into the same layout, color mix, or slide rhythm.

@@ -282,18 +282,41 @@ internal static class PowerPointRichMapping {
     }
 
     private static string BuildPowerPointChartPayload(OfficeChartSnapshot snapshot) {
-        return JsonSerializer.Serialize(new {
-            name = snapshot.Name,
-            title = snapshot.Title,
-            kind = snapshot.ChartKind.ToString(),
-            categories = snapshot.Data.Categories,
-            series = snapshot.Data.Series.Select(static series => new {
-                name = series.Name,
-                values = series.Values,
-                xValues = series.XValues,
-                kind = series.RenderKind?.ToString()
-            }).ToArray()
-        });
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream)) {
+            writer.WriteStartObject();
+            writer.WriteString("name", snapshot.Name);
+            writer.WriteString("title", snapshot.Title);
+            writer.WriteString("kind", snapshot.ChartKind.ToString());
+            writer.WritePropertyName("categories");
+            writer.WriteStartArray();
+            foreach (string category in snapshot.Data.Categories) writer.WriteStringValue(category);
+            writer.WriteEndArray();
+            writer.WritePropertyName("series");
+            writer.WriteStartArray();
+            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+                writer.WriteStartObject();
+                writer.WriteString("name", series.Name);
+                WritePowerPointChartValues(writer, "values", series.Values);
+                if (series.XValues == null) {
+                    writer.WriteNull("xValues");
+                } else {
+                    WritePowerPointChartValues(writer, "xValues", series.XValues);
+                }
+                writer.WriteString("kind", series.RenderKind?.ToString());
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void WritePowerPointChartValues(Utf8JsonWriter writer, string propertyName, IReadOnlyList<double> values) {
+        writer.WritePropertyName(propertyName);
+        writer.WriteStartArray();
+        foreach (double value in values) writer.WriteNumberValue(value);
+        writer.WriteEndArray();
     }
 
     private static string ResolvePowerPointSlideName(IEnumerable<PowerPointShape> slideShapes, int slideNumber) {

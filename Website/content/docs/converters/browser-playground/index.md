@@ -2,7 +2,6 @@
 title: Browser Converter
 description: Run supported OfficeIMO conversions locally through the WebAssembly app on OfficeIMO.com.
 order: 90
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/converters/browser-playground/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/converters/browser-playground/" />'
 ---
 
 The [browser converter](/playground/) is a static Blazor WebAssembly application. Supported conversions execute inside the current tab; selected files are not uploaded to OfficeIMO.

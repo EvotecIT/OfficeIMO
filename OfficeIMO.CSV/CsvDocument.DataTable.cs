@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OfficeIMO.CSV;
 
@@ -85,6 +86,7 @@ public sealed partial class CsvDocument
         return table;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "CSV schema projection creates scalar DataColumns only and never uses DataColumn expressions; DataTable.Load therefore has no expression-member preservation requirement here.")]
     private DataTable ToStreamingDataTable(CsvDataTableOptions options)
     {
         using var reader = CreateDataReader(new CsvDataReaderOptions
@@ -136,6 +138,7 @@ public sealed partial class CsvDocument
         }
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "CSV schema types are normalized to the supported scalar framework type set before DataColumn creation.")]
     private DataTable CreateDataTable(string? tableName, IReadOnlyDictionary<string, CsvSchemaColumn>? schemaColumns)
     {
         var table = new DataTable(ResolveDataTableName(tableName));

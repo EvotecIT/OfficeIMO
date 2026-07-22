@@ -4,8 +4,6 @@ description: Consume Drive changes and execute explicit dry-run, approval, confl
 order: 70
 ---
 
-# Change tracking and synchronization
-
 Install `OfficeIMO.GoogleWorkspace.Sync`. Initialize cursors once, persist the minimal checkpoint, then consume complete pages on later runs.
 
 ```csharp

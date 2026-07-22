@@ -2,6 +2,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -37,7 +38,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_DataExchange_JsonCustomOptionsStillApply() {
             string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonOptions.xlsx");
-            const string json = "[{\"FirstName\":\"Alpha\"}]";
+            const string json = "[{\"FirstName\":\"Alpha\",\"Amount\":42}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
@@ -47,14 +48,25 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
-                string exported = sheet.ToJson("A1:A2", jsonOptions: new JsonSerializerOptions {
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                string exported = sheet.ToJson("A1:B2", jsonOptions: new JsonSerializerOptions {
+                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+                    NumberHandling = JsonNumberHandling.WriteAsString,
+                    Converters = { new UppercaseStringConverter() }
                 });
 
                 using JsonDocument parsed = JsonDocument.Parse(exported);
                 Assert.True(parsed.RootElement[0].TryGetProperty("firstName", out JsonElement firstName));
-                Assert.Equal("Alpha", firstName.GetString());
+                Assert.Equal("ALPHA", firstName.GetString());
+                Assert.Equal("42", parsed.RootElement[0].GetProperty("amount").GetString());
             }
+        }
+
+        private sealed class UppercaseStringConverter : JsonConverter<string> {
+            public override string? Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options) =>
+                reader.GetString();
+
+            public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
+                writer.WriteStringValue(value.ToUpperInvariant());
         }
 
         [Fact]

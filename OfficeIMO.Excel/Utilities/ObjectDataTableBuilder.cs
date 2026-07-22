@@ -76,6 +76,7 @@ namespace OfficeIMO.Excel {
                    item is string or decimal or DateTime or DateTimeOffset or TimeSpan or Guid;
         }
 
+        [RequiresUnreferencedCode("This projector belongs to the runtime-object compatibility API. Use typed selectors or pre-flattened dictionaries in NativeAOT applications.")]
         private sealed class ObjectRowProjector {
             private static readonly ConcurrentDictionary<Type, CachedObjectRowProjection> TypedProjectionCache = new();
 
@@ -384,28 +385,8 @@ namespace OfficeIMO.Excel {
                 return string.Join(separator ?? string.Empty, parts);
             }
 
-            private static ObjectValueGetter CreateObjectValueGetter(PropertyInfo property) {
-                MethodInfo? getMethod = property.GetMethod;
-                if (getMethod == null || property.DeclaringType == null) {
-                    return row => property.GetValue(row, null);
-                }
-
-                try {
-                    return (ObjectValueGetter)CreateObjectValueGetterMethod
-                        .MakeGenericMethod(property.DeclaringType, property.PropertyType)
-                        .Invoke(null, new object[] { getMethod })!;
-                } catch {
-                    return row => property.GetValue(row, null);
-                }
-            }
-
-            private static readonly MethodInfo CreateObjectValueGetterMethod =
-                typeof(ObjectRowProjector).GetMethod(nameof(CreateObjectValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-            private static ObjectValueGetter CreateObjectValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
-                var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
-                return row => getter((TTarget)row!);
-            }
+            private static ObjectValueGetter CreateObjectValueGetter(PropertyInfo property)
+                => row => property.GetValue(row, null);
 
             private sealed class CachedObjectRowProjection {
                 internal CachedObjectRowProjection(string[] columns, ObjectValueGetter[]? getters) {

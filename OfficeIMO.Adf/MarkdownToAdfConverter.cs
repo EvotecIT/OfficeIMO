@@ -45,7 +45,7 @@ internal static class MarkdownToAdfConverter {
                 return new AdfNode("extension")
                     .SetAttribute("extensionType", "com.officeimo.raw-html")
                     .SetAttribute("extensionKey", "raw-html")
-                    .SetAttribute("parameters", new { html = raw.Html });
+                    .SetAttribute("parameters", new Dictionary<string, string> { ["html"] = raw.Html });
             default:
                 diagnostics.Add(Warning("MARKDOWN_UNSUPPORTED_BLOCK", path, "Markdown block '" + block.GetType().Name + "' has no exact ADF mapping and was omitted."));
                 return null;

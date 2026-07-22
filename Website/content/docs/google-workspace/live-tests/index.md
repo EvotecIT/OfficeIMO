@@ -4,8 +4,6 @@ description: Run disposable Google Docs, Sheets, Slides, Drive, shared-drive, an
 order: 75
 ---
 
-# Live-test setup
-
 Live tests are opt-in and create disposable resources in one dedicated folder. Set:
 
 ```powershell

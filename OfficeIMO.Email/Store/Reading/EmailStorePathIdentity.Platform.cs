@@ -17,7 +17,7 @@ internal static partial class EmailStorePathIdentity {
             if (handle.IsInvalid) return false;
             if (!GetFileInformationByHandleEx(handle, FileCaseSensitiveInfo,
                     out FileCaseSensitiveInformation information,
-                    (uint)Marshal.SizeOf(typeof(FileCaseSensitiveInformation)))) {
+                    (uint)Marshal.SizeOf<FileCaseSensitiveInformation>())) {
                 return false;
             }
 

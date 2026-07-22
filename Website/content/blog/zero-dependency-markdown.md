@@ -17,7 +17,7 @@ We needed a Markdown layer that:
 
 1. **Parses into a strongly typed AST** where every node is a concrete C# type.
 2. **Builds Markdown programmatically** without string concatenation.
-3. **Has zero external dependencies** so it can be trimmed and AOT-compiled.
+3. **Keeps third-party dependencies out of the core model** and includes a NativeAOT publish-and-run smoke for fluent rendering.
 4. **Supports round-trip fidelity** so you can parse a document, transform it, and emit Markdown that preserves the original formatting choices.
 
 ## The Typed AST
@@ -95,7 +95,7 @@ This is the kind of structural manipulation that is awkward with a string-based 
 
 ## AOT and Trimming
 
-Because OfficeIMO.Markdown keeps its dependency surface small and avoids the heavier Open XML document stack, it is one of the lower-risk packages in the repo for trimming- or AOT-sensitive deployments. Even so, you should still validate your own publish configuration rather than treating size or startup numbers as universal guarantees.
+OfficeIMO.Markdown's checked-in NativeAOT executable composes and renders a document, and CI republishes that scenario on Linux. That is a concrete baseline, not a blanket guarantee for every extension or consumer graph, so add your actual parsing and rendering paths before production.
 
 ## When to Use Markdig Instead
 

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace OfficeIMO.Confluence;
 
@@ -70,21 +71,22 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
         if (_ownsClient) _client.Timeout = Timeout.InfiniteTimeSpan;
     }
 
-    internal async Task<T> SendJsonAsync<T>(HttpMethod method, string relativeUri, object? payload, ConfluenceRequestSafety safety, CancellationToken cancellationToken) {
-        ConfluenceJsonResponse<T> response = await SendJsonWithHeadersAsync<T>(method, relativeUri, payload, safety, cancellationToken).ConfigureAwait(false);
+    internal async Task<T> SendJsonAsync<T>(HttpMethod method, string relativeUri, JsonElement? payload, ConfluenceRequestSafety safety, JsonTypeInfo<T> responseTypeInfo, CancellationToken cancellationToken) {
+        ConfluenceJsonResponse<T> response = await SendJsonWithHeadersAsync(method, relativeUri, payload, safety, responseTypeInfo, cancellationToken).ConfigureAwait(false);
         return response.Value;
     }
 
-    internal async Task<ConfluenceJsonResponse<T>> SendJsonWithHeadersAsync<T>(HttpMethod method, string relativeUri, object? payload, ConfluenceRequestSafety safety, CancellationToken cancellationToken) {
+    internal async Task<ConfluenceJsonResponse<T>> SendJsonWithHeadersAsync<T>(HttpMethod method, string relativeUri, JsonElement? payload, ConfluenceRequestSafety safety, JsonTypeInfo<T> responseTypeInfo, CancellationToken cancellationToken) {
+        if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
         ConfluenceHttpResponse response = await SendAsync(
             method,
             relativeUri,
-            payload == null ? null : (() => new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json")),
+            payload.HasValue ? (() => new StringContent(payload.Value.GetRawText(), Encoding.UTF8, "application/json")) : null,
             null,
             safety,
             cancellationToken).ConfigureAwait(false);
         if (response.Body.Length == 0) return new ConfluenceJsonResponse<T>(default!, response.Headers);
-        T? value = JsonSerializer.Deserialize<T>(response.Body, JsonOptions);
+        T? value = JsonSerializer.Deserialize(response.Body, responseTypeInfo);
         return value == null
             ? throw new InvalidOperationException("Confluence returned an empty or invalid JSON response.")
             : new ConfluenceJsonResponse<T>(value, response.Headers);

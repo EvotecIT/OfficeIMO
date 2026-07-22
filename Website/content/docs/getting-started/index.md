@@ -4,8 +4,6 @@ description: Start here for installation, platform support, first examples, and 
 order: 1
 ---
 
-# Getting Started
-
 OfficeIMO is a family of focused libraries rather than one giant abstraction. The fastest path is to choose the document format you need, install the matching package, and then move into the focused guide for that area.
 
 ## Pick Your Starting Point

@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel {
             builder.AppendLine();
             builder.AppendLine("| Capability | Can attempt | Diagnostics |");
             builder.AppendLine("| --- | --- | --- |");
-            foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {
+            foreach (ExcelPreflightCapability capability in global::OfficeIMO.Internal.EnumCompat.GetValues<ExcelPreflightCapability>()) {
                 builder.Append("| ");
                 builder.Append(capability);
                 builder.Append(" | ");
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
             builder.AppendLine();
             builder.AppendLine("| Capability | Feature | Action | Command | Details |");
             builder.AppendLine("| --- | --- | --- | --- | --- |");
-            foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {
+            foreach (ExcelPreflightCapability capability in global::OfficeIMO.Internal.EnumCompat.GetValues<ExcelPreflightCapability>()) {
                 foreach (ExcelPreflightRepairHint hint in GetRepairHints(capability)) {
                     builder.Append("| ");
                     builder.Append(EscapeMarkdownCell(capability.ToString()));

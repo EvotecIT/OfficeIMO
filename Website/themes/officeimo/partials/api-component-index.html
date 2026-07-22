@@ -1,0 +1,22 @@
+<section class="imo-api-family imo-api-component-index" aria-labelledby="api-all-components">
+  <div class="imo-api-family__heading"><p>Complete repository surface</p><h2 id="api-all-components">All {{ data.documentation_catalog.repository.productionComponentCount }} production components</h2><span>Generated API is shown where the assembly participates in the reference build. Focused adapters link to their owning guide and package instead of disappearing from the catalog.</span></div>
+  {{ for category in data.documentation_catalog.categories }}
+  <details class="imo-api-component-group">
+    <summary><strong>{{ category.name }}</strong><span>{{ category.componentCount }} components</span></summary>
+    <div class="imo-api-component-group__grid">
+      {{ for component in data.documentation_catalog.components }}{{ if component.category == category.name }}
+      <article class="imo-api-component-row">
+        <div><strong>{{ component.name }}</strong><p>{{ component.description }}</p></div>
+        <nav aria-label="{{ component.name }} resources">
+          {{ if component.apiUrl }}<a class="is-reference" href="{{ component.apiUrl }}">{{ component.name }} API</a>{{ end }}
+          <a href="{{ component.docsUrl }}">{{ component.name }} guide</a>
+          {{ if component.packageUrl }}<a href="{{ component.packageUrl }}" target="_blank" rel="noopener">{{ component.name }} package</a>{{ end }}
+        </nav>
+      </article>
+      {{ end }}{{ end }}
+    </div>
+  </details>
+  {{ end }}
+</section>
+
+<aside class="imo-api-source-note"><div><strong>Reference and releases are different channels.</strong><p>These pages describe the repository source used for this site build. Package feeds on the downloads page show what consumers can install today.</p></div><a href="/downloads/">Compare package versions →</a></aside>

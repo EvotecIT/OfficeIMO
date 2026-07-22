@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -12,6 +13,7 @@ namespace OfficeIMO.Excel {
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
     public sealed partial class ExcelSheetReader {
+        [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "Inferred worksheet column types are normalized to OfficeIMO's closed scalar set and are used only as DataColumn conversion tokens.")]
         private bool TryFillDataTableXmlFast(
             DataTable dt,
             int r1,
@@ -324,6 +326,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "Inferred worksheet column types are normalized to OfficeIMO's closed scalar set and are used only as DataColumn conversion tokens.")]
         private void FillDataTableFromMatrix(DataTable dt, object?[,] values, int rows, int cols, bool headersInFirstRow, CancellationToken ct) {
             int startRow = headersInFirstRow ? 1 : 0;
             int dataRowCount = Math.Max(0, rows - startRow);

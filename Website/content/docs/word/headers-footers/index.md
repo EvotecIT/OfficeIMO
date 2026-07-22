@@ -4,8 +4,6 @@ description: Adding headers, footers, and page numbers to Word documents with Of
 order: 14
 ---
 
-# Headers and Footers
-
 OfficeIMO provides full support for document headers and footers, including different content for the first page, odd/even pages, and section-specific headers and footers. Page numbers can be inserted in various formats.
 
 ## Enabling Headers and Footers

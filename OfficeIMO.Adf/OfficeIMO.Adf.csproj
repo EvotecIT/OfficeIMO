@@ -22,6 +22,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
+    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
 
   <ItemGroup>

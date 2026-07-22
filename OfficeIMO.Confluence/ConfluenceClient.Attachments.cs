@@ -11,7 +11,7 @@ public sealed partial class ConfluenceClient {
         if (limit < 1 || limit > 250) throw new ArgumentOutOfRangeException(nameof(limit), "Limit must be between 1 and 250.");
         string uri = "/wiki/api/v2/pages/" + Encode(pageId) + "/attachments?limit=" + limit.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (!string.IsNullOrWhiteSpace(cursor)) uri += "&cursor=" + Encode(cursor!);
-        ConfluenceJsonResponse<CollectionResponse<ConfluenceAttachment>> response = await _transport.SendJsonWithHeadersAsync<CollectionResponse<ConfluenceAttachment>>(HttpMethod.Get, uri, null, ConfluenceRequestSafety.SafeToRetry, cancellationToken).ConfigureAwait(false);
+        ConfluenceJsonResponse<ConfluenceCollectionResponse<ConfluenceAttachment>> response = await _transport.SendJsonWithHeadersAsync(HttpMethod.Get, uri, null, ConfluenceRequestSafety.SafeToRetry, ConfluenceJsonSerializerContext.Default.ConfluenceCollectionResponseConfluenceAttachment, cancellationToken).ConfigureAwait(false);
         return new ConfluenceAttachmentBatch(response.Value.Results, ConfluencePagination.Next(response.Value.Links?.Next, response.Headers));
     }
 
@@ -58,7 +58,7 @@ public sealed partial class ConfluenceClient {
         if (upload.Content == null || !upload.Content.CanRead) throw new ArgumentException("A readable attachment content stream is required.", nameof(upload));
         string uri = "/wiki/rest/api/content/" + Encode(pageId) + "/child/attachment";
         ConfluenceHttpResponse response = await _transport.SendMultipartAsync(uri, () => CreateMultipart(upload), cancellationToken).ConfigureAwait(false);
-        V1AttachmentResponse? parsed = JsonSerializer.Deserialize<V1AttachmentResponse>(response.Body, ConfluenceHttpTransport.JsonOptions);
+        ConfluenceV1AttachmentResponse? parsed = JsonSerializer.Deserialize(response.Body, ConfluenceJsonSerializerContext.Default.ConfluenceV1AttachmentResponse);
         return parsed == null
             ? Array.Empty<ConfluenceAttachment>()
             : parsed.Results.Select(item => new ConfluenceAttachment {
@@ -98,42 +98,43 @@ public sealed partial class ConfluenceClient {
         protected override void Dispose(bool disposing) { }
     }
 
-    private sealed class V1AttachmentResponse {
-        [System.Text.Json.Serialization.JsonPropertyName("results")]
-        public List<V1Attachment> Results { get; set; } = new List<V1Attachment>();
-    }
+}
 
-    private sealed class V1Attachment {
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
-        [System.Text.Json.Serialization.JsonPropertyName("fileSize")]
-        public long FileSize { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("metadata")]
-        public V1AttachmentMetadata? Metadata { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("extensions")]
-        public V1AttachmentExtensions? Extensions { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("_links")]
-        public V1AttachmentLinks? Links { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("version")]
-        public ConfluencePageVersion? Version { get; set; }
-    }
+internal sealed class ConfluenceV1AttachmentResponse {
+    [System.Text.Json.Serialization.JsonPropertyName("results")]
+    public List<ConfluenceV1Attachment> Results { get; set; } = new List<ConfluenceV1Attachment>();
+}
 
-    private sealed class V1AttachmentMetadata {
-        [System.Text.Json.Serialization.JsonPropertyName("mediaType")]
-        public string? MediaType { get; set; }
-    }
+internal sealed class ConfluenceV1Attachment {
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("title")]
+    public string Title { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("fileSize")]
+    public long FileSize { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("metadata")]
+    public ConfluenceV1AttachmentMetadata? Metadata { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("extensions")]
+    public ConfluenceV1AttachmentExtensions? Extensions { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("_links")]
+    public ConfluenceV1AttachmentLinks? Links { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("version")]
+    public ConfluencePageVersion? Version { get; set; }
+}
 
-    private sealed class V1AttachmentExtensions {
-        [System.Text.Json.Serialization.JsonPropertyName("mediaType")]
-        public string? MediaType { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("fileSize")]
-        public long FileSize { get; set; }
-    }
+internal sealed class ConfluenceV1AttachmentMetadata {
+    [System.Text.Json.Serialization.JsonPropertyName("mediaType")]
+    public string? MediaType { get; set; }
+}
 
-    private sealed class V1AttachmentLinks {
-        [System.Text.Json.Serialization.JsonPropertyName("download")]
-        public string? Download { get; set; }
-    }
+internal sealed class ConfluenceV1AttachmentExtensions {
+    [System.Text.Json.Serialization.JsonPropertyName("mediaType")]
+    public string? MediaType { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("fileSize")]
+    public long FileSize { get; set; }
+}
+
+internal sealed class ConfluenceV1AttachmentLinks {
+    [System.Text.Json.Serialization.JsonPropertyName("download")]
+    public string? Download { get; set; }
 }

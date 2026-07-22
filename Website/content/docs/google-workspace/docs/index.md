@@ -4,8 +4,6 @@ description: Plan, export, import, and safely replace Google Docs with OfficeIMO
 order: 20
 ---
 
-# Word and Google Docs
-
 Install `OfficeIMO.Word.GoogleDocs`. Build the plan before acquiring credentials when you need a review or strict fidelity gate.
 
 ```csharp

@@ -4,8 +4,6 @@ description: Choose static, delegate, service-account, or Google APIs credential
 order: 60
 ---
 
-# Authentication
-
 `OfficeIMO.GoogleWorkspace` depends only on `IGoogleWorkspaceCredentialSource`. It includes static/delegate sources and a service-account JWT source with optional domain-wide delegation.
 
 ```csharp

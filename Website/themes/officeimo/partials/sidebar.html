@@ -11,14 +11,14 @@
       <ul class="imo-sidebar-list">
         {{ for item in group.items }}
         <li>
-          <a href="{{ item.url }}" class="imo-sidebar-link{{ if page.url == item.url }} active{{ end }}">
+          <a href="{{ item.url }}" class="imo-sidebar-link{{ if current_path == item.url }} active{{ end }}">
             {{ item.title }}
           </a>
           {{ if item.items }}
           <ul class="imo-sidebar-sublist">
             {{ for sub in item.items }}
             <li>
-              <a href="{{ sub.url }}" class="imo-sidebar-link{{ if page.url == sub.url }} active{{ end }}">
+              <a href="{{ sub.url }}" class="imo-sidebar-link{{ if current_path == sub.url }} active{{ end }}">
                 {{ sub.title }}
               </a>
             </li>

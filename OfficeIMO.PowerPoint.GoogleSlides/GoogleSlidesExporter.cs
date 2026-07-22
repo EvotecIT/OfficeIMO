@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 using OfficeIMO.PowerPoint;
+using System.Text.Json.Nodes;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesExporter : IGoogleSlidesExporter {
@@ -46,8 +47,16 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         batch.Plan.Report,
                         cancellationToken).ConfigureAwait(false);
                 } else {
-                    GoogleSlidesApiPresentationResponse created = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Post,
-                        "https://slides.googleapis.com/v1/presentations", new { title = batch.Title }, GoogleWorkspaceRequestSafety.NonIdempotent, "Google Slides API", batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                    GoogleSlidesApiPresentationResponse created = await transport.SendJsonAsync(
+                        token.AccessToken,
+                        HttpMethod.Post,
+                        "https://slides.googleapis.com/v1/presentations",
+                        Obj(("title", batch.Title)),
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Slides API",
+                        batch.Plan.Report,
+                        GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse,
+                        cancellationToken).ConfigureAwait(false);
                     presentationId = created.PresentationId ?? throw new InvalidOperationException("Google Slides create response did not return a presentationId.");
                 }
 
@@ -57,13 +66,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 bool classifyRevisionConflicts = !ownsNewCopy && effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.RequireRevision;
                 string? revision = ResolveRevision(effective, current, ownsNewCopy, batch.Plan.Report);
                 IReadOnlyDictionary<string, string> imageUrls = await CreateImageLeasesAsync(drive, batch, leases, cancellationToken).ConfigureAwait(false);
-                List<object> requests = BuildRequests(batch, current, imageUrls);
+                List<JsonObject> requests = BuildRequests(batch, current, imageUrls);
                 revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
 
                 if (batch.Slides.Any(slide => !string.IsNullOrWhiteSpace(slide.SpeakerNotes))) {
                     GoogleSlidesApiPresentationResponse withNotes = await GetPresentationAsync(transport, token.AccessToken, presentationId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                     revision = withNotes.RevisionId ?? revision;
-                    List<object> noteRequests = BuildSpeakerNotesRequests(batch, withNotes);
+                    List<JsonObject> noteRequests = BuildSpeakerNotesRequests(batch, withNotes);
                     revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                 }
 
@@ -149,7 +158,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         private static async Task<GoogleSlidesApiPresentationResponse> GetPresentationAsync(GoogleWorkspaceHttpTransport transport, string token, string id, TranslationReport report, CancellationToken cancellationToken) =>
             await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token, HttpMethod.Get, $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null,
-                GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
+                GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
+                GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);
 
         private static async Task<string?> TryGetPresentationRevisionAsync(
             GoogleWorkspaceHttpTransport transport,
@@ -185,13 +195,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return result;
         }
 
-        private static List<object> BuildRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current, IReadOnlyDictionary<string, string> imageUrls) {
+        private static List<JsonObject> BuildRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current, IReadOnlyDictionary<string, string> imageUrls) {
             ResolvePagePlacement(batch, current, out double scale, out double offsetX, out double offsetY);
             var existingSlideIds = current.Slides
                 .Where(slide => !string.IsNullOrWhiteSpace(slide.ObjectId))
                 .Select(slide => slide.ObjectId!)
                 .ToList();
-            var requests = new List<object>();
+            var requests = new List<JsonObject>();
             string? keeperSlideId = null;
             if (existingSlideIds.Count > 0) {
                 var occupiedIds = new HashSet<string>(existingSlideIds.Concat(batch.Slides.Select(slide => slide.ObjectId)), StringComparer.Ordinal);
@@ -200,83 +210,105 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     keeperSlideId = "officeimo_replacement_keeper_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
 
-                requests.Add(new {
-                    createSlide = new {
-                        objectId = keeperSlideId,
-                        insertionIndex = existingSlideIds.Count,
-                        slideLayoutReference = new { predefinedLayout = "BLANK" }
-                    }
-                });
+                requests.Add(Obj(("createSlide", Obj(
+                    ("objectId", keeperSlideId),
+                    ("insertionIndex", existingSlideIds.Count),
+                    ("slideLayoutReference", Obj(("predefinedLayout", "BLANK")))))));
             }
 
             foreach (string existingSlideId in existingSlideIds) {
-                requests.Add(new { deleteObject = new { objectId = existingSlideId } });
+                requests.Add(Obj(("deleteObject", Obj(("objectId", existingSlideId)))));
             }
 
             foreach (GoogleSlidesSlide slide in batch.Slides) {
-                requests.Add(new { createSlide = new { objectId = slide.ObjectId, insertionIndex = slide.Index, slideLayoutReference = new { predefinedLayout = "BLANK" } } });
-                if (slide.IsSkipped) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { isSkipped = true }, fields = "isSkipped" } });
-                if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "pageBackgroundFill.solidFill.color" } });
-                else if (slide.BackgroundImage != null) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { stretchedPictureFill = new { contentUrl = imageUrls[slide.BackgroundImage.ObjectId] } } }, fields = "pageBackgroundFill.stretchedPictureFill.contentUrl" } });
+                requests.Add(Obj(("createSlide", Obj(
+                    ("objectId", slide.ObjectId),
+                    ("insertionIndex", slide.Index),
+                    ("slideLayoutReference", Obj(("predefinedLayout", "BLANK")))))));
+                if (slide.IsSkipped) {
+                    requests.Add(Obj(("updateSlideProperties", Obj(
+                        ("objectId", slide.ObjectId),
+                        ("slideProperties", Obj(("isSkipped", true))),
+                        ("fields", "isSkipped")))));
+                }
+                if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) {
+                    JsonObject pageBackgroundFill = Obj(("solidFill", Obj(
+                        ("color", Obj(("rgbColor", Rgb(slide.BackgroundColorHex!)))))));
+                    requests.Add(Obj(("updatePageProperties", Obj(
+                        ("objectId", slide.ObjectId),
+                        ("pageProperties", Obj(("pageBackgroundFill", pageBackgroundFill))),
+                        ("fields", "pageBackgroundFill.solidFill.color")))));
+                } else if (slide.BackgroundImage != null) {
+                    requests.Add(Obj(("updatePageProperties", Obj(
+                        ("objectId", slide.ObjectId),
+                        ("pageProperties", Obj(("pageBackgroundFill", Obj(("stretchedPictureFill", Obj(("contentUrl", imageUrls[slide.BackgroundImage.ObjectId]))))))),
+                        ("fields", "pageBackgroundFill.stretchedPictureFill.contentUrl")))));
+                }
                 foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls, scale, offsetX, offsetY);
             }
             if (keeperSlideId != null && batch.Slides.Count > 0) {
-                requests.Add(new { deleteObject = new { objectId = keeperSlideId } });
+                requests.Add(Obj(("deleteObject", Obj(("objectId", keeperSlideId)))));
             }
             return requests;
         }
 
         private static void AddElementRequests(
-            ICollection<object> requests,
+            ICollection<JsonObject> requests,
             string slideId,
             GoogleSlidesElement element,
             IReadOnlyDictionary<string, string> imageUrls,
             double scale,
             double offsetX,
             double offsetY) {
-            object properties = ElementProperties(slideId, element, scale, offsetX, offsetY);
+            JsonObject properties = ElementProperties(slideId, element, scale, offsetX, offsetY);
             switch (element) {
                 case GoogleSlidesTextBox text:
-                    requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = text.ShapeType, elementProperties = properties } });
+                    requests.Add(Obj(("createShape", Obj(("objectId", text.ObjectId), ("shapeType", text.ShapeType), ("elementProperties", properties)))));
                     AddShapeStyleRequest(requests, text.ObjectId, text.Style, scale);
-                    if (!string.IsNullOrEmpty(text.Text)) requests.Add(new { insertText = new { objectId = text.ObjectId, text = text.Text } });
+                    if (!string.IsNullOrEmpty(text.Text)) requests.Add(Obj(("insertText", Obj(("objectId", text.ObjectId), ("text", text.Text)))));
                     if (text.TextRuns.Count > 0) {
                         foreach (GoogleSlidesTextStyleRun run in text.TextRuns) {
-                            Dictionary<string, object?> style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
+                            JsonObject style = BuildTextStyle(run.Bold, run.Italic, run.Underline, run.FontSize, run.FontFamily, run.ForegroundColorHex, run.Hyperlink, scale);
                             if (style.Count > 0 && run.EndIndex > run.StartIndex) {
-                                requests.Add(new {
-                                    updateTextStyle = new {
-                                        objectId = text.ObjectId,
-                                        textRange = new { type = "FIXED_RANGE", startIndex = run.StartIndex, endIndex = run.EndIndex },
-                                        style,
-                                        fields = string.Join(",", style.Keys),
-                                    },
-                                });
+                                requests.Add(Obj(("updateTextStyle", Obj(
+                                    ("objectId", text.ObjectId),
+                                    ("textRange", Obj(("type", "FIXED_RANGE"), ("startIndex", run.StartIndex), ("endIndex", run.EndIndex))),
+                                    ("style", style),
+                                    ("fields", string.Join(",", style.Select(pair => pair.Key)))))));
                             }
                         }
                     } else {
-                        Dictionary<string, object?> style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
-                        if (style.Count > 0 && text.Text.Length > 0) requests.Add(new { updateTextStyle = new { objectId = text.ObjectId, textRange = new { type = "ALL" }, style, fields = string.Join(",", style.Keys) } });
+                        JsonObject style = BuildTextStyle(text.Bold, text.Italic, text.Underline, text.FontSize, text.FontFamily, text.ForegroundColorHex, text.Hyperlink, scale);
+                        if (style.Count > 0 && text.Text.Length > 0) {
+                            requests.Add(Obj(("updateTextStyle", Obj(
+                                ("objectId", text.ObjectId),
+                                ("textRange", Obj(("type", "ALL"))),
+                                ("style", style),
+                                ("fields", string.Join(",", style.Select(pair => pair.Key)))))));
+                        }
                     }
                     break;
                 case GoogleSlidesTable table:
                     int rows = table.Cells.Count; int columns = table.Cells.Select(row => row.Count).DefaultIfEmpty(0).Max();
                     if (rows == 0 || columns == 0) break;
-                    requests.Add(new { createTable = new { objectId = table.ObjectId, rows, columns, elementProperties = properties } });
+                    requests.Add(Obj(("createTable", Obj(("objectId", table.ObjectId), ("rows", rows), ("columns", columns), ("elementProperties", properties)))));
                     for (int row = 0; row < rows; row++) for (int column = 0; column < table.Cells[row].Count; column++) if (!string.IsNullOrEmpty(table.Cells[row][column]))
-                        requests.Add(new { insertText = new { objectId = table.ObjectId, cellLocation = new { rowIndex = row, columnIndex = column }, text = table.Cells[row][column] } });
+                        requests.Add(Obj(("insertText", Obj(
+                            ("objectId", table.ObjectId),
+                            ("cellLocation", Obj(("rowIndex", row), ("columnIndex", column))),
+                            ("text", table.Cells[row][column])))));
                     break;
                 case GoogleSlidesImage image:
-                    requests.Add(new { createImage = new { objectId = image.ObjectId, url = imageUrls[image.ObjectId], elementProperties = properties } });
+                    requests.Add(Obj(("createImage", Obj(("objectId", image.ObjectId), ("url", imageUrls[image.ObjectId]), ("elementProperties", properties)))));
                     break;
                 case GoogleSlidesShape shape:
-                    requests.Add(new { createShape = new { objectId = shape.ObjectId, shapeType = shape.ShapeType, elementProperties = properties } });
+                    requests.Add(Obj(("createShape", Obj(("objectId", shape.ObjectId), ("shapeType", shape.ShapeType), ("elementProperties", properties)))));
                     AddShapeStyleRequest(requests, shape.ObjectId, shape.Style, scale);
                     break;
             }
         }
 
-        private static Dictionary<string, object?> BuildTextStyle(
+        private static JsonObject BuildTextStyle(
             bool bold,
             bool italic,
             bool underline,
@@ -285,61 +317,52 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             string? foregroundColorHex,
             string? hyperlink,
             double scale) {
-            var style = new Dictionary<string, object?>();
+            var style = new JsonObject();
             if (bold) style["bold"] = true;
             if (italic) style["italic"] = true;
             if (underline) style["underline"] = true;
-            if (fontSize.HasValue) style["fontSize"] = new { magnitude = Math.Max(1, fontSize.Value * scale), unit = "PT" };
+            if (fontSize.HasValue) style["fontSize"] = Obj(("magnitude", Math.Max(1, fontSize.Value * scale)), ("unit", "PT"));
             if (!string.IsNullOrWhiteSpace(fontFamily)) style["fontFamily"] = fontFamily;
-            if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = new { opaqueColor = new { rgbColor = Rgb(foregroundColorHex!) } };
-            if (!string.IsNullOrWhiteSpace(hyperlink)) style["link"] = new { url = hyperlink };
+            if (!string.IsNullOrWhiteSpace(foregroundColorHex)) style["foregroundColor"] = Obj(("opaqueColor", Obj(("rgbColor", Rgb(foregroundColorHex!)))));
+            if (!string.IsNullOrWhiteSpace(hyperlink)) style["link"] = Obj(("url", hyperlink));
             return style;
         }
 
-        private static void AddShapeStyleRequest(ICollection<object> requests, string objectId, GoogleSlidesShapeStyle style, double scale) {
-            var shapeProperties = new Dictionary<string, object?>();
+        private static void AddShapeStyleRequest(ICollection<JsonObject> requests, string objectId, GoogleSlidesShapeStyle style, double scale) {
+            var shapeProperties = new JsonObject();
             var fields = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(style.FillColorHex)) {
-                var solidFill = new Dictionary<string, object?> {
-                    ["color"] = new { rgbColor = Rgb(style.FillColorHex!) },
-                };
+                var solidFill = Obj(("color", Obj(("rgbColor", Rgb(style.FillColorHex!)))));
                 fields.Add("shapeBackgroundFill.solidFill.color");
                 if (style.FillTransparencyPercent.HasValue) {
                     int transparency = Math.Min(100, Math.Max(0, style.FillTransparencyPercent.Value));
                     solidFill["alpha"] = (100d - transparency) / 100d;
                     fields.Add("shapeBackgroundFill.solidFill.alpha");
                 }
-                shapeProperties["shapeBackgroundFill"] = new Dictionary<string, object?> { ["solidFill"] = solidFill };
+                shapeProperties["shapeBackgroundFill"] = Obj(("solidFill", solidFill));
             }
 
-            var outline = new Dictionary<string, object?>();
+            var outline = new JsonObject();
             if (!string.IsNullOrWhiteSpace(style.OutlineColorHex)) {
-                outline["outlineFill"] = new {
-                    solidFill = new {
-                        color = new { rgbColor = Rgb(style.OutlineColorHex!) },
-                    },
-                };
+                outline["outlineFill"] = Obj(("solidFill", Obj(("color", Obj(("rgbColor", Rgb(style.OutlineColorHex!)))))));
                 fields.Add("outline.outlineFill.solidFill.color");
             }
             if (style.OutlineWidthPoints.HasValue) {
-                outline["weight"] = new { magnitude = Math.Max(0, style.OutlineWidthPoints.Value * scale), unit = "PT" };
+                outline["weight"] = Obj(("magnitude", Math.Max(0, style.OutlineWidthPoints.Value * scale)), ("unit", "PT"));
                 fields.Add("outline.weight");
             }
             if (outline.Count > 0) shapeProperties["outline"] = outline;
 
             if (fields.Count > 0) {
-                requests.Add(new {
-                    updateShapeProperties = new {
-                        objectId,
-                        shapeProperties,
-                        fields = string.Join(",", fields),
-                    },
-                });
+                requests.Add(Obj(("updateShapeProperties", Obj(
+                    ("objectId", objectId),
+                    ("shapeProperties", shapeProperties),
+                    ("fields", string.Join(",", fields))))));
             }
         }
 
-        private static object ElementProperties(string slideId, GoogleSlidesElement element, double scale, double offsetX, double offsetY) {
+        private static JsonObject ElementProperties(string slideId, GoogleSlidesElement element, double scale, double offsetX, double offsetY) {
             double width = Math.Max(1, element.WidthPoints * scale);
             double height = Math.Max(1, element.HeightPoints * scale);
             double left = offsetX + (element.LeftPoints * scale);
@@ -356,19 +379,19 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             double translateX = left + (width / 2d) - (scaleX * width / 2d) - (shearX * height / 2d);
             double translateY = top + (height / 2d) - (shearY * width / 2d) - (scaleY * height / 2d);
 
-            return new {
-                pageObjectId = slideId,
-                size = new { width = new { magnitude = width, unit = "PT" }, height = new { magnitude = height, unit = "PT" } },
-                transform = new {
-                    scaleX,
-                    scaleY,
-                    shearX,
-                    shearY,
-                    translateX,
-                    translateY,
-                    unit = "PT"
-                },
-            };
+            return Obj(
+                ("pageObjectId", slideId),
+                ("size", Obj(
+                    ("width", Obj(("magnitude", width), ("unit", "PT"))),
+                    ("height", Obj(("magnitude", height), ("unit", "PT"))))),
+                ("transform", Obj(
+                    ("scaleX", scaleX),
+                    ("scaleY", scaleY),
+                    ("shearX", shearX),
+                    ("shearY", shearY),
+                    ("translateX", translateX),
+                    ("translateY", translateY),
+                    ("unit", "PT"))));
         }
 
         private static double NormalizeTransformComponent(double value) => Math.Abs(value) < 0.000000000001d ? 0d : value;
@@ -406,23 +429,26 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 : dimension.Magnitude;
         }
 
-        private static Dictionary<string, double> Rgb(string hex) {
+        private static JsonObject Rgb(string hex) {
             string value = hex.TrimStart('#'); if (value.Length >= 6) value = value.Substring(value.Length - 6);
-            if (value.Length != 6) return new Dictionary<string, double>();
-            return new Dictionary<string, double> { ["red"] = Convert.ToInt32(value.Substring(0, 2), 16) / 255d, ["green"] = Convert.ToInt32(value.Substring(2, 2), 16) / 255d, ["blue"] = Convert.ToInt32(value.Substring(4, 2), 16) / 255d };
+            if (value.Length != 6) return new JsonObject();
+            return Obj(
+                ("red", Convert.ToInt32(value.Substring(0, 2), 16) / 255d),
+                ("green", Convert.ToInt32(value.Substring(2, 2), 16) / 255d),
+                ("blue", Convert.ToInt32(value.Substring(4, 2), 16) / 255d));
         }
 
-        private static List<object> BuildSpeakerNotesRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current) {
-            var requests = new List<object>();
+        private static List<JsonObject> BuildSpeakerNotesRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current) {
+            var requests = new List<JsonObject>();
             foreach (GoogleSlidesSlide slide in batch.Slides.Where(slide => !string.IsNullOrWhiteSpace(slide.SpeakerNotes))) {
                 GoogleSlidesApiPage? page = current.Slides.FirstOrDefault(candidate => string.Equals(candidate.ObjectId, slide.ObjectId, StringComparison.Ordinal));
                 GoogleSlidesApiPage? notesPage = page?.SlideProperties?.NotesPage;
                 string? notesId = notesPage?.NotesProperties?.SpeakerNotesObjectId;
                 if (string.IsNullOrWhiteSpace(notesId)) continue;
                 if (HasDeletableSpeakerNotes(notesPage!, notesId!)) {
-                    requests.Add(new { deleteText = new { objectId = notesId, textRange = new { type = "ALL" } } });
+                    requests.Add(Obj(("deleteText", Obj(("objectId", notesId), ("textRange", Obj(("type", "ALL")))))));
                 }
-                requests.Add(new { insertText = new { objectId = notesId, text = slide.SpeakerNotes } });
+                requests.Add(Obj(("insertText", Obj(("objectId", notesId), ("text", slide.SpeakerNotes)))));
             }
             return requests;
         }
@@ -438,19 +464,27 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleWorkspaceHttpTransport transport,
             string token,
             string id,
-            IReadOnlyList<object> requests,
+            IReadOnlyList<JsonObject> requests,
             string? revision,
             bool classifyRevisionConflicts,
             TranslationReport report,
             CancellationToken cancellationToken) {
             for (int offset = 0; offset < requests.Count; offset += RequestsPerBatch) {
-                object[] chunk = requests.Skip(offset).Take(RequestsPerBatch).ToArray();
-                var payload = new Dictionary<string, object?> { ["requests"] = chunk };
-                if (!string.IsNullOrWhiteSpace(revision)) payload["writeControl"] = new { requiredRevisionId = revision };
+                JsonObject[] chunk = requests.Skip(offset).Take(RequestsPerBatch).ToArray();
+                var payload = Obj(("requests", new JsonArray(chunk.Select(request => (JsonNode?)request).ToArray())));
+                if (!string.IsNullOrWhiteSpace(revision)) payload["writeControl"] = Obj(("requiredRevisionId", revision));
                 string? attemptedRevision = revision;
                 try {
-                    GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync<GoogleSlidesApiBatchResponse>(token, HttpMethod.Post,
-                        $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}:batchUpdate", payload, GoogleWorkspaceRequestSafety.NonIdempotent, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
+                    GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync(
+                        token,
+                        HttpMethod.Post,
+                        $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}:batchUpdate",
+                        payload,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Slides API",
+                        report,
+                        GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiBatchResponse,
+                        cancellationToken).ConfigureAwait(false);
                     revision = response.WriteControl?.RequiredRevisionId ?? revision;
                 } catch (GoogleWorkspaceApiException ex) when (
                     classifyRevisionConflicts
@@ -476,6 +510,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 }
             }
             return revision;
+        }
+
+        private static JsonObject Obj(params (string Name, JsonNode? Value)[] properties) {
+            var result = new JsonObject();
+            foreach ((string name, JsonNode? value) in properties) result[name] = value;
+            return result;
         }
     }
 }

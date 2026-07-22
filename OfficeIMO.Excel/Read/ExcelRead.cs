@@ -277,7 +277,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>List of <typeparamref name="T"/> populated from each data row.</returns>
-        public static System.Collections.Generic.List<T> ReadRangeObjectsAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) where T : new() {
+        public static System.Collections.Generic.List<T> ReadRangeObjectsAs<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) where T : new() {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadObjects<T>(a1Range).ToList();
         }

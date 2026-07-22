@@ -4,6 +4,7 @@ using OfficeIMO.Drawing.Internal;
 using System.Collections;
 using System.Data;
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,7 @@ public sealed partial class CsvDocument
     /// <param name="culture">Optional culture for value formatting.</param>
     /// <param name="encoding">Optional encoding for file operations.</param>
     /// <returns>A populated <see cref="CsvDocument"/>.</returns>
+    [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static CsvDocument FromObjects(IEnumerable<object?> items, char delimiter = ',', CultureInfo? culture = null, Encoding? encoding = null)
     {
         if (items == null)
@@ -121,6 +123,7 @@ public sealed partial class CsvDocument
     /// <param name="writer">Destination text writer.</param>
     /// <param name="items">Sequence of objects to convert into CSV rows.</param>
     /// <param name="options">Optional save settings.</param>
+    [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static void WriteObjects(TextWriter writer, IEnumerable<object?> items, CsvSaveOptions? options = null)
     {
         if (writer == null)
@@ -177,6 +180,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Destination CSV path.</param>
     /// <param name="items">Sequence of objects to convert into CSV rows.</param>
     /// <param name="options">Optional save settings.</param>
+    [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static void SaveObjects(string path, IEnumerable<object?> items, CsvSaveOptions? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))

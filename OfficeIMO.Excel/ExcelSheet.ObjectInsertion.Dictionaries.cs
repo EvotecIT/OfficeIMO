@@ -489,6 +489,7 @@ namespace OfficeIMO.Excel {
         private delegate bool TryAddIndexedObjectExportValue(int propertyIndex, string? name, object? value);
 
 
+        [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
             if (value == null) {
                 if (!string.IsNullOrEmpty(prefix)) {

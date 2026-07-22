@@ -475,7 +475,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageBorder = GetParagraphBorders();
                 if (pageBorder != null) {
-                    foreach (WordBorder wordBorder in Enum.GetValues(typeof(WordBorder))) {
+                    foreach (WordBorder wordBorder in global::OfficeIMO.Internal.EnumCompat.GetValues<WordBorder>()) {
                         if (wordBorder == WordBorder.None) {
                             continue;
                         }

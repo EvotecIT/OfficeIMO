@@ -383,7 +383,16 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over an arbitrary runtime type. For NativeAOT, call FrontMatter<T> or pass a dictionary.")]
     public MarkdownDoc FrontMatter(object data) {
+        _frontMatter = FrontMatterBlock.FromObject(data);
+        MarkdownObjectTreeBinder.BindDocument(this);
+        return this;
+    }
+
+    /// <summary>Sets YAML front matter from a type known at publish time.</summary>
+    public MarkdownDoc FrontMatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;
@@ -515,6 +524,8 @@ public partial class MarkdownDoc : MarkdownObject {
     /// <summary>
     /// Convenience to add a table from arbitrary data; see <see cref="TableBuilder.FromAny(object?)"/> for rules.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
+    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
     public MarkdownDoc TableFrom(object? data) {
         TableBuilder tb = new TableBuilder();
         tb.FromAny(data);
@@ -524,6 +535,8 @@ public partial class MarkdownDoc : MarkdownObject {
     /// <summary>
     /// Creates a table from data and applies auto-alignment heuristics (numeric right, dates center) if requested.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
+    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
     public MarkdownDoc TableFromAuto(object? data, System.Action<TableFromOptions>? configure = null, bool alignNumeric = true, bool alignDates = true) {
         TableBuilder tb = new TableBuilder();
         if (configure is null) tb.FromAny(data); else tb.FromAny(data, configure);

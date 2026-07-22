@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
 
@@ -354,6 +355,8 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
+            [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Excel reader column types are closed scalar conversion tokens; OfficeIMO never activates or reflects over their public members.")]
+            [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
             /// <inheritdoc />
@@ -444,6 +447,7 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
+            [UnconditionalSuppressMessage("Trimming", "IL2111", Justification = "The schema table stores Type values as data and does not reflect over Type.TypeInitializer or other Type members.")]
             public override DataTable GetSchemaTable() {
                 var schema = new DataTable("SchemaTable");
                 schema.Columns.Add(SchemaTableColumn.ColumnName, typeof(string));

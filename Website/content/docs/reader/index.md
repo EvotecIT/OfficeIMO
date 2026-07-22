@@ -4,8 +4,6 @@ description: Deterministic document extraction, rich results, structured records
 order: 55
 ---
 
-# Reader and Extraction
-
 `OfficeIMO.Reader` is the shared read-only extraction facade for Office and adjacent document formats. It can return simple `ReaderChunk` sequences for indexing, or a rich `OfficeDocumentReadResult` with pages, blocks, tables, links, forms, assets, visuals, OCR candidates, metadata, and structured diagnostics.
 
 Format-specific parsing stays in the owning OfficeIMO package. Optional adapters and OCR providers remain separate packages, so applications install only the formats and runtimes they need.
@@ -21,7 +19,6 @@ dotnet add package OfficeIMO.Reader.Pdf
 dotnet add package OfficeIMO.Reader.Html
 dotnet add package OfficeIMO.Reader.Epub
 
-# Broad mixed-format host
 dotnet add package OfficeIMO.Reader.All
 ```
 

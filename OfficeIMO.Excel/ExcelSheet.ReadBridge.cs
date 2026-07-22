@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Maps the specified A1 range to a sequence of T using header-to-property mapping.
         /// </summary>
-        public IEnumerable<T> RowsAs<T>(string a1Range, ExcelReadOptions? options = null) where T : new() {
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, ExcelReadOptions? options = null) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);

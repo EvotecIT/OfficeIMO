@@ -35,8 +35,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 relationshipId = GetNextRelationshipId(ownerPart);
-                if (!TryAddMediaReferenceRelationship(ownerPart,
-                        "AddAudioReferenceRelationship", mediaPart,
+                if (!TryAddAudioReferenceRelationship(ownerPart, mediaPart,
                         relationshipId)) {
                     throw new InvalidOperationException(
                         $"Unable to attach binary sound {soundId} to {ownerPart.GetType().Name}.");

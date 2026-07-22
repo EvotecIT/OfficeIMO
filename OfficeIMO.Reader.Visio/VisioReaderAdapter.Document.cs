@@ -343,33 +343,7 @@ internal static partial class VisioReaderAdapter {
     private static IEnumerable<ReaderVisual> BuildDocumentVisuals(VisioInspectionSnapshot snapshot, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < snapshot.Pages.Count; pageIndex++) {
             VisioInspectionPageSnapshot page = snapshot.Pages[pageIndex];
-            string content = JsonSerializer.Serialize(new {
-                page = new { id = page.Id, name = page.Name, width = page.Width, height = page.Height, layers = page.Layers },
-                nodes = page.Shapes.Select(static shape => new {
-                    id = shape.Id,
-                    name = shape.Name,
-                    text = shape.Text,
-                    type = shape.Type,
-                    master = shape.MasterNameU,
-                    parentId = shape.ParentId,
-                    x = shape.PinX,
-                    y = shape.PinY,
-                    width = shape.Width,
-                    height = shape.Height,
-                    angle = shape.Angle,
-                    layers = shape.Layers,
-                    data = shape.ShapeData.Select(static row => new { name = row.Name, label = row.Label, value = row.Value, type = row.Type }).ToArray()
-                }).ToArray(),
-                edges = page.Connectors.Select(static connector => new {
-                    id = connector.Id,
-                    source = connector.FromId,
-                    target = connector.ToId,
-                    kind = connector.Kind,
-                    label = connector.Label,
-                    waypoints = connector.Waypoints.Select(static point => new { x = point.X, y = point.Y }).ToArray(),
-                    data = connector.ShapeData.Select(static row => new { name = row.Name, label = row.Label, value = row.Value, type = row.Type }).ToArray()
-                }).ToArray()
-            });
+            string content = SerializeVisioTopology(page);
             yield return new ReaderVisual {
                 Kind = "network",
                 Language = "officeimo-visio-topology",
@@ -386,6 +360,88 @@ internal static partial class VisioReaderAdapter {
                 Location = BuildLocation(source, pageIndex, "diagram", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-topology")
             };
         }
+    }
+
+    private static string SerializeVisioTopology(VisioInspectionPageSnapshot page) {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream)) {
+            writer.WriteStartObject();
+            writer.WritePropertyName("page");
+            writer.WriteStartObject();
+            writer.WriteNumber("id", page.Id);
+            writer.WriteString("name", page.Name);
+            writer.WriteNumber("width", page.Width);
+            writer.WriteNumber("height", page.Height);
+            WriteVisioStringArray(writer, "layers", page.Layers);
+            writer.WriteEndObject();
+
+            writer.WritePropertyName("nodes");
+            writer.WriteStartArray();
+            foreach (VisioInspectionShapeSnapshot shape in page.Shapes) {
+                writer.WriteStartObject();
+                writer.WriteString("id", shape.Id);
+                writer.WriteString("name", shape.Name);
+                writer.WriteString("text", shape.Text);
+                writer.WriteString("type", shape.Type);
+                writer.WriteString("master", shape.MasterNameU);
+                writer.WriteString("parentId", shape.ParentId);
+                writer.WriteNumber("x", shape.PinX);
+                writer.WriteNumber("y", shape.PinY);
+                writer.WriteNumber("width", shape.Width);
+                writer.WriteNumber("height", shape.Height);
+                writer.WriteNumber("angle", shape.Angle);
+                WriteVisioStringArray(writer, "layers", shape.Layers);
+                WriteVisioShapeData(writer, shape.ShapeData);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+
+            writer.WritePropertyName("edges");
+            writer.WriteStartArray();
+            foreach (VisioInspectionConnectorSnapshot connector in page.Connectors) {
+                writer.WriteStartObject();
+                writer.WriteString("id", connector.Id);
+                writer.WriteString("source", connector.FromId);
+                writer.WriteString("target", connector.ToId);
+                writer.WriteString("kind", connector.Kind);
+                writer.WriteString("label", connector.Label);
+                writer.WritePropertyName("waypoints");
+                writer.WriteStartArray();
+                foreach (VisioInspectionWaypointSnapshot point in connector.Waypoints) {
+                    writer.WriteStartObject();
+                    writer.WriteNumber("x", point.X);
+                    writer.WriteNumber("y", point.Y);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                WriteVisioShapeData(writer, connector.ShapeData);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void WriteVisioStringArray(Utf8JsonWriter writer, string propertyName, IReadOnlyList<string> values) {
+        writer.WritePropertyName(propertyName);
+        writer.WriteStartArray();
+        foreach (string value in values) writer.WriteStringValue(value);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteVisioShapeData(Utf8JsonWriter writer, IReadOnlyList<VisioInspectionShapeDataSnapshot> rows) {
+        writer.WritePropertyName("data");
+        writer.WriteStartArray();
+        foreach (VisioInspectionShapeDataSnapshot row in rows) {
+            writer.WriteStartObject();
+            writer.WriteString("name", row.Name);
+            writer.WriteString("label", row.Label);
+            writer.WriteString("value", row.Value);
+            writer.WriteString("type", row.Type);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
     }
 
     private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(

@@ -52,7 +52,7 @@ Office automation is infrastructure. It sits at the heart of invoicing systems, 
 
 - **Full source code** you can audit, fork, and extend.
 - **Community contributions** and issue-driven improvements visible in the open.
-- **AOT and trimming work** that is lower-risk in some packages and still scenario-dependent in others.
+- **Executable AOT and trimming evidence** that names passing workflows, compiler blockers, and untested paths separately.
 - **PowerShell integration** through **PSWriteOffice**, bringing the same capabilities to sysadmins who prefer the shell.
 
 ## What Comes Next

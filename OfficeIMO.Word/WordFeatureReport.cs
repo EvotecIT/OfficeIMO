@@ -201,7 +201,7 @@ namespace OfficeIMO.Word {
             builder.AppendLine();
             builder.AppendLine("| Capability | Available | Diagnostics |");
             builder.AppendLine("| --- | --- | --- |");
-            foreach (WordPreflightCapability capability in Enum.GetValues(typeof(WordPreflightCapability))) {
+            foreach (WordPreflightCapability capability in global::OfficeIMO.Internal.EnumCompat.GetValues<WordPreflightCapability>()) {
                 builder.Append("| ");
                 builder.Append(capability);
                 builder.Append(" | ");
@@ -211,8 +211,7 @@ namespace OfficeIMO.Word {
                 builder.AppendLine(" |");
             }
 
-            WordPreflightRepairHint[] repairHints = Enum.GetValues(typeof(WordPreflightCapability))
-                .Cast<WordPreflightCapability>()
+            WordPreflightRepairHint[] repairHints = global::OfficeIMO.Internal.EnumCompat.GetValues<WordPreflightCapability>()
                 .SelectMany(GetRepairHints)
                 .GroupBy(hint => hint.Capability + "\u001f" + hint.FeatureName + "\u001f" + hint.Action,
                     StringComparer.Ordinal)

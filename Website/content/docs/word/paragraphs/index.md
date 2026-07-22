@@ -4,8 +4,6 @@ description: Working with paragraphs in OfficeIMO.Word -- text formatting, align
 order: 11
 ---
 
-# Paragraphs
-
 Paragraphs are the fundamental text containers in a Word document. The `WordParagraph` class provides properties and methods for controlling text content, character formatting, paragraph-level layout, and inline elements such as hyperlinks and images.
 
 ## Creating Paragraphs

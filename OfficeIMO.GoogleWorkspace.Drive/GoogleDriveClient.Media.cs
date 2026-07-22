@@ -2,7 +2,6 @@ using OfficeIMO.GoogleWorkspace;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
     public sealed class GoogleDriveUploadOptions {
@@ -50,6 +49,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveFile,
                 cancellationToken).ConfigureAwait(false);
             options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
             return file;
@@ -65,14 +65,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive resumable upload", cancellationToken).ConfigureAwait(false);
             int chunkSize = NormalizeChunkSize(options.ResumableChunkSize);
-            var metadata = new {
-                name = options.Name,
-                mimeType = options.ConvertToGoogleMimeType,
-                parents = string.IsNullOrWhiteSpace(options.ParentId) ? null : new[] { options.ParentId },
-            };
-            string metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions {
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-            });
+            string metadataJson = SerializeUploadMetadata(options);
             string initUri = $"https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives={Bool(Options.SupportsAllDrives)}&fields={Escape(DefaultFileFields)}";
             var initiation = await Transport.SendRawAsync(
                 token,
@@ -99,7 +92,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     cancellationToken).ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
                     options.Progress?.Report(new GoogleDriveTransferProgress(0, 0));
-                    return response.DeserializeJson<GoogleDriveFile>();
+                    return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                 }
 
                 throw new InvalidOperationException("Google Drive did not complete the zero-byte resumable upload.");
@@ -126,7 +119,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                         cancellationToken).ConfigureAwait(false);
                     if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
                         options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
-                        return response.DeserializeJson<GoogleDriveFile>();
+                        return response.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                     }
 
                     offset = ResolveNextOffset(response, offset);
@@ -135,7 +128,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     var status = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
                     if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
                         options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
-                        return status.DeserializeJson<GoogleDriveFile>();
+                        return status.DeserializeJson(GoogleDriveJsonSerializerContext.Default.GoogleDriveFile);
                     }
 
                     offset = ResolveNextOffset(status, offset);
@@ -250,22 +243,23 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
         private static MultipartContent CreateMultipartContent(byte[] content, GoogleDriveUploadOptions options) {
             string boundary = "officeimo-" + Guid.NewGuid().ToString("N");
-            var metadata = new {
-                name = options.Name,
-                mimeType = options.ConvertToGoogleMimeType,
-                parents = string.IsNullOrWhiteSpace(options.ParentId) ? null : new[] { options.ParentId },
-            };
             var multipart = new MultipartContent("related", boundary);
             multipart.Add(new StringContent(
-                JsonSerializer.Serialize(metadata, new JsonSerializerOptions {
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                }),
+                SerializeUploadMetadata(options),
                 Encoding.UTF8,
                 "application/json"));
             var media = new ByteArrayContent(content);
             media.Headers.ContentType = new MediaTypeHeaderValue(options.ContentType);
             multipart.Add(media);
             return multipart;
+        }
+
+        private static string SerializeUploadMetadata(GoogleDriveUploadOptions options) {
+            return GoogleDriveJson.Serialize(new GoogleDriveFilePayload {
+                Name = options.Name,
+                MimeType = options.ConvertToGoogleMimeType,
+                Parents = string.IsNullOrWhiteSpace(options.ParentId) ? null : new[] { options.ParentId! },
+            }, GoogleDriveJsonSerializerContext.Default.GoogleDriveFilePayload);
         }
 
         private static long ResolveNextOffset(GoogleWorkspaceHttpResponse response, long fallback) {

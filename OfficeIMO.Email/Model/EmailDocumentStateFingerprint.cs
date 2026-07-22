@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Cryptography;
 
@@ -38,6 +39,10 @@ internal static class EmailDocumentStateFingerprint {
             _output = output;
         }
 
+        [UnconditionalSuppressMessage(
+            "Trimming",
+            "IL2075",
+            Justification = "The fingerprint walks only OfficeIMO.Email model instances created by the directly referenced readers and writers. Unsupported external object-bag values return false and disable raw passthrough instead of affecting document output.")]
         internal bool TryWrite(object? value) {
             if (value == null) {
                 _output.Write((byte)0);

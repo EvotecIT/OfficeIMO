@@ -70,6 +70,14 @@ namespace OfficeIMO.Excel {
                 return DataTableToJsonStreaming(table);
             }
 
+            return DataTableToJsonWithOptions(table, options);
+        }
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+        private static string DataTableToJsonWithOptions(DataTable table, JsonSerializerOptions options) {
             int columnCount = table.Columns.Count;
             string[] columnNames = new string[columnCount];
             for (int column = 0; column < columnCount; column++) {
@@ -80,8 +88,7 @@ namespace OfficeIMO.Excel {
             foreach (DataRow row in table.Rows) {
                 var item = new Dictionary<string, object?>(columnCount, StringComparer.OrdinalIgnoreCase);
                 for (int column = 0; column < columnCount; column++) {
-                    object? value = row.IsNull(column) ? null : row[column];
-                    item[columnNames[column]] = value;
+                    item[columnNames[column]] = row.IsNull(column) ? null : row[column];
                 }
 
                 rows.Add(item);
@@ -91,7 +98,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string DataTableToJsonStreaming(DataTable table) {
-            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns);
+            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options: null);
             int estimatedCapacity = EstimateJsonCapacity(table, propertyNames);
 #if NET6_0_OR_GREATER
             var buffer = new ArrayBufferWriter<byte>(estimatedCapacity);
@@ -160,6 +167,18 @@ namespace OfficeIMO.Excel {
                 case Guid guid:
                     writer.WriteStringValue(guid);
                     return;
+                case TimeSpan timeSpan:
+                    writer.WriteStringValue(timeSpan.ToString("c", CultureInfo.InvariantCulture));
+                    return;
+                case char character:
+                    writer.WriteStringValue(character.ToString());
+                    return;
+                case byte[] bytes:
+                    writer.WriteBase64StringValue(bytes);
+                    return;
+                case JsonElement element:
+                    element.WriteTo(writer);
+                    return;
                 case float floatValue:
                     writer.WriteNumberValue(floatValue);
                     return;
@@ -181,16 +200,29 @@ namespace OfficeIMO.Excel {
                 case ulong ulongValue:
                     writer.WriteNumberValue(ulongValue);
                     return;
+#if NET6_0_OR_GREATER
+                case DateOnly dateOnly:
+                    writer.WriteStringValue(dateOnly.ToString("O", CultureInfo.InvariantCulture));
+                    return;
+                case TimeOnly timeOnly:
+                    writer.WriteStringValue(timeOnly.ToString("O", CultureInfo.InvariantCulture));
+                    return;
+#endif
                 default:
-                    JsonSerializer.Serialize(writer, value, value.GetType());
+                    writer.WriteStringValue(Convert.ToString(value, CultureInfo.InvariantCulture));
                     return;
             }
         }
 
-        private static JsonEncodedText[] CreateJsonPropertyNames(DataColumnCollection columns) {
+        private static JsonEncodedText[] CreateJsonPropertyNames(DataColumnCollection columns, JsonSerializerOptions? options) {
             var propertyNames = new JsonEncodedText[columns.Count];
             for (int i = 0; i < propertyNames.Length; i++) {
-                propertyNames[i] = JsonEncodedText.Encode(columns[i].ColumnName);
+                string columnName = columns[i].ColumnName;
+                if (options?.DictionaryKeyPolicy != null) {
+                    columnName = options.DictionaryKeyPolicy.ConvertName(columnName);
+                }
+
+                propertyNames[i] = JsonEncodedText.Encode(columnName, options?.Encoder);
             }
 
             return propertyNames;

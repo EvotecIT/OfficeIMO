@@ -35,7 +35,7 @@ OfficeIMO is not one monolithic bundle. The repo includes focused packages such 
 - `OfficeIMO.Reader` for normalized extraction across multiple document types.
 
 ### Better fit for modern deployment workflows
-The core packages are COM-free and designed for server, CI, container, and automation scenarios. Markdown and CSV are especially lightweight and are the clearest fit today for trimmed or AOT-sensitive workloads.
+The core packages are COM-free and designed for server, CI, container, and automation scenarios. NativeAOT coverage includes executed Word, typed Excel table, PowerPoint chart, Markdown, CSV, all-local Reader, and HTML/PDF/image workflows.
 
 ## Where Commercial Suites May Still Win
 
@@ -46,13 +46,11 @@ Commercial libraries are often a better choice when you need:
 - Large vendor-maintained documentation catalogs and formal support channels.
 - Procurement-friendly SLAs, legal review paths, or enterprise purchasing controls.
 
-## Current AOT and Trimming Reality
+## NativeAOT and Trimming
 
-OfficeIMO does **not** have one uniform AOT story across every package.
+OfficeIMO's standard in-process document engines are AOT-friendly, and production projects are built with the .NET trimming and AOT analyzers. Separate native applications exercise the principal authoring, extraction, and rendering workflows so compatibility is based on useful output rather than an empty startup test.
 
-- `OfficeIMO.Markdown` and `OfficeIMO.CSV` are the most AOT-friendly packages in the repo.
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` depend on Open XML-based code paths and should be tested with your actual `PublishAot` or trimming scenario.
-- `OfficeIMO.Word.Pdf` uses the first-party `OfficeIMO.Pdf` engine, but PDF output should still be validated on the target OS with the fonts and templates you plan to ship.
+Optional integration packages keep their real deployment boundaries: an OCR process still needs its executable, cloud clients still need the selected authentication provider and network access, and WPF/WebView2 follows its desktop runtime. Test those providers as part of the application that selects them.
 
 ## Reader and Automation Differentiators
 

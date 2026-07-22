@@ -71,7 +71,8 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
         EnsureDiagnosticContracts(result.Diagnostics);
 
-        return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
+        ReaderJsonSerializerContext context = CreateContext(indented, propertyNameCaseInsensitive: false);
+        return JsonSerializer.Serialize(NormalizeForSerialization(result, schemaId, schemaVersion), context.OfficeDocumentReadResult);
     }
 
     /// <summary>
@@ -105,7 +106,8 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureKnownTopLevelProperties(root);
         EnsureNestedTransportContracts(root);
 
-        OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
+        ReaderJsonSerializerContext context = CreateContext(indented: false, propertyNameCaseInsensitive: true);
+        OfficeDocumentReadResult? result = JsonSerializer.Deserialize(json, context.OfficeDocumentReadResult);
         if (result == null) {
             throw new JsonException("The document read result payload produced a null result.");
         }
@@ -116,19 +118,103 @@ public static partial class OfficeDocumentReadResultJson {
         return result;
     }
 
-    private static JsonSerializerOptions CreateOptions(bool indented) {
-        return new JsonSerializerOptions {
+    private static ReaderJsonSerializerContext CreateContext(bool indented, bool propertyNameCaseInsensitive) {
+        return new ReaderJsonSerializerContext(new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = propertyNameCaseInsensitive,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
+        });
+    }
+
+    private static OfficeDocumentReadResult NormalizeForSerialization(
+        OfficeDocumentReadResult result,
+        string schemaId,
+        int schemaVersion) {
+        return new OfficeDocumentReadResult {
+            SchemaId = schemaId,
+            SchemaVersion = schemaVersion,
+            Kind = result.Kind,
+            Source = result.Source ?? new OfficeDocumentSource(),
+            CapabilitiesUsed = result.CapabilitiesUsed ?? Array.Empty<string>(),
+            Markdown = result.Markdown,
+            Html = result.Html,
+            Json = result.Json,
+            Chunks = result.Chunks ?? Array.Empty<ReaderChunk>(),
+            Metadata = NormalizeMetadata(result.Metadata),
+            Pages = result.Pages ?? Array.Empty<OfficeDocumentPage>(),
+            Blocks = result.Blocks ?? Array.Empty<OfficeDocumentBlock>(),
+            Tables = result.Tables ?? Array.Empty<ReaderTable>(),
+            Assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>(),
+            Links = result.Links ?? Array.Empty<OfficeDocumentLink>(),
+            Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
+            OcrCandidates = result.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>(),
+            Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
+            Diagnostics = NormalizeDiagnostics(result.Diagnostics)
         };
     }
 
-    private static JsonSerializerOptions CreateReadOptions() {
-        var options = new JsonSerializerOptions {
-            PropertyNameCaseInsensitive = true
-        };
-        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
-        return options;
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> NormalizeMetadata(
+        IReadOnlyList<OfficeDocumentMetadataEntry>? metadata) {
+        if (metadata == null || metadata.Count == 0) return Array.Empty<OfficeDocumentMetadataEntry>();
+
+        var normalized = new OfficeDocumentMetadataEntry[metadata.Count];
+        for (int index = 0; index < metadata.Count; index++) {
+            OfficeDocumentMetadataEntry? entry = metadata[index];
+            if (entry == null) {
+                normalized[index] = null!;
+                continue;
+            }
+
+            normalized[index] = new OfficeDocumentMetadataEntry {
+                Id = entry.Id,
+                Category = entry.Category,
+                Name = entry.Name,
+                Value = entry.Value,
+                ValueType = entry.ValueType,
+                SourceObjectId = entry.SourceObjectId,
+                Location = entry.Location,
+                Attributes = SortAttributes(entry.Attributes)
+            };
+        }
+        return normalized;
+    }
+
+    private static IReadOnlyList<OfficeDocumentDiagnostic> NormalizeDiagnostics(
+        IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics) {
+        if (diagnostics == null || diagnostics.Count == 0) return Array.Empty<OfficeDocumentDiagnostic>();
+
+        var normalized = new OfficeDocumentDiagnostic[diagnostics.Count];
+        for (int index = 0; index < diagnostics.Count; index++) {
+            OfficeDocumentDiagnostic? diagnostic = diagnostics[index];
+            if (diagnostic == null) {
+                normalized[index] = null!;
+                continue;
+            }
+
+            normalized[index] = new OfficeDocumentDiagnostic {
+                Severity = diagnostic.Severity,
+                Category = diagnostic.Category,
+                Code = diagnostic.Code,
+                Message = diagnostic.Message,
+                Source = diagnostic.Source,
+                IsRecoverable = diagnostic.IsRecoverable,
+                Location = diagnostic.Location,
+                Attributes = SortAttributes(diagnostic.Attributes)
+            };
+        }
+        return normalized;
+    }
+
+    private static IReadOnlyDictionary<string, string> SortAttributes(
+        IReadOnlyDictionary<string, string>? attributes) {
+        var sorted = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        if (attributes == null) return sorted;
+
+        foreach (KeyValuePair<string, string> attribute in attributes) {
+            sorted[attribute.Key] = attribute.Value;
+        }
+        return sorted;
     }
 
     private static void EnsureRequiredTopLevelProperties(JsonElement root) {

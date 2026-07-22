@@ -1,0 +1,190 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.AsciiDoc\OfficeIMO.AsciiDoc.csproj" />
+    <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
+    <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Auth.GoogleApis\OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Sync\OfficeIMO.GoogleWorkspace.Sync.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
+    <ProjectReference Include="..\OfficeIMO.MarkdownRenderer.IntelligenceX\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.Excel\OfficeIMO.Markup.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.Word\OfficeIMO.Markup.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Html\OfficeIMO.OneNote.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OneNote.Pdf\OfficeIMO.OneNote.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Pdf\OfficeIMO.OpenDocument.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.GoogleSlides\OfficeIMO.PowerPoint.GoogleSlides.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.Html\OfficeIMO.PowerPoint.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.AsciiDoc\OfficeIMO.Reader.AsciiDoc.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Image\OfficeIMO.Reader.Image.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.PowerPoint\OfficeIMO.Reader.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Subtitles\OfficeIMO.Reader.Subtitles.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Web\OfficeIMO.Reader.Web.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Word\OfficeIMO.Reader.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="OfficeIMO.Adf" />
+    <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc" />
+    <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Confluence" />
+    <TrimmerRootAssembly Include="OfficeIMO.CSV" />
+    <TrimmerRootAssembly Include="OfficeIMO.Drawing" />
+    <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
+    <TrimmerRootAssembly Include="OfficeIMO.Email" />
+    <TrimmerRootAssembly Include="OfficeIMO.Epub" />
+    <TrimmerRootAssembly Include="OfficeIMO.Epub.Image" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.GoogleSheets" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.OpenDocument" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace" />
+    <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace.Drive" />
+    <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace.Sync" />
+    <TrimmerRootAssembly Include="OfficeIMO.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Html.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Latex" />
+    <TrimmerRootAssembly Include="OfficeIMO.Latex.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.Latex.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markdown.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markdown.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.MarkdownRenderer" />
+    <TrimmerRootAssembly Include="OfficeIMO.MarkdownRenderer.IntelligenceX" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markup" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markup.Excel" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markup.PowerPoint" />
+    <TrimmerRootAssembly Include="OfficeIMO.Markup.Word" />
+    <TrimmerRootAssembly Include="OfficeIMO.OneNote" />
+    <TrimmerRootAssembly Include="OfficeIMO.OneNote.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.OneNote.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.OneNote.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument" />
+    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.GoogleSlides" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.OpenDocument" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.All" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.AsciiDoc" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Core" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Csv" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Email" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Epub" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Excel" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Image" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Json" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Latex" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Notebook" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Process" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Tesseract" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.OneNote" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.OpenDocument" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.PowerPoint" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Subtitles" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Visio" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Web" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Word" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Xml" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Yaml" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Zip" />
+    <TrimmerRootAssembly Include="OfficeIMO.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Rtf.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.Rtf.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Security" />
+    <TrimmerRootAssembly Include="OfficeIMO.Visio" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.GoogleDocs" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.Markdown" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.OpenDocument" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Zip" />
+  </ItemGroup>
+</Project>

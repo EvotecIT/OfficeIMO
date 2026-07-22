@@ -248,7 +248,7 @@ namespace OfficeIMO.Word {
             get {
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin != null) {
-                    foreach (WordMargin wordMargin in Enum.GetValues(typeof(WordMargin))) {
+                    foreach (WordMargin wordMargin in global::OfficeIMO.Internal.EnumCompat.GetValues<WordMargin>()) {
                         if (wordMargin == WordMargin.Unknown) {
                             continue;
                         }

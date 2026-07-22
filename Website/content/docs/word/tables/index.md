@@ -4,8 +4,6 @@ description: Creating and styling tables in OfficeIMO.Word with rows, cells, mer
 order: 12
 ---
 
-# Tables
-
 The `WordTable` class provides the table-focused API for creating and manipulating tables in Word documents. The current repo surface includes the built-in styles exposed by `WordTableStyle`, plus cell merging, custom borders, header row repetition, and automatic table generation from object collections.
 
 ## Creating a Table

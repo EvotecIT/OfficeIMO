@@ -18,7 +18,7 @@ public sealed partial class ConfluenceClient : IDisposable {
     /// <summary>Reads a page with the requested body representation.</summary>
     public Task<ConfluencePage> GetPageAsync(string pageId, ConfluenceBodyFormat bodyFormat = ConfluenceBodyFormat.AtlasDocFormat, CancellationToken cancellationToken = default) {
         ValidateId(pageId, nameof(pageId));
-        return _transport.SendJsonAsync<ConfluencePage>(HttpMethod.Get, "/wiki/api/v2/pages/" + Encode(pageId) + "?body-format=" + Format(bodyFormat), null, ConfluenceRequestSafety.SafeToRetry, cancellationToken);
+        return _transport.SendJsonAsync(HttpMethod.Get, "/wiki/api/v2/pages/" + Encode(pageId) + "?body-format=" + Format(bodyFormat), null, ConfluenceRequestSafety.SafeToRetry, ConfluenceJsonSerializerContext.Default.ConfluencePage, cancellationToken);
     }
 
     /// <summary>Lists one cursor-addressable batch of pages.</summary>
@@ -26,7 +26,7 @@ public sealed partial class ConfluenceClient : IDisposable {
         query ??= new ConfluencePageQuery();
         if (query.Limit < 1 || query.Limit > 250) throw new ArgumentOutOfRangeException(nameof(query), "Limit must be between 1 and 250.");
         string relativeUri = BuildPageQuery(query);
-        ConfluenceJsonResponse<CollectionResponse<ConfluencePage>> response = await _transport.SendJsonWithHeadersAsync<CollectionResponse<ConfluencePage>>(HttpMethod.Get, relativeUri, null, ConfluenceRequestSafety.SafeToRetry, cancellationToken).ConfigureAwait(false);
+        ConfluenceJsonResponse<ConfluenceCollectionResponse<ConfluencePage>> response = await _transport.SendJsonWithHeadersAsync(HttpMethod.Get, relativeUri, null, ConfluenceRequestSafety.SafeToRetry, ConfluenceJsonSerializerContext.Default.ConfluenceCollectionResponseConfluencePage, cancellationToken).ConfigureAwait(false);
         return new ConfluencePageBatch(response.Value.Results, ConfluencePagination.Next(response.Value.Links?.Next, response.Headers));
     }
 
@@ -34,14 +34,14 @@ public sealed partial class ConfluenceClient : IDisposable {
     public Task<ConfluencePage> CreatePageAsync(ConfluencePageCreateRequest request, CancellationToken cancellationToken = default) {
         ConfluencePageWritePlan plan = PlanCreatePage(request);
         using JsonDocument payload = JsonDocument.Parse(plan.Payload);
-        return _transport.SendJsonAsync<ConfluencePage>(HttpMethod.Post, plan.RelativeUri, payload.RootElement.Clone(), ConfluenceRequestSafety.NonIdempotent, cancellationToken);
+        return _transport.SendJsonAsync(HttpMethod.Post, plan.RelativeUri, payload.RootElement.Clone(), ConfluenceRequestSafety.NonIdempotent, ConfluenceJsonSerializerContext.Default.ConfluencePage, cancellationToken);
     }
 
     /// <summary>Updates a page using the caller-supplied next version number. Writes are never retried automatically.</summary>
     public Task<ConfluencePage> UpdatePageAsync(ConfluencePageUpdateRequest request, CancellationToken cancellationToken = default) {
         ConfluencePageWritePlan plan = PlanUpdatePage(request);
         using JsonDocument payload = JsonDocument.Parse(plan.Payload);
-        return _transport.SendJsonAsync<ConfluencePage>(HttpMethod.Put, plan.RelativeUri, payload.RootElement.Clone(), ConfluenceRequestSafety.NonIdempotent, cancellationToken);
+        return _transport.SendJsonAsync(HttpMethod.Put, plan.RelativeUri, payload.RootElement.Clone(), ConfluenceRequestSafety.NonIdempotent, ConfluenceJsonSerializerContext.Default.ConfluencePage, cancellationToken);
     }
 
     /// <summary>Deletes a page. This non-idempotent operation is never retried automatically.</summary>
@@ -56,14 +56,14 @@ public sealed partial class ConfluenceClient : IDisposable {
         ValidateId(request.SpaceId, nameof(request.SpaceId));
         ValidateTitle(request.Title);
         ValidateBody(request.Body);
-        var payload = new {
-            spaceId = request.SpaceId,
-            status = string.IsNullOrWhiteSpace(request.Status) ? "current" : request.Status,
-            title = request.Title,
-            parentId = string.IsNullOrWhiteSpace(request.ParentId) ? null : request.ParentId,
-            body = request.Body,
+        var payload = new ConfluencePageCreatePayload {
+            SpaceId = request.SpaceId,
+            Status = string.IsNullOrWhiteSpace(request.Status) ? "current" : request.Status,
+            Title = request.Title,
+            ParentId = string.IsNullOrWhiteSpace(request.ParentId) ? null : request.ParentId,
+            Body = request.Body,
         };
-        return new ConfluencePageWritePlan("POST", "/wiki/api/v2/pages", JsonSerializer.Serialize(payload, ConfluenceHttpTransport.JsonOptions));
+        return new ConfluencePageWritePlan("POST", "/wiki/api/v2/pages", JsonSerializer.Serialize(payload, ConfluenceJsonSerializerContext.Default.ConfluencePageCreatePayload));
     }
 
     /// <summary>Builds the exact update request without contacting Confluence.</summary>
@@ -73,14 +73,14 @@ public sealed partial class ConfluenceClient : IDisposable {
         ValidateTitle(request.Title);
         ValidateBody(request.Body);
         if (request.VersionNumber < 1) throw new ArgumentOutOfRangeException(nameof(request.VersionNumber), "Version number must be the next positive page version.");
-        var payload = new {
-            id = request.PageId,
-            status = string.IsNullOrWhiteSpace(request.Status) ? "current" : request.Status,
-            title = request.Title,
-            body = request.Body,
-            version = new { number = request.VersionNumber, message = request.VersionMessage },
+        var payload = new ConfluencePageUpdatePayload {
+            Id = request.PageId,
+            Status = string.IsNullOrWhiteSpace(request.Status) ? "current" : request.Status,
+            Title = request.Title,
+            Body = request.Body,
+            Version = new ConfluencePageUpdateVersionPayload { Number = request.VersionNumber, Message = request.VersionMessage },
         };
-        return new ConfluencePageWritePlan("PUT", "/wiki/api/v2/pages/" + Encode(request.PageId), JsonSerializer.Serialize(payload, ConfluenceHttpTransport.JsonOptions));
+        return new ConfluencePageWritePlan("PUT", "/wiki/api/v2/pages/" + Encode(request.PageId), JsonSerializer.Serialize(payload, ConfluenceJsonSerializerContext.Default.ConfluencePageUpdatePayload));
     }
 
     /// <summary>Builds the exact delete request without contacting Confluence.</summary>
@@ -116,15 +116,37 @@ public sealed partial class ConfluenceClient : IDisposable {
         if (body.Value == null) throw new ArgumentException("Page body value is required.", nameof(body));
     }
 
-    private sealed class CollectionResponse<T> {
-        [JsonPropertyName("results")]
-        public List<T> Results { get; set; } = new List<T>();
-        [JsonPropertyName("_links")]
-        public CollectionLinks? Links { get; set; }
-    }
+}
 
-    private sealed class CollectionLinks {
-        [JsonPropertyName("next")]
-        public string? Next { get; set; }
-    }
+internal sealed class ConfluenceCollectionResponse<T> {
+    [JsonPropertyName("results")]
+    public List<T> Results { get; set; } = new List<T>();
+    [JsonPropertyName("_links")]
+    public ConfluenceCollectionLinks? Links { get; set; }
+}
+
+internal sealed class ConfluenceCollectionLinks {
+    [JsonPropertyName("next")]
+    public string? Next { get; set; }
+}
+
+internal sealed class ConfluencePageCreatePayload {
+    public string SpaceId { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? ParentId { get; set; }
+    public ConfluencePageBody Body { get; set; } = new ConfluencePageBody();
+}
+
+internal sealed class ConfluencePageUpdatePayload {
+    public string Id { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public ConfluencePageBody Body { get; set; } = new ConfluencePageBody();
+    public ConfluencePageUpdateVersionPayload Version { get; set; } = new ConfluencePageUpdateVersionPayload();
+}
+
+internal sealed class ConfluencePageUpdateVersionPayload {
+    public int Number { get; set; }
+    public string? Message { get; set; }
 }

@@ -78,7 +78,7 @@ public sealed class HtmlTargetCapabilityContract {
             }
         }
 
-        HtmlSemanticFeature[] all = (HtmlSemanticFeature[])Enum.GetValues(typeof(HtmlSemanticFeature));
+        HtmlSemanticFeature[] all = global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>();
         if (seen.Count != all.Length) {
             string missing = string.Join(", ", all.Where(feature => !seen.Contains(feature)));
             throw new ArgumentException("Semantic features were not classified for " + Target + ": " + missing + ".");

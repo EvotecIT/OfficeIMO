@@ -459,6 +459,7 @@ namespace OfficeIMO.Excel {
             => string.Equals(type.FullName, "System.Management.Automation.PSObject", StringComparison.Ordinal)
                || string.Equals(type.FullName, "System.Management.Automation.PSCustomObject", StringComparison.Ordinal);
 
+        [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "This branch is reached only for PowerShell's runtime object model through InsertObjects, which is explicitly marked as reflection-based compatibility API.")]
         private static PowerShellObjectExportPlan CreatePowerShellObjectExportPlan(Type type) {
             PropertyInfo? properties = type.GetProperty("Properties", BindingFlags.Public | BindingFlags.Instance);
             if (properties == null || !typeof(IEnumerable).IsAssignableFrom(properties.PropertyType)) {
@@ -468,6 +469,7 @@ namespace OfficeIMO.Excel {
             return new PowerShellObjectExportPlan(CreatePowerShellValueGetter(properties));
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "This branch is reached only for PowerShell's runtime property model through InsertObjects, which is explicitly marked as reflection-based compatibility API.")]
         private static PowerShellPropertyExportPlan CreatePowerShellPropertyExportPlan(Type type) {
             PropertyInfo? name = type.GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
             PropertyInfo? value = type.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
@@ -482,74 +484,14 @@ namespace OfficeIMO.Excel {
                 isGettable == null ? null : CreatePowerShellBooleanGetter(isGettable));
         }
 
-        private static Func<object, object?> CreatePowerShellValueGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null) {
-                return row => property.GetValue(row, null);
-            }
+        private static Func<object, object?> CreatePowerShellValueGetter(PropertyInfo property)
+            => row => property.GetValue(row, null);
 
-            try {
-                return (Func<object, object?>)CreatePowerShellValueGetterMethod
-                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return row => property.GetValue(row, null);
-            }
-        }
+        private static Func<object, string?> CreatePowerShellStringGetter(PropertyInfo property)
+            => row => property.GetValue(row, null)?.ToString();
 
-        private static readonly MethodInfo CreatePowerShellValueGetterMethod =
-            typeof(ExcelSheet).GetMethod(nameof(CreatePowerShellValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static Func<object, object?> CreatePowerShellValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
-            return row => getter((TTarget)row!);
-        }
-
-        private static Func<object, string?> CreatePowerShellStringGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null || property.PropertyType != typeof(string)) {
-                return row => property.GetValue(row, null)?.ToString();
-            }
-
-            try {
-                return (Func<object, string?>)CreatePowerShellStringGetterMethod
-                    .MakeGenericMethod(property.DeclaringType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return row => property.GetValue(row, null)?.ToString();
-            }
-        }
-
-        private static readonly MethodInfo CreatePowerShellStringGetterMethod =
-            typeof(ExcelSheet).GetMethod(nameof(CreatePowerShellStringGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static Func<object, string?> CreatePowerShellStringGetterCore<TTarget>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, string?>)Delegate.CreateDelegate(typeof(Func<TTarget, string?>), getMethod);
-            return row => getter((TTarget)row!);
-        }
-
-        private static Func<object, bool> CreatePowerShellBooleanGetter(PropertyInfo property) {
-            MethodInfo? getMethod = property.GetMethod;
-            if (getMethod == null || property.DeclaringType == null || property.PropertyType != typeof(bool)) {
-                return row => property.GetValue(row, null) is bool value && value;
-            }
-
-            try {
-                return (Func<object, bool>)CreatePowerShellBooleanGetterMethod
-                    .MakeGenericMethod(property.DeclaringType)
-                    .Invoke(null, new object[] { getMethod })!;
-            } catch {
-                return row => property.GetValue(row, null) is bool value && value;
-            }
-        }
-
-        private static readonly MethodInfo CreatePowerShellBooleanGetterMethod =
-            typeof(ExcelSheet).GetMethod(nameof(CreatePowerShellBooleanGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        private static Func<object, bool> CreatePowerShellBooleanGetterCore<TTarget>(MethodInfo getMethod) {
-            var getter = (Func<TTarget, bool>)Delegate.CreateDelegate(typeof(Func<TTarget, bool>), getMethod);
-            return row => getter((TTarget)row!);
-        }
+        private static Func<object, bool> CreatePowerShellBooleanGetter(PropertyInfo property)
+            => row => property.GetValue(row, null) is bool value && value;
 
         private sealed class PowerShellObjectExportPlan {
             internal static readonly PowerShellObjectExportPlan NotSupported = new();

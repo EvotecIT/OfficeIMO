@@ -48,6 +48,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Docs API",
                 batch.Report,
+                GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse,
                 cancellationToken).ConfigureAwait(false);
             ProjectSelectedTab(document, batch.TargetTabId);
             return document;
@@ -73,7 +74,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             CancellationToken cancellationToken) {
             GoogleDocsApiPayloadBuilder.ApplyTabId(payload, batch.TargetTabId);
             batch.WriteControlState?.Apply(payload);
-            GoogleDocsApiBatchUpdateResponse response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
+            GoogleDocsApiBatchUpdateResponse response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdatePayload, GoogleDocsApiBatchUpdateResponse>(
                 accessToken,
                 HttpMethod.Post,
                 $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
@@ -81,6 +82,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Docs API",
                 batch.Report,
+                GoogleDocsJsonSerializerContext.Default.GoogleDocsApiBatchUpdatePayload,
+                GoogleDocsJsonSerializerContext.Default.GoogleDocsApiBatchUpdateResponse,
                 cancellationToken).ConfigureAwait(false);
             batch.WriteControlState?.Observe(response);
             return response;

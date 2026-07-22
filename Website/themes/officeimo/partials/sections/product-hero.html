@@ -3,6 +3,7 @@
 {{ docs_link = page.docs_url ?? page.meta.docs_url ?? "/docs/" }}
 {{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
 {{ product_label = page.product_label ?? page.meta.product_label ?? "Document library" }}
+{{ runtime_label = page.runtime_label ?? page.meta.runtime_label ?? "Cross-platform .NET" }}
 <section class="imo-product-hero" aria-labelledby="imo-product-hero-title"
   {{ if page.product_color }}style="--product-color: {{ page.product_color }}"{{ end }}>
   <div class="imo-container imo-product-hero__inner">
@@ -14,7 +15,7 @@
       <div class="imo-product-hero__meta" aria-label="Product characteristics">
         <span class="imo-product-hero__meta-item">MIT licensed</span>
         <span class="imo-product-hero__meta-item">No Office required</span>
-        <span class="imo-product-hero__meta-item">Cross-platform .NET</span>
+        <span class="imo-product-hero__meta-item">{{ runtime_label }}</span>
       </div>
 
       <div class="imo-product-hero__actions">
@@ -61,7 +62,26 @@
           </aside>
         </div>
       </div>
-      <div class="imo-product-proof__code"><span>C#</span>{{ if nuget_pkg == "OfficeIMO.Word" }}<code>using var document = WordDocument.Create("report.docx");<br>document.AddParagraph("Quarterly operations review");<br>document.Save();</code>{{ else }}<code>using var document = CreateDocument();<br>document.Save();</code>{{ end }}</div>
+      <div class="imo-product-proof__code">
+        {{ if page.title == "PSWriteOffice" }}
+        <span>PowerShell</span><pre class="language-powershell"><code class="language-powershell">New-OfficeWord -Path '.\report.docx' {
+    Add-OfficeWordSection {
+        Add-OfficeWordParagraph `
+            -Text 'Quarterly report' `
+            -Style Heading1
+    }
+}</code></pre>
+        {{ else if nuget_pkg == "OfficeIMO.Word" }}
+        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using var document =
+    WordDocument.Create("report.docx");
+document.AddParagraph(
+    "Quarterly operations review");
+document.Save();</code></pre>
+        {{ else }}
+        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using var document = CreateDocument();
+document.Save();</code></pre>
+        {{ end }}
+      </div>
     </div>
   </div>
 </section>

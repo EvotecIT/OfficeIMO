@@ -3,7 +3,6 @@ title: "OneNote"
 description: "Work with native OneNote sections, notebooks, tables of contents, and packages offline."
 order: 37
 meta.seo_title: "OneNote file automation | OfficeIMO"
-meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/onenote/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/onenote/" />'
 ---
 
 ## Install

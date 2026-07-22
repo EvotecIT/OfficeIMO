@@ -3,6 +3,7 @@
 using System.Collections;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 #if NET8_0_OR_GREATER
 using CsvDataReaderTextRowSource = OfficeIMO.CSV.CsvParser.CsvTextDataReaderRowSource;
@@ -277,6 +278,8 @@ public sealed class CsvDataReader : DbDataReader
     }
 
     /// <inheritdoc />
+    [UnconditionalSuppressMessage("Trimming", "IL2073", Justification = "CSV column types are scalar conversion tokens returned through DbDataReader; OfficeIMO never activates or reflects over their public members.")]
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
     public override Type GetFieldType(int ordinal) => _columns[ordinal].DataType;
 
     /// <inheritdoc />
@@ -622,6 +625,7 @@ public sealed class CsvDataReader : DbDataReader
     }
 
     /// <inheritdoc />
+    [UnconditionalSuppressMessage("Trimming", "IL2111", Justification = "The schema table stores Type values as data and does not reflect over Type.TypeInitializer or other Type members.")]
     public override DataTable GetSchemaTable()
     {
         var schema = new DataTable("SchemaTable");

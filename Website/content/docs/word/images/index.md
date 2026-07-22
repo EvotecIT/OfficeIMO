@@ -4,8 +4,6 @@ description: Adding images to Word documents from files, streams, base64, and UR
 order: 13
 ---
 
-# Images
-
 OfficeIMO provides multiple ways to insert images into Word documents. Images can be added from local files, streams, base64-encoded strings, URLs, and embedded resources. You can control sizing, wrapping mode, cropping, rotation, and positioning.
 
 ## Adding an Image from a File

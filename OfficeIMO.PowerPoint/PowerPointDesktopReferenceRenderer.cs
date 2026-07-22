@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -44,6 +45,8 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public static class PowerPointDesktopReferenceRenderer {
         /// <summary>Attempts to export each slide to PNG through locally installed PowerPoint Desktop.</summary>
+        [RequiresUnreferencedCode("PowerPoint Desktop rendering uses late-bound COM automation. Use OfficeIMO's in-process renderers for trimmed deployments.")]
+        [RequiresDynamicCode("PowerPoint Desktop rendering uses late-bound COM automation and is not a NativeAOT deployment path.")]
         public static PowerPointReferenceRenderResult TryRender(string presentationPath, string outputDirectory,
             bool enabled = false) {
             if (!enabled) {
@@ -140,10 +143,12 @@ namespace OfficeIMO.PowerPoint {
             try { InvokeMethod(application, "Quit"); } catch { }
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
         private static object GetProperty(object target, string name) =>
             target.GetType().InvokeMember(name, BindingFlags.GetProperty, null, target, null)
             ?? throw new MissingMemberException("PowerPoint COM property '" + name + "' returned null.");
 
+        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
         private static object InvokeMethod(object target, string name, params object[] arguments) =>
             target.GetType().InvokeMember(name, BindingFlags.InvokeMethod, null, target, arguments)
             ?? target;

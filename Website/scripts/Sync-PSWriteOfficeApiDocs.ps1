@@ -1,6 +1,7 @@
 param(
     [string] $SiteRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
     [string] $PSWriteOfficeRoot = '',
+    [switch] $SkipDocumentation,
     [switch] $SkipExamples
 )
 
@@ -78,6 +79,30 @@ function Sync-DirectoryContents {
 
         New-Item -ItemType Directory -Path (Split-Path -Parent $targetPath) -Force | Out-Null
         Copy-Item -LiteralPath $item.FullName -Destination $targetPath -Force
+    }
+}
+
+function Sync-DocumentationPages {
+    param(
+        [Parameter(Mandatory)][string] $Source,
+        [Parameter(Mandatory)][string] $Destination
+    )
+
+    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    Get-ChildItem -LiteralPath $Destination -Force -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -Recurse }
+
+    foreach ($sourceFile in Get-ChildItem -LiteralPath $Source -File -Filter '*.md' | Sort-Object Name) {
+        $slug = [System.IO.Path]::GetFileNameWithoutExtension($sourceFile.Name)
+        if ($slug -eq '_index') {
+            $targetPath = Join-Path $Destination 'index.md'
+        } else {
+            $targetDirectory = Join-Path $Destination $slug
+            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+            $targetPath = Join-Path $targetDirectory 'index.md'
+        }
+
+        Copy-Item -LiteralPath $sourceFile.FullName -Destination $targetPath -Force
     }
 }
 
@@ -171,6 +196,10 @@ $summary = [ordered]@{
     commandMetadataUpdated = $false
     examplesSource = $null
     examplesUpdated = $false
+    documentationSource = $null
+    documentationUpdated = $false
+    documentationCatalogSource = $null
+    documentationCatalogUpdated = $false
     fallbackUsed = $true
     apiSnapshotSource = 'checked-in'
     expectedCommandCount = $null
@@ -240,6 +269,43 @@ if (-not $SkipExamples) {
         $summary.examplesUpdated = $true
     } else {
         Write-Host 'PSWriteOffice examples folder not found in synced repo. Keeping checked-in fallback examples.' -ForegroundColor Yellow
+    }
+}
+
+if (-not $SkipDocumentation) {
+    $sourceDocumentationPath = Join-Path $resolvedRepoRoot 'Website\content\project-docs\docs'
+    $targetDocumentationPath = Join-Path $resolvedSiteRoot 'content\docs\pswriteoffice'
+    $sourceCatalogPath = Join-Path $resolvedRepoRoot 'WebsiteArtifacts\documentation\command-catalog.json'
+    $targetCatalogPath = Join-Path $resolvedSiteRoot 'data\pswriteoffice_command_catalog.json'
+    $sourceDocumentationAvailable = Test-Path -LiteralPath $sourceDocumentationPath -PathType Container
+    $sourceCatalogAvailable = Test-Path -LiteralPath $sourceCatalogPath -PathType Leaf
+    $sourceCatalogValid = $false
+
+    if ($sourceCatalogAvailable) {
+        try {
+            $sourceCatalog = Get-Content -LiteralPath $sourceCatalogPath -Raw | ConvertFrom-Json
+            $sourceFamilyTotal = @($sourceCatalog.families | Measure-Object commandCount -Sum).Sum
+            $sourceCatalogValid = $sourceCatalog.module.commandCount -eq $expectedCommands.Count -and
+                $sourceFamilyTotal -eq $expectedCommands.Count
+        } catch {
+            $sourceCatalogValid = $false
+        }
+    }
+
+    if ($sourceDocumentationAvailable -and $sourceCatalogValid) {
+        Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath
+        Copy-Item -LiteralPath $sourceCatalogPath -Destination $targetCatalogPath -Force
+        $summary.documentationSource = $sourceDocumentationPath
+        $summary.documentationUpdated = $true
+        $summary.documentationCatalogSource = $sourceCatalogPath
+        $summary.documentationCatalogUpdated = $true
+    } elseif ((Test-Path -LiteralPath (Join-Path $targetDocumentationPath 'index.md') -PathType Leaf) -and
+        (Test-Path -LiteralPath $targetCatalogPath -PathType Leaf)) {
+        Write-Host 'PSWriteOffice source documentation/catalog pair is missing or incomplete. Keeping the complete checked-in documentation snapshot.' -ForegroundColor Yellow
+        $summary.documentationSource = $targetDocumentationPath
+        $summary.documentationCatalogSource = $targetCatalogPath
+    } else {
+        throw "No complete PSWriteOffice documentation/catalog pair is available in source or the checked-in site snapshot."
     }
 }
 

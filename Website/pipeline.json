@@ -14,6 +14,62 @@
       "writeManifest": true
     },
     {
+      "task": "exec",
+      "id": "sync-pswriteoffice-content",
+      "dependsOn": ["sync-sources"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Sync-PSWriteOfficeApiDocs.ps1",
+        "-SiteRoot",
+        "."
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "build-documentation-catalog",
+      "dependsOn": ["sync-pswriteoffice-content"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-DocumentationCatalog.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "build-aot-project-matrix",
+      "dependsOn": ["build-documentation-catalog"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "../Build/Test-AotProjectCoverage.ps1",
+        "-JsonOutputPath",
+        "./static/data/aot-compatibility.json"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": ["build-aot-project-matrix"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-DocumentationContracts.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
       "task": "dotnet-build",
       "id": "build-word",
       "project": "../OfficeIMO.Word/OfficeIMO.Word.csproj",
@@ -411,6 +467,7 @@
       "id": "build-site",
       "dependsOn": [
         "sync-sources",
+        "test-documentation-contracts",
         "build-word",
         "build-excel",
         "build-excel-pdf",
@@ -458,21 +515,6 @@
         "./scripts/Test-BenchmarkPage.ps1",
         "-SiteRoot",
         "./_site"
-      ],
-      "workingDirectory": "."
-    },
-    {
-      "task": "exec",
-      "id": "sync-pswriteoffice-apidocs",
-      "dependsOn": ["sync-sources"],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./scripts/Sync-PSWriteOfficeApiDocs.ps1",
-        "-SiteRoot",
-        "."
       ],
       "workingDirectory": "."
     },
@@ -825,7 +867,7 @@
     {
       "task": "apidocs",
       "id": "build-apidocs-powershell",
-      "dependsOn": ["build-site", "sync-pswriteoffice-apidocs"],
+      "dependsOn": ["build-site", "sync-pswriteoffice-content"],
       "config": "./site.json",
       "type": "PowerShell",
       "helpPath": "./data/apidocs/powershell/PSWriteOffice-Help.xml",

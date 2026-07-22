@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using OfficeIMO.Adf;
@@ -7,6 +8,37 @@ using Xunit;
 namespace OfficeIMO.Adf.Tests;
 
 public sealed class AdfContractTests {
+    [Fact]
+    public void SetAttribute_PreservesCustomJsonValuesOnDynamicRuntimes() {
+        var node = new AdfNode("extension").SetAttribute("parameters", new {
+            html = "<strong>Ready</strong>",
+            enabled = true,
+            levels = new[] { 1, 2 }
+        });
+
+        JsonElement parameters = node.Attributes["parameters"];
+        Assert.Equal("<strong>Ready</strong>", parameters.GetProperty("html").GetString());
+        Assert.True(parameters.GetProperty("enabled").GetBoolean());
+        Assert.Equal(2, parameters.GetProperty("levels").GetArrayLength());
+    }
+
+    [Fact]
+    public void SetAttribute_PreservesReadOnlyDictionariesAsJsonObjects() {
+        var values = new ObjectReadOnlyDictionary(new Dictionary<string, object?> {
+            ["html"] = "<strong>Ready</strong>",
+            ["enabled"] = true,
+            ["levels"] = new[] { 1, 2 }
+        });
+
+        var node = new AdfNode("extension").SetAttribute("parameters", values);
+
+        JsonElement parameters = node.Attributes["parameters"];
+        Assert.Equal(JsonValueKind.Object, parameters.ValueKind);
+        Assert.Equal("<strong>Ready</strong>", parameters.GetProperty("html").GetString());
+        Assert.True(parameters.GetProperty("enabled").GetBoolean());
+        Assert.Equal(2, parameters.GetProperty("levels").GetArrayLength());
+    }
+
     [Fact]
     public void ParseWrite_PreservesUnknownNodesMarksAttributesAndProperties() {
         const string json = "{\"version\":1,\"type\":\"doc\",\"vendorRoot\":{\"enabled\":true},\"content\":[{\"type\":\"vendorPanel\",\"attrs\":{\"tone\":\"blue\"},\"vendorNode\":17,\"content\":[{\"type\":\"text\",\"text\":\"Hello\",\"marks\":[{\"type\":\"vendorMark\",\"attrs\":{\"x\":1},\"vendorMarkProperty\":\"kept\"}]}]}]}";
@@ -640,6 +672,23 @@ public sealed class AdfContractTests {
         Assert.False(result.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_ATTRIBUTES_DROPPED");
         Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
+    private sealed class ObjectReadOnlyDictionary : IReadOnlyDictionary<string, object?> {
+        private readonly IReadOnlyDictionary<string, object?> _values;
+
+        public ObjectReadOnlyDictionary(IReadOnlyDictionary<string, object?> values) {
+            _values = values;
+        }
+
+        public object? this[string key] => _values[key];
+        public IEnumerable<string> Keys => _values.Keys;
+        public IEnumerable<object?> Values => _values.Values;
+        public int Count => _values.Count;
+        public bool ContainsKey(string key) => _values.ContainsKey(key);
+        public bool TryGetValue(string key, out object? value) => _values.TryGetValue(key, out value);
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _values.GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     [Fact]

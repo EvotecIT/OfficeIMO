@@ -4,8 +4,6 @@ description: Supported target frameworks, operating systems, and AOT/trimming co
 order: 3
 ---
 
-# Platform Support
-
 OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` use the first-party `OfficeIMO.Pdf` engine; PDF workloads should still be tested on the target OS with the fonts and templates you plan to ship. The framework matrix below is taken from the current project files in this repo rather than from package-marketing copy.
 
 ## Target Frameworks
@@ -40,17 +38,13 @@ The `.NET Framework 4.7.2` target is included for some packages only when buildi
 
 For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and first-party drawing helpers. The main PDF caveat is layout fidelity: `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` are dependency-light, but host fonts and source templates still affect the rendered result.
 
-## AOT Compilation
+## NativeAOT
 
-OfficeIMO does **not** have one identical AOT story across every package.
+OfficeIMO supports NativeAOT for its standard in-process document workflows. The repository publishes and executes native applications on `win-x64` and `linux-x64` for Word, typed Excel tables, PowerPoint charts and relationship cloning, Markdown, CSV, the complete 30-handler local Reader adapter preset, and HTML/PDF/image rendering.
 
-- **Best candidates:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
-- **Requires scenario testing:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
-- **Treat separately:** `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, and direct `OfficeIMO.Pdf` rendering
+All production projects are also built with the .NET trimming and AOT analyzers. Optional cloud authentication, external OCR executables, and WPF/WebView2 keep their own provider or desktop-runtime deployment requirements.
 
-Some projects in the repo enable trimming polyfills, but full NativeAOT success still depends on the dependency graph and the code paths your application exercises.
-
-See [AOT and Trimming](/docs/advanced/aot-trimming) for more detailed guidance.
+See [NativeAOT Deployment](/docs/advanced/aot-trimming/) for the publish settings, tested workflows, typed-API guidance, and integration boundaries.
 
 ## IL Trimming
 
@@ -63,7 +57,7 @@ When publishing trimmed applications, start with a conservative configuration an
 </PropertyGroup>
 ```
 
-If your workload uses Open XML-heavy paths, expect to validate trimming warnings rather than assuming they are harmless.
+Resolve trimming warnings at the call site. Prefer typed OfficeIMO APIs; preserve members explicitly only when your application intentionally selects runtime types or plug-ins dynamically.
 
 ## Minimum Visual Studio Version
 

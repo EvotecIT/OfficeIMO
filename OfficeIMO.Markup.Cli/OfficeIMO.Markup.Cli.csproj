@@ -14,6 +14,15 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(AotValidation)' == 'true'">
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <PublishAot>true</PublishAot>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+        <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    </PropertyGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
         <ProjectReference Include="..\OfficeIMO.Markup.Excel\OfficeIMO.Markup.Excel.csproj" />

@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Text;
 using OfficeIMO.Drawing.Internal;
@@ -72,6 +73,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     /// Writes one object row, inferring columns from the first row.
     /// </summary>
     /// <param name="item">Object, dictionary, or flattened row to write.</param>
+    [RequiresUnreferencedCode("This compatibility method discovers properties from runtime objects. For NativeAOT, use WriteDataReader or write explicit CSV rows.")]
     public void WriteObject(object? item)
     {
         ThrowIfDisposed();

@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -11,13 +10,6 @@ using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
-        private static readonly MethodInfo AddNewPartWithContentTypeMethod =
-            typeof(OpenXmlPartContainer)
-                .GetMethods()
-                .Single(m => m.Name == "AddNewPart" &&
-                             m.IsGenericMethodDefinition &&
-                             m.GetParameters().Length == 2);
-
         /// <summary>
         ///     Creates a duplicate of the provided shape and optionally offsets its position (EMUs).
         /// </summary>
@@ -406,8 +398,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OpenXmlPart AddNewPartWithContentType(OpenXmlPartContainer container, OpenXmlPart sourcePart, string relationshipId) {
-            MethodInfo method = AddNewPartWithContentTypeMethod.MakeGenericMethod(sourcePart.GetType());
-            return (OpenXmlPart)method.Invoke(container, new object[] { sourcePart.ContentType, relationshipId })!;
+            return PowerPointPartFactory.AddNewPartLike(container, sourcePart, relationshipId);
         }
 
         private static void CopyPartData(OpenXmlPart sourcePart, OpenXmlPart targetPart) {

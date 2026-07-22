@@ -1301,7 +1301,7 @@ jobs:
   aot-trim-analyzers:
     name: 'AOT/Trim analyzers'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1322,17 +1322,53 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore OfficeIMO.sln
 
-      - name: Restore HTML NativeAOT smoke
-        run: dotnet restore OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj --runtime linux-x64
-
       - name: Run AOT/Trim analyzers (net8.0)
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
 
       - name: Run AOT/Trim analyzers (net10.0)
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
 
-      - name: Publish HTML/PDF/image NativeAOT smoke
-        run: dotnet publish OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --runtime linux-x64 --no-restore --output artifacts/html-aot-smoke
+      - name: Publish and run supported NativeAOT scenarios
+        shell: pwsh
+        run: |
+          ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
+          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -JsonOutputPath ./artifacts/aot/linux-x64.json
 
-      - name: Run HTML/PDF/image NativeAOT smoke
-        run: ./artifacts/html-aot-smoke/OfficeIMO.Html.AotSmoke
+      - name: Upload Linux NativeAOT evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: nativeaot-linux-x64
+          path: artifacts/aot/*.json
+
+  aot-windows:
+    name: 'NativeAOT Windows'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Publish and run the production NativeAOT matrix
+        shell: pwsh
+        run: |
+          ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
+          ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -JsonOutputPath ./artifacts/aot/win-x64.json
+
+      - name: Upload Windows NativeAOT evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: nativeaot-win-x64
+          path: artifacts/aot/*.json

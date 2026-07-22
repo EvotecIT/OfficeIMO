@@ -25,7 +25,7 @@
         },
         {
           "question": "What is PSWriteOffice?",
-          "answer": "<p>PSWriteOffice is a PowerShell module that wraps the OfficeIMO .NET libraries. It provides 150+ cmdlets and DSL aliases for creating Office documents from PowerShell scripts without writing C#. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
+          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its current manifest exports 464 cmdlets and 354 aliases across 15 validated families for Word, Excel, PowerPoint, PDF, Reader, Visio, text, open-format, email, and conversion workflows. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",
@@ -33,7 +33,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>It depends on the package. <strong>OfficeIMO.CSV</strong> and <strong>OfficeIMO.Markdown</strong> are the strongest current fits for AOT- and trimming-sensitive workloads. The Open XML-based packages should be tested against your exact publish profile and deployment target before you rely on NativeAOT in production.</p>"
+          "answer": "<p>Yes, for <strong>88 of the 89 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 85 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts both production CLI tools on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
         }
       ]
     },

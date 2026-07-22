@@ -13,7 +13,7 @@ internal static class HtmlConversionPreflightAnalyzer {
         IReadOnlyList<HtmlSemanticBlock> blocks = Flatten(semantic.Sections.SelectMany(section => section.Blocks)).ToList();
         var features = new List<HtmlFeaturePreflightResult>();
         var diagnostics = new List<HtmlDiagnostic>();
-        foreach (HtmlSemanticFeature feature in (HtmlSemanticFeature[])Enum.GetValues(typeof(HtmlSemanticFeature))) {
+        foreach (HtmlSemanticFeature feature in global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>()) {
             FeatureEvidence evidence = Count(feature, document, dom, semantic, blocks);
             HtmlConversionPreflightOutcome outcome = Map(contract.GetSupport(feature));
             var result = new HtmlFeaturePreflightResult(feature, evidence.Count > 0, evidence.Count, outcome, evidence.Location);

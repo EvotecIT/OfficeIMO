@@ -56,6 +56,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDrivePermissionList,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -70,13 +71,13 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             if (string.IsNullOrWhiteSpace(options.Role)) throw new ArgumentException("Permission role is required.", nameof(options));
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive permission creation", cancellationToken).ConfigureAwait(false);
-            var payload = new {
-                type = options.Type,
-                role = options.Role,
-                emailAddress = options.EmailAddress,
-                domain = options.Domain,
-                allowFileDiscovery = options.AllowFileDiscovery,
-            };
+            var payload = GoogleDriveJson.ToNode(new GoogleDrivePermissionPayload {
+                Type = options.Type,
+                Role = options.Role,
+                EmailAddress = options.EmailAddress,
+                Domain = options.Domain,
+                AllowFileDiscovery = options.AllowFileDiscovery,
+            }, GoogleDriveJsonSerializerContext.Default.GoogleDrivePermissionPayload);
             var query = new List<string> {
                 "supportsAllDrives=" + Bool(Options.SupportsAllDrives),
                 "sendNotificationEmail=" + Bool(options.SendNotificationEmail),
@@ -91,6 +92,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDrivePermission,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -111,6 +113,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.Object,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -131,6 +134,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveCommentList,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -157,10 +161,14 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 token,
                 HttpMethod.Post,
                 $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments?fields=id,content,anchor,resolved,deleted,createdTime,modifiedTime,replies",
-                new { content, anchor },
+                GoogleDriveJson.ToNode(new GoogleDriveCommentPayload {
+                    Content = content,
+                    Anchor = anchor,
+                }, GoogleDriveJsonSerializerContext.Default.GoogleDriveCommentPayload),
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveComment,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -182,6 +190,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.Object,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -204,10 +213,14 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 token,
                 HttpMethod.Post,
                 $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}/replies?fields=id,content,action,deleted,createdTime",
-                new { content, action },
+                GoogleDriveJson.ToNode(new GoogleDriveReplyPayload {
+                    Content = content,
+                    Action = action,
+                }, GoogleDriveJsonSerializerContext.Default.GoogleDriveReplyPayload),
                 GoogleWorkspaceRequestSafety.NonIdempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveReply,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -231,6 +244,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.Object,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -251,6 +265,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveRevisionList,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -269,6 +284,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveStartPageToken,
                 cancellationToken).ConfigureAwait(false);
             return response.Value ?? throw new InvalidOperationException("Google Drive did not return a start page token.");
         }
@@ -300,6 +316,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
+                GoogleDriveJsonSerializerContext.Default.GoogleDriveChangeList,
                 cancellationToken).ConfigureAwait(false);
         }
 
