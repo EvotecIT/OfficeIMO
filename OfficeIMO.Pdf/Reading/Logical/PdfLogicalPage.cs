@@ -299,9 +299,25 @@ public sealed class PdfLogicalPage {
         return link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
     }
 
-    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, List<PdfLogicalTextBlock> textBlocks) {
         if (paragraphs.Count == 0) {
             return Array.Empty<PdfLogicalParagraph>();
+        }
+
+        var textBlockLookup = new Dictionary<(long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>>();
+        for (int i = 0; i < textBlocks.Count; i++) {
+            PdfLogicalTextBlock block = textBlocks[i];
+            if (block.Kind != PdfLogicalElementKind.TextBlock) {
+                continue;
+            }
+
+            var key = CreateTextBlockLookupKey(block.BaselineY, block.XStart, block.Text);
+            if (!textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks)) {
+                blocks = new Queue<PdfLogicalTextBlock>();
+                textBlockLookup.Add(key, blocks);
+            }
+
+            blocks.Enqueue(block);
         }
 
         var result = new List<PdfLogicalParagraph>(paragraphs.Count);
@@ -310,9 +326,9 @@ public sealed class PdfLogicalPage {
             var lines = new List<PdfLogicalTextBlock>(paragraph.Lines.Count);
             for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
                 var line = paragraph.Lines[lineIndex];
-                PdfLogicalTextBlock? block = FindTextBlock(line, textBlocks, PdfLogicalElementKind.TextBlock);
-                if (block is not null) {
-                    lines.Add(block);
+                var key = CreateTextBlockLookupKey(line.Y, line.XStart, line.Text.Trim());
+                if (textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks) && blocks.Count > 0) {
+                    lines.Add(blocks.Dequeue());
                 }
             }
 
@@ -323,6 +339,9 @@ public sealed class PdfLogicalPage {
 
         return result.AsReadOnly();
     }
+
+    private static (long BaselineY, long XStart, string Text) CreateTextBlockLookupKey(double baselineY, double xStart, string text) =>
+        (BitConverter.DoubleToInt64Bits(baselineY), BitConverter.DoubleToInt64Bits(xStart), text);
 
     private static IReadOnlyList<PdfLogicalListItem> BuildListItems(int pageNumber, List<StructuredListItem> listItems, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
         if (listItems.Count == 0) {

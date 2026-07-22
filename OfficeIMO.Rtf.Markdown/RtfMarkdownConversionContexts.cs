@@ -60,10 +60,19 @@ internal sealed class MarkdownToRtfConversionContext : RtfMarkdownConversionCont
 
     internal MarkdownToRtfConversionContext(MarkdownToRtfOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        if (_options.MaxListNestingDepth <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxListNestingDepth), _options.MaxListNestingDepth, "Maximum list nesting depth must be positive.");
+        }
+
+        if (_options.MaxTableCells <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells), _options.MaxTableCells, "Maximum table cells must be positive.");
+        }
     }
 
     internal MarkdownReaderOptions? ReaderOptions => _options.ReaderOptions;
     internal bool PreserveRawHtmlAsText => _options.PreserveRawHtmlAsText;
+    internal int MaxListNestingDepth => _options.MaxListNestingDepth;
+    internal int MaxTableCells => _options.MaxTableCells;
 
     internal void Report(
         string code,

@@ -217,7 +217,8 @@ namespace OfficeIMO.Word {
             double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart]);
 
-            for (int index = targetStart + 1; index < targetEnd; index++) {
+            int boundedTargetEnd = Math.Min(targetEnd, targetStart + MaxComparisonAlignmentWindow);
+            for (int index = targetStart + 1; index < boundedTargetEnd; index++) {
                 double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index]);
                 double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index]);
                 if (visibleSimilarity < bestVisibleSimilarity ||
@@ -244,7 +245,8 @@ namespace OfficeIMO.Word {
             double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph);
 
-            for (int index = sourceStart + 1; index < sourceEnd; index++) {
+            int boundedSourceEnd = Math.Min(sourceEnd, sourceStart + MaxComparisonAlignmentWindow);
+            for (int index = sourceStart + 1; index < boundedSourceEnd; index++) {
                 double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph);
                 double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph);
                 if (visibleSimilarity < bestVisibleSimilarity ||

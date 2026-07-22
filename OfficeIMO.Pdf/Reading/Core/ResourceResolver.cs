@@ -187,7 +187,7 @@ internal static partial class ResourceResolver {
         return result;
     }
 
-    internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false) {
+    internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false, PdfReadLimits? limits = null) {
         var result = new List<PdfExtractedImage>();
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey = null;
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity = null;
@@ -206,16 +206,27 @@ internal static partial class ResourceResolver {
             }
         }
 
-        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks);
+        PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
+        int traversedObjects = 0;
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, depth: 0, ref traversedObjects);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> visitedForms, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, int depth, ref int traversedObjects) {
+        if (depth > limits.MaxContentNestingDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth);
+        }
+
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
 
         foreach (var kv in xo.Items) {
+            traversedObjects++;
+            if (traversedObjects > limits.MaxContentOperands) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperands, limits.MaxContentOperands, traversedObjects);
+            }
+
             int objectNumber = 0;
             PdfStream? stream = null;
             if (kv.Value is PdfReference reference &&
@@ -266,21 +277,17 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            if (!activeForms.Add(stream)) {
+            if (!visitedForms.Add(stream)) {
                 continue;
             }
 
-            try {
-                PdfDictionary? formResources = null;
-                if (stream.Dictionary.Items.TryGetValue("Resources", out var formResourcesObj)) {
-                    formResources = ResolveDict(formResourcesObj, objects);
-                }
-
-                formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks);
-            } finally {
-                activeForms.Remove(stream);
+            PdfDictionary? formResources = null;
+            if (stream.Dictionary.Items.TryGetValue("Resources", out var formResourcesObj)) {
+                formResources = ResolveDict(formResourcesObj, objects);
             }
+
+            formResources ??= resources;
+            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedForms, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, depth + 1, ref traversedObjects);
         }
     }
 

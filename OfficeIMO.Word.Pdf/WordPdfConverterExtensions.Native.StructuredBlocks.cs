@@ -7,6 +7,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const int MaximumNativeStructuredDocumentTagDepth = 128;
+        private const int MaximumNativeTableNestingDepth = 128;
 
         [ThreadStatic]
         private static int _nativeStructuredDocumentTagDepth;
@@ -86,6 +87,34 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return elements;
+        }
+
+        private static IEnumerable<WordTable> EnumerateNativeTableTree(WordTable root) {
+            var pending = new Stack<(WordTable Table, int Depth)>();
+            pending.Push((root, 0));
+            while (pending.Count > 0) {
+                (WordTable table, int depth) = pending.Pop();
+                EnsureNativeTableDepth(depth);
+                yield return table;
+
+                List<WordTableRow> rows = table.Rows;
+                for (int rowIndex = rows.Count - 1; rowIndex >= 0; rowIndex--) {
+                    List<WordTableCell> cells = rows[rowIndex].Cells;
+                    for (int cellIndex = cells.Count - 1; cellIndex >= 0; cellIndex--) {
+                        List<WordTable> nestedTables = cells[cellIndex].DirectNestedTables;
+                        for (int nestedIndex = nestedTables.Count - 1; nestedIndex >= 0; nestedIndex--) {
+                            pending.Push((nestedTables[nestedIndex], depth + 1));
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void EnsureNativeTableDepth(int depth) {
+            if (depth >= MaximumNativeTableNestingDepth) {
+                throw new InvalidDataException(
+                    $"Table nesting exceeds the supported limit of {MaximumNativeTableNestingDepth} levels.");
+            }
         }
 
         private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {

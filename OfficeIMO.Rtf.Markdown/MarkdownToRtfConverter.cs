@@ -124,7 +124,15 @@ internal static class MarkdownToRtfConverter {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             RtfParagraph paragraph = document.AddParagraph();
-            int level = Math.Max(0, levelOffset + item.Level);
+            long requestedLevel = (long)levelOffset + item.Level;
+            int level = (int)Math.Min(context.MaxListNestingDepth - 1L, Math.Max(0L, requestedLevel));
+            if (requestedLevel >= context.MaxListNestingDepth) {
+                context.Report(
+                    "MDRTF018",
+                    RtfMarkdownDiagnosticSeverity.Warning,
+                    $"Markdown list nesting was limited to {context.MaxListNestingDepth} levels.",
+                    action: RtfConversionAction.Flattened);
+            }
             EnsureListLevel(document, listId, level, kind, start);
             paragraph.SetList(listId, level, kind);
             paragraph.ListDefinitionId = listId;
@@ -212,6 +220,17 @@ internal static class MarkdownToRtfConverter {
     }
 
     private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int parentLevel, MarkdownToRtfConversionContext context, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+        if (parentLevel >= context.MaxListNestingDepth - 1 &&
+            (block is UnorderedListBlock || block is OrderedListBlock)) {
+            ConvertFlattenedListAsContinuations(document, block, parentLevel, context, footnoteDefinitions);
+            context.Report(
+                "MDRTF018",
+                RtfMarkdownDiagnosticSeverity.Warning,
+                $"Markdown list nesting was limited to {context.MaxListNestingDepth} levels.",
+                action: RtfConversionAction.Flattened);
+            return;
+        }
+
         switch (block) {
             case UnorderedListBlock unorderedList:
                 ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, parentLevel + 1, context, footnoteDefinitions);
@@ -223,6 +242,41 @@ internal static class MarkdownToRtfConverter {
             default:
                 ConvertNestedContinuationBlock(document, block, parentLevel, context, footnoteDefinitions);
                 break;
+        }
+    }
+
+    private static void ConvertFlattenedListAsContinuations(
+        RtfDocument document,
+        IMarkdownBlock listBlock,
+        int parentLevel,
+        MarkdownToRtfConversionContext context,
+        IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+        var pending = new Queue<ListItem>();
+        EnqueueListItems(listBlock, pending);
+        while (pending.Count > 0) {
+            ListItem item = pending.Dequeue();
+            AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.Content, document, context, InlineStyle.Normal, footnoteDefinitions);
+            for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
+                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.AdditionalParagraphs[paragraphIndex], document, context, InlineStyle.Normal, footnoteDefinitions);
+            }
+
+            for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
+                IMarkdownBlock child = item.ChildBlocks[childIndex];
+                if (child is UnorderedListBlock || child is OrderedListBlock) {
+                    EnqueueListItems(child, pending);
+                } else if (!IsRenderedListItemParagraphBlock(item, child)) {
+                    ConvertNestedContinuationBlock(document, child, parentLevel, context, footnoteDefinitions);
+                }
+            }
+        }
+    }
+
+    private static void EnqueueListItems(IMarkdownBlock listBlock, Queue<ListItem> pending) {
+        IReadOnlyList<ListItem> items = listBlock is UnorderedListBlock unorderedList
+            ? unorderedList.Items
+            : ((OrderedListBlock)listBlock).Items;
+        for (int index = 0; index < items.Count; index++) {
+            pending.Enqueue(items[index]);
         }
     }
 
@@ -242,6 +296,7 @@ internal static class MarkdownToRtfConverter {
                 ConvertNestedCodeBlock(document, code, parentLevel);
                 break;
             case TableBlock table:
+                EnsureTableWithinLimit(table, context);
                 context.Report("MDRTF013", RtfMarkdownDiagnosticSeverity.Info, "Markdown table inside list item preserved as continuation text.");
                 ConvertRenderedBlockAsContinuation(document, table, parentLevel);
                 break;
@@ -307,6 +362,8 @@ internal static class MarkdownToRtfConverter {
             return;
         }
 
+        EnsureTableWithinLimit(rowCount, columnCount, context);
+
         RtfTable rtfTable = document.AddTable(rowCount, columnCount);
         int rtfRowIndex = 0;
         if (table.Headers.Count > 0) {
@@ -321,6 +378,19 @@ internal static class MarkdownToRtfConverter {
                 ? rowInlines[rowIndex]
                 : Array.Empty<InlineSequence>();
             FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, table.Alignments, document, context, footnoteDefinitions);
+        }
+    }
+
+    private static void EnsureTableWithinLimit(TableBlock table, MarkdownToRtfConversionContext context) {
+        int rowCount = table.Rows.Count + (table.Headers.Count > 0 ? 1 : 0);
+        int columnCount = Math.Max(table.Headers.Count, table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count));
+        EnsureTableWithinLimit(rowCount, columnCount, context);
+    }
+
+    private static void EnsureTableWithinLimit(int rowCount, int columnCount, MarkdownToRtfConversionContext context) {
+        long tableCells = (long)rowCount * columnCount;
+        if (tableCells > context.MaxTableCells) {
+            throw new InvalidOperationException($"The Markdown table contains {tableCells} cells, exceeding the configured limit of {context.MaxTableCells}.");
         }
     }
 

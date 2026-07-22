@@ -241,9 +241,12 @@ internal static partial class PdfWriter {
             return height;
         }
 
+        private const int MaxKeepWithNextChainBlocks = 256;
+
         private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize) {
             double height = 0D;
-            for (int blockIndex = startIndex; blockIndex < blocks.Count; blockIndex++) {
+            int inspectedBlocks = 0;
+            for (int blockIndex = startIndex; blockIndex < blocks.Count && inspectedBlocks < MaxKeepWithNextChainBlocks; blockIndex++, inspectedBlocks++) {
                 IPdfBlock block = blocks[blockIndex];
                 if (IsNonVisualFlowMarker(block)) {
                     continue;

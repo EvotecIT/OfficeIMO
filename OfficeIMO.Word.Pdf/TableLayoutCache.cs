@@ -1,12 +1,21 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Word.Pdf {
     internal static class TableLayoutCache {
+        private const int MaxTableGridColumns = 16_384;
+        private const int MaxTableNestingDepth = 128;
         private static readonly ConditionalWeakTable<WordTable, TableLayout> _cache = new();
 
-        internal static TableLayout GetLayout(WordTable table) {
+        internal static TableLayout GetLayout(WordTable table) => GetLayout(table, depth: 0);
+
+        private static TableLayout GetLayout(WordTable table, int depth) {
+            if (depth >= MaxTableNestingDepth) {
+                throw new InvalidDataException($"Table nesting exceeds the supported limit of {MaxTableNestingDepth} levels.");
+            }
+
             if (_cache.TryGetValue(table, out TableLayout? existingLayout) && existingLayout != null) {
                 return existingLayout;
             }
@@ -15,6 +24,7 @@ namespace OfficeIMO.Word.Pdf {
             int[] rowStartColumns = ResolveRowGridOffsets(table, rows.Count, before: true);
             int[] rowTrailingColumns = ResolveRowGridOffsets(table, rows.Count, before: false);
             int columnCount = ResolveColumnCount(table, rows, rowStartColumns, rowTrailingColumns);
+            EnsureSupportedColumnCount(columnCount);
             float[] widths = new float[columnCount];
             float[] gridWidths = new float[columnCount];
             bool[] explicitCellWidthColumns = new bool[columnCount];
@@ -46,13 +56,11 @@ namespace OfficeIMO.Word.Pdf {
                         hasExplicitCellWidth = true;
                     }
 
-                    if (cell.HasNestedTables) {
-                        foreach (WordTable nested in cell.NestedTables) {
-                            TableLayout nestedLayout = GetLayout(nested);
-                            float nestedWidth = nestedLayout.ColumnWidths.Sum();
-                            if (nestedWidth > width) {
-                                width = nestedWidth;
-                            }
+                    foreach (WordTable nested in cell.DirectNestedTables) {
+                        TableLayout nestedLayout = GetLayout(nested, depth + 1);
+                        float nestedWidth = nestedLayout.ColumnWidths.Sum();
+                        if (nestedWidth > width) {
+                            width = nestedWidth;
                         }
                     }
 
@@ -89,23 +97,27 @@ namespace OfficeIMO.Word.Pdf {
         private static int ResolveColumnCount(WordTable table, List<IReadOnlyList<WordTableCell>> rows, int[] rowStartColumns, int[] rowTrailingColumns) {
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
+                EnsureSupportedColumnCount(gridColumnWidths.Count);
                 return gridColumnWidths.Count;
             }
 
             int columnCount = 0;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = rows[rowIndex];
-                int rowColumns = rowStartColumns[rowIndex] + rowTrailingColumns[rowIndex];
+                long rowColumns = (long)rowStartColumns[rowIndex] + rowTrailingColumns[rowIndex];
                 foreach (WordTableCell cell in row) {
                     if (cell.HorizontalMerge == MergedCellValues.Continue) {
                         continue;
                     }
 
                     rowColumns += System.Math.Max(1, cell.ColumnSpan);
+                    if (rowColumns > MaxTableGridColumns) {
+                        throw new InvalidDataException($"The table grid exceeds the supported limit of {MaxTableGridColumns} columns.");
+                    }
                 }
 
                 if (rowColumns > columnCount) {
-                    columnCount = rowColumns;
+                    columnCount = (int)rowColumns;
                 }
             }
 
@@ -124,10 +136,20 @@ namespace OfficeIMO.Word.Pdf {
             return offsets;
         }
 
-        private static int ToNonNegativeInt(int? value) =>
-            value.HasValue && value.Value > 0
-                ? value.Value
-                : 0;
+        private static int ToNonNegativeInt(int? value) {
+            if (!value.HasValue || value.Value <= 0) {
+                return 0;
+            }
+
+            EnsureSupportedColumnCount(value.Value);
+            return value.Value;
+        }
+
+        private static void EnsureSupportedColumnCount(int columnCount) {
+            if (columnCount > MaxTableGridColumns) {
+                throw new InvalidDataException($"The table grid exceeds the supported limit of {MaxTableGridColumns} columns.");
+            }
+        }
 
         private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
             cell.Width.HasValue &&

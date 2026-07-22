@@ -381,6 +381,13 @@ public sealed partial class PdfReadDocument {
             return Array.Empty<string>();
         }
 
+        if (normalAppearances.Items.Count > _options.Limits.MaxFormFieldAppearanceStates) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.FormAppearanceStates,
+                _options.Limits.MaxFormFieldAppearanceStates,
+                normalAppearances.Items.Count);
+        }
+
         var states = new List<string>();
         foreach (string state in normalAppearances.Items.Keys) {
             if (!string.IsNullOrEmpty(state)) {

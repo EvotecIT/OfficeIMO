@@ -126,6 +126,8 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, advance);
     }
 
+    private const int MaxTabLeaderGlyphCount = 4_096;
+
     private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle, PdfOptions? options) {
         string leaderGlyph = leaderStyle switch {
             PdfTabLeaderStyle.Dots => ".",
@@ -143,7 +145,10 @@ internal static partial class PdfWriter {
             return string.Empty;
         }
 
-        int count = Math.Max(3, (int)Math.Floor(gap / glyphWidth));
+        double requestedCount = Math.Floor(gap / glyphWidth);
+        int count = requestedCount >= MaxTabLeaderGlyphCount
+            ? MaxTabLeaderGlyphCount
+            : Math.Max(3, (int)requestedCount);
         return new string(leaderGlyph[0], count);
     }
 }

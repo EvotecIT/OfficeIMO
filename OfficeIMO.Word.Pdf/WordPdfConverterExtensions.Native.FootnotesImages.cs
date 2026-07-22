@@ -57,14 +57,12 @@ namespace OfficeIMO.Word.Pdf {
 
                     break;
                 case WordTable table:
-                    foreach (WordTableRow row in table.Rows) {
-                        foreach (WordTableCell cell in row.Cells) {
-                            foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                CollectNativeFootnotes(paragraph, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
-                            }
-
-                            foreach (WordTable nested in cell.NestedTables) {
-                                CollectNativeFootnotes(nested, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
+                    foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                        foreach (WordTableRow row in currentTable.Rows) {
+                            foreach (WordTableCell cell in row.Cells) {
+                                foreach (WordParagraph paragraph in cell.Paragraphs) {
+                                    CollectNativeFootnotes(paragraph, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
+                                }
                             }
                         }
                     }

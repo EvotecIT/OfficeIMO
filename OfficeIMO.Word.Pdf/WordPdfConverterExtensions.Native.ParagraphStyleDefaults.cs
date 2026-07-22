@@ -4,6 +4,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const int MaxNativeParagraphTabStops = 1_024;
         private readonly record struct NativeParagraphStyleDefaults(
             double? FontSize,
             string? FontFamily,
@@ -288,36 +289,54 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {
-            IReadOnlyList<WordTabStop> directTabStops = paragraph.TabStops;
-            if (directTabStops.Count > 0) {
-                return directTabStops;
+            W.Tabs? directTabs = paragraph._paragraphProperties?.Tabs;
+            if (directTabs != null) {
+                WordTabStop[] directTabStops = directTabs.Elements<W.TabStop>()
+                    .Take(MaxNativeParagraphTabStops)
+                    .Select(tabStop => new WordTabStop(paragraph, tabStop))
+                    .ToArray();
+                if (directTabStops.Length > 0) {
+                    return directTabStops;
+                }
             }
 
-            List<WordTabStop>? styleTabStops = null;
-            foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId)) {
+            var styleTabStops = new Dictionary<int, WordTabStop>();
+            int inspectedStyleTabStops = 0;
+            foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Reverse()) {
                 W.Tabs? tabs = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>();
                 if (tabs == null) {
                     continue;
                 }
 
                 foreach (W.TabStop tabStop in tabs.Elements<W.TabStop>()) {
+                    if (inspectedStyleTabStops >= MaxNativeParagraphTabStops) {
+                        break;
+                    }
+
+                    inspectedStyleTabStops++;
                     WordTabStop wordTabStop = new WordTabStop(paragraph, (W.TabStop)tabStop.CloneNode(true));
                     if (wordTabStop.Position <= 0 || !IsNativeRenderableTextTabStop(wordTabStop.Alignment)) {
                         continue;
                     }
 
-                    styleTabStops ??= new List<WordTabStop>();
-                    styleTabStops.RemoveAll(existing => existing.Position == wordTabStop.Position);
-                    styleTabStops.Add(wordTabStop);
+                    if (!styleTabStops.ContainsKey(wordTabStop.Position)) {
+                        styleTabStops.Add(wordTabStop.Position, wordTabStop);
+                    }
+                    if (styleTabStops.Count >= MaxNativeParagraphTabStops) {
+                        break;
+                    }
+                }
+
+                if (inspectedStyleTabStops >= MaxNativeParagraphTabStops) {
+                    break;
                 }
             }
 
-            if (styleTabStops == null || styleTabStops.Count == 0) {
+            if (styleTabStops.Count == 0) {
                 return Array.Empty<WordTabStop>();
             }
 
-            styleTabStops.Sort((left, right) => left.Position.CompareTo(right.Position));
-            return styleTabStops;
+            return styleTabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
         }
 
         private static bool IsNativeParagraphStyle(W.Style style) {

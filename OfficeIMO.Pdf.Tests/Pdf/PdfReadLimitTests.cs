@@ -675,6 +675,30 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void WidgetAppearanceStateBudgetStopsDictionaryExpansion() {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
+            BuildWidgetAppearanceStatesPdf(),
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } }));
+
+        Assert.Equal(PdfReadLimitKind.FormAppearanceStates, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void WidgetAppearanceStateBudgetAlsoAppliesToOrphanAnnotationRendering() {
+        PdfReadDocument document = PdfReadDocument.Open(
+            BuildOrphanWidgetAppearanceStatesPdf(),
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.FormAppearanceStates, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
     public void AnnotationAndContentOperationBudgetsStopPageParsing() {
         byte[] annotations = BuildAnnotatedPagePdf();
         byte[] content = BuildPdf();
@@ -710,6 +734,19 @@ public class PdfReadLimitTests {
             new PdfReadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 1 } });
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void ImageResourceTraversalUsesTheContentNestingBudget() {
+        PdfReadDocument document = PdfReadDocument.Open(
+            BuildNestedFormXObjectPdf(),
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 1 } });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].GetImages());
 
         Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
         Assert.Equal(1, exception.Limit);
@@ -875,6 +912,23 @@ public class PdfReadLimitTests {
         "<< /Fields [7 0 R] >>",
         "<< /T (Parent) /Kids [8 0 R] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /T (Child) /FT /Tx /Rect [10 10 100 30] >>");
+
+    private static byte[] BuildWidgetAppearanceStatesPdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [6 0 R] >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [6 0 R] >>",
+        "<< /Type /Annot /Subtype /Widget /T (Choice) /FT /Btn /Rect [10 10 100 30] /AP << /N << /Off 7 0 R /On 7 0 R >> >> >>",
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream");
+
+    private static byte[] BuildOrphanWidgetAppearanceStatesPdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Type /Annot /Subtype /Widget /Rect [10 10 100 30] /AP << /N << /Off 6 0 R /On 6 0 R >> >> >>",
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream");
 
     private static byte[] BuildAnnotatedPagePdf() => BuildPdfObjects(
         "<< /Type /Catalog /Pages 2 0 R >>",
