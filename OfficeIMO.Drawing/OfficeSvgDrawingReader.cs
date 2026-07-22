@@ -371,18 +371,19 @@ public static partial class OfficeSvgDrawingReader {
         }
         int commandCount = values.Count / 2;
         if (close) commandCount++;
+        if (close && values.Count < 6) {
+            return null;
+        }
         if (commandCount > remainingCommands) {
             pathCommands = MaximumSvgPathCommands;
             return null;
         }
-        pathCommands += commandCount;
         var points = new List<OfficePoint>(values.Count / 2);
         for (int index = 0; index < values.Count; index += 2) points.Add(new OfficePoint(values[index] - viewX, values[index + 1] - viewY));
         double minX = points.Min(point => point.X);
         double minY = points.Min(point => point.Y);
         OfficeShape shape;
         if (close) {
-            if (points.Count < 3) return null;
             shape = OfficeShape.Polygon(points);
         } else {
             var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(points[0]) };
@@ -394,6 +395,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             shape.FillColor = null;
         }
+        pathCommands += commandCount;
         ApplyPaint(shape, style);
         return new OfficeDrawingShape(shape, minX, minY);
     }
