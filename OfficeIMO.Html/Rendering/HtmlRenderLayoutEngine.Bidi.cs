@@ -62,12 +62,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {
-        var prefix = new StringBuilder();
         double right = x + group.Width;
         foreach (string element in OfficeTextElements.Enumerate(group.Text)) {
-            prefix.Append(element);
-            double elementX = right - MeasureText(prefix.ToString(), font);
-            result.Add(new InlinePaintSegment(element, elementX, Math.Max(0.01D, MeasureText(element, font))));
+            CheckCancellation();
+            double width = Math.Max(0.01D, MeasureText(element, font));
+            right -= width;
+            result.Add(new InlinePaintSegment(element, right, width));
         }
     }
 

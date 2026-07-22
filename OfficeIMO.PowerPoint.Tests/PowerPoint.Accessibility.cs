@@ -201,6 +201,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AccessibilityRejectsShapeTreesBeyondTheConfiguredLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddRectanglePoints(10, 10, 20, 20, "One");
+            slide.AddRectanglePoints(40, 10, 20, 20, "Two");
+
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions { MaximumShapeCount = 1 }));
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectPreflight(
+                new PowerPointDeckPreflightOptions { MaximumShapeCount = 1 }));
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");

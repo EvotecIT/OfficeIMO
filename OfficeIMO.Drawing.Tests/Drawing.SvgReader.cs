@@ -339,6 +339,47 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderBoundsNestedTextTransformsAndSymbolSurfaces() {
+        var nested = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>");
+        for (int index = 0; index < 160; index++) nested.Append("<tspan>");
+        nested.Append("Text");
+        for (int index = 0; index < 160; index++) nested.Append("</tspan>");
+        nested.Append("</text><line x2='10' y2='10' stroke='black' stroke-dasharray='1 1' transform='scale(1000000000)'/></svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
+            out OfficeDrawing? bounded, out int unsupported));
+        Assert.NotNull(bounded);
+        Assert.True(unsupported >= 2);
+        OfficeDrawingRasterRenderer.Render(bounded!);
+
+        const string oversized = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<defs><symbol id='large' viewBox='0 0 100000 100000'><rect width='1' height='1'/></symbol></defs>"
+            + "<use href='#large' width='100000' height='100000'/></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(oversized),
+            out OfficeDrawing? safe, out int surfaceUnsupported));
+        Assert.NotNull(safe);
+        Assert.Empty(safe!.Elements);
+        Assert.Equal(1, surfaceUnsupported);
+    }
+
+    [Fact]
+    public void SvgReaderChargesRepeatedUsePathsToOneCommandBudget() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 0; index < 1000; index++) path.Append(" L1 1");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs><path id='p' d='")
+            .Append(path).Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.InRange(drawing!.Shapes.Count, 1, 19);
+        Assert.True(unsupported > 0);
+        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+    }
+
+    [Fact]
     public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='50%' stop-color='red'/><stop offset='50%' stop-color='blue'/><stop offset='80%' stop-color='blue'/></linearGradient>"

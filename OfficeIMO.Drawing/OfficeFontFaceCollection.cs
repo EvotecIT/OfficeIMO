@@ -102,15 +102,28 @@ public sealed class OfficeFontFaceCollection {
         if (string.IsNullOrEmpty(text)) return Array.Empty<OfficeFontFallbackRun>();
 
         string requestedFamilies = familyNames?.Trim() ?? string.Empty;
+        IReadOnlyList<OfficeFontFace> candidates = ResolveFallbackCandidates(requestedFamilies, style);
+        var resolvedFamilies = new Dictionary<string, string>(StringComparer.Ordinal);
         var runs = new List<OfficeFontFallbackRun>();
         var currentText = new StringBuilder();
         string? currentFamily = null;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
-            string family = IsWhitespace(element) && currentFamily != null
-                ? currentFamily
-                : ResolveForText(element, requestedFamilies, style, out OfficeFontFace? face) != null
-                    ? face!.FamilyName
-                    : requestedFamilies;
+            string family;
+            if (IsWhitespace(element) && currentFamily != null) {
+                family = currentFamily;
+            } else {
+                if (!resolvedFamilies.TryGetValue(element, out string? resolvedFamily)) {
+                    OfficeFontFace? face = null;
+                    for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                        if (!candidates[candidateIndex].ParsedFont.HasGlyphs(element)) continue;
+                        face = candidates[candidateIndex];
+                        break;
+                    }
+                    resolvedFamily = face?.FamilyName ?? requestedFamilies;
+                    resolvedFamilies.Add(element, resolvedFamily);
+                }
+                family = resolvedFamily;
+            }
             if (currentFamily != null && !string.Equals(currentFamily, family, StringComparison.OrdinalIgnoreCase)) {
                 runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily));
                 currentText.Clear();
@@ -122,6 +135,31 @@ public sealed class OfficeFontFaceCollection {
 
         if (currentText.Length > 0) runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily ?? requestedFamilies));
         return runs.AsReadOnly();
+    }
+
+    private IReadOnlyList<OfficeFontFace> ResolveFallbackCandidates(string familyNames, OfficeFontStyle style) {
+        if (string.IsNullOrWhiteSpace(familyNames) || _faces.Count == 0) return Array.Empty<OfficeFontFace>();
+
+        OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
+        var result = new List<OfficeFontFace>();
+        var added = new HashSet<OfficeFontFace>();
+        foreach (string rawFamily in familyNames.Split(',')) {
+            string family = CleanFamilyName(rawFamily);
+            if (family.Length == 0) continue;
+            OfficeFontFace? exact = null;
+            OfficeFontFace? regular = null;
+            OfficeFontFace? first = null;
+            for (int index = _faces.Count - 1; index >= 0; index--) {
+                OfficeFontFace face = _faces[index];
+                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)) continue;
+                first ??= face;
+                if (face.Style == normalizedStyle) exact ??= face;
+                if (face.Style == OfficeFontStyle.Regular) regular ??= face;
+            }
+            OfficeFontFace? preferred = exact ?? regular ?? first;
+            if (preferred != null && added.Add(preferred)) result.Add(preferred);
+        }
+        return result;
     }
 
     internal OfficeTrueTypeFont? Resolve(string? familyNames, OfficeFontStyle style) {

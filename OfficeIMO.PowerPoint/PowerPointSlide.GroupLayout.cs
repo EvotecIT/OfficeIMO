@@ -36,15 +36,42 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
             bool includeHidden = false) {
+            return EnumerateShapesDeep(shapes, includeHidden, 10000, 128);
+        }
+
+        internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
+            bool includeHidden, int maximumShapeCount, int maximumGroupDepth) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
-            foreach (PowerPointShape shape in shapes) {
+
+            var stack = new Stack<(PowerPointShape Shape, int Depth)>();
+            var roots = new List<PowerPointShape>();
+            foreach (PowerPointShape root in shapes) {
+                if (roots.Count >= maximumShapeCount) {
+                    throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                }
+                roots.Add(root);
+            }
+            for (int index = roots.Count - 1; index >= 0; index--) {
+                stack.Push((roots[index], 0));
+            }
+
+            int shapeCount = 0;
+            while (stack.Count > 0) {
+                (PowerPointShape shape, int depth) = stack.Pop();
                 if (!includeHidden && shape.Hidden) continue;
+                if (depth > maximumGroupDepth) {
+                    throw new InvalidOperationException("The grouped-shape nesting depth exceeds the configured limit.");
+                }
+                if (++shapeCount > maximumShapeCount) {
+                    throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                }
                 yield return shape;
                 if (shape is not PowerPointGroupShape groupShape) continue;
-                foreach (PowerPointShape child in EnumerateShapesDeep(GetGroupChildren(groupShape), includeHidden)) {
-                    yield return child;
+                IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape);
+                for (int index = children.Count - 1; index >= 0; index--) {
+                    stack.Push((children[index], depth + 1));
                 }
             }
         }

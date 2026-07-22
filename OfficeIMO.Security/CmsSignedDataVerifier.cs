@@ -193,6 +193,7 @@ public static class CmsSignedDataVerifier {
             options.CertificateValidation,
             findings,
             "CMS signer",
+            CertificateUsagePurpose.CmsSigner,
             signerIndex);
         DateTimeOffset? signingTime = ReadSigningTime(signer.SignedAttributes, signerIndex, findings);
         IReadOnlyList<Rfc3161TimestampVerificationResult> timestamps = options.ValidateTimestamps

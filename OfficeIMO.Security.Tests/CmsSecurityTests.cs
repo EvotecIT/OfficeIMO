@@ -44,6 +44,21 @@ public sealed class CmsSecurityTests {
     }
 
     [Fact]
+    public void Verification_RejectsTlsOnlySignerCertificates() {
+        byte[] content = Encoding.UTF8.GetBytes("TLS certificates are not document signers");
+        using X509Certificate2 certificate = CreateRsaCertificate(
+            "OfficeIMO TLS Only",
+            new Oid("1.3.6.1.5.5.7.3.1"));
+        byte[] encoded = CmsSignedDataSigner.SignEncapsulated(content, certificate);
+
+        CmsVerificationResult result = CmsSignedDataVerifier.Verify(encoded, TrustSelfSigned());
+
+        CmsSignerVerificationResult signer = Assert.Single(result.Signers);
+        Assert.Equal(SecurityValidationStatus.Invalid, signer.CertificateValidation.ChainStatus);
+        Assert.Contains(signer.Findings, finding => finding.Code == "CertificateEnhancedKeyUsageInvalid");
+    }
+
+    [Fact]
     public void EncapsulatedSignature_StopsAtTheConfiguredContentLimit() {
         byte[] content = Enumerable.Repeat((byte)0x5a, 4096).ToArray();
         using X509Certificate2 certificate = CreateRsaCertificate("OfficeIMO CMS Bounded Encapsulated");
@@ -227,7 +242,7 @@ public sealed class CmsSecurityTests {
         return options;
     }
 
-    private static X509Certificate2 CreateRsaCertificate(string commonName) {
+    private static X509Certificate2 CreateRsaCertificate(string commonName, Oid? enhancedKeyUsage = null) {
         using RSA rsa = RSA.Create(2048);
         var request = new CertificateRequest(
             "CN=" + commonName,
@@ -237,6 +252,11 @@ public sealed class CmsSecurityTests {
         request.CertificateExtensions.Add(new X509KeyUsageExtension(
             X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment,
             critical: true));
+        if (enhancedKeyUsage != null) {
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
+                new OidCollection { enhancedKeyUsage },
+                critical: true));
+        }
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
     }

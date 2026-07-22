@@ -10,7 +10,7 @@ internal static partial class OpenDocumentReaderAdapter {
             OdpSlide slide = document.Slides[slideIndex];
             var paragraphs = new List<string>();
             var tables = new List<ReaderTable>();
-            CollectSlideContent(slide.Shapes, sourceName, slideIndex, options, paragraphs, tables);
+            CollectSlideContent(slide.Shapes, sourceName, slideIndex, options, paragraphs, tables, cancellationToken);
             var notes = formatOptions.IncludeSpeakerNotes
                 ? slide.SpeakerNotes?.Paragraphs.Select(paragraph => paragraph.Text.Trim()).Where(text => text.Length > 0).ToArray()
                 : null;
@@ -38,27 +38,38 @@ internal static partial class OpenDocumentReaderAdapter {
     }
 
     private static void CollectSlideContent(IEnumerable<OdpShape> shapes, string sourceName, int slideIndex, ReaderOptions options,
-        List<string> paragraphs, List<ReaderTable> tables) {
+        List<string> paragraphs, List<ReaderTable> tables, CancellationToken cancellationToken) {
         foreach (OdpShape shape in shapes) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (shape is OdpTextBox textBox) {
                 paragraphs.AddRange(textBox.Paragraphs.Select(paragraph => paragraph.Text.Trim()).Where(text => text.Length > 0));
             } else if (shape is OdpTable table) {
-                tables.Add(BuildPresentationTable(table, sourceName, slideIndex, tables.Count, options));
+                tables.Add(BuildPresentationTable(table, sourceName, slideIndex, tables.Count, options, cancellationToken));
             } else if (shape is OdpGroup group) {
-                CollectSlideContent(group.Shapes, sourceName, slideIndex, options, paragraphs, tables);
+                CollectSlideContent(group.Shapes, sourceName, slideIndex, options, paragraphs, tables, cancellationToken);
             }
         }
     }
 
-    private static ReaderTable BuildPresentationTable(OdpTable table, string sourceName, int slideIndex, int tableIndex, ReaderOptions options) {
-        int columnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Cells.Count);
-        string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+    private static ReaderTable BuildPresentationTable(OdpTable table, string sourceName, int slideIndex, int tableIndex, ReaderOptions options,
+        CancellationToken cancellationToken) {
         int maxRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
-        var rows = table.Rows.Take(maxRows).Select(row => (IReadOnlyList<string>)Enumerable.Range(0, columnCount)
-            .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray()).ToArray();
+        IReadOnlyList<OdpTableRow> sourceRows = table.Rows;
+        OdpTableRow[] selectedRows = sourceRows.Take(maxRows).ToArray();
+        int columnCount = selectedRows.Length == 0
+            ? 0
+            : Math.Min(MaximumTableColumns, selectedRows.Max(row => row.Cells.Count));
+        string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+        var rows = new List<IReadOnlyList<string>>(selectedRows.Length);
+        foreach (OdpTableRow row in selectedRows) {
+            cancellationToken.ThrowIfCancellationRequested();
+            rows.Add(Enumerable.Range(0, columnCount)
+                .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray());
+        }
         return new ReaderTable {
             Title = table.Name, Kind = "odp-table", Columns = columns, Rows = rows,
-            TotalRowCount = table.Rows.Count, Truncated = table.Rows.Count > maxRows,
+            TotalRowCount = sourceRows.Count,
+            Truncated = sourceRows.Count > maxRows || selectedRows.Any(row => row.Cells.Count > MaximumTableColumns),
             Location = new ReaderLocation { Path = sourceName, Slide = slideIndex + 1, TableIndex = tableIndex, SourceBlockKind = "table" }
         };
     }

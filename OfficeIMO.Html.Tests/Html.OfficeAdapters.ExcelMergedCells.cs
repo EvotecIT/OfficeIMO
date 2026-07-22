@@ -7,6 +7,15 @@ namespace OfficeIMO.Tests;
 
 public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
+    public void ExcelHtml_DefaultSemanticExportLimitsAreBounded() {
+        var options = new ExcelHtmlSaveOptions();
+
+        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
+        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
+        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
+    }
+
+    [Fact]
     public void ExcelHtml_RoundTripsMergedCellsWithoutDuplicatingCoveredCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Merged");
@@ -80,5 +89,39 @@ public class HtmlOfficeAdaptersExcelMergedCells {
 
         Assert.Contains("data-officeimo-merge=\"A1:B2\"", html, StringComparison.Ordinal);
         Assert.Equal("A1:B2", Assert.Single(Assert.Single(imported.Sheets).GetMergedRanges()).A1Range);
+    }
+
+    [Fact]
+    public void ExcelHtml_HugeMergeIsClippedBeforeCellMaterialization() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("Bounded");
+        sheet.CellValue(1, 1, "Visible");
+        sheet.MergeRange("A1:XFD1048576");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            MaxRowsPerSheet = 2,
+            MaxColumnsPerSheet = 3,
+            MaxCellsPerSheet = 6
+        });
+
+        Assert.Contains("data-officeimo-merge=\"A1:C2\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-officeimo-cell=\"D1\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-officeimo-cell=\"A3\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExcelHtml_EmptyHugeMergeUsesTheBoundedProbeWindow() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("EmptyBounded");
+        sheet.MergeRange("A1:XFD1048576");
+
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            MaxRowsPerSheet = 2,
+            MaxColumnsPerSheet = 3,
+            MaxCellsPerSheet = 4
+        });
+
+        Assert.Contains("data-officeimo-merge=\"A1:C1\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-officeimo-cell=\"A2\"", html, StringComparison.Ordinal);
     }
 }

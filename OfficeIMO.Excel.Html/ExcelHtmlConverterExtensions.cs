@@ -118,7 +118,15 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static void AppendSheetTable(StringBuilder body, ExcelSheet sheet, ExcelHtmlSaveOptions options) {
         IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges();
-        string usedRange = ExpandUsedRangeForMerges(sheet, sheet.GetUsedRangeA1(), mergedRanges);
+        int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
+        int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
+        string usedRange = ExpandUsedRangeForMerges(
+            sheet,
+            sheet.GetUsedRangeA1(),
+            mergedRanges,
+            rowLimit,
+            columnLimit,
+            options.MaxCellsPerSheet);
         body.Append("<section class=\"officeimo-sheet\" data-officeimo-sheet=\"")
             .Append(OfficeHtmlText.EscapeAttribute(sheet.Name))
             .Append("\" data-officeimo-range=\"")
@@ -129,11 +137,13 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("<h2>").Append(OfficeHtmlText.Escape(sheet.Name)).Append("</h2>");
 
         ParseUsedRange(usedRange, out int firstRow, out int firstColumn, out int rowCount, out int columnCount);
-        int maxRows = options.MaxRowsPerSheet.HasValue
-            ? Math.Min(rowCount, options.MaxRowsPerSheet.Value)
-            : rowCount;
-        ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, columnCount);
-        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount) && mergeMap.Count == 0)) {
+        int maxColumns = Math.Min(Math.Min(columnCount, columnLimit), options.MaxCellsPerSheet);
+        int maxRows = Math.Min(rowCount, rowLimit);
+        if (maxColumns > 0 && (long)maxRows * maxColumns > options.MaxCellsPerSheet) {
+            maxRows = Math.Min(maxRows, Math.Max(1, options.MaxCellsPerSheet / maxColumns));
+        }
+        ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, maxColumns);
+        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || maxColumns == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, maxRows, maxColumns) && mergeMap.Count == 0)) {
             body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
             AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");
@@ -148,17 +158,19 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<tbody>");
         }
 
+        ExcelMergeExportRowCursor mergeCursor = mergeMap.CreateRowCursor();
         for (int row = 0; row < maxRows; row++) {
             if (row == 1 && firstRowIsHeader) {
                 body.Append("</thead><tbody>");
             }
 
             body.Append("<tr>");
-            for (int column = 0; column < columnCount; column++) {
+            mergeCursor.MoveToRow(firstRow + row);
+            for (int column = 0; column < maxColumns; column++) {
                 string tag = firstRowIsHeader && row == 0 ? "th" : "td";
                 int cellRow = firstRow + row;
                 int cellColumn = firstColumn + column;
-                if (mergeMap.IsCoveredCell(cellRow, cellColumn)) {
+                if (mergeCursor.IsCoveredCell(cellColumn)) {
                     continue;
                 }
 
@@ -168,7 +180,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(A1.CellReference(cellRow, cellColumn)))
                     .Append('"');
-                if (mergeMap.TryGetOrigin(cellRow, cellColumn, out ExcelMergeExportRange merge)) {
+                if (mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge)) {
                     AppendMergeAttributes(body, merge);
                 }
 

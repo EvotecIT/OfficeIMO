@@ -42,6 +42,7 @@ internal static partial class EpubReaderAdapter {
         EpubChapter chapter,
         IReadOnlyList<OfficeDocumentAsset> htmlAssets,
         List<OfficeDocumentAsset> documentAssets,
+        Dictionary<string, OfficeDocumentAsset> assetsByLocation,
         List<OfficeDocumentAsset> chapterAssets,
         List<OfficeDocumentDiagnostic> diagnostics) {
         foreach (OfficeDocumentAsset htmlAsset in htmlAssets) {
@@ -57,7 +58,7 @@ internal static partial class EpubReaderAdapter {
                 AddEpubReferenceDiagnostic(sourcePath, chapter, reference, diagnostics);
                 string? resourceLocation = BuildEpubResolvedLocation(sourcePath, reference, includeFragment: true);
                 if (!string.IsNullOrWhiteSpace(resourceLocation)) {
-                    mappedAsset = FindEpubAsset(sourcePath, reference, documentAssets);
+                    mappedAsset = FindEpubAsset(sourcePath, reference, assetsByLocation);
                     if (mappedAsset == null) {
                         htmlAsset.Location.Path = resourceLocation;
                     } else {
@@ -69,9 +70,25 @@ internal static partial class EpubReaderAdapter {
             if (mappedAsset == null) {
                 mappedAsset = htmlAsset;
                 documentAssets.Add(mappedAsset);
+                if (!string.IsNullOrWhiteSpace(mappedAsset.Location.Path)
+                    && !assetsByLocation.ContainsKey(mappedAsset.Location.Path!)) {
+                    assetsByLocation.Add(mappedAsset.Location.Path!, mappedAsset);
+                }
             }
             if (!chapterAssets.Contains(mappedAsset)) chapterAssets.Add(mappedAsset);
         }
+    }
+
+    private static Dictionary<string, OfficeDocumentAsset> BuildEpubAssetIndex(
+        IEnumerable<OfficeDocumentAsset> assets) {
+        var result = new Dictionary<string, OfficeDocumentAsset>(StringComparer.Ordinal);
+        foreach (OfficeDocumentAsset asset in assets) {
+            if (!string.IsNullOrWhiteSpace(asset.Location.Path)
+                && !result.ContainsKey(asset.Location.Path!)) {
+                result.Add(asset.Location.Path!, asset);
+            }
+        }
+        return result;
     }
 
     private static void ApplyEpubOccurrenceMetadata(OfficeDocumentAsset packageAsset, OfficeDocumentAsset occurrenceAsset) {

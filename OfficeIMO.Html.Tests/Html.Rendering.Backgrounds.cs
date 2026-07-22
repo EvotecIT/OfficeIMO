@@ -157,9 +157,9 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderClipGroup pattern = Assert.Single(
-            rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
-            visual => visual.Source != null && visual.Source.Contains(":background-image:pattern-clip", StringComparison.Ordinal));
+        HtmlRenderDrawing pattern = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
@@ -167,7 +167,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
+        Assert.Single(pattern.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 9));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(14, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));

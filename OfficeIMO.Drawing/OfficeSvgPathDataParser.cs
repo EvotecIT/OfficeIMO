@@ -5,9 +5,8 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeSvgPathDataParser {
-    private const int MaximumCommands = 100000;
-
-    internal static bool TryParse(string? data, out IReadOnlyList<OfficePathCommand> commands) {
+    internal static bool TryParse(string? data, int maximumCommands,
+        out IReadOnlyList<OfficePathCommand> commands) {
         var result = new List<OfficePathCommand>();
         commands = result;
         if (string.IsNullOrWhiteSpace(data)) return false;
@@ -23,7 +22,7 @@ internal static class OfficeSvgPathDataParser {
         bool hasDraw = false;
 
         while (reader.SkipSeparators()) {
-            if (result.Count >= MaximumCommands) return false;
+            if (result.Count >= maximumCommands) return false;
             if (reader.TryReadCommand(out char explicitCommand)) command = explicitCommand;
             else if (command == '\0' || command is 'Z' or 'z') return false;
             bool relative = char.IsLower(command);
@@ -40,7 +39,7 @@ internal static class OfficeSvgPathDataParser {
 
             int groups = 0;
             while (reader.HasNumberAhead()) {
-                if (result.Count >= MaximumCommands) return false;
+                if (result.Count >= maximumCommands) return false;
                 switch (upper) {
                     case 'M':
                     case 'L':

@@ -48,6 +48,7 @@ internal static partial class EpubReaderAdapter {
     private static OfficeDocumentReadResult BuildEpubDocumentResult(EpubDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
         ReaderChunk[] chunks = ReadDocument(document, source, readerOptions, cancellationToken).ToArray();
         List<OfficeDocumentAsset> assets = BuildEpubAssets(document, source.Path).ToList();
+        Dictionary<string, OfficeDocumentAsset> assetsByLocation = BuildEpubAssetIndex(assets);
         var blocks = new List<OfficeDocumentBlock>();
         var tables = new List<ReaderTable>();
         var links = new List<OfficeDocumentLink>();
@@ -94,12 +95,12 @@ internal static partial class EpubReaderAdapter {
                 chapterTables.AddRange(htmlResult.Tables);
                 chapterLinks.AddRange(resolvedLinks);
                 chapterForms.AddRange(htmlResult.Forms);
-                AddEpubChapterAssets(source.Path, chapter, htmlResult.Assets, assets, chapterAssets, diagnostics);
+                AddEpubChapterAssets(source.Path, chapter, htmlResult.Assets, assets, assetsByLocation, chapterAssets, diagnostics);
                 IReadOnlyList<ReaderVisual> resolvedVisuals = ResolveEpubChapterVisuals(
                     source.Path,
                     chapter,
                     htmlResult.Visuals,
-                    assets,
+                    assetsByLocation,
                     chapterAssets,
                     diagnostics);
                 visuals.AddRange(resolvedVisuals);

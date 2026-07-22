@@ -82,7 +82,8 @@ public static class Rfc3161TimestampVerifier {
                     platformEmbedded,
                     effectiveCertificateValidation,
                     findings,
-                    "TSA");
+                    "TSA",
+                    CertificateUsagePurpose.TimestampAuthority);
                 SecurityValidationStatus status = signatureValid && imprintValid
                     ? SecurityValidationStatus.Valid
                     : SecurityValidationStatus.Invalid;

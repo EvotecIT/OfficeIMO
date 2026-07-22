@@ -21,7 +21,8 @@ public static partial class OfficeSvgDrawingReader {
         var runs = new List<SvgTextRun>();
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
-        AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY, drawing.Width, drawing.Height, runs, ref cursor, ref unsupported);
+        AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY,
+            drawing.Width, drawing.Height, runs, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
         foreach (SvgTextRun run in runs) AddTextRun(drawing, run, ref unsupported);
@@ -39,8 +40,13 @@ public static partial class OfficeSvgDrawingReader {
         double viewportWidth,
         double viewportHeight,
         ICollection<SvgTextRun> runs,
+        int depth,
         ref SvgTextCursor cursor,
         ref int unsupported) {
+        if (depth > MaximumSvgNestingDepth) {
+            unsupported++;
+            return;
+        }
         if (runs.Count >= MaximumTextRuns) {
             ReportTextRunLimit(ref cursor, ref unsupported);
             return;
@@ -82,7 +88,8 @@ public static partial class OfficeSvgDrawingReader {
                 continue;
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
-                AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY, viewportWidth, viewportHeight, runs, ref cursor, ref unsupported);
+                AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY,
+                    viewportWidth, viewportHeight, runs, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }

@@ -10,7 +10,7 @@ internal static partial class OpenDocumentReaderAdapter {
         foreach (OdtContentBlock block in document.ContentBlocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (block.Table != null) {
-                yield return BuildTableChunk(block.Table, sourceName, blockIndex, options);
+                yield return BuildTableChunk(block.Table, sourceName, blockIndex, options, cancellationToken);
                 blockIndex++;
                 continue;
             }
@@ -46,20 +46,28 @@ internal static partial class OpenDocumentReaderAdapter {
         }
     }
 
-    private static ReaderChunk BuildTableChunk(OdtTable table, string sourceName, int blockIndex, ReaderOptions options) {
+    private static ReaderChunk BuildTableChunk(OdtTable table, string sourceName, int blockIndex, ReaderOptions options,
+        CancellationToken cancellationToken) {
         IReadOnlyList<OdtTableRow> rows = table.Rows;
-        int columnCount = rows.Count == 0 ? 0 : rows.Max(row => row.Cells.Count);
-        string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
         int maximumRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
-        var values = rows.Take(maximumRows).Select(row => (IReadOnlyList<string>)Enumerable.Range(0, columnCount)
-            .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray()).ToArray();
+        OdtTableRow[] selectedRows = rows.Take(maximumRows).ToArray();
+        int columnCount = selectedRows.Length == 0
+            ? 0
+            : Math.Min(MaximumTableColumns, selectedRows.Max(row => row.Cells.Count));
+        string[] columns = Enumerable.Range(1, columnCount).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+        var values = new List<IReadOnlyList<string>>(selectedRows.Length);
+        foreach (OdtTableRow row in selectedRows) {
+            cancellationToken.ThrowIfCancellationRequested();
+            values.Add(Enumerable.Range(0, columnCount)
+                .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray());
+        }
         var readerTable = new ReaderTable {
             Title = table.Name,
             Kind = "odt-table",
             Columns = columns,
             Rows = values,
             TotalRowCount = rows.Count,
-            Truncated = rows.Count > maximumRows,
+            Truncated = rows.Count > maximumRows || selectedRows.Any(row => row.Cells.Count > MaximumTableColumns),
             Location = new ReaderLocation { Path = sourceName, BlockIndex = blockIndex, SourceBlockIndex = blockIndex, SourceBlockKind = "table" }
         };
         string text = string.Join(Environment.NewLine, values.Select(row => string.Join("\t", row)));

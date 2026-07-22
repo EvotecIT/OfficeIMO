@@ -5,11 +5,15 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeSvgTransformParser {
+    private const int MaximumTransformOperations = 256;
+
     internal static bool TryParse(string? value, out OfficeTransform transform) {
         transform = OfficeTransform.Identity;
         if (string.IsNullOrWhiteSpace(value)) return true;
         int index = 0;
+        int operationCount = 0;
         while (SkipSeparators(value!, ref index)) {
+            if (++operationCount > MaximumTransformOperations) return false;
             int nameStart = index;
             while (index < value!.Length && char.IsLetter(value[index])) index++;
             if (index == nameStart) return false;

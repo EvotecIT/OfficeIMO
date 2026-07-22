@@ -25,9 +25,8 @@ namespace OfficeIMO.PowerPoint {
             for (int slideIndex = 0; slideIndex < _slides.Count; slideIndex++) {
                 PowerPointSlide slide = _slides[slideIndex];
                 if (slide.Hidden && !resolved.IncludeHiddenSlides) continue;
-                List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide).ToList();
-                string? slideTitle = FindSlideTitle(slide.EnumerateShapesDeep(slide.Shapes),
-                    SlideSize.HeightPoints);
+                List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide, resolved).ToList();
+                string? slideTitle = FindSlideTitle(shapes, SlideSize.HeightPoints);
                 if (resolved.RequireSlideTitles && string.IsNullOrWhiteSpace(slideTitle)) {
                     findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
                         "Accessibility.MissingSlideTitle", "The slide does not expose a recognizable title.", slideIndex));
@@ -47,8 +46,10 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointAccessibilityReport(resolved.Profile, slideInfos, findings);
         }
 
-        private static IEnumerable<PowerPointShape> EnumerateAccessibilityShapes(PowerPointSlide slide) {
-            return slide.EnumerateShapesDeep(slide.GetInheritedShapesForExport().Concat(slide.Shapes));
+        private static IEnumerable<PowerPointShape> EnumerateAccessibilityShapes(PowerPointSlide slide,
+            PowerPointAccessibilityOptions options) {
+            return slide.EnumerateShapesDeep(slide.GetInheritedShapesForExport().Concat(slide.Shapes),
+                includeHidden: false, options.MaximumShapeCount, options.MaximumGroupDepth);
         }
 
         private static string? FindSlideTitle(IEnumerable<PowerPointShape> shapes, double slideHeightPoints) {

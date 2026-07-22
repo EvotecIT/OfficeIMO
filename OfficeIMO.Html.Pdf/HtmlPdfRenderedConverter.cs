@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
@@ -11,6 +12,7 @@ internal static class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
     private const int MaximumSystemFontFamilyCandidates = 512;
     private const int MaximumLoadedSystemFontFamilies = 32;
+    private static readonly ConditionalWeakTable<byte[], CachedPdfImageResources> PdfImageResources = new();
 
     internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
@@ -390,7 +392,9 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
-        if (!TryPreparePdfImageBytes(visual.Bytes, visual.ContentType, out byte[] imageBytes)) return;
+        PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(
+            visual.EncodedBytes, visual.ContentType);
+        if (imageResource == null) return;
         PdfCore.PdfImageStyle? style = visual.SourceCrop.HasCrop
             ? new PdfCore.PdfImageStyle {
                 SourceCrop = new PdfCore.PdfImageSourceCrop(
@@ -400,8 +404,8 @@ internal static class HtmlPdfRenderedConverter {
                     visual.SourceCrop.Bottom)
             }
             : null;
-        canvas.Image(
-            imageBytes,
+        canvas.ImageShared(
+            imageResource,
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,
             visual.Width * PointsPerCssPixel,
@@ -496,16 +500,41 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {
-        if (!TryPreparePdfImageBytes(visual.Bytes, visual.ContentType, out byte[] imageBytes)) return;
+        PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(
+            visual.EncodedBytes, visual.ContentType);
+        if (imageResource == null) return;
         OfficeImagePatternLayout pattern = visual.Pattern.Scale(PointsPerCssPixel);
         OfficeImagePlacement area = pattern.Area;
-        PdfCore.PdfCanvasImageResource imageResource = PdfCore.PdfCanvasImageResource.Create(imageBytes);
         canvas.Clip(area.X, area.Y, area.Width, area.Height, clipped => {
             foreach (OfficeImagePlacement tile in pattern.GetTilePlacements(visual.MaximumTileCount)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 clipped.ImageShared(imageResource, tile.X, tile.Y, tile.Width, tile.Height);
             }
         });
+    }
+
+    private static PdfCore.PdfCanvasImageResource? GetSharedPdfImageResource(byte[] encodedBytes,
+        string contentType) {
+        return PdfImageResources.GetValue(encodedBytes, static _ => new CachedPdfImageResources())
+            .GetOrCreate(encodedBytes, contentType);
+    }
+
+    private sealed class CachedPdfImageResources {
+        private readonly Dictionary<string, PdfCore.PdfCanvasImageResource?> _resources =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        internal PdfCore.PdfCanvasImageResource? GetOrCreate(byte[] encodedBytes, string contentType) {
+            lock (_resources) {
+                if (_resources.TryGetValue(contentType, out PdfCore.PdfCanvasImageResource? resource)) {
+                    return resource;
+                }
+                if (TryPreparePdfImageBytes(encodedBytes, contentType, out byte[] prepared)) {
+                    resource = PdfCore.PdfCanvasImageResource.Create(prepared);
+                }
+                _resources.Add(contentType, resource);
+                return resource;
+            }
+        }
     }
 
     private static PdfCore.PdfStandardFont MapFont(string familyName, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {

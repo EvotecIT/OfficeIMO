@@ -20,9 +20,8 @@ internal static partial class OpenDocumentReaderAdapter {
                 range = new OdsUsedRange(firstRow - 1L, firstColumn - 1L, lastRow - 1L, lastColumn - 1L);
             }
             int maxRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
-            const int maxColumns = 256;
             long sourceColumns = range.ColumnCount;
-            int columnCount = (int)Math.Min(sourceColumns, maxColumns);
+            int columnCount = (int)Math.Min(sourceColumns, MaximumTableColumns);
             long headerRow = range.FirstRow;
             string[] columns = Enumerable.Range(0, columnCount).Select(index => {
                 string value = formatOptions.HeadersInFirstRow ? sheet.GetValue(headerRow, range.FirstColumn + index).ToString() : string.Empty;
@@ -46,12 +45,12 @@ internal static partial class OpenDocumentReaderAdapter {
             var table = new ReaderTable {
                 Title = sheet.Name, Kind = "ods-sheet", Columns = columns, Rows = rows,
                 TotalRowCount = checked((int)Math.Min(availableDataRows, int.MaxValue)),
-                Truncated = availableDataRows > emittedRows || sourceColumns > maxColumns,
+                Truncated = availableDataRows > emittedRows || sourceColumns > MaximumTableColumns,
                 Location = location
             };
             var warnings = new List<string>();
             if (availableDataRows > emittedRows) warnings.Add("Sheet rows were truncated due to MaxTableRows.");
-            if (sourceColumns > maxColumns) warnings.Add("Sheet columns were truncated to 256 columns for bounded extraction.");
+            if (sourceColumns > MaximumTableColumns) warnings.Add("Sheet columns were truncated to 256 columns for bounded extraction.");
             yield return new ReaderChunk {
                 Id = BuildId(sourceName, "sheet", blockIndex), Kind = ReaderInputKind.OpenDocument,
                 Location = location,
