@@ -208,11 +208,11 @@ internal static partial class ResourceResolver {
 
         PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
         int traversedObjects = 0;
-        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, depth: 0, ref traversedObjects);
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, depth: 0, ref traversedObjects);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> visitedForms, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, int depth, ref int traversedObjects) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, int depth, ref int traversedObjects) {
         if (depth > limits.MaxContentNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth);
         }
@@ -277,17 +277,17 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            if (!visitedForms.Add(stream)) {
-                continue;
-            }
-
             PdfDictionary? formResources = null;
             if (stream.Dictionary.Items.TryGetValue("Resources", out var formResourcesObj)) {
                 formResources = ResolveDict(formResourcesObj, objects);
             }
 
             formResources ??= resources;
-            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedForms, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, depth + 1, ref traversedObjects);
+            if (!visitedFormContexts.Add((stream, formResources))) {
+                continue;
+            }
+
+            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, depth + 1, ref traversedObjects);
         }
     }
 
