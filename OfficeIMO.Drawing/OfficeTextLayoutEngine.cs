@@ -426,8 +426,10 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string boundedText = LimitLayoutText(text ?? string.Empty);
-        string layoutText = LimitLayoutText(ExpandTabs(forceSingleLine ? NormalizeSingleLineText(boundedText) : boundedText));
+        string sourceText = text ?? string.Empty;
+        string boundedText = LimitLayoutText(sourceText);
+        string expandedText = ExpandTabs(forceSingleLine ? NormalizeSingleLineText(boundedText) : boundedText);
+        string layoutText = LimitLayoutText(expandedText);
         bool hasHardBreaks = !forceSingleLine && (layoutText.IndexOf('\n') >= 0 || layoutText.IndexOf('\r') >= 0);
         bool effectiveWrap = !forceSingleLine && (wrap || hasHardBreaks);
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
@@ -440,7 +442,7 @@ public static partial class OfficeTextLayoutEngine {
             : resolvedFontSize;
         double lineHeight = Math.Max(1D, Math.Ceiling(layoutFontSize * lineFactor));
         IReadOnlyList<OfficeTextLine> lines;
-        bool clipped = false;
+        bool clipped = boundedText.Length < sourceText.Length || layoutText.Length < expandedText.Length;
 
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         if (effectiveWrap) {
@@ -451,7 +453,7 @@ public static partial class OfficeTextLayoutEngine {
             string firstLine = lineBreak >= 0 ? normalized.Substring(0, lineBreak) : normalized;
             double offset = ResolveLineOffset(indent, firstVisualLine: true);
             OfficeTextLine line = ResolveOverflowLine(firstLine, layoutFontSize, Math.Max(0D, width - offset), measure, overflowBehavior, out bool lineClipped, offset);
-            clipped = lineClipped;
+            clipped |= lineClipped;
             lines = new[] { line };
         }
 

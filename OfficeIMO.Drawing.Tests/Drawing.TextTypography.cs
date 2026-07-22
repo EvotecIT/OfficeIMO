@@ -100,6 +100,7 @@ public class DrawingTextTypographyTests {
             shrinkToFit: false,
             overflowBehavior: OfficeTextOverflowBehavior.Ellipsis);
         Assert.Single(singleLine.Lines);
+        Assert.True(singleLine.Clipped);
         Assert.InRange(maximumMeasuredCharacters, 1, 100_003);
 
         OfficeTextBlockLayout stacked = OfficeTextLayoutEngine.LayoutStackedTextBlock(

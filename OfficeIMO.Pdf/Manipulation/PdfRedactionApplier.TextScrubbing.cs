@@ -22,36 +22,100 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects);
         Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
         PdfObject currentContentsObject = contentsObject;
-        var graphicsState = new TextScrubGraphicsState();
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
+        PdfReference[] contentReferences = EnumerateContentReferences(objects, contentsObject).ToArray();
+        var contentSegments = new List<string>(contentReferences.Length);
+        bool allStreamsDecoded = true;
+        foreach (PdfReference reference in contentReferences) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
                 stream.DecodingFailed) {
-                graphicsState.Reset();
-                continue;
+                allStreamsDecoded = false;
+                break;
             }
 
             byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-            string content = PdfEncoding.Latin1GetString(contentBytes);
-            string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, new[] { Matrix2D.Identity }, graphicsState);
-            if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
-                continue;
-            }
+            contentSegments.Add(PdfEncoding.Latin1GetString(contentBytes));
+        }
 
-            PdfReference targetReference = reference;
-            if (IsSharedReference(referenceCounts, reference)) {
-                targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
-                ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
-                currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
-                    ? updatedContentsObject
-                    : currentContentsObject;
+        if (allStreamsDecoded && contentSegments.Count > 0) {
+            string combinedContent = string.Concat(contentSegments);
+            TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(
+                combinedContent,
+                textTargets,
+                fontDecoders,
+                new[] { Matrix2D.Identity },
+                graphicsState: null);
+            int contentOffset = 0;
+            for (int index = 0; index < contentReferences.Length; index++) {
+                string content = contentSegments[index];
+                string scrubbed = RemoveTextObjectSpans(content, contentOffset, spansToRemove);
+                changed = ReplacePageContentStreamIfChanged(
+                    objects,
+                    pageDictionary,
+                    ref currentContentsObject,
+                    contentReferences[index],
+                    content,
+                    scrubbed,
+                    referenceCounts,
+                    ref nextObjectNumber) || changed;
+                contentOffset += content.Length;
             }
+        } else {
+            var graphicsState = new TextScrubGraphicsState();
+            foreach (PdfReference reference in contentReferences) {
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    indirect.Value is not PdfStream stream ||
+                    stream.DecodingFailed) {
+                    graphicsState.Reset();
+                    continue;
+                }
 
-            objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
-            changed = true;
+                string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+                string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, new[] { Matrix2D.Identity }, graphicsState);
+                changed = ReplacePageContentStreamIfChanged(
+                    objects,
+                    pageDictionary,
+                    ref currentContentsObject,
+                    reference,
+                    content,
+                    scrubbed,
+                    referenceCounts,
+                    ref nextObjectNumber) || changed;
+            }
         }
 
         return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, referenceCounts, ref nextObjectNumber) || changed;
+    }
+
+    private static bool ReplacePageContentStreamIfChanged(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary pageDictionary,
+        ref PdfObject currentContentsObject,
+        PdfReference reference,
+        string content,
+        string scrubbed,
+        IReadOnlyDictionary<int, int> referenceCounts,
+        ref int nextObjectNumber) {
+        if (string.Equals(content, scrubbed, StringComparison.Ordinal) ||
+            !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+            indirect.Value is not PdfStream stream) {
+            return false;
+        }
+
+        PdfReference targetReference = reference;
+        if (IsSharedReference(referenceCounts, reference)) {
+            targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
+            ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+            currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
+                ? updatedContentsObject
+                : currentContentsObject;
+        }
+
+        objects[targetReference.ObjectNumber] = new PdfIndirectObject(
+            targetReference.ObjectNumber,
+            targetReference.Generation,
+            new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+        return true;
     }
 
     private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionMatch> matches) {
@@ -196,9 +260,19 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyList<Matrix2D> transforms,
         TextScrubGraphicsState? graphicsState = null) {
+        TextObjectSpan[] spansToRemove = FindMatchingTextObjectSpans(content, targets, fontDecoders, transforms, graphicsState);
+        return RemoveTextObjectSpans(content, 0, spansToRemove);
+    }
+
+    private static TextObjectSpan[] FindMatchingTextObjectSpans(
+        string content,
+        RedactionTextTarget[] targets,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
+        IReadOnlyList<Matrix2D> transforms,
+        TextScrubGraphicsState? graphicsState) {
         List<RedactionTextObject> textObjects = CollectTextObjects(content, fontDecoders, transforms, graphicsState);
         if (textObjects.Count == 0) {
-            return content;
+            return Array.Empty<TextObjectSpan>();
         }
 
         var removeByIndex = new HashSet<int>();
@@ -207,10 +281,12 @@ internal static partial class PdfRedactionApplier {
         }
 
         if (removeByIndex.Count == 0) {
-            return content;
+            return Array.Empty<TextObjectSpan>();
         }
 
-        return RemoveTextObjectSpans(content, removeByIndex);
+        return EnumerateTextObjectSpans(content)
+            .Where(span => removeByIndex.Contains(span.Index))
+            .ToArray();
     }
 
     private static List<RedactionTextObject> CollectTextObjects(
@@ -283,16 +359,30 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    private static string RemoveTextObjectSpans(string content, HashSet<int> removeByIndex) {
+    private static string RemoveTextObjectSpans(string content, int contentOffset, IReadOnlyList<TextObjectSpan> spansToRemove) {
+        if (spansToRemove.Count == 0) {
+            return content;
+        }
+
         var builder = new StringBuilder(content.Length);
         int cursor = 0;
-        foreach (TextObjectSpan span in EnumerateTextObjectSpans(content)) {
-            if (!removeByIndex.Contains(span.Index)) {
+        int contentEnd = contentOffset + content.Length;
+        foreach (TextObjectSpan span in spansToRemove) {
+            int spanStart = Math.Max(contentOffset, span.Index);
+            int spanEnd = Math.Min(contentEnd, span.Index + span.Length);
+            if (spanStart >= spanEnd) {
                 continue;
             }
 
-            builder.Append(content, cursor, span.Index - cursor);
-            cursor = span.Index + span.Length;
+            int localStart = spanStart - contentOffset;
+            int localEnd = spanEnd - contentOffset;
+            if (localEnd <= cursor) {
+                continue;
+            }
+
+            int copyEnd = Math.Max(cursor, localStart);
+            builder.Append(content, cursor, copyEnd - cursor);
+            cursor = localEnd;
         }
 
         if (cursor == 0) {
