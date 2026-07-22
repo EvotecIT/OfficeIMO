@@ -808,13 +808,14 @@ internal static partial class OfficeJpegReader {
         public int McuCols;
         public int McuRows;
 
-        public static BaselineState Create(JpegFrame frame) {
+        public static BaselineState Create(JpegFrame frame, int orientation) {
             var mcuWidth = frame.MaxH * 8;
             var mcuHeight = frame.MaxV * 8;
             var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
-            long aggregateBytes = checked((long)frame.Width * frame.Height * 4L);
+            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
+            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
             if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
@@ -893,7 +894,7 @@ internal static partial class OfficeJpegReader {
         public int McuCols;
         public int McuRows;
 
-        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables) {
+        public static ProgressiveState Create(JpegFrame frame, int[][] quantTables, int orientation) {
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -902,7 +903,8 @@ internal static partial class OfficeJpegReader {
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
 
             var components = new ProgressiveComponentState[frame.ComponentCount];
-            long aggregateBytes = checked((long)frame.Width * frame.Height * 4L);
+            long rgbaBytes = checked((long)frame.Width * frame.Height * 4L);
+            long aggregateBytes = checked(rgbaBytes * (orientation > 1 ? 2L : 1L));
             if (aggregateBytes > OfficeRasterGuards.MaximumDecodedBytes) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }

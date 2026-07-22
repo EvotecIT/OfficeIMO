@@ -84,7 +84,8 @@ namespace OfficeIMO.Tests {
                     LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
                 }));
 
-            Assert.Contains("configured limit of 1 byte", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("configured maximum size", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("1", exception.Message, StringComparison.Ordinal);
             Assert.False(File.Exists(destinationPath));
         }
 
