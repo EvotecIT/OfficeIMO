@@ -26,6 +26,7 @@ namespace OfficeIMO.PowerPoint {
         private bool _legacyPptHasExternalHyperlinkContent;
         private bool _legacyPptHasExternalMediaContent;
         private bool _legacyPptHasRunProgramContent;
+        private bool _legacyPptHadProjectedRunProgramContent;
         private byte[]? _openXmlOriginalPackageBytes;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
@@ -119,6 +120,11 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptHasExternalMediaContent =
                 legacy.HasExternalMediaContent;
             _legacyPptHasRunProgramContent = legacy.HasRunProgramContent;
+            _legacyPptHadProjectedRunProgramContent =
+                EnumerateReferencedHyperlinks().Any(item =>
+                    string.Equals(item.Hyperlink.Action?.Value,
+                        "ppaction://program",
+                        StringComparison.OrdinalIgnoreCase));
             SourceFormat = sourceFormat;
         }
 
@@ -169,15 +175,16 @@ namespace OfficeIMO.PowerPoint {
         internal bool LegacyPptWillPreserveExternalHyperlinkContent =>
             _legacyPptHasExternalHyperlinkContent
             && EnumerateReferencedHyperlinks().Any(item =>
-                !string.Equals(item.Action?.Value, "ppaction://program",
-                    StringComparison.OrdinalIgnoreCase));
+                IsExternalHyperlink(item.Part, item.Hyperlink));
         internal bool LegacyPptHasExternalMediaContent =>
             _legacyPptHasExternalMediaContent;
         internal bool LegacyPptWillPreserveRunProgramContent =>
             _legacyPptHasRunProgramContent
-            && EnumerateReferencedHyperlinks().Any(item =>
-                string.Equals(item.Action?.Value, "ppaction://program",
-                    StringComparison.OrdinalIgnoreCase));
+            && (!_legacyPptHadProjectedRunProgramContent
+                || EnumerateReferencedHyperlinks().Any(item =>
+                    string.Equals(item.Hyperlink.Action?.Value,
+                        "ppaction://program",
+                        StringComparison.OrdinalIgnoreCase)));
 
         internal bool HasOnlyLegacyPptPreservableChanges => _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
@@ -225,6 +232,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptHasExternalHyperlinkContent = false;
             _legacyPptHasExternalMediaContent = false;
             _legacyPptHasRunProgramContent = false;
+            _legacyPptHadProjectedRunProgramContent = false;
         }
 
         private bool IsProjectedVbaContentUnchanged() {
@@ -247,16 +255,20 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private IEnumerable<A.HyperlinkType> EnumerateReferencedHyperlinks() {
+        private IEnumerable<(OpenXmlPart Part, A.HyperlinkType Hyperlink)>
+            EnumerateReferencedHyperlinks() {
             foreach (SlidePart slidePart in _presentationPart.SlideParts) {
                 if (slidePart.Slide != null) {
-                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(slidePart,
                                  slidePart.Slide)) {
                         yield return item;
                     }
                 }
                 if (slidePart.NotesSlidePart?.NotesSlide != null) {
-                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(
+                                 slidePart.NotesSlidePart,
                                  slidePart.NotesSlidePart.NotesSlide)) {
                         yield return item;
                     }
@@ -264,47 +276,68 @@ namespace OfficeIMO.PowerPoint {
             }
             foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
                 if (masterPart.SlideMaster != null) {
-                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(masterPart,
                                  masterPart.SlideMaster)) {
                         yield return item;
                     }
                 }
                 foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
                     if (layoutPart.SlideLayout == null) continue;
-                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                             in EnumerateReferencedHyperlinks(layoutPart,
                                  layoutPart.SlideLayout)) {
                         yield return item;
                     }
                 }
             }
             if (_presentationPart.NotesMasterPart?.NotesMaster != null) {
-                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                         in EnumerateReferencedHyperlinks(
+                             _presentationPart.NotesMasterPart,
                              _presentationPart.NotesMasterPart.NotesMaster)) {
                     yield return item;
                 }
             }
             if (_presentationPart.HandoutMasterPart?.HandoutMaster != null) {
-                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
+                         in EnumerateReferencedHyperlinks(
+                             _presentationPart.HandoutMasterPart,
                              _presentationPart.HandoutMasterPart.HandoutMaster)) {
                     yield return item;
                 }
             }
         }
 
-        private static IEnumerable<A.HyperlinkType> EnumerateReferencedHyperlinks(
+        private static IEnumerable<(OpenXmlPart Part,
+            A.HyperlinkType Hyperlink)> EnumerateReferencedHyperlinks(
+            OpenXmlPart part,
             DocumentFormat.OpenXml.OpenXmlPartRootElement root) {
             foreach (A.HyperlinkOnClick item in root
                          .Descendants<A.HyperlinkOnClick>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
             }
             foreach (A.HyperlinkOnHover item in root
                          .Descendants<A.HyperlinkOnHover>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
             }
             foreach (A.HyperlinkOnMouseOver item in root
                          .Descendants<A.HyperlinkOnMouseOver>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value)) yield return item;
+                    if (!string.IsNullOrEmpty(item.Id?.Value))
+                        yield return (part, item);
             }
+        }
+
+        private static bool IsExternalHyperlink(OpenXmlPart part,
+            A.HyperlinkType hyperlink) {
+            string? relationshipId = hyperlink.Id?.Value;
+            return !string.IsNullOrEmpty(relationshipId)
+                && part.HyperlinkRelationships.Any(relationship =>
+                    relationship.IsExternal
+                    && string.Equals(relationship.Id, relationshipId,
+                        StringComparison.Ordinal));
         }
 
         private static byte[] ComputeSha256(byte[] bytes) {
