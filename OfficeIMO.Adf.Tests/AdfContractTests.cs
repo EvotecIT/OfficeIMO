@@ -78,15 +78,45 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
-    public void MarkdownTaskList_UsesValidListItemFallbackAndReportsFidelity() {
+    public void MarkdownTaskList_UsesNativeAdfTaskNodesAndRoundTrips() {
         AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown("- [x] Ready\n- [ ] Pending");
 
         AdfNode list = Assert.Single(result.Value.Content);
-        Assert.Equal("bulletList", list.Type);
-        Assert.All(list.Content, item => Assert.Equal("listItem", item.Type));
+        Assert.Equal("taskList", list.Type);
+        Assert.False(string.IsNullOrWhiteSpace(list.GetStringAttribute("localId")));
+        Assert.Collection(
+            list.Content,
+            item => {
+                Assert.Equal("taskItem", item.Type);
+                Assert.Equal("DONE", item.GetStringAttribute("state"));
+                Assert.False(string.IsNullOrWhiteSpace(item.GetStringAttribute("localId")));
+                Assert.Equal("Ready", Assert.Single(item.Content).Text);
+            },
+            item => {
+                Assert.Equal("taskItem", item.Type);
+                Assert.Equal("TODO", item.GetStringAttribute("state"));
+                Assert.False(string.IsNullOrWhiteSpace(item.GetStringAttribute("localId")));
+                Assert.Equal("Pending", Assert.Single(item.Content).Text);
+            });
         Assert.True(result.Value.Validate().IsValid);
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "MARKDOWN_TASK_LIST_FALLBACK");
+
+        AdfConversionResult<string> roundTrip = AdfConverter.ToMarkdown(result.Value);
+        Assert.Equal("- [x] Ready\n- [ ] Pending", roundTrip.Value.Replace("\r\n", "\n"));
+        Assert.DoesNotContain(roundTrip.Report.Diagnostics, item => item.Code == "ADF_UNSUPPORTED_NODE");
+    }
+
+    [Fact]
+    public void MarkdownComplexTaskList_UsesVisibleMarkerFallback() {
+        var task = ListItem.Task("Ready", done: true);
+        task.AdditionalParagraphs.Add(new InlineSequence().Text("Details"));
+        var list = new UnorderedListBlock();
+        list.Items.Add(task);
+
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownDoc.Create().Add(list));
+
+        Assert.Equal("bulletList", Assert.Single(result.Value.Content).Type);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "MARKDOWN_TASK_LIST_FALLBACK");
-        Assert.Contains("\\[x\\] Ready", AdfConverter.ToMarkdown(result.Value).Value);
     }
 
     [Fact]
@@ -98,6 +128,45 @@ public sealed class AdfContractTests {
         Assert.False(result.IsValid);
         Assert.Contains(result.Issues, item => item.Code == "ADF_LIST_CHILD");
         Assert.Contains(result.Issues, item => item.Code == "ADF_TASK_ITEM_PARENT");
+    }
+
+    [Fact]
+    public void Validation_RejectsKnownNonTextPayloadsAndMarks() {
+        var paragraph = new AdfNode("paragraph") { Text = "invalid" };
+        paragraph.Marks.Add(new AdfMark("strong"));
+        var document = new AdfDocument(new[] { paragraph });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, item => item.Code == "ADF_TEXT_NOT_ALLOWED" && item.Path == "$.content[0].text");
+        Assert.Contains(result.Issues, item => item.Code == "ADF_MARKS_NOT_ALLOWED" && item.Path == "$.content[0].marks");
+    }
+
+    [Fact]
+    public void Validation_RejectsEmptyTextNodes() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode(string.Empty) } });
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, item => item.Code == "ADF_TEXT_REQUIRED" && item.Path == "$.content[0].content[0].text");
+    }
+
+    [Theory]
+    [InlineData("taskList", "{}", "ADF_TASK_LOCAL_ID")]
+    [InlineData("taskItem", "{\"state\":\"DONE\"}", "ADF_TASK_LOCAL_ID")]
+    [InlineData("taskItem", "{\"localId\":\"item-1\"}", "ADF_TASK_STATE")]
+    [InlineData("taskItem", "{\"localId\":\"item-1\",\"state\":\"done\"}", "ADF_TASK_STATE")]
+    public void Validation_RequiresTaskIdentityAndState(string nodeType, string attributesJson, string expectedCode) {
+        AdfDocument document = AdfDocument.Parse(
+            "{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"" + nodeType + "\",\"attrs\":" + attributesJson + "}]}");
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, item => item.Code == expectedCode);
     }
 
     [Theory]
@@ -406,6 +475,22 @@ public sealed class AdfContractTests {
 
         Assert.False(result.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_ATTRIBUTES_DROPPED");
+        Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
+    }
+
+    [Fact]
+    public void TableProjection_ReportsFlattenedCellBlockStructure() {
+        var header = TableCell("tableHeader", "First");
+        header.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode("Second") } });
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("table") {
+            Content = { new AdfNode("tableRow") { Content = { header } } }
+        });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_CELL_BLOCKS_FLATTENED");
         Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
     }
 

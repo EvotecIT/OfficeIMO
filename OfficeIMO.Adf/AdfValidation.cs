@@ -104,7 +104,16 @@ internal static class AdfValidator {
         }
         if (string.IsNullOrWhiteSpace(node.Type)) issues.Add(Error("ADF_NODE_TYPE", path + ".type", "ADF node type is required."));
         else if (!KnownNodes.Contains(node.Type)) issues.Add(Warning("ADF_UNKNOWN_NODE", path, "Unknown ADF node '" + node.Type + "' is retained but may be projected with reduced fidelity."));
-        if (string.Equals(node.Type, "text", StringComparison.Ordinal) && node.Text == null) issues.Add(Error("ADF_TEXT_REQUIRED", path + ".text", "ADF text nodes require a text value."));
+        bool isKnownNode = KnownNodes.Contains(node.Type);
+        bool isTextNode = string.Equals(node.Type, "text", StringComparison.Ordinal);
+        if (isTextNode && string.IsNullOrEmpty(node.Text)) {
+            issues.Add(Error("ADF_TEXT_REQUIRED", path + ".text", "ADF text nodes require a non-empty text value."));
+        } else if (isKnownNode && !isTextNode && node.Text != null) {
+            issues.Add(Error("ADF_TEXT_NOT_ALLOWED", path + ".text", "ADF text payloads are allowed only on text nodes."));
+        }
+        if (isKnownNode && !isTextNode && node.Marks.Count > 0) {
+            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "ADF marks are allowed only on text nodes."));
+        }
         if (string.Equals(node.Type, "listItem", StringComparison.Ordinal) &&
             !string.Equals(parentType, "bulletList", StringComparison.Ordinal) &&
             !string.Equals(parentType, "orderedList", StringComparison.Ordinal)) {
@@ -117,6 +126,17 @@ internal static class AdfValidator {
             int? level = node.GetInt32Attribute("level");
             if (!level.HasValue || level.Value < 1 || level.Value > 6) {
                 issues.Add(Error("ADF_HEADING_LEVEL", path + ".attrs.level", "ADF heading nodes require an integer level from 1 through 6."));
+            }
+        }
+        if (string.Equals(node.Type, "taskList", StringComparison.Ordinal) || string.Equals(node.Type, "taskItem", StringComparison.Ordinal)) {
+            if (string.IsNullOrWhiteSpace(node.GetStringAttribute("localId"))) {
+                issues.Add(Error("ADF_TASK_LOCAL_ID", path + ".attrs.localId", "ADF taskList and taskItem nodes require a non-empty string localId attribute."));
+            }
+        }
+        if (string.Equals(node.Type, "taskItem", StringComparison.Ordinal)) {
+            string? state = node.GetStringAttribute("state");
+            if (!string.Equals(state, "TODO", StringComparison.Ordinal) && !string.Equals(state, "DONE", StringComparison.Ordinal)) {
+                issues.Add(Error("ADF_TASK_STATE", path + ".attrs.state", "ADF taskItem state must be 'TODO' or 'DONE'."));
             }
         }
         for (int i = 0; i < node.Marks.Count; i++) {

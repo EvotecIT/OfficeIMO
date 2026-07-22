@@ -99,7 +99,11 @@ internal static class AdfToMarkdownConverter {
             }
             builder.Append(new string(' ', depth * 2)).Append(marker);
             var itemBody = new StringBuilder();
-            AppendChildrenAsBlocks(itemBody, item, path + ".content[" + i + "]", options, diagnostics, depth + 1);
+            if (item.Type == "taskItem") {
+                itemBody.Append(RenderInlineContent(item, path + ".content[" + i + "]", diagnostics));
+            } else {
+                AppendChildrenAsBlocks(itemBody, item, path + ".content[" + i + "]", options, diagnostics, depth + 1);
+            }
             string[] lines = itemBody.ToString().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             if (lines.Length > 0) builder.Append(lines[0]);
             for (int lineIndex = 1; lineIndex < lines.Length; lineIndex++) {
@@ -142,6 +146,9 @@ internal static class AdfToMarkdownConverter {
     private static string RenderCell(AdfNode cell, string path, List<AdfConversionDiagnostic> diagnostics) {
         if (cell.Attributes.Count > 0 || cell.ExtensionData.Count > 0) {
             diagnostics.Add(Warning("ADF_TABLE_CELL_ATTRIBUTES_DROPPED", path, "ADF table-cell attributes cannot be represented in Markdown and were omitted."));
+        }
+        if (cell.Content.Count != 1 || cell.Content[0].Type != "paragraph") {
+            diagnostics.Add(Warning("ADF_TABLE_CELL_BLOCKS_FLATTENED", path, "Markdown table cells reconstruct as one paragraph; the source cell block structure was flattened."));
         }
         var builder = new StringBuilder();
         for (int i = 0; i < cell.Content.Count; i++) {

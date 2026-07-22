@@ -32,6 +32,7 @@ internal static class MarkdownToAdfConverter {
                 }
                 return quoteNode;
             case UnorderedListBlock unordered:
+                if (CanConvertTaskList(unordered.Items)) return ConvertTaskList(unordered.Items, path, diagnostics);
                 return ConvertList("bulletList", unordered.Items, path, diagnostics, 1);
             case OrderedListBlock ordered:
                 return ConvertList("orderedList", ordered.Items, path, diagnostics, ordered.Start);
@@ -70,6 +71,22 @@ internal static class MarkdownToAdfConverter {
                 item.Content.Add(WithInlines(new AdfNode("paragraph"), paragraph, path + ".items[" + i + "]", diagnostics));
             }
             AddBlocks(item, sourceItem.NestedBlocks, path + ".items[" + i + "].nested", diagnostics);
+            list.Content.Add(item);
+        }
+        return list;
+    }
+
+    private static bool CanConvertTaskList(IReadOnlyList<ListItem> items) =>
+        items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 && item.NestedBlocks.Count == 0);
+
+    private static AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
+        var list = new AdfNode("taskList").SetAttribute("localId", Guid.NewGuid().ToString("D"));
+        for (int i = 0; i < items.Count; i++) {
+            ListItem sourceItem = items[i];
+            var item = new AdfNode("taskItem")
+                .SetAttribute("localId", Guid.NewGuid().ToString("D"))
+                .SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
+            WithInlines(item, sourceItem.Content, path + ".items[" + i + "]", diagnostics);
             list.Content.Add(item);
         }
         return list;
