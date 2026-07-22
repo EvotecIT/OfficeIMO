@@ -113,6 +113,12 @@ internal static class AdfValidator {
         if (string.Equals(node.Type, "taskItem", StringComparison.Ordinal) && !string.Equals(parentType, "taskList", StringComparison.Ordinal)) {
             issues.Add(Error("ADF_TASK_ITEM_PARENT", path, "ADF taskItem nodes require a taskList parent."));
         }
+        if (string.Equals(node.Type, "heading", StringComparison.Ordinal)) {
+            int? level = node.GetInt32Attribute("level");
+            if (!level.HasValue || level.Value < 1 || level.Value > 6) {
+                issues.Add(Error("ADF_HEADING_LEVEL", path + ".attrs.level", "ADF heading nodes require an integer level from 1 through 6."));
+            }
+        }
         for (int i = 0; i < node.Marks.Count; i++) {
             AdfMark mark = node.Marks[i];
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));

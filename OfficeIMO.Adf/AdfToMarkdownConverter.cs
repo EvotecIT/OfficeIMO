@@ -22,6 +22,7 @@ internal static class AdfToMarkdownConverter {
             case "heading":
                 int level = node.GetInt32Attribute("level") ?? 1;
                 level = Math.Max(1, Math.Min(6, level));
+                ReportMultilineHeadingText(node, path, diagnostics);
                 builder.Append(new string('#', level)).Append(' ').Append(RenderInlineContent(node, path, diagnostics));
                 break;
             case "codeBlock":
@@ -114,7 +115,12 @@ internal static class AdfToMarkdownConverter {
         if (columns == 0) return;
 
         bool hasHeader = rows[0].Content.Any(cell => cell.Type == "tableHeader");
+        bool hasMixedFirstRow = hasHeader && rows[0].Content.Any(cell => cell.Type != "tableHeader");
+        bool hasHeaderAfterFirstRow = rows.Skip(1).Any(row => row.Content.Any(cell => cell.Type == "tableHeader"));
         if (!hasHeader) diagnostics.Add(Warning("ADF_TABLE_HEADER_SYNTHESIZED", path, "Markdown requires a header row; the first ADF row was used as the header."));
+        if (hasMixedFirstRow || hasHeaderAfterFirstRow) {
+            diagnostics.Add(Warning("ADF_TABLE_HEADER_LAYOUT_NORMALIZED", path, "Markdown supports only one all-header first row; source table header cell types were normalized."));
+        }
         AppendTableRow(builder, rows[0], columns, path + ".content[0]", diagnostics);
         builder.AppendLine();
         builder.Append('|');
@@ -149,6 +155,18 @@ internal static class AdfToMarkdownConverter {
         var builder = new StringBuilder();
         for (int i = 0; i < node.Content.Count; i++) AppendInline(builder, node.Content[i], path + ".content[" + i + "]", diagnostics);
         return builder.ToString();
+    }
+
+    private static void ReportMultilineHeadingText(AdfNode heading, string path, List<AdfConversionDiagnostic> diagnostics) {
+        for (int i = 0; i < heading.Content.Count; i++) {
+            AdfNode child = heading.Content[i];
+            if (child.Type == "text" && child.Text != null && (child.Text.IndexOf('\r') >= 0 || child.Text.IndexOf('\n') >= 0)) {
+                diagnostics.Add(Warning(
+                    "ADF_HEADING_LINE_BREAK_NORMALIZED",
+                    path + ".content[" + i + "]",
+                    "Markdown headings cannot preserve line endings inside one ADF text node; the projected heading structure is lossy."));
+            }
+        }
     }
 
     private static void AppendInline(StringBuilder builder, AdfNode node, string path, List<AdfConversionDiagnostic> diagnostics) {

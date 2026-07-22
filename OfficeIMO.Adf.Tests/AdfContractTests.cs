@@ -163,6 +163,29 @@ public sealed class AdfContractTests {
         Assert.Equal("$.content[0].content[0].marks[0].attrs.href", issue.Path);
     }
 
+    [Theory]
+    [InlineData("{}", false)]
+    [InlineData("{\"level\":0}", false)]
+    [InlineData("{\"level\":1}", true)]
+    [InlineData("{\"level\":6}", true)]
+    [InlineData("{\"level\":7}", false)]
+    [InlineData("{\"level\":\"2\"}", false)]
+    [InlineData("{\"level\":1.5}", false)]
+    public void Validation_RequiresIntegerHeadingLevelFromOneThroughSix(string attributesJson, bool expectedValid) {
+        AdfDocument document = AdfDocument.Parse(
+            "{\"version\":1,\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":" + attributesJson + ",\"content\":[{\"type\":\"text\",\"text\":\"Title\"}]}]}");
+
+        AdfValidationResult result = document.Validate();
+
+        Assert.Equal(expectedValid, result.IsValid);
+        if (expectedValid) {
+            Assert.DoesNotContain(result.Issues, item => item.Code == "ADF_HEADING_LEVEL");
+        } else {
+            AdfValidationIssue issue = Assert.Single(result.Issues, item => item.Code == "ADF_HEADING_LEVEL");
+            Assert.Equal("$.content[0].attrs.level", issue.Path);
+        }
+    }
+
     [Fact]
     public void LinkProjection_PreservesTitleAndReportsUnsupportedAttributes() {
         var link = new AdfMark("link")
@@ -298,6 +321,20 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void HeadingProjection_ReportsMultilineTextAsLossy() {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("heading") {
+            Content = { AdfNode.TextNode("first\nsecond") }
+        }.SetAttribute("level", 2));
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_HEADING_LINE_BREAK_NORMALIZED");
+        Assert.Equal("$.content[0].content[0]", diagnostic.Path);
+    }
+
+    [Fact]
     public void TableProjection_PreservesLiteralPipesAndHardBreaks() {
         var document = new AdfDocument();
         document.Content.Add(new AdfNode("table") {
@@ -372,6 +409,26 @@ public sealed class AdfContractTests {
         Assert.Equal("$.content[0].content[0].content[0]", diagnostic.Path);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TableProjection_ReportsHeaderLayoutsMarkdownCannotRepresent(bool mixedFirstRow) {
+        var firstRow = new AdfNode("tableRow");
+        firstRow.Content.Add(TableCell("tableHeader", "First"));
+        firstRow.Content.Add(TableCell(mixedFirstRow ? "tableCell" : "tableHeader", "Second"));
+        var secondRow = new AdfNode("tableRow");
+        secondRow.Content.Add(TableCell("tableCell", "Third"));
+        secondRow.Content.Add(TableCell(mixedFirstRow ? "tableCell" : "tableHeader", "Fourth"));
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("table") { Content = { firstRow, secondRow } });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_TABLE_HEADER_LAYOUT_NORMALIZED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
     [Fact]
     public void InlineCodeProjection_PreservesBackticksAndCombinedMarksRegardlessOfOrder() {
         const string content = "value`tick";
@@ -408,4 +465,8 @@ public sealed class AdfContractTests {
         Assert.Equal("first second", text.Text);
         Assert.Contains(text.Marks, mark => mark.Type == "code");
     }
+
+    private static AdfNode TableCell(string type, string text) => new AdfNode(type) {
+        Content = { new AdfNode("paragraph") { Content = { AdfNode.TextNode(text) } } }
+    };
 }
