@@ -63,6 +63,27 @@ public class RtfMarkdownSecurityLimitTests {
     }
 
     [Fact]
+    public void MarkdownListConversionPreservesTaskMarkersWhenFlatteningCappedLists() {
+        ListItem root = ListItem.Text("Root");
+        root.NestedBlocks.Add(new UnorderedListBlock {
+            Items = {
+                ListItem.Task("Finished", done: true),
+                ListItem.Task("Pending")
+            }
+        });
+        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+
+        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
+        string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+        string roundTrip = rtf.ToMarkdown();
+
+        Assert.Contains("[x] Finished", plainText, StringComparison.Ordinal);
+        Assert.Contains("[ ] Pending", plainText, StringComparison.Ordinal);
+        Assert.Contains("\\[x\\] Finished", roundTrip, StringComparison.Ordinal);
+        Assert.Contains("\\[ \\] Pending", roundTrip, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CodeBlockInfoBookmarkPayloadIsBounded() {
         string infoString = new string('x', 2_000);
         MarkdownDoc markdown = MarkdownDoc.Create().Add(new CodeBlock(infoString, "value"));

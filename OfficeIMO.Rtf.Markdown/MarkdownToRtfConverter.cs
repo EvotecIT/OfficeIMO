@@ -261,7 +261,11 @@ internal static class MarkdownToRtfConverter {
             }
 
             ListItem item = (ListItem)next;
-            AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.Content, document, context, InlineStyle.Normal, footnoteDefinitions);
+            RtfParagraph paragraph = AddListContinuationParagraph(document, parentLevel);
+            if (item.IsTask) {
+                paragraph.AddText(item.Checked ? "[x] " : "[ ] ");
+            }
+            AppendInlineSequence(paragraph, item.Content, document, context, InlineStyle.Normal, footnoteDefinitions);
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
                 AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), item.AdditionalParagraphs[paragraphIndex], document, context, InlineStyle.Normal, footnoteDefinitions);
             }
