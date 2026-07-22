@@ -5,7 +5,7 @@
       "repoInput": "EvotecIT/PSWriteOffice",
       "repo": "https://github.com/EvotecIT/PSWriteOffice.git",
       "destination": "./projects/pswriteoffice",
-      "commit": "07b5c0974581c0500241928a4beb18abbf3dcbdf"
+      "commit": "6f360b20a1b917c12c4c3f656cce331227203a48"
     }
   ]
 }
