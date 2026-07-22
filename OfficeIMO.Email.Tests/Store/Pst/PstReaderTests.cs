@@ -98,10 +98,64 @@ public sealed class PstReaderTests {
         Assert.Equal(5, attachment.MapiAttachMethod);
         Assert.Equal("forwarded.msg", attachment.FileName);
         Assert.Null(attachment.Content);
-        Assert.Equal(0, attachment.Length);
+        Assert.True(attachment.Length > 0);
         Assert.NotNull(attachment.EmbeddedDocument);
         Assert.Equal("Embedded PST message", attachment.EmbeddedDocument!.Subject);
         Assert.Equal("Body from the embedded PST item", attachment.EmbeddedDocument.Body.Text);
+    }
+
+    [Fact]
+    public void EmbeddedPstObjectAttachmentsHonorAttachmentByteLimit() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(
+            includeEmbeddedMessage: true));
+        var reader = new EmailStoreReader(new EmailStoreReaderOptions(
+            maxAttachmentBytes: 16,
+            maxTotalAttachmentBytes: 1024));
+
+        Assert.Throws<EmailStoreLimitExceededException>(() =>
+            reader.Read(stream, "mailbox.pst"));
+    }
+
+    [Fact]
+    public void ExhaustedEmbeddedPstObjectBudgetReportsTheAttachmentLimit() {
+        var budget = new PstDecodedObjectBudget(16);
+        budget.Add(16);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(() =>
+            PstStoreReader.GetEmbeddedMessageMaximumDecodedBytes(128, budget, 16));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.Equal(17, exception.Actual);
+        Assert.Equal(16, exception.Maximum);
+    }
+
+    [Fact]
+    public void EmbeddedPstObjectMetadataDoesNotReserveUndecodedPayloadBytes() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
+        var options = new EmailStoreReaderOptions(
+            maxAttachmentBytes: 16,
+            maxTotalAttachmentBytes: 16);
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "mailbox.pst", options);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+
+        EmailStoreItem item = session.ReadItem(reference,
+            new EmailStoreItemReadOptions(EmailStoreItemReadParts.AttachmentMetadata));
+
+        EmailAttachment attachment = Assert.Single(item.Document.Attachments);
+        Assert.Equal(5, attachment.MapiAttachMethod);
+        Assert.Null(attachment.EmbeddedDocument);
+    }
+
+    [Fact]
+    public void StoreProjectionOptionsPreserveSelectiveDecodedPropertyLimit() {
+        var storeOptions = new EmailStoreReaderOptions(maxDecodedPropertyBytesPerItem: 4_096);
+
+        EmailReaderOptions projectionOptions = EmailStoreMessageReader.CreateOptions(
+            storeOptions,
+            includeAttachmentContent: false,
+            maxDecodedPropertyBytes: 128);
+
+        Assert.Equal(128, projectionOptions.MaxDecodedPropertyBytes);
     }
 
     [Fact]

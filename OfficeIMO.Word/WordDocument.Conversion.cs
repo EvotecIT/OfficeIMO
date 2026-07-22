@@ -230,6 +230,7 @@ namespace OfficeIMO.Word {
         private static LegacyDocImportOptions CreateConversionImportOptions(LegacyDocImportOptions options) {
             return new LegacyDocImportOptions {
                 MaxInputBytes = options.MaxInputBytes,
+                MaxDecodedImageBytes = options.MaxDecodedImageBytes,
                 // Conversion loss policy depends on complete unsupported-content discovery.
                 ReportUnsupportedContent = true
             };

@@ -1,4 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.GoogleDocs {
     /// <summary>
@@ -13,6 +14,22 @@ namespace OfficeIMO.Word.GoogleDocs {
         public GoogleDocsTabOptions Tabs { get; set; } = new GoogleDocsTabOptions();
         public GoogleDocsReplaceOptions Replace { get; set; } = new GoogleDocsReplaceOptions();
         public GoogleDocsCommentMode Comments { get; set; } = GoogleDocsCommentMode.UnanchoredDriveComments;
+        /// <summary>
+        /// Bounded renderer settings used when unsupported Word content is rasterized into fallback pages.
+        /// The page range is always the complete document; output-count, pixel, byte, codec, and policy
+        /// settings are honored.
+        /// </summary>
+        public WordImageExportOptions RasterFallbackImageOptions { get; set; } =
+            CreateRasterFallbackImageOptions();
+
+        private static WordImageExportOptions CreateRasterFallbackImageOptions() =>
+            new WordImageExportOptions {
+                MaximumOutputCount = 100,
+                MaximumRasterPixels = 25_000_000,
+                MaximumTotalRasterPixels = 250_000_000,
+                MaximumTotalEncodedBytes = 128L * 1024 * 1024,
+                MaximumDegreeOfParallelism = 1,
+            };
     }
 
     public sealed class GoogleDocsUnsupportedFeatureOptions {

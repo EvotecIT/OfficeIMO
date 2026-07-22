@@ -99,6 +99,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         public static LegacyDocDocument Load(byte[] bytes, LegacyDocImportOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyDocImportOptions();
+            options.Validate();
 
             var document = new LegacyDocDocument();
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {
@@ -218,7 +219,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 dataStream,
                 textContent.AllCharacters,
                 formattingRanges,
-                fib.CcpText + fib.CcpFtn + fib.CcpHdd + fib.CcpAtn + fib.CcpEdn);
+                fib.CcpText + fib.CcpFtn + fib.CcpHdd + fib.CcpAtn + fib.CcpEdn,
+                options.MaxDecodedImageBytes);
             if (pictures.Warning != null) {
                 AddWarning("DOC-PICTURE-DATA-INVALID", pictures.Warning);
             }

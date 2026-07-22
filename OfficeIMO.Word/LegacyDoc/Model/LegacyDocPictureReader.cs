@@ -12,13 +12,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             byte[] dataStream,
             IReadOnlyList<LegacyDocTextCharacter> characters,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
-            int supportedStoryCharacterCount) {
+            int supportedStoryCharacterCount,
+            int maximumDecodedImageBytes) {
+            if (maximumDecodedImageBytes <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumDecodedImageBytes));
+            }
             if (dataStream.Length == 0 || supportedStoryCharacterCount <= 0) {
                 return LegacyDocPictureReadResult.Empty;
             }
 
             var pictures = new Dictionary<int, LegacyDocPicture>();
+            var picturesByDataOffset = new Dictionary<int, LegacyDocPicture>();
             var ranges = new Dictionary<int, int>();
+            int decodedImageBytes = 0;
             string? warning = null;
             foreach (LegacyDocTextCharacter character in characters) {
                 if (character.CharacterPosition < 0 || character.CharacterPosition >= supportedStoryCharacterCount
@@ -32,11 +38,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 int offset = format.PictureDataOffset.Value;
-                if (!TryReadPicture(dataStream, offset, out LegacyDocPicture? picture, out int consumedLength, out string? pictureWarning)) {
+                if (picturesByDataOffset.TryGetValue(offset, out LegacyDocPicture? cachedPicture)) {
+                    pictures[character.CharacterPosition] = cachedPicture;
+                    continue;
+                }
+                int remainingImageBytes = maximumDecodedImageBytes - decodedImageBytes;
+                if (!TryReadPicture(dataStream, offset, remainingImageBytes,
+                        out LegacyDocPicture? picture, out int consumedLength,
+                        out string? pictureWarning)) {
                     warning ??= pictureWarning;
                     continue;
                 }
 
+                decodedImageBytes = checked(decodedImageBytes + picture!.ImageByteCount);
+                picturesByDataOffset.Add(offset, picture);
                 pictures[character.CharacterPosition] = picture!;
                 ranges[offset] = Math.Max(ranges.TryGetValue(offset, out int previousLength) ? previousLength : 0, consumedLength);
             }
@@ -84,6 +99,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static bool TryReadPicture(
             byte[] data,
             int offset,
+            int maximumDecodedImageBytes,
             out LegacyDocPicture? picture,
             out int consumedLength,
             out string? warning) {
@@ -139,7 +155,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     payloadLength,
                     recordInstance,
                     delayStream: null,
-                    out OfficeArtBlipStoreEntry? entry)
+                    out OfficeArtBlipStoreEntry? entry,
+                    maximumDecodedImageBytes)
                 || entry?.HasImportableImage != true) {
                 warning = $"The picture data at DOC Data stream offset {offset} has no importable embedded OfficeArt BLIP.";
                 return false;

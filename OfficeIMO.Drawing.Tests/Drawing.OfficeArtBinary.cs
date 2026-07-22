@@ -6,6 +6,26 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeArtShapeStyle_RejectsOversizedGradientStopTables() {
+        const int stopCount = 257;
+        byte[] data = new byte[6 + stopCount * 8];
+        data[0] = (byte)(stopCount & 0xff);
+        data[1] = (byte)(stopCount >> 8);
+        data[2] = (byte)(stopCount & 0xff);
+        data[3] = (byte)(stopCount >> 8);
+        data[4] = 8;
+        var property = new OfficeArtProperty(
+            0, 0x8197, (uint)data.Length,
+            availableComplexDataLength: data.Length,
+            complexData: data);
+
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] { property });
+
+        Assert.Empty(style.FillGradientStops);
+        Assert.True(style.IsFillGradientStopTableTruncated);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_DecodesFixedAndComplexEntries() {
         byte[] payload = {
             0x81, 0x01, 0x33, 0x22, 0x11, 0x00,

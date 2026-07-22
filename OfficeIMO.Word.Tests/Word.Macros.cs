@@ -346,6 +346,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Module1", "Module2" }, info.ModuleNames);
                 Assert.Equal(new FileInfo(vbaPath).Length, info.Length);
                 Assert.Equal(64, info.Sha256!.Length);
+                Assert.Throws<InvalidDataException>(() =>
+                    document.InspectVbaProject(includeSha256: false,
+                        maxBytes: info.Length - 1));
                 Assert.Throws<InvalidDataException>(() => document.ExtractMacros(info.Length - 1));
                 Assert.Equal(File.ReadAllBytes(vbaPath), document.ExtractMacros(info.Length));
                 document.Save();

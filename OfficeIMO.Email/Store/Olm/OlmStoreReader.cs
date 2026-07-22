@@ -17,6 +17,7 @@ internal sealed partial class OlmStoreReader {
     private CancellationToken _cancellationToken;
     private int _itemCount;
     private long _totalAttachmentBytes;
+    private OlmDecodedArchiveBudget _decodedArchiveBudget = null!;
 
     internal OlmStoreReader(EmailStoreReaderOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -24,6 +25,7 @@ internal sealed partial class OlmStoreReader {
 
     internal EmailStoreReadResult Read(Stream stream, string? sourceName, CancellationToken cancellationToken) {
         _cancellationToken = cancellationToken;
+        _decodedArchiveBudget = new OlmDecodedArchiveBudget(_options.MaxArchiveDecodedBytes);
         _store = new EmailStore {
             Format = EmailStoreFormat.Olm,
             DisplayName = GetDisplayName(sourceName)
@@ -158,11 +160,15 @@ internal sealed partial class OlmStoreReader {
             MaxCharactersFromEntities = 0,
             IgnoreComments = true
         };
-        using (Stream stream = entry.Open())
+        using (Stream stream = OpenDecodedEntry(entry, _options.MaxArchiveEntryBytes))
         using (XmlReader reader = XmlReader.Create(stream, settings)) {
             return XDocument.Load(reader, LoadOptions.None);
         }
     }
+
+    private Stream OpenDecodedEntry(ZipArchiveEntry entry, long maximumBytes,
+        string limitName = nameof(EmailStoreReaderOptions.MaxArchiveEntryBytes)) =>
+        new OlmDecodedEntryStream(entry.Open(), maximumBytes, limitName, _decodedArchiveBudget);
 
     private EmailStoreFolder GetOrCreateFolder(string path) {
         string normalized = NormalizeSlashes(path).Trim('/');

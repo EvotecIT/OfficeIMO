@@ -68,6 +68,9 @@ public sealed class OfficeEmbeddedPayloadInfo {
 
 /// <summary>Describes a VBA project embedded in an Office document.</summary>
 public sealed class OfficeVbaProjectInfo {
+    /// <summary>Default maximum VBA project bytes materialized by metadata inspection.</summary>
+    public const long DefaultMaximumProjectBytes = 64L * 1024L * 1024L;
+
     internal OfficeVbaProjectInfo(
         string partUri,
         string contentType,

@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// </summary>
     internal sealed class BiffCommentImportState {
         private readonly LegacyXlsWorksheet _sheet;
+        private readonly LegacyXlsDecodedImageBudget? _decodedImageBudget;
         private readonly Dictionary<ushort, PendingNote> _notes = new();
         private readonly Dictionary<ushort, string> _texts = new();
         private readonly Dictionary<ushort, IReadOnlyList<LegacyXlsCommentFormattingRun>> _formattingRuns = new();
@@ -18,8 +19,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private PendingTextObject? _pendingTextObject;
         private ushort? _pendingCommentObjectId;
 
-        internal BiffCommentImportState(LegacyXlsWorksheet sheet) {
+        internal BiffCommentImportState(
+            LegacyXlsWorksheet sheet,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             _sheet = sheet;
+            _decodedImageBudget = decodedImageBudget;
         }
 
         internal bool TryReadObject(byte[] payload) {
@@ -52,7 +56,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal bool TryReadDrawingAnchors(BiffRecord record, out LegacyXlsDrawingRecord? drawingRecord) {
             drawingRecord = null;
-            if (BiffDrawingMetadataReader.TryRead(record, _sheet.Name, out LegacyXlsDrawingRecord? parsedRecord) && parsedRecord!.AnchorEntries.Count > 0) {
+            if (BiffDrawingMetadataReader.TryRead(record, _sheet.Name, out LegacyXlsDrawingRecord? parsedRecord, _decodedImageBudget) && parsedRecord!.AnchorEntries.Count > 0) {
                 if (!_drawingAnchorRecordOffsets.Add(record.Offset)) {
                     drawingRecord = parsedRecord;
                     return false;

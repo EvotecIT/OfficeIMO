@@ -13,6 +13,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets or sets the maximum number of binary records traversed.</summary>
         public int MaxRecordCount { get; set; } = 1_000_000;
 
+        /// <summary>Gets or sets the maximum number of decoded slides.</summary>
+        public int MaxSlideCount { get; set; } = 10_000;
+
         /// <summary>Gets or sets the maximum nested record depth.</summary>
         public int MaxRecordDepth { get; set; } = 64;
 
@@ -40,6 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         internal void Validate() {
             if (MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
             if (MaxRecordCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecordCount));
+            if (MaxSlideCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxSlideCount));
             if (MaxRecordDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecordDepth));
             if (MaxMasterCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxMasterCount));
             if (MaxConnectorRuleCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxConnectorRuleCount));

@@ -6,6 +6,16 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class PstWriterTableTests {
     [Fact]
+    public void Folder_table_row_matrix_uses_the_table_budget_by_default() {
+        var options = new EmailStoreReaderOptions(
+            maxDecodedPropertyBytesPerItem: 128,
+            maxDecodedTableBytes: 4096);
+
+        Assert.Equal(4096, PstTableContextReader.GetMaximumRowMatrixBytes(options, null));
+        Assert.Equal(64, PstTableContextReader.GetMaximumRowMatrixBytes(options, 64));
+    }
+
+    [Fact]
     public void Multi_block_heap_and_row_index_round_trip_more_than_one_thousand_rows() {
         string path = Path.Combine(Path.GetTempPath(),
             string.Concat("officeimo-pst-table-", Guid.NewGuid().ToString("N"), ".pst"));

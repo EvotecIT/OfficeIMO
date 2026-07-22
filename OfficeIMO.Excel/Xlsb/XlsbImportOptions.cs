@@ -12,11 +12,17 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the largest accepted BIFF12 record payload. The default is 64 MiB.</summary>
         public int MaxRecordBytes { get; set; } = 64 * 1024 * 1024;
 
+        /// <summary>Gets or sets the aggregate BIFF12 record limit across one workbook import. The default is 8,000,000.</summary>
+        public int MaxRecordCount { get; set; } = 8_000_000;
+
         /// <summary>Gets or sets the maximum number of worksheets accepted from one workbook.</summary>
         public int MaxWorksheets { get; set; } = 16_384;
 
         /// <summary>Gets or sets the maximum number of populated cells projected from one workbook.</summary>
         public int MaxCells { get; set; } = 4_000_000;
+
+        /// <summary>Gets or sets the maximum number of row metadata definitions projected from one workbook.</summary>
+        public int MaxRowDefinitions { get; set; } = 100_000;
 
         /// <summary>Gets or sets the maximum number of shared-string items accepted.</summary>
         public int MaxSharedStrings { get; set; } = 1_000_000;
@@ -37,8 +43,10 @@ namespace OfficeIMO.Excel.Xlsb {
             if (MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPartBytes));
             if (MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
             if (MaxRecordBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordBytes));
+            if (MaxRecordCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordCount));
             if (MaxWorksheets <= 0) throw new ArgumentOutOfRangeException(nameof(MaxWorksheets));
             if (MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCells));
+            if (MaxRowDefinitions <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRowDefinitions));
             if (MaxSharedStrings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStrings));
             if (MaxMergedRanges <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMergedRanges));
             if (MaxHyperlinks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxHyperlinks));

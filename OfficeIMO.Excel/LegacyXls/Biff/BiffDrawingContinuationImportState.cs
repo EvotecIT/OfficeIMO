@@ -8,11 +8,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal sealed class BiffDrawingContinuationImportState {
         private readonly string _sheetName;
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords;
+        private readonly LegacyXlsDecodedImageBudget? _decodedImageBudget;
         private PendingDrawing? _pendingDrawing;
 
-        internal BiffDrawingContinuationImportState(string sheetName, List<LegacyXlsDrawingRecord> drawingRecords) {
+        internal BiffDrawingContinuationImportState(
+            string sheetName,
+            List<LegacyXlsDrawingRecord> drawingRecords,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             _sheetName = sheetName ?? throw new ArgumentNullException(nameof(sheetName));
             _drawingRecords = drawingRecords ?? throw new ArgumentNullException(nameof(drawingRecords));
+            _decodedImageBudget = decodedImageBudget;
         }
 
         internal bool TryReadDrawing(
@@ -25,13 +30,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (!BiffDrawingMetadataReader.TryRead(record, _sheetName, out LegacyXlsDrawingRecord? drawingRecord)) {
+            bool requiresContinuation = TryGetRequiredPayloadLength(record.Payload, out int requiredPayloadLength)
+                && requiredPayloadLength > record.Payload.Length;
+            LegacyXlsDecodedImageBudget? preliminaryBudget = requiresContinuation ? null : _decodedImageBudget;
+            if (!BiffDrawingMetadataReader.TryRead(record, _sheetName, out LegacyXlsDrawingRecord? drawingRecord, preliminaryBudget)) {
                 return false;
             }
 
             _drawingRecords.Add(drawingRecord!);
-            if (!TryGetRequiredPayloadLength(record.Payload, out int requiredPayloadLength)
-                || requiredPayloadLength <= record.Payload.Length) {
+            if (!requiresContinuation) {
                 if (!drawingRecord!.HasSupportedDrawingMetadata) {
                     AddUnsupportedFeature(
                         unsupportedFeatures,
@@ -74,7 +81,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             byte[] assembledPayload = _pendingDrawing.GetAssembledPayload();
             var completedRecord = new BiffRecord(_pendingDrawing.RecordType, _pendingDrawing.RecordOffset, assembledPayload);
-            if (BiffDrawingMetadataReader.TryRead(completedRecord, _sheetName, out LegacyXlsDrawingRecord? drawingRecord)) {
+            if (BiffDrawingMetadataReader.TryRead(completedRecord, _sheetName, out LegacyXlsDrawingRecord? drawingRecord, _decodedImageBudget)) {
                 _drawingRecords[_pendingDrawing.DrawingRecordIndex] = drawingRecord!;
                 if (!drawingRecord!.HasSupportedDrawingMetadata) {
                     AddUnsupportedFeature(

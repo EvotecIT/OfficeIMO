@@ -8,6 +8,7 @@ internal sealed partial class PstNdbReader {
     private readonly Dictionary<ulong, PstBlockReference> _blocks = new Dictionary<ulong, PstBlockReference>();
     private readonly Dictionary<uint, PstNodeReference> _nodes = new Dictionary<uint, PstNodeReference>();
     private readonly PstPageCache _pageCache;
+    private readonly PstTraversalCounter _traversalCounter;
     private bool _indexesLoaded;
 
     internal PstNdbReader(Stream stream, PstHeader header, EmailStoreReaderOptions options,
@@ -17,6 +18,7 @@ internal sealed partial class PstNdbReader {
         _options = options;
         _cancellationToken = cancellationToken;
         _pageCache = new PstPageCache(options.MaxCachedBTreePages);
+        _traversalCounter = new PstTraversalCounter(options.MaxNodeCount);
     }
 
     internal IReadOnlyDictionary<uint, PstNodeReference> Nodes => _indexesLoaded
@@ -397,7 +399,8 @@ internal sealed partial class PstNdbReader {
 
     private PstTraversalBudget CreateBudget(CancellationToken cancellationToken = default) =>
         new PstTraversalBudget(_options,
-            cancellationToken.CanBeCanceled ? cancellationToken : _cancellationToken);
+            cancellationToken.CanBeCanceled ? cancellationToken : _cancellationToken,
+            _traversalCounter);
 
     private sealed class PstBTreePage {
         internal PstBTreePage(byte[] bytes, int count, int entrySize, int level) {
@@ -416,11 +419,14 @@ internal sealed partial class PstNdbReader {
     private sealed class PstTraversalBudget {
         private readonly EmailStoreReaderOptions _options;
         private readonly CancellationToken _cancellationToken;
-        private int _visitedStructures;
+        private readonly PstTraversalCounter _counter;
 
-        internal PstTraversalBudget(EmailStoreReaderOptions options, CancellationToken cancellationToken) {
+        internal PstTraversalBudget(EmailStoreReaderOptions options,
+            CancellationToken cancellationToken,
+            PstTraversalCounter counter) {
             _options = options;
             _cancellationToken = cancellationToken;
+            _counter = counter;
         }
 
         internal void CheckDepth(int depth) {
@@ -433,10 +439,24 @@ internal sealed partial class PstNdbReader {
 
         internal void CountStructure() {
             _cancellationToken.ThrowIfCancellationRequested();
-            _visitedStructures++;
-            if (_visitedStructures > _options.MaxNodeCount) {
-                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxNodeCount),
-                    _visitedStructures, _options.MaxNodeCount);
+            _counter.Count();
+        }
+    }
+
+    private sealed class PstTraversalCounter {
+        private readonly int _maximumStructures;
+        private int _visitedStructures;
+
+        internal PstTraversalCounter(int maximumStructures) {
+            _maximumStructures = maximumStructures;
+        }
+
+        internal void Count() {
+            int observed = Interlocked.Increment(ref _visitedStructures);
+            if (observed > _maximumStructures) {
+                throw new EmailStoreLimitExceededException(
+                    nameof(EmailStoreReaderOptions.MaxNodeCount),
+                    observed, _maximumStructures);
             }
         }
     }

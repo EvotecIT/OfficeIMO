@@ -269,28 +269,38 @@ internal sealed partial class OlmStoreReader {
         }
         _totalAttachmentBytes = AddBounded(_totalAttachmentBytes, attachment.Length,
             nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), _options.MaxTotalAttachmentBytes);
-        if (_options.RetainAttachmentContent) attachment.Content = ReadEntryBytes(entry);
+        if (_options.RetainAttachmentContent) {
+            byte[] content = ReadEntryBytes(entry);
+            if (content.LongLength > attachment.Length) {
+                _totalAttachmentBytes = AddBounded(
+                    _totalAttachmentBytes, content.LongLength - attachment.Length,
+                    nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes),
+                    _options.MaxTotalAttachmentBytes);
+            }
+            attachment.Length = content.LongLength;
+            attachment.Content = content;
+        }
     }
 
     private byte[] ReadEntryBytes(ZipArchiveEntry entry) {
-        if (entry.Length > int.MaxValue) {
+        long maximumBytes = Math.Min(_options.MaxAttachmentBytes, int.MaxValue);
+        if (entry.Length > maximumBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
-                entry.Length, Math.Min(_options.MaxAttachmentBytes, int.MaxValue));
+                entry.Length, maximumBytes);
         }
-        var data = new byte[(int)entry.Length];
-        int offset = 0;
-        using (Stream stream = entry.Open()) {
-            while (offset < data.Length) {
+        using (Stream stream = OpenDecodedEntry(entry, maximumBytes,
+            nameof(EmailStoreReaderOptions.MaxAttachmentBytes)))
+        using (var output = new MemoryStream(
+            entry.Length > 0 ? checked((int)entry.Length) : 0)) {
+            var buffer = new byte[81920];
+            while (true) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                int read = stream.Read(data, offset, data.Length - offset);
-                if (read == 0) throw new InvalidDataException("An OLM archive entry ended before its declared length.");
-                offset += read;
+                int read = stream.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                output.Write(buffer, 0, read);
             }
-            if (stream.ReadByte() >= 0) {
-                throw new InvalidDataException("An OLM archive entry exceeds its declared length.");
-            }
+            return output.ToArray();
         }
-        return data;
     }
 
     private static void AddRecipients(EmailDocument document, XElement item,

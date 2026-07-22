@@ -21,13 +21,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            LegacyXlsImportOptions options) {
+            LegacyXlsImportOptions options,
+            LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
             foreach (LegacyXlsUnsupportedSheet sheet in unsupportedSheets) {
                 if (!ShouldScan(sheet)) {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, externalQueryConnections, formulaTokenRecords, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, externalQueryConnections, formulaTokenRecords, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options, decodedImageBudget);
             }
         }
 
@@ -51,7 +52,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            LegacyXlsImportOptions options) {
+            LegacyXlsImportOptions options,
+            LegacyXlsDecodedImageBudget? decodedImageBudget) {
             if (sheet.StreamOffset >= workbookStream.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
@@ -97,7 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                if (TryReadUnsupportedSheetMetadata(workbookStream, sheet, diagnostics, type, offset, payloadOffset, length, drawingRecords)) {
+                if (TryReadUnsupportedSheetMetadata(workbookStream, sheet, diagnostics, type, offset, payloadOffset, length, drawingRecords, decodedImageBudget)) {
                     offset = payloadOffset + length;
                     continue;
                 }
@@ -115,14 +117,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     bool isSupportedDrawingMetadata = false;
                     bool isSupportedChartMetadata = false;
                     bool isSupportedPivotTableMetadata = false;
-                    if (BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, out LegacyXlsDrawingRecord? drawingRecord)) {
+                    if (BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, out LegacyXlsDrawingRecord? drawingRecord, decodedImageBudget)) {
                         drawingRecords.Add(drawingRecord!);
                         isSupportedDrawingMetadata = drawingRecord!.HasSupportedDrawingMetadata;
                     }
 
                     int chartRecordCountBefore = chartRecords.Count;
                     var chartRecord = new BiffRecord(type, offset, payload);
-                    if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState, externSheets, externalReferences, sheetNames, definedNames)
+                    if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState, externSheets, externalReferences, sheetNames, definedNames, decodedImageBudget)
                         && sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
                         && chartRecords.Count > chartRecordCountBefore) {
                         BiffChartMetadataReader.ScanFormulaTokens(chartRecord, sheet.Name, formulaTokenRecords);
@@ -182,7 +184,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int recordOffset,
             int payloadOffset,
             ushort payloadLength,
-            List<LegacyXlsDrawingRecord> drawingRecords) {
+            List<LegacyXlsDrawingRecord> drawingRecords,
+            LegacyXlsDecodedImageBudget? decodedImageBudget) {
             if (sheet.Kind != LegacyXlsUnsupportedSheetKind.ChartSheet) {
                 return false;
             }
@@ -190,7 +193,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (type == (ushort)BiffRecordType.Txo) {
                 byte[] payload = new byte[payloadLength];
                 Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, payloadLength);
-                BiffDrawingMetadataReader.TryRead(new BiffRecord(type, recordOffset, payload), sheet.Name, drawingRecords);
+                BiffDrawingMetadataReader.TryRead(new BiffRecord(type, recordOffset, payload), sheet.Name, drawingRecords, decodedImageBudget);
                 sheet.IncrementChartTextObjectCount();
                 sheet.AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject, recordOffset, type);
                 return true;

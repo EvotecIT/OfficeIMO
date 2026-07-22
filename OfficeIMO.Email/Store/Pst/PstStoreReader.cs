@@ -37,6 +37,16 @@ internal sealed partial class PstStoreReader {
         MapiKnownProperties.PidTag.MessageCodepage);
     private static readonly ISet<ushort> DeferredAttachmentPropertyIds =
         PropertyIds(MapiKnownProperties.PidTag.AttachData);
+    private static readonly ISet<ushort> FolderPropertyIds = PropertyIds(
+        MapiKnownProperties.PidTag.DisplayName, MapiKnownProperties.PidTag.ContentCount,
+        MapiKnownProperties.PidTag.AssociatedContentCount, MapiKnownProperties.PidTag.ContainerClass,
+        MapiKnownProperties.PidTag.RecordKey,
+        MapiKnownProperties.PidTag.IpmAppointmentEntryId,
+        MapiKnownProperties.PidTag.IpmContactEntryId,
+        MapiKnownProperties.PidTag.IpmJournalEntryId,
+        MapiKnownProperties.PidTag.IpmNoteEntryId,
+        MapiKnownProperties.PidTag.IpmTaskEntryId,
+        MapiKnownProperties.PidTag.IpmDraftsEntryId);
     private readonly EmailStoreReaderOptions _options;
     private readonly EmailStoreSessionLifetime _lifetime;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
@@ -186,7 +196,8 @@ internal sealed partial class PstStoreReader {
             _cancellationToken.ThrowIfCancellationRequested();
             string location = string.Concat("folder/0x", node.Nid.ToString("X", CultureInfo.InvariantCulture));
             IReadOnlyList<MapiProperty> properties = ReadProperties(
-                node.DataBid, node.SubnodeBid, location);
+                node.DataBid, node.SubnodeBid, location,
+                includedPropertyIds: FolderPropertyIds);
             string name = properties.GetMapiValueOrDefault(MapiKnownProperties.PidTag.DisplayName) ??
                 string.Concat("Folder 0x", node.Nid.ToString("X", CultureInfo.InvariantCulture));
             string? parentId = node.ParentNid != node.Nid && folderIds.Contains(node.ParentNid)

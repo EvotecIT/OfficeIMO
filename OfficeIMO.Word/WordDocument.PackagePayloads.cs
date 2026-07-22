@@ -9,8 +9,18 @@ namespace OfficeIMO.Word {
         /// <param name="includeSha256">Whether to calculate the project SHA-256 digest.</param>
         /// <returns>Project metadata, or null when the document has no VBA project.</returns>
         public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256 = false) {
+            return InspectVbaProject(includeSha256, OfficeVbaProjectInfo.DefaultMaximumProjectBytes);
+        }
+
+        /// <summary>Inspects the attached VBA project while enforcing a decoded byte limit.</summary>
+        /// <param name="includeSha256">Whether to calculate the project SHA-256 digest.</param>
+        /// <param name="maxBytes">Maximum decoded VBA project bytes accepted.</param>
+        /// <returns>Project metadata, or null when the document has no VBA project.</returns>
+        public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256, long maxBytes) {
+            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             VbaProjectPart? part = _wordprocessingDocument.MainDocumentPart?.VbaProjectPart;
-            return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(part, includeSha256);
+            return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(
+                part, includeSha256, maxBytes);
         }
 
         /// <summary>Extracts a VBA project while enforcing a maximum byte count.</summary>

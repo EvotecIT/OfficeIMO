@@ -29,7 +29,8 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             byte[] bytes,
             string partName,
             XlsbImportOptions options,
-            XlsbWorkbook workbook) {
+            XlsbWorkbook workbook,
+            XlsbRecordReadBudget budget) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (string.IsNullOrWhiteSpace(partName)) throw new ArgumentNullException(nameof(partName));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -37,7 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
 
             IReadOnlyList<XlsbRecord> records;
             using (var stream = new MemoryStream(bytes, writable: false)) {
-                records = XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes);
+                records = XlsbRecordReader.ReadAll(stream, options.MaxRecordBytes, budget);
             }
 
             if (records.Count < 2

@@ -642,6 +642,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             options ??= new LegacyXlsImportOptions();
+            options.Validate();
             if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {
                 var workbook = new LegacyXlsWorkbook();
                 if (!string.IsNullOrWhiteSpace(compoundError)) {

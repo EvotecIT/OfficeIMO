@@ -40,6 +40,26 @@ public sealed class PstNdbRandomAccessTests {
         Assert.Equal(4, reads);
     }
 
+    [Fact]
+    public void LazyOperationsShareOneTraversalBudget() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create());
+        PstHeader header = PstHeader.Read(stream, EmailStoreFormat.Pst);
+        var options = new EmailStoreReaderOptions(maxNodeCount: 6);
+        var reader = new PstNdbReader(stream, header, options,
+            System.Threading.CancellationToken.None);
+
+        EmailStoreLimitExceededException exception =
+            Assert.Throws<EmailStoreLimitExceededException>(() =>
+            {
+                for (int index = 0; index < 10; index++) {
+                    Assert.True(reader.TryGetNode(0x8004, out _));
+                }
+            });
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxNodeCount),
+            exception.LimitName);
+    }
+
     private static byte[] CreatePage(ref int reads, byte value) {
         reads++;
         return new[] { value };

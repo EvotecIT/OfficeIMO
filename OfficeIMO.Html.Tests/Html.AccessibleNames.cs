@@ -99,6 +99,89 @@ public sealed class HtmlAccessibleNameTests {
         Assert.Equal("Download annual report", Find(aria.Root, HtmlLogicalNodeKind.Link).AccessibleName);
     }
 
+    [Fact]
+    public void AccessibilitySemantics_BoundsAriaLabelRecursion() {
+        var html = new System.Text.StringBuilder();
+        for (int index = 0; index < 80; index++) {
+            html.Append("<span id=\"label-").Append(index)
+                .Append("\" aria-labelledby=\"label-").Append(index + 1)
+                .Append("\"></span>");
+        }
+        html.Append("<span id=\"label-80\" aria-label=\"terminal\"></span>");
+        var document = HtmlDocumentParser.ParseDocument(html.ToString());
+
+        string name = HtmlAccessibilitySemantics.GetAccessibleName(
+            document.GetElementById("label-0")!, includeTextFallback: true);
+
+        Assert.Equal(string.Empty, name);
+    }
+
+    [Fact]
+    public void AccessibilitySemantics_BoundsBranchingAriaLabelWork() {
+        var html = new System.Text.StringBuilder("<span id=\"root\" aria-labelledby=\"a-0 b-0\"></span>");
+        for (int index = 0; index < 32; index++) {
+            html.Append("<span id=\"a-").Append(index).Append("\" aria-labelledby=\"a-")
+                .Append(index + 1).Append(" b-").Append(index + 1).Append("\"></span>");
+            html.Append("<span id=\"b-").Append(index).Append("\" aria-labelledby=\"a-")
+                .Append(index + 1).Append(" b-").Append(index + 1).Append("\"></span>");
+        }
+        html.Append("<span id=\"a-32\"></span><span id=\"b-32\"></span>");
+        var document = HtmlDocumentParser.ParseDocument(html.ToString());
+
+        string name = HtmlAccessibilitySemantics.GetAccessibleName(
+            document.GetElementById("root")!, includeTextFallback: true);
+
+        Assert.Equal(string.Empty, name);
+    }
+
+    [Fact]
+    public void LogicalDocument_BoundsNestedLinkTextFallbacks() {
+        var html = new System.Text.StringBuilder();
+        for (int index = 0; index < 128; index++) {
+            html.Append("<span role=\"link\">");
+        }
+        html.Append(new string('x', 20_000));
+        for (int index = 0; index < 128; index++) html.Append("</span>");
+
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromHtml(html.ToString());
+        string[] names = Descendants(logical.Root)
+            .Where(node => node.Kind == HtmlLogicalNodeKind.Link)
+            .Select(node => node.AccessibleName ?? string.Empty)
+            .ToArray();
+
+        Assert.Equal(128, names.Length);
+        Assert.All(names, name => Assert.InRange(name.Length, 0, 4096));
+        Assert.True(names.Sum(name => (long)name.Length) <= 4L * 1024 * 1024);
+    }
+
+    [Fact]
+    public void LogicalDocument_BoundsEmptyNestedLinkTraversalWork() {
+        var html = new System.Text.StringBuilder();
+        for (int index = 0; index < 250; index++) html.Append("<span role=\"link\">");
+        for (int index = 0; index < 250; index++) html.Append("</span>");
+
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromHtml(html.ToString());
+
+        Assert.Equal(250, Descendants(logical.Root).Count(node => node.Kind == HtmlLogicalNodeKind.Link));
+    }
+
+    [Fact]
+    public void LogicalDocument_ChargesLargeSharedTextSourcesAgainstTraversalBudget() {
+        string largeWhitespacePrefix = new string(' ', 4 * 1024 * 1024 + 1) + "visible";
+        string html = "<span role=\"link\">" + largeWhitespacePrefix + "</span>";
+
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromHtml(html);
+
+        Assert.Null(Find(logical.Root, HtmlLogicalNodeKind.Link).AccessibleName);
+    }
+
+    private static IEnumerable<HtmlLogicalNode> Descendants(HtmlLogicalNode node) {
+        yield return node;
+        foreach (HtmlLogicalNode child in node.Children) {
+            foreach (HtmlLogicalNode descendant in Descendants(child)) yield return descendant;
+        }
+    }
+
     private static HtmlLogicalNode Find(HtmlLogicalNode node, HtmlLogicalNodeKind kind) {
         if (node.Kind == kind) return node;
         foreach (HtmlLogicalNode child in node.Children) {

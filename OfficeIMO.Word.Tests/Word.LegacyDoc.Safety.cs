@@ -121,7 +121,17 @@ namespace OfficeIMO.Tests {
             Assert.Null(importOptionsType.GetProperty("MaxWordDocumentStreamBytes"));
             Assert.Null(importOptionsType.GetProperty("ReportUnsupportedFeatures"));
             Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxInputBytes)));
+            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxDecodedImageBytes)));
             Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.ReportUnsupportedContent)));
+        }
+
+        [Fact]
+        public void LegacyDoc_RejectsNonPositiveDecodedImageBudget() {
+            byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Image budget");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes,
+                    new LegacyDocImportOptions { MaxDecodedImageBytes = 0 }));
         }
 
         private static void AssertOleCompoundBytes(byte[] bytes) {

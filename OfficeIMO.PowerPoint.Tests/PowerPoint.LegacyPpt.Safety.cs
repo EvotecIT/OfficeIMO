@@ -131,6 +131,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PresentationReader_EnforcesSlideCountBeforeProjection() {
+            byte[] bytes = CreatePresentationBytes();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                LegacyPptPresentation.Load(bytes,
+                    new LegacyPptImportOptions { MaxSlideCount = 1 }));
+
+            Assert.Contains("slide count", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void PackageReader_EnforcesInputBudgetBeforeBufferingPathOrStream() {
             byte[] bytes = CreatePresentationBytes();
             int limit = bytes.Length - 1;

@@ -9,6 +9,8 @@ namespace OfficeIMO.Drawing.Binary;
 /// Numeric enum values remain available so application-specific projectors can map them without loss.
 /// </summary>
 public sealed class OfficeArtShapeStyle {
+    private const int MaximumGradientStops = 256;
+
     private OfficeArtShapeStyle(IReadOnlyList<OfficeArtProperty> properties) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
         FillType = GetUInt32(0x0180);
@@ -267,7 +269,8 @@ public sealed class OfficeArtShapeStyle {
         int count = ReadUInt16(data, 0);
         int allocated = ReadUInt16(data, 2);
         int elementSize = ReadUInt16(data, 4);
-        if (count > allocated || elementSize != 8 || count > (data.Length - 6) / 8) {
+        if (count > allocated || elementSize != 8 || count > (data.Length - 6) / 8
+            || count > MaximumGradientStops) {
             truncated = true;
             return Array.Empty<OfficeArtGradientStop>();
         }
