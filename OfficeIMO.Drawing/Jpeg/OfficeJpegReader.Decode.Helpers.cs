@@ -573,10 +573,11 @@ internal static partial class OfficeJpegReader {
 
     private static ScanHeader ParseScanHeader(OfficeByteView data, ref JpegFrame frame) {
         var components = data[0];
-        if (components == 0) throw new FormatException("Invalid JPEG scan component count.");
+        if (components == 0 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");
         if (data.Length < 1 + components * 2 + 3) throw new FormatException("Invalid JPEG scan header.");
 
         var indices = new int[components];
+        var seenComponents = new bool[frame.ComponentCount];
         var offset = 1;
         for (var i = 0; i < components; i++) {
             var id = data[offset++];
@@ -585,6 +586,8 @@ internal static partial class OfficeJpegReader {
             var ac = table & 0x0F;
             var index = FindComponentIndex(frame.Components, id);
             if (index < 0) throw new FormatException("Unknown JPEG component in scan.");
+            if (seenComponents[index]) throw new FormatException("Duplicate JPEG component in scan.");
+            seenComponents[index] = true;
             frame.Components[index].DcTable = (byte)dc;
             frame.Components[index].AcTable = (byte)ac;
             indices[i] = index;

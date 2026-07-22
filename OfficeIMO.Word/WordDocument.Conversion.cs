@@ -193,9 +193,16 @@ namespace OfficeIMO.Word {
             WordDocumentConversionOptions options,
             CancellationToken cancellationToken) {
             if (options.LegacyDocImportOptions != null) {
-                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+                LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
+                importOptions.Validate();
+                byte[] sourceBytes;
+                using (FileStream source = File.OpenRead(sourcePath)) {
+                    sourceBytes = await OfficeStreamReader.ReadAllBytesAsync(
+                        source,
+                        cancellationToken,
+                        importOptions.MaxInputBytes).ConfigureAwait(false);
+                }
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, sourcePath)) {
-                    LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
                     return LoadLegacyDocFromNormalFlow(
                         sourceBytes,
                         sourcePath,

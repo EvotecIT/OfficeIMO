@@ -151,6 +151,21 @@ namespace OfficeIMO.Tests {
                     new LegacyDocImportOptions { MaxDecodedImageBytes = 0 }));
         }
 
+        [Fact]
+        public void LegacyDoc_AllPublicLoadShapesEnforceTheCompleteInputBudget() {
+            byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Bounded legacy input");
+            var options = new LegacyDocImportOptions { MaxInputBytes = bytes.Length - 1 };
+            string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            File.WriteAllBytes(path, bytes);
+
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(bytes, options));
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(new MemoryStream(bytes), options));
+            Assert.Throws<InvalidDataException>(() =>
+                OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(path, options));
+        }
+
         private static void AssertOleCompoundBytes(byte[] bytes) {
             Assert.True(bytes.Length > 8);
             Assert.Equal(0xd0, bytes[0]);

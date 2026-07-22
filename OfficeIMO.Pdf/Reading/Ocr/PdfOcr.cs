@@ -41,19 +41,21 @@ internal static class PdfOcr {
             var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, nativePage.Width, nativePage.Height, scale);
             PdfOcrResponse response = await provider.RecognizeAsync(request, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("OCR provider returned a null response.");
-            pages.Add(MergePage(nativePage, response, request, effectiveOptions));
+            pages.Add(MergePage(nativePage, response, request, effectiveOptions, cancellationToken));
         }
 
         return new PdfOcrMergeResult(logical, pages.AsReadOnly());
     }
 
-    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options) {
+    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
         ValidateProviderResponse(nativePage, response, options);
         var diagnostics = new List<string>(response.Diagnostics);
         var accepted = new List<PdfRecognizedWord>();
         int lowConfidence = 0;
         int nativeOverlap = 0;
+        long overlapComparisons = 0;
         for (int i = 0; i < response.Words.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfOcrWord word = response.Words[i];
             if (!IsValid(word, request)) {
                 diagnostics.Add("InvalidWordGeometry: provider word " + i + " was outside the rendered page or contained non-finite values.");
@@ -66,7 +68,14 @@ internal static class PdfOcr {
             }
 
             var normalized = new PdfRecognizedWord(word.Text, word.X / request.Scale, word.Y / request.Scale, word.Width / request.Scale, word.Height / request.Scale, word.Confidence);
-            if (OverlapsNativeText(normalized, nativePage.TextBlocks, nativePage.Height, options.NativeTextOverlapThreshold)) {
+            if (OverlapsNativeText(
+                    normalized,
+                    nativePage.TextBlocks,
+                    nativePage.Height,
+                    options.NativeTextOverlapThreshold,
+                    options.MaxNativeTextOverlapComparisonsPerPage,
+                    ref overlapComparisons,
+                    cancellationToken)) {
                 nativeOverlap++;
                 continue;
             }
@@ -87,9 +96,21 @@ internal static class PdfOcr {
         word.X >= 0D && word.Y >= 0D && word.Width > 0D && word.Height > 0D && word.Confidence >= 0D && word.Confidence <= 1D &&
         word.X + word.Width <= request.PixelWidth + 0.01D && word.Y + word.Height <= request.PixelHeight + 0.01D;
 
-    private static bool OverlapsNativeText(PdfRecognizedWord word, IReadOnlyList<PdfLogicalTextBlock> blocks, double pageHeight, double threshold) {
+    private static bool OverlapsNativeText(
+        PdfRecognizedWord word,
+        IReadOnlyList<PdfLogicalTextBlock> blocks,
+        double pageHeight,
+        double threshold,
+        long maximumComparisons,
+        ref long comparisons,
+        CancellationToken cancellationToken) {
         double wordArea = word.Width * word.Height;
         for (int i = 0; i < blocks.Count; i++) {
+            comparisons = checked(comparisons + 1L);
+            if (comparisons > maximumComparisons) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumComparisons, comparisons);
+            }
+            if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalTextBlock block = blocks[i];
             double blockHeight = Math.Max(block.FontSize * 1.2D, 1D);
             double blockTop = pageHeight - block.BaselineY - blockHeight;

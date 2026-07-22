@@ -194,8 +194,9 @@ internal static partial class PdfSyntax {
         ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, limits, out bool appliedClassicEntries);
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits) || appliedXrefStreamEntries;
+        var xrefScanBudget = new XrefObjectScanBudget(limits);
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, out bool appliedClassicEntries);
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {

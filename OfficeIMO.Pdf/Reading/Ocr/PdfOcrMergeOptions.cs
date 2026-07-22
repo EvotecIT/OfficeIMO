@@ -24,6 +24,8 @@ public sealed class PdfOcrMergeOptions {
     public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
     /// <summary>Maximum native text blocks merged with OCR output for one page.</summary>
     public int MaxNativeTextBlocksPerPage { get; set; } = 100_000;
+    /// <summary>Maximum native-text overlap comparisons performed for one page.</summary>
+    public long MaxNativeTextOverlapComparisonsPerPage { get; set; } = 5_000_000L;
     /// <summary>Maximum characters retained in one merged native/OCR text result.</summary>
     public int MaxMergedTextCharactersPerPage { get; set; } = 8 * 1024 * 1024;
 
@@ -38,6 +40,7 @@ public sealed class PdfOcrMergeOptions {
         Guard.PositiveInteger(MaxDiagnosticsPerPage, nameof(MaxDiagnosticsPerPage));
         Guard.PositiveInteger(MaxDiagnosticCharactersPerPage, nameof(MaxDiagnosticCharactersPerPage));
         Guard.PositiveInteger(MaxNativeTextBlocksPerPage, nameof(MaxNativeTextBlocksPerPage));
+        if (MaxNativeTextOverlapComparisonsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNativeTextOverlapComparisonsPerPage));
         Guard.PositiveInteger(MaxMergedTextCharactersPerPage, nameof(MaxMergedTextCharactersPerPage));
     }
 

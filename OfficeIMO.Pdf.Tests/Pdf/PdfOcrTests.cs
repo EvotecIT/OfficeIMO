@@ -73,6 +73,30 @@ public class PdfOcrTests {
         Assert.Equal(1, exception.Limit);
     }
 
+    [Fact]
+    public async Task RecognizeAndMergeAsync_BoundsNativeOverlapWork() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First native block"))
+            .Paragraph(paragraph => paragraph.Text("Second native block"))
+            .ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(new[] {
+            new PdfOcrWord("scanned", 10, 10, 10, 10, 0.9)
+        }));
+
+        PdfReadLimitException exception = await Assert.ThrowsAsync<PdfReadLimitException>(() =>
+            PdfOcr.RecognizeAndMergeAsync(pdf, provider, new PdfOcrMergeOptions {
+                MaxNativeTextOverlapComparisonsPerPage = 1
+            }));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void PdfReadLimitKind_PreservesExistingInteractionRegionsValue() {
+        Assert.Equal(20, (int)PdfReadLimitKind.InteractionRegions);
+    }
+
     private sealed class StubOcrProvider : IPdfOcrProvider {
         private readonly Func<PdfOcrRequest, PdfOcrResponse> _response;
         public StubOcrProvider(Func<PdfOcrRequest, PdfOcrResponse> response) { _response = response; }

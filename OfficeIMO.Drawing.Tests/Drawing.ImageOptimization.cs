@@ -129,6 +129,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeJpegCodec_RejectsDuplicateScanComponentsBeforeDecoding() {
+            byte[] jpeg = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+            int startOfScan = FindMarker(jpeg, 0xDA);
+            Assert.True(startOfScan > 0);
+            jpeg[startOfScan + 7] = jpeg[startOfScan + 5];
+
+            FormatException exception = Assert.Throws<FormatException>(() => OfficeJpegCodec.Decode(jpeg));
+
+            Assert.Contains("Duplicate", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_DecodesBaselineComponentsStoredInSeparateScans() {
             byte[] jpeg = BuildSeparateComponentBaselineJpeg();
 

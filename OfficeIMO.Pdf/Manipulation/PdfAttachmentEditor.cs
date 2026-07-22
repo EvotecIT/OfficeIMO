@@ -12,14 +12,21 @@ internal static class PdfAttachmentEditor {
         var session = new PdfAttachmentEditSession(existing.Select(static attachment => new PdfEmbeddedFile(attachment.FileName, attachment.Bytes, attachment.MimeType, attachment.Relationship, attachment.Description, attachment.CreationDate, attachment.ModificationDate)));
         edit(session);
         IReadOnlyList<PdfEmbeddedFile> target = session.Snapshot();
+        IReadOnlyDictionary<string, string> retainedOriginalNames = session.RetainedOriginalNames;
+        bool removedFileAttachmentAnnotations = false;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
-            RewriteAttachmentGraph(objects, security, target);
+            removedFileAttachmentAnnotations = RewriteAttachmentGraph(objects, security, target, retainedOriginalNames);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
         IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target);
         ValidateAttachmentGraph(output, target.Count, readOptions);
         if (validations.Any(static validation => !validation.IsValid)) throw new InvalidOperationException("PDF attachment post-save validation failed; the artifact was not returned.");
-        var preservationOptions = new PdfRewritePreservationOptions { OriginalReadOptions = readOptions, PreserveEmbeddedFiles = false, PreserveRevisionStructure = false };
+        var preservationOptions = new PdfRewritePreservationOptions {
+            OriginalReadOptions = readOptions,
+            PreserveAnnotations = !removedFileAttachmentAnnotations,
+            PreserveEmbeddedFiles = false,
+            PreserveRevisionStructure = false
+        };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
         return new PdfAttachmentEditResult(output, plan, preservation, validations);
     }
@@ -33,17 +40,29 @@ internal static class PdfAttachmentEditor {
     /// <summary>Removes one attachment.</summary>
     public static PdfAttachmentEditResult Remove(byte[] pdf, string fileName, PdfReadOptions? readOptions = null) => Edit(pdf, session => session.Remove(fileName), readOptions);
 
-    private static void RewriteAttachmentGraph(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security, IReadOnlyList<PdfEmbeddedFile> attachments) {
+    private static bool RewriteAttachmentGraph(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDocumentSecurityInfo security,
+        IReadOnlyList<PdfEmbeddedFile> attachments,
+        IReadOnlyDictionary<string, string> retainedOriginalNames) {
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) || root.Value is not PdfDictionary catalog) throw new InvalidOperationException("PDF catalog is not readable.");
+        List<FileAttachmentAnnotation> fileAttachmentAnnotations = CaptureFileAttachmentAnnotations(objects);
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         names?.Items.Remove("EmbeddedFiles");
         RemoveExistingEmbeddedFileGraph(objects);
         PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
-        if (attachments.Count == 0) return;
+        if (attachments.Count == 0) {
+            return ReconnectFileAttachmentAnnotations(
+                objects,
+                fileAttachmentAnnotations,
+                retainedOriginalNames,
+                new Dictionary<string, PdfReference>(StringComparer.Ordinal));
+        }
 
         if (names == null) { names = new PdfDictionary(); catalog.Items["Names"] = names; }
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
         var nameEntries = new List<(string Name, PdfReference FileSpec)>(attachments.Count);
+        var fileSpecificationsByName = new Dictionary<string, PdfReference>(StringComparer.Ordinal);
         var associated = new PdfArray();
         foreach (PdfEmbeddedFile attachment in attachments.OrderBy(static file => file.FileName, StringComparer.Ordinal)) {
             byte[] data = attachment.DataSnapshot;
@@ -55,12 +74,14 @@ internal static class PdfAttachmentEditor {
             objects[fileSpecNumber] = new PdfIndirectObject(fileSpecNumber, 0, fileSpec);
             var reference = new PdfReference(fileSpecNumber, 0);
             nameEntries.Add((attachment.FileName, reference));
+            fileSpecificationsByName[attachment.FileName] = reference;
             if (attachment.Relationship != PdfAssociatedFileRelationship.Unspecified) associated.Items.Add(reference);
         }
         var nameArray = new PdfArray();
         foreach ((string name, PdfReference reference) in nameEntries) { nameArray.Items.Add(new PdfStringObj(name, true)); nameArray.Items.Add(reference); }
         var embeddedFiles = new PdfDictionary(); embeddedFiles.Items["Names"] = nameArray; names.Items["EmbeddedFiles"] = embeddedFiles;
         if (associated.Items.Count > 0) catalog.Items["AF"] = associated;
+        return ReconnectFileAttachmentAnnotations(objects, fileAttachmentAnnotations, retainedOriginalNames, fileSpecificationsByName);
     }
 
     private static void RemoveExistingEmbeddedFileGraph(Dictionary<int, PdfIndirectObject> objects) {
@@ -81,6 +102,122 @@ internal static class PdfAttachmentEditor {
             ScrubEmbeddedFileReferences(indirect.Value, removedObjectNumbers, new HashSet<PdfObject>());
         }
         foreach (int objectNumber in removedObjectNumbers) objects.Remove(objectNumber);
+    }
+
+    private static List<FileAttachmentAnnotation> CaptureFileAttachmentAnnotations(Dictionary<int, PdfIndirectObject> objects) {
+        var result = new List<FileAttachmentAnnotation>();
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            CaptureFileAttachmentAnnotations(indirect.Value, indirect.ObjectNumber, objects, result, visited);
+        }
+        return result;
+    }
+
+    private static void CaptureFileAttachmentAnnotations(
+        PdfObject value,
+        int? indirectObjectNumber,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<FileAttachmentAnnotation> result,
+        ISet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        if (value is PdfStream stream) {
+            CaptureFileAttachmentAnnotations(stream.Dictionary, indirectObjectNumber, objects, result, visited);
+            return;
+        }
+        if (value is PdfDictionary dictionary) {
+            if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal)) {
+                string? fileName = null;
+                if (dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecification) &&
+                    ResolveDictionary(objects, fileSpecification) is PdfDictionary fileSpecificationDictionary) {
+                    fileName = fileSpecificationDictionary.Get<PdfStringObj>("UF")?.Value
+                        ?? fileSpecificationDictionary.Get<PdfStringObj>("F")?.Value;
+                }
+                result.Add(new FileAttachmentAnnotation(dictionary, indirectObjectNumber, fileName));
+            }
+            foreach (PdfObject child in dictionary.Items.Values) {
+                if (child is not PdfReference) CaptureFileAttachmentAnnotations(child, null, objects, result, visited);
+            }
+            return;
+        }
+        if (value is PdfArray array) {
+            foreach (PdfObject child in array.Items) {
+                if (child is not PdfReference) CaptureFileAttachmentAnnotations(child, null, objects, result, visited);
+            }
+        }
+    }
+
+    private static bool ReconnectFileAttachmentAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyList<FileAttachmentAnnotation> annotations,
+        IReadOnlyDictionary<string, string> retainedOriginalNames,
+        Dictionary<string, PdfReference> fileSpecificationsByName) {
+        var removedObjectNumbers = new HashSet<int>();
+        var removedDirectAnnotations = new HashSet<PdfDictionary>();
+        foreach (FileAttachmentAnnotation annotation in annotations) {
+            if (annotation.FileName != null &&
+                retainedOriginalNames.TryGetValue(annotation.FileName, out string? retainedName) &&
+                fileSpecificationsByName.TryGetValue(retainedName, out PdfReference? replacement)) {
+                annotation.Dictionary.Items["FS"] = replacement;
+                continue;
+            }
+
+            if (annotation.ObjectNumber.HasValue) removedObjectNumbers.Add(annotation.ObjectNumber.Value);
+            else removedDirectAnnotations.Add(annotation.Dictionary);
+        }
+
+        if (removedObjectNumbers.Count == 0 && removedDirectAnnotations.Count == 0) return false;
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            RemoveFileAttachmentAnnotationReferences(indirect.Value, removedObjectNumbers, removedDirectAnnotations, visited);
+        }
+        foreach (int objectNumber in removedObjectNumbers) objects.Remove(objectNumber);
+        return true;
+    }
+
+    private static void RemoveFileAttachmentAnnotationReferences(
+        PdfObject value,
+        ISet<int> removedObjectNumbers,
+        ISet<PdfDictionary> removedDirectAnnotations,
+        ISet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        if (value is PdfStream stream) {
+            RemoveFileAttachmentAnnotationReferences(stream.Dictionary, removedObjectNumbers, removedDirectAnnotations, visited);
+            return;
+        }
+        if (value is PdfDictionary dictionary) {
+            foreach (string key in dictionary.Items.Keys.ToArray()) {
+                PdfObject child = dictionary.Items[key];
+                if (child is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber) ||
+                    child is PdfDictionary childDictionary && removedDirectAnnotations.Contains(childDictionary)) {
+                    dictionary.Items.Remove(key);
+                } else if (child is not PdfReference) {
+                    RemoveFileAttachmentAnnotationReferences(child, removedObjectNumbers, removedDirectAnnotations, visited);
+                }
+            }
+            return;
+        }
+        if (value is not PdfArray array) return;
+        for (int index = array.Items.Count - 1; index >= 0; index--) {
+            PdfObject child = array.Items[index];
+            if (child is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber) ||
+                child is PdfDictionary childDictionary && removedDirectAnnotations.Contains(childDictionary)) {
+                array.Items.RemoveAt(index);
+            } else if (child is not PdfReference) {
+                RemoveFileAttachmentAnnotationReferences(child, removedObjectNumbers, removedDirectAnnotations, visited);
+            }
+        }
+    }
+
+    private sealed class FileAttachmentAnnotation {
+        internal FileAttachmentAnnotation(PdfDictionary dictionary, int? objectNumber, string? fileName) {
+            Dictionary = dictionary;
+            ObjectNumber = objectNumber;
+            FileName = fileName;
+        }
+
+        internal PdfDictionary Dictionary { get; }
+        internal int? ObjectNumber { get; }
+        internal string? FileName { get; }
     }
 
     private static void ScrubEmbeddedFileReferences(

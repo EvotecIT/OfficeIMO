@@ -83,6 +83,33 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void Edit_RetainsAndReconnectsFileAttachmentAnnotations() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
+
+        byte[] output = PdfAttachmentEditor.Rename(source, "page.txt", "renamed.txt").ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+        PdfDictionary annotation = Assert.Single(
+            objects.Values.Select(static item => item.Value as PdfDictionary),
+            static dictionary => string.Equals(dictionary?.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal))!;
+        PdfReference fileSpecificationReference = Assert.IsType<PdfReference>(annotation.Items["FS"]);
+        PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[fileSpecificationReference.ObjectNumber].Value);
+
+        Assert.Equal("renamed.txt", fileSpecification.Get<PdfStringObj>("UF")?.Value);
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "renamed.txt"));
+    }
+
+    [Fact]
+    public void Edit_RemovesFileAttachmentAnnotationWhenItsPayloadIsRemoved() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
+
+        byte[] output = PdfAttachmentEditor.Remove(source, "page.txt").ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+
+        Assert.DoesNotContain(objects.Values, static item =>
+            (item.Value as PdfDictionary)?.Get<PdfName>("Subtype")?.Name == "FileAttachment");
+    }
+
+    [Fact]
     public void ReadDocument_AppliesDecodedStreamLimitToPageAssociatedFiles() {
         byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };
