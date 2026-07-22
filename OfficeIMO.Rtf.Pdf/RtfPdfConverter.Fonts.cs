@@ -8,8 +8,11 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfOptions pdfOptions,
         RtfPdfSaveOptions options) {
         bool allowSystemFontEmbedding = options.ResourcePolicy.AllowSystemFontEmbedding;
+        bool systemFontBudgetReported = false;
         var fontSlots = new Dictionary<int, PdfCore.PdfStandardFont>();
         var familySlots = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
+        var unresolvedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var systemFontFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<int> referencedFontIds = CollectReferencedFontIds(document);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
         if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
@@ -32,12 +35,15 @@ internal static partial class RtfPdfConverter {
                 defaultFont.Name,
                 pdfOptions,
                 registeredFontSlots,
-                allowSystemFontEmbedding,
+                ResolveSystemFontPermission(defaultFont.Name, allowSystemFontEmbedding, options,
+                    systemFontFamilies, ref systemFontBudgetReported),
                 options,
                 out PdfCore.PdfStandardFont defaultSlot)) {
                 pdfOptions.ApplyInheritedFontFamily(defaultSlot);
                 familySlots[defaultFont.Name] = defaultSlot;
                 fontSlots[defaultFont.Id] = defaultSlot;
+            } else {
+                unresolvedFamilies.Add(defaultFont.Name);
             }
         }
 
@@ -50,20 +56,51 @@ internal static partial class RtfPdfConverter {
                 fontSlots[font.Id] = existingSlot;
                 continue;
             }
+            if (unresolvedFamilies.Contains(font.Name)) continue;
 
             if (TryRegisterDocumentFont(
                 font.Name,
                 pdfOptions,
                 registeredFontSlots,
-                allowSystemFontEmbedding,
+                ResolveSystemFontPermission(font.Name, allowSystemFontEmbedding, options,
+                    systemFontFamilies, ref systemFontBudgetReported),
                 options,
                 out PdfCore.PdfStandardFont fontSlot)) {
                 familySlots[font.Name] = fontSlot;
                 fontSlots[font.Id] = fontSlot;
+            } else {
+                unresolvedFamilies.Add(font.Name);
             }
         }
 
         return fontSlots;
+    }
+
+    private static bool ResolveSystemFontPermission(
+        string familyName,
+        bool allowSystemFontEmbedding,
+        RtfPdfSaveOptions options,
+        ISet<string> systemFontFamilies,
+        ref bool budgetReported) {
+        if (!allowSystemFontEmbedding) return false;
+        if (systemFontFamilies.Contains(familyName)) return true;
+        if (systemFontFamilies.Count < options.MaximumSystemFontFamilies) {
+            systemFontFamilies.Add(familyName);
+            return true;
+        }
+        if (!budgetReported) {
+            budgetReported = true;
+            AddConversionWarning(
+                options,
+                "SystemFontResolutionLimitExceeded",
+                "Font/" + familyName,
+                "The RTF font-family resolution budget was exhausted; remaining families use dependency-free PDF fallbacks.",
+                RtfConversionAction.Substituted,
+                new Dictionary<string, string> {
+                    ["maximumSystemFontFamilies"] = options.MaximumSystemFontFamilies.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                });
+        }
+        return false;
     }
 
     private static HashSet<int> CollectReferencedFontIds(RtfDocument document) {

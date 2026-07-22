@@ -61,7 +61,7 @@ internal static partial class PdfSyntax {
             definitionCounts[definitionKey] = definitionCount + 1;
             int start = matches[i].Index;
             int bodyStart = matches[i].Index + matches[i].Length;
-            int end = FindObjectEnd(text, start, declaredLengthValues);
+            int end = FindObjectEnd(text, start, declaredLengthValues, limits);
             if (end < 0) {
                 HandleStructuralDefect(
                     parsingMode,

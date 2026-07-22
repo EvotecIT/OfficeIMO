@@ -216,6 +216,12 @@ public static class OfficeDocumentReadResultPdfExtensions {
             return true;
         }
 
+        if (!identified ||
+            !OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
+                identifiedInfo,
+                OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                out _)) return false;
+
         bool converted = OfficeImagePngConverter.TryConvertToPng(
             sourceBytes,
             rasterDecodeOptions,

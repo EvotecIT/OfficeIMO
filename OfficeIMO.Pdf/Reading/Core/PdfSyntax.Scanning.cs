@@ -4,7 +4,8 @@ internal static partial class PdfSyntax {
     private static int FindObjectEnd(
         string text,
         int start,
-        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues = null) {
+        IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues = null,
+        PdfReadLimits? limits = null) {
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < text.Length) {
             int streamIdx = IndexOfKeywordOutsideLiteralString(text, "stream", searchFrom, text.Length);
@@ -25,6 +26,7 @@ internal static partial class PdfSyntax {
                     streamIdx,
                     afterStream,
                     declaredLengthValues,
+                    limits,
                     out int declaredObjectEnd)) {
                 return declaredObjectEnd;
             }
@@ -92,6 +94,7 @@ internal static partial class PdfSyntax {
         int streamIndex,
         int dataStart,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
+        PdfReadLimits? limits,
         out int objectEnd) {
         objectEnd = -1;
         int dictionaryStart = text.IndexOf("<<", objectStart, streamIndex - objectStart, StringComparison.Ordinal);
@@ -104,9 +107,24 @@ internal static partial class PdfSyntax {
             return false;
         }
 
+        int dictionaryCharacters = dictionaryEnd - dictionaryStart - 2;
+        int maximumDictionaryCharacters = limits?.MaxObjectCharacters ?? 1_000_000;
+        if (dictionaryCharacters > maximumDictionaryCharacters) {
+            if (limits != null) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.ObjectCharacters,
+                    maximumDictionaryCharacters,
+                    dictionaryCharacters);
+            }
+            return false;
+        }
+
         PdfDictionary? dictionary;
         try {
-            dictionary = ParseDictionary(text.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2));
+            string dictionaryText = text.Substring(dictionaryStart + 2, dictionaryCharacters);
+            dictionary = limits == null
+                ? ParseDictionary(dictionaryText)
+                : ParseDictionary(dictionaryText, limits);
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             return false;
         }

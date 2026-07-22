@@ -78,7 +78,12 @@ internal static class ExcelReaderAdapter {
         if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
             return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
         }
-        var loadOptions = new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly };
+        var loadOptions = new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
+                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                : null
+        };
         try {
             return ExcelDocument.Load(path, loadOptions);
         } catch (Exception exception) when (!string.IsNullOrEmpty(options.OpenPassword) && exception is InvalidDataException or IOException) {
@@ -91,7 +96,12 @@ internal static class ExcelReaderAdapter {
         if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.OpenPassword)) {
             return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions { Password = options.OpenPassword, ReportUnsupportedContent = true });
         }
-        var loadOptions = new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly };
+        var loadOptions = new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
+                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                : null
+        };
         if (stream.CanSeek) stream.Position = 0;
         try {
             return ExcelDocument.Load(stream, loadOptions);

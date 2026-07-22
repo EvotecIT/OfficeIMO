@@ -87,6 +87,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaInspectionRejectsOversizedFormulaBeforeDependencyMasking() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            sheet.CellValue(1, 1, 1D);
+            Cell cell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>());
+            cell.CellFormula = new CellFormula("SUM(" + new string('A', 9000) + ")");
+
+            ExcelFormulaCellInfo formula = Assert.Single(document.InspectFormulas().Formulas);
+
+            Assert.Empty(formula.Dependencies);
+            Assert.Contains("longer than", formula.UnsupportedReason, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_FormulaDependencyGraphCapsWholeColumnExpansionPerFormula() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Dense");
+            for (int row = 1; row <= 5000; row++) sheet.CellFormula(row, 1, "1");
+            sheet.CellFormula(1, 2, "SUM(A:A)");
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
+                inspection.DependencyGraph.FindNode("Dense", "B1"));
+
+            Assert.Equal(4096, node.FormulaDependencies.Count);
+            Assert.True(inspection.DependencyGraph.AnalysisTruncated);
+            Assert.True(inspection.HasDependencyIssues);
+            Assert.Throws<InvalidOperationException>(() => inspection.EnsureNoDependencyIssues());
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_IgnoresReferenceShapeFunctionArguments() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Reference Shapes");

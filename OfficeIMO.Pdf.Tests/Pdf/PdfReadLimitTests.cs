@@ -464,6 +464,20 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void DeclaredStreamDictionaryIsBoundedBeforeSubstringParsing() {
+        byte[] pdf = BuildObjectPdf(
+            "<< /Length 0 /Padding (" + new string('x', 256) + ") >>\nstream\n\nendstream");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectCharacters = 64 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfSyntax.ParseObjects(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.ObjectCharacters, exception.Kind);
+    }
+
+    [Fact]
     public void NestedObjectBudgetStopsRecursiveArrayParsing() {
         byte[] pdf = BuildObjectPdf("[[[[1]]]]");
         var options = new PdfReadOptions {

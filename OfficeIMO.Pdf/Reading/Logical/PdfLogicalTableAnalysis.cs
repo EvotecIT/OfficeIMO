@@ -6,6 +6,9 @@ namespace OfficeIMO.Pdf;
 /// Shared analysis helpers for logical PDF tables produced by <see cref="PdfLogicalDocument"/>.
 /// </summary>
 public static class PdfLogicalTableAnalysis {
+    private const int DefaultMaximumScopeAnalysisComparisons = 10_000;
+    private const int MaximumScopeComparisonTextCharacters = 512;
+    private const int MaximumScopeSourceCharactersPerValue = 2048;
     /// <summary>
     /// Infers structured extraction metadata for a logical PDF table.
     /// </summary>
@@ -114,7 +117,19 @@ public static class PdfLogicalTableAnalysis {
     /// Table counts plus visible and interactive page content that a table-only adapter will not import.
     /// </returns>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(PdfLogicalDocument document) {
+        return AnalyzeExtractionScope(document, DefaultMaximumScopeAnalysisComparisons);
+    }
+
+    /// <summary>
+    /// Describes table extraction scope while bounding attacker-controlled text/table comparisons.
+    /// </summary>
+    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
+        PdfLogicalDocument document,
+        int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
+#pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
+        if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
+#pragma warning restore CA1512
 
         int pagesWithTables = 0;
         int detectedTableCount = 0;
@@ -125,6 +140,9 @@ public static class PdfLogicalTableAnalysis {
         int formWidgetCount = 0;
         int annotationCount = 0;
         int pageActionCount = 0;
+        int remainingComparisons = Math.Min(maximumComparisons, DefaultMaximumScopeAnalysisComparisons);
+        bool analysisTruncated = false;
+        var normalizedRows = new Dictionary<PdfLogicalTable, Dictionary<int, ScopeComparisonText>>();
 
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             PdfLogicalPage page = document.Pages[pageIndex];
@@ -135,8 +153,15 @@ public static class PdfLogicalTableAnalysis {
 
             for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
                 PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
-                if (!IsTextBlockRepresentedByAnyTable(block, page.Tables)) {
+                ScopeRepresentation representation = IsTextBlockRepresentedByAnyTable(
+                    block,
+                    page.Tables,
+                    normalizedRows,
+                    ref remainingComparisons);
+                if (representation == ScopeRepresentation.NotRepresented) {
                     nonTableTextBlockCount++;
+                } else if (representation == ScopeRepresentation.Incomplete) {
+                    analysisTruncated = true;
                 }
             }
 
@@ -158,7 +183,8 @@ public static class PdfLogicalTableAnalysis {
             linkCount,
             formWidgetCount,
             annotationCount,
-            pageActionCount);
+            pageActionCount,
+            analysisTruncated);
     }
 
     /// <summary>
@@ -206,10 +232,14 @@ public static class PdfLogicalTableAnalysis {
         return nonNumericCount == columnCount ? headers : null;
     }
 
-    private static bool IsTextBlockRepresentedByAnyTable(
+    private static ScopeRepresentation IsTextBlockRepresentedByAnyTable(
         PdfLogicalTextBlock block,
-        IReadOnlyList<PdfLogicalTable> tables) {
+        IReadOnlyList<PdfLogicalTable> tables,
+        IDictionary<PdfLogicalTable, Dictionary<int, ScopeComparisonText>> normalizedRows,
+        ref int remainingComparisons) {
+        ScopeComparisonText? normalizedBlock = null;
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            if (remainingComparisons-- <= 0) return ScopeRepresentation.Incomplete;
             PdfLogicalTable table = tables[tableIndex];
             double top = Math.Max(table.YTop, table.YBottom);
             double bottom = Math.Min(table.YTop, table.YBottom);
@@ -217,39 +247,102 @@ public static class PdfLogicalTableAnalysis {
                 continue;
             }
 
-            string blockText = NormalizeForScopeComparison(block.Text);
+            normalizedBlock ??= NormalizeForScopeComparison(block.Text);
+            if (normalizedBlock.Value.Truncated) return ScopeRepresentation.Incomplete;
+            string blockText = normalizedBlock.Value.Value;
             if (blockText.Length == 0) {
-                return true;
+                return ScopeRepresentation.Represented;
             }
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                string rowText = NormalizeForScopeComparison(string.Join(" ", table.Rows[rowIndex]));
+                if (remainingComparisons-- <= 0) return ScopeRepresentation.Incomplete;
+                ScopeComparisonText normalizedRow = GetNormalizedScopeRow(table, rowIndex, normalizedRows);
+                if (normalizedRow.Truncated) return ScopeRepresentation.Incomplete;
+                string rowText = normalizedRow.Value;
                 if (rowText.Length > 0 &&
                     (ContainsOrdinal(rowText, blockText) ||
                      ContainsOrdinal(blockText, rowText))) {
-                    return true;
+                    return ScopeRepresentation.Represented;
                 }
             }
         }
 
-        return false;
+        return ScopeRepresentation.NotRepresented;
     }
 
-    private static string NormalizeForScopeComparison(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return string.Empty;
+    private static ScopeComparisonText GetNormalizedScopeRow(
+        PdfLogicalTable table,
+        int rowIndex,
+        IDictionary<PdfLogicalTable, Dictionary<int, ScopeComparisonText>> normalizedRows) {
+        if (!normalizedRows.TryGetValue(table, out Dictionary<int, ScopeComparisonText>? rows)) {
+            rows = new Dictionary<int, ScopeComparisonText>();
+            normalizedRows.Add(table, rows);
         }
+        if (rows.TryGetValue(rowIndex, out ScopeComparisonText cached)) return cached;
+
+        ScopeComparisonText normalized = NormalizeForScopeComparison(table.Rows[rowIndex]);
+        rows.Add(rowIndex, normalized);
+        return normalized;
+    }
+
+    private static ScopeComparisonText NormalizeForScopeComparison(string? value) {
+        if (string.IsNullOrEmpty(value)) return new ScopeComparisonText(string.Empty, truncated: false);
 
         string normalizedValue = value!;
-        var builder = new System.Text.StringBuilder(normalizedValue.Length);
+        var builder = new System.Text.StringBuilder(Math.Min(normalizedValue.Length, MaximumScopeComparisonTextCharacters));
+        int inspected = 0;
         for (int index = 0; index < normalizedValue.Length; index++) {
+            if (inspected++ == MaximumScopeSourceCharactersPerValue) {
+                return new ScopeComparisonText(builder.ToString(), truncated: true);
+            }
             char character = normalizedValue[index];
             if (!char.IsWhiteSpace(character)) {
+                if (builder.Length == MaximumScopeComparisonTextCharacters) {
+                    return new ScopeComparisonText(builder.ToString(), truncated: true);
+                }
                 builder.Append(char.ToUpperInvariant(character));
             }
         }
 
-        return builder.ToString();
+        return new ScopeComparisonText(builder.ToString(), truncated: false);
+    }
+
+    private static ScopeComparisonText NormalizeForScopeComparison(IReadOnlyList<string> row) {
+        var builder = new System.Text.StringBuilder(MaximumScopeComparisonTextCharacters);
+        int inspected = 0;
+        for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+            string value = row[cellIndex] ?? string.Empty;
+            for (int index = 0; index < value.Length; index++) {
+                if (inspected++ == MaximumScopeSourceCharactersPerValue) {
+                    return new ScopeComparisonText(builder.ToString(), truncated: true);
+                }
+                char character = value[index];
+                if (!char.IsWhiteSpace(character)) {
+                    if (builder.Length == MaximumScopeComparisonTextCharacters) {
+                        return new ScopeComparisonText(builder.ToString(), truncated: true);
+                    }
+                    builder.Append(char.ToUpperInvariant(character));
+                }
+            }
+        }
+
+        return new ScopeComparisonText(builder.ToString(), truncated: false);
+    }
+
+    private enum ScopeRepresentation {
+        NotRepresented,
+        Represented,
+        Incomplete
+    }
+
+    private readonly struct ScopeComparisonText {
+        internal ScopeComparisonText(string value, bool truncated) {
+            Value = value;
+            Truncated = truncated;
+        }
+
+        internal string Value { get; }
+        internal bool Truncated { get; }
     }
 
     private static bool ContainsOrdinal(string value, string candidate) {

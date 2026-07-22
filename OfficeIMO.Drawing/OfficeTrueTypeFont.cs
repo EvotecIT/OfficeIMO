@@ -18,6 +18,7 @@ public sealed partial class OfficeTrueTypeFont {
     private const int MaxFontTableRecords = 512;
     private const int MaxCmapSubtables = 64;
     private const uint MaxFormat12Groups = 4096;
+    private const int MaxFontCacheEntries = 1024;
     private static readonly object FontCacheLock = new();
     private static readonly Dictionary<string, OfficeTrueTypeFont?> FontCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, FontFamilyResolution> FontFamilyCache = new(StringComparer.OrdinalIgnoreCase);
@@ -102,6 +103,7 @@ public sealed partial class OfficeTrueTypeFont {
 
         FontFamilyResolution resolved = ResolveFontFamily(fontFamily);
         lock (FontCacheLock) {
+            if (FontFamilyCache.Count >= MaxFontCacheEntries) FontFamilyCache.Clear();
             FontFamilyCache[cacheKey] = resolved;
         }
 
@@ -123,7 +125,10 @@ public sealed partial class OfficeTrueTypeFont {
             }
 
             var font = File.Exists(fullPath) ? TryLoad(File.ReadAllBytes(fullPath), collectionIndex, faceName) : null;
-            lock (FontCacheLock) FontCache[cacheKey] = font;
+            lock (FontCacheLock) {
+                if (FontCache.Count >= MaxFontCacheEntries) FontCache.Clear();
+                FontCache[cacheKey] = font;
+            }
             return font;
         } catch (IOException) {
         } catch (UnauthorizedAccessException) {
@@ -763,7 +768,7 @@ public sealed partial class OfficeTrueTypeFont {
     private static GlyphPoint Mid(GlyphPoint left, GlyphPoint right) => new((left.X + right.X) / 2.0, (left.Y + right.Y) / 2.0, true);
 
     private static FontFamilyResolution ResolveFontFamily(string? fontFamily) {
-        if (string.IsNullOrWhiteSpace(fontFamily)) {
+        if (string.IsNullOrEmpty(fontFamily)) {
             OfficeTrueTypeFont? defaultFont = TryLoadDefault(out string? defaultPath);
             return new FontFamilyResolution(defaultFont, defaultPath);
         }
@@ -785,7 +790,7 @@ public sealed partial class OfficeTrueTypeFont {
     }
 
     private static string NormalizeFontFamilyCacheKey(string? fontFamily) {
-        if (string.IsNullOrWhiteSpace(fontFamily)) {
+        if (string.IsNullOrEmpty(fontFamily)) {
             return "__default";
         }
 
@@ -803,15 +808,13 @@ public sealed partial class OfficeTrueTypeFont {
 
     private static IEnumerable<string> ExpandFontFamilyFallbacks(string fontFamily) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string rawFamily in fontFamily.Split(',')) {
-            string family = CleanFontFamilyName(rawFamily);
-            if (string.IsNullOrWhiteSpace(family)) {
-                continue;
-            }
-
+        int emitted = 0;
+        foreach (string family in OfficeFontFamilyParser.Parse(fontFamily)) {
             foreach (string expanded in ExpandGenericFontFamily(family)) {
                 if (seen.Add(expanded)) {
                     yield return expanded;
+                    emitted++;
+                    if (emitted >= OfficeFontFamilyParser.DefaultMaximumCandidates) yield break;
                 }
             }
         }
@@ -846,17 +849,6 @@ public sealed partial class OfficeTrueTypeFont {
         }
 
         yield return family;
-    }
-
-    private static string CleanFontFamilyName(string family) {
-        string value = family.Trim();
-        while (value.Length >= 2 &&
-               ((value[0] == '"' && value[value.Length - 1] == '"') ||
-                (value[0] == '\'' && value[value.Length - 1] == '\''))) {
-            value = value.Substring(1, value.Length - 2).Trim();
-        }
-
-        return value;
     }
 
     private static IEnumerable<string> CandidateFamilyPaths(string family) {

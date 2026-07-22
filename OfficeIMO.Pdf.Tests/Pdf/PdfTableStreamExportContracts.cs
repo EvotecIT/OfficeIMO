@@ -85,6 +85,41 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .KeyValueTable(new[] {
+                PdfKeyValueRow.Text("InvoiceId", "INV-001"),
+                PdfKeyValueRow.Text("Customer", "Evotec"),
+                PdfKeyValueRow.Text("Due", "2026-06-30")
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 120, 170 },
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        Assert.NotEmpty(logical.Pages[0].Tables);
+
+        PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(
+            logical,
+            maximumComparisons: 0);
+
+        Assert.True(scope.AnalysisTruncated);
+        Assert.True(scope.HasOmittedPageContent);
+        Assert.Equal(0, scope.NonTableTextBlockCount);
+    }
+
+    [Fact]
     public void TableConversions_ReportOmittedVectorGraphics() {
         byte[] source = PdfDocument.Create()
             .Rectangle(

@@ -5,6 +5,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a native binary PowerPoint table decoded from an OfficeArt shape group.</summary>
     public sealed class LegacyPptTable {
         private const ushort TablePropertiesId = 0x039F;
+        private const int MaximumTableDimension = 1024;
+        private const long MaximumTableGridCells = 100_000L;
 
         private LegacyPptTable(IReadOnlyList<int> columnBoundaries,
             IReadOnlyList<int> rowBoundaries,
@@ -81,6 +83,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 })
                 .Distinct().OrderBy(value => value).ToArray();
             if (horizontal.Length < 2 || vertical.Length < 2) return null;
+            long columns = horizontal.Length - 1L;
+            long rows = vertical.Length - 1L;
+            if (columns > MaximumTableDimension || rows > MaximumTableDimension ||
+                columns * rows > MaximumTableGridCells) {
+                return null;
+            }
 
             IReadOnlyDictionary<(int Left, int Top, int Width, int Height),
                 LegacyPptShape> gridLines = children

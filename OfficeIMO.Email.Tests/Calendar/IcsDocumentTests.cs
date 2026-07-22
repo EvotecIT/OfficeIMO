@@ -4,6 +4,27 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class IcsDocumentTests {
     [Fact]
+    public void ValidationIndexesLargeRecurrenceSetsWithoutChangingResults() {
+        var document = new IcsDocument();
+        ContentLineComponent calendar = document.Calendars.Single();
+        ContentLineComponent master = calendar.AddComponent("VEVENT");
+        master.AddProperty("UID", "series@example.test");
+        master.AddProperty("DTSTAMP", "20260722T100000Z");
+        master.AddProperty("DTSTART", "20260722T110000Z");
+        for (int index = 0; index < 2000; index++) {
+            ContentLineComponent exception = calendar.AddComponent("VEVENT");
+            exception.AddProperty("UID", "series@example.test");
+            exception.AddProperty("DTSTAMP", "20260722T100000Z");
+            exception.AddProperty("DTSTART", "20260722T110000Z");
+            exception.AddProperty("RECURRENCE-ID", "20260722T110000Z");
+        }
+
+        IReadOnlyList<ContentLineValidationIssue> issues = document.Validate();
+
+        Assert.DoesNotContain(issues, issue => issue.Code.StartsWith("ICAL_RECURRENCE_ID_", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Parse_MultipleCalendarsPreservesUnknownRecurrenceAndNestedAlarm() {
         const string source = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//One//EN\r\n" +
             "X-WR-CALNAME:First\r\nBEGIN:VEVENT\r\nUID:event-1\r\nDTSTART;TZID=Europe/Warsaw:20260717T090000\r\n" +

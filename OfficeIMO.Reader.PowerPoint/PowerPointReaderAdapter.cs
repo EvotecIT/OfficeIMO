@@ -8,6 +8,8 @@ using OfficeIMO.Reader.FormatInternals;
 namespace OfficeIMO.Reader.PowerPoint;
 
 internal static class PowerPointReaderAdapter {
+    internal const long DefaultModernMaxInputBytes = 512L * 1024L * 1024L;
+
     internal static ReaderPowerPointOptions Clone(ReaderPowerPointOptions? source) => new ReaderPowerPointOptions {
         IncludeNotes = source?.IncludeNotes ?? true,
         IncludeTables = source?.IncludeTables ?? true,
@@ -20,16 +22,16 @@ internal static class PowerPointReaderAdapter {
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
-        using PowerPointPresentation presentation = Load(stream, readerOptions, cancellationToken);
+        using PowerPointPresentation presentation = Load(stream, sourceName, readerOptions, cancellationToken);
         return Project(presentation, string.IsNullOrWhiteSpace(sourceName) ? "presentation.pptx" : sourceName!, readerOptions, options, cancellationToken);
     }
 
-    internal static bool ProbeEncryptedOpenXml(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static bool ProbeEncryptedOpenXml(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(options.OpenPassword) || !stream.CanSeek) return false;
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using PowerPointPresentation presentation = Load(stream, options, cancellationToken);
+            using PowerPointPresentation presentation = Load(stream, sourceName, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return presentation.OpenXmlDocument.GetAllParts().Any(static part =>
                 string.Equals(part.Uri.OriginalString, "/ppt/presentation.xml",
@@ -44,7 +46,7 @@ internal static class PowerPointReaderAdapter {
     }
 
     private static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) {
-        PowerPointLoadOptions loadOptions = CreateLoadOptions(options);
+        PowerPointLoadOptions loadOptions = CreateLoadOptions(options, path);
         try {
             return PowerPointPresentation.Load(path, loadOptions, cancellationToken);
         } catch (Exception exception) when (ShouldRetryEncrypted(exception, options)) {
@@ -56,9 +58,9 @@ internal static class PowerPointReaderAdapter {
         }
     }
 
-    private static PowerPointPresentation Load(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
+    private static PowerPointPresentation Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (stream.CanSeek) stream.Position = 0;
-        PowerPointLoadOptions loadOptions = CreateLoadOptions(options);
+        PowerPointLoadOptions loadOptions = CreateLoadOptions(options, sourceName);
         try {
             return PowerPointPresentation.Load(stream, loadOptions, cancellationToken);
         } catch (Exception exception) when (stream.CanSeek && ShouldRetryEncrypted(exception, options)) {
@@ -71,16 +73,31 @@ internal static class PowerPointReaderAdapter {
         }
     }
 
-    private static PowerPointLoadOptions CreateLoadOptions(ReaderOptions options) {
-        long maxInputBytes = options.MaxInputBytes ?? LegacyPptImportOptions.DefaultMaxInputBytes;
+    internal static PowerPointLoadOptions CreateLoadOptions(ReaderOptions options, string? sourceName) {
+        long defaultMaxInputBytes = IsLegacySourceName(sourceName)
+            ? LegacyPptImportOptions.DefaultMaxInputBytes
+            : DefaultModernMaxInputBytes;
+        long maxInputBytes = options.MaxInputBytes ?? defaultMaxInputBytes;
+        long legacyMaxInputBytes = options.MaxInputBytes ?? LegacyPptImportOptions.DefaultMaxInputBytes;
         return new PowerPointLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = options.OpenXmlMaxCharactersInPart.HasValue
+                ? new OpenSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
+                : null,
+            PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = maxInputBytes },
             LegacyPptImportOptions = new LegacyPptImportOptions {
-                MaxInputBytes = maxInputBytes > int.MaxValue ? int.MaxValue : checked((int)maxInputBytes),
+                MaxInputBytes = legacyMaxInputBytes > int.MaxValue ? int.MaxValue : checked((int)legacyMaxInputBytes),
                 Password = options.OpenPassword,
                 ReportUnsupportedContent = true
             }
         };
+    }
+
+    private static bool IsLegacySourceName(string? sourceName) {
+        string extension = Path.GetExtension(sourceName ?? string.Empty);
+        return PowerPointFormatCatalog.All.Any(format =>
+            format.Generation == OfficeFormatGeneration.Legacy &&
+            string.Equals(format.Extension, extension, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool ShouldRetryEncrypted(Exception exception, ReaderOptions options) =>

@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private const int MaximumPivotInteractionPartCharacters = 1_000_000;
         /// <summary>
         /// Adds slicer cache metadata bound to a validated pivot table field.
         /// </summary>
@@ -264,7 +265,17 @@ namespace OfficeIMO.Excel {
         private static string ReadPivotInteractionPartText(OpenXmlPart part) {
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            return reader.ReadToEnd();
+            var text = new StringBuilder();
+            var buffer = new char[4096];
+            while (true) {
+                int read = reader.ReadBlock(buffer, 0, buffer.Length);
+                if (read == 0) return text.ToString();
+                if (text.Length > MaximumPivotInteractionPartCharacters - read) {
+                    throw new InvalidDataException(
+                        "Pivot interaction metadata exceeds the supported character limit.");
+                }
+                text.Append(buffer, 0, read);
+            }
         }
 
         private static string EnsureUniquePivotInteractionCacheName(

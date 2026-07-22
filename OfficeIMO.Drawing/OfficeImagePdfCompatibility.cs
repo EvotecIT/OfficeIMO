@@ -3,14 +3,25 @@ namespace OfficeIMO.Drawing {
     /// Validates image bytes against the shared Drawing raster contract used by first-party PDF export preflight checks.
     /// </summary>
     public static class OfficeImagePdfCompatibility {
+        /// <summary>Default pixel ceiling for raster formats that must be decoded and re-encoded before PDF embedding.</summary>
+        public const long DefaultMaximumTranscodePixels = 8_000_000L;
+
         private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
         /// <summary>
         /// Returns true when the image bytes can be embedded directly or normalized by the shared Drawing raster engine.
         /// </summary>
         public static bool TryValidate(byte[] bytes, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
+            return TryValidate(bytes, DefaultMaximumTranscodePixels, out imageInfo, out unsupportedReason);
+        }
+
+        /// <summary>
+        /// Returns true when the image bytes can be embedded directly or normalized without exceeding the supplied transcode pixel budget.
+        /// </summary>
+        public static bool TryValidate(byte[] bytes, long maximumTranscodePixels, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
             imageInfo = null;
             unsupportedReason = null;
+            if (maximumTranscodePixels < 1) throw new System.ArgumentOutOfRangeException(nameof(maximumTranscodePixels));
             if (bytes == null || bytes.Length == 0) {
                 unsupportedReason = "Image bytes are empty.";
                 return false;
@@ -33,6 +44,8 @@ namespace OfficeIMO.Drawing {
                         return false;
                     }
 
+                    if (!TryValidateTranscodeDimensions(detected, maximumTranscodePixels, out unsupportedReason)) return false;
+
                     if (!OfficeImagePngConverter.TryConvertToPng(bytes, out byte[] normalizedPng) ||
                         !TryValidatePngContainer(normalizedPng, out unsupportedReason)) {
                         unsupportedReason ??= $"Detected {detected.Format} ({detected.MimeType}), but the payload could not be normalized by OfficeIMO.Drawing.";
@@ -41,6 +54,26 @@ namespace OfficeIMO.Drawing {
 
                     return true;
             }
+        }
+
+        /// <summary>
+        /// Validates identified source dimensions before a PDF path decodes and re-encodes a raster payload.
+        /// </summary>
+        public static bool TryValidateTranscodeDimensions(
+            OfficeImageInfo imageInfo,
+            long maximumTranscodePixels,
+            out string? unsupportedReason) {
+            if (imageInfo == null) throw new System.ArgumentNullException(nameof(imageInfo));
+            if (maximumTranscodePixels < 1) throw new System.ArgumentOutOfRangeException(nameof(maximumTranscodePixels));
+
+            unsupportedReason = null;
+            long pixels = checked((long)imageInfo.Width * imageInfo.Height);
+            if (imageInfo.Width < 1 || imageInfo.Height < 1 || pixels > maximumTranscodePixels) {
+                unsupportedReason = $"Detected {imageInfo.Format} requires raster transcoding of {pixels} pixels, exceeding the configured limit of {maximumTranscodePixels} pixels.";
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

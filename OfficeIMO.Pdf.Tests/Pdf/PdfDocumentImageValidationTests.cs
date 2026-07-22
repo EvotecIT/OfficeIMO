@@ -452,6 +452,23 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
+    public void ImagePreparationRejectsOversizedRasterBeforeDecode() {
+        byte[] source = CreateMinimalBmp();
+        WriteInt32LittleEndian(source, 18, 3000);
+        WriteInt32LittleEndian(source, 22, 3000);
+
+        bool prepared = PdfDocument.TryPrepareImageBytes(
+            source,
+            out _,
+            out _,
+            out _,
+            out string? unsupportedReason);
+
+        Assert.False(prepared);
+        Assert.Contains("exceeding the configured limit", unsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RowColumnImage_WithNullBytes_ThrowsArgumentNullException() {
         var doc = PdfDocument.Create();
 

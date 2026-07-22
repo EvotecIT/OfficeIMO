@@ -3358,6 +3358,18 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void ImageExportFontDiagnosticsBoundAttackerControlledFamilyListsBeforeAllocation() {
+        string familyNames = "Missing " + new string('x', 100_000) + ",Arial";
+        var fonts = new OfficeFontFaceCollection();
+
+        OfficeImageExportDiagnostic diagnostic = Assert.IsType<OfficeImageExportDiagnostic>(
+            fonts.CreateSubstitutionDiagnostic("bounded", familyNames));
+
+        Assert.True(diagnostic.Message.Length < 1024);
+        Assert.DoesNotContain(new string('x', 300), diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingCarriesScopedFontsAcrossNestedDrawings() {
         byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
         var nested = new OfficeDrawing(20D, 20D).AddFont("Nested Demo", fontData, OfficeFontStyle.Bold);
@@ -3517,6 +3529,23 @@ public partial class DrawingTests {
             out string? unsupportedReason), unsupportedReason);
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedFormat, imageInfo!.Format);
+    }
+
+    [Fact]
+    public void OfficeImagePdfCompatibilityRejectsRasterBeforeTranscodeBudgetIsExceeded() {
+        byte[] source = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(2, 2, OfficeColor.Red),
+            OfficeImageExportFormat.Tiff);
+
+        bool valid = OfficeImagePdfCompatibility.TryValidate(
+            source,
+            maximumTranscodePixels: 3,
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason);
+
+        Assert.False(valid);
+        Assert.Equal(OfficeImageFormat.Tiff, imageInfo!.Format);
+        Assert.Contains("exceeding the configured limit", unsupportedReason, StringComparison.Ordinal);
     }
 
     [Fact]
