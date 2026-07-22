@@ -26,6 +26,25 @@ public sealed class ReaderEmailAddressBookTests {
     }
 
     [Fact]
+    public void SeekableItemReaderDoesNotSnapshotLogicallyHugeOabStreams() {
+        byte[] oab = new OabV4Fixture().Build();
+        const long reportedLength = 32L * 1024 * 1024 * 1024;
+        using var stream = new OfflineAddressBookSessionTests
+            .ReportedLengthStream(oab, reportedLength);
+
+        ReaderEmailAddressBookEntryResult result = Assert.Single(
+            EmailAddressBookEntryReader.Read(stream, "huge.oab",
+                addressBookOptions: new ReaderEmailAddressBookOptions {
+                    MaxEntries = 1
+                }));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Ada Lovelace", result.Summary!.DisplayName);
+        Assert.True(stream.BytesRead < oab.Length * 2L);
+        Assert.True(stream.MaximumReadRequest < 1024 * 1024);
+    }
+
+    [Fact]
     public void MembershipValuesAreExplicitlyOptIn() {
         byte[] oab = new OabV4Fixture().Build();
         var query = new OfflineAddressBookSearchQuery(

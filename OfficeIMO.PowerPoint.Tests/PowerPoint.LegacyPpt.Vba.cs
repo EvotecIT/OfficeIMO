@@ -332,9 +332,13 @@ namespace OfficeIMO.Tests {
                 title.Left += 15875L;
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(preflight.CanWrite,
-                    string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-VBA");
+                Assert.False(preflight.CanWrite);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

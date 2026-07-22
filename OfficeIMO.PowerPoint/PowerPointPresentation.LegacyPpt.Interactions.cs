@@ -203,16 +203,16 @@ namespace OfficeIMO.PowerPoint {
             customShowId = 0;
             PresentationPart? presentationPart = ownerPart.OpenXmlPackage.RootPart
                 as PresentationPart;
-            P.CustomShow[] matches = presentationPart?.Presentation?.CustomShowList?
-                .Elements<P.CustomShow>().Where(show => string.Equals(
-                    show.Name?.Value, name, StringComparison.Ordinal)).ToArray()
-                ?? Array.Empty<P.CustomShow>();
-            uint? id = matches.Length == 1 ? matches[0].Id?.Value : null;
-            if (!id.HasValue) {
-                return false;
+            P.CustomShowList? list = presentationPart?.Presentation?
+                .CustomShowList;
+            if (list == null) return false;
+            LegacyPptCustomShowIdIndex? index = list.Annotation<
+                LegacyPptCustomShowIdIndex>();
+            if (index == null) {
+                index = new LegacyPptCustomShowIdIndex(list);
+                list.AddAnnotation(index);
             }
-            customShowId = id.Value;
-            return true;
+            return index.TryGetUniqueId(name, out customShowId);
         }
 
         private static string? GetLegacyPowerPointAction(

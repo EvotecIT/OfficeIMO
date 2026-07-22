@@ -124,7 +124,7 @@ public sealed class OfflineAddressBookSessionTests {
         }
     }
 
-    private sealed class ReportedLengthStream : Stream {
+    internal sealed class ReportedLengthStream : Stream {
         private readonly byte[] _data;
         private readonly long _length;
         private long _position;

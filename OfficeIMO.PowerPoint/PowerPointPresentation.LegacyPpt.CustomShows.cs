@@ -29,6 +29,30 @@ namespace OfficeIMO.PowerPoint {
             }
             if (list.HasChildren) {
                 presentationPart.Presentation!.CustomShowList = list;
+                list.AddAnnotation(new LegacyPptCustomShowIdIndex(list));
+            }
+        }
+
+        private sealed class LegacyPptCustomShowIdIndex {
+            private readonly IReadOnlyDictionary<string, uint?> _idsByName;
+
+            internal LegacyPptCustomShowIdIndex(P.CustomShowList list) {
+                _idsByName = list.Elements<P.CustomShow>()
+                    .GroupBy(show => show.Name?.Value ?? string.Empty,
+                        StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key,
+                        group => group.Count() == 1
+                            ? group.First().Id?.Value
+                            : null,
+                        StringComparer.Ordinal);
+            }
+
+            internal bool TryGetUniqueId(string name, out uint id) {
+                id = 0;
+                if (!_idsByName.TryGetValue(name, out uint? value)
+                    || !value.HasValue) return false;
+                id = value.Value;
+                return true;
             }
         }
     }

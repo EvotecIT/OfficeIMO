@@ -48,20 +48,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (source == null) throw new ArgumentNullException(nameof(source));
             var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
             ApplyTextFrame(textBody.BodyProperties, frame);
+            var projectionPlan = new LegacyPptTextProjectionPlan(source);
             string[] paragraphs = source.Text.Split(new[] { '\n' }, StringSplitOptions.None);
             int paragraphStart = 0;
             foreach (string paragraphText in paragraphs) {
                 int paragraphEnd = checked(paragraphStart + paragraphText.Length);
                 var paragraph = new A.Paragraph();
-                ApplyParagraphProperties(paragraph, source, paragraphStart,
-                    projectPictureBullet);
-                AppendParagraphRuns(paragraph, source, paragraphStart, paragraphEnd,
-                    projectInteraction);
+                ApplyParagraphProperties(paragraph, source, projectionPlan,
+                    paragraphStart, projectPictureBullet);
+                AppendParagraphRuns(paragraph, source, projectionPlan,
+                    paragraphStart, paragraphEnd, projectInteraction);
                 if (!paragraph.ChildElements.Any(child => child is A.Run
                         or A.Field or A.Break)) {
                     paragraph.Append(new A.Run(new A.Text(string.Empty)));
                 }
-                ApplyParagraphEndLanguage(paragraph, source, paragraphEnd);
+                ApplyParagraphEndLanguage(paragraph, projectionPlan,
+                    paragraphEnd);
                 textBody.Append(paragraph);
                 paragraphStart = checked(paragraphEnd + 1);
             }
@@ -116,11 +118,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
-        private static void ApplyParagraphProperties(A.Paragraph paragraph, LegacyPptTextBody source,
-            int paragraphStart,
+        private static void ApplyParagraphProperties(A.Paragraph paragraph,
+            LegacyPptTextBody source,
+            LegacyPptTextProjectionPlan projectionPlan, int paragraphStart,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
-            LegacyPptParagraphRun? run = source.ParagraphRuns.FirstOrDefault(item =>
-                paragraphStart >= item.Start && paragraphStart < item.Start + item.Length);
+            LegacyPptParagraphRun? run = projectionPlan.FindParagraphRun(
+                paragraphStart);
             if ((run == null || !run.HasExplicitFormatting)
                 && source.Ruler?.HasFormatting != true) return;
             ushort level = run?.IndentLevel ?? 0;
@@ -388,60 +391,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             P.TextBody? textBody) => textBody?.BodyProperties?.OuterXml
                 ?? string.Empty;
 
-        private static void AppendParagraphRuns(A.Paragraph paragraph, LegacyPptTextBody source,
+        private static void AppendParagraphRuns(A.Paragraph paragraph,
+            LegacyPptTextBody source,
+            LegacyPptTextProjectionPlan projectionPlan,
             int paragraphStart, int paragraphEnd,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            var boundaries = new SortedSet<int> { paragraphStart, paragraphEnd };
-            foreach (LegacyPptCharacterRun run in source.CharacterRuns) {
-                AddClippedBoundaries(boundaries, run.Start,
-                    checked(run.Start + run.Length), paragraphStart, paragraphEnd);
-            }
-            foreach (LegacyPptTextLanguageRun run in source.LanguageRuns) {
-                AddClippedBoundaries(boundaries, run.Start,
-                    checked(run.Start + run.Length), paragraphStart,
-                    paragraphEnd);
-            }
-            foreach (LegacyPptTextInteraction interaction in source.Interactions) {
-                AddClippedBoundaries(boundaries, interaction.Start,
-                    checked(interaction.Start + interaction.Length), paragraphStart, paragraphEnd);
-            }
-            foreach (LegacyPptTextField field in source.Fields) {
-                AddClippedBoundaries(boundaries, field.Position,
-                    checked(field.Position + 1), paragraphStart,
-                    paragraphEnd);
-            }
-            int[] values = boundaries.ToArray();
-            for (int index = 0; index < values.Length - 1; index++) {
-                int start = values[index];
-                int end = values[index + 1];
+            IReadOnlyList<int> boundaries = projectionPlan
+                .GetParagraphBoundaries(paragraphStart, paragraphEnd);
+            for (int index = 0; index < boundaries.Count - 1; index++) {
+                int start = boundaries[index];
+                int end = boundaries[index + 1];
                 if (end <= start) continue;
-                LegacyPptCharacterRun? formatting = source.CharacterRuns.FirstOrDefault(run =>
-                    start >= run.Start && start < run.Start + run.Length);
-                LegacyPptTextLanguageRun? language = source.LanguageRuns
-                    .FirstOrDefault(run => start >= run.Start
-                        && start < run.Start + run.Length);
-                LegacyPptInteraction[] interactions = source.Interactions.Where(item =>
-                        start >= item.Start && end <= item.Start + item.Length)
-                    .Select(item => item.Interaction)
-                    .ToArray();
-                LegacyPptTextField? field = end == start + 1
-                    ? source.Fields.FirstOrDefault(item =>
-                        item.Position == start)
-                    : null;
+                LegacyPptCharacterRun? formatting = projectionPlan
+                    .FindCharacterRun(start);
+                LegacyPptTextLanguageRun? language = projectionPlan
+                    .FindLanguageRun(start);
+                IReadOnlyList<LegacyPptInteraction> interactions =
+                    projectionPlan.GetInteractions(start);
+                LegacyPptTextField? field = projectionPlan.FindField(start,
+                    end);
                 AppendRun(paragraph,
                     source.Text.Substring(start, end - start), formatting,
                     language,
                     field, interactions, projectInteraction);
             }
-        }
-
-        private static void AddClippedBoundaries(ISet<int> boundaries, int start, int end,
-            int paragraphStart, int paragraphEnd) {
-            int clippedStart = Math.Max(paragraphStart, start);
-            int clippedEnd = Math.Min(paragraphEnd, end);
-            if (clippedEnd <= clippedStart) return;
-            boundaries.Add(clippedStart);
-            boundaries.Add(clippedEnd);
         }
 
         private static void AppendRun(A.Paragraph paragraph, string text,
@@ -579,10 +552,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static void ApplyParagraphEndLanguage(A.Paragraph paragraph,
-            LegacyPptTextBody source, int paragraphEnd) {
-            LegacyPptTextLanguageRun? language = source.LanguageRuns
-                .FirstOrDefault(run => paragraphEnd >= run.Start
-                    && paragraphEnd < run.Start + run.Length);
+            LegacyPptTextProjectionPlan projectionPlan,
+            int paragraphEnd) {
+            LegacyPptTextLanguageRun? language = projectionPlan
+                .FindLanguageRun(paragraphEnd);
             if (!HasNativeLanguageInformation(language)) return;
             var properties = new A.EndParagraphRunProperties();
             ApplyLanguageInformation(properties, language);

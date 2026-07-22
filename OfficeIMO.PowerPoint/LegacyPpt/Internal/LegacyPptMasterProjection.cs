@@ -161,13 +161,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 ?? string.Empty;
             string colorMap = masterPart.SlideLayout?.ColorMapOverride?.OuterXml
                 ?? string.Empty;
-            return theme + "\n" + colorMap;
+            return LegacyPptProjectionDigest.Create(theme, colorMap);
         }
 
         private static string CreateThemeFingerprint(ThemePart? themePart,
             OpenXmlElement? colorMap) {
             string theme = themePart?.Theme?.OuterXml ?? string.Empty;
-            return theme + "\n" + (colorMap?.OuterXml ?? string.Empty);
+            return LegacyPptProjectionDigest.Create(theme,
+                colorMap?.OuterXml);
         }
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(

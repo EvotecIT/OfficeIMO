@@ -230,6 +230,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TextPropertyReader_RejectsOversizedTabStopCountBeforeAllocation() {
+            byte[] payload = { 0x01, 0x10 }; // 4,097 entries
+            var record = new LegacyPptRecord(payload, 0, 0, 0,
+                0x0FA6, 0, payload.Length);
+            var cursor = new LegacyPptTextPropertyCursor(record,
+                "oversized tab stops");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => LegacyPptTextPropertyReader.ReadTabStops(cursor));
+
+            Assert.Contains("4096", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(2, cursor.Offset);
+        }
+
+        [Fact]
+        public void TextStyle9Reader_StopsAtConfiguredEntryLimit() {
+            byte[] payload = new byte[24]; // two empty 12-byte StyleTextProp9 entries
+            var record = new LegacyPptRecord(payload, 0, 0, 0,
+                0x0FAC, 0, payload.Length);
+
+            LegacyPptTextBody result = LegacyPptTextStyle9Reader.Apply(
+                LegacyPptTextBody.Plain("A"), record,
+                maximumEntryCount: 1);
+
+            Assert.True(result.HasStyle9Record);
+            Assert.True(result.IsStyle9Truncated);
+        }
+
+        [Fact]
         public void TextMasterStyleReader_DecodesExplicitCenterStyleLevels() {
             byte[] payload;
             using (var stream = new MemoryStream()) {

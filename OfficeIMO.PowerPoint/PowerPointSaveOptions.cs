@@ -24,5 +24,13 @@ namespace OfficeIMO.PowerPoint {
         /// document-property streams. The default is <see langword="true"/>.
         /// </summary>
         public bool LegacyPptEncryptDocumentProperties { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether legacy encrypted saves may retain compound
+        /// streams that the RC4 CryptoAPI format does not encrypt. The default
+        /// is <see langword="false"/> so password-protected output cannot
+        /// silently contain unknown clear-text payloads.
+        /// </summary>
+        public bool LegacyPptAllowUnencryptedCompoundStreams { get; set; }
     }
 }

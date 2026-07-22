@@ -360,13 +360,22 @@ namespace OfficeIMO.PowerPoint {
         private static void ProjectLegacyConnectorRules(ShapeTree tree,
             IReadOnlyList<LegacyPptConnectorRule> rules,
             IReadOnlyDictionary<uint, uint> projectedShapeIds) {
+            var connectorsById = new Dictionary<uint,
+                DocumentFormat.OpenXml.Presentation.ConnectionShape>();
+            foreach (DocumentFormat.OpenXml.Presentation.ConnectionShape
+                     connector in tree.Descendants<
+                         DocumentFormat.OpenXml.Presentation.ConnectionShape>()) {
+                uint? id = connector.NonVisualConnectionShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value;
+                if (id.HasValue && !connectorsById.ContainsKey(id.Value)) {
+                    connectorsById.Add(id.Value, connector);
+                }
+            }
             foreach (LegacyPptConnectorRule rule in rules) {
                 if (!projectedShapeIds.TryGetValue(rule.ConnectorShapeId, out uint connectorId)) continue;
-                DocumentFormat.OpenXml.Presentation.ConnectionShape? connector = tree
-                    .Descendants<DocumentFormat.OpenXml.Presentation.ConnectionShape>()
-                    .FirstOrDefault(item => item.NonVisualConnectionShapeProperties?
-                        .NonVisualDrawingProperties?.Id?.Value == connectorId);
-                if (connector == null) continue;
+                if (!connectorsById.TryGetValue(connectorId,
+                        out DocumentFormat.OpenXml.Presentation.ConnectionShape?
+                            connector)) continue;
                 NonVisualConnectorShapeDrawingProperties drawingProperties =
                     connector.NonVisualConnectionShapeProperties?.NonVisualConnectorShapeDrawingProperties
                     ?? new NonVisualConnectorShapeDrawingProperties();

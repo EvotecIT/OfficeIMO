@@ -68,17 +68,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static int CountDrawingShapes(
             IEnumerable<PowerPointShape> shapes,
-            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) =>
+            CountDrawingShapes(shapes, pictureCatalog, depth: 0);
+
+        private static int CountDrawingShapes(
+            IEnumerable<PowerPointShape> shapes,
+            LegacyPptWriterPictureCatalog? pictureCatalog, int depth) {
             int count = 0;
             foreach (PowerPointShape shape in shapes) {
                 if (shape is PowerPointGroupShape group) {
+                    if (depth >= MaximumGroupNestingDepth) {
+                        throw new NotSupportedException(
+                            $"Binary PowerPoint conversion supports at most {MaximumGroupNestingDepth} nested group levels.");
+                    }
                     if (!TryReadGroupForWrite(group,
                             out IReadOnlyList<PowerPointShape> children,
                             out string? reason)) {
                         throw new NotSupportedException(reason);
                     }
                     count = checked(count + 1
-                        + CountDrawingShapes(children, pictureCatalog));
+                        + CountDrawingShapes(children, pictureCatalog,
+                            checked(depth + 1)));
                 } else if (shape is PowerPointTable table) {
                     count = checked(count + (pictureCatalog?.Contains(table)
                         == true ? 1 : CountTableDrawingShapes(table)));
@@ -98,7 +108,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterOleObjectCatalog? oleCatalog,
             LegacyPptWriterPictureCatalog? pictureCatalog,
             LegacyPptWriterFontCatalog fonts,
-            LegacyPptWriterPictureBulletCatalog? pictureBullets) {
+            LegacyPptWriterPictureBulletCatalog? pictureBullets,
+            int depth = 1) {
+            if (depth > MaximumGroupNestingDepth) {
+                throw new NotSupportedException(
+                    $"Binary PowerPoint conversion supports at most {MaximumGroupNestingDepth} nested group levels.");
+            }
             if (!TryReadGroupForWrite(group,
                     out IReadOnlyList<PowerPointShape> groupChildren,
                     out string? reason)) {
@@ -126,7 +141,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ? BuildGroupRecord(nested, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
                         mediaCatalog, oleCatalog, pictureCatalog, fonts,
-                        pictureBullets)
+                        pictureBullets, checked(depth + 1))
                     : child is PowerPointTable table
                         && pictureCatalog?.Contains(table) != true
                     ? BuildTableRecord(table, ref nextShapeId,

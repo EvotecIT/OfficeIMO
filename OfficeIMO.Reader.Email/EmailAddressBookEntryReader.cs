@@ -61,8 +61,18 @@ public static class EmailAddressBookEntryReader {
         ReaderEmailAddressBookOptions adapterOptions, CancellationToken cancellationToken) {
         OfflineAddressBookReaderOptions effective =
             ReaderEmailAddressBookOptionsCloner.CreateEffective(adapterOptions, readerOptions);
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
-            stream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
+        Stream parseStream;
+        bool ownsParseStream;
+        if (stream.CanSeek) {
+            ReaderInputLimits.EnforceSeekableStreamSize(stream,
+                effective.MaxInputBytes);
+            parseStream = stream;
+            ownsParseStream = false;
+        } else {
+            parseStream = ReaderInputLimits.EnsureSeekableReadStream(
+                stream, effective.MaxInputBytes, cancellationToken,
+                out ownsParseStream);
+        }
         try {
             using (OfflineAddressBookSession session = OfflineAddressBookSession.Open(
                 parseStream, sourceName, effective, cancellationToken)) {

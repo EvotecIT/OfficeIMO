@@ -6,6 +6,10 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
+        private const int MaximumTableRasterRows = 4096;
+        private const int MaximumTableRasterColumns = 4096;
+        private const long MaximumTableRasterCells = 100_000L;
+
         internal static bool TryCreateTableDrawing(PowerPointTable table,
             out OfficeDrawing drawing, out string? reason) {
             if (table == null) throw new ArgumentNullException(nameof(table));
@@ -14,6 +18,13 @@ namespace OfficeIMO.PowerPoint {
                     out double width, out double height)
                 || width <= 0D || height <= 0D) {
                 reason = "The table has no positive renderable bounds.";
+                return false;
+            }
+            long cellCount = checked((long)table.Rows * table.Columns);
+            if (table.Rows > MaximumTableRasterRows
+                || table.Columns > MaximumTableRasterColumns
+                || cellCount > MaximumTableRasterCells) {
+                reason = $"The table rasterization request ({table.Rows} rows, {table.Columns} columns, {cellCount} cells) exceeds the safe limit of {MaximumTableRasterRows} rows, {MaximumTableRasterColumns} columns, or {MaximumTableRasterCells} cells.";
                 return false;
             }
             try {

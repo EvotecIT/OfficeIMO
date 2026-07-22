@@ -40,13 +40,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static IReadOnlyList<PowerPointShape>
             FlattenShapeTreeForWrite(IEnumerable<PowerPointShape> shapes,
-                out string? unsupportedReason) {
+                out string? unsupportedReason) =>
+            FlattenShapeTreeForWrite(shapes, depth: 0,
+                out unsupportedReason);
+
+        private static IReadOnlyList<PowerPointShape>
+            FlattenShapeTreeForWrite(IEnumerable<PowerPointShape> shapes,
+                int depth, out string? unsupportedReason) {
             if (shapes == null) throw new ArgumentNullException(nameof(shapes));
             var result = new List<PowerPointShape>();
             unsupportedReason = null;
             foreach (PowerPointShape shape in shapes) {
                 result.Add(shape);
                 if (shape is not PowerPointGroupShape group) continue;
+                if (depth >= MaximumGroupNestingDepth) {
+                    unsupportedReason = $"Binary PowerPoint conversion supports at most {MaximumGroupNestingDepth} nested group levels.";
+                    return result;
+                }
                 IReadOnlyList<PowerPointShape> children =
                     ReadGroupChildrenForWrite(group,
                         out string? childReason);
@@ -55,7 +65,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return result;
                 }
                 IReadOnlyList<PowerPointShape> descendants =
-                    FlattenShapeTreeForWrite(children, out childReason);
+                    FlattenShapeTreeForWrite(children, checked(depth + 1),
+                        out childReason);
                 if (childReason != null) {
                     unsupportedReason = childReason;
                     return result;

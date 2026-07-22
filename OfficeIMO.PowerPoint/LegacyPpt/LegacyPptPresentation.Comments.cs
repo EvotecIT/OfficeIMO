@@ -53,6 +53,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             foreach (LegacyPptRecord record in records.Where(record =>
                          record.Type == RecordComment10)) {
+                if (_commentCount >= options.MaxCommentCount) {
+                    throw new InvalidDataException(
+                        $"The binary PowerPoint comment count exceeds {options.MaxCommentCount}.");
+                }
+                _commentCount++;
                 if (TryReadComment(record, slide.SlideId, out LegacyPptComment? comment)
                     && comment != null) {
                     slide.AddComment(comment);

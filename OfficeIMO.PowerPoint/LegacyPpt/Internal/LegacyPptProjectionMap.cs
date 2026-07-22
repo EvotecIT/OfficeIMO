@@ -213,6 +213,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
 
             var slides = new List<LegacyPptSlideProjection>(legacy.Slides.Count);
+            var inheritedBackgrounds = new Dictionary<string, string>(
+                StringComparer.Ordinal);
+            var inheritedThemes = new Dictionary<string, string>(
+                StringComparer.Ordinal);
             var projectableSoundIds = new HashSet<uint>(legacy.Sounds.Where(sound =>
                 sound.HasData && sound.ContentType != null).Select(sound => sound.Id));
             for (int slideIndex = 0; slideIndex < legacy.Slides.Count; slideIndex++) {
@@ -232,6 +236,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 AddShapeProjectionTree(shapes, sourceShapes,
                     projectedShapes, projectableSoundIds,
                     $"slide {slideIndex + 1}", projectedSlide.SlidePart);
+                bool hasExplicitBackground = projectedSlide.SlidePart.Slide?
+                    .CommonSlideData?.Background != null;
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -240,13 +246,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         unchecked((byte)value)).ToArray(),
                     sourceSlide.Hidden, sourceSlide.FollowsMasterObjects,
                     sourceSlide.HeaderFooter,
-                    projectedSlide.SlidePart.Slide?.CommonSlideData?
-                        .Background != null,
-                    LegacyPptSlideProjection.CreateBackgroundFingerprint(
-                        projectedSlide),
+                    hasExplicitBackground,
+                    CreateSlideBackgroundFingerprint(projectedSlide,
+                        hasExplicitBackground, inheritedBackgrounds),
                     projectedSlide.SlidePart.ThemeOverridePart?.Uri.ToString(),
-                    LegacyPptSlideProjection.CreateThemeFingerprint(
-                        projectedSlide),
+                    CreateSlideThemeFingerprint(projectedSlide,
+                        inheritedThemes),
                     LegacyPptSlideProjection.CreateClassicColorFingerprints(
                         projectedSlide),
                     sourceSlide.Transition, sourceSlide.Comments, shapes,
@@ -270,6 +275,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 LegacyPptPropertySetCodec.CreateProjection(presentation,
                     legacy.Package),
                 LegacyPptVbaProjectProjection.Create(legacy.VbaProject));
+        }
+
+        private static string CreateSlideBackgroundFingerprint(
+            PowerPointSlide slide, bool hasExplicitBackground,
+            IDictionary<string, string> inheritedFingerprints) {
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            if (hasExplicitBackground || layoutPart == null) {
+                return LegacyPptSlideProjection.CreateBackgroundFingerprint(
+                    slide);
+            }
+            string key = layoutPart.Uri.ToString();
+            if (!inheritedFingerprints.TryGetValue(key,
+                    out string? fingerprint)) {
+                fingerprint = LegacyPptSlideProjection
+                    .CreateBackgroundFingerprint(slide);
+                inheritedFingerprints.Add(key, fingerprint);
+            }
+            return fingerprint;
+        }
+
+        private static string CreateSlideThemeFingerprint(
+            PowerPointSlide slide,
+            IDictionary<string, string> inheritedFingerprints) {
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            if (slide.SlidePart.ThemeOverridePart != null
+                || layoutPart == null) {
+                return LegacyPptSlideProjection.CreateThemeFingerprint(slide);
+            }
+            string key = layoutPart.Uri.ToString();
+            if (!inheritedFingerprints.TryGetValue(key,
+                    out string? fingerprint)) {
+                fingerprint = LegacyPptSlideProjection
+                    .CreateThemeFingerprint(slide);
+                inheritedFingerprints.Add(key, fingerprint);
+            }
+            return fingerprint;
         }
 
         private static void AddShapeProjectionTree(

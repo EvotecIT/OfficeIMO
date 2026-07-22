@@ -412,6 +412,10 @@ public sealed partial class PowerPointPresentation {
                     ReportUnsupportedContent = true,
                     MaxRecordCount = legacy.MaxRecordCount,
                     MaxRecordDepth = legacy.MaxRecordDepth,
+                    MaxMasterCount = legacy.MaxMasterCount,
+                    MaxConnectorRuleCount = legacy.MaxConnectorRuleCount,
+                    MaxCommentCount = legacy.MaxCommentCount,
+                    MaxTextStyle9EntryCount = legacy.MaxTextStyle9EntryCount,
                     MaxDecodedStorageBytes = legacy.MaxDecodedStorageBytes,
                     Password = legacy.Password
                 }
@@ -423,7 +427,9 @@ public sealed partial class PowerPointPresentation {
         bool allowsLoss) => new() {
         LossPolicy = allowsLoss ? PowerPointConversionLossPolicy.Allow : PowerPointConversionLossPolicy.Block,
         LegacyPptEncryptionKeySizeBits = source?.LegacyPptEncryptionKeySizeBits ?? 128,
-        LegacyPptEncryptDocumentProperties = source?.LegacyPptEncryptDocumentProperties ?? true
+        LegacyPptEncryptDocumentProperties = source?.LegacyPptEncryptDocumentProperties ?? true,
+        LegacyPptAllowUnencryptedCompoundStreams = source?
+            .LegacyPptAllowUnencryptedCompoundStreams ?? false
     };
 
     private static OfficeCompatibilityMode GetCompatibilityMode(PowerPointPresentationConversionOptions options) {

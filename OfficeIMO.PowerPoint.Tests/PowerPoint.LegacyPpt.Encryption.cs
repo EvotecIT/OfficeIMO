@@ -394,7 +394,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyEncryption_EditedImportedDeckCanBeReEncryptedAndPreservesOpaqueStreams() {
+        public void LegacyEncryption_OpaqueStreamsRequireExplicitClearTextOptIn() {
             const string sourcePassword = "source-pass";
             const string targetPassword = "target-pass";
             byte[] plainBytes;
@@ -409,8 +409,14 @@ namespace OfficeIMO.Tests {
                 new Dictionary<string, byte[]> {
                     ["VendorData/opaque"] = opaqueBytes
                 });
+            NotSupportedException sourceFailure = Assert.Throws<
+                NotSupportedException>(() => LegacyPptRc4CryptoApi
+                .EncryptPackage(withOpaque, sourcePassword));
+            Assert.Contains("VendorData/opaque", sourceFailure.Message,
+                StringComparison.Ordinal);
             byte[] encryptedSource = LegacyPptRc4CryptoApi.EncryptPackage(
-                withOpaque, sourcePassword);
+                withOpaque, sourcePassword,
+                allowUnencryptedCompoundStreams: true);
 
             byte[] encryptedEdited;
             using (var input = new MemoryStream(encryptedSource))
@@ -420,8 +426,14 @@ namespace OfficeIMO.Tests {
                 Assert.Single(presentation.Slides[0].TextBoxes,
                     textBox => textBox.Text == "Original secret").Text =
                     "Edited secret";
+                Assert.Throws<NotSupportedException>(() => presentation
+                    .ToEncryptedBytes(targetPassword,
+                        PowerPointFileFormat.Ppt));
                 encryptedEdited = presentation.ToEncryptedBytes(
-                    targetPassword, PowerPointFileFormat.Ppt);
+                    targetPassword, PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LegacyPptAllowUnencryptedCompoundStreams = true
+                    });
             }
 
             Assert.Throws<CryptographicException>(() =>

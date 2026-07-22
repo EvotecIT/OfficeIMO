@@ -286,21 +286,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryRasterizeStaticVisual(OfficeDrawing drawing,
             string ownerName, out byte[] pngBytes, out string? reason) {
             pngBytes = Array.Empty<byte>();
-            double pixelAreaAtTwoX = checked(drawing.Width * drawing.Height
-                * 4D);
-            double scale = pixelAreaAtTwoX <= 16_000_000D
-                ? 2D
-                : Math.Sqrt(16_000_000D
-                    / (drawing.Width * drawing.Height));
-            if (double.IsNaN(scale) || double.IsInfinity(scale)
-                || scale <= 0D) {
+            try {
+                var options = new OfficeImageExportOptions {
+                    Scale = 2D,
+                    MaximumRasterPixels = MaximumStaticVisualRasterPixels,
+                    RasterOverflowBehavior = OfficeRasterOverflowBehavior.ReduceScale
+                };
+                OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
+                    drawing.Width, drawing.Height,
+                    OfficeImageExportFormat.Png, options,
+                    MaximumStaticVisualRasterPixels, ownerName);
+                pngBytes = OfficeDrawingRasterRenderer.ToPng(drawing,
+                    plan.Limit.Scale, OfficeColor.White);
+                reason = null;
+                return true;
+            } catch (Exception exception) when (exception
+                is ArgumentException or InvalidOperationException
+                    or OverflowException or OfficeImageExportLimitException) {
                 reason = $"The {ownerName} dimensions cannot be rasterized safely for binary PowerPoint conversion.";
                 return false;
             }
-            pngBytes = OfficeDrawingRasterRenderer.ToPng(drawing, scale,
-                OfficeColor.White);
-            reason = null;
-            return true;
         }
 
         internal static bool TryValidatePictureForWrite(
@@ -354,7 +359,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             try {
-                imageBytes = picture.GetImageBytes();
+                imageBytes = picture.GetImageBytes(MaximumPictureBytes);
                 _ = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(imageBytes,
                     contentType);
             } catch (Exception exception) when (exception is InvalidOperationException
@@ -545,6 +550,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             private readonly List<LegacyPptWriterPicture> _entries = new();
             private readonly int _baseStoreEntryCount;
             private readonly uint _baseDelayedStreamOffset;
+            private long _totalPictureBytes;
 
             internal LegacyPptWriterPictureCatalog(int baseStoreEntryCount = 0,
                 uint baseDelayedStreamOffset = 0) {
@@ -584,6 +590,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = null;
                     return true;
                 }
+                if (imageBytes.Length > MaximumPictureBytes) {
+                    reason = $"A binary PowerPoint picture cannot exceed {MaximumPictureBytes} bytes.";
+                    return false;
+                }
                 string hash = ComputePictureHash(contentType, imageBytes);
                 if (!_entriesByHash.TryGetValue(hash,
                         out List<LegacyPptWriterPicture>? candidates)) {
@@ -599,12 +609,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         reason = "A binary PowerPoint drawing group cannot contain more than 4,095 distinct picture-store entries.";
                         return false;
                     }
+                    long nextTotal = checked(_totalPictureBytes
+                        + imageBytes.Length);
+                    if (nextTotal > MaximumTotalPictureBytes) {
+                        reason = $"Binary PowerPoint picture payloads cannot exceed {MaximumTotalPictureBytes} aggregate bytes.";
+                        return false;
+                    }
                     entry = new LegacyPptWriterPicture(
                         checked((uint)(_baseStoreEntryCount
                             + _entries.Count) + 1U), imageBytes,
                         contentType);
                     _entries.Add(entry);
                     candidates.Add(entry);
+                    _totalPictureBytes = nextTotal;
                 } else {
                     entry.AddReference();
                 }

@@ -298,8 +298,13 @@ namespace OfficeIMO.Tests {
                 linked.Left += 250000;
 
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite, string.Join(Environment.NewLine, report.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.False(report.CanWrite);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -352,9 +357,13 @@ namespace OfficeIMO.Tests {
                     .Descendants<A.HyperlinkOnClick>().Single();
                 link.Tooltip = "Updated tip";
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite,
-                    string.Join(Environment.NewLine, report.Findings));
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.False(report.CanWrite);
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
             Assert.Equal("Updated tip", Assert.Single(edited.Slides[0].Shapes
@@ -369,8 +378,11 @@ namespace OfficeIMO.Tests {
                 A.HyperlinkOnClick link = imported.Slides[0].SlidePart.Slide!
                     .Descendants<A.HyperlinkOnClick>().Single();
                 link.Tooltip = null;
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
             Assert.Null(Assert.Single(removed.Slides[0].Shapes
@@ -417,8 +429,11 @@ namespace OfficeIMO.Tests {
                 P.NonVisualDrawingProperties properties = GetDrawingProperties(shape);
                 properties.RemoveAllChildren<A.HyperlinkOnClick>();
                 AddShapeHyperlink(slide, shape, secondTarget, mouseOver: false);
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
             Assert.Equal(secondTarget, Assert.Single(edited.Slides[0].Shapes
@@ -480,8 +495,11 @@ namespace OfficeIMO.Tests {
                 string relationshipId = shape.TextBody!.Descendants<A.HyperlinkOnClick>()
                     .Single().Id!.Value!;
                 SetLinkedText(shape, relationshipId, linkFirstRun: true);
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                movedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(imported.AnalyzeLegacyPptWrite().CanWrite);
+                movedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation moved = LegacyPptPresentation.Load(movedBytes);
             LegacyPptTextInteraction movedRange = Assert.Single(

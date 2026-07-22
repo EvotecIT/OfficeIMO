@@ -8,6 +8,8 @@ namespace OfficeIMO.Reader;
 /// Shared input-size guard helpers for reader adapters.
 /// </summary>
 public static class ReaderInputLimits {
+    private const long MaximumInMemorySnapshotBytes = 64L * 1024 * 1024;
+
     internal static MemoryStream CreateSnapshotStream(int initialCapacity = 0) {
         return new ReaderSnapshotStream(initialCapacity);
     }
@@ -97,7 +99,7 @@ public static class ReaderInputLimits {
             stream.Position = 0;
         }
 
-        var buffer = new ReaderSnapshotStream(0);
+        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -152,7 +154,7 @@ public static class ReaderInputLimits {
             stream.Position = 0;
         }
 
-        var buffer = new ReaderSnapshotStream(0);
+        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -177,6 +179,19 @@ public static class ReaderInputLimits {
 
         buffer.Position = 0;
         return buffer;
+    }
+
+    private static Stream CreateBoundedSnapshotBuffer(long? maxInputBytes) {
+        if (maxInputBytes.HasValue
+            && maxInputBytes.Value <= MaximumInMemorySnapshotBytes) {
+            return new ReaderSnapshotStream(0);
+        }
+
+        string path = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-" + Guid.NewGuid().ToString("N") + ".tmp");
+        return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
+            FileShare.Read, 64 * 1024,
+            FileOptions.DeleteOnClose | FileOptions.SequentialScan);
     }
 
     private sealed class ReaderSnapshotStream : MemoryStream {

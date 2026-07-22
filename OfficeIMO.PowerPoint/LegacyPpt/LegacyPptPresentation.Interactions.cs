@@ -294,11 +294,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             LegacyPptCustomShow? customShow = null;
             if (action == LegacyPptInteractionAction.CustomShow && name != null) {
-                LegacyPptCustomShow[] matches = _customShows.Where(show =>
-                    string.Equals(show.Name, name, StringComparison.Ordinal)).ToArray();
-                if (matches.Length == 1 && matches[0].IsEditable) {
-                    customShow = matches[0];
-                }
+                _uniqueEditableCustomShowsByName.TryGetValue(name,
+                    out customShow);
             }
             var interaction = new LegacyPptInteraction(
                 (LegacyPptInteractionTrigger)container.Instance, action,

@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 ?? string.Empty;
             string colorMap = part.NotesSlide?.ColorMapOverride?.OuterXml
                 ?? string.Empty;
-            return theme + "\n" + colorMap;
+            return LegacyPptProjectionDigest.Create(theme, colorMap);
         }
 
         internal static IReadOnlyList<string>

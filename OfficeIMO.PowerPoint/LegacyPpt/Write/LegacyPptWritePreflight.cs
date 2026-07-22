@@ -10,9 +10,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var findings = new List<LegacyPptWriteFinding>();
             AddPackagePartFindings(presentation, findings);
-            if (findings.Count == 0
-                && (presentation.CanPreserveOriginalLegacyPackage
-                    || LegacyPptPreservingWriter.CanWritePresentation(presentation))) {
+            int packageFindingCount = findings.Count;
+            bool canPreserve = presentation.CanPreserveOriginalLegacyPackage
+                || LegacyPptPreservingWriter.CanWritePresentation(
+                    presentation);
+            if (canPreserve
+                && !presentation.CanPreserveOriginalLegacyPackage) {
+                AddPreservedActiveContentFindings(presentation, findings);
+            }
+            if (canPreserve && packageFindingCount == 0) {
                 return new LegacyPptWritePreflightReport(findings);
             }
             if (presentation.LegacyPptPackage != null) {
@@ -395,6 +401,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             return new LegacyPptWritePreflightReport(findings);
+        }
+
+        private static void AddPreservedActiveContentFindings(
+            PowerPointPresentation presentation,
+            ICollection<LegacyPptWriteFinding> findings) {
+            if (presentation.LegacyPptWillPreserveVbaContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.VbaProjects,
+                    "PPT-WRITE-PRESERVED-VBA",
+                    "The edited binary presentation will preserve an imported VBA project. Set LossPolicy to Allow only when retaining that active content is intentional."));
+            }
+            if (presentation.LegacyPptHasEmbeddedOleContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.EmbeddedOle,
+                    "PPT-WRITE-PRESERVED-OLE",
+                    "The edited binary presentation will preserve imported embedded OLE content. Set LossPolicy to Allow only when retaining that active content is intentional."));
+            }
+            if (presentation.LegacyPptHasLinkedOleContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.LinkedOle,
+                    "PPT-WRITE-PRESERVED-LINKED-OLE",
+                    "The edited binary presentation will preserve imported linked OLE content. Set LossPolicy to Allow only when retaining that external content is intentional."));
+            }
+            if (presentation.LegacyPptHasActiveXContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.ActiveX,
+                    "PPT-WRITE-PRESERVED-ACTIVEX",
+                    "The edited binary presentation will preserve imported ActiveX content. Set LossPolicy to Allow only when retaining that active content is intentional."));
+            }
+            if (presentation.LegacyPptWillPreserveRunProgramContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.Actions,
+                    "PPT-WRITE-PRESERVED-RUN-PROGRAM",
+                    "The edited binary presentation will preserve a run-program action. Set LossPolicy to Allow only when retaining that active action is intentional."));
+            }
+            if (presentation.LegacyPptWillPreserveExternalHyperlinkContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.Hyperlinks,
+                    "PPT-WRITE-PRESERVED-EXTERNAL-LINK",
+                    "The edited binary presentation will preserve an external hyperlink. Set LossPolicy to Allow only when retaining that external target is intentional."));
+            }
+            if (presentation.LegacyPptHasExternalMediaContent) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.LinkedMedia,
+                    "PPT-WRITE-PRESERVED-EXTERNAL-MEDIA",
+                    "The edited binary presentation will preserve externally linked media. Set LossPolicy to Allow only when retaining that external target is intentional."));
+            }
         }
 
         internal static bool CanWriteSlideLosslessly(PowerPointSlide slide) {
