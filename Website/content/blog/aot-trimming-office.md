@@ -10,7 +10,9 @@ NativeAOT is useful for small command-line tools, containerized document workers
 
 ## What works as a native executable
 
-OfficeIMO maintains native test applications for the most common customer paths. All eight scenarios currently pass on both Windows and Linux:
+OfficeIMO accounts for all 89 production projects instead of choosing five attractive packages. The current matrix validates 88 projects in NativeAOT: 85 libraries are fully rooted into one native compile graph, the optional Google APIs adapter runs a bounded token-store workflow, and both production CLI tools publish and start natively. The remaining project is the WPF/WebView2 renderer, which uses managed Windows deployment because the .NET SDK rejects trimming for WPF executables.
+
+That project-level matrix is reinforced by eight customer workflow applications, all of which currently pass on both Windows and Linux:
 
 - Word creates, saves, reopens, and inspects a DOCX.
 - Excel writes and reloads a typed table.
@@ -19,7 +21,7 @@ OfficeIMO maintains native test applications for the most common customer paths.
 - Reader registers the complete local-format preset and performs structured extraction.
 - HTML rendering produces SVG, PNG, and searchable PDF output.
 
-The tests publish and execute on `win-x64` and `linux-x64` rather than stopping when compilation succeeds. This catches missing metadata, relationship, serialization, and startup behavior that a project setting alone cannot prove. Each scenario uses isolated SDK artifacts so results do not depend on a previous build from another operating system.
+The tests publish and execute on `win-x64` and `linux-x64` rather than stopping when compilation succeeds. This catches missing metadata, relationship, serialization, and startup behavior that a project setting alone cannot prove. Each scenario uses isolated SDK artifacts so results do not depend on a previous build from another operating system. The [complete matrix](/data/aot-compatibility.json) names each project and the evidence attached to it.
 
 ## Add NativeAOT to your application
 
@@ -42,9 +44,9 @@ Use the normal typed OfficeIMO APIs. If your code asks OfficeIMO or another depe
 
 An AOT document worker does not need a browser, cloud SDK, or OCR engine unless the application selects one. OfficeIMO keeps these capabilities in focused packages:
 
-- Google Workspace and other network clients bring the authentication and HTTP provider chosen by the application.
+- The dependency-light Google Workspace clients are included in the fully rooted graph. The optional `Google.Apis` credential package has a bounded native token-store test; live OAuth remains part of the consumer's provider graph.
 - Tesseract and process-based OCR execute an external program even when the OfficeIMO host is native.
-- WPF/WebView2 is a desktop rendering integration with its own runtime deployment model.
+- WPF/WebView2 uses managed Windows deployment and is not presented as NativeAOT-compatible while WPF trimming is rejected by the .NET SDK.
 
 Keeping those boundaries explicit makes a small native Word, Excel, PowerPoint, Markdown, CSV, Reader, or PDF tool practical without pretending every third-party runtime is compiled into the same binary.
 

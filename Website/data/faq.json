@@ -33,7 +33,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>NativeAOT support is stated per executed scenario, not as a blanket package promise. Current <strong>win-x64</strong> smoke paths pass for Word create/save/reload, Markdown composition and rendering, CSV parsing with header-schema readback, Reader CSV extraction, and HTML rendering to SVG, PNG, and PDF with searchable marker text. Excel and PowerPoint are currently blocked by trim/AOT warnings in their dependency paths. See the <a href='/docs/advanced/aot-trimming/'>AOT and trimming matrix</a> for commands, evidence, and the CI-tested subset.</p>"
+          "answer": "<p>Yes, for <strong>88 of the 89 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 85 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts both production CLI tools on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
         }
       ]
     },

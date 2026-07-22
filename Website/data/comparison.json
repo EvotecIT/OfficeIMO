@@ -38,7 +38,7 @@
     {
       "feature": "AOT and trimming reality",
       "values": [
-        "Package-specific, with the cleanest story today in lighter packages such as Markdown and CSV",
+        "88 of 89 production projects have Windows and Linux NativeAOT evidence; the WPF/WebView2 renderer uses managed Windows deployment",
         "Varies by vendor, package, and feature set",
         "Real publish profiles, linker settings, and the exact package mix you plan to ship"
       ]

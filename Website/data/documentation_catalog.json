@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 145,
+    "projectCount": 146,
     "productionComponentCount": 89,
     "testProjectCount": 29,
     "benchmarkProjectCount": 12,
-    "validationProjectCount": 16,
+    "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 69,
-    "conceptualWordCount": 28382
+    "conceptualWordCount": 28713
   },
   "categories": [
     {

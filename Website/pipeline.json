@@ -43,8 +43,23 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "build-aot-project-matrix",
       "dependsOn": ["build-documentation-catalog"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "../Build/Test-AotProjectCoverage.ps1",
+        "-JsonOutputPath",
+        "./static/data/aot-compatibility.json"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": ["build-aot-project-matrix"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
