@@ -359,12 +359,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false, false)]
-        [InlineData(false, true)]
-        [InlineData(true, false)]
-        [InlineData(true, true)]
-        public void LegacyPreservationGateScansMasterAndLayoutHyperlinks(
-            bool useMaster, bool runProgram) {
+        [InlineData(0, false)]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(1, true)]
+        [InlineData(2, false)]
+        [InlineData(2, true)]
+        [InlineData(3, false)]
+        [InlineData(3, true)]
+        public void LegacyPreservationGateScansProjectedShapeRoots(
+            int targetKind, bool runProgram) {
             byte[] binary;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
@@ -393,11 +397,21 @@ namespace OfficeIMO.Tests {
                 .ForEach(item => item.Remove());
             SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
                 .SlideLayoutPart!;
-            P.NonVisualDrawingProperties properties = useMaster
-                ? layoutPart.SlideMasterPart!.SlideMaster!
-                    .Descendants<P.NonVisualDrawingProperties>().First()
-                : layoutPart.SlideLayout!
-                    .Descendants<P.NonVisualDrawingProperties>().First();
+            DocumentFormat.OpenXml.OpenXmlPartRootElement root;
+            if (targetKind >= 2) {
+                imported.Slides[0].Notes.Text = "Speaker note";
+                NotesSlidePart notesPart = imported.Slides[0].SlidePart
+                    .NotesSlidePart!;
+                root = targetKind == 2
+                    ? notesPart.NotesSlide!
+                    : notesPart.NotesMasterPart!.NotesMaster!;
+            } else {
+                root = targetKind == 0
+                    ? layoutPart.SlideMasterPart!.SlideMaster!
+                    : layoutPart.SlideLayout!;
+            }
+            P.NonVisualDrawingProperties properties = root
+                .Descendants<P.NonVisualDrawingProperties>().First();
             properties.Append(new A.HyperlinkOnClick {
                 Id = "rPreservedActiveContent",
                 Action = runProgram ? "ppaction://program" : null

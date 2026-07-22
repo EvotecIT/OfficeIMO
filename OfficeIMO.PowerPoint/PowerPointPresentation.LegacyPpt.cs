@@ -75,6 +75,11 @@ namespace OfficeIMO.PowerPoint {
                 ReportUnsupportedContent = sourceOptions.ReportUnsupportedContent,
                 MaxRecordCount = sourceOptions.MaxRecordCount,
                 MaxRecordDepth = sourceOptions.MaxRecordDepth,
+                MaxMasterCount = sourceOptions.MaxMasterCount,
+                MaxConnectorRuleCount = sourceOptions.MaxConnectorRuleCount,
+                MaxCommentCount = sourceOptions.MaxCommentCount,
+                MaxTextStyle9EntryCount =
+                    sourceOptions.MaxTextStyle9EntryCount,
                 MaxDecodedStorageBytes =
                     sourceOptions.MaxDecodedStorageBytes,
                 Password = password

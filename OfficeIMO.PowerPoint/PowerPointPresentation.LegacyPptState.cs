@@ -255,6 +255,12 @@ namespace OfficeIMO.PowerPoint {
                         yield return item;
                     }
                 }
+                if (slidePart.NotesSlidePart?.NotesSlide != null) {
+                    foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                                 slidePart.NotesSlidePart.NotesSlide)) {
+                        yield return item;
+                    }
+                }
             }
             foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
                 if (masterPart.SlideMaster != null) {
@@ -269,6 +275,18 @@ namespace OfficeIMO.PowerPoint {
                                  layoutPart.SlideLayout)) {
                         yield return item;
                     }
+                }
+            }
+            if (_presentationPart.NotesMasterPart?.NotesMaster != null) {
+                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                             _presentationPart.NotesMasterPart.NotesMaster)) {
+                    yield return item;
+                }
+            }
+            if (_presentationPart.HandoutMasterPart?.HandoutMaster != null) {
+                foreach (A.HyperlinkType item in EnumerateReferencedHyperlinks(
+                             _presentationPart.HandoutMasterPart.HandoutMaster)) {
+                    yield return item;
                 }
             }
         }

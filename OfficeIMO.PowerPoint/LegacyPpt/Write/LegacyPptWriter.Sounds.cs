@@ -163,6 +163,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 string key = CreateSoundKey(name, extension, builtInId: null, bytes);
                 if (_soundsByKey.TryGetValue(key, out sound)) return true;
+                if (!CanAddSoundBytes(bytes.Length, out reason)) return false;
                 if (_nextId >= int.MaxValue) {
                     reason = "The binary sound identifier range is exhausted.";
                     return false;
@@ -219,6 +220,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 string key = CreateSoundKey(name, ".wav",
                     builtInId: null, bytes);
                 if (_soundsByKey.TryGetValue(key, out sound)) return true;
+                if (!CanAddSoundBytes(bytes.Length, out reason)) return false;
                 if (_nextId >= int.MaxValue) {
                     reason = "The binary sound identifier range is exhausted.";
                     return false;
@@ -241,12 +243,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         FileAccess.Read);
                     bytes = OfficeStreamReader.ReadAllBytes(input,
                         MaximumSoundBytes);
-                    long nextTotal = checked(_totalSoundBytes + bytes.Length);
-                    if (nextTotal > MaximumTotalSoundBytes) {
-                        bytes = Array.Empty<byte>();
-                        reason = $"Binary PowerPoint sound payloads cannot exceed {MaximumTotalSoundBytes} aggregate bytes.";
-                        return false;
-                    }
                     return true;
                 } catch (Exception exception) when (exception
                     is IOException or InvalidDataException
@@ -255,6 +251,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = $"The embedded audio payload cannot be read within the {MaximumSoundBytes}-byte safety limit: {exception.Message}";
                     return false;
                 }
+            }
+
+            private bool CanAddSoundBytes(int byteCount, out string? reason) {
+                long nextTotal = checked(_totalSoundBytes + byteCount);
+                if (nextTotal <= MaximumTotalSoundBytes) {
+                    reason = null;
+                    return true;
+                }
+                reason = $"Binary PowerPoint sound payloads cannot exceed {MaximumTotalSoundBytes} aggregate bytes.";
+                return false;
             }
 
             private static string CreateSoundKey(string name, string extension,
