@@ -187,6 +187,13 @@ namespace OfficeIMO.Tests {
             Assert.False(rendered);
             Assert.Contains("safe limit", reason,
                 StringComparison.OrdinalIgnoreCase);
+
+            PowerPointSlideVisualSnapshot snapshot = PowerPointSlideImageRenderer
+                .CreateSnapshot(table.OwnerSlide!,
+                    new PowerPointImageExportOptions());
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("safe limit",
+                    StringComparison.OrdinalIgnoreCase));
         }
     }
 }

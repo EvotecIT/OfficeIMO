@@ -17,11 +17,20 @@ public sealed class ReaderInputLimitTests {
             out bool ownsStream);
         using (prepared) {
             Assert.True(ownsStream);
-            Assert.IsType<FileStream>(prepared);
-            Assert.False(ReaderInputLimits.IsSnapshotStream(prepared));
+            Assert.IsAssignableFrom<FileStream>(prepared);
+            Assert.True(ReaderInputLimits.IsSnapshotStream(prepared));
             using var copy = new MemoryStream();
             prepared.CopyTo(copy);
             Assert.Equal(payload, copy.ToArray());
+
+            Stream reused = ReaderInputLimits.EnsureSeekableReadStream(
+                prepared,
+                maxInputBytes: 64L * 1024 * 1024 + 1,
+                CancellationToken.None,
+                out bool ownsReused);
+            Assert.Same(prepared, reused);
+            Assert.False(ownsReused);
+            Assert.Equal(0, reused.Position);
         }
     }
 }

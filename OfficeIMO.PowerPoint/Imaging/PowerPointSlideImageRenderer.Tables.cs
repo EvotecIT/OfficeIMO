@@ -20,11 +20,7 @@ namespace OfficeIMO.PowerPoint {
                 reason = "The table has no positive renderable bounds.";
                 return false;
             }
-            long cellCount = checked((long)table.Rows * table.Columns);
-            if (table.Rows > MaximumTableRasterRows
-                || table.Columns > MaximumTableRasterColumns
-                || cellCount > MaximumTableRasterCells) {
-                reason = $"The table rasterization request ({table.Rows} rows, {table.Columns} columns, {cellCount} cells) exceeds the safe limit of {MaximumTableRasterRows} rows, {MaximumTableRasterColumns} columns, or {MaximumTableRasterCells} cells.";
+            if (!TryValidateTableRasterLimits(table, out reason)) {
                 return false;
             }
             try {
@@ -57,6 +53,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddTable(OfficeDrawing drawing, PowerPointTable table, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+            if (!TryValidateTableRasterLimits(table, out string? limitReason)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, table,
+                    limitReason!);
+                return;
+            }
             if (!TryGetBounds(table, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;
             }
@@ -98,6 +99,19 @@ namespace OfficeIMO.PowerPoint {
                     AddTableCellText(drawing, table, cell, cellLeft, cellTop, cellWidth, cellHeight, left, top, width, height, diagnostics, mapping, colorScheme);
                 }
             }
+        }
+
+        private static bool TryValidateTableRasterLimits(
+            PowerPointTable table, out string? reason) {
+            long cellCount = checked((long)table.Rows * table.Columns);
+            if (table.Rows > MaximumTableRasterRows
+                || table.Columns > MaximumTableRasterColumns
+                || cellCount > MaximumTableRasterCells) {
+                reason = $"The table rasterization request ({table.Rows} rows, {table.Columns} columns, {cellCount} cells) exceeds the safe limit of {MaximumTableRasterRows} rows, {MaximumTableRasterColumns} columns, or {MaximumTableRasterCells} cells.";
+                return false;
+            }
+            reason = null;
+            return true;
         }
 
         private static void MarkCoveredTableCells(bool[,] coveredCells, int row, int column, int rowSpan, int columnSpan) {

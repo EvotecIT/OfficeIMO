@@ -15,7 +15,8 @@ public static class ReaderInputLimits {
     }
 
     internal static bool IsSnapshotStream(Stream stream) {
-        return stream is ReaderSnapshotStream;
+        return stream is ReaderSnapshotStream
+            || stream is ReaderSnapshotFileStream;
     }
 
     /// <summary>
@@ -84,7 +85,7 @@ public static class ReaderInputLimits {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-        if (stream is ReaderSnapshotStream) {
+        if (IsSnapshotStream(stream)) {
             EnforceSeekableStreamSize(stream, maxInputBytes);
             stream.Position = 0;
             ownsStream = false;
@@ -140,7 +141,7 @@ public static class ReaderInputLimits {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (stream is ReaderSnapshotStream) {
+        if (IsSnapshotStream(stream)) {
             EnforceSeekableStreamSize(stream, maxInputBytes);
             stream.Position = 0;
             return stream;
@@ -189,13 +190,19 @@ public static class ReaderInputLimits {
 
         string path = Path.Combine(Path.GetTempPath(),
             "officeimo-reader-" + Guid.NewGuid().ToString("N") + ".tmp");
-        return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
-            FileShare.Read, 64 * 1024,
-            FileOptions.DeleteOnClose | FileOptions.SequentialScan);
+        return new ReaderSnapshotFileStream(path);
     }
 
     private sealed class ReaderSnapshotStream : MemoryStream {
         internal ReaderSnapshotStream(int initialCapacity) : base(initialCapacity) {
+        }
+    }
+
+    private sealed class ReaderSnapshotFileStream : FileStream {
+        internal ReaderSnapshotFileStream(string path) : base(path,
+            FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
+            64 * 1024,
+            FileOptions.DeleteOnClose | FileOptions.SequentialScan) {
         }
     }
 }
