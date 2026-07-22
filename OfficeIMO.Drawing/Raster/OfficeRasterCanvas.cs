@@ -394,6 +394,10 @@ public sealed partial class OfficeRasterCanvas {
             DrawLine(x1, y1, x2, y2, color, thickness);
             return;
         }
+        if ((pattern.Count & 1) == 1) {
+            int originalCount = pattern.Count;
+            for (int index = 0; index < originalCount; index++) pattern.Add(pattern[index]);
+        }
         IReadOnlyList<double> rasterPattern = NormalizeRasterDashPattern(pattern);
         if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
         double cycle = 0D;

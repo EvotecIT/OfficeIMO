@@ -1436,6 +1436,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_TinyDashNormalizationDoesNotOverflowLargeGaps() {
+            OfficeRasterImage dashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage patterned = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(dashed).DrawDashedLine(
+                0D, 3D, 31D, 3D, OfficeColor.Black, 1D, dashLength: 1e-300D, gapLength: 1e100D);
+            new OfficeRasterCanvas(patterned).DrawPatternedLine(
+                0D, 4D, 31D, 4D, OfficeColor.Black, 1D, new[] { 1e-300D, 1e100D });
+
+            Assert.Contains(Enumerable.Range(0, dashed.Width), x => dashed.GetPixel(x, 3).A > 0);
+            Assert.Contains(Enumerable.Range(0, patterned.Width), x => patterned.GetPixel(x, 4).A > 0);
+        }
+
+        [Fact]
+        public void OfficeRasterCanvas_OddDashPatternsPreserveAlternatingParityAcrossWrap() {
+            OfficeRasterImage odd = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterImage duplicated = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(odd).DrawPatternedLine(
+                0D, 3D, 31D, 3D, OfficeColor.Black, 1D, new[] { 2D, 1D, 3D });
+            new OfficeRasterCanvas(duplicated).DrawPatternedLine(
+                0D, 3D, 31D, 3D, OfficeColor.Black, 1D, new[] { 2D, 1D, 3D, 2D, 1D, 3D });
+
+            Assert.Equal(duplicated.GetPixels(), odd.GetPixels());
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_ClippedTinyDashPhaseMatchesQuantizedPattern() {
             OfficeRasterImage tinyDashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
             OfficeRasterImage quantizedDashed = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
