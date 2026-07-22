@@ -761,6 +761,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportOmitsConditionalRulesBeyondReferenceLimit() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("OversizedConditional");
+            sheet.CellValue(1, 1, 0D);
+            sheet.CellValue(100_001, 1, 1000D);
+            sheet.AddConditionalColorScale("A1:A100001", OfficeColor.Red, OfficeColor.Lime);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            Assert.Null(Assert.Single(snapshot.Cells).Style.FillColorArgb);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal("OversizedConditional!A1:A100001", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportKeepsStoppedCellsInColorScaleThresholds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

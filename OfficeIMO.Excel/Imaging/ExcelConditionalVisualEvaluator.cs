@@ -16,6 +16,11 @@ namespace OfficeIMO.Excel {
                 return ExcelConditionalVisualState.Empty;
             }
 
+            rules = ExcludeOversizedConditionalRules(sheet, rules, diagnostics);
+            if (rules.Count == 0) {
+                return ExcelConditionalVisualState.Empty;
+            }
+
             ReportUnsupportedConditionalRules(sheet, cells, rules, conditionalFormattingDate, diagnostics);
 
             IReadOnlyDictionary<string, int> firstStoppingPriorityByCell =
@@ -27,6 +32,29 @@ namespace OfficeIMO.Excel {
             return cellFormats.Count == 0 && dataBars.Count == 0 && icons.Count == 0
                 ? ExcelConditionalVisualState.Empty
                 : new ExcelConditionalVisualState(cellFormats, dataBars, icons);
+        }
+
+        private static IReadOnlyList<ExcelConditionalFormattingInfo> ExcludeOversizedConditionalRules(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            var retained = new List<ExcelConditionalFormattingInfo>(rules.Count);
+            foreach (ExcelConditionalFormattingInfo rule in rules) {
+                if (!EnumerateReferenceCells(rule.Range, MaxConditionalReferenceCells + 1)
+                    .Skip(MaxConditionalReferenceCells)
+                    .Any()) {
+                    retained.Add(rule);
+                    continue;
+                }
+
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
+                    $"Conditional formatting rule was omitted because its reference exceeds the {MaxConditionalReferenceCells.ToString(CultureInfo.InvariantCulture)}-cell image-export limit.",
+                    sheet.Name + "!" + rule.Range));
+            }
+
+            return retained;
         }
 
         private static List<ExcelVisualConditionalDataBar> BuildConditionalDataBars(
@@ -887,7 +915,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(string referenceList) {
+        private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(
+            string referenceList,
+            int maximumCells = MaxConditionalReferenceCells) {
             if (string.IsNullOrWhiteSpace(referenceList)) {
                 yield break;
             }
@@ -895,12 +925,12 @@ namespace OfficeIMO.Excel {
             var seen = new HashSet<string>(StringComparer.Ordinal);
             int emitted = 0;
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (emitted >= MaxConditionalReferenceCells) yield break;
+                if (emitted >= maximumCells) yield break;
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
                 if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     for (int row = firstRow; row <= lastRow; row++) {
                         for (int column = firstColumn; column <= lastColumn; column++) {
-                            if (emitted >= MaxConditionalReferenceCells) yield break;
+                            if (emitted >= maximumCells) yield break;
                             if (seen.Add(Key(row, column))) {
                                 emitted++;
                                 yield return (row, column);

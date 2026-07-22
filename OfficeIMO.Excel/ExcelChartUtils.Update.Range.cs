@@ -351,7 +351,7 @@ namespace OfficeIMO.Excel {
                 for (int i = 0; i < seriesList.Count; i++) {
                     OpenXmlCompositeElement seriesElement = seriesList[i];
                     NumberReference? valuesReference = GetSeriesValuesReference(seriesElement);
-                    string name = TryReadSeriesName(seriesElement, contextSheet, pointBudget, out string? resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
+                    string name = TryReadSeriesName(seriesElement, contextSheet, out string? resolvedName) && !string.IsNullOrWhiteSpace(resolvedName)
                         ? resolvedName!
                         : $"Series {i + 1}";
                     IReadOnlyList<double>? xValues = null;
@@ -443,22 +443,25 @@ namespace OfficeIMO.Excel {
             return categories.Count > 0;
         }
 
-        private static bool TryReadSeriesName(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, ChartDataPointBudget pointBudget, out string? name) {
+        private static bool TryReadSeriesName(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, out string? name) {
             name = null;
+            var nameBudget = new ChartDataPointBudget(1L);
             SeriesText? seriesText = seriesElement.GetFirstChild<SeriesText>();
             StringReference? reference = seriesText?.GetFirstChild<StringReference>();
-            if (TryReadReferencedTextValues(contextSheet, reference?.Formula?.Text, pointBudget, out IReadOnlyList<string>? referencedValues) && referencedValues != null && referencedValues.Count > 0) {
+            if (TryReadReferencedTextValues(contextSheet, reference?.Formula?.Text, nameBudget, out IReadOnlyList<string>? referencedValues) && referencedValues != null && referencedValues.Count > 0) {
                 name = referencedValues[0];
                 return true;
             }
 
-            if (TryReadCachedStringValues(reference, pointBudget, out IReadOnlyList<string>? cachedValues) && cachedValues != null && cachedValues.Count > 0) {
+            nameBudget = new ChartDataPointBudget(1L);
+            if (TryReadCachedStringValues(reference, nameBudget, out IReadOnlyList<string>? cachedValues) && cachedValues != null && cachedValues.Count > 0) {
                 name = cachedValues[0];
                 return true;
             }
 
             StringLiteral? literal = seriesText?.GetFirstChild<StringLiteral>();
-            if (TryReadFirstStringLiteralValue(literal, pointBudget, out string? literalText) &&
+            nameBudget = new ChartDataPointBudget(1L);
+            if (TryReadFirstStringLiteralValue(literal, nameBudget, out string? literalText) &&
                 !string.IsNullOrWhiteSpace(literalText)) {
                 name = literalText;
                 return true;

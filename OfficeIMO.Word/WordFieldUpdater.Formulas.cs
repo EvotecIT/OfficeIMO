@@ -1030,15 +1030,15 @@ namespace OfficeIMO.Word {
             }
 
             private decimal ParseTerm() {
-                decimal value = ParsePower();
+                decimal value = ParseUnary();
 
                 while (true) {
                     SkipWhitespace();
 
                     if (TryConsume('*')) {
-                        value *= ParsePower();
+                        value *= ParseUnary();
                     } else if (TryConsume('/')) {
-                        decimal divisor = ParsePower();
+                        decimal divisor = ParseUnary();
                         if (divisor == 0m) {
                             throw new DivideByZeroException();
                         }
@@ -1051,21 +1051,24 @@ namespace OfficeIMO.Word {
             }
 
             private decimal ParsePower() {
-                var operands = new List<decimal> { ParseUnary() };
+                var operands = new List<decimal> { ParsePostfix() };
+                var signs = new List<int> { 1 };
                 while (true) {
                     SkipWhitespace();
                     if (!TryConsume('^')) {
                         break;
                     }
-                    operands.Add(ParseUnary());
+                    signs.Add(ParseUnarySign());
+                    operands.Add(ParsePostfix());
                 }
 
-                decimal value = operands[operands.Count - 1];
+                decimal value = signs[signs.Count - 1] * operands[operands.Count - 1];
                 for (int i = operands.Count - 2; i >= 0; i--) {
                     if (decimal.Truncate(value) != value) {
                         throw new InvalidOperationException("Formula exponent must be an integer.");
                     }
                     value = DecimalPower(operands[i], value);
+                    value *= signs[i];
                 }
                 return value;
             }
@@ -1073,19 +1076,29 @@ namespace OfficeIMO.Word {
             private decimal ParseUnary() {
                 EnterSyntax();
                 try {
-                    SkipWhitespace();
-
-                    if (TryConsume('+')) {
-                        return ParseUnary();
-                    }
-
-                    if (TryConsume('-')) {
-                        return -ParseUnary();
-                    }
-
-                    return ParsePostfix();
+                    return ParseUnarySign() * ParsePower();
                 } finally {
                     _syntaxDepth--;
+                }
+            }
+
+            private int ParseUnarySign() {
+                int sign = 1;
+                int operators = 0;
+                while (true) {
+                    SkipWhitespace();
+                    if (TryConsume('+')) {
+                        operators++;
+                    } else if (TryConsume('-')) {
+                        sign = -sign;
+                        operators++;
+                    } else {
+                        return sign;
+                    }
+
+                    if (operators > MaxSyntaxDepth) {
+                        throw new InvalidOperationException($"Formula expression exceeds the supported syntax depth of {MaxSyntaxDepth}.");
+                    }
                 }
             }
 

@@ -36,6 +36,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting rule type.</summary>
     public const string ConditionalRuleUnsupported = "ExcelConditionalRuleUnsupported";
 
+    /// <summary>A conditional formatting rule was omitted because its reference exceeds the bounded evaluation limit.</summary>
+    public const string ConditionalReferenceLimitExceeded = "ExcelConditionalReferenceLimitExceeded";
+
     /// <summary>Unsupported conditional formatting icon set.</summary>
     public const string ConditionalIconSetUnsupported = "ExcelConditionalIconSetUnsupported";
 

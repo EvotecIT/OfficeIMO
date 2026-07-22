@@ -364,6 +364,50 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 10D, 20D }, series.Values);
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeReferencedSeriesNamesToDataPointBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("CaptionBudget");
+            sheet.CellValue(1, 1, 1D);
+            sheet.CellValue(2, 1, 2D);
+            sheet.CellValue(1, 2, "Referenced caption");
+            sheet.CellValue(1, 3, 10D);
+            sheet.CellValue(2, 3, 20D);
+            sheet.AddScatterChartFromRanges(
+                new[] { new ExcelChartSeriesRange("Placeholder", "A1:A2", "C1:C2") },
+                row: 1,
+                column: 5,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Budget");
+            ChartPart chartPart = GetFirstChartPart(document);
+            ScatterChartSeries chartSeries = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().First();
+            SeriesText seriesText = chartSeries.GetFirstChild<SeriesText>()!;
+            seriesText.RemoveAllChildren();
+            seriesText.Append(new StringReference(new Formula("CaptionBudget!$B$1")));
+            chartPart.ChartSpace.Save();
+
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 4L },
+                culture: null)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod(
+                "TryReadChartDataCore",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+
+            Assert.NotNull(data);
+            ExcelChartSeries series = Assert.Single(data!.Series);
+            Assert.Equal("Referenced caption", series.Name);
+            Assert.Equal(new[] { 1D, 2D }, series.XValues);
+            Assert.Equal(new[] { 10D, 20D }, series.Values);
+        }
+
         private static object CreateChartDataPointBudget(Type utilities) {
             Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
             return Activator.CreateInstance(budgetType, nonPublic: true)!;

@@ -2041,6 +2041,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_AppliesUnarySignsAfterExponentiation() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.FormulaUnaryExponent.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed base: ")._paragraph.Append(BuildSimpleField(" = -2 ^ 2 ", "stale"));
+                document.AddParagraph("Grouped base: ")._paragraph.Append(BuildSimpleField(" = (-2) ^ 2 ", "stale"));
+                document.AddParagraph("Signed exponent: ")._paragraph.Append(BuildSimpleField(" = 2 ^ -2 ^ 2 ", "stale"));
+                document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(filePath);
+            WordFieldUpdateReport report = loaded.UpdateFieldsAndGetReport();
+
+            Assert.Equal(new[] { "-4", "4", "0.0625" }, report.Results.Select(result => result.ResultText).ToArray());
+            Assert.All(report.Results, result => Assert.Equal(WordFieldUpdateStatus.Updated, result.Status));
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_AppliesFormulaNumericPictureSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.FormulaNumericPictures.docx");
 
