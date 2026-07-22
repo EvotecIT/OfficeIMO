@@ -20,11 +20,17 @@ internal static class AdfToMarkdownConverter {
     private static void AppendBlock(StringBuilder builder, AdfNode node, string path, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics, int listDepth) {
         switch (node.Type) {
             case "paragraph":
+                if (node.Content.Count == 0) {
+                    diagnostics.Add(Warning("ADF_EMPTY_PARAGRAPH_DROPPED", path, "Markdown cannot preserve an explicit empty ADF paragraph, so the paragraph was omitted."));
+                }
                 builder.Append(RenderInlineContent(node, path, diagnostics));
                 break;
             case "heading":
                 int level = node.GetInt32Attribute("level") ?? 1;
                 level = Math.Max(1, Math.Min(6, level));
+                if (node.ExtensionData.Count > 0 || node.Attributes.Keys.Any(key => !string.Equals(key, "level", StringComparison.Ordinal))) {
+                    diagnostics.Add(Warning("ADF_HEADING_PROPERTIES_DROPPED", path, "ADF heading properties other than level cannot be represented in Markdown and were omitted."));
+                }
                 ReportMultilineHeadingText(node, path, diagnostics);
                 builder.Append(new string('#', level)).Append(' ').Append(RenderInlineContent(node, path, diagnostics));
                 break;
@@ -204,10 +210,32 @@ internal static class AdfToMarkdownConverter {
         if (hasCode && (rawText.IndexOf('\r') >= 0 || rawText.IndexOf('\n') >= 0)) {
             diagnostics.Add(Warning("ADF_CODE_MARK_LINE_BREAK_NORMALIZED", path, "Markdown code spans normalize line breaks to spaces; the original ADF code-mark text cannot be represented exactly."));
         }
+        bool hasDelimiterMark = node.Marks.Any(mark =>
+            string.Equals(mark.Type, "strong", StringComparison.Ordinal) ||
+            string.Equals(mark.Type, "em", StringComparison.Ordinal) ||
+            string.Equals(mark.Type, "strike", StringComparison.Ordinal));
+        int leadingWhitespace = 0;
+        while (leadingWhitespace < rawText.Length && char.IsWhiteSpace(rawText[leadingWhitespace])) leadingWhitespace++;
+        int trailingWhitespace = rawText.Length;
+        while (trailingWhitespace > leadingWhitespace && char.IsWhiteSpace(rawText[trailingWhitespace - 1])) trailingWhitespace--;
+        if (hasDelimiterMark && (leadingWhitespace > 0 || trailingWhitespace < rawText.Length)) {
+            diagnostics.Add(Warning("ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED", path, "Markdown delimiters cannot preserve boundary whitespace inside an ADF strong, emphasis, or strike mark; the whitespace was moved outside the marked span."));
+            builder.Append(MarkdownEscaper.EscapeLiteralText(rawText.Substring(0, leadingWhitespace)));
+            if (trailingWhitespace > leadingWhitespace) {
+                builder.Append(RenderMarkedText(rawText.Substring(leadingWhitespace, trailingWhitespace - leadingWhitespace), node.Marks, path, diagnostics));
+            }
+            builder.Append(MarkdownEscaper.EscapeLiteralText(rawText.Substring(trailingWhitespace)));
+            return;
+        }
+        builder.Append(RenderMarkedText(rawText, node.Marks, path, diagnostics));
+    }
+
+    private static string RenderMarkedText(string rawText, IEnumerable<AdfMark> marks, string path, List<AdfConversionDiagnostic> diagnostics) {
+        bool hasCode = marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
         string value = hasCode
             ? MarkdownFence.BuildSafeCodeSpan(rawText)
             : MarkdownEscaper.EscapeLiteralText(rawText);
-        foreach (AdfMark mark in node.Marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
+        foreach (AdfMark mark in marks.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
                 case "strong": value = "**" + value + "**"; break;
                 case "em": value = "*" + value + "*"; break;
@@ -228,7 +256,7 @@ internal static class AdfToMarkdownConverter {
                     break;
             }
         }
-        builder.Append(value);
+        return value;
     }
 
     private static string ExtractPlainText(AdfNode node) {

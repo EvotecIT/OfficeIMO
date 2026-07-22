@@ -40,6 +40,32 @@ public sealed class AdfContractTests {
     }
 
     [Fact]
+    public void MarkdownProjection_ReportsExplicitEmptyParagraphLoss() {
+        var document = new AdfDocument(new[] { new AdfNode("paragraph") });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.Empty(result.Value);
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_EMPTY_PARAGRAPH_DROPPED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
+    [Fact]
+    public void HeadingProjection_ReportsDroppedProperties() {
+        var heading = new AdfNode("heading") { Content = { AdfNode.TextNode("Status") } };
+        heading.SetAttribute("level", 2).SetAttribute("localId", "heading-1");
+        heading.ExtensionData["vendorHeadingOption"] = JsonSerializer.SerializeToElement(true);
+        var document = new AdfDocument(new[] { heading });
+
+        AdfConversionResult<string> result = AdfConverter.ToMarkdown(document);
+
+        Assert.False(result.Report.IsLossless);
+        AdfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "ADF_HEADING_PROPERTIES_DROPPED");
+        Assert.Equal("$.content[0]", diagnostic.Path);
+    }
+
+    [Fact]
     public void HtmlConversion_UsesOfficeimoPipelines() {
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromHtml("<h2>Report</h2><p><strong>Ready</strong></p>");
         AdfConversionResult<string> html = AdfConverter.ToHtml(adf.Value);
@@ -683,6 +709,31 @@ public sealed class AdfContractTests {
             Assert.Contains(text.Marks, mark => mark.Type == "strong");
             Assert.Contains(text.Marks, mark => mark.Type == "code");
         }
+    }
+
+    [Theory]
+    [InlineData("strong", "**ready**")]
+    [InlineData("em", "*ready*")]
+    [InlineData("strike", "~~ready~~")]
+    public void DelimiterMarkProjection_MovesBoundaryWhitespaceOutsideMarkup(string markType, string renderedCore) {
+        var document = new AdfDocument();
+        document.Content.Add(new AdfNode("paragraph") {
+            Content = {
+                AdfNode.TextNode("before"),
+                AdfNode.TextNode(" ready ", new[] { new AdfMark(markType) }),
+                AdfNode.TextNode("after"),
+            }
+        });
+
+        AdfConversionResult<string> markdown = AdfConverter.ToMarkdown(document);
+        AdfConversionResult<AdfDocument> roundTrip = AdfConverter.FromMarkdown(markdown.Value);
+
+        Assert.Contains(" " + renderedCore + " ", markdown.Value);
+        Assert.False(markdown.Report.IsLossless);
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "ADF_MARK_BOUNDARY_WHITESPACE_NORMALIZED");
+        AdfNode paragraph = Assert.Single(roundTrip.Value.Content);
+        Assert.Equal("before ready after", string.Concat(paragraph.Content.Select(item => item.Text)));
+        Assert.Contains(paragraph.Content, item => item.Text == "ready" && item.Marks.Any(mark => mark.Type == markType));
     }
 
     [Fact]
