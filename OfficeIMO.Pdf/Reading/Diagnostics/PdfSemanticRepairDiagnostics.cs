@@ -64,6 +64,7 @@ internal static class PdfSemanticRepairDiagnostics {
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         if (names is null) return;
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
+            if (!IsStandardCatalogNameTree(entry.Key)) continue;
             int traversedNameTreeNodes = 0;
             ValidateNameTreeNode(objects, entry.Value, entry.Key, new HashSet<int>(), options, diagnostics, 0, ref traversedNameTreeNodes);
         }
@@ -80,6 +81,11 @@ internal static class PdfSemanticRepairDiagnostics {
                 0,
                 ref traversedDestinationTreeNodes);
         }
+    }
+
+    private static bool IsStandardCatalogNameTree(string name) {
+        return name is "Dests" or "AP" or "JavaScript" or "Pages" or "Templates" or
+            "IDS" or "URLS" or "EmbeddedFiles" or "AlternatePresentations" or "Renditions";
     }
 
     private static void ValidateNameTreeNode(
