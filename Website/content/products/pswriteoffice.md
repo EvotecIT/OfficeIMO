@@ -17,11 +17,11 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. Its authoritati
 
 ## Features
 
-- **464 cmdlets** -- manifest-validated coverage across 15 command families
-- **DSL aliases** -- intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
-- **Broad document platform** -- Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
-- **Cross-platform** -- runs on Windows, Linux, and macOS wherever PowerShell is available
-- **PowerShell 5.1 and 7+** -- compatible with Windows PowerShell and modern PowerShell Core
+- **464 cmdlets** — manifest-validated coverage across 15 command families
+- **DSL aliases** — intuitive shorthand like `WordParagraph`, `ExcelSheet`, and `PptSlide` for concise scripts
+- **Broad document platform** — Word, Excel, PowerPoint, PDF, Reader, Visio, Markdown, CSV, RTF, OpenDocument, email, AsciiDoc, LaTeX, and HTML asset workflows
+- **Cross-platform** — runs on Windows, Linux, and macOS wherever PowerShell is available
+- **PowerShell 5.1 and 7+** — compatible with Windows PowerShell and modern PowerShell Core
 
 ## Command families
 

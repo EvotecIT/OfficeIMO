@@ -15,7 +15,8 @@
       { "title": "Capability Catalog", "path": "capabilities/index.md", "href": "/docs/capabilities/" },
       { "title": "Packages and Components", "path": "capabilities/packages/index.md", "href": "/docs/capabilities/packages/" },
       { "title": "Conversion Capability Map", "path": "capabilities/conversions/index.md", "href": "/docs/capabilities/conversions/" },
-      { "title": "Validation and Evidence", "path": "capabilities/validation/index.md", "href": "/docs/capabilities/validation/" }
+      { "title": "Validation and Evidence", "path": "capabilities/validation/index.md", "href": "/docs/capabilities/validation/" },
+      { "title": "Benchmark Evidence", "path": "capabilities/benchmarks/index.md", "href": "/docs/capabilities/benchmarks/" }
     ]
   },
   {
@@ -29,7 +30,7 @@
       { "title": "Templates and Forms", "path": "word/templates/index.md", "href": "/docs/word/templates/" },
       { "title": "Review and Comparison", "path": "word/review/index.md", "href": "/docs/word/review/" },
       { "title": "Word Conversion and Rendering", "path": "word/conversion/index.md", "href": "/docs/word/conversion/" },
-      { "title": "Market Readiness", "path": "word/market-readiness/index.md", "href": "/docs/word/market-readiness/" }
+      { "title": "Production Workflows", "path": "word/market-readiness/index.md", "href": "/docs/word/market-readiness/" }
     ]
   },
   {
@@ -58,7 +59,11 @@
       { "title": "PDF Operations", "path": "pdf/operations/index.md", "href": "/docs/pdf/operations/" },
       { "title": "PDF Security", "path": "pdf/security/index.md", "href": "/docs/pdf/security/" },
       { "title": "PDF Conversion", "path": "pdf/conversion/index.md", "href": "/docs/pdf/conversion/" },
-      { "title": "Email and Outlook data", "path": "email/index.md", "href": "/docs/email/" },
+      { "title": "Email and Outlook Data", "path": "email/index.md", "href": "/docs/email/" },
+      { "title": "Messages and Conversion", "path": "email/messages-and-conversion/index.md", "href": "/docs/email/messages-and-conversion/" },
+      { "title": "Mailbox Stores", "path": "email/mailbox-stores/index.md", "href": "/docs/email/mailbox-stores/" },
+      { "title": "Calendars and Contacts", "path": "email/calendars-and-contacts/index.md", "href": "/docs/email/calendars-and-contacts/" },
+      { "title": "Safety and Verification", "path": "email/safety-and-verification/index.md", "href": "/docs/email/safety-and-verification/" },
       { "title": "OneNote", "path": "onenote/index.md", "href": "/docs/onenote/" }
     ]
   },
@@ -85,7 +90,11 @@
   {
     "title": "Visio",
     "items": [
-      { "title": "Visio Overview", "path": "visio/index.md", "href": "/docs/visio/" }
+      { "title": "Visio Overview", "path": "visio/index.md", "href": "/docs/visio/" },
+      { "title": "Diagram Builders", "path": "visio/diagram-builders/index.md", "href": "/docs/visio/diagram-builders/" },
+      { "title": "Editing and Validation", "path": "visio/editing-and-validation/index.md", "href": "/docs/visio/editing-and-validation/" },
+      { "title": "Stencils and Catalogs", "path": "visio/stencils-and-catalogs/index.md", "href": "/docs/visio/stencils-and-catalogs/" },
+      { "title": "Image Export", "path": "visio/image-export/index.md", "href": "/docs/visio/image-export/" }
     ]
   },
   {

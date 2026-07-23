@@ -11,21 +11,21 @@ api_url: "/api/excel/"
 
 ## Why OfficeIMO.Excel?
 
-OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed code. Generate dashboards, data exports, financial models, and bulk reports without ever touching COM or requiring an Office license. The API is designed for real-world scenarios -- from one-off scripts to high-throughput server pipelines.
+OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed code. Generate dashboards, data exports, financial models, and bulk reports without ever touching COM or requiring an Office license. The API is designed for real-world scenarios — from one-off scripts to high-throughput server pipelines.
 
 ## Features
 
-- **Worksheets & cell values** -- strings, numbers, dates, booleans, and shared strings with full type fidelity
-- **Tables with AutoFilter** -- structured tables with column headers, totals row, and built-in filter controls
-- **Named ranges & formulas** -- workbook and sheet-scoped names, cell formulas, and calculated columns
-- **Charts** -- column, pie, doughnut, scatter, and bubble charts with series data, axis labels, and legends
-- **Conditional formatting** -- color scales, data bars, icon sets, and rule-based highlight formatting
-- **Validation** -- list, whole number, decimal, date, time, text length, and custom formula validators
-- **Pivot tables & sparklines** -- summarize large data sets and embed inline sparklines in cells
-- **Parallel execution** -- bulk read/write operations optimized for multi-core workloads
-- **Images & hyperlinks** -- embed images in cells and attach hyperlinks to cells or shapes
-- **AutoFit columns** -- automatically size columns to fit content width
-- **Headers, footers & print setup** -- page headers, footers, margins, orientation, and print area
+- **Worksheets & cell values** — strings, numbers, dates, booleans, and shared strings with full type fidelity
+- **Tables with AutoFilter** — structured tables with column headers, totals row, and built-in filter controls
+- **Named ranges & formulas** — workbook and sheet-scoped names, cell formulas, and calculated columns
+- **Charts** — column, pie, doughnut, scatter, and bubble charts with series data, axis labels, and legends
+- **Conditional formatting** — color scales, data bars, icon sets, and rule-based highlight formatting
+- **Validation** — list, whole number, decimal, date, time, text length, and custom formula validators
+- **Pivot tables & sparklines** — summarize large data sets and embed inline sparklines in cells
+- **Parallel execution** — bulk read/write operations optimized for multi-core workloads
+- **Images & hyperlinks** — embed images in cells and attach hyperlinks to cells or shapes
+- **AutoFit columns** — automatically size columns to fit content width
+- **Headers, footers & print setup** — page headers, footers, margins, orientation, and print area
 
 ## Quick start
 

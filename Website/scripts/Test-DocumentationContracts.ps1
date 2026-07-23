@@ -25,11 +25,38 @@ foreach ($entry in $tocEntries) {
 $docs = @(Get-ChildItem -LiteralPath $docsRoot -Recurse -File -Filter '*.md')
 foreach ($doc in $docs) {
     $raw = Get-Content -LiteralPath $doc.FullName -Raw
+    $relativePath = [System.IO.Path]::GetRelativePath($docsRoot, $doc.FullName)
     if ($raw -match '(?m)^#\s+') {
-        Add-Failure "'$([System.IO.Path]::GetRelativePath($docsRoot, $doc.FullName))' contains a body H1; the docs layout already renders the page title."
+        Add-Failure "'$relativePath' contains a body H1; the docs layout already renders the page title."
     }
     if ($raw -match '/examples/pswriteoffice/') {
-        Add-Failure "'$([System.IO.Path]::GetRelativePath($docsRoot, $doc.FullName))' links to the retired /examples/pswriteoffice route."
+        Add-Failure "'$relativePath' links to the retired /examples/pswriteoffice route."
+    }
+    if ($raw -match '(?i)Market Position|Out Of Scope Here|should position itself|What we do not have yet') {
+        Add-Failure "'$relativePath' contains internal positioning or planning copy that does not belong in customer documentation."
+    }
+}
+
+$publicContentFiles = @(
+    Get-ChildItem -LiteralPath (Join-Path $SiteRoot 'content') -Recurse -File |
+        Where-Object Extension -In '.md', '.html'
+    Get-ChildItem -LiteralPath (Join-Path $SiteRoot 'data') -File |
+        Where-Object Extension -EQ '.json'
+)
+foreach ($publicContentFile in $publicContentFiles) {
+    $publicContent = Get-Content -LiteralPath $publicContentFile.FullName -Raw
+    if ($publicContent -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main(?:/|")') {
+        Add-Failure "'$([System.IO.Path]::GetRelativePath($SiteRoot, $publicContentFile.FullName))' uses the nonexistent OfficeIMO 'main' branch in a public link."
+    }
+}
+
+$showcasePath = Join-Path $SiteRoot 'data\showcase.json'
+$showcase = Get-Content -LiteralPath $showcasePath -Raw | ConvertFrom-Json
+foreach ($card in @($showcase.cards)) {
+    foreach ($requiredProperty in 'format', 'title', 'description', 'proof', 'source_url', 'guide_url', 'api_url') {
+        if ([string]::IsNullOrWhiteSpace([string] $card.$requiredProperty)) {
+            Add-Failure "Showcase card '$($card.title)' is missing '$requiredProperty'."
+        }
     }
 }
 
@@ -51,7 +78,7 @@ $expectedRepositoryCounts = [ordered]@{
     benchmarkProjectCount = 12
     validationProjectCount = 17
     apiReferenceCount = 17
-    conceptualPageCount = 69
+    conceptualPageCount = 78
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)

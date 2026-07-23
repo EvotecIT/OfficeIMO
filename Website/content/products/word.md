@@ -17,18 +17,18 @@ The best fit is modern document automation: assemble real documents, inspect the
 
 ## Features
 
-- **Paragraphs & text styling** -- fonts, sizes, colors, bold, italic, underline, strikethrough, highlight, and spacing
-- **Tables with merge & split** -- horizontal and vertical cell merging, nested tables, 105+ built-in table styles
-- **Images** -- insert from file path, stream, Base64 string, or URL with precise positioning and sizing
-- **Headers & footers** -- default, first page, and odd/even with text, images, and page numbers
-- **Watermarks** -- text and image watermarks with rotation, color, and transparency
-- **Table of Contents** -- automatic TOC generation with configurable heading levels
-- **Bookmarks & hyperlinks** -- internal cross-references and external links
-- **Charts** -- pie, bar, line, area, and combo charts with series data, legends, and axis formatting
-- **Content controls** -- checkboxes, drop-down lists, combo boxes, date pickers, and rich text controls
-- **Document protection** -- read-only, password protection, and editing restrictions
-- **Footnotes & endnotes** -- numbered references with custom formatting
-- **Sections & page numbering** -- multiple sections with independent orientation, margins, and numbering
+- **Paragraphs & text styling** — fonts, sizes, colors, bold, italic, underline, strikethrough, highlight, and spacing
+- **Tables with merge & split** — horizontal and vertical cell merging, nested tables, 105+ built-in table styles
+- **Images** — insert from file path, stream, Base64 string, or URL with precise positioning and sizing
+- **Headers & footers** — default, first page, and odd/even with text, images, and page numbers
+- **Watermarks** — text and image watermarks with rotation, color, and transparency
+- **Table of Contents** — automatic TOC generation with configurable heading levels
+- **Bookmarks & hyperlinks** — internal cross-references and external links
+- **Charts** — pie, bar, line, area, and combo charts with series data, legends, and axis formatting
+- **Content controls** — checkboxes, drop-down lists, combo boxes, date pickers, and rich text controls
+- **Document protection** — read-only, password protection, and editing restrictions
+- **Footnotes & endnotes** — numbered references with custom formatting
+- **Sections & page numbering** — multiple sections with independent orientation, margins, and numbering
 
 ## Workflow Focus
 

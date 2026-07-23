@@ -71,7 +71,6 @@
         <section class="imo-downloads__hero">
           <div class="imo-downloads__hero-shell">
             <div class="imo-downloads__hero-copy">
-              <div class="imo-section__eyebrow">{{ downloads.hero.eyebrow ?? "Downloads hub" }}</div>
               <h1 class="imo-downloads__title">{{ downloads.hero.title ?? page.title }}</h1>
               <p class="imo-downloads__copy">{{ downloads.hero.description ?? page.description }}</p>
               <div class="imo-downloads__hero-actions">
@@ -85,8 +84,20 @@
             <aside class="imo-downloads__hero-panel" aria-label="Choose an installation channel">
               <p class="imo-downloads__panel-eyebrow">Recommended path</p>
               <h2>Install the smallest package that owns your workflow.</h2>
-              <div class="imo-downloads__quick-command"><span>.NET</span><code>dotnet add package OfficeIMO.Word</code></div>
-              <div class="imo-downloads__quick-command"><span>PowerShell</span><code>Install-Module PSWriteOffice</code></div>
+              <div class="imo-downloads__quick-command">
+                <span>.NET</span>
+                <code>dotnet add package OfficeIMO.Word</code>
+                <button type="button" aria-label="Copy .NET install command" data-copy="dotnet add package OfficeIMO.Word">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
+              <div class="imo-downloads__quick-command">
+                <span>PowerShell</span>
+                <code>Install-Module PSWriteOffice</code>
+                <button type="button" aria-label="Copy PowerShell install command" data-copy="Install-Module PSWriteOffice">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
               <ul class="imo-downloads__channel-notes"><li>NuGet and PowerShell Gallery are the normal consumer channels.</li><li>Release archives preserve exact published artifacts.</li><li>The API site describes repository source; package feeds show installable releases.</li></ul>
             </aside>
           </div>
@@ -103,8 +114,13 @@
           <div class="imo-downloads__path-grid">
             {{ for path in downloads.paths }}
             <article class="imo-downloads__path-card">
-              <span class="imo-badge">{{ path.badge }}</span>
-              <h3>{{ path.title }}</h3>
+              <div class="imo-downloads__path-heading">
+                <span class="imo-downloads__path-number">0{{ for.index + 1 }}</span>
+                <div>
+                  <span class="imo-downloads__path-label">{{ path.badge }}</span>
+                  <h3>{{ path.title }}</h3>
+                </div>
+              </div>
               <p>{{ path.description }}</p>
               <a class="imo-btn imo-btn-ghost" href="{{ path.href }}" target="_blank" rel="noopener">{{ path.label }}</a>
             </article>
@@ -160,13 +176,22 @@
 
                 <div class="imo-download-card__links">
                   {{ if package.product_url }}
-                  <a href="{{ package.product_url }}">{{ package.title }} product page</a>
+                  <a class="imo-action-link" href="{{ package.product_url }}">
+                    <span>{{ package.title }} product overview</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+                  </a>
                   {{ end }}
                   {{ if package.docs_url }}
-                  <a href="{{ package.docs_url }}">{{ package.title }} documentation</a>
+                  <a class="imo-action-link" href="{{ package.docs_url }}">
+                    <span>{{ package.title }} documentation</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+                  </a>
                   {{ end }}
                   {{ if package.api_url }}
-                  <a href="{{ package.api_url }}">{{ package.title }} API reference</a>
+                  <a class="imo-action-link" href="{{ package.api_url }}">
+                    <span>{{ package.title }} API reference</span>
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+                  </a>
                   {{ end }}
                 </div>
               </article>

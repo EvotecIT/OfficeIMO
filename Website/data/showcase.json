@@ -1,26 +1,64 @@
 {
-  "title": "What You Can Build",
-  "description": "See real-world documents generated with OfficeIMO and PSWriteOffice.",
+  "title": "Build real document workflows",
+  "description": "Start from runnable source, follow a focused guide, and inspect the APIs behind each generated artifact.",
   "cards": [
     {
-      "title": "Automated Sales Report",
-      "description": "Complete Word document with formatted tables, charts, headers, footers, and table of contents generated from database queries.",
-      "tags": ["Word", "Tables", "Charts", "TOC"]
+      "format": "Word",
+      "image": "/images/formats/docx.svg",
+      "title": "Validated Word document proof pack",
+      "description": "Generate template-driven documents, HTML and Markdown conversions, and a structured comparison with diagnostics and Open XML validation.",
+      "proof": "The example writes source inputs, DOCX outputs, round-trip content where applicable, validation results, and a machine-readable manifest.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples/Word/MarketReadiness",
+      "guide_url": "/docs/word/market-readiness/",
+      "api_url": "/api/word/"
     },
     {
-      "title": "Financial Dashboard",
-      "description": "Excel workbook with multiple sheets, pivot tables, conditional formatting, sparklines, and interactive charts.",
-      "tags": ["Excel", "Charts", "Pivot Tables", "Formatting"]
+      "format": "Excel",
+      "image": "/images/formats/xlsx.svg",
+      "title": "Operational Excel report",
+      "description": "Turn structured application data into a workbook with worksheets, tables, formatting, formulas, and charts.",
+      "proof": "The DomainDetective example is runnable source that produces a real XLSX report rather than a static mockup.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Excel/DomainDetective.Report.cs",
+      "guide_url": "/docs/excel/",
+      "api_url": "/api/excel/"
     },
     {
-      "title": "Quarterly Presentation",
-      "description": "PowerPoint deck with branded slides, data-driven charts, shape layouts, and speaker notes auto-generated from templates.",
-      "tags": ["PowerPoint", "Slides", "Charts", "Shapes"]
+      "format": "PowerPoint",
+      "image": "/images/formats/pptx.svg",
+      "title": "End-to-end presentation proof",
+      "description": "Build a presentation with slides, text, images, tables, charts, notes, and package validation from one executable example.",
+      "proof": "The proof example saves PPTX output and checks the generated package so the workflow can be evaluated from source to artifact.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/PowerPoint/EndToEndPowerPointProof.cs",
+      "guide_url": "/docs/powerpoint/designer/",
+      "api_url": "/api/powerpoint/"
     },
     {
-      "title": "Documentation Pipeline",
-      "description": "Markdown documents built with the fluent API, parsed into typed ASTs, and rendered to HTML for blog posts and release notes.",
-      "tags": ["Markdown", "HTML", "Blog", "CI/CD"]
+      "format": "Email",
+      "title": "Mailbox conversion with verification",
+      "description": "Read PST, OST, OLM, EMLX, Maildir, Apple Mail, and mailbox directories, then export selected or complete store content.",
+      "proof": "PST export reports converted and skipped items and can verify message semantics without persisting private message values.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Email.Tests/Store",
+      "guide_url": "/docs/email/mailbox-stores/",
+      "api_url": "/api/email/"
+    },
+    {
+      "format": "Visio",
+      "image": "/images/formats/vsdx.svg",
+      "title": "Data-driven architecture diagram",
+      "description": "Generate VSDX architecture, network, process, sequence, timeline, and graph diagrams from application data.",
+      "proof": "Runnable examples validate the VSDX package and can export SVG or PNG previews without Microsoft Visio installed.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples/Visio",
+      "guide_url": "/docs/visio/diagram-builders/",
+      "api_url": "/api/visio/"
+    },
+    {
+      "format": "Reader",
+      "title": "Multi-format extraction pipeline",
+      "description": "Detect and extract normalized text, tables, visuals, assets, and chunks across Office documents, email stores, PDF, Markdown, and more.",
+      "proof": "The committed Reader baseline exercises 25 cases across 14 formats and records the runtime, machine context, and validation lane.",
+      "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/officeimo.reader.foundation-2026-07-10.md",
+      "guide_url": "/docs/reader/",
+      "api_url": "/api/reader/"
     }
   ]
 }

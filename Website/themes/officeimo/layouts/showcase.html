@@ -33,26 +33,24 @@
     <section class="imo-section">
       <div class="imo-container">
         {{ if data.showcase && data.showcase.cards }}
-        <div class="imo-showcase-grid">
+        <div class="imo-proof-grid">
           {{ for card in data.showcase.cards }}
-          <div class="imo-showcase-card">
-            {{ if card.image }}
-            <div class="imo-showcase-card-image">
-              <img src="{{ card.image }}" alt="{{ card.title }}" loading="lazy" />
+          <article class="imo-proof-card">
+            <div class="imo-proof-card__format">
+              {{ if card.image }}<img src="{{ card.image }}" alt="" loading="lazy" decoding="async" />{{ end }}
+              <span>{{ card.format }}</span>
             </div>
-            {{ end }}
-            <div class="imo-showcase-card-body">
+            <div class="imo-proof-card__body">
               <h2>{{ card.title }}</h2>
               <p>{{ card.description }}</p>
-              {{ if card.tags }}
-              <div class="imo-showcase-card-tags">
-                {{ for tag in card.tags }}
-                <span class="imo-badge">{{ tag }}</span>
-                {{ end }}
+              <p class="imo-proof-card__proof"><strong>What you can inspect</strong>{{ card.proof }}</p>
+              <div class="imo-proof-card__actions">
+                <a class="imo-btn imo-btn-primary" href="{{ card.guide_url }}">Follow the {{ card.format }} guide</a>
+                <a class="imo-action-link" href="{{ card.source_url }}" target="_blank" rel="noopener">Open {{ card.format }} proof <span aria-hidden="true">→</span></a>
+                <a class="imo-action-link" href="{{ card.api_url }}">Browse the {{ card.format }} API <span aria-hidden="true">→</span></a>
               </div>
-              {{ end }}
             </div>
-          </div>
+          </article>
           {{ end }}
         </div>
         {{ end }}

@@ -12,25 +12,25 @@ preview_id: "powerpoint"
 
 ## Why OfficeIMO.PowerPoint?
 
-OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from code. Automate slide decks for reporting pipelines, update legacy decks, or build dynamic dashboards -- all without PowerPoint installed on your machine.
+OfficeIMO.PowerPoint lets you create and edit `.pptx`, `.ppt`, `.pot`, and `.pps` presentations from code. Automate slide decks for reporting pipelines, update legacy decks, or build dynamic dashboards — all without PowerPoint installed on your machine.
 
 ## Features
 
-- **Slide creation & management** -- add, remove, reorder, and duplicate slides programmatically
-- **Text boxes & bullets** -- rich text with fonts, colors, sizes, and multi-level bullet lists
-- **Tables with merged cells** -- rows, columns, horizontal and vertical merges, and per-cell styling
-- **Images** -- insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
-- **Shapes with fill, stroke & effects** -- rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
-- **Editable shared charts with formatting** -- all 16 `OfficeChartKind` families, combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
-- **Slide sections & transitions** -- organize slides into sections and apply transition animations
-- **Themes & layouts** -- apply built-in or custom themes and choose from standard slide layouts
-- **Designer decks** -- generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
-- **Semantic story families** -- compose executive summaries, chart narratives, comparisons, annotated screenshots, appendix tables, architecture views, and closings
-- **Deck rhythm checks** -- flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
-- **Speaker notes** -- attach presenter notes to any slide
-- **Slide copying & importing** -- copy slides within a presentation or import from another `.pptx` file
-- **PowerPoint 97-2003 compatibility** -- import into the normal editable model, author native binary files, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
-- **Password and signature policy** -- open and save protected binary presentations, inspect legacy signatures, and block signature-invalidating saves by default
+- **Slide creation & management** — add, remove, reorder, and duplicate slides programmatically
+- **Text boxes & bullets** — rich text with fonts, colors, sizes, and multi-level bullet lists
+- **Tables with merged cells** — rows, columns, horizontal and vertical merges, and per-cell styling
+- **Images** — insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
+- **Shapes with fill, stroke & effects** — rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
+- **Editable shared charts with formatting** — all 16 `OfficeChartKind` families, combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
+- **Slide sections & transitions** — organize slides into sections and apply transition animations
+- **Themes & layouts** — apply built-in or custom themes and choose from standard slide layouts
+- **Designer decks** — generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
+- **Semantic story families** — compose executive summaries, chart narratives, comparisons, annotated screenshots, appendix tables, architecture views, and closings
+- **Deck rhythm checks** — flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
+- **Speaker notes** — attach presenter notes to any slide
+- **Slide copying & importing** — copy slides within a presentation or import from another `.pptx` file
+- **PowerPoint 97-2003 compatibility** — import into the normal editable model, author native binary files, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
+- **Password and signature policy** — open and save protected binary presentations, inspect legacy signatures, and block signature-invalidating saves by default
 
 ## Common deck patterns
 

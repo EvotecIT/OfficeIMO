@@ -1,8 +1,8 @@
 {
   "hero": {
-    "eyebrow": "Downloads hub",
-    "title": "Choose the right OfficeIMO package, then install it the fast way.",
-    "description": "Use NuGet for application dependencies, PowerShell Gallery for PSWriteOffice, and GitHub release archives when you need the exact packaged artifact from the latest stable release."
+    "eyebrow": "Downloads",
+    "title": "Install OfficeIMO for the workflow you are building.",
+    "description": "Choose a focused NuGet package for .NET, install PSWriteOffice for PowerShell automation, or use a GitHub release when you need the exact published archive."
   },
   "paths": [
     {
