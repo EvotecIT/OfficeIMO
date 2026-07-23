@@ -207,6 +207,31 @@ public class DrawingTextTypographyTests {
     }
 
     [Fact]
+    public void TextLayout_ScansTheWholeNonMonotonicCandidateRange() {
+        const string text = "ABCDEFGHIJKLMNOPQRSTU";
+        static double Measure(string? value, double _) => value switch {
+            null => 0D,
+            "..." => 3D,
+            text => 10D,
+            "A..." => 4D,
+            "...U" => 4D,
+            text + "..." => 4D,
+            "..." + text => 4D,
+            _ => 10D
+        };
+
+        OfficeTextLine endTrimmed = OfficeTextLayoutEngine.TrimLineToWidth(text, 1D, 4D, Measure, out bool endClipped);
+        OfficeTextLine startTrimmed = OfficeTextLayoutEngine.TrimLineStartToWidth(text, 1D, 4D, Measure, out bool startClipped);
+
+        Assert.True(endClipped);
+        Assert.True(startClipped);
+        Assert.Equal(text + "...", endTrimmed.Text);
+        Assert.Equal("..." + text, startTrimmed.Text);
+        Assert.Equal(4D, endTrimmed.Width);
+        Assert.Equal(4D, startTrimmed.Width);
+    }
+
+    [Fact]
     public void FitWrappedText_ClipsToVisibleHeightAfterShrinkToFit() {
         OfficeTextBlockLayout layout = OfficeTextLayoutEngine.FitWrappedText(
             string.Join("\n", Enumerable.Repeat("line", 100)),

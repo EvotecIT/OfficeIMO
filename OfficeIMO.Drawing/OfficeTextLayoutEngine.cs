@@ -13,6 +13,7 @@ public static partial class OfficeTextLayoutEngine {
     private const int MaximumLayoutTextCharacters = 100_000;
     private const int MaximumLayoutLines = 4_096;
     private const int MaximumLayoutTextRuns = 4_096;
+    private const int MaximumExhaustiveEllipsisElements = 256;
 
     /// <summary>
     /// Wraps text into measured lines using the supplied measurement delegate.
@@ -280,6 +281,20 @@ public static partial class OfficeTextLayoutEngine {
         int[] starts = StringInfo.ParseCombiningCharacters(value);
         double MeasureCandidate(int elementCount) =>
             Measure(CreateEllipsizedSlice(value, starts, elementCount, trimStart, ellipsis), fontSize, measure);
+
+        // Measurement delegates may be non-monotonic because of kerning or caller-defined
+        // behavior. Preserve the legacy largest-fitting result for ordinary line lengths,
+        // while keeping adversarial long-line trimming logarithmic.
+        if (starts.Length <= MaximumExhaustiveEllipsisElements) {
+            for (int elementCount = starts.Length; elementCount >= 0; elementCount--) {
+                if (MeasureCandidate(elementCount) <= width) {
+                    return CreateEllipsizedSlice(value, starts, elementCount, trimStart, ellipsis);
+                }
+            }
+
+            return ellipsis;
+        }
+
         int low = 0;
         int high = starts.Length;
         while (low < high) {
