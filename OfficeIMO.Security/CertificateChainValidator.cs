@@ -3,6 +3,11 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Security;
 
+internal enum CertificateUsagePurpose {
+    CmsSigner,
+    TimestampAuthority
+}
+
 internal static class CertificateChainValidator {
     internal static CertificateValidationResult Validate(
         X509Certificate2? certificate,
@@ -10,6 +15,7 @@ internal static class CertificateChainValidator {
         CertificateValidationOptions options,
         IList<SecurityFinding> findings,
         string role,
+        CertificateUsagePurpose purpose,
         int? signerIndex = null) {
         if (certificate == null) {
             return Empty(SecurityValidationStatus.Indeterminate);
@@ -46,7 +52,9 @@ internal static class CertificateChainValidator {
             return Empty(SecurityValidationStatus.Indeterminate);
         }
 
-        bool accepted = options.ChainEvaluator?.Invoke(certificate, chain) ?? platformResult;
+        bool chainAccepted = options.ChainEvaluator?.Invoke(certificate, chain) ?? platformResult;
+        bool usageAccepted = ValidateCertificateUsage(certificate, purpose, findings, role, signerIndex);
+        bool accepted = chainAccepted && usageAccepted;
         string[] statuses = chain.ChainStatus
             .Select(static status => string.IsNullOrWhiteSpace(status.StatusInformation)
                 ? status.Status.ToString()
@@ -65,6 +73,76 @@ internal static class CertificateChainValidator {
             accepted ? SecurityValidationStatus.Valid : SecurityValidationStatus.Invalid,
             ClassifyRevocation(chain, options.RevocationMode),
             statuses);
+    }
+
+    private static bool ValidateCertificateUsage(
+        X509Certificate2 certificate,
+        CertificateUsagePurpose purpose,
+        IList<SecurityFinding> findings,
+        string role,
+        int? signerIndex) {
+        X509KeyUsageExtension? keyUsage = certificate.Extensions
+            .OfType<X509KeyUsageExtension>()
+            .FirstOrDefault();
+        if (keyUsage != null &&
+            (keyUsage.KeyUsages & (X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.NonRepudiation)) == 0) {
+            findings.Add(new SecurityFinding(
+                SecurityFindingSeverity.Error,
+                "CertificateKeyUsageInvalid",
+                role + " certificate key usage does not permit digital signatures.",
+                signerIndex));
+            return false;
+        }
+
+        X509EnhancedKeyUsageExtension? enhancedKeyUsage = certificate.Extensions
+            .OfType<X509EnhancedKeyUsageExtension>()
+            .FirstOrDefault();
+        if (enhancedKeyUsage == null) {
+            if (purpose == CertificateUsagePurpose.TimestampAuthority) {
+                findings.Add(new SecurityFinding(
+                    SecurityFindingSeverity.Error,
+                    "CertificateEnhancedKeyUsageInvalid",
+                    role + " certificate does not declare the timestamping enhanced key usage.",
+                    signerIndex));
+                return false;
+            }
+            return true;
+        }
+
+        if (purpose == CertificateUsagePurpose.TimestampAuthority &&
+            (!enhancedKeyUsage.Critical || enhancedKeyUsage.EnhancedKeyUsages.Count != 1)) {
+            findings.Add(new SecurityFinding(
+                SecurityFindingSeverity.Error,
+                "CertificateEnhancedKeyUsageInvalid",
+                role + " certificate must declare only the critical timestamping enhanced key usage.",
+                signerIndex));
+            return false;
+        }
+
+        bool permitted = enhancedKeyUsage.EnhancedKeyUsages
+            .Cast<Oid>()
+            .Any(oid => IsPermittedEnhancedKeyUsage(oid.Value, purpose));
+        if (!permitted) {
+            findings.Add(new SecurityFinding(
+                SecurityFindingSeverity.Error,
+                "CertificateEnhancedKeyUsageInvalid",
+                role + " certificate enhanced key usage is not valid for " +
+                    (purpose == CertificateUsagePurpose.TimestampAuthority ? "timestamping." : "document or CMS signing."),
+                signerIndex));
+        }
+        return permitted;
+    }
+
+    private static bool IsPermittedEnhancedKeyUsage(string? oid, CertificateUsagePurpose purpose) {
+        if (purpose == CertificateUsagePurpose.TimestampAuthority) {
+            return string.Equals(oid, "1.3.6.1.5.5.7.3.8", StringComparison.Ordinal);
+        }
+
+        return oid is "2.5.29.37.0" or
+            "1.3.6.1.5.5.7.3.3" or
+            "1.3.6.1.5.5.7.3.4" or
+            "1.3.6.1.5.5.7.3.36" or
+            "1.3.6.1.4.1.311.10.3.12";
     }
 
     private static CertificateValidationResult Empty(SecurityValidationStatus chainStatus) =>

@@ -9,6 +9,25 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_KeepsRtlGlyphPositionsAlignedWithScopedFontKerning() {
+        byte[] fontData = CreateHtmlRenderTestFont(0x05D0, kerningAdjustment: -100);
+        string encoded = Convert.ToBase64String(fontData);
+        string html = "<style>@font-face{font-family:'Kerned Hebrew';src:url('data:font/ttf;base64,"
+            + encoded
+            + "')}</style><p dir='rtl' style=\"margin:0;font-family:'Kerned Hebrew';font-size:20px\">\u05D0\u05D0\u05D0</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "\u05D0\u05D0\u05D0");
+        IReadOnlyList<HtmlRenderText> glyphs = group.Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(3, glyphs.Count);
+        Assert.Equal(group.X, glyphs.Min(glyph => glyph.X), 6);
+        Assert.Equal(group.X + group.Width, glyphs.Max(glyph => glyph.X + glyph.Width), 6);
+    }
+
+    [Fact]
     public void HtmlRender_UsesSharedGlyphCoveragePlanAcrossFontFamilyFallbacks() {
         string emoji = char.ConvertFromUtf32(0x1F600);
         byte[] emojiFont = CreateHtmlRenderTestFont(0x1F600);
@@ -207,6 +226,61 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByRepeatedSvgBackgroundText() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null
+            || string.IsNullOrWhiteSpace(fontPath)
+            || !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) {
+            return;
+        }
+
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24'>"
+            + "<text x='2' y='17' font-family='Pdf Tile Demo' font-size='12'>TiledFontMarker</text></svg>";
+        string html = "<style>@font-face{font-family:'Pdf Tile Demo';src:url(\"data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "\") format('truetype')}</style><div style=\"width:240px;height:48px;background-image:url('data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "');background-size:120px 24px;background-repeat:repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        byte[] pdf = result.ToBytes();
+
+        HtmlRenderDrawing background = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
+        Assert.Single(background.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Contains("TiledFontMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
+    [Fact]
+    public void HtmlPdf_DirectRenderer_ActivatesManagedFallbackForUnicodeRepeatedSvgBackgroundText() {
+        const string marker = "שלום";
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24'>"
+            + "<text x='2' y='17' font-size='12'>" + marker + "</text></svg>";
+        string html = "<div style=\"width:240px;height:48px;background-image:url('data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "');background-size:120px 24px;background-repeat:repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        HtmlRenderDrawing background = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
+        Assert.Single(background.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.Default,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(rendered, PdfCore.PdfTextFallbackFeatures.Default));
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontsWithoutConsumingStandardFontSlots() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
@@ -278,7 +352,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
-    private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {
+    private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600, short kerningAdjustment = 0) {
         byte[] cmap = CreateHtmlRenderFormat12Cmap(scalar);
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
@@ -289,6 +363,7 @@ public sealed partial class HtmlRenderingTests {
             ("loca", new byte[4]),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
         };
+        if (kerningAdjustment != 0) tables.Add(("kern", CreateHtmlRenderKerningTable(kerningAdjustment)));
         int directoryLength = 12 + tables.Count * 16;
         var offsets = new int[tables.Count];
         int length = directoryLength;
@@ -309,6 +384,19 @@ public sealed partial class HtmlRenderingTests {
         }
 
         return font;
+    }
+
+    private static byte[] CreateHtmlRenderKerningTable(short adjustment) {
+        var table = new byte[24];
+        WriteHtmlRenderUInt16(table, 2, 1);
+        WriteHtmlRenderUInt16(table, 6, 20);
+        WriteHtmlRenderUInt16(table, 8, 1);
+        WriteHtmlRenderUInt16(table, 10, 1);
+        WriteHtmlRenderUInt16(table, 12, 6);
+        WriteHtmlRenderUInt16(table, 18, 1);
+        WriteHtmlRenderUInt16(table, 20, 1);
+        WriteHtmlRenderUInt16(table, 22, unchecked((ushort)adjustment));
+        return table;
     }
 
     private static byte[] CreateHtmlRenderFormat12Cmap(int scalar) {

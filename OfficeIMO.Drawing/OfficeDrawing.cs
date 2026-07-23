@@ -152,6 +152,12 @@ public sealed partial class OfficeDrawing {
         return AddImageCore(bytes, contentType, projection, alternativeText, opacity, allowOverflow: false);
     }
 
+    internal OfficeDrawing AddImageShared(byte[] bytes, string? contentType, OfficeImageProjection projection,
+        string? alternativeText = null, double opacity = 1D) {
+        return AddImageCore(bytes, contentType, projection, alternativeText, opacity,
+            allowOverflow: false, useDataSnapshot: true);
+    }
+
     /// <summary>Adds an image clipped by a drawing-local clipping path.</summary>
     public OfficeDrawing AddClippedImage(byte[] bytes, string? contentType, OfficeImageProjection projection, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
         if (clipPath == null) {
@@ -209,8 +215,10 @@ public sealed partial class OfficeDrawing {
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
-    private OfficeDrawing AddImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool allowOverflow) {
-        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity);
+    private OfficeDrawing AddImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection,
+        string? alternativeText, double opacity, bool allowOverflow, bool useDataSnapshot = false) {
+        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity,
+            useDataSnapshot);
         (double left, double top, double right, double bottom) = item.Projection.GetDestinationBounds();
         if (!allowOverflow && (left < 0D || top < 0D || right > Width || bottom > Height)) {
             throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");

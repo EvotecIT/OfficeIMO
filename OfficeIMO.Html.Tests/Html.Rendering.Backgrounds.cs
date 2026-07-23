@@ -157,17 +157,18 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderClipGroup pattern = Assert.Single(
-            rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
-            visual => visual.Source != null && visual.Source.Contains(":background-image:pattern-clip", StringComparison.Ordinal));
+        HtmlRenderDrawing pattern = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        OfficeDrawing pdfDrawing = PdfCore.PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
+        Assert.Single(pattern.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 9));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(14, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
@@ -175,9 +176,34 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
         Assert.True(CountBackgroundOccurrences(svg, "<rect") >= 16);
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
+        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Red);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("repeat-x", true, false, 4)]
+    [InlineData("repeat-y", false, true, 2)]
+    public void HtmlSvgBackgroundRepeat_PreservesSingleAxisPatterns(string repeat, bool repeatX, bool repeatY, int expectedTiles) {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<rect width='10' height='10' fill='red'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<div style=\"width:40px;height:20px;background-image:url('data:image/svg+xml;base64,"
+            + data
+            + "');background-size:10px 10px;background-repeat:"
+            + repeat
+            + "\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        HtmlRenderDrawing visual = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            item => item.Source != null && item.Source.Contains(":background-image", StringComparison.Ordinal));
+        OfficeDrawingTilingPattern pattern = Assert.Single(visual.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
+
+        Assert.Equal(repeatX, pattern.RepeatX);
+        Assert.Equal(repeatY, pattern.RepeatY);
+        Assert.Equal(expectedTiles, pattern.GetTileTransforms().Count);
     }
 
     [Fact]

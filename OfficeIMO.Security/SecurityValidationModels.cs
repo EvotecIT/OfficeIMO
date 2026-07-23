@@ -240,7 +240,7 @@ public sealed class Rfc3161TimestampVerificationResult {
         Findings = findings;
     }
 
-    /// <summary>Combined token signature and message-imprint outcome.</summary>
+    /// <summary>Combined token signature, message-imprint, and TSA certificate-validation outcome.</summary>
     public SecurityValidationStatus Status { get; }
     /// <summary>Timestamp generation time.</summary>
     public DateTimeOffset? Timestamp { get; }

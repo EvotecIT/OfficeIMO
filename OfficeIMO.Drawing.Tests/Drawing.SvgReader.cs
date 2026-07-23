@@ -92,6 +92,21 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAllowsAnExplicitTrustedViewportLimit() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22000 100'>"
+            + "<rect width='22000' height='100' fill='black'/></svg>";
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes, out _));
+
+        var options = new OfficeSvgDrawingReaderOptions { MaximumViewportDimension = 22000D };
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(22000D, drawing!.Width);
+    }
+
+    [Fact]
     public void SvgReaderParsesAbsoluteRelativeAndSmoothPathCommands() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 40 20'>"
             + "<path fill='red' d='M10 20 h20 v20 h-20 z'/>"
@@ -105,6 +120,22 @@ public class DrawingSvgReaderTests {
         Assert.Contains(drawing.Shapes[1].Shape.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
         Assert.Contains(drawing.Shapes[1].Shape.PathCommands, command => command.Kind == OfficePathCommandKind.QuadraticBezierTo);
         Assert.Equal(OfficeColor.Red, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(10, 10));
+    }
+
+    [Fact]
+    public void SvgReaderPreservesThePathBudgetAfterMalformedPathData() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+            + "<path d='M0 0 L nope' stroke='red'/>"
+            + "<path d='M1 1 L10 10' stroke='blue'/>"
+            + "<polyline points='1,10 5,15 10,10' stroke='green'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(2, drawing!.Shapes.Count);
+        Assert.Contains(drawing.Shapes, item => item.Shape.StrokeColor == OfficeColor.Blue);
+        Assert.Contains(drawing.Shapes, item => item.Shape.StrokeColor == OfficeColor.Green);
     }
 
     [Fact]
@@ -339,6 +370,114 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderBoundsNestedTextTransformsAndSymbolSurfaces() {
+        var nested = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>");
+        for (int index = 0; index < 160; index++) nested.Append("<tspan>");
+        nested.Append("Text");
+        for (int index = 0; index < 160; index++) nested.Append("</tspan>");
+        nested.Append("</text><line x2='10' y2='10' stroke='black' stroke-dasharray='1 1' transform='scale(1000000000)'/></svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
+            out OfficeDrawing? bounded, out int unsupported));
+        Assert.NotNull(bounded);
+        Assert.True(unsupported >= 2);
+        OfficeDrawingRasterRenderer.Render(bounded!);
+
+        const string oversized = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<defs><symbol id='large' viewBox='0 0 100000 100000'><rect width='1' height='1'/></symbol></defs>"
+            + "<use href='#large' width='100000' height='100000'/></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(oversized),
+            out OfficeDrawing? safe, out int surfaceUnsupported));
+        Assert.NotNull(safe);
+        Assert.Empty(safe!.Elements);
+        Assert.Equal(1, surfaceUnsupported);
+    }
+
+    [Fact]
+    public void SvgReaderChargesRepeatedUsePathsToOneCommandBudget() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 0; index < 1000; index++) path.Append(" L1 1");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs><path id='p' d='")
+            .Append(path).Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.InRange(drawing!.Shapes.Count, 1, 19);
+        Assert.True(unsupported > 0);
+        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+    }
+
+    [Fact]
+    public void SvgReaderChargesRepeatedUsePolylinesToOneCommandBudget() {
+        var points = new StringBuilder("0,0");
+        for (int index = 1; index < 1000; index++) points.Append(' ').Append(index % 10).Append(',').Append(index % 10);
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs><polyline id='p' points='")
+            .Append(points).Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.InRange(drawing!.Shapes.Count, 1, 20);
+        Assert.True(unsupported > 0);
+        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+    }
+
+    [Fact]
+    public void SvgReaderDoesNotExhaustPathBudgetForMalformedPointLists() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<polygon points='0,0 nope'/><polyline points='0,0 1'/><path d='M10 0 L20 10' stroke='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(2, unsupported);
+        OfficeDrawingShape shape = Assert.Single(drawing!.Shapes);
+        Assert.Equal(OfficeColor.Lime, shape.Shape.StrokeColor);
+        Assert.Equal(2, shape.Shape.PathCommands.Count);
+    }
+
+    [Fact]
+    public void SvgReaderDoesNotChargeRejectedTwoPointPolygonsToPathBudget() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>");
+        for (int index = 0; index < 6_667; index++) {
+            svg.Append("<polygon points='0,0 1,1'/>");
+        }
+        svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Equal(6_667, unsupported);
+        OfficeDrawingShape shape = Assert.Single(drawing!.Shapes);
+        Assert.Equal(OfficeColor.Lime, shape.Shape.StrokeColor);
+        Assert.Equal(2, shape.Shape.PathCommands.Count);
+    }
+
+    [Fact]
+    public void SvgReaderRejectsTransformArgumentsBeyondSupportedArity() {
+        var arguments = new StringBuilder("0");
+        for (int index = 1; index < 1000; index++) arguments.Append(" 0");
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<rect width='10' height='10' fill='red' transform='matrix(" + arguments + ")'/>"
+            + "<rect x='10' width='10' height='10' fill='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg),
+            out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(2, drawing!.Shapes.Count);
+        Assert.Equal(OfficeColor.Red, drawing.Shapes[0].Shape.FillColor);
+        Assert.False(drawing.Shapes[0].Shape.Transform.HasValue);
+        Assert.Equal(OfficeColor.Lime, drawing.Shapes[1].Shape.FillColor);
+    }
+
+    [Fact]
     public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='50%' stop-color='red'/><stop offset='50%' stop-color='blue'/><stop offset='80%' stop-color='blue'/></linearGradient>"
@@ -509,8 +648,9 @@ public class DrawingSvgReaderTests {
     [Fact]
     public void SvgReaderResolvesRgbaCurrentColorInGradientStops() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
-            + "<defs><linearGradient id='paint' style='color:rgba(36,87,166,0.502)'>"
-            + "<stop stop-color='currentColor'/><stop offset='1' stop-color='white'/></linearGradient></defs>"
+            + "<defs><linearGradient id='paint'>"
+            + "<stop style='color:rgba(36,87,166,0.502);stop-color:currentColor'/>"
+            + "<stop offset='1' color='rgb(10%,20%,30%)' stop-color='currentColor'/></linearGradient></defs>"
             + "<rect width='10' height='10' fill='url(#paint)'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
@@ -518,6 +658,7 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0, unsupported);
         OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(Assert.Single(drawing!.Shapes).Shape.FillGradient);
         Assert.Equal(OfficeColor.FromRgba(36, 87, 166, 128), gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.FromRgb(26, 51, 76), gradient.Stops[gradient.Stops.Count - 1].Color);
     }
 
     [Fact]

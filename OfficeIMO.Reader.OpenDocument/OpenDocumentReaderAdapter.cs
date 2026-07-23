@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.OpenDocument;
 
 /// <summary>Native OpenDocument ingestion adapter for <see cref="OfficeDocumentReader"/>.</summary>
 internal static partial class OpenDocumentReaderAdapter {
+    private const int MaximumTableColumns = 256;
+
     /// <summary>Reads an ODT, ODS, or ODP file and emits format-aligned chunks.</summary>
     public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? options = null, ReaderOpenDocumentOptions? openDocumentOptions = null,
         CancellationToken cancellationToken = default) {

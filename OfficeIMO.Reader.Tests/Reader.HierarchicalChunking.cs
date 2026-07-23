@@ -309,6 +309,176 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_BoundsFallbackInspectionWhenSourceBlocksAreDuplicates() {
+        var duplicate = new OfficeDocumentBlock { Id = "duplicate", Text = "body" };
+        var blocks = new CountingBlockList(duplicate, 1000);
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = blocks
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 2,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.Equal(8, blocks.ReadCount);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_DoesNotChargeDuplicateFallbackBlocksToInputQuota() {
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "first", Text = "first" },
+                new OfficeDocumentBlock { Id = "first", Text = "duplicate" },
+                new OfficeDocumentBlock { Id = "second", Text = "second" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 2,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Equal(new[] { "first", "second" }, result.Chunks.Select(chunk => chunk.Text));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_ReportsInputLimitWhenFallbackBlocksAreTruncated() {
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "first", Text = "first" },
+                new OfficeDocumentBlock { Id = "second", Text = "second" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_Does_Not_Report_Input_Truncation_For_Duplicate_Page_Blocks() {
+        var block = new OfficeDocumentBlock { Id = "same", Text = "body" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { block },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Blocks = new[] { block } } }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_InheritsPageLocationBeyondInputChunkOrdinal() {
+        var block = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { block },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = Array.Empty<OfficeDocumentBlock>() },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { block } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_InheritsPageLocationPastUnrelatedPageBlocks() {
+        var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        var unrelated = new OfficeDocumentBlock { Id = "unrelated", Text = "other" };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { retained },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = new[] { unrelated } },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { retained } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(2, chunk.Location.Page);
+    }
+
+    [Fact]
+    public void Chunk_InheritsPageLocationBeyondUnrelatedInspectionAllowance() {
+        var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        var unrelated = Enumerable.Range(0, 5)
+            .Select(index => new OfficeDocumentBlock { Id = "unrelated-" + index, Text = "other" })
+            .ToArray();
+        var pageBlocks = unrelated.Concat(new[] { retained }).ToArray();
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { retained },
+            Pages = new[] { new OfficeDocumentPage { Number = 7, Blocks = pageBlocks } }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(7, chunk.Location.Page);
+    }
+
+    [Fact]
     public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
         ReaderChunk source = CreateChunk("stable-id", "body");
         source.Location.Page = null;
@@ -985,6 +1155,32 @@ public sealed class ReaderHierarchicalChunkingTests {
             if (text.EndsWith("\n\n", StringComparison.Ordinal)) return 1;
             return text.Contains("\n\n", StringComparison.Ordinal) ? 3 : 1;
         }
+    }
+
+    private sealed class CountingBlockList : IReadOnlyList<OfficeDocumentBlock> {
+        private readonly OfficeDocumentBlock _block;
+
+        internal CountingBlockList(OfficeDocumentBlock block, int count) {
+            _block = block;
+            Count = count;
+        }
+
+        public int Count { get; }
+        internal int ReadCount { get; private set; }
+
+        public OfficeDocumentBlock this[int index] {
+            get {
+                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                ReadCount++;
+                return _block;
+            }
+        }
+
+        public IEnumerator<OfficeDocumentBlock> GetEnumerator() {
+            for (int index = 0; index < Count; index++) yield return this[index];
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
 }

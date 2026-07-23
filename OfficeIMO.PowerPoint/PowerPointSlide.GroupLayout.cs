@@ -9,10 +9,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Returns the child shapes of a group shape.
         /// </summary>
-        public IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape) {
+        public IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape) =>
+            GetGroupChildren(groupShape, int.MaxValue);
+
+        internal IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape,
+            int maximumChildren) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
+            if (maximumChildren < 0) throw new ArgumentOutOfRangeException(nameof(maximumChildren));
 
             GroupShape group = groupShape.GroupShape;
             var children = new List<PowerPointShape>();
@@ -23,6 +28,9 @@ namespace OfficeIMO.PowerPoint {
 
                 PowerPointShape? shape = CreateShapeFromElement(child, groupShape.OwnerPart ?? _slidePart);
                 if (shape != null) {
+                    if (children.Count >= maximumChildren) {
+                        throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                    }
                     children.Add(shape.AttachTo(this));
                 }
             }
@@ -36,16 +44,46 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
             bool includeHidden = false) {
+            return EnumerateShapesDeep(shapes, includeHidden, 10000, 128);
+        }
+
+        internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
+            bool includeHidden, int maximumShapeCount, int maximumGroupDepth) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
-            foreach (PowerPointShape shape in shapes) {
-                if (!includeHidden && shape.Hidden) continue;
-                yield return shape;
-                if (shape is not PowerPointGroupShape groupShape) continue;
-                foreach (PowerPointShape child in EnumerateShapesDeep(GetGroupChildren(groupShape), includeHidden)) {
-                    yield return child;
+
+            var stack = new Stack<(IEnumerator<PowerPointShape> Enumerator, int Depth, bool CountOnMove)>();
+            stack.Push((shapes.GetEnumerator(), 0, true));
+            int scheduledShapeCount = 0;
+            int shapeCount = 0;
+            try {
+                while (stack.Count > 0) {
+                    (IEnumerator<PowerPointShape> enumerator, int depth, bool countOnMove) = stack.Peek();
+                    if (!enumerator.MoveNext()) {
+                        stack.Pop().Enumerator.Dispose();
+                        continue;
+                    }
+                    if (countOnMove && ++scheduledShapeCount > maximumShapeCount) {
+                        throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                    }
+                    PowerPointShape shape = enumerator.Current;
+                    if (!includeHidden && shape.Hidden) continue;
+                    if (depth > maximumGroupDepth) {
+                        throw new InvalidOperationException("The grouped-shape nesting depth exceeds the configured limit.");
+                    }
+                    if (++shapeCount > maximumShapeCount) {
+                        throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                    }
+                    yield return shape;
+                    if (shape is not PowerPointGroupShape groupShape) continue;
+                    int remainingShapeCount = maximumShapeCount - scheduledShapeCount;
+                    IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape, remainingShapeCount);
+                    scheduledShapeCount += children.Count;
+                    stack.Push((children.GetEnumerator(), depth + 1, false));
                 }
+            } finally {
+                while (stack.Count > 0) stack.Pop().Enumerator.Dispose();
             }
         }
 
@@ -283,7 +321,7 @@ namespace OfficeIMO.PowerPoint {
             ArrangeShapesInGridAuto(children, GetGroupChildBounds(groupShape, children), options);
         }
 
-        private static PowerPointLayoutBox GetGroupChildBounds(PowerPointGroupShape groupShape,
+        internal static PowerPointLayoutBox GetGroupChildBounds(PowerPointGroupShape groupShape,
             IReadOnlyList<PowerPointShape> children) {
             A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
             long? x = transform?.ChildOffset?.X?.Value;

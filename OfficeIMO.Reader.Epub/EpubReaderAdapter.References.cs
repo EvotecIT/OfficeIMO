@@ -55,7 +55,7 @@ internal static partial class EpubReaderAdapter {
         string sourcePath,
         EpubChapter chapter,
         IReadOnlyList<ReaderVisual> visuals,
-        List<OfficeDocumentAsset> documentAssets,
+        IReadOnlyDictionary<string, OfficeDocumentAsset> assetsByLocation,
         List<OfficeDocumentAsset> chapterAssets,
         List<OfficeDocumentDiagnostic> diagnostics) {
         var resolvedVisuals = new List<ReaderVisual>(visuals.Count);
@@ -78,7 +78,7 @@ internal static partial class EpubReaderAdapter {
 
             string? location = BuildEpubResolvedLocation(sourcePath, reference, includeFragment: true);
             if (!string.IsNullOrWhiteSpace(location)) visual.SourceName = location;
-            OfficeDocumentAsset? asset = FindEpubAsset(sourcePath, reference, documentAssets);
+            OfficeDocumentAsset? asset = FindEpubAsset(sourcePath, reference, assetsByLocation);
             if (asset != null && !chapterAssets.Contains(asset)) chapterAssets.Add(asset);
             resolvedVisuals.Add(visual);
         }
@@ -88,18 +88,18 @@ internal static partial class EpubReaderAdapter {
     private static OfficeDocumentAsset? FindEpubAsset(
         string sourcePath,
         EpubReference reference,
-        IReadOnlyList<OfficeDocumentAsset> assets) {
+        IReadOnlyDictionary<string, OfficeDocumentAsset> assetsByLocation) {
         string? targetLocation = BuildEpubResolvedLocation(sourcePath, reference, includeFragment: false);
         if (string.IsNullOrWhiteSpace(targetLocation)) return null;
 
-        OfficeDocumentAsset? exact = assets.FirstOrDefault(asset =>
-            string.Equals(asset.Location.Path, targetLocation, StringComparison.Ordinal));
+        assetsByLocation.TryGetValue(targetLocation!, out OfficeDocumentAsset? exact);
         if (exact != null || reference.Kind != EpubReferenceKind.Container || string.IsNullOrWhiteSpace(reference.ContainerPath)) {
             return exact;
         }
 
         string packageLocation = BuildVirtualPath(sourcePath, reference.ContainerPath!);
-        return assets.FirstOrDefault(asset => string.Equals(asset.Location.Path, packageLocation, StringComparison.Ordinal));
+        assetsByLocation.TryGetValue(packageLocation, out OfficeDocumentAsset? packageAsset);
+        return packageAsset;
     }
 
     private static string? BuildEpubResolvedLocation(

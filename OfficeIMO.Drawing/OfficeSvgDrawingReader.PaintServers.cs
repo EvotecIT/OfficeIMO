@@ -293,13 +293,14 @@ public static partial class OfficeSvgDrawingReader {
                 .Where(element => element.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             if (elements.Length == 0 || elements.Length > MaximumGradientStops) return false;
+            if (!TryResolveCurrentColor(gradient, out OfficeColor inheritedCurrentColor)) return false;
 
             var parsed = new List<OfficeGradientStop>(elements.Length + 2);
             double previous = -1D;
             foreach (XElement element in elements) {
                 if (!TryStopOffset(element.Attribute("offset")?.Value, out double offset)) return false;
                 offset = Math.Max(previous, offset);
-                if (!TryStopColor(element, out OfficeColor color)) return false;
+                if (!TryStopColor(element, inheritedCurrentColor, out OfficeColor color)) return false;
                 parsed.Add(new OfficeGradientStop(offset, color));
                 previous = offset;
             }
@@ -323,9 +324,11 @@ public static partial class OfficeSvgDrawingReader {
             return TryUnitOrPercentage(value!, clamp: true, out offset);
         }
 
-        private static bool TryStopColor(XElement element, out OfficeColor color) {
+        private static bool TryStopColor(XElement element, OfficeColor inheritedCurrentColor,
+            out OfficeColor color) {
             color = OfficeColor.Black;
-            if (!TryResolveCurrentColor(element, out OfficeColor currentColor)) return false;
+            OfficeColor currentColor = inheritedCurrentColor;
+            string? currentColorText = element.Attribute("color")?.Value;
             string? colorText = element.Attribute("stop-color")?.Value;
             string? opacityText = element.Attribute("stop-opacity")?.Value;
             string? declarations = element.Attribute("style")?.Value;
@@ -337,8 +340,13 @@ public static partial class OfficeSvgDrawingReader {
                     string value = declaration.Substring(colon + 1).Trim();
                     if (name.Equals("stop-color", StringComparison.OrdinalIgnoreCase)) colorText = value;
                     else if (name.Equals("stop-opacity", StringComparison.OrdinalIgnoreCase)) opacityText = value;
+                    else if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) currentColorText = value;
                 }
             }
+
+            if (!string.IsNullOrWhiteSpace(currentColorText) &&
+                !currentColorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase) &&
+                !TrySvgColor(currentColorText.Trim(), out currentColor)) return false;
 
             if (string.IsNullOrWhiteSpace(colorText)) color = OfficeColor.Black;
             else if (colorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) color = currentColor;

@@ -5,11 +5,12 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeSvgPathDataParser {
-    private const int MaximumCommands = 100000;
-
-    internal static bool TryParse(string? data, out IReadOnlyList<OfficePathCommand> commands) {
+    internal static bool TryParse(string? data, int maximumCommands,
+        out IReadOnlyList<OfficePathCommand> commands,
+        out bool commandLimitExceeded) {
         var result = new List<OfficePathCommand>();
         commands = result;
+        commandLimitExceeded = false;
         if (string.IsNullOrWhiteSpace(data)) return false;
 
         var reader = new PathReader(data!);
@@ -23,7 +24,10 @@ internal static class OfficeSvgPathDataParser {
         bool hasDraw = false;
 
         while (reader.SkipSeparators()) {
-            if (result.Count >= MaximumCommands) return false;
+            if (result.Count >= maximumCommands) {
+                commandLimitExceeded = true;
+                return false;
+            }
             if (reader.TryReadCommand(out char explicitCommand)) command = explicitCommand;
             else if (command == '\0' || command is 'Z' or 'z') return false;
             bool relative = char.IsLower(command);
@@ -40,7 +44,10 @@ internal static class OfficeSvgPathDataParser {
 
             int groups = 0;
             while (reader.HasNumberAhead()) {
-                if (result.Count >= MaximumCommands) return false;
+                if (result.Count >= maximumCommands) {
+                    commandLimitExceeded = true;
+                    return false;
+                }
                 switch (upper) {
                     case 'M':
                     case 'L':
@@ -126,6 +133,10 @@ internal static class OfficeSvgPathDataParser {
                             || !reader.TryReadPoint(out OfficePoint arcEnd)) return false;
                         arcEnd = Resolve(arcEnd, current, relative);
                         if (!AppendArc(result, current, arcEnd, radiusX, radiusY, rotationDegrees, largeArc, sweep)) return false;
+                        if (result.Count > maximumCommands) {
+                            commandLimitExceeded = true;
+                            return false;
+                        }
                         current = arcEnd;
                         hasDraw = true;
                         break;

@@ -142,4 +142,16 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         Assert.Equal(0, unsupported);
         Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
     }
+
+    [Fact]
+    public void AdapterImportsTrustedBarcodeViewportBeyondDefaultAreaLimit() {
+        Barcode1D barcode = new Barcode1D(Enumerable.Range(0, 5_000).Select(index => new BarSegment(index % 2 == 0, 1)));
+        var options = new BarcodeSvgRenderOptions { HeightModules = 5_000 };
+
+        OfficeDrawing drawing = barcode.ToOfficeDrawing(out int unsupported, options);
+
+        Assert.Equal(0, unsupported);
+        Assert.True(drawing.Width * drawing.Height > OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels);
+        Assert.True(drawing.Width * drawing.Height <= OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels);
+    }
 }

@@ -117,8 +117,21 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendSheetTable(StringBuilder body, ExcelSheet sheet, ExcelHtmlSaveOptions options) {
-        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges();
-        string usedRange = ExpandUsedRangeForMerges(sheet, sheet.GetUsedRangeA1(), mergedRanges);
+        int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
+        int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
+        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
+        string reportedUsedRange = sheet.GetUsedRangeA1();
+        bool isEmptyDefaultRange = mergedRanges.Count == 0
+            && (string.Equals(reportedUsedRange, "A1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(reportedUsedRange, "A1:A1", StringComparison.OrdinalIgnoreCase))
+            && !sheet.TryGetCellText(1, 1, out _);
+        string usedRange = ExpandUsedRangeForMerges(
+            sheet,
+            reportedUsedRange,
+            mergedRanges,
+            rowLimit,
+            columnLimit,
+            options.MaxCellsPerSheet);
         body.Append("<section class=\"officeimo-sheet\" data-officeimo-sheet=\"")
             .Append(OfficeHtmlText.EscapeAttribute(sheet.Name))
             .Append("\" data-officeimo-range=\"")
@@ -129,12 +142,17 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("<h2>").Append(OfficeHtmlText.Escape(sheet.Name)).Append("</h2>");
 
         ParseUsedRange(usedRange, out int firstRow, out int firstColumn, out int rowCount, out int columnCount);
-        int maxRows = options.MaxRowsPerSheet.HasValue
-            ? Math.Min(rowCount, options.MaxRowsPerSheet.Value)
-            : rowCount;
-        ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, columnCount);
-        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount) && mergeMap.Count == 0)) {
-            body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
+        int maxColumns = Math.Min(Math.Min(columnCount, columnLimit), options.MaxCellsPerSheet);
+        int maxRows = Math.Min(rowCount, rowLimit);
+        if (maxColumns > 0 && (long)maxRows * maxColumns > options.MaxCellsPerSheet) {
+            maxRows = Math.Min(maxRows, Math.Max(1, options.MaxCellsPerSheet / maxColumns));
+        }
+        ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, maxColumns);
+        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || maxColumns == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, maxRows, maxColumns) && mergeMap.Count == 0)) {
+            body.Append(isEmptyDefaultRange
+                ? "<p class=\"officeimo-muted\">No used cells.</p>"
+                : "<p class=\"officeimo-muted\">No cells within export limits.</p>");
+            AppendSheetTruncationDiagnostics(body, maxRows, rowCount, maxColumns, columnCount);
             AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");
             return;
@@ -148,17 +166,19 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<tbody>");
         }
 
+        ExcelMergeExportRowCursor mergeCursor = mergeMap.CreateRowCursor();
         for (int row = 0; row < maxRows; row++) {
             if (row == 1 && firstRowIsHeader) {
                 body.Append("</thead><tbody>");
             }
 
             body.Append("<tr>");
-            for (int column = 0; column < columnCount; column++) {
+            mergeCursor.MoveToRow(firstRow + row);
+            for (int column = 0; column < maxColumns; column++) {
                 string tag = firstRowIsHeader && row == 0 ? "th" : "td";
                 int cellRow = firstRow + row;
                 int cellColumn = firstColumn + column;
-                if (mergeMap.IsCoveredCell(cellRow, cellColumn)) {
+                if (mergeCursor.IsCoveredCell(cellColumn)) {
                     continue;
                 }
 
@@ -168,7 +188,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(A1.CellReference(cellRow, cellColumn)))
                     .Append('"');
-                if (mergeMap.TryGetOrigin(cellRow, cellColumn, out ExcelMergeExportRange merge)) {
+                if (mergeCursor.TryGetOrigin(cellColumn, out ExcelMergeExportRange merge)) {
                     AppendMergeAttributes(body, merge);
                 }
 
@@ -196,16 +216,32 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
-        if (maxRows < rowCount) {
-            body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
-                .Append(maxRows.ToString(CultureInfo.InvariantCulture))
-                .Append(" of ")
-                .Append(rowCount.ToString(CultureInfo.InvariantCulture))
-                .Append(" exported.</p>");
-        }
+        AppendSheetTruncationDiagnostics(body, maxRows, rowCount, maxColumns, columnCount);
 
         AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
         body.Append("</section>");
+    }
+
+    private static void AppendSheetTruncationDiagnostics(
+        StringBuilder body,
+        int exportedRows,
+        int totalRows,
+        int exportedColumns,
+        int totalColumns) {
+        if (exportedColumns < totalColumns) {
+            body.Append("<p class=\"officeimo-diagnostic\">Columns truncated: ")
+                .Append(exportedColumns.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(totalColumns.ToString(CultureInfo.InvariantCulture))
+                .Append(" exported.</p>");
+        }
+        if (exportedRows < totalRows) {
+            body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
+                .Append(exportedRows.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(totalRows.ToString(CultureInfo.InvariantCulture))
+                .Append(" exported.</p>");
+        }
     }
 
     private static bool SheetHasUsedCells(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {

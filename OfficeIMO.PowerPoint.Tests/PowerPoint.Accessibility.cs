@@ -201,6 +201,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AccessibilityRejectsShapeTreesBeyondTheConfiguredLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddRectanglePoints(10, 10, 20, 20, "One");
+            slide.AddRectanglePoints(40, 10, 20, 20, "Two");
+
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions { MaximumShapeCount = 1 }));
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectPreflight(
+                new PowerPointDeckPreflightOptions { MaximumShapeCount = 1 }));
+        }
+
+        [Fact]
+        public void AccessibilityBoundsGroupChildrenWhileMaterializingTheTree() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20, "One");
+            PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20, "Two");
+            PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { first, second }, "Bounded group");
+
+            Assert.Throws<InvalidOperationException>(() => slide.GetGroupChildren(group, maximumChildren: 1));
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions { MaximumShapeCount = 2 }));
+            Assert.Throws<InvalidOperationException>(() => presentation.InspectPreflight(
+                new PowerPointDeckPreflightOptions { MaximumShapeCount = 2 }));
+        }
+
+        [Fact]
+        public void PackageFingerprintBoundsRelationshipFanOutWhileCollectingParts() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            presentation.AddSlide();
+
+            Assert.ThrowsAny<IOException>(() => PowerPointPackageFingerprint.CollectParts(
+                presentation.OpenXmlDocument,
+                maximumPartCount: 100,
+                maximumPartDepth: 100,
+                maximumRelationshipCount: 1));
+        }
+
+        [Fact]
+        public void PackageFingerprintPreservesUnsavedSlideRoots() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddRectanglePoints(10, 10, 20, 20, "Unsaved shape");
+
+            _ = PowerPointPackageFingerprint.Create(presentation.OpenXmlDocument);
+
+            Assert.Single(slide.Shapes);
+            Assert.Empty(slide.ClassicAnimations);
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");

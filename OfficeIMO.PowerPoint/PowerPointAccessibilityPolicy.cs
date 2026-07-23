@@ -13,6 +13,20 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointAccessibilityOptions {
         private double _minimumTextContrastRatio = 4.5D;
         private double _minimumLargeTextContrastRatio = 3D;
+        private int _maximumShapeCount = 10000;
+        private int _maximumGroupDepth = 128;
+
+        /// <summary>Maximum number of shapes inspected on one slide.</summary>
+        public int MaximumShapeCount {
+            get => _maximumShapeCount;
+            set => _maximumShapeCount = ValidatePositive(value, nameof(MaximumShapeCount));
+        }
+
+        /// <summary>Maximum supported nesting depth for grouped shapes.</summary>
+        public int MaximumGroupDepth {
+            get => _maximumGroupDepth;
+            set => _maximumGroupDepth = ValidatePositive(value, nameof(MaximumGroupDepth));
+        }
 
         /// <summary>Selected built-in profile. Use <see cref="ForProfile"/> to apply its defaults.</summary>
         public PowerPointAccessibilityPolicyProfile Profile { get; set; } = PowerPointAccessibilityPolicyProfile.Default;
@@ -103,8 +117,15 @@ namespace OfficeIMO.PowerPoint {
                 MinimumTextContrastRatio = MinimumTextContrastRatio,
                 MinimumLargeTextContrastRatio = MinimumLargeTextContrastRatio,
                 LargeTextThresholdPoints = LargeTextThresholdPoints,
-                LargeBoldTextThresholdPoints = LargeBoldTextThresholdPoints
+                LargeBoldTextThresholdPoints = LargeBoldTextThresholdPoints,
+                MaximumShapeCount = MaximumShapeCount,
+                MaximumGroupDepth = MaximumGroupDepth
             };
+        }
+
+        private static int ValidatePositive(int value, string name) {
+            if (value <= 0) throw new ArgumentOutOfRangeException(name, "Value must be positive.");
+            return value;
         }
 
         private static double ValidateContrast(double value, string name) {

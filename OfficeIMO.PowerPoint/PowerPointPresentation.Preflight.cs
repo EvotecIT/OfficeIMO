@@ -15,10 +15,12 @@ namespace OfficeIMO.PowerPoint {
             var findings = new List<PowerPointDeckPreflightFinding>();
             long slideWidth = SlideSize.WidthEmus;
             long slideHeight = SlideSize.HeightEmus;
+            int inspectedShapeCount = 0;
 
             for (int slideIndex = 0; slideIndex < Slides.Count; slideIndex++) {
                 PowerPointSlide slide = Slides[slideIndex];
-                InspectSlide(slide, slideIndex, slideWidth, slideHeight, resolved, findings);
+                InspectSlide(slide, slideIndex, slideWidth, slideHeight, resolved, findings,
+                    ref inspectedShapeCount);
             }
 
             return new PowerPointDeckPreflightReport(Slides.Count, findings);
@@ -42,9 +44,11 @@ namespace OfficeIMO.PowerPoint {
             InspectPreflight(options);
 
         private static void InspectSlide(PowerPointSlide slide, int slideIndex, long slideWidth, long slideHeight,
-            PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings) {
+            PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings,
+            ref int inspectedShapeCount) {
             InspectShapeTree(slide, slide.Shapes, slideIndex,
-                new PowerPointLayoutBox(0L, 0L, slideWidth, slideHeight), options, findings, null);
+                new PowerPointLayoutBox(0L, 0L, slideWidth, slideHeight), options, findings, null,
+                0, ref inspectedShapeCount);
 
             if (options.IncludeVisualSnapshotDiagnostics) {
                 InspectVisualSnapshot(slide, slideIndex, findings);
@@ -53,9 +57,16 @@ namespace OfficeIMO.PowerPoint {
 
         private static void InspectShapeTree(PowerPointSlide slide, IReadOnlyList<PowerPointShape> shapes,
             int slideIndex, PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
-            IList<PowerPointDeckPreflightFinding> findings, int? containingShapeIndex) {
+            IList<PowerPointDeckPreflightFinding> findings, int? containingShapeIndex, int groupDepth,
+            ref int inspectedShapeCount) {
+            if (groupDepth > options.MaximumGroupDepth) {
+                throw new InvalidOperationException("The grouped-shape nesting depth exceeds the configured limit.");
+            }
             for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                 PowerPointShape shape = shapes[shapeIndex];
+                if (++inspectedShapeCount > options.MaximumShapeCount) {
+                    throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
+                }
                 int reportShapeIndex = containingShapeIndex ?? shapeIndex;
                 if (shape.Hidden) {
                     continue;
@@ -72,9 +83,11 @@ namespace OfficeIMO.PowerPoint {
                     InspectPicture(picture, reportShapeIndex, slideIndex, findings);
                 }
                 if (shape is PowerPointGroupShape groupShape) {
-                    IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(groupShape);
-                    InspectShapeTree(slide, children, slideIndex, slide.GetGroupChildBounds(groupShape),
-                        options, findings, reportShapeIndex);
+                    int remainingShapeCount = options.MaximumShapeCount - inspectedShapeCount;
+                    IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(groupShape, remainingShapeCount);
+                    InspectShapeTree(slide, children, slideIndex,
+                        PowerPointSlide.GetGroupChildBounds(groupShape, children),
+                        options, findings, reportShapeIndex, groupDepth + 1, ref inspectedShapeCount);
                 }
             }
 

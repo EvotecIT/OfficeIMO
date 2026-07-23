@@ -7,6 +7,23 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentRepeatedTableRowTests {
     [Fact]
+    public void TextAndPresentationTablesRejectExcessiveLogicalRepeats() {
+        OdtDocument text = OdtDocument.Create();
+        OdtTable textTable = text.AddTable(1, 1, "BoundedText");
+        textTable.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 1000001);
+
+        OdpPresentation presentation = OdpPresentation.Create();
+        OdpTable presentationTable = presentation.AddSlide("Bounded").AddTable(
+            OdfRect.FromCentimeters(1, 1, 8, 4), 1, 1, "BoundedPresentation");
+        presentationTable.Element.Descendants(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 1000001);
+
+        Assert.Throws<InvalidDataException>(() => _ = textTable.Rows);
+        Assert.Throws<InvalidDataException>(() => _ = presentationTable.Rows);
+    }
+
+    [Fact]
     public void TextAndPresentationTablesExposeRepeatedRowsLogically() {
         OdtDocument text = OdtDocument.Create();
         OdtTable textTable = text.AddTable(1, 1, "RepeatedText");

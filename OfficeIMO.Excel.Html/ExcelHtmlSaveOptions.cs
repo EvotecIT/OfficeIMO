@@ -6,6 +6,18 @@ namespace OfficeIMO.Excel.Html;
 /// Options for exporting Excel workbooks and worksheets to HTML.
 /// </summary>
 public sealed class ExcelHtmlSaveOptions {
+    /// <summary>Default maximum worksheet rows projected to semantic HTML.</summary>
+    public const int DefaultMaxRowsPerSheet = 10000;
+
+    /// <summary>Default maximum worksheet columns projected to semantic HTML.</summary>
+    public const int DefaultMaxColumnsPerSheet = 1024;
+
+    /// <summary>Default maximum worksheet cells visited while projecting semantic HTML.</summary>
+    public const int DefaultMaxCellsPerSheet = 1000000;
+
+    /// <summary>Default maximum merged-range records inspected per worksheet.</summary>
+    public const int DefaultMaxMergedRangesPerSheet = 10000;
+
     /// <summary>Excel-to-HTML lane to export. Defaults to semantic worksheet tables.</summary>
     public OfficeHtmlConversionProfile Profile { get; set; } = OfficeHtmlConversionProfile.ExcelSemanticTables;
 
@@ -18,8 +30,17 @@ public sealed class ExcelHtmlSaveOptions {
     /// <summary>Optional document title.</summary>
     public string? Title { get; set; }
 
-    /// <summary>Optional maximum number of used-range rows exported per worksheet.</summary>
-    public int? MaxRowsPerSheet { get; set; }
+    /// <summary>Maximum number of used-range rows exported per worksheet. Null uses the bounded default.</summary>
+    public int? MaxRowsPerSheet { get; set; } = DefaultMaxRowsPerSheet;
+
+    /// <summary>Maximum number of used-range columns exported per worksheet. Null uses the bounded default.</summary>
+    public int? MaxColumnsPerSheet { get; set; } = DefaultMaxColumnsPerSheet;
+
+    /// <summary>Maximum number of worksheet cells visited per semantic HTML table.</summary>
+    public int MaxCellsPerSheet { get; set; } = DefaultMaxCellsPerSheet;
+
+    /// <summary>Maximum number of merged-range records inspected per semantic HTML table.</summary>
+    public int MaxMergedRangesPerSheet { get; set; } = DefaultMaxMergedRangesPerSheet;
 
     /// <summary>Text used for empty cells.</summary>
     public string EmptyCellText { get; set; } = string.Empty;
@@ -36,6 +57,15 @@ public sealed class ExcelHtmlSaveOptions {
     internal void Validate() {
         if (MaxRowsPerSheet.HasValue && MaxRowsPerSheet.Value <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxRowsPerSheet), "Maximum rows per worksheet must be positive when configured.");
+        }
+        if (MaxColumnsPerSheet.HasValue && MaxColumnsPerSheet.Value <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxColumnsPerSheet), "Maximum columns per worksheet must be positive when configured.");
+        }
+        if (MaxCellsPerSheet <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxCellsPerSheet), "Maximum cells per worksheet must be positive.");
+        }
+        if (MaxMergedRangesPerSheet <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxMergedRangesPerSheet), "Maximum merged ranges per worksheet must be positive.");
         }
     }
 }

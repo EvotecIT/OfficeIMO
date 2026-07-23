@@ -2,6 +2,7 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Projects repeated ODF XML elements as a lazy logical read-only list.</summary>
 internal sealed class OdfRepeatedElementCollection<T> : IReadOnlyList<T> {
+    private const int MaximumLogicalItems = 1000000;
     private readonly IReadOnlyList<XElement> _elements;
     private readonly XName _repeatAttribute;
     private readonly Func<XElement, long, T> _factory;
@@ -15,7 +16,9 @@ internal sealed class OdfRepeatedElementCollection<T> : IReadOnlyList<T> {
         long count = 0;
         foreach (XElement element in elements) {
             count = checked(count + OdsRepeatModel.Read(element, repeatAttribute));
-            if (count > int.MaxValue) throw new InvalidDataException("ODF collection exceeds the supported logical item count.");
+            if (count > MaximumLogicalItems) {
+                throw new InvalidDataException($"ODF collection exceeds the supported logical item limit of {MaximumLogicalItems}.");
+            }
         }
         _count = (int)count;
     }

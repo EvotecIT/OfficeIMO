@@ -70,6 +70,22 @@ public class ReaderOpenDocumentModularTests {
     }
 
     [Fact]
+    public void RegisteredAdapterReportsOdpColumnTruncationSeparately() {
+        OdpPresentation document = OdpPresentation.Create();
+        OdpSlide slide = document.AddSlide("Wide");
+        OdpTable table = slide.AddTable(OdfRect.FromCentimeters(1, 1, 20, 4), 1, 257, "Wide table");
+        table.Cell(0, 256).Text = "Truncated column";
+
+        ReaderChunk chunk = Assert.Single(CreateReader().Read(document.ToBytes(), "wide.odp"));
+
+        ReaderTable extracted = Assert.Single(chunk.Tables!);
+        Assert.True(extracted.Truncated);
+        Assert.Equal(256, extracted.Columns.Count);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("columns were truncated", StringComparison.Ordinal));
+        Assert.DoesNotContain(chunk.Warnings!, warning => warning.Contains("rows were truncated", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RegisteredAdapterEmitsBoundedOdsSheetTableChunk() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Metrics");
@@ -113,6 +129,21 @@ public class ReaderOpenDocumentModularTests {
             Assert.Equal("Approved", extracted.Rows[1][1]);
             Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.OpenDocument, chunk.Kind));
 
+    }
+
+    [Fact]
+    public void RegisteredAdapterReportsOdtColumnTruncationSeparately() {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 257, "Wide");
+        table.Cell(0, 256).Text = "Truncated column";
+
+        ReaderChunk chunk = Assert.Single(CreateReader().Read(document.ToBytes(), "wide.odt"));
+
+        ReaderTable extracted = Assert.Single(chunk.Tables!);
+        Assert.True(extracted.Truncated);
+        Assert.Equal(256, extracted.Columns.Count);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("columns were truncated", StringComparison.Ordinal));
+        Assert.DoesNotContain(chunk.Warnings!, warning => warning.Contains("rows were truncated", StringComparison.Ordinal));
     }
 
     private static OfficeDocumentReader CreateReader() {

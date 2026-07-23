@@ -9,30 +9,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeImagePatternLayout pattern,
         int maximumTileCount,
         string visualSourceDescription) {
-        var tiles = new List<HtmlRenderVisual>();
-        foreach (OfficeImagePlacement tile in pattern.GetTilePlacements(maximumTileCount)) {
-            tiles.Add(HtmlRenderDrawing.CreateShared(
-                drawing,
-                tile.X,
-                tile.Y,
-                tile.Width,
-                tile.Height,
-                tiles.Count,
-                alternativeText: null,
-                linkUri: null,
-                source: visualSourceDescription));
-        }
-        if (tiles.Count == 0) return;
-        visuals.Add(new HtmlRenderClipGroup(
-            pattern.Area.X,
-            pattern.Area.Y,
-            pattern.Area.Width,
-            pattern.Area.Height,
-            clipHorizontal: true,
-            clipVertical: true,
-            tiles,
+        if (pattern.EstimatedTileCount <= 0L || pattern.EstimatedTileCount > maximumTileCount) return;
+        OfficeImagePlacement tile = pattern.Tile;
+        var tileDrawing = new OfficeDrawing(tile.Width, tile.Height);
+        tileDrawing.AddEffectDrawing(drawing, OfficeTransform.Scale(
+            tile.Width / drawing.Width,
+            tile.Height / drawing.Height));
+
+        OfficeImagePlacement area = pattern.Area;
+        var patternDrawing = new OfficeDrawing(area.Width, area.Height);
+        patternDrawing.AddTilingPattern(
+            tileDrawing,
+            new OfficeImagePlacement(0D, 0D, area.Width, area.Height),
+            pattern.HorizontalStep,
+            pattern.VerticalStep,
+            originX: tile.X - area.X,
+            originY: tile.Y - area.Y,
+            maximumTileCount: maximumTileCount,
+            repeatX: pattern.RepeatX,
+            repeatY: pattern.RepeatY);
+        visuals.Add(HtmlRenderDrawing.CreateShared(
+            patternDrawing,
+            area.X,
+            area.Y,
+            area.Width,
+            area.Height,
             visuals.Count,
-            visualSourceDescription + ":pattern-clip"));
+            alternativeText: null,
+            linkUri: null,
+            source: visualSourceDescription));
     }
 
     private static void AddVisibleBackgroundDrawing(

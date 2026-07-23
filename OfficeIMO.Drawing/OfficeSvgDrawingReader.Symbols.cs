@@ -14,18 +14,24 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         OfficeTransform inheritedTransform,
         int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
         ref int visited,
+        ref int pathCommands,
         ref int unsupported) {
         if (!TryParseNumberList(symbol.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
             || viewBox.Count != 4
             || viewBox[2] <= 0D
             || viewBox[3] <= 0D
+            || !IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)
             || !TrySymbolLength(use, symbol, "width", viewBox[2], out double width)
             || !TrySymbolLength(use, symbol, "height", viewBox[3], out double height)
             || !TryOptionalUseLength(use, "x", out double x)
             || !TryOptionalUseLength(use, "y", out double y)
             || width <= 0D
-            || height <= 0D) {
+            || height <= 0D
+            || !IsSupportedSvgViewport(width, height, maximumViewportDimension, maximumViewportPixels)) {
             unsupported++;
             return;
         }
@@ -41,7 +47,9 @@ public static partial class OfficeSvgDrawingReader {
         var scene = new OfficeDrawing(viewBox[2], viewBox[3]);
         SvgPaintContext style = ResolvePaintContext(symbol, inheritedStyle, paintServers, ref unsupported);
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
-        AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1], maximumElements, ref visited, ref unsupported);
+        AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1],
+            maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+            ref visited, ref pathCommands, ref unsupported);
 
         OfficeTransform viewportTransform;
         if (alignment == SvgAspectAlignment.None) {

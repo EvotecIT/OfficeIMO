@@ -10,6 +10,20 @@ namespace OfficeIMO.PowerPoint {
         private double _collisionTolerancePoints = 1D;
         private double _defaultFontSizePoints = 18D;
         private double _maximumDecorativeBleedPoints = 36D;
+        private int _maximumShapeCount = 10000;
+        private int _maximumGroupDepth = 128;
+
+        /// <summary>Maximum number of shapes inspected across the presentation.</summary>
+        public int MaximumShapeCount {
+            get => _maximumShapeCount;
+            set => _maximumShapeCount = RequirePositive(value, nameof(MaximumShapeCount));
+        }
+
+        /// <summary>Maximum supported nesting depth for grouped shapes.</summary>
+        public int MaximumGroupDepth {
+            get => _maximumGroupDepth;
+            set => _maximumGroupDepth = RequirePositive(value, nameof(MaximumGroupDepth));
+        }
 
         /// <summary>Checks whether explicit slide shapes extend beyond the slide canvas.</summary>
         public bool DetectOffSlideShapes { get; set; } = true;
@@ -110,8 +124,18 @@ namespace OfficeIMO.PowerPoint {
             DefaultFontSizePoints = DefaultFontSizePoints,
             MinimumCollisionOverlapRatio = MinimumCollisionOverlapRatio,
             CollisionTolerancePoints = CollisionTolerancePoints,
+            MaximumShapeCount = MaximumShapeCount,
+            MaximumGroupDepth = MaximumGroupDepth,
             FailureSeverity = FailureSeverity
         };
+
+        private static int RequirePositive(int value, string propertyName) {
+            if (value <= 0) {
+                throw new ArgumentOutOfRangeException(propertyName, "Value must be positive.");
+            }
+
+            return value;
+        }
 
         private static double RequirePositive(double value, string propertyName) {
             if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
