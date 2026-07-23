@@ -903,7 +903,7 @@ public partial class Word {
                 }
             }
 
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedBottom";
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "BottomCell";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "TopPeer";
             table.Rows[1].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
             table.Rows[1].Cells[0].Paragraphs[0].Text = "DirectTop";
@@ -920,7 +920,7 @@ public partial class Word {
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var words = pdf.GetPage(1).GetWords().ToList();
-        var inheritedBottom = Assert.Single(words, word => word.Text == "InheritedBottom");
+        var inheritedBottom = Assert.Single(words, word => word.Text == "BottomCell");
         var topPeer = Assert.Single(words, word => word.Text == "TopPeer");
         var directTop = Assert.Single(words, word => word.Text == "DirectTop");
         var directTopPeer = Assert.Single(words, word => word.Text == "DirectTopPeer");

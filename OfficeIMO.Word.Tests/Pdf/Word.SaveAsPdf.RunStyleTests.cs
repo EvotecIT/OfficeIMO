@@ -153,7 +153,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    IncludePageNumbers = false
+                    IncludePageNumbers = false,
+                    ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
                 });
             }
 
@@ -219,7 +220,8 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
-                IncludePageNumbers = false
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
             });
 
             string content = Encoding.ASCII.GetString(result.ToBytes());
@@ -249,7 +251,9 @@ namespace OfficeIMO.Tests {
 
             PdfConversionWarning warning = Assert.Single(
                 result.Warnings,
-                item => item.Code == "NativeFontFamilySubstituted");
+                item => item.Code == "NativeFontFamilySubstituted" &&
+                        item.Details.TryGetValue("fontFamily", out string? family) &&
+                        family == unavailableFamily);
             Assert.Equal(unavailableFamily, warning.Details["fontFamily"]);
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
         }
@@ -268,7 +272,9 @@ namespace OfficeIMO.Tests {
 
             PdfConversionWarning warning = Assert.Single(
                 result.Warnings,
-                item => item.Code == "NativeFontFamilySubstituted");
+                item => item.Code == "NativeFontFamilySubstituted" &&
+                        item.Details.TryGetValue("fontFamily", out string? family) &&
+                        family == "Arial");
             Assert.Equal("Arial", warning.Details["fontFamily"]);
             Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
         }

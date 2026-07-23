@@ -17,6 +17,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentRasterVisualBaselineTests {
     [Theory]
     [InlineData("word-native-report")]
+    [InlineData("word-business-delivery-summary")]
     [InlineData("excel-native-daily-workbook")]
     [InlineData("powerpoint-native-dense-layout")]
     public void NativeOfficeConverter_RemainsWithinPinnedMicrosoftOfficeReferenceDistance(string scenarioId) {
@@ -37,7 +38,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string actualPdfPath = Path.Combine(workDirectory, scenario.Id + ".officeimo.pdf");
 
         try {
-            byte[] actualPdf = CreateOfficeImoReferenceCandidate(scenario.ConverterId, sourcePath, actualPdfPath);
+            byte[] actualPdf = CreateOfficeImoReferenceCandidate(scenario, sourcePath, actualPdfPath);
             Assert.Equal(scenario.Pages.Count, PdfCore.PdfLogicalDocument.Load(actualPdf).Pages.Count);
             WriteReviewPdfArtifact("external-reference-" + scenario.Id + ".microsoft-office", referencePdf);
             WriteReviewPdfArtifact("external-reference-" + scenario.Id + ".officeimo", actualPdf);
@@ -103,9 +104,55 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
             Assert.True(
                 failures.Count == 0,
-                scenario.Producer + " " + corpus.ProducerEnvironment.ShortVersion +
+                scenario.Producer + " " + (scenario.ProducerVersion ?? corpus.ProducerEnvironment.ShortVersion) +
                 " reference distance exceeded the pinned budget for " + scenario.Id + ": " +
                 string.Join("; ", failures));
+        } finally {
+            TryDeleteDirectory(workDirectory);
+        }
+    }
+
+    [Fact]
+    public void WordBusinessDeliverySummary_PreservesPaginationMarginsTextOrderAndTags() {
+        string referenceDirectory = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "ReferenceBaselines");
+        ReferenceCorpus corpus = ReadReferenceCorpus(referenceDirectory);
+        ReferenceScenario scenario = Assert.Single(
+            corpus.Scenarios,
+            item => string.Equals(item.Id, "word-business-delivery-summary", StringComparison.Ordinal));
+        string sourcePath = Path.Combine(referenceDirectory, scenario.SourcePath);
+        string workDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfBusinessReference", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDirectory);
+
+        try {
+            byte[] actual = CreateOfficeImoReferenceCandidate(
+                scenario,
+                sourcePath,
+                Path.Combine(workDirectory, "word-business-delivery-summary.officeimo.pdf"));
+            PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Open(actual);
+            Assert.Equal(9, readDocument.Pages.Count);
+            Assert.Equal("en-US", readDocument.CatalogLanguage);
+            Assert.True(readDocument.HasTaggedContent);
+            Assert.Contains("Table", readDocument.TaggedContent!.StructureTypes);
+            Assert.Contains("L", readDocument.TaggedContent.StructureTypes);
+
+            using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(actual);
+            UglyToad.PdfPig.Content.Page pageOne = pdf.GetPage(1);
+            UglyToad.PdfPig.Content.Page pageTwo = pdf.GetPage(2);
+            Assert.Contains("Planning Workbook", pageOne.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("WorksheetPurpose", pageOne.Text, StringComparison.Ordinal);
+            Assert.Contains("WorksheetPurpose", pageTwo.Text, StringComparison.Ordinal);
+            Assert.True(
+                pageTwo.Letters.Where(letter => letter.Value == "W").Max(letter => letter.StartBaseLine.Y) <= 720.5D,
+                "Expected the planning table to start inside the one-inch top margin.");
+
+            foreach (UglyToad.PdfPig.Content.Page page in pdf.GetPages()) {
+                Assert.All(
+                    page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)),
+                    letter => {
+                        Assert.InRange(letter.StartBaseLine.X, 68D, 544D);
+                        Assert.InRange(letter.StartBaseLine.Y, 68D, 724D);
+                    });
+            }
         } finally {
             TryDeleteDirectory(workDirectory);
         }
@@ -126,15 +173,22 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return padded;
     }
 
-    private static byte[] CreateOfficeImoReferenceCandidate(string converterId, string sourcePath, string outputPath) {
-        switch (converterId) {
+    private static byte[] CreateOfficeImoReferenceCandidate(ReferenceScenario scenario, string sourcePath, string outputPath) {
+        switch (scenario.ConverterId) {
             case "word":
                 using (WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
                 })) {
-                    document.SaveAsPdf(outputPath, new WordPdfSaveOptions {
+                    var options = new WordPdfSaveOptions {
                         IncludePageNumbers = false
-                    });
+                    };
+                    if (string.Equals(scenario.FontProfile, "officeimo-browser-compact", StringComparison.Ordinal)) {
+                        options.FontFamily = "Carlito";
+                        options.PdfOptions = CreateBrowserCompactReferenceOptions(scenario);
+                        options.ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic();
+                    }
+
+                    document.SaveAsPdf(outputPath, options);
                 }
                 break;
             case "excel":
@@ -159,10 +213,61 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 }
                 break;
             default:
-                throw new InvalidOperationException("Unsupported external-reference converter: " + converterId + ".");
+                throw new InvalidOperationException("Unsupported external-reference converter: " + scenario.ConverterId + ".");
         }
 
         return File.ReadAllBytes(outputPath);
+    }
+
+    private static PdfCore.PdfOptions CreateBrowserCompactReferenceOptions(ReferenceScenario scenario) {
+        string fontDirectory = Path.GetFullPath(Path.Combine(
+            GetPdfTestsProjectRoot(),
+            "..",
+            "Website",
+            "Apps",
+            "OfficeIMO.Web.Converter",
+            "Assets",
+            "Fonts"));
+        var assets = new SortedDictionary<string, byte[]>(StringComparer.Ordinal) {
+            ["Carlito-Bold.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "Carlito-Bold.ttf")),
+            ["Carlito-BoldItalic.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "Carlito-BoldItalic.ttf")),
+            ["Carlito-Italic.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "Carlito-Italic.ttf")),
+            ["Carlito-Regular.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "Carlito-Regular.ttf")),
+            ["NotoSansArabic-Regular.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "NotoSansArabic-Regular.ttf")),
+            ["NotoSansSymbols2-Regular.ttf"] = File.ReadAllBytes(Path.Combine(fontDirectory, "NotoSansSymbols2-Regular.ttf"))
+        };
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (KeyValuePair<string, byte[]> asset in assets) {
+            hash.AppendData(System.Text.Encoding.UTF8.GetBytes(asset.Key));
+            hash.AppendData(new byte[] { 0 });
+            hash.AppendData(asset.Value);
+        }
+        string fingerprint = BitConverter.ToString(hash.GetHashAndReset())
+            .Replace("-", string.Empty)
+            .ToLowerInvariant();
+        Assert.Equal(scenario.FontProfileFingerprint, fingerprint);
+
+        var family = new PdfCore.PdfEmbeddedFontFamily(
+            "Carlito",
+            assets["Carlito-Regular.ttf"],
+            assets["Carlito-Bold.ttf"],
+            assets["Carlito-Italic.ttf"],
+            assets["Carlito-BoldItalic.ttf"]);
+        var options = new PdfCore.PdfOptions {
+            DefaultFont = PdfCore.PdfStandardFont.Helvetica,
+            HeaderFont = PdfCore.PdfStandardFont.Helvetica,
+            FooterFont = PdfCore.PdfStandardFont.Helvetica,
+            TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers,
+            TextShapingMode = PdfCore.PdfTextShapingMode.LatinLigatures
+        };
+        options.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, family);
+        options.RegisterNamedFontFamily(family);
+        options.RegisterEmbeddedFontFallbacks(
+            new PdfCore.PdfEmbeddedFontFallbackSet(new[] {
+                new PdfCore.PdfEmbeddedFontFallbackCandidate("Noto Sans Arabic", assets["NotoSansArabic-Regular.ttf"]),
+                new PdfCore.PdfEmbeddedFontFallbackCandidate("Noto Sans Symbols 2", assets["NotoSansSymbols2-Regular.ttf"])
+            }));
+        return options;
     }
 
     private static ReferenceCorpus ReadReferenceCorpus(string referenceDirectory) {
@@ -197,6 +302,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         public string ConverterId { get; set; } = string.Empty;
 
         public string Producer { get; set; } = string.Empty;
+
+        public string? ProducerVersion { get; set; }
+
+        public string? FontProfile { get; set; }
+
+        public string? FontProfileFingerprint { get; set; }
 
         public string SourcePath { get; set; } = string.Empty;
 

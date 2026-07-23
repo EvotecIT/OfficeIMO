@@ -1939,6 +1939,43 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFallbackSet_NamedFamiliesCoexistWithAllCompatibilitySlots() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] font = File.ReadAllBytes(fontPath);
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Portable Fallback", font) });
+        var options = new PdfOptions { CompressContentStreams = false };
+        options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Sans", font));
+        options.RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Document Serif", font));
+        options.RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", font));
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Portable Fallback", new byte[] { 0 }));
+        options.RegisterEmbeddedFontFallbacks(fallbackSet);
+
+        Assert.True(options.TryResolveNamedFontFace("Portable Fallback", bold: false, italic: false, out PdfNamedFontFace fallbackFace));
+        Assert.True(options.TryGetNamedFontProgramForGeneration(fallbackFace, out PdfTrueTypeFontProgram? programBefore));
+
+        IReadOnlyList<TextRun> runs = fallbackSet.PlanTextRuns("Invoice Cafe");
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Runs(runs))
+            .ToBytes();
+        Assert.True(options.TryGetNamedFontProgramForGeneration(fallbackFace, out PdfTrueTypeFontProgram? programAfterRendering));
+
+        TextRun run = Assert.Single(runs);
+        Assert.Same(programBefore, programAfterRendering);
+        Assert.True(fallbackSet.UsesNamedFontFamilies);
+        Assert.Empty(fallbackSet.FontSlots);
+        Assert.Equal("Portable Fallback", run.FontFamily);
+        Assert.Null(run.Font);
+        Assert.True(options.HasNamedFontFamily("Portable Fallback"));
+        Assert.Contains("/BaseFont /PortableFallback-Regular", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+        Assert.Contains("Invoice Cafe", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFallbackSet_PlanTextRunsUsesRegisteredStyledFontSlots() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

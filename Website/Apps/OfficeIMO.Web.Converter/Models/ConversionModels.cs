@@ -28,4 +28,8 @@ public sealed record ConversionResult(
     string ContentType,
     string? Text,
     string? HtmlPreview,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings) {
+    public string? FidelityStatus { get; init; }
+    public string? ProvenanceSummary { get; init; }
+    public BrowserConversionArtifact? CompanionReport { get; init; }
+}

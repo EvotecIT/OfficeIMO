@@ -184,6 +184,8 @@ ordered by expected implementation and proof complexity:
   without rerendering or accepting evidence for another artifact.
 - `OfficeIMO.Drawing` is the shared managed scene, SVG, raster, Unicode
   line-breaking, Latin-ligature, text-direction, and host-shaping-contract owner.
+- The end-to-end quality roadmap for Office conversion routes is
+  [OfficeIMO Office-to-PDF Premium Fidelity Plan](officeimo.office-to-pdf-premium-fidelity-plan.md).
 - `OfficeIMO.Html` owns HTML/CSS parsing, resource policy, layout, pagination,
   and its backend-neutral render scene.
 - `OfficeIMO.Html.Pdf` only maps that render scene to PDF primitives.

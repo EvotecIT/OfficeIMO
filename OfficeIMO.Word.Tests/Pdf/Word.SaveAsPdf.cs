@@ -313,7 +313,10 @@ public partial class Word {
             document.AddParagraph("Styled serif").SetFontFamily("Georgia");
             document.AddParagraph("Default serif");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "Times New Roman" });
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                FontFamily = "Times New Roman",
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
+            });
         }
 
         Assert.True(File.Exists(pdfPath));

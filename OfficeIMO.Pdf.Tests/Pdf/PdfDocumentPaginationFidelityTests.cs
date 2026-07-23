@@ -85,6 +85,41 @@ public class PdfDocumentPaginationFidelityTests {
     }
 
     [Fact]
+    public void Table_MinimumBodyRowsOnFirstPagePreventsOrphanedHeader() {
+        var options = new PdfOptions {
+            PageWidth = 280,
+            PageHeight = 180,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 1;
+        style.RepeatHeaderRowCount = 1;
+        style.FixedRowHeights = new List<double?> { 20, 20, 20 };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 50
+            })
+            .Table(new[] {
+                new[] { "OrphanHeader", "Value" },
+                new[] { "FirstBodyRow", "1" },
+                new[] { "SecondBodyRow", "2" }
+            }, style: style)
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain("OrphanHeader", pdf.GetPage(1).Text);
+        Assert.Contains("OrphanHeader", pdf.GetPage(2).Text);
+        Assert.Contains("FirstBodyRow", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void PaginationControlsCloneAndRejectNegativeValues() {
         var paragraphStyle = new PdfParagraphStyle {
             MinimumOrphanLines = 3,
@@ -95,12 +130,16 @@ public class PdfDocumentPaginationFidelityTests {
         Assert.Equal(4, paragraphClone.MinimumWidowLines);
 
         var tableStyle = new PdfTableStyle {
+            MinimumBodyRowsOnFirstPage = 2,
             MinimumBodyRowsOnLastPage = 4
         };
+        Assert.Equal(2, new PdfTableStyle().MinimumBodyRowsOnFirstPage);
+        Assert.Equal(2, tableStyle.Clone().MinimumBodyRowsOnFirstPage);
         Assert.Equal(4, tableStyle.Clone().MinimumBodyRowsOnLastPage);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => paragraphStyle.MinimumOrphanLines = -1);
         Assert.Throws<ArgumentOutOfRangeException>(() => paragraphStyle.MinimumWidowLines = -1);
+        Assert.Throws<ArgumentException>(() => tableStyle.MinimumBodyRowsOnFirstPage = -1);
         Assert.Throws<ArgumentException>(() => tableStyle.MinimumBodyRowsOnLastPage = -1);
     }
 }

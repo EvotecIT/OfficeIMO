@@ -294,6 +294,7 @@
 .ocx-panel-heading p { margin-bottom: 0.16rem; }
 .ocx-panel-heading h2 { margin: 0; font-size: 1.08rem; line-height: 1.25; letter-spacing: -0.025em; }
 .ocx-panel-heading > span { color: var(--ocx-muted); font-size: 0.75rem; }
+.ocx-output-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap; }
 
 .ocx-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .ocx-dropzone {

@@ -12,6 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const int NativeOfficeImoScaffoldCellWidthTwips = 2400;
+        private const double NativeAutoFitGridMinimumScale = 0.8D;
 
         private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
@@ -183,10 +184,6 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
-            if (style.AutoFitColumns) {
-                return;
-            }
-
             List<double>? columnWidthWeights = CreateNativeColumnWidthWeights(layout);
             if (columnWidthWeights != null) {
                 style.ColumnWidthPoints = null;
@@ -194,7 +191,34 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (style.AutoFitColumns) {
+                if (layout.ColumnWidths.Length > 0 && layout.ColumnWidths.All(width => width > 0)) {
+                    ApplyNativeAutoFitGridMinimums(layout, style, contentWidth);
+                }
+                if (layout.ColumnWidths.Length > 0 &&
+                    layout.ColumnWidths.All(width => width > 0) &&
+                    layout.ColumnWidths.Skip(1).Any(width => Math.Abs(width - layout.ColumnWidths[0]) > 0.01F)) {
+                    style.ColumnWidthWeights = layout.ColumnWidths.Select(width => (double)width).ToList();
+                }
+                return;
+            }
+
             style.ColumnWidthPoints = CreateNativeColumnWidthPoints(layout, style);
+        }
+
+        private static void ApplyNativeAutoFitGridMinimums(TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
+            double tableWidth = style.MaxWidth ?? style.PreferredWidth ?? contentWidth ?? 0D;
+            double gridWidth = layout.ColumnWidths.Sum(width => (double)width);
+            if (tableWidth <= 0D ||
+                gridWidth <= 0D ||
+                double.IsNaN(tableWidth) ||
+                double.IsInfinity(tableWidth)) {
+                return;
+            }
+
+            style.ColumnMinWidthPoints = layout.ColumnWidths
+                .Select(width => (double?)(tableWidth * width / gridWidth * NativeAutoFitGridMinimumScale))
+                .ToList();
         }
 
         private static List<double>? CreateNativeColumnWidthWeights(TableLayout layout) {
@@ -664,7 +688,7 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
-            return IsNativeTableAutoFitLayout(properties) && !HasNativeTableAuthoredFixedCellWidths(table);
+            return !HasNativeTableAuthoredFixedCellWidths(table);
         }
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>

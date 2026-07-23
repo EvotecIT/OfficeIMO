@@ -55,7 +55,7 @@
             </section>
 
             <section class="ocx-output-panel" aria-labelledby="output-title">
-                <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div>@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary" href="@OutputUrl" download="@OutputFileName">Download result</a> }</div>
+                <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div><div class="ocx-output-actions">@if (!string.IsNullOrWhiteSpace(OutputReportUrl)) { <a class="ocx-button ocx-button--secondary" href="@OutputReportUrl" download="@OutputReportFileName">Conversion report</a> }@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary" href="@OutputUrl" download="@OutputFileName">Download result</a> }</div></div>
                 <div class="ocx-preview-stage">
                     @if (IsBusy) {
                         <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Converting in your browser</strong><p>The OfficeIMO engine is preparing the result.</p></div>
