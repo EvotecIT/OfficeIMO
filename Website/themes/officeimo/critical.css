@@ -30,6 +30,9 @@ svg {
   display: block;
   max-width: 100%;
 }
+img {
+  height: auto;
+}
 .skip-link,
 .imo-skip-link {
   position: absolute;

@@ -7,6 +7,13 @@ $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
 
+function Test-ResponsiveImageRule([string] $Path, [string] $Label) {
+    $css = Get-Content -LiteralPath $Path -Raw
+    if ($css -notmatch '(?s)(?:^|})\s*img\s*\{[^}]*\bheight\s*:\s*auto\s*;?[^}]*\}') {
+        Add-Failure "$Label must preserve intrinsic image aspect ratios with an img { height: auto; } rule."
+    }
+}
+
 function Get-PngDimensions([string] $Path) {
     [byte[]] $bytes = [System.IO.File]::ReadAllBytes($Path)
     if ($bytes.Length -lt 24 -or
@@ -29,6 +36,11 @@ function Get-PngDimensions([string] $Path) {
 $docsRoot = Join-Path $SiteRoot 'content\docs'
 $tocPath = Join-Path $docsRoot 'toc.json'
 $toc = Get-Content -LiteralPath $tocPath -Raw | ConvertFrom-Json
+$criticalCssPath = Join-Path $SiteRoot 'themes\officeimo\critical.css'
+$appCssPath = Join-Path $SiteRoot 'themes\officeimo\assets\app.css'
+Test-ResponsiveImageRule -Path $criticalCssPath -Label 'Critical site CSS'
+Test-ResponsiveImageRule -Path $appCssPath -Label 'Full site CSS'
+
 $tocEntries = @($toc | ForEach-Object {
     if ($_.path) { $_ }
     @($_.items)
