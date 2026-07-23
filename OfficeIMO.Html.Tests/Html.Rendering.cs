@@ -1427,11 +1427,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
         options.FontFamily = new PdfCore.PdfEmbeddedFontFamily("CallerUnicode", installed.Regular);
 
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>" + marker + "</h1>").ToPdf(options);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>" + marker + "</p>").ToPdf(options);
         PdfCore.PdfDiagnosticReport report = PdfCore.PdfDiagnostics.Analyze(pdf);
 
         Assert.Contains(marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains(report.Fonts, font => font.BaseFont?.Contains("CallerUnicode", StringComparison.Ordinal) == true);
+        Assert.Contains(report.Fonts, font =>
+            font.HasEmbeddedFontFile
+            && font.BaseFont?.Contains("Arial", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     [Fact]

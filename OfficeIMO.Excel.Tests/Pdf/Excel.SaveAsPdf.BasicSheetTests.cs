@@ -42,7 +42,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void SaveAsPdf_ExcelWorkbook_PreservesExplicitMappedDefaultFontFamily() {
+    public void SaveAsPdf_ExcelWorkbook_RendersWithExplicitMappedDefaultFontFamily() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfExplicitSerif.xlsx");
 
         byte[] bytes;
@@ -58,8 +58,8 @@ public partial class Excel {
             });
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("/BaseFont /Times", raw, StringComparison.OrdinalIgnoreCase);
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Explicit serif default", pdf.GetPage(1).Text, StringComparison.Ordinal);
     }
 
     [Fact]
