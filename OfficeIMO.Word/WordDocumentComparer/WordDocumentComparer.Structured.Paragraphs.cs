@@ -813,7 +813,30 @@ namespace OfficeIMO.Word {
 
             double lengthRatio = (double)Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length);
             double sampledSimilarity = (double)matchingSamples / sampleCount * lengthRatio;
-            return Math.Max(edgeSimilarity, sampledSimilarity);
+            double anchorSimilarity = GetBoundedAnchorTextSimilarity(source, target, lengthRatio);
+            return Math.Max(edgeSimilarity, Math.Max(sampledSimilarity, anchorSimilarity));
+        }
+
+        private static double GetBoundedAnchorTextSimilarity(string source, string target, double lengthRatio) {
+            string anchors = source.Length <= target.Length ? source : target;
+            string searchable = source.Length <= target.Length ? target : source;
+            if (anchors.Length == 0) return 0D;
+
+            int anchorLength = Math.Min(BoundedTextSimilarityAnchorLength, anchors.Length);
+            int maximumStart = anchors.Length - anchorLength;
+            int sampleCount = Math.Min(MaxBoundedTextSimilarityAnchors, maximumStart + 1);
+            int matchingAnchors = 0;
+            for (int sample = 0; sample < sampleCount; sample++) {
+                int start = sampleCount == 1
+                    ? 0
+                    : (int)((long)sample * maximumStart / (sampleCount - 1));
+                string anchor = anchors.Substring(start, anchorLength);
+                if (searchable.IndexOf(anchor, StringComparison.Ordinal) >= 0) {
+                    matchingAnchors++;
+                }
+            }
+
+            return (double)matchingAnchors / sampleCount * lengthRatio;
         }
 
         private static int GetCommonSubsequenceLength(string source, string target) {
