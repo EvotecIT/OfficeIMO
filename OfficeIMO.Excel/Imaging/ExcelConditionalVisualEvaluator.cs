@@ -21,15 +21,8 @@ namespace OfficeIMO.Excel {
 
             long workPerRule = (long)cells.Count * MaxCellPassesPerConditionalRule;
             long maximumRulesForWork = MaxConditionalRuleCellEvaluations / workPerRule;
-            int maximumRules = maximumRulesForWork > 0
-                ? (int)Math.Min(MaxConditionalRules, maximumRulesForWork)
-                : 1;
-            IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
-                range,
-                maximumRules,
-                out bool rulesTruncated);
             if (maximumRulesForWork == 0) {
-                if (rules.Count > 0 || rulesTruncated) {
+                if (sheet.HasConditionalFormatting) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                         OfficeImageExportDiagnosticSeverity.Warning,
                         ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
@@ -38,6 +31,12 @@ namespace OfficeIMO.Excel {
                 }
                 return ExcelConditionalVisualState.Empty;
             }
+
+            int maximumRules = (int)Math.Min(MaxConditionalRules, maximumRulesForWork);
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
+                range,
+                maximumRules,
+                out bool rulesTruncated);
             if (rulesTruncated) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,

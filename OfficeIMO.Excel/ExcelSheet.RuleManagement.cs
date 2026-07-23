@@ -7,6 +7,9 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private int _nextConditionalFormattingPriority;
 
+        internal bool HasConditionalFormatting =>
+            WorksheetRoot.GetFirstChild<ConditionalFormatting>() != null;
+
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.
         /// </summary>

@@ -907,6 +907,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportSkipsConditionalRuleDiscoveryWhenNoRuleFitsWorkBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SkippedRuleDiscovery");
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            var malformedRule = new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.Expression
+            };
+            malformedRule.SetAttribute(new OpenXmlAttribute("priority", null, "not-an-integer"));
+            conditional.Append(malformedRule);
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+            var cells = new CountingVisualCellList(200_001);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Equal("SkippedRuleDiscovery!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReservesEveryConditionalEvaluatorPass() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("MultiPassRuleCellWork");
