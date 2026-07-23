@@ -117,6 +117,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportBoundsAggregateOffRangeSparklineData() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("BoundedGroupScale");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(7, 1, 1000);
+            sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", SparklineTypeValues.Column, seriesColor: "#2563EB");
+
+            ExcelVisualSparkline visible = Assert.Single(sheet.Range("XFD1:XFD1").CreateVisualSnapshot().Sparklines);
+
+            Assert.Equal("BoundedGroupScale!XFD1", visible.Source);
+            Assert.Equal(1D, visible.ScaleMinimum);
+            Assert.Equal(1D, visible.ScaleMaximum);
+
+            ExcelVisualSparkline lastVisible = Assert.Single(sheet.Range("XFD7:XFD7").CreateVisualSnapshot().Sparklines);
+            Assert.Equal("BoundedGroupScale!XFD7", lastVisible.Source);
+            Assert.Equal(new[] { 1000D }, lastVisible.Values);
+            Assert.Equal(1000D, lastVisible.ScaleMaximum);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsExternalSparklineRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

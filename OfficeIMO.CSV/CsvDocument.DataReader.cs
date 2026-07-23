@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Data.Common;
-using System.Text;
 
 namespace OfficeIMO.CSV;
 
@@ -36,8 +35,8 @@ public sealed partial class CsvDocument
         if (CanUseMemoryBackedFileDataReader(path, options, readerOptions))
         {
             options.CancellationToken.ThrowIfCancellationRequested();
-            var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-            var text = File.ReadAllText(path, encoding);
+            using var boundedReader = CsvFile.OpenTextReader(path, options, FileBufferSize);
+            var text = boundedReader.ReadToEnd();
             return Parse(text, options).CreateDataReader(readerOptions);
         }
 #endif
@@ -170,6 +169,7 @@ public sealed partial class CsvDocument
 
         var fileLength = new FileInfo(path).Length;
         return fileLength <= MemoryBackedCsvFileLimit &&
+            fileLength <= options.MaxInputBytes &&
             (options.MaxDecompressedBytes is null || fileLength <= options.MaxDecompressedBytes.Value);
     }
 #endif

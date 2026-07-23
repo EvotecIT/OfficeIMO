@@ -148,6 +148,7 @@ public static class CsvFile
         var compressionType = ResolveCompression(options.CompressionType, path);
         EnsureCompressionSupported(compressionType);
         ValidateMaxDecompressedBytes(options);
+        ValidateMaxInputBytes(options);
 
         FileOptions fileOptions = FileOptions.SequentialScan;
         if (useAsync)
@@ -157,12 +158,24 @@ public static class CsvFile
 
         var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
         Stream stream = WrapReadStream(fileStream, compressionType, leaveOpen: false);
-        if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
+        if (compressionType == CsvCompressionType.None)
+        {
+            stream = new CsvBoundedReadStream(stream, options.MaxInputBytes, leaveOpen: false);
+        }
+        else if (options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);
         }
 
         return stream;
+    }
+
+    private static void ValidateMaxInputBytes(CsvLoadOptions options)
+    {
+        if (options.MaxInputBytes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxInputBytes));
+        }
     }
 
     private static Stream CreateWriteStream(string path, CsvSaveOptions options, bool append, int bufferSize) =>
@@ -307,7 +320,7 @@ public static class CsvFile
             _bytesRead += count;
             if (_bytesRead > _maxBytes)
             {
-                throw new InvalidOperationException($"CSV decompressed data exceeded the configured limit of {_maxBytes} bytes.");
+                throw new InvalidOperationException($"CSV data exceeded the configured limit of {_maxBytes} bytes.");
             }
         }
 

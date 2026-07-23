@@ -1202,9 +1202,12 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex) {
             IReadOnlyList<ExcelWorksheetSparklineInfo> sparklines = ExcelWorksheetSparklineResolver.FindSparklines(sheet.WorksheetPart);
-            var visibleGroups = new HashSet<int>(sparklines
-                .Where(sparkline => IsSupportedSparklineKind(sparkline.Kind)
-                    && TryResolveVisibleExportCell(
+            var visibleIndexes = new HashSet<int>();
+            var visibleGroups = new HashSet<int>();
+            for (int index = 0; index < sparklines.Count; index++) {
+                ExcelWorksheetSparklineInfo sparkline = sparklines[index];
+                if (IsSupportedSparklineKind(sparkline.Kind) &&
+                    TryResolveVisibleExportCell(
                         sparkline.CellReference,
                         firstRow,
                         firstColumn,
@@ -1212,30 +1215,39 @@ namespace OfficeIMO.Excel {
                         lastColumn,
                         columnsByIndex,
                         rowsByIndex,
-                        out _))
-                .Select(sparkline => sparkline.GroupIndex));
-            var resolved = new List<ResolvedSparkline>(sparklines.Count);
-            foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
+                        out _)) {
+                    visibleIndexes.Add(index);
+                    visibleGroups.Add(sparkline.GroupIndex);
+                }
+            }
+
+            var resolved = new ResolvedSparkline[sparklines.Count];
+            long remainingSparklineDataCells = MaxSparklineDataCells;
+            IEnumerable<int> resolutionOrder = Enumerable.Range(0, sparklines.Count)
+                .Where(visibleIndexes.Contains)
+                .Concat(Enumerable.Range(0, sparklines.Count).Where(index => !visibleIndexes.Contains(index)));
+            foreach (int index in resolutionOrder) {
+                ExcelWorksheetSparklineInfo sparkline = sparklines[index];
                 if (!IsSupportedSparklineKind(sparkline.Kind) ||
                     !visibleGroups.Contains(sparkline.GroupIndex)) {
-                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
+                    resolved[index] = new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false);
                     continue;
                 }
 
                 if (!TryResolveSparklineDataRange(sheet.Name, sparkline.Formula, out string? dataRange, out bool externalRange) || dataRange == null) {
-                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange));
+                    resolved[index] = new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange);
                     continue;
                 }
 
-                if (!TryReadSparklineValues(sheet, dataRange, out IReadOnlyList<double> values)) {
-                    resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
+                if (!TryReadSparklineValues(sheet, dataRange, ref remainingSparklineDataCells, out IReadOnlyList<double> values)) {
+                    resolved[index] = new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false);
                     continue;
                 }
 
-                resolved.Add(new ResolvedSparkline(sparkline, values, hasResolvedRange: true, externalRange: false));
+                resolved[index] = new ResolvedSparkline(sparkline, values, hasResolvedRange: true, externalRange: false);
             }
 
-            return resolved.AsReadOnly();
+            return Array.AsReadOnly(resolved);
         }
 
         private static IReadOnlyDictionary<int, SparklineScaleRange> ResolveSparklineScaleRanges(IReadOnlyList<ResolvedSparkline> sparklines) {
@@ -1328,7 +1340,11 @@ namespace OfficeIMO.Excel {
             return normalized;
         }
 
-        private static bool TryReadSparklineValues(ExcelSheet sheet, string dataRange, out IReadOnlyList<double> values) {
+        private static bool TryReadSparklineValues(
+            ExcelSheet sheet,
+            string dataRange,
+            ref long remainingDataCells,
+            out IReadOnlyList<double> values) {
             int firstRow;
             int firstColumn;
             int lastRow;
@@ -1345,10 +1361,12 @@ namespace OfficeIMO.Excel {
 
             long rowCount = (long)lastRow - firstRow + 1L;
             long columnCount = (long)lastColumn - firstColumn + 1L;
-            if (rowCount <= 0L || columnCount <= 0L || rowCount > MaxSparklineDataCells / columnCount) {
+            if (rowCount <= 0L || columnCount <= 0L || rowCount > remainingDataCells / columnCount) {
                 values = Array.Empty<double>();
                 return false;
             }
+
+            remainingDataCells -= rowCount * columnCount;
 
             var resolvedValues = new List<double>();
             for (int row = firstRow; row <= lastRow; row++) {

@@ -783,6 +783,184 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportBoundsAggregateConditionalRuleReferences() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("AggregateConditional");
+            sheet.CellValue(1, 1, 0D);
+            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Red, OfficeColor.Lime);
+            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Blue, OfficeColor.White);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal("AggregateConditional!A1:A60000", diagnostic.Source);
+            Assert.Contains("aggregate", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportBoundsConditionalRuleCount() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RuleCount");
+            sheet.CellValue(1, 1, 0D);
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            for (int priority = 1; priority <= 4_097; priority++) {
+                conditional.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.ColorScale,
+                    Priority = priority
+                });
+            }
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Contains("4096-rule", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("RuleCount!A1:A1", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRetainsHighestPrecedenceRulesWhenBounded() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RulePriority");
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            conditional.Append(
+                new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 100,
+                    StopIfTrue = false
+                },
+                new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 1,
+                    StopIfTrue = true
+                });
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            IReadOnlyList<ExcelConditionalFormattingInfo> retained =
+                sheet.GetConditionalFormattingRules("A1", 1, out bool truncated);
+
+            Assert.True(truncated);
+            ExcelConditionalFormattingInfo rule = Assert.Single(retained);
+            Assert.Equal(1, rule.Priority);
+            Assert.True(rule.StopIfTrue);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportBoundsConditionalRuleCellWork() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RuleCellWork");
+            sheet.CellValue(1, 1, 0D);
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            for (int priority = 1; priority <= 1_001; priority++) {
+                conditional.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.ColorScale,
+                    Priority = priority
+                });
+            }
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1000").CreateVisualSnapshot();
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Contains("200-rule", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("RuleCellWork!A1:A1000", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportOmitsConditionalRulesWhenNoRuleFitsWorkBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("OversizedRuleCellWork");
+            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
+            var cells = new CountingVisualCellList(1_000_001);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Contains("1000000 rule-cell", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("OversizedRuleCellWork!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportSkipsConditionalRuleDiscoveryWhenNoRuleFitsWorkBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SkippedRuleDiscovery");
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            var malformedRule = new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.Expression
+            };
+            malformedRule.SetAttribute(new OpenXmlAttribute("priority", null, "not-an-integer"));
+            conditional.Append(malformedRule);
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+            var cells = new CountingVisualCellList(200_001);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Equal("SkippedRuleDiscovery!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReservesEveryConditionalEvaluatorPass() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("MultiPassRuleCellWork");
+            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
+            var cells = new CountingVisualCellList(1_000_000);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Contains("all evaluator passes", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("MultiPassRuleCellWork!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportKeepsStoppedCellsInColorScaleThresholds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -5146,6 +5324,28 @@ namespace OfficeIMO.Tests {
             }
             public override void SetLength(long value) => throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
+        private sealed class CountingVisualCellList : IReadOnlyList<ExcelVisualCell> {
+            internal CountingVisualCellList(int count) {
+                Count = count;
+            }
+
+            public int Count { get; }
+            internal int ReadCount { get; private set; }
+
+            public ExcelVisualCell this[int index] {
+                get {
+                    ReadCount++;
+                    throw new InvalidOperationException("The oversized conditional-formatting guard must run before cell access.");
+                }
+            }
+
+            public IEnumerator<ExcelVisualCell> GetEnumerator() {
+                for (int index = 0; index < Count; index++) yield return this[index];
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
