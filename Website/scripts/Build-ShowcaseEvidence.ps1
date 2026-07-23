@@ -98,7 +98,7 @@ $artifacts = @(
         id = 'powerpoint-output'
         source = $powerPointPath
         destination = 'powerpoint/design-brief-recommendations.pptx'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --powerpoint-design-brief'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --powerpoint-design-brief"
         evidence = 'Editable PPTX; Open XML validation is part of the example.'
     },
     [ordered]@{
@@ -112,7 +112,7 @@ $artifacts = @(
         id = 'pdf-output'
         source = (Join-Path $documentsRoot 'Pdf.Showcase.Dashboard.pdf')
         destination = 'pdf/showcase-dashboard.pdf'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --pdf-showcase'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --pdf-showcase"
         evidence = 'First-party PDF dashboard output.'
     },
     [ordered]@{
@@ -126,28 +126,28 @@ $artifacts = @(
         id = 'html-pdf-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.pdf')
         destination = 'html/invoice.pdf'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
         evidence = 'PDF generated directly from the same parsed HTML and options object as the image outputs.'
     },
     [ordered]@{
         id = 'html-png-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.png')
         destination = 'html/invoice.png'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
         evidence = 'PNG generated directly from the same parsed HTML and options object as the PDF.'
     },
     [ordered]@{
         id = 'html-svg-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.svg')
         destination = 'html/invoice.svg'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
         evidence = 'SVG generated directly from the same parsed HTML and options object as the PDF.'
     },
     [ordered]@{
         id = 'excel-output'
         source = (Join-Path $documentsRoot 'ExcelReportWorkflow.xlsx')
         destination = 'excel/report-workflow.xlsx'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --excel-report-workflow'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --excel-report-workflow"
         evidence = 'Editable XLSX with formulas, chart, table, and pivot metadata.'
     },
     [ordered]@{
@@ -168,7 +168,7 @@ $artifacts = @(
         id = 'visio-output'
         source = (Join-Path $documentsRoot 'Premium Visio Showcase\Premium - Cloud Architecture.vsdx')
         destination = 'visio/premium-cloud-architecture.vsdx'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --visio-premium'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --visio-premium"
         evidence = 'Editable VSDX validated by the premium gallery example.'
     },
     [ordered]@{
@@ -189,14 +189,14 @@ $artifacts = @(
         id = 'onenote-section'
         source = (Join-Path $documentsRoot 'OfficeIMO-OneNote.one')
         destination = 'onenote/offline-planning.one'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --onenote'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --onenote"
         evidence = 'Native offline OneNote section.'
     },
     [ordered]@{
         id = 'onenote-package'
         source = (Join-Path $documentsRoot 'OfficeIMO-OneNote.onepkg')
         destination = 'onenote/offline-planning.onepkg'
-        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --onenote'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --onenote"
         evidence = 'Native offline OneNote notebook package.'
     },
     [ordered]@{

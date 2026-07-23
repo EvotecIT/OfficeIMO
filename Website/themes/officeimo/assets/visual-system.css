@@ -1764,7 +1764,7 @@ body.pf-api-docs {
   gap: 1rem;
 }
 
-.imo-showcase-card {
+.imo-workflow-card {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -1775,9 +1775,9 @@ body.pf-api-docs {
   box-shadow: var(--imo-shadow-sm);
 }
 
-.imo-showcase-card[hidden] { display: none; }
+.imo-workflow-card[hidden] { display: none; }
 
-.imo-showcase-card__preview {
+.imo-workflow-card__preview {
   position: relative;
   display: grid;
   place-items: center;
@@ -1788,7 +1788,7 @@ body.pf-api-docs {
   background: color-mix(in srgb, var(--imo-bg-alt) 86%, var(--imo-primary-light));
 }
 
-.imo-showcase-card__preview > span {
+.imo-workflow-card__preview > span {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
@@ -1801,7 +1801,7 @@ body.pf-api-docs {
   font-weight: 800;
 }
 
-.imo-showcase-card__preview img {
+.imo-workflow-card__preview img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -1918,34 +1918,34 @@ body.pf-api-docs {
   line-height: 1.5;
 }
 
-.imo-showcase-card__body {
+.imo-workflow-card__body {
   display: flex;
   flex: 1;
   flex-direction: column;
   padding: 1.15rem;
 }
 
-.imo-showcase-card__body h2 {
+.imo-workflow-card__body h2 {
   margin: 0 0 0.45rem;
   font-size: 1.2rem;
   line-height: 1.2;
 }
 
-.imo-showcase-card__body > p {
+.imo-workflow-card__body > p {
   margin: 0;
   color: var(--imo-text-secondary);
   font-size: 0.86rem;
   line-height: 1.6;
 }
 
-.imo-showcase-card__tags {
+.imo-workflow-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
   margin-top: 0.8rem;
 }
 
-.imo-showcase-card__tags span {
+.imo-workflow-card__tags span {
   padding: 0.23rem 0.48rem;
   border: 1px solid color-mix(in srgb, var(--imo-primary) 22%, var(--imo-border));
   border-radius: 999px;
@@ -1955,14 +1955,14 @@ body.pf-api-docs {
   font-weight: 800;
 }
 
-.imo-showcase-card__io {
+.imo-workflow-card__io {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin: 1rem 0 0;
 }
 
-.imo-showcase-card__io div {
+.imo-workflow-card__io div {
   display: flex;
   gap: 0.35rem;
   align-items: center;
@@ -1972,26 +1972,26 @@ body.pf-api-docs {
   font-size: 0.7rem;
 }
 
-.imo-showcase-card__io dt {
+.imo-workflow-card__io dt {
   color: var(--imo-text-secondary);
   font-weight: 700;
 }
 
-.imo-showcase-card__io dd { margin: 0; font-weight: 800; }
+.imo-workflow-card__io dd { margin: 0; font-weight: 800; }
 
-.imo-showcase-card__proof {
+.imo-workflow-card__proof {
   margin-top: 0.85rem;
   color: var(--imo-text-secondary);
   font-size: 0.78rem;
 }
 
-.imo-showcase-card__proof summary {
+.imo-workflow-card__proof summary {
   color: var(--imo-text);
   font-weight: 700;
   cursor: pointer;
 }
 
-.imo-showcase-card__proof > div {
+.imo-workflow-card__proof > div {
   margin-top: 0.6rem;
   padding: 0.7rem;
   border-left: 3px solid #10b981;
@@ -1999,15 +1999,15 @@ body.pf-api-docs {
   background: color-mix(in srgb, #10b981 7%, var(--imo-bg-elevated));
 }
 
-.imo-showcase-card__proof > div.is-limit {
+.imo-workflow-card__proof > div.is-limit {
   border-left-color: #f59e0b;
   background: color-mix(in srgb, #f59e0b 8%, var(--imo-bg-elevated));
 }
 
-.imo-showcase-card__proof strong { color: var(--imo-text); }
-.imo-showcase-card__proof p { margin: 0.3rem 0 0; line-height: 1.55; }
+.imo-workflow-card__proof strong { color: var(--imo-text); }
+.imo-workflow-card__proof p { margin: 0.3rem 0 0; line-height: 1.55; }
 
-.imo-showcase-card__actions {
+.imo-workflow-card__actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
@@ -2015,7 +2015,7 @@ body.pf-api-docs {
   padding-top: 1rem;
 }
 
-.imo-showcase-card__actions .imo-btn {
+.imo-workflow-card__actions .imo-btn {
   min-width: 0;
   min-height: 40px;
   padding: 0.55rem 0.65rem;
@@ -2023,7 +2023,7 @@ body.pf-api-docs {
   white-space: normal;
 }
 
-.imo-showcase-card__actions nav {
+.imo-workflow-card__actions nav {
   display: flex;
   grid-column: 1 / -1;
   flex-wrap: wrap;
@@ -2032,7 +2032,7 @@ body.pf-api-docs {
   padding-top: 0.25rem;
 }
 
-.imo-showcase-card__actions nav a {
+.imo-workflow-card__actions nav a {
   min-width: 0;
   color: var(--imo-primary);
   font-size: 0.78rem;
@@ -2041,8 +2041,8 @@ body.pf-api-docs {
   text-decoration: none;
 }
 
-.imo-showcase-card__actions nav a:hover,
-.imo-showcase-card__actions nav a:focus-visible {
+.imo-workflow-card__actions nav a:hover,
+.imo-workflow-card__actions nav a:focus-visible {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -2187,11 +2187,11 @@ body.pf-api-docs {
   .imo-proof-card__format span { padding-top: 0; }
   .imo-proof-card__actions { align-items: flex-start; flex-direction: column; }
   .imo-showcase-grid { grid-template-columns: 1fr; }
-  .imo-showcase-card__preview { height: 280px; }
+  .imo-workflow-card__preview { height: 280px; }
   .imo-featured-workflow__pipeline { grid-template-columns: 1fr; }
   .imo-featured-workflow__arrow { transform: rotate(90deg); }
   .imo-featured-workflow__node { min-height: 96px; }
-  .imo-showcase-card__actions { grid-template-columns: 1fr; }
+  .imo-workflow-card__actions { grid-template-columns: 1fr; }
   .imo-showcase-proof-note { grid-template-columns: 1fr; gap: 0.35rem; }
 
   .pf-api-docs .api-layout,

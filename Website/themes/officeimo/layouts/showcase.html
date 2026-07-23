@@ -72,8 +72,8 @@
 
         <div class="imo-showcase-grid">
           {{ for card in data.showcase.cards }}
-          <article class="imo-showcase-card" data-showcase-tags="{{ card.tags }}">
-            <div class="imo-showcase-card__preview">
+          <article class="imo-workflow-card" data-showcase-tags="{{ card.tags }}">
+            <div class="imo-workflow-card__preview">
               <span>{{ card.format }}</span>
               {{ if card.preview_kind == "reader" }}
               <div class="imo-showcase-reader" aria-label="Reader extraction preview">
@@ -95,22 +95,22 @@
               <img src="{{ card.image }}" alt="{{ card.image_alt }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
               {{ end }}
             </div>
-            <div class="imo-showcase-card__body">
+            <div class="imo-workflow-card__body">
               <h2>{{ card.title }}</h2>
               <p>{{ card.description }}</p>
-              <div class="imo-showcase-card__tags" aria-label="Workflow categories">
+              <div class="imo-workflow-card__tags" aria-label="Workflow categories">
                 {{ for badge in card.badge_tags }}<span>{{ badge }}</span>{{ end }}
               </div>
-              <dl class="imo-showcase-card__io">
+              <dl class="imo-workflow-card__io">
                 <div><dt>Input</dt><dd>{{ card.input }}</dd></div>
                 <div><dt>Output</dt><dd>{{ card.output }}</dd></div>
               </dl>
-              <details class="imo-showcase-card__proof">
+              <details class="imo-workflow-card__proof">
                 <summary>Inspect proof and known limits</summary>
                 <div><strong>What this proves</strong><p>{{ card.proof }}</p></div>
                 <div class="is-limit"><strong>Known boundary</strong><p>{{ card.limit }}</p></div>
               </details>
-              <div class="imo-showcase-card__actions">
+              <div class="imo-workflow-card__actions">
                 <a class="imo-btn imo-btn-primary" href="{{ card.guide_url }}">Follow the {{ card.format }} guide</a>
                 <a class="imo-btn imo-btn-secondary" href="{{ card.artifact_url }}" download>{{ card.artifact_label }}</a>
                 <nav aria-label="{{ card.title }} evidence links">

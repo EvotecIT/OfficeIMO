@@ -9,7 +9,7 @@
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 89,
-    "conceptualWordCount": 35513
+    "conceptualWordCount": 35508
   },
   "categories": [
     {
@@ -168,7 +168,7 @@
       "projectPath": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
       "sourceFileCount": 25,
       "referencingTestProjectCount": 2,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/epub/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub"
     },
@@ -181,7 +181,7 @@
       "projectPath": "OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/epub/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image"
     },
@@ -1039,7 +1039,7 @@
       "projectPath": "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
       "sourceFileCount": 227,
       "referencingTestProjectCount": 4,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf"
     },
@@ -1052,7 +1052,7 @@
       "projectPath": "OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
       "sourceFileCount": 8,
       "referencingTestProjectCount": 3,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown"
     },
@@ -1065,7 +1065,7 @@
       "projectPath": "OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
       "sourceFileCount": 13,
       "referencingTestProjectCount": 3,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf"
     },

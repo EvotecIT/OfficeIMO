@@ -251,6 +251,16 @@ foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
 if (@($catalog.components | Where-Object { [string]::IsNullOrWhiteSpace($_.description) }).Count -gt 0) {
     Add-Failure 'One or more OfficeIMO catalog components have no description.'
 }
+$rtfCatalogComponents = @($catalog.components | Where-Object name -Like 'OfficeIMO.Rtf*')
+if ($rtfCatalogComponents.Count -eq 0 -or
+    @($rtfCatalogComponents | Where-Object docsUrl -ne '/docs/rtf/').Count -gt 0) {
+    Add-Failure 'Every generated OfficeIMO.Rtf catalog entry must route to the dedicated RTF guide.'
+}
+$epubCatalogComponents = @($catalog.components | Where-Object name -Like 'OfficeIMO.Epub*')
+if ($epubCatalogComponents.Count -eq 0 -or
+    @($epubCatalogComponents | Where-Object docsUrl -ne '/docs/epub/').Count -gt 0) {
+    Add-Failure 'Every generated OfficeIMO.Epub catalog entry must route to the dedicated EPUB guide.'
+}
 
 $aotMatrixPath = Join-Path $SiteRoot 'static\data\aot-compatibility.json'
 $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
