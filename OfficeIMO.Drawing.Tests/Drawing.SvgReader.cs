@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -474,6 +475,25 @@ public class DrawingSvgReaderTests {
         Assert.NotNull(drawing);
         Assert.Empty(drawing!.Shapes);
         Assert.True(unsupported > 0);
+    }
+
+    [Fact]
+    public void SvgReaderExhaustsPathBudgetAfterOverlongReferencedPointToken() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'><defs><polyline id='p' points='0 ")
+            .Append('9', 512 * 1024)
+            .Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 1_000; index++) svg.Append("<use href='#p'/>");
+        svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
+        var timer = Stopwatch.StartNew();
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+
+        timer.Stop();
+        Assert.NotNull(drawing);
+        Assert.Empty(drawing!.Shapes);
+        Assert.True(unsupported > 0);
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Malformed referenced points exceeded the bounded parse time.");
     }
 
     [Fact]

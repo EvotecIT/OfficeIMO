@@ -746,9 +746,15 @@ public static partial class OfficeSvgDrawingReader {
                 return false;
             }
             int start = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') index++;
+            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') {
+                index++;
+                if (index - start > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
             int length = index - start;
-            if (length <= 0 || length > 128
+            if (length <= 0
                 || !double.TryParse(value.Substring(start, length), NumberStyles.Float,
                     CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number)
