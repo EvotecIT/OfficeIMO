@@ -565,7 +565,8 @@ public static partial class OfficeTextLayoutEngine {
         double height = NormalizeNonNegative(maxHeight);
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
-        double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(layout.Height, 1D)));
+        double requiredHeight = Math.Max(layout.Height, layout.Lines.Count * layout.LineHeight);
+        double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(requiredHeight, 1D)));
         if (scaleDown < 0.98D) {
             resolvedFontSize = Math.Max(minFontSize, resolvedFontSize * Math.Max(0D, scaleDown));
             layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
