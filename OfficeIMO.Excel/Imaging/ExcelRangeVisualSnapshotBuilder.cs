@@ -1215,6 +1215,7 @@ namespace OfficeIMO.Excel {
                         out _))
                 .Select(sparkline => sparkline.GroupIndex));
             var resolved = new List<ResolvedSparkline>(sparklines.Count);
+            long remainingSparklineDataCells = MaxSparklineDataCells;
             foreach (ExcelWorksheetSparklineInfo sparkline in sparklines) {
                 if (!IsSupportedSparklineKind(sparkline.Kind) ||
                     !visibleGroups.Contains(sparkline.GroupIndex)) {
@@ -1227,7 +1228,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!TryReadSparklineValues(sheet, dataRange, out IReadOnlyList<double> values)) {
+                if (!TryReadSparklineValues(sheet, dataRange, ref remainingSparklineDataCells, out IReadOnlyList<double> values)) {
                     resolved.Add(new ResolvedSparkline(sparkline, Array.Empty<double>(), hasResolvedRange: false, externalRange: false));
                     continue;
                 }
@@ -1328,7 +1329,11 @@ namespace OfficeIMO.Excel {
             return normalized;
         }
 
-        private static bool TryReadSparklineValues(ExcelSheet sheet, string dataRange, out IReadOnlyList<double> values) {
+        private static bool TryReadSparklineValues(
+            ExcelSheet sheet,
+            string dataRange,
+            ref long remainingDataCells,
+            out IReadOnlyList<double> values) {
             int firstRow;
             int firstColumn;
             int lastRow;
@@ -1345,10 +1350,12 @@ namespace OfficeIMO.Excel {
 
             long rowCount = (long)lastRow - firstRow + 1L;
             long columnCount = (long)lastColumn - firstColumn + 1L;
-            if (rowCount <= 0L || columnCount <= 0L || rowCount > MaxSparklineDataCells / columnCount) {
+            if (rowCount <= 0L || columnCount <= 0L || rowCount > remainingDataCells / columnCount) {
                 values = Array.Empty<double>();
                 return false;
             }
+
+            remainingDataCells -= rowCount * columnCount;
 
             var resolvedValues = new List<double>();
             for (int row = firstRow; row <= lastRow; row++) {

@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelConditionalVisualEvaluator {
+        private const int MaxConditionalRules = 4_096;
         private const int MaxConditionalReferenceCells = 100_000;
 
         internal static ExcelConditionalVisualState Evaluate(
@@ -11,7 +12,18 @@ namespace OfficeIMO.Excel {
             string range,
             DateTime conditionalFormattingDate,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(range);
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
+                range,
+                MaxConditionalRules,
+                out bool rulesTruncated);
+            if (rulesTruncated) {
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
+                    $"Conditional formatting rules beyond the {MaxConditionalRules.ToString(CultureInfo.InvariantCulture)}-rule image-export limit were omitted.",
+                    sheet.Name + "!" + range));
+            }
+
             if (rules.Count == 0 || cells.Count == 0) {
                 return ExcelConditionalVisualState.Empty;
             }
@@ -39,10 +51,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var retained = new List<ExcelConditionalFormattingInfo>(rules.Count);
+            int remainingReferenceCells = MaxConditionalReferenceCells;
             foreach (ExcelConditionalFormattingInfo rule in rules) {
-                if (!EnumerateReferenceCells(rule.Range, MaxConditionalReferenceCells + 1)
-                    .Skip(MaxConditionalReferenceCells)
-                    .Any()) {
+                int inspectedCells = EnumerateReferenceCells(rule.Range, remainingReferenceCells + 1).Count();
+                if (inspectedCells <= remainingReferenceCells) {
+                    remainingReferenceCells -= inspectedCells;
                     retained.Add(rule);
                     continue;
                 }
@@ -50,7 +63,7 @@ namespace OfficeIMO.Excel {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
-                    $"Conditional formatting rule was omitted because its reference exceeds the {MaxConditionalReferenceCells.ToString(CultureInfo.InvariantCulture)}-cell image-export limit.",
+                    $"Conditional formatting rule was omitted because its reference exceeds the remaining aggregate {MaxConditionalReferenceCells.ToString(CultureInfo.InvariantCulture)}-cell image-export limit.",
                     sheet.Name + "!" + rule.Range));
             }
 

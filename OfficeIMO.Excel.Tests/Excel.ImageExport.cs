@@ -783,6 +783,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportBoundsAggregateConditionalRuleReferences() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("AggregateConditional");
+            sheet.CellValue(1, 1, 0D);
+            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Red, OfficeColor.Lime);
+            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Blue, OfficeColor.White);
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(OfficeImageExportLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal("AggregateConditional!A1:A60000", diagnostic.Source);
+            Assert.Contains("aggregate", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportBoundsConditionalRuleCount() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RuleCount");
+            sheet.CellValue(1, 1, 0D);
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            for (int priority = 1; priority <= 4_097; priority++) {
+                conditional.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.ColorScale,
+                    Priority = priority
+                });
+            }
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(
+                snapshot.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
+            Assert.Contains("4096-rule", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("RuleCount!A1:A1", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportKeepsStoppedCellsInColorScaleThresholds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

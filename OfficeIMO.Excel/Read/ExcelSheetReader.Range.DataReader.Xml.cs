@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel {
             private readonly int _firstColumn;
             private readonly int _lastColumn;
             private readonly int _fieldCount;
+            private readonly long _maximumBufferedCells;
             private readonly CancellationToken _ct;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
@@ -71,6 +72,7 @@ namespace OfficeIMO.Excel {
                 _firstColumn = firstColumn;
                 _lastColumn = lastColumn;
                 _fieldCount = fieldCount;
+                _maximumBufferedCells = options.MaxDataReaderBufferedCells;
                 _ct = ct;
                 _nextLogicalRow = firstRow;
                 _currentValues = new object?[fieldCount];
@@ -717,6 +719,11 @@ namespace OfficeIMO.Excel {
             private void StoreBufferedRow(int rowIndex, object?[] values) {
                 if (rowIndex < _nextLogicalRow || rowIndex > _lastRow) {
                     return;
+                }
+
+                if (!_bufferedRows!.ContainsKey(rowIndex) &&
+                    (long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
+                    throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                 }
 
                 var copy = new object?[_fieldCount];

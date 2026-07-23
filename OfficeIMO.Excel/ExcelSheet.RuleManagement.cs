@@ -10,7 +10,18 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.
         /// </summary>
-        public IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRules(string? a1Range = null) {
+        public IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRules(string? a1Range = null) =>
+            GetConditionalFormattingRules(a1Range, int.MaxValue, out _);
+
+        internal IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRules(
+            string? a1Range,
+            int maximumRules,
+            out bool truncated) {
+            if (maximumRules <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumRules));
+            }
+
+            truncated = false;
             (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : ParseReferenceArgument(a1Range!);
             var workbookPart = _excelDocument.WorkbookPartRoot;
             Stylesheet? stylesheet = workbookPart.WorkbookStylesPart?.Stylesheet;
@@ -22,6 +33,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (var rule in conditional.Elements<ConditionalFormattingRule>()) {
+                    if (list.Count >= maximumRules) {
+                        truncated = true;
+                        return list;
+                    }
+
                     uint? differentialFormatId = ReadDifferentialFormatId(rule);
                     list.Add(new ExcelConditionalFormattingInfo {
                         Range = range,

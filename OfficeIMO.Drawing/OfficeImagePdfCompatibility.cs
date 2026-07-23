@@ -168,6 +168,11 @@ namespace OfficeIMO.Drawing {
                 }
 
                 string type = GetAscii(bytes, offset + 4, 4);
+                if (!seenIhdr && (type != "IHDR" || length != 13)) {
+                    unsupportedReason = "PNG bytes must start with an IHDR chunk.";
+                    return false;
+                }
+
                 uint expectedCrc = ReadUInt32BigEndian(bytes, offset + 8 + length);
                 uint actualCrc = ComputePngCrc(bytes, offset + 4, 4 + length);
                 if (actualCrc != expectedCrc) {
@@ -176,11 +181,6 @@ namespace OfficeIMO.Drawing {
                 }
 
                 if (!seenIhdr) {
-                    if (type != "IHDR" || length != 13) {
-                        unsupportedReason = "PNG bytes must start with an IHDR chunk.";
-                        return false;
-                    }
-
                     seenIhdr = true;
                 } else if (type == "IHDR") {
                     unsupportedReason = "PNG bytes contain more than one IHDR chunk.";

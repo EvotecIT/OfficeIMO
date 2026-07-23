@@ -153,8 +153,8 @@ public sealed class CsvLoadOptions
     public long? MaxDecompressedBytes { get; set; } = DefaultMaxInputBytes;
 
     /// <summary>
-    /// Gets or sets the maximum number of bytes accepted by stream-based load APIs.
-    /// Defaults to 256 MiB so non-seekable and never-ending inputs cannot be buffered without bound.
+    /// Gets or sets the maximum number of bytes accepted by stream-based and uncompressed path-based load APIs.
+    /// Defaults to 256 MiB so untrusted inputs cannot be buffered without bound.
     /// </summary>
     public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 

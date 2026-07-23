@@ -3591,6 +3591,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImagePdfCompatibilityRejectsLargeNonIhdrFirstChunkBeforeCrc() {
+        const int chunkLength = 1_000_000;
+        var malformed = new byte[8 + 12 + chunkLength];
+        Array.Copy(OnePixelPng, malformed, 8);
+        malformed[8] = 0x00;
+        malformed[9] = 0x0F;
+        malformed[10] = 0x42;
+        malformed[11] = 0x40;
+        Encoding.ASCII.GetBytes("IDAT").CopyTo(malformed, 12);
+
+        bool valid = OfficeImagePdfCompatibility.TryValidate(
+            malformed,
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason);
+
+        Assert.False(valid);
+        Assert.Null(imageInfo);
+        Assert.Equal("PNG bytes must start with an IHDR chunk.", unsupportedReason);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesPngWithoutDecodingPixels() {
         var image = OfficeImageReader.Identify(OnePixelPng);
 

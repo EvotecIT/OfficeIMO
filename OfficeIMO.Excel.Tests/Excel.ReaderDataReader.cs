@@ -100,6 +100,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_BoundsUnsortedXmlFallbackBuffer() {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                for (int row = 1; row <= 4; row++) {
+                    sheet.CellValue(row, 1, row);
+                    sheet.CellValue(row, 2, row * 10);
+                }
+            }
+
+            using var reordered = new MemoryStream();
+            source.Position = 0;
+            source.CopyTo(reordered);
+            reordered.Position = 0;
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(reordered, true)) {
+                WorksheetPart worksheetPart = Assert.Single(package.WorkbookPart!.WorksheetParts);
+                SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                Row[] rows = sheetData.Elements<Row>().ToArray();
+                sheetData.RemoveAllChildren<Row>();
+                sheetData.Append(rows[0], rows[3], rows[2], rows[1]);
+                worksheetPart.Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(reordered.ToArray(), new ExcelReadOptions {
+                MaxDataReaderBufferedCells = 4
+            });
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(
+                "A1:B4098",
+                headersInFirstRow: false,
+                schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => dataReader.Read());
+            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutHeadersPreservesBlankRowsInsideRange() {
             using var memory = new MemoryStream();
 

@@ -1,7 +1,12 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -25,6 +30,36 @@ namespace OfficeIMO.Tests {
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("PDF-unsupported images", diagnostics);
                 Assert.Contains("invalid CRC", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_RejectsInvalidImageDimensionsBeforeReadingBytes() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InvalidImageDimensions.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Images");
+                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidDimensions");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, true)) {
+                Xdr.Extent extent = Assert.Single(
+                    Assert.Single(package.WorkbookPart!.WorksheetParts)
+                        .DrawingsPart!.WorksheetDrawing.Descendants<Xdr.Extent>());
+                extent.Cx = 0L;
+                Assert.Single(extent.Ancestors<Xdr.WorksheetDrawing>().Single().Descendants<A.Extents>()).Cx = 0L;
+                extent.Ancestors<Xdr.WorksheetDrawing>().Single().Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("non-positive dimensions", diagnostics);
+                Assert.DoesNotContain("invalid CRC", diagnostics);
             }
         }
 
@@ -159,6 +194,18 @@ namespace OfficeIMO.Tests {
                 8, 2, 0, 0, 0,
                 0, 0, 0, 0
             };
+        }
+
+        private static byte[] CreatePngWithLargeNonIhdrFirstChunk() {
+            const int chunkLength = 1_000_000;
+            var bytes = new byte[8 + 12 + chunkLength];
+            byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
+            Array.Copy(signature, bytes, signature.Length);
+            bytes[9] = 0x0F;
+            bytes[10] = 0x42;
+            bytes[11] = 0x40;
+            Encoding.ASCII.GetBytes("IDAT").CopyTo(bytes, 12);
+            return bytes;
         }
     }
 }
