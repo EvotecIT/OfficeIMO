@@ -568,8 +568,10 @@ internal static class ContentStructureExtractor {
     private static bool TryParseTocRow(string text, out string label, out int pageNumber) {
         label = string.Empty;
         pageNumber = 0;
-        bool[] whitespaceSuffix = BuildWhitespaceSuffix(text);
-        int[] nextNonWhitespace = BuildNextNonWhitespace(text);
+        int trailingContentEnd = text.Length;
+        while (trailingContentEnd > 0 && char.IsWhiteSpace(text[trailingContentEnd - 1])) {
+            trailingContentEnd--;
+        }
 
         for (int index = 1; index < text.Length;) {
             if (text[index] != '.') {
@@ -586,14 +588,14 @@ internal static class ContentStructureExtractor {
                 continue;
             }
 
-            int digitStart = nextNonWhitespace[index];
+            int digitStart = SkipWhitespace(text, index);
             int digitEnd = digitStart;
-            while (digitEnd < text.Length && digitEnd - digitStart < 6 && text[digitEnd] is >= '0' and <= '9') {
+            while (digitEnd < trailingContentEnd && digitEnd - digitStart < 6 && text[digitEnd] is >= '0' and <= '9') {
                 digitEnd++;
             }
 
             int digitCount = digitEnd - digitStart;
-            if (digitCount is < 1 or > 5 || !whitespaceSuffix[digitEnd]) {
+            if (digitCount is < 1 or > 5 || digitEnd != trailingContentEnd) {
                 continue;
             }
 
@@ -611,8 +613,7 @@ internal static class ContentStructureExtractor {
     private static bool TryParseLeaderRow(string text, out string label, out string value) {
         label = string.Empty;
         value = string.Empty;
-        bool[] validValueSuffix = BuildLeaderValueSuffix(text);
-        int[] nextNonWhitespace = BuildNextNonWhitespace(text);
+        int validValueSuffixStart = FindValidLeaderValueSuffixStart(text);
 
         for (int index = 1; index < text.Length;) {
             char leader = text[index];
@@ -630,14 +631,14 @@ internal static class ContentStructureExtractor {
                 continue;
             }
 
-            int valueStart = nextNonWhitespace[index];
+            int valueStart = SkipWhitespace(text, index);
             if (valueStart < text.Length && IsLeaderCurrency(text[valueStart])) {
-                valueStart = nextNonWhitespace[valueStart + 1];
+                valueStart = SkipWhitespace(text, valueStart + 1);
             }
 
             if (valueStart >= text.Length ||
                 !char.IsLetterOrDigit(text[valueStart]) ||
-                !validValueSuffix[valueStart]) {
+                valueStart < validValueSuffixStart) {
                 continue;
             }
 
@@ -649,38 +650,26 @@ internal static class ContentStructureExtractor {
         return false;
     }
 
-    private static bool[] BuildWhitespaceSuffix(string text) {
-        var result = new bool[text.Length + 1];
-        result[text.Length] = true;
-        for (int index = text.Length - 1; index >= 0; index--) {
-            result[index] = char.IsWhiteSpace(text[index]) && result[index + 1];
-        }
-
-        return result;
-    }
-
-    private static bool[] BuildLeaderValueSuffix(string text) {
-        var result = new bool[text.Length + 1];
-        result[text.Length] = true;
+    private static int FindValidLeaderValueSuffixStart(string text) {
         for (int index = text.Length - 1; index >= 0; index--) {
             char character = text[index];
             bool allowed = char.IsLetterOrDigit(character) ||
                            char.IsWhiteSpace(character) ||
                            character is '.' or ',' or '\'' or '/' or '%' or '+' or '-' or '(' or ')';
-            result[index] = allowed && result[index + 1];
+            if (!allowed) {
+                return index + 1;
+            }
         }
 
-        return result;
+        return 0;
     }
 
-    private static int[] BuildNextNonWhitespace(string text) {
-        var result = new int[text.Length + 1];
-        result[text.Length] = text.Length;
-        for (int index = text.Length - 1; index >= 0; index--) {
-            result[index] = char.IsWhiteSpace(text[index]) ? result[index + 1] : index;
+    private static int SkipWhitespace(string text, int index) {
+        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            index++;
         }
 
-        return result;
+        return index;
     }
 
     private static bool IsLeaderCurrency(char value) => value is '$' or '€' or '£';
