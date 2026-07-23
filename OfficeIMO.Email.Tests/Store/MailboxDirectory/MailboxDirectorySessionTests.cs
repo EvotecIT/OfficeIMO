@@ -8,6 +8,17 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class MailboxDirectorySessionTests {
     [Fact]
+    public void TrailingSeparatorNormalizationPreservesFilesystemRoots() {
+        string root = Path.GetPathRoot(Path.GetFullPath(Path.GetTempPath()))!;
+        string nested = Path.Combine(root, "mailbox") + Path.DirectorySeparatorChar;
+
+        Assert.Equal(root,
+            MailboxDirectoryStoreSessionBackend.TrimTrailingDirectorySeparators(root));
+        Assert.Equal(Path.Combine(root, "mailbox"),
+            MailboxDirectoryStoreSessionBackend.TrimTrailingDirectorySeparators(nested));
+    }
+
+    [Fact]
     public void WindowsMailboxRootAliasUsesItsPhysicalIdentityForSafeReads() {
         if (!OperatingSystem.IsWindows()) return;
         string physicalRoot = CreateMailboxDirectory();

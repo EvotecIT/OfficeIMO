@@ -23,7 +23,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
         CancellationToken cancellationToken) {
         _root = AppendSeparator(Path.GetFullPath(path));
-        string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
+        string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         string? rootParent = Path.GetDirectoryName(rootWithoutSeparator);
         _rootComparison = EmailStorePathIdentity.GetComparison(rootParent ?? rootWithoutSeparator);
         _unixOpenRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -103,7 +103,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     private void Index(CancellationToken cancellationToken) {
         var candidates = new List<MailboxCandidate>();
         var pending = new Stack<DirectoryCandidate>();
-        pending.Push(new DirectoryCandidate(_root.TrimEnd(Path.DirectorySeparatorChar), 0));
+        pending.Push(new DirectoryCandidate(TrimTrailingDirectorySeparators(_root), 0));
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             DirectoryCandidate current = pending.Pop();
@@ -241,7 +241,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         if (normalized.StartsWith(_root, _rootComparison)) {
             return normalized.Substring(_root.Length).Replace('\\', '/');
         }
-        string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
+        string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         return string.Equals(normalized, rootWithoutSeparator, _rootComparison)
             ? string.Empty
             : normalized;
@@ -418,7 +418,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         const int linuxNoFollow = 0x00020000;
         const int linuxDirectory = 0x00010000;
         int directory = OpenUnix(
-            _unixOpenRoot.TrimEnd(Path.DirectorySeparatorChar),
+            TrimTrailingDirectorySeparators(_unixOpenRoot),
             linuxCloseOnExec | linuxNoFollow | linuxDirectory);
         if (directory < 0) return -1;
         try {
@@ -435,6 +435,17 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         } finally {
             CloseUnix(directory);
         }
+    }
+
+    internal static string TrimTrailingDirectorySeparators(string path) {
+        string root = Path.GetPathRoot(path) ?? string.Empty;
+        int length = path.Length;
+        while (length > root.Length
+               && (path[length - 1] == Path.DirectorySeparatorChar
+                   || path[length - 1] == Path.AltDirectorySeparatorChar)) {
+            length--;
+        }
+        return length == path.Length ? path : path.Substring(0, length);
     }
 
     private static string? ResolveUnixRealPath(string path) {
