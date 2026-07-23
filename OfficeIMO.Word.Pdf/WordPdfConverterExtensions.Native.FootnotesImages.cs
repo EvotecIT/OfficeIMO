@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
         private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, Dictionary<long, int> footnoteNumbersById) {
             var footnotes = new List<PdfFootnote>();
             foreach (WordElement element in elements) {
-                CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0);
+                CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0, tableDepth: 0);
             }
 
             return footnotes;
@@ -24,7 +24,8 @@ namespace OfficeIMO.Word.Pdf {
             WordElement element,
             List<PdfFootnote> footnotes,
             Dictionary<long, int> footnoteNumbersById,
-            int structuredDocumentTagDepth) {
+            int structuredDocumentTagDepth,
+            int tableDepth) {
             switch (element) {
                 case WordFootNote footNote:
                     AddNativeFootnote(footNote, footnotes, footnoteNumbersById);
@@ -57,12 +58,16 @@ namespace OfficeIMO.Word.Pdf {
 
                     break;
                 case WordTable table:
-                    foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
-                        foreach (WordTableRow row in currentTable.Rows) {
-                            foreach (WordTableCell cell in row.Cells) {
-                                foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                    CollectNativeFootnotes(paragraph, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
-                                }
+                    EnsureNativeTableDepth(tableDepth);
+                    foreach (WordTableRow row in table.Rows) {
+                        foreach (WordTableCell cell in row.Cells) {
+                            foreach (WordElement cellElement in cell.Elements) {
+                                CollectNativeFootnotes(
+                                    cellElement,
+                                    footnotes,
+                                    footnoteNumbersById,
+                                    structuredDocumentTagDepth,
+                                    tableDepth + 1);
                             }
                         }
                     }
@@ -71,14 +76,14 @@ namespace OfficeIMO.Word.Pdf {
                 case WordCoverPage coverPage:
                     EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
                     foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
-                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1);
+                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
                     }
 
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
                     EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
                     foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
-                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1);
+                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
                     }
 
                     break;

@@ -365,6 +365,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureRetainsModifiedParagraphWithStrongInternalMatch() {
+            string sharedMiddle = string.Concat(Enumerable.Repeat("shared middle content ", 12));
+            string sourceText = "A source start " + sharedMiddle + " source end";
+            string targetText = "B target start " + sharedMiddle + " target end";
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph(sourceText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                for (int index = 0; index < 260; index++) {
+                    doc.AddParagraph("A inserted candidate " + index);
+                }
+
+                doc.AddParagraph(targetText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText == targetText);
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText?.StartsWith("A inserted candidate ", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
         public void CompareStructureReadsExplicitNormalFootnotes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_explicit_normal_footnote.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {

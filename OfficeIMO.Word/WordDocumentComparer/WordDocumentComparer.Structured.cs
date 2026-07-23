@@ -10,6 +10,7 @@ namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private const int LcsCellLimit = 1_000_000;
         private const int MaxComparisonAlignmentWindow = 256;
+        private const int MaxBoundedTextSimilaritySamples = 64;
         private const int BodyPartOrderBase = 0;
         private const int HeaderPartOrderBase = 1_000_000;
         private const int FooterPartOrderBase = 2_000_000;

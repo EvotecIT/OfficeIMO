@@ -796,7 +796,24 @@ namespace OfficeIMO.Word {
                 targetSuffixIndex--;
             }
 
-            return (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
+            double edgeSimilarity = (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
+            int sampleCount = Math.Min(MaxBoundedTextSimilaritySamples, Math.Min(source.Length, target.Length));
+            if (sampleCount <= 1) {
+                return edgeSimilarity;
+            }
+
+            int matchingSamples = 0;
+            for (int sample = 0; sample < sampleCount; sample++) {
+                int sourceIndex = (int)((long)sample * (source.Length - 1) / (sampleCount - 1));
+                int targetIndex = (int)((long)sample * (target.Length - 1) / (sampleCount - 1));
+                if (source[sourceIndex] == target[targetIndex]) {
+                    matchingSamples++;
+                }
+            }
+
+            double lengthRatio = (double)Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length);
+            double sampledSimilarity = (double)matchingSamples / sampleCount * lengthRatio;
+            return Math.Max(edgeSimilarity, sampledSimilarity);
         }
 
         private static int GetCommonSubsequenceLength(string source, string target) {
