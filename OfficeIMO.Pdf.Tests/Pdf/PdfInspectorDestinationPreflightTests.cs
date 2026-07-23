@@ -65,6 +65,23 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_HonorsConfiguredNamedDestinationRewriteTraversalLimits() {
+        byte[] pdf = BuildDeepNamedDestinationNameTreePdf();
+        var nodeLimitedOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
+        };
+        var depthLimitedOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeDepth = 1 }
+        };
+
+        PdfDocumentPreflight nodeLimited = PdfInspector.Preflight(pdf, nodeLimitedOptions);
+        PdfDocumentPreflight depthLimited = PdfInspector.Preflight(pdf, depthLimitedOptions);
+
+        Assert.True(nodeLimited.HasRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations));
+        Assert.True(depthLimited.HasRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations));
+    }
+
+    [Fact]
     public void Preflight_AllowsUnsupportedNamedDestinationNameTreeReadButBlocksRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildComplexNamedDestinationNameTreePdf());
 

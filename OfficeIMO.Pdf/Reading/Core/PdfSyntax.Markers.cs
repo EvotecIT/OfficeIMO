@@ -257,6 +257,7 @@ internal static partial class PdfSyntax {
 
         try {
             var (objects, trailerRaw) = ParseObjects(pdf, options);
+            PdfReadLimits limits = options?.Limits ?? PdfReadOptions.Default.Limits;
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null) {
                 return true;
@@ -274,7 +275,7 @@ internal static partial class PdfSyntax {
 
                 if (namesDictionary.Items.ContainsKey("Dests")) {
                     return !TryGetNamedDestinationNameTree(objects, names, out var namedDestinationTree) ||
-                        !IsSupportedNamedDestinationNameTree(objects, namedDestinationTree);
+                        !IsSupportedNamedDestinationNameTree(objects, namedDestinationTree, limits);
                 }
             }
 

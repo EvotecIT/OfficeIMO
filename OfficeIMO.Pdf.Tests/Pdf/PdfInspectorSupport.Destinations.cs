@@ -127,6 +127,41 @@ public partial class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildDeepNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 5 0 R >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Kids [6 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Kids [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Names [(Chapter1) [3 0 R /XYZ 0 200 0]] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildComplexNamedDestinationNameTreePdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
