@@ -431,8 +431,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var parsed = new List<CellRange>(parts.Length);
             foreach (string part in parts) {
                 string rangeText = part.Replace("$", string.Empty);
-                if (!A1.TryParseRange(rangeText, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
-                    if (!A1.TryParseCellReferenceFast(rangeText, out firstRow, out firstColumn)) {
+                if (!A1.TryParseRangeCoordinates(rangeText,
+                        out int firstRow, out int firstColumn,
+                        out int lastRow, out int lastColumn)) {
+                    if (!A1.TryParseCellReferenceCoordinates(rangeText,
+                            out firstRow, out firstColumn)) {
                         reason = "conditional formatting ranges";
                         return false;
                     }
