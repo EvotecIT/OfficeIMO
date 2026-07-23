@@ -43,7 +43,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRequestSafety requestSafety,
             string serviceName,
             TranslationReport report,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             return SendAsync<TResponse>(
                 accessToken,
                 method,
@@ -54,7 +55,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 requestSafety,
                 serviceName,
                 report,
-                cancellationToken);
+                cancellationToken,
+                maxResponseBytes);
         }
 
         /// <summary>
@@ -70,7 +72,8 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationReport report,
             JsonTypeInfo<TRequest> requestTypeInfo,
             JsonTypeInfo<TResponse> responseTypeInfo,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             if (requestTypeInfo == null) throw new ArgumentNullException(nameof(requestTypeInfo));
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
@@ -82,7 +85,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 serviceName,
                 report,
                 responseTypeInfo,
-                cancellationToken);
+                cancellationToken,
+                maxResponseBytes);
         }
 
         /// <summary>
@@ -97,7 +101,8 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             JsonTypeInfo<TResponse> responseTypeInfo,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsync(
                 accessToken,
@@ -110,7 +115,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 serviceName,
                 report,
                 responseTypeInfo,
-                cancellationToken);
+                cancellationToken,
+                maxResponseBytes);
         }
 
         [RequiresUnreferencedCode("Use the overload that accepts JsonTypeInfo<TResponse> in trimmed applications.")]
@@ -123,7 +129,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRequestSafety requestSafety,
             string serviceName,
             TranslationReport report,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             return SendAsyncCore(
                 accessToken,
                 method,
@@ -133,7 +140,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 serviceName,
                 report,
                 body => JsonSerializer.Deserialize<TResponse>(body, JsonOptions),
-                cancellationToken);
+                cancellationToken,
+                maxResponseBytes);
         }
 
         /// <summary>
@@ -148,7 +156,8 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             JsonTypeInfo<TResponse> responseTypeInfo,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
             return SendAsyncCore(
                 accessToken,
@@ -159,7 +168,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 serviceName,
                 report,
                 body => JsonSerializer.Deserialize(body, responseTypeInfo),
-                cancellationToken);
+                cancellationToken,
+                maxResponseBytes);
         }
 
         private async Task<TResponse> SendAsyncCore<TResponse>(
@@ -171,42 +181,57 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             Func<string, TResponse?> deserialize,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            long? maxResponseBytes) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
             if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Request URI is required.", nameof(uri));
             if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
             if (report == null) throw new ArgumentNullException(nameof(report));
+            if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
 
             string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 
-            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+            return await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
                 _client,
                 () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
                 retryOptions,
                 requestSafety,
                 _options.RequestTimeout,
                 cancellationToken,
-                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode) {
-                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
-                }
+                async (response, responseToken) => {
+                    if (!response.IsSuccessStatusCode) {
+                        byte[] errorBytes = await ReadResponseBytesAsync(
+                            response.Content,
+                            MaximumErrorResponseBytes,
+                            responseToken,
+                            truncateAtLimit: true).ConfigureAwait(false);
+                        string errorBody = Encoding.UTF8.GetString(errorBytes);
+                        throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri,
+                            response.StatusCode, errorBody);
+                    }
 
-                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                    return default!;
-                }
+                    byte[] responseBytes = await ReadResponseBytesAsync(
+                        response.Content,
+                        maxResponseBytes,
+                        responseToken).ConfigureAwait(false);
+                    string body = Encoding.UTF8.GetString(responseBytes);
+                    if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
+                        return default!;
+                    }
 
-                var result = deserialize(body);
-                if (result == null) {
-                    throw new InvalidOperationException($"{serviceName} response from '{effectiveUri}' could not be deserialized.");
-                }
+                    var result = deserialize(body);
+                    if (result == null) {
+                        throw new InvalidOperationException(
+                            $"{serviceName} response from '{effectiveUri}' could not be deserialized.");
+                    }
 
-                return result;
-            }
+                    return result;
+                },
+                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false);
         }
 
         public async Task<byte[]> SendBytesAsync(

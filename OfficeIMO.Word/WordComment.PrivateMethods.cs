@@ -84,6 +84,41 @@ namespace OfficeIMO.Word {
                 : null;
         }
 
+        internal static Dictionary<string, CommentEx> IndexCommentExByParagraphId(
+            IReadOnlyList<CommentEx> commentsEx) {
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
+            var indexed = new Dictionary<string, CommentEx>(StringComparer.Ordinal);
+            foreach (CommentEx commentEx in commentsEx) {
+                string? paraId = commentEx.ParaId?.Value;
+                if (!string.IsNullOrWhiteSpace(paraId)) {
+                    string key = paraId!;
+                    if (!indexed.ContainsKey(key)) indexed.Add(key, commentEx);
+                }
+            }
+
+            return indexed;
+        }
+
+        internal static CommentEx? FindCommentExForComment(Comment comment,
+            IReadOnlyList<CommentEx> commentsEx, IReadOnlyDictionary<string, CommentEx> commentsExByParagraphId,
+            int fallbackIndex) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+            if (commentsExByParagraphId == null) throw new ArgumentNullException(nameof(commentsExByParagraphId));
+
+            string? paraId = GetCommentParagraphId(comment);
+            if (!string.IsNullOrWhiteSpace(paraId)) {
+                return commentsExByParagraphId.TryGetValue(paraId!, out CommentEx? matched)
+                    ? matched
+                    : null;
+            }
+
+            return fallbackIndex >= 0 && fallbackIndex < commentsEx.Count
+                ? commentsEx[fallbackIndex]
+                : null;
+        }
+
         internal static string? GetCommentParagraphId(Comment comment) {
             if (comment == null) throw new ArgumentNullException(nameof(comment));
 

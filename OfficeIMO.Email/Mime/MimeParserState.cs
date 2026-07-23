@@ -15,6 +15,8 @@ internal sealed class MimeParserState {
 
     internal int PartCount { get; private set; }
 
+    internal int AttachmentCount { get; private set; }
+
     internal long TotalAttachmentBytes { get; private set; }
 
     internal void CountPart() {
@@ -34,7 +36,16 @@ internal sealed class MimeParserState {
         }
     }
 
-    internal void CountAttachment(long length) {
+    internal void CountAttachment() {
+        ThrowIfCancellationRequested();
+        AttachmentCount++;
+        if (AttachmentCount > Options.MaxAttachmentCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentCount),
+                AttachmentCount, Options.MaxAttachmentCount);
+        }
+    }
+
+    internal void CountAttachmentBytes(long length) {
         EnsureAttachmentWithinLimits(length);
         TotalAttachmentBytes = checked(TotalAttachmentBytes + length);
     }

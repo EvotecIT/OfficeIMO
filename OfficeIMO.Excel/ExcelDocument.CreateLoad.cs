@@ -626,6 +626,9 @@ namespace OfficeIMO.Excel {
                 Password = password,
                 ReportUnsupportedContent = true
             });
+            if (!workbook.WasEncryptedSource) {
+                throw new InvalidDataException("LoadEncrypted requires a password-encrypted legacy XLS workbook.");
+            }
             return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly);
         }
 

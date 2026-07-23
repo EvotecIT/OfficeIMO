@@ -47,11 +47,14 @@ namespace OfficeIMO.Word {
             List<Comment> commentElements = commentsPart.Comments.Elements<Comment>().ToList();
             List<CommentEx> commentExElements = mainPart.WordprocessingCommentsExPart?.CommentsEx?.Elements<CommentEx>().ToList()
                 ?? new List<CommentEx>();
+            Dictionary<string, CommentEx> commentExByParagraphId =
+                WordComment.IndexCommentExByParagraphId(commentExElements);
             var comments = new List<WordCommentInfo>();
 
             for (int i = 0; i < commentElements.Count; i++) {
                 Comment comment = commentElements[i];
-                CommentEx? commentEx = WordComment.FindCommentExForComment(comment, commentExElements, i);
+                CommentEx? commentEx = WordComment.FindCommentExForComment(comment, commentExElements,
+                    commentExByParagraphId, i);
                 string? id = comment.Id?.Value;
                 commentTargets.TryGetValue(id ?? string.Empty, out CommentTargetInfo? target);
 

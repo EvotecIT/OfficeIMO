@@ -68,6 +68,17 @@ public sealed class EmlxStoreReaderTests {
     }
 
     [Fact]
+    public void EnforcesAttachmentCountAfterMimeProjection() {
+        byte[] emlx = CreateEmlx(CreateMultipartMessageWithTwoAttachments(), "\n", null);
+        var options = new EmailStoreReaderOptions(maxAttachmentsPerItem: 1);
+
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+            () => Read(emlx, "message.emlx", options));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxAttachmentsPerItem), exception.LimitName);
+    }
+
+    [Fact]
     public void ReportsInvalidMetadataWithoutDiscardingTheMessage() {
         byte[] message = Encoding.ASCII.GetBytes("Subject: Keep me\r\n\r\nBody\r\n");
         byte[] emlx = CreateEmlx(message, "\n", "<plist><dict><key>broken</key></dict>");
@@ -194,5 +205,18 @@ public sealed class EmlxStoreReaderTests {
             "AQIDBA==\r\n" +
             "--emlx-boundary--\r\n";
         return Encoding.ASCII.GetBytes(message);
+    }
+
+    private static byte[] CreateMultipartMessageWithTwoAttachments() {
+        const string secondAttachment =
+            "--emlx-boundary\r\n" +
+            "Content-Type: application/octet-stream; name=\"second.bin\"\r\n" +
+            "Content-Disposition: attachment; filename=\"second.bin\"\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\n" +
+            "BQYHCA==\r\n";
+        string message = Encoding.ASCII.GetString(CreateMultipartMessage());
+        return Encoding.ASCII.GetBytes(message.Replace(
+            "--emlx-boundary--\r\n",
+            secondAttachment + "--emlx-boundary--\r\n"));
     }
 }

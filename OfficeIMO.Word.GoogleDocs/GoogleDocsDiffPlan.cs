@@ -149,12 +149,27 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static void AddComments(IDictionary<string, string> result, IReadOnlyList<WordComment> comments) {
-            WordComment[] roots = comments.Where(comment => string.IsNullOrWhiteSpace(comment.ParentParaId)).ToArray();
+            CommentThreadEntry[] entries = comments
+                .Select(comment => new CommentThreadEntry(comment, comment.ParaId,
+                    comment.ParentParaId, comment.IsResolved))
+                .ToArray();
+            CommentThreadEntry[] roots = entries
+                .Where(entry => string.IsNullOrWhiteSpace(entry.ParentParaId))
+                .ToArray();
+            Dictionary<string, CommentThreadEntry[]> repliesByParent = entries
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.ParentParaId))
+                .GroupBy(entry => entry.ParentParaId!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+            var claimedReplyParents = new HashSet<string>(StringComparer.Ordinal);
             for (int commentIndex = 0; commentIndex < roots.Length; commentIndex++) {
-                WordComment comment = roots[commentIndex];
+                CommentThreadEntry entry = roots[commentIndex];
                 string commentPath = $"comment/{commentIndex}";
-                result[commentPath] = Hash(CommentFingerprint(comment));
-                IReadOnlyList<WordComment> replies = comment.Replies;
+                result[commentPath] = Hash(CommentFingerprint(entry));
+                IReadOnlyList<CommentThreadEntry> replies = !string.IsNullOrWhiteSpace(entry.ParaId)
+                    && claimedReplyParents.Add(entry.ParaId!)
+                    && repliesByParent.TryGetValue(entry.ParaId!, out CommentThreadEntry[]? groupedReplies)
+                        ? groupedReplies
+                        : Array.Empty<CommentThreadEntry>();
                 for (int replyIndex = 0; replyIndex < replies.Count; replyIndex++) {
                     result[$"{commentPath}/reply/{replyIndex}"] = Hash(CommentFingerprint(replies[replyIndex]));
                 }
@@ -174,8 +189,23 @@ namespace OfficeIMO.Word.GoogleDocs {
             ? string.Empty
             : $"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}";
 
-        private static string CommentFingerprint(WordComment comment) =>
-            $"{comment.Author}|{comment.Initials}|{comment.Text}|{comment.IsResolved}";
+        private static string CommentFingerprint(CommentThreadEntry entry) =>
+            $"{entry.Comment.Author}|{entry.Comment.Initials}|{entry.Comment.Text}|{entry.IsResolved}";
+
+        private readonly struct CommentThreadEntry {
+            internal CommentThreadEntry(WordComment comment, string? paraId, string? parentParaId,
+                bool? isResolved) {
+                Comment = comment;
+                ParaId = paraId;
+                ParentParaId = parentParaId;
+                IsResolved = isResolved;
+            }
+
+            internal WordComment Comment { get; }
+            internal string? ParaId { get; }
+            internal string? ParentParaId { get; }
+            internal bool? IsResolved { get; }
+        }
 
         private static string ParagraphBorderFingerprint(WordParagraphBorderSnapshot? border) => border == null
             ? string.Empty

@@ -357,10 +357,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsImporter_NativeFlattensTabsWhenDriveExportIsDisabled() {
+        public async Task Test_GoogleDocsImporter_NativeFlattensTabsWhenDownloadIsAllowed() {
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":7,\"capabilities\":{\"canDownload\":false}}"));
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":7,\"capabilities\":{\"canDownload\":true}}"));
                 }
                 if (request.RequestUri.Host == "docs.googleapis.com") {
                     const string json = "{\"documentId\":\"doc-import\",\"title\":\"Import\",\"revisionId\":\"revision-7\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"one\",\"title\":\"Tab One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":7,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Alpha\\n\",\"textStyle\":{\"bold\":true}}}]}}]}}},{\"tabProperties\":{\"tabId\":\"two\",\"title\":\"Tab Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Beta\\n\"}}]}}]}}}]}";
@@ -385,6 +385,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsImporter_NativeRejectsFilesThatCannotBeDownloaded() {
+            int nativeReads = 0;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-blocked\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":false}}"));
+                }
+                nativeReads++;
+                return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-blocked\"}"));
+            }));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                new GoogleDocsImporter().ImportAsync("doc-blocked", session, new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native }));
+
+            Assert.Contains("cannot be exported", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(0, nativeReads);
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsImporter_NativeEnforcesResponseAndModelBudgets() {
+            const string nativeJson = "{\"documentId\":\"doc-large\",\"body\":{\"content\":[{\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"0123456789\"}}]}}]}}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-large\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                new GoogleDocsImporter().ImportAsync("doc-large", session, new GoogleDocsImportOptions {
+                    Mode = GoogleDocsImportMode.Native,
+                    MaxResponseBytes = 32,
+                }));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                new GoogleDocsImporter().ImportAsync("doc-large", session, new GoogleDocsImportOptions {
+                    Mode = GoogleDocsImportMode.Native,
+                    MaxTextCharacters = 4,
+                }));
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsDiffPlanner_ReportsDriveVersionChanges() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDriveVersionDiff.docx");
             try {
@@ -393,7 +433,7 @@ namespace OfficeIMO.Tests {
                 GoogleDocsSyncCheckpoint checkpoint = GoogleDocsDiffPlanner.CreateCheckpoint(source, revisionId: "revision-1", driveVersion: 7);
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.RequestUri!.Host == "www.googleapis.com") {
-                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":8,\"capabilities\":{\"canDownload\":false}}"));
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":8,\"capabilities\":{\"canDownload\":true}}"));
                     }
                     const string docs = "{\"documentId\":\"doc-diff\",\"title\":\"Diff\",\"revisionId\":\"revision-1\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Same\\n\"}}]}}]}}";
                     return Task.FromResult(CreateJsonResponse(docs));
@@ -452,6 +492,38 @@ namespace OfficeIMO.Tests {
                 tableParagraph.AddHyperLink(" Link", new Uri("https://example.test/"));
                 GoogleDocsSyncCheckpoint tableChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(commentChanged.ContentHashes[tableCellPath], tableChanged.ContentHashes[tableCellPath]);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleDocsCheckpoint_AssignsMalformedDuplicateCommentThreadRepliesOnce() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDuplicateCommentThread.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("First").AddComment("Alice", "A", "First root");
+                WordComment first = WordComment.GetAllComments(document)
+                    .Single(comment => comment.Text == "First root");
+                first.AddReply("Bob", "B", "Only reply");
+                document.AddParagraph("Second").AddComment("Carol", "C", "Second root");
+                WordComment duplicate = WordComment.GetAllComments(document)
+                    .Single(comment => comment.Text == "Second root");
+                var commentsEx = document._wordprocessingDocument.MainDocumentPart!
+                    .WordprocessingCommentsExPart!.CommentsEx!;
+                DocumentFormat.OpenXml.Office2013.Word.CommentEx duplicateMetadata = commentsEx
+                    .Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>()
+                    .Single(item => string.Equals(item.ParaId?.Value, duplicate.ParaId,
+                        StringComparison.Ordinal));
+                duplicateMetadata.ParaId = first.ParaId;
+
+                GoogleDocsSyncCheckpoint checkpoint = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+
+                Assert.Equal(2, checkpoint.ContentHashes.Keys.Count(path =>
+                    path.StartsWith("comment/", StringComparison.Ordinal)
+                    && !path.Contains("/reply/", StringComparison.Ordinal)));
+                Assert.Single(checkpoint.ContentHashes.Keys, path =>
+                    path.Contains("/reply/", StringComparison.Ordinal));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
@@ -579,16 +651,16 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, commentListReads);
                 Assert.Equal(0, createdCommentItems);
-                Assert.Equal(1, deletedCommentItems);
+                Assert.Equal(0, deletedCommentItems);
                 Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_REUSED" && notice.Count == 2);
-                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED" && notice.Count == 1);
+                Assert.DoesNotContain(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_RemovesStaleDriveCommentsOnReplacement() {
+        public async Task Test_GoogleDocsExporter_PreservesUnrelatedDriveCommentsOnReplacement() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsCommentRemoval.docx");
             try {
                 using var document = WordDocument.Create(filePath);
@@ -620,8 +692,8 @@ namespace OfficeIMO.Tests {
                     Replace = new GoogleDocsReplaceOptions { ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest },
                 });
 
-                Assert.Single(deletedUris);
-                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED" && notice.Count == 1);
+                Assert.Empty(deletedUris);
+                Assert.DoesNotContain(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

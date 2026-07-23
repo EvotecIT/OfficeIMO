@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (string.IsNullOrWhiteSpace(documentId)) throw new ArgumentException("Document ID is required.", nameof(documentId));
             if (session == null) throw new ArgumentNullException(nameof(session));
             GoogleDocsImportOptions effective = options ?? new GoogleDocsImportOptions();
+            ValidateOptions(effective);
             return effective.Mode == GoogleDocsImportMode.DriveExport
                 ? await ImportDriveAsync(documentId, session, effective, cancellationToken).ConfigureAwait(false)
                 : await ImportNativeAsync(documentId, session, effective, cancellationToken).ConfigureAwait(false);
@@ -30,7 +31,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDriveFile source = await drive.GetFileAsync(documentId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsureDocument(source, documentId);
             EnsureDownloadable(source, documentId);
-            byte[] bytes = await drive.ExportAsync(documentId, GoogleDriveMimeTypes.MicrosoftWord, options.Progress, report, cancellationToken).ConfigureAwait(false);
+            byte[] bytes = await drive.ExportAsync(documentId, GoogleDriveMimeTypes.MicrosoftWord,
+                options.Progress, report, cancellationToken, options.MaxResponseBytes).ConfigureAwait(false);
             var stream = new MemoryStream(bytes, writable: true);
             WordDocument document;
             try {
@@ -53,15 +55,18 @@ namespace OfficeIMO.Word.GoogleDocs {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(documentId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsureDocument(source, documentId);
+            EnsureDownloadable(source, documentId);
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.DocumentsReadonly }, cancellationToken).ConfigureAwait(false);
             string uri = $"https://docs.googleapis.com/v1/documents/{Uri.EscapeDataString(documentId)}?includeTabsContent=true&suggestionsViewMode={MapSuggestions(options.Suggestions)}";
             GoogleDocsApiDocumentResponse response;
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
                 response = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(token.AccessToken, HttpMethod.Get, uri, null,
                     GoogleWorkspaceRequestSafety.Safe, "Google Docs API", report,
-                    GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse, cancellationToken).ConfigureAwait(false);
+                    GoogleDocsJsonSerializerContext.Default.GoogleDocsApiDocumentResponse, cancellationToken,
+                    options.MaxResponseBytes).ConfigureAwait(false);
             }
 
+            ValidateNativeResponse(response, options);
             WordDocument document = Project(response, options, report);
             report.Add(TranslationSeverity.Info, "NativeImport", "Tab-aware text, core run styles, headings, lists, and simple tables were projected into OfficeIMO.",
                 code: "DOCS.IMPORT.NATIVE", action: TranslationAction.Preserve, targetId: documentId);
@@ -219,6 +224,72 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string ToHex(GoogleDocsApiRgbColorPayload color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
         private static int ToByte(double value) => Math.Max(0, Math.Min(255, (int)Math.Round(value * 255d)));
+
+        private static void ValidateOptions(GoogleDocsImportOptions options) {
+            if (options.MaxResponseBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxResponseBytes));
+            if (options.MaxTabs <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTabs));
+            if (options.MaxStructuralElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxStructuralElements));
+            if (options.MaxTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells));
+            if (options.MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTextCharacters));
+        }
+
+        private static void ValidateNativeResponse(
+            GoogleDocsApiDocumentResponse response,
+            GoogleDocsImportOptions options) {
+            List<GoogleDocsApiTabResponse> tabs = GoogleDocsApiPayloadBuilder.FlattenTabs(response.Tabs).ToList();
+            if (tabs.Count > options.MaxTabs) {
+                throw new InvalidDataException($"Google Docs native import exceeded the configured {options.MaxTabs} tab limit.");
+            }
+
+            int structuralElements = 0;
+            int tableCells = 0;
+            long textCharacters = 0;
+            if (tabs.Count == 0) {
+                CountNativeContent(response.Body?.Content, options,
+                    ref structuralElements, ref tableCells, ref textCharacters);
+                return;
+            }
+
+            foreach (GoogleDocsApiTabResponse tab in tabs) {
+                CountNativeContent(tab.DocumentTab?.Body?.Content, options,
+                    ref structuralElements, ref tableCells, ref textCharacters);
+            }
+        }
+
+        private static void CountNativeContent(
+            IReadOnlyList<GoogleDocsApiStructuralElementResponse>? content,
+            GoogleDocsImportOptions options,
+            ref int structuralElements,
+            ref int tableCells,
+            ref long textCharacters) {
+            if (content == null) return;
+            foreach (GoogleDocsApiStructuralElementResponse element in content) {
+                if (structuralElements >= options.MaxStructuralElements) {
+                    throw new InvalidDataException($"Google Docs native import exceeded the configured {options.MaxStructuralElements} structural-element limit.");
+                }
+                structuralElements++;
+                if (element.Paragraph != null) {
+                    foreach (GoogleDocsApiParagraphInlineElementResponse inline in element.Paragraph.Elements) {
+                        int length = inline.TextRun?.Content?.Length ?? 0;
+                        if (length > options.MaxTextCharacters - textCharacters) {
+                            throw new InvalidDataException($"Google Docs native import exceeded the configured {options.MaxTextCharacters} text-character limit.");
+                        }
+                        textCharacters += length;
+                    }
+                }
+                if (element.Table == null) continue;
+                foreach (GoogleDocsApiTableRowResponse row in element.Table.Rows) {
+                    foreach (GoogleDocsApiTableCellResponse cell in row.Cells) {
+                        if (tableCells >= options.MaxTableCells) {
+                            throw new InvalidDataException($"Google Docs native import exceeded the configured {options.MaxTableCells} table-cell limit.");
+                        }
+                        tableCells++;
+                        CountNativeContent(cell.Content, options,
+                            ref structuralElements, ref tableCells, ref textCharacters);
+                    }
+                }
+            }
+        }
 
         private static void EnsureDocument(GoogleDriveFile file, string id) {
             if (!string.Equals(file.MimeType, GoogleDriveMimeTypes.Document, StringComparison.Ordinal)) {

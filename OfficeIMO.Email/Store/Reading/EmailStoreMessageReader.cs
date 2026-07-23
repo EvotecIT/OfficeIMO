@@ -33,7 +33,8 @@ internal static class EmailStoreMessageReader {
             maxNestedMessageDepth: options.MaxNestedMessageDepth,
             includeAttachmentContent: includeAttachmentContent ?? options.RetainAttachmentContent,
             maxMapiPropertyCount: options.MaxPropertiesPerItem,
-            maxDecodedPropertyBytes: maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem);
+            maxDecodedPropertyBytes: maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem,
+            maxAttachmentCount: options.MaxAttachmentsPerItem);
 
     private static EmailStoreLimitExceededException ConvertLimit(EmailLimitExceededException exception) {
         string name = exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)
@@ -46,6 +47,8 @@ internal static class EmailStoreMessageReader {
                         ? nameof(EmailStoreReaderOptions.MaxPropertiesPerItem)
                         : exception.LimitName == nameof(EmailReaderOptions.MaxDecodedPropertyBytes)
                             ? nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem)
+                            : exception.LimitName == nameof(EmailReaderOptions.MaxAttachmentCount)
+                                ? nameof(EmailStoreReaderOptions.MaxAttachmentsPerItem)
                             : exception.LimitName;
         return new EmailStoreLimitExceededException(name, exception.ActualValue, exception.MaximumValue);
     }

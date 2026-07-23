@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     /// Options for importing a Google spreadsheet.
     /// </summary>
     public sealed class GoogleSheetsImportOptions {
+        public const long DefaultMaxResponseBytes = 128L * 1024L * 1024L;
         public GoogleSheetsImportMode Mode { get; set; } = GoogleSheetsImportMode.DriveExport;
         public IReadOnlyList<string> Ranges { get; set; } = Array.Empty<string>();
         public string? Fields { get; set; }
@@ -22,6 +23,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
             AccessMode = DocumentAccessMode.ReadWrite,
         };
         public IProgress<OfficeIMO.GoogleWorkspace.Drive.GoogleDriveTransferProgress>? Progress { get; set; }
+        public long MaxResponseBytes { get; set; } = DefaultMaxResponseBytes;
+        public int MaxSheets { get; set; } = 256;
+        public long MaxCells { get; set; } = 1_000_000L;
+        public long MaxDimensionGroupMembers { get; set; } = 1_000_000L;
     }
 
     /// <summary>

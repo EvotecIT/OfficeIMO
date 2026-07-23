@@ -191,8 +191,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
 
     private void EnsureSpillStorage() {
         if (_spillStream != null) return;
-        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf-" + Guid.NewGuid().ToString("N") + ".objects");
-        var stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read, 81920, FileOptions.None);
+        FileStream stream = PdfTemporaryFile.Create(".objects", FileOptions.RandomAccess, out string path);
         _spillPath = path;
         _spillStream = stream;
         for (int index = 0; index < _entries.Count; index++) {

@@ -619,6 +619,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EquationContentSegments_FormControlDoesNotLeakDeletedOrMovedFromText() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            var contentControl = new SdtRun(
+                new SdtProperties(
+                    new W14.SdtContentCheckBox(new W14.Checked { Val = W14.OnOffValues.One })),
+                new SdtContentRun(
+                    new DeletedRun(new Run(new Text("deleted-secret"))),
+                    new MoveFromRun(new Run(new Text("moved-secret"))),
+                    new M.OfficeMath(new M.Run(new M.Text("approved"))),
+                    new Run(new Text(" visible"))));
+            paragraph._paragraph.Append(contentControl);
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            IReadOnlyList<WordEquationContentSegment> segments = WordEquation.GetVisibleContentSegments(contentControl, occurrences);
+
+            Assert.Equal("approved visible", WordEquation.GetVisibleTextWithEquations(contentControl, occurrences));
+            Assert.DoesNotContain(segments, segment => segment.ArtifactVisibleText?.Contains("secret", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
         public void EquationContentSegments_PictureControlEmitsDrawingArtifactBesideEquation() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();

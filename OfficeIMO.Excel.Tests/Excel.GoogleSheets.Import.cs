@@ -47,7 +47,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsImporter_Native_ProjectsContentWhenDriveExportIsDisabled() {
+        public async Task Test_GoogleSheetsImporter_NativeRejectsFilesThatCannotBeDownloaded() {
+            int nativeReads = 0;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-blocked\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":false}}"));
+                }
+                nativeReads++;
+                return Task.FromResult(CreateJsonResponse("{\"spreadsheetId\":\"sheet-blocked\"}"));
+            }));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                session.ImportGoogleSheetAsync("sheet-blocked", new GoogleSheetsImportOptions { Mode = GoogleSheetsImportMode.Native }));
+
+            Assert.Contains("cannot be downloaded", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(0, nativeReads);
+        }
+
+        [Fact]
+        public async Task Test_GoogleSheetsImporter_NativeEnforcesResponseAndCellBudgets() {
+            const string nativeJson = "{\"spreadsheetId\":\"sheet-large\",\"sheets\":[{\"properties\":{\"title\":\"Sheet1\"},\"data\":[{\"rowData\":[{\"values\":[{},{}]}]}]}]}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-large\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                session.ImportGoogleSheetAsync("sheet-large", new GoogleSheetsImportOptions {
+                    Mode = GoogleSheetsImportMode.Native,
+                    MaxResponseBytes = 32,
+                }));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                session.ImportGoogleSheetAsync("sheet-large", new GoogleSheetsImportOptions {
+                    Mode = GoogleSheetsImportMode.Native,
+                    MaxCells = 1,
+                }));
+        }
+
+        [Fact]
+        public async Task Test_GoogleSheetsImporter_NativeBoundsZeroCellDimensionGroupExpansion() {
+            const string nativeJson = "{\"spreadsheetId\":\"sheet-groups\",\"sheets\":[{\"properties\":{\"sheetId\":42,\"title\":\"Sheet1\"},\"rowGroups\":[{\"range\":{\"sheetId\":42,\"dimension\":\"ROWS\",\"startIndex\":0,\"endIndex\":1048576},\"depth\":1}]}]}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-groups\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+                new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                session.ImportGoogleSheetAsync("sheet-groups", new GoogleSheetsImportOptions {
+                    Mode = GoogleSheetsImportMode.Native,
+                    MaxDimensionGroupMembers = 100,
+                }));
+        }
+
+        [Fact]
+        public async Task Test_GoogleSheetsImporter_Native_ProjectsContentWhenDownloadIsAllowed() {
             Uri? sheetsRequest = null;
             const string nativeJson = """
                 {
@@ -74,7 +131,7 @@ namespace OfficeIMO.Tests {
                 """;
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(CreateJsonResponse("{\"id\":\"native123\",\"name\":\"Native\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":21,\"capabilities\":{\"canDownload\":false}}"));
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"native123\",\"name\":\"Native\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":21,\"capabilities\":{\"canDownload\":true}}"));
                 }
                 if (request.RequestUri.Host == "sheets.googleapis.com") {
                     sheetsRequest = request.RequestUri;
@@ -190,7 +247,7 @@ namespace OfficeIMO.Tests {
                 const string nativeJson = "{\"spreadsheetId\":\"diff-sheet\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.RequestUri!.Host == "www.googleapis.com") {
-                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-sheet\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":false}}"));
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-sheet\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":true}}"));
                     }
                     if (request.RequestUri.Host == "sheets.googleapis.com") {
                         return Task.FromResult(CreateJsonResponse(nativeJson));
@@ -226,7 +283,7 @@ namespace OfficeIMO.Tests {
                 const string nativeJson = "{\"spreadsheetId\":\"diff-chart\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]},{\"properties\":{\"sheetId\":1,\"title\":\"_OfficeIMO_ChartData\",\"index\":1},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"User content\"}}]}]}]},{\"properties\":{\"sheetId\":2,\"title\":\"_OfficeIMO_ChartData_2\",\"index\":2,\"hidden\":true,\"gridProperties\":{\"hideGridlines\":true}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"Category\"}},{\"userEnteredValue\":{\"stringValue\":\"Sales\"}}]},{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"A\"}},{\"userEnteredValue\":{\"numberValue\":1}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.RequestUri!.Host == "www.googleapis.com") {
-                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-chart\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":false}}"));
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-chart\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":true}}"));
                     }
                     if (request.RequestUri.Host == "sheets.googleapis.com") {
                         return Task.FromResult(CreateJsonResponse(nativeJson));

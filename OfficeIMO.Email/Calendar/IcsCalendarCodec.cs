@@ -425,7 +425,9 @@ internal static partial class IcsCalendarCodec {
             if (existing == null) {
                 document.Recipients.Add(new EmailRecipient(kind, new EmailAddress(address!, name)));
             } else {
-                existing.Kind = kind;
+                // Calendar projection must never promote an envelope Bcc address into a
+                // visible To/Cc header during later MIME serialization.
+                if (existing.Kind != EmailRecipientKind.Bcc) existing.Kind = kind;
                 if (string.IsNullOrWhiteSpace(existing.Address.DisplayName)) {
                     existing.Address.DisplayName = name;
                 } else if (!string.IsNullOrWhiteSpace(name) &&

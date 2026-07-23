@@ -2,6 +2,7 @@ using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Sync;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -42,6 +43,27 @@ namespace OfficeIMO.Tests {
                 uri => Assert.Contains("includeItemsFromAllDrives=false", uri, StringComparison.Ordinal));
             Assert.All(changeUris.Where(uri => uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
                 uri => Assert.Contains("includeItemsFromAllDrives=true", uri, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public async Task ChangeTracker_RejectsPagesThatExceedConfiguredChangeBudget() {
+            using var httpClient = new HttpClient(new FakeHandler(request =>
+                Task.FromResult(request.RequestUri!.AbsoluteUri.Contains("pageToken=user-old", StringComparison.Ordinal)
+                    ? Json("{\"changes\":[{\"fileId\":\"one\"},{\"fileId\":\"two\"}],\"newStartPageToken\":\"user-next\"}")
+                    : NotFound(request.RequestUri.AbsoluteUri))));
+            var checkpoint = new GoogleWorkspaceSyncCheckpoint { UserChangeToken = "user-old" };
+            using var tracker = new GoogleWorkspaceChangeTracker(Session(httpClient));
+
+            GoogleWorkspaceChangeReadResult result = await tracker.ReadAsync(checkpoint, new GoogleWorkspaceChangeReadOptions {
+                MaxChangesPerSource = 1,
+                MaxTotalChanges = 1,
+            });
+
+            GoogleWorkspaceChangeSourceResult source = Assert.Single(result.Sources);
+            Assert.Equal(GoogleWorkspaceChangeReadStatus.Failed, source.Status);
+            Assert.IsType<InvalidDataException>(source.Exception);
+            Assert.Empty(result.Changes);
+            Assert.Equal("user-old", result.NextCheckpoint.UserChangeToken);
         }
 
         [Fact]

@@ -40,6 +40,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(id, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsurePresentation(source, id);
+            EnsureDownloadable(source, id);
             GoogleWorkspaceAccessToken token = await session.AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.PresentationsReadonly }, cancellationToken).ConfigureAwait(false);
             using var transport = new GoogleWorkspaceHttpTransport(session.Options);
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,

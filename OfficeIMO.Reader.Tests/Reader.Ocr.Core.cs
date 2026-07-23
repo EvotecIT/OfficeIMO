@@ -147,6 +147,56 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_ArmsTimeoutBeforeInvokingSynchronousProviderWork() {
+        OfficeDocumentReadResult source = CreateDocument(1);
+        bool observedCancellation = false;
+        var engine = new DelegateOfficeOcrEngine("synchronous-fixture", (_, cancellationToken) => {
+            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(2);
+            while (!cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < deadline) {
+                Thread.SpinWait(1000);
+            }
+            observedCancellation = cancellationToken.IsCancellationRequested;
+            cancellationToken.ThrowIfCancellationRequested();
+            return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult { Text = "late" });
+        });
+
+        OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
+            CandidateTimeout = TimeSpan.FromMilliseconds(20),
+            ContinueOnError = true,
+        });
+
+        Assert.True(observedCancellation);
+        Assert.Equal(1, execution.Report.FailedCandidateCount);
+        Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+    }
+
+    [Fact]
+    public async Task ApplyOcrAsync_EnforcesTimeoutWhenSynchronousEngineIgnoresCancellation() {
+        OfficeDocumentReadResult source = CreateDocument(1);
+        using var releaseProvider = new ManualResetEventSlim(false);
+        var engine = new DelegateOfficeOcrEngine("synchronous-non-cooperative-fixture", (_, _) => {
+            releaseProvider.Wait();
+            return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult { Text = "late" });
+        });
+
+        try {
+            Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine,
+                new OfficeDocumentOcrExecutionOptions {
+                    CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                    ContinueOnError = true,
+                });
+            Task completed = await Task.WhenAny(executionTask, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            Assert.Same(executionTask, completed);
+            OfficeDocumentOcrExecutionResult execution = await executionTask;
+            Assert.Equal(1, execution.Report.FailedCandidateCount);
+            Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+        } finally {
+            releaseProvider.Set();
+        }
+    }
+
+    [Fact]
     public async Task ApplyOcrAsync_EnforcesTimeoutWhenEngineIgnoresCancellation() {
         OfficeDocumentReadResult source = CreateDocument(1);
         var completion = new TaskCompletionSource<OfficeOcrEngineResult>(TaskCreationOptions.RunContinuationsAsynchronously);

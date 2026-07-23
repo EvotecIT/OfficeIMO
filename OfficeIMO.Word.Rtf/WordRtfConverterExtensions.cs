@@ -524,7 +524,7 @@ public static partial class WordRtfConverterExtensions {
         int? revisionAuthorIndex = null) {
         FieldChar? fieldChar = runElement.Elements<FieldChar>().FirstOrDefault();
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-            captures.Push(new ComplexFieldCapture());
+            captures.Push(new ComplexFieldCapture(revisionKind != RtfRevisionKind.None));
             return true;
         }
 
@@ -533,6 +533,10 @@ public static partial class WordRtfConverterExtensions {
         }
 
         ComplexFieldCapture capture = captures.Peek();
+        FieldCode? fieldCode = runElement.Elements<FieldCode>().FirstOrDefault();
+        if (revisionKind != RtfRevisionKind.None && (fieldChar != null || fieldCode != null)) {
+            capture.RestrictToEquationFields = true;
+        }
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Separate) {
             capture.CapturingResult = true;
             return true;
@@ -549,7 +553,6 @@ public static partial class WordRtfConverterExtensions {
             return true;
         }
 
-        FieldCode? fieldCode = runElement.Elements<FieldCode>().FirstOrDefault();
         if (fieldCode != null && !capture.CapturingResult) {
             capture.Instruction.Append(fieldCode.Text);
             return true;
@@ -573,11 +576,24 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CompleteComplexField(RtfParagraph paragraph, ComplexFieldCapture capture) {
+        if (capture.RestrictToEquationFields && !IsEquationFieldInstruction(capture.Instruction.ToString())) {
+            CopyInlines(capture.Result, paragraph);
+            return;
+        }
+
         RtfField field = paragraph.AddField(capture.Instruction.ToString().Trim());
         CopyInlines(capture.Result, field.Result);
     }
 
     private static void CompleteNestedComplexField(ComplexFieldCapture parent, ComplexFieldCapture nested) {
+        if (nested.RestrictToEquationFields && !IsEquationFieldInstruction(nested.Instruction.ToString())) {
+            if (parent.CapturingResult) {
+                CopyInlines(nested.Result, parent.Result);
+                parent.PreviousRun = null;
+            }
+            return;
+        }
+
         if (!parent.CapturingResult) {
             parent.Instruction.Append(nested.Instruction.ToString().Trim());
             return;
@@ -586,6 +602,12 @@ public static partial class WordRtfConverterExtensions {
         RtfField field = parent.Result.AddField(nested.Instruction.ToString().Trim());
         CopyInlines(nested.Result, field.Result);
         parent.PreviousRun = null;
+    }
+
+    private static bool IsEquationFieldInstruction(string instruction) {
+        string trimmed = (instruction ?? string.Empty).TrimStart();
+        if (!trimmed.StartsWith("EQ", StringComparison.OrdinalIgnoreCase)) return false;
+        return trimmed.Length == 2 || char.IsWhiteSpace(trimmed[2]) || trimmed[2] == '\\';
     }
 
     private static void CopyInlines(RtfParagraph source, RtfParagraph destination) {
@@ -667,6 +689,24 @@ public static partial class WordRtfConverterExtensions {
 
         string instruction = simpleField.Instruction?.Value ?? string.Empty;
         RtfParagraph destination = activeCapture?.Result ?? paragraph;
+        if (revisionKind != RtfRevisionKind.None && !IsEquationFieldInstruction(instruction)) {
+            RtfRun? flattenedPreviousRun = null;
+            foreach (Run childRun in simpleField.Elements<Run>()) {
+                AppendWordRun(
+                    new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                    destination,
+                    ref flattenedPreviousRun,
+                    rtfDocument,
+                    revisionAuthorIndexes,
+                    revisionKind,
+                    revisionAuthorIndex);
+            }
+            if (activeCapture != null) {
+                activeCapture.PreviousRun = flattenedPreviousRun;
+            }
+            return;
+        }
+
         RtfField field = destination.AddField(instruction.Trim());
         RtfRun? previousRun = null;
         foreach (Run childRun in simpleField.Elements<Run>()) {
@@ -1137,6 +1177,12 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private sealed class ComplexFieldCapture {
+        internal ComplexFieldCapture(bool restrictToEquationFields = false) {
+            RestrictToEquationFields = restrictToEquationFields;
+        }
+
+        public bool RestrictToEquationFields { get; set; }
+
         public System.Text.StringBuilder Instruction { get; } = new System.Text.StringBuilder();
 
         public RtfParagraph Result { get; } = new RtfParagraph();

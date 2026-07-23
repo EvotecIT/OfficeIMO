@@ -20,17 +20,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Identifier used to link threaded replies.
         /// </summary>
-        public string? ParaId => FindCommentEx()?.ParaId?.Value ?? _commentEx?.ParaId ?? GetCommentParagraphId(_comment);
+        public string? ParaId => _commentEx?.ParaId?.Value ?? GetCommentParagraphId(_comment);
 
         /// <summary>
         /// Identifier of parent comment if this comment is a reply.
         /// </summary>
-        public string? ParentParaId => FindCommentEx()?.ParaIdParent?.Value ?? _commentEx?.ParaIdParent;
+        public string? ParentParaId => _commentEx?.ParaIdParent?.Value;
 
         /// <summary>
         /// Whether the comment is marked resolved. A null value means the document has no resolved-state metadata for this comment.
         /// </summary>
-        public bool? IsResolved => FindCommentEx()?.Done?.Value;
+        public bool? IsResolved => _commentEx?.Done?.Value;
 
         /// <summary>
         /// Parent comment instance if available.

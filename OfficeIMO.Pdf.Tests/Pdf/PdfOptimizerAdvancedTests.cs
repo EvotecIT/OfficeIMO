@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -145,5 +146,28 @@ public class PdfOptimizerAdvancedTests {
 
         options.MaximumTotalDecodedImageBytes = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfOptimizer.Optimize(source, options));
+    }
+
+    [Fact]
+    public void Optimize_ReplacesUntrustedTrailerIdentifierWithDeterministicHex() {
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 /ID [/Root 99 0 R /Size 999] >>", "%%EOF",
+        }));
+        var options = PdfOptimizationOptions.Create(PdfOptimizationProfile.Custom);
+        options.KeepOriginalWhenNotSmaller = false;
+
+        PdfOptimizationActionResult first = PdfOptimizer.Optimize(source, options);
+        PdfOptimizationActionResult second = PdfOptimizer.Optimize(source, options);
+        string raw = PdfEncoding.Latin1GetString(first.Bytes);
+
+        Assert.Equal(first.Bytes, second.Bytes);
+        Assert.Matches(new Regex(@"/ID \[<[0-9A-F]{32}> <[0-9A-F]{32}>\]", RegexOptions.CultureInvariant), raw);
+        Assert.DoesNotContain("/Root 99 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Size 999", raw, StringComparison.Ordinal);
     }
 }

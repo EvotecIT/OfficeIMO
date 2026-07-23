@@ -2,9 +2,11 @@ using OfficeIMO.GoogleWorkspace;
 
 namespace OfficeIMO.GoogleWorkspace.Drive {
     public sealed class GoogleDriveClientOptions {
+        public const long DefaultMaxDownloadBytes = 256L * 1024L * 1024L;
         public IReadOnlyList<string> ReadScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveReadonly };
         public IReadOnlyList<string> WriteScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveFile };
         public bool SupportsAllDrives { get; set; } = true;
+        public long MaxDownloadBytes { get; set; } = DefaultMaxDownloadBytes;
 
         /// <summary>
         /// Creates an option set for an authoring workflow that only reads files created or opened by the app.
@@ -39,6 +41,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public GoogleDriveClient(GoogleWorkspaceSession session, GoogleDriveClientOptions? options = null) {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _options = options ?? new GoogleDriveClientOptions();
+            if (_options.MaxDownloadBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum Google Drive download bytes must be positive.");
             _transport = new GoogleWorkspaceHttpTransport(session.Options);
         }
 

@@ -370,13 +370,6 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (!destination.CanSeek) {
-                using var buffer = new MemoryStream();
-                Save(buffer, format, options);
-                OfficeStreamWriter.WriteAllBytes(destination, buffer.ToArray());
-                return;
-            }
-
             if (TrySaveNativeLegacyXlsToStream(destination, format, options)) {
                 return;
             }
@@ -505,13 +498,6 @@ namespace OfficeIMO.Excel {
                 preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
 
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
-                return;
-            }
-
-            if (!destination.CanSeek) {
-                using var buffer = new MemoryStream();
-                await SaveAsync(buffer, format, options, cancellationToken).ConfigureAwait(false);
-                await OfficeStreamWriter.WriteAllBytesAsync(destination, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
                 return;
             }
 
