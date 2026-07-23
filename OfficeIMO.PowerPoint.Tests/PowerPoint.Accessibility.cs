@@ -325,8 +325,7 @@ namespace OfficeIMO.Tests {
                     }
                     xml = xml.Replace(
                         "</p:presentation>",
-                        "<!--" + new string('x', 4096) + "--></p:presentation>",
-                        StringComparison.Ordinal);
+                        "<!--" + new string('x', 4096) + "--></p:presentation>");
                     using (var writer = new StreamWriter(
                                presentationPart.GetStream(FileMode.Create, FileAccess.Write),
                                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
