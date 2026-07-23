@@ -514,4 +514,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GradientStopLimitExceeded);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
+
+    [Fact]
+    public void CssLengthAndGradientParsingRejectNonFiniteResults() {
+        Assert.False(HtmlRenderCssValues.TryLength(
+            "1e308cm",
+            reference: 100D,
+            fontSize: 16D,
+            rootFontSize: 16D,
+            out _));
+        Assert.False(HtmlRenderCssValues.TryLength(
+            "1e308em",
+            reference: 100D,
+            fontSize: 16D,
+            rootFontSize: 16D,
+            out _));
+        Assert.False(HtmlCssGradientStops.TryParse(
+            new[] { "red 0px", "blue 1e308cm" },
+            startIndex: 0,
+            maximumStops: 8,
+            out _,
+            out _));
+    }
 }

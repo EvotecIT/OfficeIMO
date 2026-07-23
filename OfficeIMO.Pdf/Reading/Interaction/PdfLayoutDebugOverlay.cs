@@ -60,9 +60,21 @@ internal static class PdfLayoutDebugOverlay {
         PdfLayoutDebugOverlayOptions? options = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfReadOptions? readOptions = null) {
-        return OfficeDrawingRasterRenderer.ToPng(
-            CreateDrawing(pdf, pageNumber, options, layoutOptions, readOptions),
-            scale);
+        PdfLayoutDebugOverlayOptions effective = options ?? new PdfLayoutDebugOverlayOptions();
+        if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
+            throw new ArgumentOutOfRangeException(nameof(scale), "Overlay PNG scale must be positive and finite.");
+        }
+        if (effective.MaxRasterPixels <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum overlay raster pixels must be positive.");
+        }
+        OfficeDrawing drawing = CreateDrawing(pdf, pageNumber, effective, layoutOptions, readOptions);
+        double width = Math.Ceiling(drawing.Width * scale);
+        double height = Math.Ceiling(drawing.Height * scale);
+        double pixels = width * height;
+        if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels > effective.MaxRasterPixels) {
+            throw new InvalidOperationException("PDF layout overlay exceeds the configured raster pixel limit.");
+        }
+        return OfficeDrawingRasterRenderer.ToPng(drawing, scale);
     }
 
     private static void AddWords(

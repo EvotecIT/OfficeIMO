@@ -53,7 +53,7 @@ internal sealed class HtmlCssGradientStops {
             if (stop.Position == null) continue;
             if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, out double pixels)) return false;
             double offset = pixels / referenceLength;
-            if (offset < 0D || offset > 1D) return false;
+            if (double.IsNaN(offset) || double.IsInfinity(offset) || offset < 0D || offset > 1D) return false;
             offsets[index] = offset;
         }
 

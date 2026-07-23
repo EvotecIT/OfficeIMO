@@ -484,6 +484,22 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void TryDecodeRejectsLzwPredictorStreamsInsteadOfScanningIntermediateBytes() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("LZWDecode");
+        var decodeParameters = new PdfDictionary();
+        decodeParameters.Items["Predictor"] = new PdfNumber(12);
+        decodeParameters.Items["Columns"] = new PdfNumber(4);
+        dictionary.Items["DecodeParms"] = decodeParameters;
+        byte[] encoded = PackNineBitCodes(new[] { 256, 0, 65, 66, 67, 68, 257 });
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, encoded, 1024, out byte[] output);
+
+        Assert.False(decoded);
+        Assert.Empty(output);
+    }
+
+    [Fact]
     public void AsciiDecodersStopBeforeMaterializingOutputBeyondBudget() {
         var hexDictionary = new PdfDictionary();
         hexDictionary.Items["Filter"] = new PdfName("ASCIIHexDecode");

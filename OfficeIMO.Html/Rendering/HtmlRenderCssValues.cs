@@ -40,38 +40,40 @@ internal static class HtmlRenderCssValues {
             case "":
             case "px":
                 result = number;
-                return true;
+                return IsFinite(result);
             case "pt":
                 result = number * HtmlRenderOptions.CssPixelsPerInch / 72D;
-                return true;
+                return IsFinite(result);
             case "pc":
                 result = number * HtmlRenderOptions.CssPixelsPerInch / 6D;
-                return true;
+                return IsFinite(result);
             case "in":
                 result = number * HtmlRenderOptions.CssPixelsPerInch;
-                return true;
+                return IsFinite(result);
             case "cm":
                 result = number * HtmlRenderOptions.CssPixelsPerInch / 2.54D;
-                return true;
+                return IsFinite(result);
             case "mm":
                 result = number * HtmlRenderOptions.CssPixelsPerInch / 25.4D;
-                return true;
+                return IsFinite(result);
             case "q":
                 result = number * HtmlRenderOptions.CssPixelsPerInch / 101.6D;
-                return true;
+                return IsFinite(result);
             case "em":
                 result = number * fontSize;
-                return true;
+                return IsFinite(result);
             case "rem":
                 result = number * rootFontSize;
-                return true;
+                return IsFinite(result);
             case "%":
                 result = reference * number / 100D;
-                return true;
+                return IsFinite(result);
             default:
                 return false;
         }
     }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left) {
         IReadOnlyList<string> parts = SplitWhitespace(value);

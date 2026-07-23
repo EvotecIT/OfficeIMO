@@ -20,6 +20,7 @@ public class PdfSanitizerTests {
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "Launch");
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "SubmitForm");
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "GoToR");
+        Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "GoToE");
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction && finding.Detail == "ImportData");
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.UnsafeUri && finding.Detail == "javascript:alert('unsafe')");
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.RichMedia && finding.Detail == "RichMedia");
@@ -96,7 +97,7 @@ public class PdfSanitizerTests {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
-            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /AA << /WC 12 0 R /WS 13 0 R >> >>",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> /AA << /WC 12 0 R /WS 13 0 R /WP 14 0 R >> >>",
             "endobj",
             "2 0 obj",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -137,8 +138,11 @@ public class PdfSanitizerTests {
             "13 0 obj",
             "<< /S /ImportData /F (form-data.fdf) >>",
             "endobj",
+            "14 0 obj",
+            "<< /S /GoToE /F << /F (embedded.pdf) >> /D [0 /Fit] >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 14 >>",
+            "<< /Root 1 0 R /Size 15 >>",
             "%%EOF"
         }) + "\n";
 

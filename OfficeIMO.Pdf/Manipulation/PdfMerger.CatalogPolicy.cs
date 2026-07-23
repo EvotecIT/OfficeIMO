@@ -38,11 +38,23 @@ internal static partial class PdfMerger {
 
     private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasCatalogState(source)).Count();
+        bool incomingOptionalContent = sources.Where((source, index) => index != primarySourceIndex)
+            .Any(static source => source.CatalogState.OptionalContent != null);
+        bool anyOptionalContent = sources.Any(static source => source.CatalogState.OptionalContent != null);
+        if (mode == PdfMergeStructureMode.KeepPrimary && incomingOptionalContent) {
+            throw new NotSupportedException("Keeping only the primary PDF optional-content configuration is blocked because incoming pages can reference hidden layers whose visibility state would be discarded.");
+        }
         if (mode == PdfMergeStructureMode.KeepPrimary) { decisions.Add(new PdfMergeDecision("CatalogState", mode, "Kept primary compatible catalog state.", droppedCount: incoming)); return merged; }
         if (mode == PdfMergeStructureMode.RejectIncoming) {
             if (incoming > 0) throw new InvalidOperationException("PDF merge policy rejected incoming catalog state from " + incoming + " source(s).");
             decisions.Add(new PdfMergeDecision("CatalogState", mode, "No incoming catalog state was present; kept primary catalog state."));
             return merged;
+        }
+        if (mode == PdfMergeStructureMode.Combine && anyOptionalContent) {
+            throw new NotSupportedException("Combining PDF optional-content configurations is blocked because rebuilding them with an all-visible default can expose content that a source intentionally hid.");
+        }
+        if (mode == PdfMergeStructureMode.Drop && anyOptionalContent) {
+            throw new NotSupportedException("Dropping PDF optional-content configuration is blocked because page content can remain associated with hidden layers and become visible without its source visibility state.");
         }
 
         string? version = mode == PdfMergeStructureMode.Combine ? FirstCatalogValue(sources, primarySourceIndex, static document => document.CatalogVersion) : null;
@@ -59,14 +71,12 @@ internal static partial class PdfMerger {
                 if (uri != null) catalog.Items["URI"] = uri;
                 PdfArray intents = CombineOutputIntents(sources, objects, externalMap, ref nextObjectNumber);
                 if (intents.Items.Count > 0) catalog.Items["OutputIntents"] = intents;
-                PdfDictionary? optionalContent = BuildMergedOptionalContent(objects);
-                if (optionalContent != null) catalog.Items["OCProperties"] = optionalContent;
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
         string action = mode == PdfMergeStructureMode.Drop
             ? "Removed version, language, URI, output-intent, and optional-content catalog state."
-            : "Combined compatible scalar, URI, and output-intent state; rebuilt page-owned optional-content groups with a deterministic all-visible default.";
+            : "Combined compatible scalar, URI, and output-intent state after rejecting sources with optional-content configurations.";
         decisions.Add(new PdfMergeDecision("CatalogState", mode, action, incoming));
         return output;
     }
@@ -124,20 +134,6 @@ internal static partial class PdfMerger {
             foreach (PdfObject item in array.Items) result.Items.Add(CloneExternalObject(item, sourceIndex, sources[sourceIndex].Objects, targetObjects, map, ref next));
         }
         return result;
-    }
-
-    private static PdfDictionary? BuildMergedOptionalContent(Dictionary<int, PdfIndirectObject> objects) {
-        var groups = objects.Values
-            .Where(static item => item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "OCG")
-            .OrderBy(static item => item.ObjectNumber)
-            .Select(static item => new PdfReference(item.ObjectNumber, item.Generation))
-            .ToArray();
-        if (groups.Length == 0) return null;
-        var groupArray = new PdfArray(); var order = new PdfArray(); var on = new PdfArray();
-        foreach (PdfReference group in groups) { groupArray.Items.Add(group); order.Items.Add(group); on.Items.Add(group); }
-        var defaults = new PdfDictionary(); defaults.Items["Name"] = new PdfStringObj("Merged layers", true); defaults.Items["Order"] = order; defaults.Items["ON"] = on;
-        var properties = new PdfDictionary(); properties.Items["OCGs"] = groupArray; properties.Items["D"] = defaults;
-        return properties;
     }
 
     private static PdfObject CloneExternalObject(PdfObject value, int sourceIndex, Dictionary<int, PdfIndirectObject> sourceObjects, Dictionary<int, PdfIndirectObject> targetObjects, Dictionary<ExternalObjectKey, int> map, ref int next) {

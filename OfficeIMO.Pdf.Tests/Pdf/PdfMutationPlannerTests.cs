@@ -64,6 +64,49 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void ActiveContentBlocksAppendOnlyMetadataAndFormMutations() {
+        byte[] metadataSource = WithCatalogAction(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
+        byte[] formSource = WithCatalogAction(
+            PdfDocument.Create().TextField("Account", value: "before").ToBytes());
+
+        PdfMutationPlan metadataPlan = PdfMutationPlanner.Plan(
+            metadataSource,
+            PdfMutationOperation.UpdateMetadata);
+        PdfMutationPlan formPlan = PdfMutationPlanner.Plan(
+            formSource,
+            PdfMutationOperation.FillFormFields,
+            fieldNames: new[] { "Account" });
+        PdfOperationResult<PdfDocument> metadataResult = PdfDocument.Open(metadataSource)
+            .TryUpdateMetadata(title: "should not be appended");
+        PdfOperationResult<PdfDocument> formResult = PdfDocument.Open(formSource).Forms.TryFill(
+            new Dictionary<string, string> { ["Account"] = "after" });
+
+        Assert.False(metadataPlan.CanExecute);
+        Assert.False(metadataPlan.AppendOnlyAvailable);
+        Assert.False(formPlan.CanExecute);
+        Assert.False(formPlan.AppendOnlyAvailable);
+        Assert.False(metadataResult.Succeeded);
+        Assert.False(formResult.Succeeded);
+    }
+
+    [Fact]
+    public void GoToEActionBlocksAppendOnlyMetadataMutation() {
+        byte[] source = WithCatalogAction(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Embedded target action")).ToBytes(),
+            "GoToE");
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata);
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(source)
+            .TryUpdateMetadata(title: "must not preserve GoToE");
+
+        Assert.True(PdfInspector.Probe(source).HasActiveContent);
+        Assert.False(plan.CanExecute);
+        Assert.False(plan.AppendOnlyAvailable);
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public void Plan_BlocksPageTreeMutationForSignedIncrementalInput() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
 
@@ -388,6 +431,40 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void ExternalSignatureFinalizationRejectsByteRangeThatDoesNotMatchReservation() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Signature reservation validation"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 256 });
+        long originalTailLength = preparation.ByteRangeValues[3];
+        byte[] crafted = ReplaceFirstAscii(
+            preparation.PreparedPdf,
+            originalTailLength.ToString("00000000000000000000", System.Globalization.CultureInfo.InvariantCulture),
+            (originalTailLength + 1L).ToString("00000000000000000000", System.Globalization.CultureInfo.InvariantCulture));
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(crafted, PdfMutationOperation.FinalizeExternalSignature);
+
+        Assert.False(plan.CanExecute);
+        Assert.Contains("SignatureReservation.Invalid", plan.BlockerCodes);
+        Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Open(crafted).CompleteExternalSignature(new byte[] { 0x30, 0x01, 0x00 }));
+    }
+
+    [Fact]
+    public void ExternalSignatureFinalizationRejectsDuplicateContentsBoundToAnotherObject() {
+        byte[] crafted = BuildDuplicateContentsSignatureReservation(256);
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(crafted, PdfMutationOperation.FinalizeExternalSignature);
+
+        Assert.False(plan.CanExecute);
+        Assert.Contains("SignatureReservation.Invalid", plan.BlockerCodes);
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(crafted).CompleteExternalSignature(new byte[] { 0x30, 0x01, 0x00 }));
+    }
+
+    [Fact]
     public void ExternalSignatureFinalizationRejectsEmptyAndAmbiguousRawCompletion() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Signature finalization ambiguity source"))
@@ -515,6 +592,75 @@ public class PdfMutationPlannerTests {
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, ownerPlan.ExecutionMode);
         Assert.True(ownerResult.Succeeded, string.Join(" ", ownerResult.Diagnostics));
         Assert.False(PdfInspector.Probe(ownerResult.RequireValue().ToBytes()).HasEncryption);
+    }
+
+    private static byte[] ReplaceFirstAscii(byte[] source, string oldValue, string newValue) {
+        byte[] oldBytes = System.Text.Encoding.ASCII.GetBytes(oldValue);
+        byte[] newBytes = System.Text.Encoding.ASCII.GetBytes(newValue);
+        Assert.Equal(oldBytes.Length, newBytes.Length);
+        byte[] result = (byte[])source.Clone();
+        for (int index = 0; index <= result.Length - oldBytes.Length; index++) {
+            if (!result.AsSpan(index, oldBytes.Length).SequenceEqual(oldBytes)) continue;
+            Buffer.BlockCopy(newBytes, 0, result, index, newBytes.Length);
+            return result;
+        }
+        throw new InvalidOperationException("Expected ASCII marker was not found.");
+    }
+
+    private static byte[] WithCatalogAction(byte[] source, string actionType = "JavaScript") {
+        return PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            int rootObjectNumber = Assert.IsType<int>(security.RootObjectNumber);
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[rootObjectNumber].Value);
+            var action = new PdfDictionary();
+            action.Items["S"] = new PdfName(actionType);
+            if (actionType == "JavaScript") action.Items["JS"] = new PdfStringObj("app.alert('blocked')", true);
+            catalog.Items["OpenAction"] = action;
+            return security.InfoObjectNumber;
+        });
+    }
+
+    private static byte[] BuildDuplicateContentsSignatureReservation(int reservedBytes) {
+        string zeros = new string('0', reservedBytes * 2);
+        string rangePlaceholder = string.Join(" ", Enumerable.Repeat(new string('0', 20), 4));
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Approval) /V 6 0 R /Subtype /Widget /Rect [0 0 0 0] >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 3 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [" + rangePlaceholder + "] /Contents <" + zeros + "> /Contents 7 0 R >>",
+            "endobj",
+            "7 0 obj",
+            "<" + zeros + ">",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+        int literalStart = pdf.IndexOf("/Contents <" + zeros + ">", StringComparison.Ordinal) + "/Contents ".Length;
+        int literalEnd = literalStart + zeros.Length + 2;
+        string byteRange = string.Join(" ", new[] {
+            0L,
+            (long)literalStart,
+            (long)literalEnd,
+            (long)pdf.Length - literalEnd
+        }.Select(static value => value.ToString("00000000000000000000", System.Globalization.CultureInfo.InvariantCulture)));
+        return System.Text.Encoding.ASCII.GetBytes(pdf.Replace(rangePlaceholder, byteRange));
     }
 
     private sealed class ChunkedNonSeekableStream : Stream {

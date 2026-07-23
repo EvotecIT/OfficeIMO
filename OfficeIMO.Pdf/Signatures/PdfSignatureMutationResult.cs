@@ -11,6 +11,7 @@ public sealed class PdfSignatureMutationResult {
         IReadOnlyList<int> coveredRevisionsAfter,
         bool originalBytesPreserved,
         bool byteRangePreserved,
+        bool activeDefinitionPreserved,
         bool hasLaterRevisionsBefore,
         bool hasLaterRevisionsAfter,
         PdfSignatureMutationPermissionStatus permissionStatus) {
@@ -22,6 +23,7 @@ public sealed class PdfSignatureMutationResult {
         CoveredRevisionsAfter = coveredRevisionsAfter;
         OriginalBytesPreserved = originalBytesPreserved;
         ByteRangePreserved = byteRangePreserved;
+        ActiveDefinitionPreserved = activeDefinitionPreserved;
         HasLaterRevisionsBefore = hasLaterRevisionsBefore;
         HasLaterRevisionsAfter = hasLaterRevisionsAfter;
         PermissionStatus = permissionStatus;
@@ -54,6 +56,9 @@ public sealed class PdfSignatureMutationResult {
     /// <summary>True when the signature's exact /ByteRange values are unchanged.</summary>
     public bool ByteRangePreserved { get; }
 
+    /// <summary>True when the active signature and owning field object graphs are unchanged.</summary>
+    public bool ActiveDefinitionPreserved { get; }
+
     /// <summary>True when revisions or unsigned bytes followed the signature before the mutation.</summary>
     public bool HasLaterRevisionsBefore { get; }
 
@@ -68,5 +73,6 @@ public sealed class PdfSignatureMutationResult {
         IsPresentAfter &&
         OriginalBytesPreserved &&
         ByteRangePreserved &&
+        ActiveDefinitionPreserved &&
         Before.IsStructurallyValid == After!.IsStructurallyValid;
 }

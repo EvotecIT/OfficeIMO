@@ -37,4 +37,19 @@ public class PdfFormDataTests {
         Assert.ThrowsAny<Exception>(() => PdfFormDataSet.ParseXfdf("<!DOCTYPE xfdf [<!ENTITY x SYSTEM 'file:///tmp/x'>]><xfdf><fields><field name='A'><value>&x;</value></field></fields></xfdf>"));
         Assert.Throws<ArgumentException>(() => new PdfFormDataSet(new[] { new PdfFormDataField("A", new[] { "1" }), new PdfFormDataField("A", new[] { "2" }) }));
     }
+
+    [Fact]
+    public void ParseXfdfRejectsDocumentBeforeDomMaterializationAndImportExposesTheLimit() {
+        const string xfdf = "<xfdf xmlns='http://ns.adobe.com/xfdf/'><fields><field name='A'><value>bounded</value></field></fields></xfdf>";
+
+        Assert.Throws<InvalidOperationException>(() => PdfFormDataSet.ParseXfdf(
+            xfdf,
+            maxFields: 10,
+            maxValueCharacters: 100,
+            maxDocumentCharacters: xfdf.Length - 1));
+
+        byte[] source = PdfDocument.Create().TextField("A", value: "before").ToBytes();
+        var options = new PdfFormFillerOptions { MaxXfdfDocumentCharacters = xfdf.Length - 1 };
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Open(source).Forms.ImportXfdf(xfdf, options));
+    }
 }

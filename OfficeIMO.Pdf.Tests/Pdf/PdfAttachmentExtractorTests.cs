@@ -96,6 +96,21 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void InspectAttachments_DoesNotPresentDeclaredOrEncodedSizeAsDecodedSize() {
+        byte[] payload = Encoding.UTF8.GetBytes(new string('A', 4096));
+        byte[] pdf = BuildFlateEmbeddedFilePdf(payload, declaredSize: 1);
+
+        PdfAttachmentInfo info = Assert.Single(PdfReadDocument.Open(pdf).Attachments);
+        PdfExtractedAttachment extracted = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(pdf));
+
+        Assert.Equal(1, info.DeclaredSizeBytes);
+        Assert.True(info.EncodedSizeBytes > 1);
+        Assert.Equal(info.EncodedSizeBytes, info.SizeBytes);
+        Assert.Null(info.DecodedSizeBytes);
+        Assert.Equal(payload.Length, extracted.Bytes.Length);
+    }
+
+    [Fact]
     public void ExtractAttachments_ReadsCatalogAssociatedFilesWithoutEmbeddedFileNameTree() {
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(BuildAssociatedFileOnlyPdf());
 
@@ -145,10 +160,12 @@ public class PdfAttachmentExtractorTests {
             .Paragraph(p => p.Text("Aggregate attachment budget."))
             .ToBytes();
 
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 5 }
+        });
+        Assert.Equal(2, document.Attachments.Count);
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions {
-                Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 5 }
-            }));
+            document.ExtractAttachments());
 
         Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
         Assert.Equal(5, exception.Limit);
@@ -163,10 +180,12 @@ public class PdfAttachmentExtractorTests {
         }
         byte[] pdf = BuildFlateEmbeddedFilePdf(payload, malformedPredictor: true);
 
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 64 }
+        });
+        Assert.Single(document.Attachments);
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions {
-                Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 64 }
-            }));
+            document.ExtractAttachments());
 
         Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
         Assert.Equal(64, exception.Limit);
@@ -273,7 +292,7 @@ public class PdfAttachmentExtractorTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildFlateEmbeddedFilePdf(byte[] payload, bool malformedPredictor = false) {
+    private static byte[] BuildFlateEmbeddedFilePdf(byte[] payload, bool malformedPredictor = false, int? declaredSize = null) {
         byte[] compressed = DeflateZlib(payload);
         string header = string.Join("\n", new[] {
             "%PDF-1.4",
@@ -297,6 +316,7 @@ public class PdfAttachmentExtractorTests {
             "endobj",
             "6 0 obj",
             "<< /Type /EmbeddedFile /Subtype /application#2Foctet-stream /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode" +
+                (declaredSize.HasValue ? " /Params << /Size " + declaredSize.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>" : string.Empty) +
                 (malformedPredictor ? " /DecodeParms << /Predictor 12 /Columns 4 >>" : string.Empty) + " >>",
             "stream"
         });

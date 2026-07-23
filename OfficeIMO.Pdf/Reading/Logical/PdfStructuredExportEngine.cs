@@ -99,7 +99,7 @@ internal static class PdfStructuredExportEngine {
                     new XElement(
                         alto + "String",
                         new XAttribute("ID", "string_" + (pageIndex + 1) + "_" + (lineIndex + 1)),
-                        new XAttribute("CONTENT", line.Text),
+                        new XAttribute("CONTENT", XmlText(line.Text)),
                         BoxAttributes(line))));
             }
 
@@ -140,7 +140,7 @@ internal static class PdfStructuredExportEngine {
                     new XAttribute("class", "ocr_line"),
                     new XAttribute("id", "line_" + (pageIndex + 1) + "_" + (lineIndex + 1)),
                     new XAttribute("title", "bbox " + Integer(line.X) + " " + Integer(line.Y) + " " + Integer(line.X + line.Width) + " " + Integer(line.Y + line.Height)),
-                    line.Text));
+                    XmlText(line.Text)));
             }
 
             body.Add(pageElement);
@@ -173,7 +173,7 @@ internal static class PdfStructuredExportEngine {
                 pageNs + "TextLine",
                 new XAttribute("id", "line_" + pageIndex + "_" + (lineIndex + 1)),
                 new XElement(pageNs + "Coords", new XAttribute("points", Points(line))),
-                new XElement(pageNs + "TextEquiv", new XElement(pageNs + "Unicode", line.Text))));
+                new XElement(pageNs + "TextEquiv", new XElement(pageNs + "Unicode", XmlText(line.Text)))));
         }
 
         return new XDocument(
@@ -225,6 +225,34 @@ internal static class PdfStructuredExportEngine {
     private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
     private static string Integer(double value) => Math.Max(0, (int)Math.Ceiling(value)).ToString(CultureInfo.InvariantCulture);
+
+    private static string XmlText(string value) {
+        StringBuilder? builder = null;
+        for (int i = 0; i < value.Length; i++) {
+            char current = value[i];
+            bool valid = current == '\t' || current == '\n' || current == '\r' ||
+                current >= ' ' && current <= '\uD7FF' ||
+                current >= '\uE000' && current <= '\uFFFD';
+            if (valid) {
+                builder?.Append(current);
+                continue;
+            }
+            if (char.IsHighSurrogate(current) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1])) {
+                if (builder != null) {
+                    builder.Append(current).Append(value[++i]);
+                } else {
+                    i++;
+                }
+                continue;
+            }
+            if (builder == null) {
+                builder = new StringBuilder(value.Length);
+                builder.Append(value, 0, i);
+            }
+            builder.Append('\uFFFD');
+        }
+        return builder?.ToString() ?? value;
+    }
 
     private static string Json(string value) {
         var builder = new StringBuilder(value.Length + 8);
