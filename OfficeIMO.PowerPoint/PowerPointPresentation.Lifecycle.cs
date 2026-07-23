@@ -443,7 +443,7 @@ namespace OfficeIMO.PowerPoint {
                     _persistenceMode = options.PersistenceMode
                 };
                 if (document.DigitalSignatureOriginPart != null ||
-                    document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                    PowerPointPackageFingerprint.HasApplicationSignatureFlag(document)) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
                 presentation.MarkLoadedFromOpenXml(bytes);

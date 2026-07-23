@@ -169,6 +169,20 @@ namespace OfficeIMO.PowerPoint {
             (contentType!.EndsWith("+xml", StringComparison.OrdinalIgnoreCase) ||
              contentType.IndexOf("/xml", StringComparison.OrdinalIgnoreCase) >= 0);
 
+        internal static bool HasApplicationSignatureFlag(
+            PresentationDocument document,
+            long maximumXmlBytes = MaximumNormalizedXmlBytes) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            ExtendedFilePropertiesPart? propertiesPart = document.ExtendedFilePropertiesPart;
+            if (propertiesPart == null) return false;
+
+            using (Stream source = propertiesPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                EnsureStreamWithinLimit(source, maximumXmlBytes);
+            }
+
+            return propertiesPart.Properties?.DigitalSignature != null;
+        }
+
         internal static void EnsureStreamWithinLimit(Stream stream, long maximumBytes) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));

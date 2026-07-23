@@ -265,6 +265,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageFingerprintChecksApplicationPropertiesSizeBeforeLoadingSignatureMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ExtendedFilePropertiesPart propertiesPart = document.ExtendedFilePropertiesPart
+                        ?? document.AddExtendedFilePropertiesPart();
+                    propertiesPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                    propertiesPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                    propertiesPart.Properties.Save();
+                }
+
+                using PresentationDocument reopened = PresentationDocument.Open(filePath, false);
+                ExtendedFilePropertiesPart reopenedProperties = reopened.ExtendedFilePropertiesPart!;
+                Assert.False(reopenedProperties.IsRootElementLoaded);
+                long serializedLength;
+                using (Stream source = reopenedProperties.GetStream(FileMode.Open, FileAccess.Read)) {
+                    serializedLength = source.Length;
+                }
+
+                Assert.ThrowsAny<IOException>(() =>
+                    PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength - 1));
+                Assert.False(reopenedProperties.IsRootElementLoaded);
+                Assert.True(PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength));
+                Assert.True(reopenedProperties.IsRootElementLoaded);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
