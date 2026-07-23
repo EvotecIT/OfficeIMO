@@ -386,7 +386,12 @@ namespace OfficeIMO.Excel {
                     }
 
                     TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedValues);
-                    TryReadCachedNumberValues(valuesReference, pointBudget, out IReadOnlyList<double>? cachedValues);
+                    IReadOnlyList<double>? cachedValues = null;
+                    if (referencedValues == null ||
+                        xValues != null && referencedValues.Count != xValues.Count) {
+                        TryReadCachedNumberValues(valuesReference, pointBudget, out cachedValues);
+                    }
+
                     IReadOnlyList<double>? values = referencedValues;
                     if (xValues != null &&
                         referencedValues != null &&

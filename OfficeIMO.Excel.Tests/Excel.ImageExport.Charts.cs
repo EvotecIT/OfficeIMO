@@ -303,6 +303,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeUnusedSeriesCaches() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SourceBudget");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "First");
+            sheet.CellValue(1, 3, "Second");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(2, 2, 10D);
+            sheet.CellValue(3, 2, 20D);
+            sheet.CellValue(2, 3, 30D);
+            sheet.CellValue(3, 3, 40D);
+            sheet.AddChartFromRange(
+                "A1:C3",
+                row: 1,
+                column: 5,
+                widthPixels: 260,
+                heightPixels: 170,
+                type: ExcelChartType.ColumnClustered,
+                title: "Source budget");
+
+            ChartPart chartPart = GetFirstChartPart(document);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 6L },
+                culture: null)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod(
+                "TryReadChartDataCore",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+
+            Assert.NotNull(data);
+            Assert.Equal(new[] { "Jan", "Feb" }, data!.Categories);
+            Assert.Equal(2, data.Series.Count);
+            Assert.Equal(new[] { 10D, 20D }, data.Series[0].Values);
+            Assert.Equal(new[] { 30D, 40D }, data.Series[1].Values);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotChargeMissingChartSourcesBeforeCacheFallback() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
