@@ -156,6 +156,27 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void PdfReadDocument_RejectsAttachmentCountBeforeDecodingNextPayload() {
+        byte[] pdf = PdfDocument.Create()
+            .AttachFile("first.bin", new byte[] { 1, 2, 3 })
+            .AttachFile("second.bin", new byte[] { 4, 5, 6 })
+            .Paragraph(p => p.Text("Attachment count ordering."))
+            .ToBytes();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, new PdfReadOptions {
+                Limits = new PdfReadLimits {
+                    MaxAttachments = 1,
+                    MaxTotalAttachmentBytes = 3
+                }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.Attachments, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
     public void ExtractAttachments_SupportsPathStreamAndDirectoryOutputs() {
         byte[] payload = Encoding.UTF8.GetBytes("directory payload");
         byte[] pdf = PdfDocument.Create()

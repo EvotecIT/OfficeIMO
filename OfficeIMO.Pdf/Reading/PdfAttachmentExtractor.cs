@@ -148,7 +148,7 @@ internal static class PdfAttachmentExtractor {
                         "FileAttachment",
                         budget);
                     if (attachment != null) {
-                        budget.Add(attachments, attachment);
+                        attachments.Add(attachment);
                         if (attachment.FileSpecObjectNumber > 0) {
                             existingFileSpecs.Add(attachment.FileSpecObjectNumber);
                         }
@@ -209,7 +209,7 @@ internal static class PdfAttachmentExtractor {
                 PdfObject fileSpecObject = names.Items[i + 1];
                 PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles", budget);
                 if (attachment != null) {
-                    budget.Add(attachments, attachment);
+                    attachments.Add(attachment);
                 }
             }
         }
@@ -243,7 +243,7 @@ internal static class PdfAttachmentExtractor {
             string name = TryReadFileSpecName(objects, fileSpecObject) ?? "AF." + i.ToString(CultureInfo.InvariantCulture);
             PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name, fileSpecObject, "AF", budget);
             if (attachment != null) {
-                budget.Add(attachments, attachment);
+                attachments.Add(attachment);
                 if (attachment.FileSpecObjectNumber > 0) {
                     existingFileSpecs.Add(attachment.FileSpecObjectNumber);
                 }
@@ -273,6 +273,7 @@ internal static class PdfAttachmentExtractor {
         if (ResolveObject(objects, embeddedFileObject) is not PdfStream stream) {
             return null;
         }
+        budget.ReserveAttachment();
 
         string fileName = TryReadText(objects, fileSpec, "F") ?? name;
         string? unicodeFileName = TryReadText(objects, fileSpec, "UF");
@@ -313,14 +314,13 @@ internal static class PdfAttachmentExtractor {
             _limits = limits;
         }
 
-        internal void Add(List<PdfExtractedAttachment> attachments, PdfExtractedAttachment attachment) {
+        internal void ReserveAttachment() {
             int nextCount = _attachmentCount + 1;
             if (nextCount > _limits.MaxAttachments) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Attachments, _limits.MaxAttachments, nextCount);
             }
 
             _attachmentCount = nextCount;
-            attachments.Add(attachment);
         }
 
         internal byte[] GetDecodedBytes(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
