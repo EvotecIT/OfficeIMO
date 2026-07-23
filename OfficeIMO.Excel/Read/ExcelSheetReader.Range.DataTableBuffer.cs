@@ -21,12 +21,22 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
-            var dt = new DataTable(_sheetName);
             int rows = r2 - r1 + 1;
             int cols = c2 - c1 + 1;
+            long cellCount = (long)rows * cols;
+            if (_opt.MaxRangeCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(_opt.MaxRangeCells), "Maximum dense range cell count must be positive.");
+            }
+
+            if (cellCount > _opt.MaxRangeCells) {
+                throw new InvalidDataException(
+                    $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
+            }
+
+            var dt = new DataTable(_sheetName);
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            int workload = rows * cols;
+            int workload = checked((int)cellCount);
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
                     if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)) {

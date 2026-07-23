@@ -24,7 +24,7 @@ public sealed partial class PdfReadDocument {
                 attachment.Filter,
                 attachment.FileSpecObjectNumber,
                 attachment.EmbeddedFileObjectNumber,
-                attachment.Bytes.Length,
+                attachment.ByteLength,
                 attachment.Source,
                 attachment.CreationDate,
                 attachment.ModificationDate));

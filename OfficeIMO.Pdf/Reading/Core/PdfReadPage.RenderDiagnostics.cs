@@ -5,8 +5,9 @@ public sealed partial class PdfReadPage {
         var diagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var activeForms = new HashSet<PdfStream>();
+        var pageContentBudget = new PageContentBudget(this);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        CollectRenderCapabilityDiagnostics(GetContentStreamContent(), resources, diagnostics, seen, activeForms, 0);
+        CollectRenderCapabilityDiagnostics(GetContentStreamContent(pageContentBudget), resources, diagnostics, seen, activeForms, pageContentBudget, 0);
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen);
         return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
     }
@@ -17,6 +18,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
+        PageContentBudget pageContentBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources);
@@ -51,7 +53,7 @@ public sealed partial class PdfReadPage {
         CollectFontCapabilityDiagnostics(resources, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
-        CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, diagnostics, seen, activeForms, depth);
+        CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, diagnostics, seen, activeForms, pageContentBudget, depth);
     }
 
     private static string? GetOperatorCapabilityId(string op) {
@@ -146,6 +148,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
+        PageContentBudget pageContentBudget,
         int depth) {
         PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null);
         if (xObjects == null) return;
@@ -180,7 +183,7 @@ public sealed partial class PdfReadPage {
             if (!activeForms.Add(stream)) continue;
             try {
                 PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;
-                CollectRenderCapabilityDiagnostics(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)), formResources, diagnostics, seen, activeForms, depth + 1);
+                CollectRenderCapabilityDiagnostics(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)), formResources, diagnostics, seen, activeForms, pageContentBudget, depth + 1);
             } finally {
                 activeForms.Remove(stream);
             }

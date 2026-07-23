@@ -39,10 +39,10 @@ internal static class StreamDecoder {
                                 throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
 
-                            return original;
+                            return ReturnWithinDecodedLimit(original, maxOutputBytes);
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
                         break;
                     case DecodeFilterKind.AsciiHex:
                         if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
@@ -67,22 +67,22 @@ internal static class StreamDecoder {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
                         break;
                     default:
-                        return original;
+                        return ReturnWithinDecodedLimit(original, maxOutputBytes);
                 }
                 ThrowIfDecodedLimitExceeded(current.LongLength, maxOutputBytes);
             } catch (PdfReadLimitException) {
                 throw;
             } catch {
-                return original;
+                return ReturnWithinDecodedLimit(original, maxOutputBytes);
             }
 
             filterIndex++;
         }
 
-        return current;
+        return ReturnWithinDecodedLimit(current, maxOutputBytes);
     }
 
     public static bool TryDecode(PdfDictionary dict, byte[] data, int maxOutputBytes, out byte[] decoded, Dictionary<int, PdfIndirectObject>? objects = null) {
@@ -230,6 +230,11 @@ internal static class StreamDecoder {
     private static PdfReadLimitException CreateDecodedLimitException(int maximum, long actual) =>
         PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximum, actual);
 
+    private static byte[] ReturnWithinDecodedLimit(byte[] data, int maximum) {
+        ThrowIfDecodedLimitExceeded(data.LongLength, maximum);
+        return data;
+    }
+
     private static bool HasActiveDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
         var decodeParms = GetDecodeParms(dict, filterIndex, objects);
         if (decodeParms is null) {
@@ -240,7 +245,12 @@ internal static class StreamDecoder {
         return predictor > 1;
     }
 
-    private static byte[] ApplyDecodeParms(PdfDictionary dict, int filterIndex, byte[] data, Dictionary<int, PdfIndirectObject>? objects) {
+    private static byte[] ApplyDecodeParms(
+        PdfDictionary dict,
+        int filterIndex,
+        byte[] data,
+        Dictionary<int, PdfIndirectObject>? objects,
+        int maxOutputBytes) {
         var decodeParms = GetDecodeParms(dict, filterIndex, objects);
         if (decodeParms is null) {
             return data;
@@ -255,14 +265,14 @@ internal static class StreamDecoder {
         int colors = (int)(decodeParms.Get<PdfNumber>("Colors")?.Value ?? 1);
         int bitsPerComponent = (int)(decodeParms.Get<PdfNumber>("BitsPerComponent")?.Value ?? 8);
         if (predictor == 2) {
-            return TiffPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
+            return TiffPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes);
         }
 
         if (predictor < 10) {
             return data;
         }
 
-        return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
+        return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes);
     }
 
     private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {

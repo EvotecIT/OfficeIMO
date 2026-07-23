@@ -367,21 +367,34 @@ internal static partial class PdfSyntax {
 
     private static bool IsSupportedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> map,
-        PdfObject namedDestinations) {
-        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>());
+        PdfObject namedDestinations,
+        PdfReadLimits limits) {
+        int traversedNodes = 0;
+        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>(), 0, limits, ref traversedNodes);
     }
 
     private static bool TryCollectNamedDestinationNameTreeEntries(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject value,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        int depth,
+        PdfReadLimits limits,
+        ref int traversedNodes) {
+        if (depth > limits.MaxNameTreeDepth) {
+            return false;
+        }
+
         if (value is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                 return false;
             }
 
-            return TryCollectNamedDestinationNameTreeEntries(map, indirect.Value, visitedReferences);
+            if (++traversedNodes > limits.MaxNameTreeNodes) {
+                return false;
+            }
+
+            value = indirect.Value;
         }
 
         if (value is not PdfDictionary tree) {
@@ -422,7 +435,7 @@ internal static partial class PdfSyntax {
                     return false;
                 }
 
-                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences)) {
+                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences, depth + 1, limits, ref traversedNodes)) {
                     return false;
                 }
             }

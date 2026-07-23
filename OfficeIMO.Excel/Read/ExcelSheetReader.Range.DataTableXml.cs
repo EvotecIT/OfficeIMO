@@ -375,6 +375,16 @@ namespace OfficeIMO.Excel {
 
             int rows = r2 - r1 + 1;
             int cols = c2 - c1 + 1;
+            long cellCount = (long)rows * cols;
+            if (_opt.MaxRangeCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(_opt.MaxRangeCells), "Maximum dense range cell count must be positive.");
+            }
+
+            if (cellCount > _opt.MaxRangeCells) {
+                throw new InvalidDataException(
+                    $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
+            }
+
             if (rows <= 1 || cols == 0) {
                 return Array.Empty<Dictionary<string, object?>>();
             }

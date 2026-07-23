@@ -565,8 +565,16 @@ public class PdfReadLimitTests {
         var options = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxIndirectObjects = 0 }
         };
+        var attachmentCountOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxAttachments = 0 }
+        };
+        var attachmentBytesOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 0 }
+        };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentCountOptions));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentBytesOptions));
     }
 
     [Fact]

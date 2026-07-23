@@ -205,8 +205,6 @@ public sealed class StructuredLine {
 }
 
 internal static class ContentStructureExtractor {
-    private static readonly Regex TocRegex = new Regex(@"^(?<label>.+?)\s*\.{3,}\s+(?<num>\d{1,5})\s*$", RegexOptions.Compiled);
-    private static readonly Regex LeaderRowRegex = new Regex(@"^(?<label>.+?)(?:\.{3,}|-{3,}|_{3,})\s*(?<value>[$€£]?\s*[A-Za-z0-9][A-Za-z0-9\s.,'/%+\-()]*)\s*$", RegexOptions.Compiled);
     private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\u25CF]\s*|[\-\*]\s+|\d+(?:\.\d+)*[\.)]\s*|\([A-Za-z0-9]+\)\s*).+", RegexOptions.Compiled);
     private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)]\s*(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])\s+)(?<text>.+)$", RegexOptions.Compiled);
@@ -233,9 +231,8 @@ internal static class ContentStructureExtractor {
             string t = ln.Text.Trim();
             if (t.Length == 0) continue;
             page.Lines.Add(t);
-            var mToc = TocRegex.Match(t);
-            if (mToc.Success && int.TryParse(mToc.Groups["num"].Value, out int num)) {
-                var label = NormalizeShattered(mToc.Groups["label"].Value.TrimEnd('.').Trim());
+            if (TryParseTocRow(t, out string tocLabel, out int num)) {
+                var label = NormalizeShattered(tocLabel.TrimEnd('.').Trim());
                 page.Toc.Add((label, num));
                 AddLeaderRow(page, label, num.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 continue;
@@ -257,11 +254,10 @@ internal static class ContentStructureExtractor {
                 }
             }
             else {
-                var mLeader = LeaderRowRegex.Match(t);
-                if (mLeader.Success) {
-                    var value = NormalizeLeaderValue(mLeader.Groups["value"].Value);
+                if (TryParseLeaderRow(t, out string leaderLabel, out string leaderValue)) {
+                    var value = NormalizeLeaderValue(leaderValue);
                     if (value.Length > 0) {
-                        var left = NormalizeShattered(mLeader.Groups["label"].Value.TrimEnd('.', '-', '_', ' ').Trim());
+                        var left = NormalizeShattered(leaderLabel.TrimEnd('.', '-', '_', ' ').Trim());
                         AddLeaderRow(page, left, value);
                     }
                 }
@@ -568,6 +564,115 @@ internal static class ContentStructureExtractor {
 
         page.LeaderRows.Add(new[] { label, value });
     }
+
+    private static bool TryParseTocRow(string text, out string label, out int pageNumber) {
+        label = string.Empty;
+        pageNumber = 0;
+        int trailingContentEnd = text.Length;
+        while (trailingContentEnd > 0 && char.IsWhiteSpace(text[trailingContentEnd - 1])) {
+            trailingContentEnd--;
+        }
+
+        for (int index = 1; index < text.Length;) {
+            if (text[index] != '.') {
+                index++;
+                continue;
+            }
+
+            int runStart = index;
+            while (index < text.Length && text[index] == '.') {
+                index++;
+            }
+
+            if (index - runStart < 3 || index >= text.Length || !char.IsWhiteSpace(text[index])) {
+                continue;
+            }
+
+            int digitStart = SkipWhitespace(text, index);
+            int digitEnd = digitStart;
+            while (digitEnd < trailingContentEnd && digitEnd - digitStart < 6 && text[digitEnd] is >= '0' and <= '9') {
+                digitEnd++;
+            }
+
+            int digitCount = digitEnd - digitStart;
+            if (digitCount is < 1 or > 5 || digitEnd != trailingContentEnd) {
+                continue;
+            }
+
+            label = text.Substring(0, runStart);
+            for (int digitIndex = digitStart; digitIndex < digitEnd; digitIndex++) {
+                pageNumber = checked((pageNumber * 10) + (text[digitIndex] - '0'));
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseLeaderRow(string text, out string label, out string value) {
+        label = string.Empty;
+        value = string.Empty;
+        int validValueSuffixStart = FindValidLeaderValueSuffixStart(text);
+
+        for (int index = 1; index < text.Length;) {
+            char leader = text[index];
+            if (leader != '.' && leader != '-' && leader != '_') {
+                index++;
+                continue;
+            }
+
+            int runStart = index;
+            while (index < text.Length && text[index] == leader) {
+                index++;
+            }
+
+            if (index - runStart < 3) {
+                continue;
+            }
+
+            int valueStart = SkipWhitespace(text, index);
+            if (valueStart < text.Length && IsLeaderCurrency(text[valueStart])) {
+                valueStart = SkipWhitespace(text, valueStart + 1);
+            }
+
+            if (valueStart >= text.Length ||
+                !char.IsLetterOrDigit(text[valueStart]) ||
+                valueStart < validValueSuffixStart) {
+                continue;
+            }
+
+            label = text.Substring(0, runStart);
+            value = text.Substring(index);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int FindValidLeaderValueSuffixStart(string text) {
+        for (int index = text.Length - 1; index >= 0; index--) {
+            char character = text[index];
+            bool allowed = char.IsLetterOrDigit(character) ||
+                           char.IsWhiteSpace(character) ||
+                           character is '.' or ',' or '\'' or '/' or '%' or '+' or '-' or '(' or ')';
+            if (!allowed) {
+                return index + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    private static int SkipWhitespace(string text, int index) {
+        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static bool IsLeaderCurrency(char value) => value is '$' or '€' or '£';
 
     private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
     private static bool IsAllLetters(string s) { for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return s.Length > 0; }

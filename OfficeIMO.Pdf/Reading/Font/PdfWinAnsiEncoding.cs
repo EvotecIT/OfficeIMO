@@ -26,6 +26,13 @@ internal static class PdfWinAnsiEncoding {
     private static readonly System.Collections.Generic.Dictionary<char, byte> ReverseMap = BuildReverse();
 
     public static string Decode(byte[] bytes) {
+        return Decode(bytes, int.MaxValue);
+    }
+
+    public static string Decode(byte[] bytes, int maxOutputCharacters) {
+        if (bytes.LongLength > maxOutputCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
+        }
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
         return new string(chars);

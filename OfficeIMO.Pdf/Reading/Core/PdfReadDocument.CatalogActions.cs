@@ -11,7 +11,8 @@ public sealed partial class PdfReadDocument {
         if (catalog.Items.TryGetValue("Names", out var namesObject) &&
             ResolveDict(namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("JavaScript", out var javaScriptNameTree)) {
-            AddCatalogActionsFromNameTree(javaScriptNameTree, result, new HashSet<int>());
+            int traversedNameTreeNodes = 0;
+            AddCatalogActionsFromNameTree(javaScriptNameTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
         }
 
         if (catalog.Items.TryGetValue("OpenAction", out var openAction)) {
@@ -31,17 +32,21 @@ public sealed partial class PdfReadDocument {
     private void AddCatalogActionsFromNameTree(
         PdfObject treeObject,
         List<PdfCatalogAction> result,
-        HashSet<int> visitedReferences) {
-        HashSet<int> pathReferences = visitedReferences;
+        HashSet<int> visitedReferences,
+        int depth,
+        ref int traversedNodes) {
+        EnsureNameTreeBudget(depth, traversedNodes);
         if (treeObject is PdfReference reference) {
-            if (visitedReferences.Contains(reference.ObjectNumber) ||
-                !PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
+            if (!visitedReferences.Add(reference.ObjectNumber)) {
                 return;
             }
 
-            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
-            AddCatalogActionsFromNameTree(indirect.Value, result, pathReferences);
-            return;
+            EnsureNameTreeBudget(depth, ++traversedNodes);
+            if (!PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
+                return;
+            }
+
+            treeObject = indirect.Value;
         }
 
         if (treeObject is not PdfDictionary tree) {
@@ -60,7 +65,7 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddCatalogActionsFromNameTree(kid, result, new HashSet<int>(pathReferences));
+                AddCatalogActionsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes);
             }
         }
     }

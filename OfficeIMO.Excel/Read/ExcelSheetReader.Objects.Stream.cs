@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     pendingRows ??= new Dictionary<int, T>();
-                    pendingRows[rowIndex] = target;
+                    AddPendingTypedRow(pendingRows, rowIndex, target);
                 }
             }
 
@@ -175,6 +175,19 @@ namespace OfficeIMO.Excel {
 
             pending = default!;
             return false;
+        }
+
+        private void AddPendingTypedRow<T>(Dictionary<int, T> pendingRows, int rowIndex, T row) {
+            if (_opt.MaxPendingTypedRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(_opt.MaxPendingTypedRows), "Maximum pending typed rows must be positive.");
+            }
+
+            if (!pendingRows.ContainsKey(rowIndex) && pendingRows.Count >= _opt.MaxPendingTypedRows) {
+                throw new InvalidDataException(
+                    $"Typed row streaming exceeded the configured out-of-order row buffer limit of {_opt.MaxPendingTypedRows.ToString(CultureInfo.InvariantCulture)}.");
+            }
+
+            pendingRows[rowIndex] = row;
         }
 
         private bool TryReadObjectsStreamOrderedXmlFast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

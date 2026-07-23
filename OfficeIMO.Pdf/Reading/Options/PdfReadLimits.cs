@@ -6,6 +6,13 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxContentOperations = 1_000_000;
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
+    internal const int DefaultMaxPageContentBytes = 256 * 1024 * 1024;
+    internal const int DefaultMaxActualTextCharacters = 1_000_000;
+    internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
+    internal const int DefaultMaxNameTreeNodes = 100_000;
+    internal const int DefaultMaxNameTreeDepth = 128;
+    internal const int DefaultMaxAttachments = 100_000;
+    internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
     public static PdfReadLimits Default => new PdfReadLimits();
@@ -21,6 +28,15 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
     public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
+
+    /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
+    public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
+
+    /// <summary>Maximum characters emitted from marked-content ActualText replacements on one page, including nested Form XObjects. Default: 1,000,000.</summary>
+    public int MaxActualTextCharacters { get; init; } = DefaultMaxActualTextCharacters;
+
+    /// <summary>Maximum font-decoded text characters emitted on one page, including nested Form XObjects. Default: 10,000,000.</summary>
+    public int MaxDecodedTextCharacters { get; init; } = DefaultMaxDecodedTextCharacters;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = 1_000_000;
@@ -52,6 +68,18 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested AcroForm field-tree depth. Default: 256.</summary>
     public int MaxFormFieldDepth { get; init; } = 256;
 
+    /// <summary>Maximum indirect nodes traversed in one PDF name tree. Default: 100,000.</summary>
+    public int MaxNameTreeNodes { get; init; } = DefaultMaxNameTreeNodes;
+
+    /// <summary>Maximum nested PDF name-tree depth. Default: 128.</summary>
+    public int MaxNameTreeDepth { get; init; } = DefaultMaxNameTreeDepth;
+
+    /// <summary>Maximum attachment records discovered across name trees, associated files, and annotations. Default: 100,000.</summary>
+    public int MaxAttachments { get; init; } = DefaultMaxAttachments;
+
+    /// <summary>Maximum aggregate decoded bytes retained for unique embedded attachment streams. Default: 256 MiB.</summary>
+    public long MaxTotalAttachmentBytes { get; init; } = DefaultMaxTotalAttachmentBytes;
+
     /// <summary>Maximum named appearance states declared for one AcroForm widget. Default: 4,096.</summary>
     public int MaxFormFieldAppearanceStates { get; init; } = 4_096;
 
@@ -73,6 +101,9 @@ public sealed class PdfReadLimits {
             MaxIndirectObjects = MaxIndirectObjects,
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxPageContentBytes = MaxPageContentBytes,
+            MaxActualTextCharacters = MaxActualTextCharacters,
+            MaxDecodedTextCharacters = MaxDecodedTextCharacters,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -83,6 +114,10 @@ public sealed class PdfReadLimits {
             MaxPages = MaxPages,
             MaxFormFields = MaxFormFields,
             MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxNameTreeNodes = MaxNameTreeNodes,
+            MaxNameTreeDepth = MaxNameTreeDepth,
+            MaxAttachments = MaxAttachments,
+            MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
             MaxAnnotationsPerPage = MaxAnnotationsPerPage,
             MaxContentOperations = MaxContentOperations,
@@ -108,6 +143,10 @@ public sealed class PdfReadLimits {
             throw new ArgumentOutOfRangeException(nameof(MaxDecodedStreamBytes), MaxDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
         }
 
+        ValidatePositive(MaxPageContentBytes, nameof(MaxPageContentBytes), "Maximum aggregate page content bytes must be positive.");
+        ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
+        ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
+
         if (MaxObjectCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");
         }
@@ -130,6 +169,12 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxPages, nameof(MaxPages), "Maximum pages must be positive.");
         ValidatePositive(MaxFormFields, nameof(MaxFormFields), "Maximum form fields must be positive.");
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
+        ValidatePositive(MaxNameTreeNodes, nameof(MaxNameTreeNodes), "Maximum name-tree nodes must be positive.");
+        ValidatePositive(MaxNameTreeDepth, nameof(MaxNameTreeDepth), "Maximum name-tree depth must be positive.");
+        ValidatePositive(MaxAttachments, nameof(MaxAttachments), "Maximum attachments must be positive.");
+        if (MaxTotalAttachmentBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalAttachmentBytes), MaxTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
+        }
         ValidatePositive(MaxFormFieldAppearanceStates, nameof(MaxFormFieldAppearanceStates), "Maximum form-field appearance states must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");

@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     pendingRows ??= new Dictionary<int, Row>();
-                    pendingRows[rowIndex] = row;
+                    AddPendingTypedRow(pendingRows, rowIndex, row);
                     continue;
                 }
 
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
 
                 if (rowIndex > nextDataRow) {
                     pendingRows ??= new Dictionary<int, Row>();
-                    pendingRows[rowIndex] = row;
+                    AddPendingTypedRow(pendingRows, rowIndex, row);
                     continue;
                 }
 

@@ -57,13 +57,14 @@ public sealed partial class PdfReadPage {
         return new PdfPageSoftMaskResource(group, mode, backdrop);
     }
 
-    private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight) {
+    private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
+        pageContentBudget ??= new PageContentBudget(this);
         var transitions = new List<PdfPageDrawingEffectTransition>();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        string content = GetContentStreamContent();
+        string content = GetContentStreamContent(pageContentBudget);
         if (content.Length == 0) return Array.Empty<PdfPageDrawingEffectTransition>();
         var activeForms = new HashSet<PdfStream>();
-        CollectGraphicsEffectTransitions(content, resources, pageTransform, pageHeight, transitions, activeForms, PdfPageDrawingEffect.Default);
+        CollectGraphicsEffectTransitions(content, resources, pageTransform, pageHeight, transitions, activeForms, PdfPageDrawingEffect.Default, pageContentBudget: pageContentBudget);
         transitions.Sort(static (left, right) => left.PaintOrder.CompareTo(right.PaintOrder));
         return transitions.Count == 0 ? Array.Empty<PdfPageDrawingEffectTransition>() : transitions.AsReadOnly();
     }
@@ -90,8 +91,10 @@ public sealed partial class PdfReadPage {
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
-        int contentNestingDepth = 0) {
+        int contentNestingDepth = 0,
+        PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
+        pageContentBudget ??= new PageContentBudget(this);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         IReadOnlyList<PdfPageDrawingEffectTransition> local = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
@@ -135,7 +138,7 @@ public sealed partial class PdfReadPage {
                 PdfDictionary dictionary = formStream.Dictionary;
                 PdfDictionary? formResources = ResolveDictionary(dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, dictionary);
-                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), dictionary);
+                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), dictionary);
                 CollectGraphicsEffectTransitions(
                     formContent,
                     formResources,
@@ -157,7 +160,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
-                    contentNestingDepth: contentNestingDepth + 1);
+                    contentNestingDepth: contentNestingDepth + 1,
+                    pageContentBudget: pageContentBudget);
                 transitions.Add(new PdfPageDrawingEffectTransition(invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D), inherited));
             } finally {
                 activeForms.Remove(formStream);
@@ -182,38 +186,69 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache) {
+        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache,
+        TextContentParser.TextOutputBudget textOutputBudget,
+        PageContentBudget pageContentBudget) {
         if (cache.TryGetValue(resource, out OfficeDrawingSoftMask? existing)) return existing;
-        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform);
+        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget);
         var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
         cache[resource] = mask;
         return mask;
     }
 
-    private OfficeDrawing CreateFormDrawing(PdfStream form, double width, double height, Matrix2D pageTransform) {
+    private OfficeDrawing CreateFormDrawing(
+        PdfStream form,
+        double width,
+        double height,
+        Matrix2D pageTransform,
+        TextContentParser.TextOutputBudget textOutputBudget,
+        PageContentBudget pageContentBudget) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? pageResources;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
-        string content = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(form)), form.Dictionary);
+        string content = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)), form.Dictionary);
         if (content.Length == 0) return drawing;
         Matrix2D transform = ApplyFormMatrix(pageTransform, form.Dictionary);
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        CollectVisualPrimitivesAndForms(content, resources, transform, width, height, primitives.Add, activeForms);
+        CollectVisualPrimitivesAndForms(
+            content,
+            resources,
+            transform,
+            width,
+            height,
+            primitives.Add,
+            activeForms,
+            textOutputBudget: textOutputBudget,
+            pageContentBudget: pageContentBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
-        Dictionary<string, Func<byte[], string>> decoders = MergeDecoders(ResourceResolver.GetFontDecoders(_pageDict, _objects), ResourceResolver.GetFontDecodersForForm(form.Dictionary, _objects));
+        Dictionary<string, Func<byte[], int, string>> decoders = MergeDecoders(
+            ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects),
+            ResourceResolver.GetBudgetedFontDecodersForForm(form.Dictionary, _objects));
         Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(_pageDict, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
         Dictionary<string, PdfFontResource> fonts = MergeFonts(ResourceResolver.GetFontsForResources(pageResources, _objects), ResourceResolver.GetFontsForResources(resources, _objects));
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
-        CollectTextAndForms(transformedContent, resources, decoders, widthProviders, fonts, spans, activeForms, height, paintOrderOffset: -transformedOffset, useLogicalTextFilters: false);
+        CollectTextAndForms(
+            transformedContent,
+            resources,
+            decoders,
+            widthProviders,
+            fonts,
+            spans,
+            activeForms,
+            height,
+            paintOrderOffset: -transformedOffset,
+            useLogicalTextFilters: false,
+            textOutputBudget: textOutputBudget,
+            pageContentBudget: pageContentBudget);
         for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
 
         var placements = new List<PdfImagePlacement>();
-        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms);
+        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {

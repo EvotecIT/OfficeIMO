@@ -45,14 +45,16 @@ internal static partial class PdfPageExtractor {
         return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinations, null, out _);
     }
     
-    private static bool TryBuildFlattenedNamedDestinationNameTree(
+    internal static bool TryBuildFlattenedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? namedDestinationNameTree,
         HashSet<int>? copiedPageObjectIds,
-        out PdfDictionary result) {
+        out PdfDictionary result,
+        int maximumNodes = PdfReadLimits.DefaultMaxNameTreeNodes) {
         result = new PdfDictionary();
         var entries = new List<NamedDestinationNameTreeEntry>();
-        if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, namedDestinationNameTree, entries, new HashSet<int>())) {
+        int traversedNodes = 0;
+        if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, namedDestinationNameTree, entries, new HashSet<int>(), 0, maximumNodes, ref traversedNodes)) {
             return false;
         }
     
@@ -90,16 +92,27 @@ internal static partial class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? value,
         List<NamedDestinationNameTreeEntry> entries,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        int depth,
+        int maximumNodes,
+        ref int traversedNodes) {
+        if (depth > PdfReadLimits.DefaultMaxNameTreeDepth) {
+            return false;
+        }
+
         if (value is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return false;
             }
-    
-            return TryCollectNamedDestinationNameTreeEntries(sourceObjects, indirect.Value, entries, visitedReferences);
+
+            if (++traversedNodes > maximumNodes) {
+                return false;
+            }
+
+            value = indirect.Value;
         }
-    
+
         if (value is not PdfDictionary tree) {
             return false;
         }
@@ -133,7 +146,7 @@ internal static partial class PdfPageExtractor {
                     return false;
                 }
     
-                if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences)) {
+                if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences, depth + 1, maximumNodes, ref traversedNodes)) {
                     return false;
                 }
             }

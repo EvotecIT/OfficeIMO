@@ -1,4 +1,5 @@
 using System.IO;
+using System.Globalization;
 using System.Threading;
 using System.Xml;
 
@@ -36,6 +37,16 @@ namespace OfficeIMO.Excel {
             int width = lastColumn - firstColumn + 1;
             if (height <= 0 || width <= 0) {
                 return false;
+            }
+
+            if (_opt.MaxRangeCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(_opt.MaxRangeCells), "Maximum dense range cell count must be positive.");
+            }
+
+            long cellCount = (long)height * width;
+            if (cellCount > _opt.MaxRangeCells) {
+                throw new InvalidDataException(
+                    $"Range '{tableBackedReference}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 
             var result = new object?[height, width];

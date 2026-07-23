@@ -75,5 +75,26 @@ public enum PdfReadLimitKind {
     RenderBytes = 23,
 
     /// <summary>Named appearance states declared for one AcroForm widget.</summary>
-    FormAppearanceStates = 24
+    FormAppearanceStates = 24,
+
+    /// <summary>Aggregate decoded content-stream bytes materialized for one page.</summary>
+    PageContentBytes = 25,
+
+    /// <summary>Characters emitted from marked-content ActualText replacements.</summary>
+    ActualTextCharacters = 26,
+
+    /// <summary>Indirect nodes traversed in a PDF name tree.</summary>
+    NameTreeNodes = 27,
+
+    /// <summary>Nested PDF name-tree depth.</summary>
+    NameTreeDepth = 28,
+
+    /// <summary>Font-decoded text characters emitted while extracting one page.</summary>
+    DecodedTextCharacters = 29,
+
+    /// <summary>Attachment records discovered across the document catalog and annotations.</summary>
+    Attachments = 30,
+
+    /// <summary>Aggregate decoded bytes retained for unique embedded attachment streams.</summary>
+    AttachmentBytes = 31
 }

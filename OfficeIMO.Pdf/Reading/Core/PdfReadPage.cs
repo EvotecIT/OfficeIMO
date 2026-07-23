@@ -115,13 +115,14 @@ public sealed partial class PdfReadPage {
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
+        var pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         var pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
+        var pageContentBudget = new PageContentBudget(this);
 
-        string content = GetContentStreamContent();
+        string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectTextAndForms(
                 content,
@@ -131,7 +132,8 @@ public sealed partial class PdfReadPage {
                 pageFonts,
                 spans,
                 activeForms,
-                pageHeight);
+                pageHeight,
+                pageContentBudget: pageContentBudget);
         }
 
         return spans;
@@ -374,8 +376,9 @@ public sealed partial class PdfReadPage {
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
+        var pageContentBudget = new PageContentBudget(this);
 
-        string content = GetContentStreamContent();
+        string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectImagePlacementsAndForms(
                 content,
@@ -384,7 +387,8 @@ public sealed partial class PdfReadPage {
                 Matrix2D.Identity,
                 pageHeight,
                 placements,
-                activeForms);
+                activeForms,
+                pageContentBudget: pageContentBudget);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
@@ -394,6 +398,7 @@ public sealed partial class PdfReadPage {
         var unsupported = new List<string>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var pageContentBudget = new PageContentBudget(this);
         var content = new System.Text.StringBuilder();
         bool canInspectFormInvocations = true;
         foreach (var stream in GetContentStreamObjects()) {
@@ -403,11 +408,11 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            content.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
+            content.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)));
         }
 
         if (canInspectFormInvocations && content.Length > 0) {
-            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms);
+            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms, pageContentBudget);
         }
 
         return unsupported;
@@ -418,6 +423,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         List<string> unsupported,
         HashSet<PdfStream> activeForms,
+        PageContentBudget pageContentBudget,
         int contentNestingDepth = 0) {
         EnsureContentNestingBudget(contentNestingDepth);
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
@@ -440,7 +446,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formResources, unsupported, activeForms, contentNestingDepth + 1);
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, contentNestingDepth + 1);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -458,7 +464,7 @@ public sealed partial class PdfReadPage {
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
-        Dictionary<string, Func<byte[], string>> decoders,
+        Dictionary<string, Func<byte[], int, string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
         Dictionary<string, PdfFontResource> fonts,
         List<PdfTextSpan> spans,
@@ -476,18 +482,28 @@ public sealed partial class PdfReadPage {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
-        int contentNestingDepth = 0) {
+        int contentNestingDepth = 0,
+        TextContentParser.TextOutputBudget? textOutputBudget = null,
+        PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
+        pageContentBudget ??= new PageContentBudget(this);
+        textOutputBudget ??= new TextContentParser.TextOutputBudget(
+            _limits.MaxActualTextCharacters,
+            _limits.MaxDecodedTextCharacters);
+        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
+            decoders.TryGetValue(fontRes, out var dec)
+                ? dec(bytes, maximumCharacters)
+                : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
         string DecodeWithFont(string fontRes, byte[] bytes) =>
-            decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
+            DecodeWithFontWithinLimit(fontRes, bytes, _limits.MaxDecodedTextCharacters);
         double SumWidth1000(string fontRes, byte[] bytes) =>
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
         string? ResolveBaseFont(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
-        string? ResolveActualTextProperty(string propertyName) =>
-            GetMarkedContentActualText(resources, propertyName);
+        byte[]? ResolveActualTextProperty(string propertyName) =>
+            GetMarkedContentActualTextBytes(resources, propertyName);
 
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -514,7 +530,11 @@ public sealed partial class PdfReadPage {
             useLogicalTextFilters: useLogicalTextFilters,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
-            maxOperands: _limits.MaxContentOperands));
+            maxOperands: _limits.MaxContentOperands,
+            maxActualTextCharacters: _limits.MaxActualTextCharacters,
+            maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
+            textOutputBudget: textOutputBudget,
+            decodeWithFontWithinLimit: DecodeWithFontWithinLimit));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -547,11 +567,11 @@ public sealed partial class PdfReadPage {
             try {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetFontDecodersForForm(formDict, _objects));
+                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetBudgetedFontDecodersForForm(formDict, _objects));
                 var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
                 var formFonts = MergeFonts(fonts, ResourceResolver.GetFontsForResources(formResources, _objects));
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
-                var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDict), combinedTransform, out int formContentOffset);
+                var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
 
                 CollectTextAndForms(
                     formContent,
@@ -574,7 +594,9 @@ public sealed partial class PdfReadPage {
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
                     useLogicalTextFilters,
-                    contentNestingDepth + 1);
+                    contentNestingDepth + 1,
+                    textOutputBudget,
+                    pageContentBudget);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -596,8 +618,10 @@ public sealed partial class PdfReadPage {
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
-        int contentNestingDepth = 0) {
+        int contentNestingDepth = 0,
+        PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
+        pageContentBudget ??= new PageContentBudget(this);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -649,7 +673,7 @@ public sealed partial class PdfReadPage {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formDict);
-                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDict);
+                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict);
                 CollectImagePlacementsAndForms(
                     formContent,
                     formResources,
@@ -664,7 +688,8 @@ public sealed partial class PdfReadPage {
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
-                    contentNestingDepth: contentNestingDepth + 1);
+                    contentNestingDepth: contentNestingDepth + 1,
+                    pageContentBudget: pageContentBudget);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -781,7 +806,7 @@ public sealed partial class PdfReadPage {
             paintOrder);
     }
 
-    private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {
+    private byte[]? GetMarkedContentActualTextBytes(PdfDictionary? resources, string propertyName) {
         if (resources is null ||
             !resources.Items.TryGetValue("Properties", out var propertiesObj)) {
             return null;
@@ -800,11 +825,22 @@ public sealed partial class PdfReadPage {
             return null;
         }
 
-        return actualText.Value;
+        return actualText.RawBytes;
     }
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
         PdfPageOptionalContentVisibility.Create(resources, _objects);
+
+    private static Dictionary<string, Func<byte[], int, string>> MergeDecoders(
+        Dictionary<string, Func<byte[], int, string>> parent,
+        Dictionary<string, Func<byte[], int, string>> local) {
+        var merged = new Dictionary<string, Func<byte[], int, string>>(parent, StringComparer.Ordinal);
+        foreach (var entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
 
     private static Dictionary<string, Func<byte[], string>> MergeDecoders(
         Dictionary<string, Func<byte[], string>> parent,
@@ -1362,10 +1398,11 @@ public sealed partial class PdfReadPage {
     /// <summary>
     /// Returns decoded page content with stream arrays concatenated in PDF processing order.
     /// </summary>
-    private string GetContentStreamContent() {
+    private string GetContentStreamContent(PageContentBudget? pageContentBudget = null) {
+        pageContentBudget ??= new PageContentBudget(this);
         var builder = new System.Text.StringBuilder();
         foreach (var stream in GetContentStreamObjects()) {
-            builder.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
+            builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)));
         }
 
         return builder.ToString();
@@ -1409,7 +1446,59 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private byte[] DecodeIfNeeded(PdfStream s) {
-        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects, _maxDecodedStreamBytes);
+    private byte[] DecodeIfNeeded(PdfStream s, int maxDecodedBytes) {
+        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects, maxDecodedBytes);
+    }
+
+    private sealed class PageContentBudget {
+        private readonly PdfReadPage _page;
+        private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
+        private long _decodedBytes;
+
+        internal PageContentBudget(PdfReadPage page) {
+            _page = page;
+        }
+
+        internal byte[] Decode(PdfStream stream) {
+            if (_decodedStreams.TryGetValue(stream, out byte[]? cached)) {
+                Charge(cached.LongLength);
+                return cached;
+            }
+
+            long remainingPageBytes = (long)_page._limits.MaxPageContentBytes - _decodedBytes;
+            if (remainingPageBytes <= 0L) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.PageContentBytes,
+                    _page._limits.MaxPageContentBytes,
+                    (long)_page._limits.MaxPageContentBytes + 1L);
+            }
+
+            int streamDecodeLimit = (int)Math.Min(_page._maxDecodedStreamBytes, remainingPageBytes);
+            byte[] decoded;
+            try {
+                decoded = _page.DecodeIfNeeded(stream, streamDecodeLimit);
+            } catch (PdfReadLimitException exception) when (
+                exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
+                remainingPageBytes <= _page._maxDecodedStreamBytes) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.PageContentBytes,
+                    _page._limits.MaxPageContentBytes,
+                    (long)_page._limits.MaxPageContentBytes + 1L);
+            }
+
+            Charge(decoded.LongLength);
+            _decodedStreams[stream] = decoded;
+            return decoded;
+        }
+
+        private void Charge(long decodedBytes) {
+            _decodedBytes += decodedBytes;
+            if (_decodedBytes > _page._limits.MaxPageContentBytes) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.PageContentBytes,
+                    _page._limits.MaxPageContentBytes,
+                    _decodedBytes);
+            }
+        }
     }
 }

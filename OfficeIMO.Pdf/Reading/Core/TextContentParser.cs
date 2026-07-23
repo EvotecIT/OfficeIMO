@@ -44,25 +44,104 @@ internal static class TextContentParser {
     }
 
     private readonly struct ActualTextValue {
-        public string Text { get; }
+        private readonly string? _text;
+        private readonly byte[]? _bytes;
 
         public ActualTextValue(string text) {
-            Text = text;
+            _text = text;
+            _bytes = null;
+        }
+
+        public ActualTextValue(byte[] bytes) {
+            _text = null;
+            _bytes = bytes;
+        }
+
+        public string Decode(TextOutputBudget budget) {
+            if (_bytes != null) {
+                budget.EnsureActualTextMayFit(PdfTextString.GetDecodedCharacterCount(_bytes));
+                return PdfTextString.Decode(_bytes);
+            }
+
+            string text = _text ?? string.Empty;
+            budget.EnsureActualTextMayFit(text.Length);
+            return text;
         }
     }
 
     private sealed class MarkedContentState {
-        public string ActualText { get; }
+        private readonly ActualTextValue? _actualText;
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
         public bool IsHidden { get; }
         public bool ActualTextEmitted { get; set; }
 
         public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden) {
-            ActualText = actualText?.Text ?? string.Empty;
+            _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
+        }
+
+        public string DecodeActualText(TextOutputBudget budget) =>
+            _actualText?.Decode(budget) ?? string.Empty;
+    }
+
+    internal sealed class TextOutputBudget {
+        private readonly int _maxActualTextCharacters;
+        private readonly int _maxDecodedTextCharacters;
+        private long _actualTextCharacters;
+        private long _decodedTextCharacters;
+
+        internal TextOutputBudget(int maxActualTextCharacters, int maxDecodedTextCharacters) {
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
+#else
+            if (maxActualTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
+            if (maxDecodedTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
+#endif
+            _maxActualTextCharacters = maxActualTextCharacters;
+            _maxDecodedTextCharacters = maxDecodedTextCharacters;
+        }
+
+        internal void ChargeActualText(int characters) {
+            long next = _actualTextCharacters + characters;
+            if (next > _maxActualTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+            }
+
+            _actualTextCharacters = next;
+        }
+
+        internal void EnsureActualTextMayFit(int characters) {
+            long next = _actualTextCharacters + characters;
+            if (next > _maxActualTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ActualTextCharacters, _maxActualTextCharacters, next);
+            }
+        }
+
+        internal void ChargeDecodedText(int characters) {
+            long next = _decodedTextCharacters + characters;
+            if (next > _maxDecodedTextCharacters) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maxDecodedTextCharacters, next);
+            }
+
+            _decodedTextCharacters = next;
+        }
+
+        internal void ThrowDecodedTextLimitExceeded() =>
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.DecodedTextCharacters,
+                _maxDecodedTextCharacters,
+                (long)_maxDecodedTextCharacters + 1L);
+
+        internal int GetDecodedTextBufferCapacity(int requestedCapacity) {
+            return Math.Min(GetRemainingDecodedTextCharacters(), Math.Max(0, requestedCapacity));
+        }
+
+        internal int GetRemainingDecodedTextCharacters() {
+            return (int)Math.Max(0L, _maxDecodedTextCharacters - _decodedTextCharacters);
         }
     }
 
@@ -110,7 +189,7 @@ internal static class TextContentParser {
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
-        System.Func<string, string?>? actualTextForProperty = null,
+        System.Func<string, byte[]?>? actualTextForProperty = null,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
@@ -131,7 +210,25 @@ internal static class TextContentParser {
         bool useLogicalTextFilters = true,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
+        int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
+        TextOutputBudget? textOutputBudget = null,
+        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null) {
+#if NET8_0_OR_GREATER
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
+#else
+        if (maxActualTextCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
+        }
+        if (maxDecodedTextCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
+        }
+#endif
+
+        textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
+
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -484,25 +581,43 @@ internal static class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
+            string DecodeRun(byte[] value, int? maximumCharacters = null) {
+                int remaining = maximumCharacters ?? textOutputBudget.GetRemainingDecodedTextCharacters();
+                if (remaining == 0) {
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
+                }
+                return decodeWithFontWithinLimit != null
+                    ? decodeWithFontWithinLimit(font, value, remaining)
+                    : decodeWithFont(font, value);
+            }
             // Detect 2-byte CIDs (Identity-H) vs single-byte
             bool twoByte = false;
             if (bytes.Length >= 2) {
-                string one = decodeWithFont(font, new byte[] { bytes[0] });
-                string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
+                string one = DecodeRun(new byte[] { bytes[0] });
+                string two = DecodeRun(new byte[] { bytes[0], bytes[1] });
                 double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
                 double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
                 double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
                 twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
-            var sbOut = new StringBuilder(bytes.Length);
+            var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             double advTotal = 0;
             char prevChar = '\0';
-            string wholeDecoded = NormalizeDecodedGlyphText(decodeWithFont(font, bytes) ?? string.Empty);
+            string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
+            int decodedGlyphCharacters = 0;
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
-                string t = NormalizeDecodedGlyphText(decodeWithFont(font, g) ?? string.Empty);
+                int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
+                if (remainingGlyphCharacters <= 0) {
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
+                }
+                string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
+                if (t.Length > remainingGlyphCharacters) {
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
+                }
+                decodedGlyphCharacters += t.Length;
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
@@ -524,6 +639,7 @@ internal static class TextContentParser {
                 advTotal += advGlyph;
                 idx += step;
             }
+            textOutputBudget.ChargeDecodedText(Math.Max(wholeDecoded.Length, decodedGlyphCharacters));
             if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
@@ -548,7 +664,8 @@ internal static class TextContentParser {
             } else if (isArtifact) {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
-                textOut = actualTextState.ActualText;
+                textOut = actualTextState.DecodeActualText(textOutputBudget);
+                textOutputBudget.ChargeActualText(textOut.Length);
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
                     AddTextSpan(textOut);
@@ -643,14 +760,14 @@ internal static class TextContentParser {
 
         ActualTextValue? GetActualText(object? propertyObject) {
             if (propertyObject is string propertyName) {
-                string? text = actualTextForProperty?.Invoke(propertyName);
-                return text is null ? (ActualTextValue?)null : new ActualTextValue(text);
+                byte[]? propertyBytes = actualTextForProperty?.Invoke(propertyName);
+                return propertyBytes is null ? (ActualTextValue?)null : new ActualTextValue(propertyBytes);
             }
 
             if (propertyObject is PdfContentDictionary dictionary &&
                 dictionary.Items.TryGetValue("ActualText", out var value) &&
                 value is byte[] bytes) {
-                return new ActualTextValue(PdfTextString.Decode(bytes));
+                return new ActualTextValue(bytes);
             }
 
             return null;
