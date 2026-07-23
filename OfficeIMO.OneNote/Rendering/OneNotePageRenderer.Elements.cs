@@ -68,7 +68,8 @@ public static partial class OneNotePageRenderer {
             }
             availableWidth = Math.Min(availableWidth, _drawing.Width - x);
             if (availableWidth <= 0D) return 0D;
-            double explicitHeight = element.Layout?.Height.HasValue == true
+            double explicitHeight = element is not OneNoteImage
+                && element.Layout?.Height.HasValue == true
                 ? Math.Max(0D, element.Layout.Height.Value * PointsPerHalfInch)
                 : 0D;
             if (explicitHeight > 0D) availableHeight = explicitHeight;
@@ -337,9 +338,7 @@ public static partial class OneNotePageRenderer {
                     child,
                     Math.Max(1D, width - Math.Max(0D, childX)),
                     _options);
-                double childHeight = child.Layout?.Height.HasValue == true
-                    ? Math.Max(1D, child.Layout.Height.Value * PointsPerHalfInch)
-                    : MeasureElementHeight(child, childWidth);
+                double childHeight = MeasureElementHeight(child, childWidth);
                 bottom = Math.Max(bottom, childY + childHeight);
                 if (participatesInFlow) {
                     cursor = Math.Max(cursor, childY + childHeight);
