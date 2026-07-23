@@ -362,7 +362,9 @@ internal static partial class RtfSemanticReader {
                     ApplyListOverride(state);
                     return;
                 case "ilvl":
-                    state.ListLevel = control.Parameter;
+                    state.ListLevel = control.Parameter.HasValue
+                        ? Math.Min(8, Math.Max(0, control.Parameter.Value))
+                        : null;
                     ApplyListLevel(state);
                     if (state.ListKind == RtfListKind.None) {
                         state.ListKind = RtfListKind.Decimal;

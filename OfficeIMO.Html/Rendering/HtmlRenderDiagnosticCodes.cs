@@ -18,12 +18,18 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GradientStopLimitExceeded = "HtmlRenderGradientStopLimitExceeded";
     /// <summary>Layout exceeded the configured nesting-depth limit.</summary>
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
+    /// <summary>Layout exceeded the configured operation limit.</summary>
+    public const string LayoutOperationLimitExceeded = "HtmlRenderLayoutOperationLimitExceeded";
     /// <summary>The source HTML string exceeded the configured character limit.</summary>
     public const string InputCharacterLimitExceeded = "HtmlRenderInputCharacterLimitExceeded";
     /// <summary>The parsed HTML document exceeded the configured DOM node limit.</summary>
     public const string NodeLimitExceeded = "HtmlNodeLimitExceeded";
     /// <summary>A table contained no renderable rows or cells.</summary>
     public const string EmptyTable = "HtmlRenderEmptyTable";
+    /// <summary>A table exceeded the configured row or column limit.</summary>
+    public const string TableLimitExceeded = "HtmlRenderTableLimitExceeded";
+    /// <summary>Collapsed table border resolution exceeded the configured segment limit.</summary>
+    public const string CollapsedTableBorderLimitExceeded = "HtmlRenderCollapsedTableBorderLimitExceeded";
     /// <summary>An external image requires asynchronous resource resolution.</summary>
     public const string ExternalImagePending = "HtmlRenderExternalImagePending";
     /// <summary>An external stylesheet requires asynchronous resource resolution.</summary>
@@ -151,9 +157,12 @@ public static class HtmlRenderDiagnosticCodes {
         BackgroundImageTileLimitExceeded,
         GradientStopLimitExceeded,
         DepthLimitExceeded,
+        LayoutOperationLimitExceeded,
         InputCharacterLimitExceeded,
         NodeLimitExceeded,
         EmptyTable,
+        TableLimitExceeded,
+        CollapsedTableBorderLimitExceeded,
         ExternalImagePending,
         ExternalStylesheetPending,
         FontDataUriInvalid,

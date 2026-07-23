@@ -9,6 +9,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFlexColumn_NestedDefaultLayoutsRemainLinear() {
+        var html = new StringBuilder();
+        for (int index = 0; index < 24; index++) html.Append("<div style='display:flex;flex-direction:column'>");
+        html.Append("<span>LinearLeaf</span>");
+        for (int index = 0; index < 24; index++) html.Append("</div>");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            MaxLayoutOperations = 100
+        });
+
+        Assert.Contains("LinearLeaf", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_StopsRepeatedReflowAtOperationLimit() {
+        var html = new StringBuilder();
+        for (int index = 0; index < 12; index++) html.Append("<div style='display:flex;flex-direction:column;align-items:flex-start'>");
+        html.Append("<span>BoundedLeaf</span>");
+        for (int index = 0; index < 12; index++) html.Append("</div>");
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions { MaxLayoutOperations = 20 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlFlexRow_AppliesGapMainDistributionAndCrossAlignment() {
         const string html = """
             <div id="flex" style="display:flex;width:300px;height:80px;gap:10px;justify-content:space-between;align-items:center">
@@ -662,6 +691,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(a.Y, b.Y, 3);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source == "span#inline" && visual.LinkUri == "https://example.com/inline");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_Reflows_Percentage_Children_When_Main_Size_Becomes_Definite() {
+        HtmlRenderDocument rendered = RenderFlex("""
+            <div style="display:flex;flex-direction:column;width:100px;height:40px;align-items:flex-start">
+              <div id="item" style="flex:none;width:100px;background:#eeeeee">
+                <div id="percent-child" style="height:50%;background:#2563eb">Marker</div>
+              </div>
+            </div>
+            """, 120D);
+
+        HtmlRenderShape item = FindFlexShape(rendered, "div#item");
+        HtmlRenderShape child = FindFlexShape(rendered, "div#percent-child");
+
+        Assert.Equal(item.Height * 0.5D, child.Height, 3);
     }
 
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>

@@ -52,6 +52,7 @@ public static partial class OfficeDocumentStructuredExtractor {
         ValidatePositive(effective.MaxTables, nameof(effective.MaxTables));
         ValidatePositive(effective.MaxForms, nameof(effective.MaxForms));
         ValidatePositive(effective.MaxDiagnostics, nameof(effective.MaxDiagnostics));
+        ValidatePositive(effective.MaxChartContentCharacters, nameof(effective.MaxChartContentCharacters));
         return effective;
     }
 
@@ -105,12 +106,15 @@ public static partial class OfficeDocumentStructuredExtractor {
         internal List<OfficeDocumentStructuredRecord> Records { get; } = new List<OfficeDocumentStructuredRecord>();
         internal List<OfficeDocumentDiagnostic> Diagnostics { get; } = new List<OfficeDocumentDiagnostic>();
 
-        internal bool TryAdd(OfficeDocumentStructuredRecord record) {
+        internal bool CanAddRecord() {
             CancellationToken.ThrowIfCancellationRequested();
-            if (Records.Count >= Options.MaxRecords) {
-                AddLimitDiagnostic("structured-record-limit", Options.MaxRecords, "records");
-                return false;
-            }
+            if (Records.Count < Options.MaxRecords) return true;
+            AddLimitDiagnostic("structured-record-limit", Options.MaxRecords, "records");
+            return false;
+        }
+
+        internal bool TryAdd(OfficeDocumentStructuredRecord record) {
+            if (!CanAddRecord()) return false;
             record.Attributes = SortAttributes(record.Attributes);
             Records.Add(record);
             return true;

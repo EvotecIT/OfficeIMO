@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ToList();
         columnCount = Math.Max(1, explicitColumnCount);
         foreach (GridItem item in gridItems) {
-            if (item.RequestedColumn.HasValue) columnCount = Math.Max(columnCount, item.RequestedColumn.Value + item.ColumnSpan);
+            if (item.RequestedColumn.HasValue) columnCount = Math.Max(columnCount, GridPlacementEnd(item.RequestedColumn.Value, item.ColumnSpan));
             else columnCount = Math.Max(columnCount, item.ColumnSpan);
         }
         EnsureGridPlacementLimit(columnCount);
@@ -45,27 +45,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else if (item.RequestedRow.HasValue) {
                 item.Row = item.RequestedRow.Value;
                 item.Column = FindGridColumn(occupied, item.Row, item.RowSpan, item.ColumnSpan, columnCount);
-                if (item.Column + item.ColumnSpan > columnCount) columnCount = item.Column + item.ColumnSpan;
+                int requestedColumnEnd = GridPlacementEnd(item.Column, item.ColumnSpan);
+                if (requestedColumnEnd > columnCount) columnCount = requestedColumnEnd;
             } else if (item.RequestedColumn.HasValue) {
                 item.Column = item.RequestedColumn.Value;
                 item.Row = FindGridRow(occupied, item.Column, item.RowSpan, item.ColumnSpan);
             } else {
                 int searchRow = dense ? 0 : cursorRow;
                 int searchColumn = dense ? 0 : cursorColumn;
-                if (columnFlow) FindAutomaticGridPositionColumn(occupied, item.RowSpan, item.ColumnSpan, explicitRowCount, ref searchRow, ref searchColumn);
+                int columnFlowRowCount = Math.Max(explicitRowCount, item.RowSpan);
+                EnsureGridPlacementLimit(columnFlowRowCount);
+                if (columnFlow) FindAutomaticGridPositionColumn(occupied, item.RowSpan, item.ColumnSpan, columnFlowRowCount, ref searchRow, ref searchColumn);
                 else FindAutomaticGridPosition(occupied, item.RowSpan, item.ColumnSpan, columnCount, ref searchRow, ref searchColumn);
                 item.Row = searchRow;
                 item.Column = searchColumn;
                 if (columnFlow) {
-                    cursorRow = searchRow + item.RowSpan;
+                    cursorRow = GridPlacementEnd(searchRow, item.RowSpan);
                     cursorColumn = searchColumn;
-                    if (cursorRow >= explicitRowCount) {
+                    if (cursorRow >= columnFlowRowCount) {
                         cursorColumn++;
                         cursorRow = 0;
                     }
                 } else {
                     cursorRow = searchRow;
-                    cursorColumn = searchColumn + item.ColumnSpan;
+                    cursorColumn = GridPlacementEnd(searchColumn, item.ColumnSpan);
                     if (cursorColumn >= columnCount) {
                         cursorRow++;
                         cursorColumn = 0;
@@ -73,11 +76,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            EnsureGridPlacementLimit(item.Row + item.RowSpan);
-            EnsureGridPlacementLimit(item.Column + item.ColumnSpan);
+            int itemRowEnd = GridPlacementEnd(item.Row, item.RowSpan);
+            int itemColumnEnd = GridPlacementEnd(item.Column, item.ColumnSpan);
             MarkGridArea(occupied, item.Row, item.Column, item.RowSpan, item.ColumnSpan);
-            rowCount = Math.Max(rowCount, item.Row + item.RowSpan);
-            columnCount = Math.Max(columnCount, item.Column + item.ColumnSpan);
+            rowCount = Math.Max(rowCount, itemRowEnd);
+            columnCount = Math.Max(columnCount, itemColumnEnd);
         }
 
         rowCount = Math.Max(1, rowCount);
@@ -128,9 +131,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (normalized.StartsWith("span ", StringComparison.Ordinal)
             && int.TryParse(normalized.Substring(5).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int span)
             && span > 0) {
+            EnsureGridPlacementLimit(span);
             return new GridLine(GridLineKind.Span, span);
         }
         if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int line) && line > 0) {
+            EnsureGridPlacementLimit(line);
             return new GridLine(GridLineKind.Line, line);
         }
         if (lineNames.TryGetValue(normalized, out int namedLine)) return new GridLine(GridLineKind.Line, namedLine + 1);
@@ -139,20 +144,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return GridLine.Auto;
     }
 
-    private static int FindGridColumn(HashSet<long> occupied, int row, int rowSpan, int columnSpan, int columnCount) {
+    private int FindGridColumn(HashSet<long> occupied, int row, int rowSpan, int columnSpan, int columnCount) {
         for (int column = 0; column + columnSpan <= columnCount; column++) {
             if (CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return column;
         }
         return columnCount;
     }
 
-    private static int FindGridRow(HashSet<long> occupied, int column, int rowSpan, int columnSpan) {
+    private int FindGridRow(HashSet<long> occupied, int column, int rowSpan, int columnSpan) {
         for (int row = 0; ; row++) {
             if (CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return row;
         }
     }
 
-    private static void FindAutomaticGridPosition(HashSet<long> occupied, int rowSpan, int columnSpan, int columnCount, ref int row, ref int column) {
+    private void FindAutomaticGridPosition(HashSet<long> occupied, int rowSpan, int columnSpan, int columnCount, ref int row, ref int column) {
         for (;;) {
             if (column + columnSpan <= columnCount && CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return;
             column++;
@@ -163,7 +168,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void FindAutomaticGridPositionColumn(HashSet<long> occupied, int rowSpan, int columnSpan, int rowCount, ref int row, ref int column) {
+    private void FindAutomaticGridPositionColumn(HashSet<long> occupied, int rowSpan, int columnSpan, int rowCount, ref int row, ref int column) {
         for (;;) {
             if (row + rowSpan <= rowCount && CanPlaceGridArea(occupied, row, column, rowSpan, columnSpan)) return;
             row++;
@@ -174,18 +179,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool CanPlaceGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+    private bool CanPlaceGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
             for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                ChargeLayoutOperation("CSS grid placement");
                 if (occupied.Contains(GridCellKey(row + rowOffset, column + columnOffset))) return false;
             }
         }
         return true;
     }
 
-    private static void MarkGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+    private void MarkGridArea(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
             for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                ChargeLayoutOperation("CSS grid placement");
                 occupied.Add(GridCellKey(row + rowOffset, column + columnOffset));
             }
         }
@@ -193,7 +200,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static long GridCellKey(int row, int column) => ((long)row << 32) | (uint)column;
 
-    private void EnsureGridPlacementLimit(int count) {
+    private int GridPlacementEnd(int start, int span) {
+        long end = (long)start + span;
+        EnsureGridPlacementLimit(end);
+        return (int)end;
+    }
+
+    private void EnsureGridPlacementLimit(long count) {
         if (count <= _options.MaxGridTracks) return;
         throw new HtmlDomLimitException(
             HtmlRenderDiagnosticCodes.GridTrackLimitExceeded,

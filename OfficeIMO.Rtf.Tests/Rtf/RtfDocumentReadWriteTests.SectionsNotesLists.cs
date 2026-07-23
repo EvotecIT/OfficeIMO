@@ -360,4 +360,17 @@ public partial class RtfDocumentReadWriteTests {
             inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text));
     }
+
+    [Fact]
+    public void Read_And_Write_Bound_Hostile_List_Levels() {
+        const string rtf = @"{\rtf1\ansi\pard\ls1\ilvl2147483647 Item\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+
+        Assert.Equal(8, paragraph.ListLevel);
+        string rewritten = result.Document.ToRtf();
+        Assert.Contains(@"\ilvl8", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("2147483647", rewritten, StringComparison.Ordinal);
+    }
 }

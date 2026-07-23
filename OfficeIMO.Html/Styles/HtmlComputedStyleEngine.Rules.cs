@@ -94,10 +94,17 @@ public static partial class HtmlComputedStyleEngine {
         AngleSharp.Css.Dom.ICssStyleRule styleRule,
         ICollection<StyleRule> rules,
         HtmlCssProcessingBudget budget) {
+        string[] selectors = SplitSelectorList(styleRule.SelectorText)
+            .Select(selector => selector.Trim())
+            .Where(selector => selector.Length > 0)
+            .ToArray();
+        foreach (string _ in selectors) budget.RecordRule(styleRule.Style.Length);
+
         var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < styleRule.Style.Length; i++) {
             string propertyName = styleRule.Style[i];
-            if (!string.IsNullOrWhiteSpace(propertyName)) {
+            if (!string.IsNullOrWhiteSpace(propertyName)
+                && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 declarations[propertyName] = new StyleDeclaration(
                     styleRule.Style.GetPropertyValue(propertyName),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
@@ -116,11 +123,9 @@ public static partial class HtmlComputedStyleEngine {
                 string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (string selector in SplitSelectorList(styleRule.SelectorText)) {
-            string trimmedSelector = selector.Trim();
-            if (trimmedSelector.Length > 0 && declarations.Count > 0) {
-                budget.RecordRule(declarations.Count);
-                rules.Add(new StyleRule(trimmedSelector, CalculateSpecificity(trimmedSelector), rules.Count, declarations));
+        foreach (string selector in selectors) {
+            if (declarations.Count > 0) {
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
             }
         }
     }

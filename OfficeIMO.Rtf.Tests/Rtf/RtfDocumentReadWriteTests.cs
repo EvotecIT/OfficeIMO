@@ -35,6 +35,23 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void Read_Resolves_Large_Font_Tables_For_Repeated_Switches() {
+        var rtf = new StringBuilder(@"{\rtf1\ansi\ansicpg1252{\fonttbl");
+        for (int index = 0; index < 1_000; index++) {
+            rtf.Append(@"{\f").Append(index).Append(index == 999 ? @"\fcharset238 " : @"\fcharset0 ")
+                .Append("Font ").Append(index).Append(";}");
+        }
+        rtf.Append('}');
+        for (int index = 0; index < 1_000; index++) rtf.Append(@"\f999 \'bf");
+        rtf.Append('}');
+
+        RtfDocument document = RtfDocument.Read(rtf.ToString()).Document;
+
+        Assert.Equal(1_000, document.Fonts.Count);
+        Assert.Equal(1_000, Assert.Single(document.Paragraphs).ToPlainText().Count(character => character == 'ż'));
+    }
+
+    [Fact]
     public void Write_Emits_Deterministic_Rtf_And_Reads_Back_Formatting() {
         RtfDocument document = RtfDocument.Create();
         int red = document.AddColor(255, 0, 0);

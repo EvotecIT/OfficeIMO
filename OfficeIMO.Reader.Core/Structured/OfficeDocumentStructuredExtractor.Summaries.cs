@@ -11,11 +11,12 @@ public static partial class OfficeDocumentStructuredExtractor {
         foreach (ReaderVisual visual in EnumerateVisuals(document)) {
             state.CancellationToken.ThrowIfCancellationRequested();
             if (!IsChart(visual)) continue;
+            if (!state.CanAddRecord()) return;
             var attributes = new SortedDictionary<string, string>(StringComparer.Ordinal);
             AddIfPresent(attributes, "language", visual.Language);
             AddIfPresent(attributes, "mimeType", visual.MimeType);
             AddIfPresent(attributes, "payloadHash", visual.PayloadHash);
-            string? chartType = TryReadChartSummary(visual.Content, attributes);
+            string? chartType = TryReadChartSummary(visual.Content, attributes, state);
             if (!state.TryAdd(new OfficeDocumentStructuredRecord {
                 Id = "chart-summary-" + chartIndex.ToString("D4", CultureInfo.InvariantCulture),
                 Category = "chart-summary",
@@ -158,11 +159,16 @@ public static partial class OfficeDocumentStructuredExtractor {
         string.Equals(visual.Kind?.Trim(), "chart", StringComparison.OrdinalIgnoreCase) ||
         (!string.IsNullOrWhiteSpace(visual.Language) && visual.Language!.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0);
 
-    private static string? TryReadChartSummary(string? content, IDictionary<string, string> attributes) {
+    private static string? TryReadChartSummary(string? content, IDictionary<string, string> attributes, ExtractionState state) {
         if (string.IsNullOrWhiteSpace(content)) return null;
         attributes["contentLength"] = content!.Length.ToString(CultureInfo.InvariantCulture);
+        if (content.Length > state.Options.MaxChartContentCharacters) {
+            attributes["contentSkipped"] = "true";
+            state.AddLimitDiagnostic("structured-chart-content-limit", state.Options.MaxChartContentCharacters, "chart content characters");
+            return null;
+        }
         try {
-            using JsonDocument json = JsonDocument.Parse(content);
+            using JsonDocument json = JsonDocument.Parse(content, new JsonDocumentOptions { MaxDepth = 64 });
             JsonElement root = json.RootElement;
             string? type = root.TryGetProperty("type", out JsonElement typeElement) && typeElement.ValueKind == JsonValueKind.String
                 ? typeElement.GetString()
@@ -173,12 +179,13 @@ public static partial class OfficeDocumentStructuredExtractor {
                 }
                 if (data.TryGetProperty("datasets", out JsonElement datasets) && datasets.ValueKind == JsonValueKind.Array) {
                     attributes["datasetCount"] = datasets.GetArrayLength().ToString(CultureInfo.InvariantCulture);
-                    int pointCount = 0;
+                    long pointCount = 0;
                     foreach (JsonElement dataset in datasets.EnumerateArray()) {
+                        state.CancellationToken.ThrowIfCancellationRequested();
                         if (dataset.ValueKind == JsonValueKind.Object &&
                             dataset.TryGetProperty("data", out JsonElement points) &&
                             points.ValueKind == JsonValueKind.Array) {
-                            pointCount += points.GetArrayLength();
+                            pointCount = checked(pointCount + points.GetArrayLength());
                         }
                     }
                     attributes["pointCount"] = pointCount.ToString(CultureInfo.InvariantCulture);

@@ -8,7 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle style,
         int depth) {
-        if (!HasBlockChildren(cell, contentWidth, style)) {
+        if (!HasBlockChildren(cell, contentWidth, style, depth)) {
             return LayoutInlineNodes(cell.ChildNodes, contentWidth, style, depth, null, cell);
         }
 

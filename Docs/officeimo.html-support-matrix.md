@@ -151,10 +151,13 @@ This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabil
 | Safety | `CssTotalSizeLimitExceeded` | Error | Embedded stylesheets exceeded the operation-wide byte budget. | Reduce embedded CSS or raise MaxTotalCssBytes only for trusted input. |
 | Safety | `HtmlDepthLimitExceeded` | Error | HTML nesting exceeded the shared pre-analysis depth budget. | Reduce nesting or raise MaxHtmlDepth only for trusted input. |
 | Safety | `HtmlNodeLimitExceeded` | Error | The parsed HTML document exceeded the configured DOM node budget before styling or layout. | Reduce repeated markup or raise MaxHtmlNodes only for trusted input. |
+| Safety | `HtmlRenderCollapsedTableBorderLimitExceeded` | Error | Collapsed table-border resolution exceeded the configured segment budget. | Reduce table border complexity or raise MaxCollapsedTableBorderSegments only for trusted input. |
 | Safety | `HtmlRenderDepthLimitExceeded` | Error | HTML layout exceeded the configured nesting-depth limit. | Reduce nesting or raise the explicit layout-depth limit for trusted input. |
 | Safety | `HtmlRenderGridTrackLimitExceeded` | Error | Grid track expansion exceeded the configured limit. | Reduce explicit, implicit, or repeat()-generated tracks, or raise MaxGridTracks for trusted input. |
 | Safety | `HtmlRenderInputCharacterLimitExceeded` | Error | HTML source text exceeded the configured character budget before parsing. | Reduce or split the document, move large payloads behind a bounded resolver, or raise MaxInputCharacters only for trusted input. |
+| Safety | `HtmlRenderLayoutOperationLimitExceeded` | Error | HTML layout exceeded the configured operation budget. | Simplify the layout or raise MaxLayoutOperations only for trusted input. |
 | Safety | `HtmlRenderMultiColumnLimitExceeded` | Error | Multi-column generation exceeded the configured column limit. | Reduce column-count, increase column-width or available height, or raise MaxColumnCount only for trusted documents. |
+| Safety | `HtmlRenderTableLimitExceeded` | Error | A table exceeded the configured row or column limit. | Reduce table dimensions or raise MaxTableRows or MaxTableColumns only for trusted input. |
 | Safety | `SemanticMetadataLimitExceeded` | Error | A semantic metadata field exceeded its shared limit. | Reduce oversized metadata or raise the explicit metadata limit only for trusted input. |
 | Safety | `TargetLimitExceeded` | Error | Input exceeded a target-native or shared import limit. | Reduce or split the document, or raise the explicit limit only for trusted input. |
 | SemanticImport | `SemanticBlockMissing` | Warning | An expected semantic content block was not present. | Regenerate the semantic HTML from the source adapter or supply the missing block. |

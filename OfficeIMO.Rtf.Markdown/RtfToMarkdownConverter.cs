@@ -12,6 +12,7 @@ internal static class RtfToMarkdownConverter {
     private const int ListIndentTwips = 720;
 
     internal static MarkdownDoc Convert(RtfDocument document, RtfToMarkdownConversionContext context) {
+        RtfTableTraversalGuard.ValidateDocument(document);
         var blocks = new List<IMarkdownBlock>(document.Blocks.Count + document.Notes.Count + 1);
         int imageIndex = 0;
         context.NoteRegistry = new RtfMarkdownNoteRegistry();

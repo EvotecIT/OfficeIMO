@@ -25,7 +25,7 @@ public static partial class WordRtfConverterExtensions {
                 CopyParagraphFormatting(wordParagraph, paragraph, destination);
                 AppendFormattedRuns(wordParagraph, paragraph, destination, revisionAuthorIndexes);
             } else if (element is WordTable table) {
-                CopyTable(table, destination.AddTable(0, GetColumnCount(table)), destination, revisionAuthorIndexes);
+                CopyTable(table, destination.AddTable(0, GetColumnCount(table)), destination, revisionAuthorIndexes, 1);
             }
         }
     }
@@ -47,12 +47,13 @@ public static partial class WordRtfConverterExtensions {
                 CopyParagraphFormatting(wordParagraph, paragraph, document);
                 AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
             } else if (element is WordTable table) {
-                CopyTable(table, destination.AddTable(0, GetColumnCount(table)), document, revisionAuthorIndexes);
+                CopyTable(table, destination.AddTable(0, GetColumnCount(table)), document, revisionAuthorIndexes, 1);
             }
         }
     }
 
-    private static void CopyTable(WordTable source, RtfTable destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes) {
+    private static void CopyTable(WordTable source, RtfTable destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes, int tableDepth) {
+        RtfTableTraversalGuard.EnsureDepth(tableDepth);
         int? cellGap = GetWordTableCellSpacing(source);
         int? tableLeftIndent = GetWordTableLeftIndent(source);
         RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment);
@@ -76,7 +77,7 @@ public static partial class WordRtfConverterExtensions {
                 rightBoundary += width;
                 RtfTableCell cell = row.AddCell(rightBoundary);
                 CopyCellProperties(wordCell, cell, document);
-                CopyCellParagraphs(wordCell, cell, document, revisionAuthorIndexes);
+                CopyCellParagraphs(wordCell, cell, document, revisionAuthorIndexes, tableDepth);
             }
         }
     }
@@ -150,7 +151,7 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void CopyCellParagraphs(WordTableCell source, RtfTableCell destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes) {
+    private static void CopyCellParagraphs(WordTableCell source, RtfTableCell destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes, int tableDepth) {
         foreach (OpenXmlElement child in source._tableCell.ChildElements) {
             if (child is Paragraph wordParagraphElement) {
                 var wordParagraph = new WordParagraph(source.Document, wordParagraphElement);
@@ -161,7 +162,7 @@ public static partial class WordRtfConverterExtensions {
             } else if (child is Table nestedTableElement) {
                 var nestedWordTable = new WordTable(source.Document, nestedTableElement);
                 RtfTable nested = destination.AddTable(0, GetColumnCount(nestedWordTable));
-                CopyTable(nestedWordTable, nested, document, revisionAuthorIndexes);
+                CopyTable(nestedWordTable, nested, document, revisionAuthorIndexes, tableDepth + 1);
             }
         }
 

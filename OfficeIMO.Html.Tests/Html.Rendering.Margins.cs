@@ -9,6 +9,20 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlMargins_CollapseLongEmptyBlockRunsWithConstantState() {
+        var html = new StringBuilder("<div style='margin:0'>");
+        for (int index = 0; index < 2_000; index++) html.Append("<div style='margin:1px 0 2px'></div>");
+        html.Append("<div id='tail' style='height:1px;margin:0;background:red'></div></div>");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#tail");
+    }
+
+    [Fact]
     public void HtmlMargins_ParentAndFirstLastChildMarginsCollapseIntoExternalFlow() {
         const string html = "<div id='parent' style='width:50px;margin:10px 0 8px;background:#00ff00'>"
             + "<div id='child' style='width:40px;height:10px;margin:20px 0 12px;background:#ff0000;font-size:6px;line-height:8px'>ParentGap</div>"

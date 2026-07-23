@@ -727,6 +727,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlComputedStyles_DiscardUnknownStylesheetDeclarationsBeforeCascadeStorage() {
+        var css = new StringBuilder("<style>.target{");
+        for (int index = 0; index < 2_000; index++) css.Append("unknown-").Append(index).Append(":value;");
+        css.Append("--brand:#123456;color:var(--brand)}</style><p class='target'>Target</p>");
+        var parsed = HtmlDocumentParser.ParseDocument(css.ToString());
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(parsed)[parsed.QuerySelector(".target")!];
+
+        Assert.Equal("#123456", style.GetValue("color"));
+        Assert.Equal("#123456", style.GetValue("--brand"));
+        Assert.DoesNotContain(style.Properties.Keys, property => property.StartsWith("unknown-", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlRender_Continuous_ProducesTypedVisualsWithScreenMediaAndLinks() {
         const string linkUri = "https://example.test/rendered";
         string html = """

@@ -15,6 +15,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double tableY = style.MarginTop + topCaptionHeight;
         ReportUnsupportedTableValues(table, style);
         IReadOnlyList<IElement> sourceRows = table.QuerySelectorAll("tr").Where(row => BelongsToTable(row, table)).ToList();
+        if (sourceRows.Count > _options.MaxTableRows) {
+            throw new HtmlDomLimitException(
+                HtmlRenderDiagnosticCodes.TableLimitExceeded,
+                "HTML table row count exceeded the configured maximum.",
+                nameof(HtmlRenderOptions.MaxTableRows),
+                sourceRows.Count,
+                _options.MaxTableRows);
+        }
         var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var rowStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var renderableRows = new List<IElement>();
@@ -310,7 +318,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ReferenceEquals(current, table);
     }
 
-    private static int DetermineColumnCount(IReadOnlyList<IElement> rows, IElement table) {
+    private int DetermineColumnCount(IReadOnlyList<IElement> rows, IElement table) {
         var occupancy = new List<int>();
         int maximum = 0;
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
@@ -318,7 +326,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
                 int columnSpan = ReadSpan(cell.GetAttribute("colspan"), 1000);
                 column = FindAvailableColumn(occupancy, column, columnSpan);
-                EnsureOccupancySize(occupancy, column + columnSpan);
+                long columnEnd = (long)column + columnSpan;
+                EnsureTableColumnLimit(columnEnd);
+                EnsureOccupancySize(occupancy, (int)columnEnd);
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
                 for (int occupiedColumn = column; occupiedColumn < column + columnSpan; occupiedColumn++) {
                     occupancy[occupiedColumn] = Math.Max(occupancy[occupiedColumn], rowSpan);
@@ -332,6 +342,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return maximum;
+    }
+
+    private void EnsureTableColumnLimit(long count) {
+        if (count <= _options.MaxTableColumns) return;
+        throw new HtmlDomLimitException(
+            HtmlRenderDiagnosticCodes.TableLimitExceeded,
+            "HTML table column count exceeded the configured maximum.",
+            nameof(HtmlRenderOptions.MaxTableColumns),
+            count,
+            _options.MaxTableColumns);
     }
 
     private static int FindAvailableColumn(IReadOnlyList<int> occupancy, int start, int span) {

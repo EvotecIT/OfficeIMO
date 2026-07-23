@@ -123,7 +123,8 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         if ((pattern.Count & 1) == 1) {
-            pattern.Add(pattern[pattern.Count - 1]);
+            int originalCount = pattern.Count;
+            for (int index = 0; index < originalCount; index++) pattern.Add(pattern[index]);
         }
 
         return pattern;

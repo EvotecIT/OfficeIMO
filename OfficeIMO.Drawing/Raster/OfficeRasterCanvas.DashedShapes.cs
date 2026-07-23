@@ -176,17 +176,22 @@ public sealed partial class OfficeRasterCanvas {
         double dashLength,
         double gapLength,
         ref double patternPosition) {
+        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
         double length = Distance(start.X, start.Y, end.X, end.Y);
         if (!IsFinite(length) || length <= 0D) {
             return;
         }
 
-        double cycle = dashLength + gapLength;
-        if (!IsFinite(cycle) || cycle <= 0D) {
+        double cycle = SaturatingDashCycle(dashLength, gapLength);
+
+        OfficePoint clippedStart = start;
+        OfficePoint clippedEnd = end;
+        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
+            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
             return;
         }
-
-        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
+        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
         double position = 0D;
         while (position < length) {
             bool inDash = patternPosition < dashLength || gapLength == 0D;
@@ -207,10 +212,10 @@ public sealed partial class OfficeRasterCanvas {
                 double startT = position / length;
                 double endT = next / length;
                 DrawLineSegment(
-                    start.X + ((end.X - start.X) * startT),
-                    start.Y + ((end.Y - start.Y) * startT),
-                    start.X + ((end.X - start.X) * endT),
-                    start.Y + ((end.Y - start.Y) * endT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
                     color,
                     thickness);
             }
@@ -221,6 +226,7 @@ public sealed partial class OfficeRasterCanvas {
                 patternPosition -= cycle;
             }
         }
+        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
     }
 
     private void DrawPatternedPathSegment(
@@ -235,16 +241,26 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        dashPattern = NormalizeRasterDashPattern(dashPattern);
+
         double cycle = 0D;
         for (int i = 0; i < dashPattern.Count; i++) {
-            cycle += dashPattern[i];
+            cycle = SaturatingDashCycle(cycle, dashPattern[i]);
+            if (cycle == double.MaxValue) break;
         }
 
         if (!IsFinite(cycle) || cycle <= 0D) {
             return;
         }
 
-        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        OfficePoint clippedStart = start;
+        OfficePoint clippedEnd = end;
+        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
+            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
+            return;
+        }
+        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
+        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
         double position = 0D;
         while (position < length) {
             int patternIndex = 0;
@@ -274,10 +290,10 @@ public sealed partial class OfficeRasterCanvas {
                 double startT = position / length;
                 double endT = next / length;
                 DrawLineSegment(
-                    start.X + ((end.X - start.X) * startT),
-                    start.Y + ((end.Y - start.Y) * startT),
-                    start.X + ((end.X - start.X) * endT),
-                    start.Y + ((end.Y - start.Y) * endT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
+                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
+                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
                     color,
                     thickness);
             }
@@ -288,5 +304,48 @@ public sealed partial class OfficeRasterCanvas {
                 patternPosition -= cycle;
             }
         }
+        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
+    }
+
+    private static double SaturatingDashCycle(double left, double right) {
+        if (!IsFinite(left) || !IsFinite(right) || left < 0D || right < 0D) return 0D;
+        return left > double.MaxValue - right ? double.MaxValue : left + right;
+    }
+
+    private static void NormalizeRasterDashLengths(ref double dashLength, ref double gapLength) {
+        double smallest = gapLength > 0D ? Math.Min(dashLength, gapLength) : dashLength;
+        if (!IsFinite(smallest) || smallest <= 0D || smallest >= MinimumRasterDashLength) return;
+        double scale = MinimumRasterDashLength / smallest;
+        double normalizedDash = dashLength * scale;
+        double normalizedGap = gapLength * scale;
+        if (!IsFinite(scale) || !IsFinite(normalizedDash) || !IsFinite(normalizedGap)) {
+            dashLength = Math.Max(dashLength, MinimumRasterDashLength);
+            if (gapLength > 0D) gapLength = Math.Max(gapLength, MinimumRasterDashLength);
+            return;
+        }
+        dashLength = normalizedDash;
+        gapLength = normalizedGap;
+    }
+
+    private static IReadOnlyList<double> NormalizeRasterDashPattern(IReadOnlyList<double> pattern) {
+        double smallest = double.MaxValue;
+        for (int index = 0; index < pattern.Count; index++) {
+            double length = pattern[index];
+            if (IsFinite(length) && length > 0D) smallest = Math.Min(smallest, length);
+        }
+        if (smallest == double.MaxValue || smallest >= MinimumRasterDashLength) return pattern;
+
+        double scale = MinimumRasterDashLength / smallest;
+        var normalized = new double[pattern.Count];
+        for (int index = 0; index < pattern.Count; index++) {
+            normalized[index] = pattern[index] * scale;
+            if (!IsFinite(scale) || !IsFinite(normalized[index])) {
+                for (int fallbackIndex = 0; fallbackIndex < pattern.Count; fallbackIndex++) {
+                    normalized[fallbackIndex] = Math.Max(pattern[fallbackIndex], MinimumRasterDashLength);
+                }
+                break;
+            }
+        }
+        return normalized;
     }
 }

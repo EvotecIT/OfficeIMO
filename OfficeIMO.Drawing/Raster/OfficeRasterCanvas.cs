@@ -9,6 +9,7 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private const int AntiAliasSamples = 3;
     private const double MinimumDashSegmentAdvance = 1E-9D;
+    private const double MinimumRasterDashLength = 0.25D;
     private static readonly OfficeTrueTypeFont? DefaultFont = OfficeTrueTypeFont.TryLoadDefault();
     private readonly OfficeRasterImage? _image;
     private readonly OfficeRasterRenderTarget? _target;
@@ -326,24 +327,14 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double length = Distance(x1, y1, x2, y2);
-        if (length <= 0D) {
+        if (!IsFinite(length) || length <= 0D) {
             return;
         }
-
-        double position = 0D;
-        while (position < length) {
-            double next = Math.Min(length, position + dashLength);
-            double startT = position / length;
-            double endT = next / length;
-            DrawLineSegment(
-                x1 + ((x2 - x1) * startT),
-                y1 + ((y2 - y1) * startT),
-                x1 + ((x2 - x1) * endT),
-                y1 + ((y2 - y1) * endT),
-                color,
-                thickness);
-            position = next + gapLength;
-        }
+        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
+        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
+        double cycle = dashLength + gapLength;
+        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
+        DrawDashedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, dashLength, gapLength, ref patternPosition);
     }
 
     /// <summary>Draws a line segment using a shared Office stroke dash style.</summary>
@@ -388,7 +379,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double length = Distance(x1, y1, x2, y2);
-        if (length <= 0D) {
+        if (!IsFinite(length) || length <= 0D) {
             return;
         }
 
@@ -403,29 +394,16 @@ public sealed partial class OfficeRasterCanvas {
             DrawLine(x1, y1, x2, y2, color, thickness);
             return;
         }
-
-        double position = 0D;
-        int patternIndex = 0;
-        bool draw = true;
-        while (position < length) {
-            double segment = pattern[patternIndex];
-            double next = Math.Min(length, position + segment);
-            if (draw && next > position) {
-                double startT = position / length;
-                double endT = next / length;
-                DrawLineSegment(
-                    x1 + ((x2 - x1) * startT),
-                    y1 + ((y2 - y1) * startT),
-                    x1 + ((x2 - x1) * endT),
-                    y1 + ((y2 - y1) * endT),
-                    color,
-                    thickness);
-            }
-
-            position = next;
-            patternIndex = (patternIndex + 1) % pattern.Count;
-            draw = !draw;
+        if ((pattern.Count & 1) == 1) {
+            int originalCount = pattern.Count;
+            for (int index = 0; index < originalCount; index++) pattern.Add(pattern[index]);
         }
+        IReadOnlyList<double> rasterPattern = NormalizeRasterDashPattern(pattern);
+        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
+        double cycle = 0D;
+        for (int index = 0; index < rasterPattern.Count; index++) cycle += rasterPattern[index];
+        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
+        DrawPatternedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, rasterPattern, ref patternPosition);
     }
 
     /// <summary>Draws an elliptical arc using center/radius coordinates and optional rotation.</summary>

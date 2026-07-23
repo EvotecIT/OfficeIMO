@@ -38,6 +38,7 @@ internal static partial class RtfSemanticReader {
         private int? _currentSectionColumnNumber;
         private Dictionary<int, RtfListOverride> _listOverridesById = null!;
         private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
+        private Dictionary<int, RtfFont> _fontsById = null!;
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
         private readonly HashSet<int> _nestedTableBoundaryLevels = new HashSet<int>();
 
@@ -59,6 +60,10 @@ internal static partial class RtfSemanticReader {
             }
 
             _document.ReplaceFonts(ReadFontTable(root, ansiCodePage, unicodeSkipCount));
+            _fontsById = new Dictionary<int, RtfFont>();
+            foreach (RtfFont font in _document.Fonts) {
+                if (!_fontsById.ContainsKey(font.Id)) _fontsById.Add(font.Id, font);
+            }
             _document.ReplaceColors(ReadColorTable(root));
             _document.ReplaceStyles(ReadStylesheet(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceListDefinitions(ReadListDefinitions(root, ansiCodePage, unicodeSkipCount));
@@ -105,8 +110,7 @@ internal static partial class RtfSemanticReader {
 
         private int ResolveFontCodePage(int? fontId, int fallbackCodePage) {
             if (!fontId.HasValue) return fallbackCodePage;
-            RtfFont? font = _document.Fonts.FirstOrDefault(item => item.Id == fontId.Value);
-            if (font == null) return fallbackCodePage;
+            if (!_fontsById.TryGetValue(fontId.Value, out RtfFont? font)) return fallbackCodePage;
             if (font.CodePage.HasValue) return font.CodePage.Value;
             return RtfAnsiCodePage.GetCodePageForCharset(font.Charset) ?? fallbackCodePage;
         }

@@ -26,6 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private int _positionedSourceOrder;
     private int _nextSemanticNodeId;
     private long _backgroundImageTileCount;
+    private long _layoutOperationCount;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
     private readonly Dictionary<IElement, List<PositionedElementRequest>> _localPositionedElements = new Dictionary<IElement, List<PositionedElementRequest>>();
