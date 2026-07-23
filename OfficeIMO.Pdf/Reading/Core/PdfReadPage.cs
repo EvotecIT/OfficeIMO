@@ -115,7 +115,7 @@ public sealed partial class PdfReadPage {
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects, _limits.MaxDecodedTextCharacters);
+        var pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         var pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
@@ -464,7 +464,7 @@ public sealed partial class PdfReadPage {
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
-        Dictionary<string, Func<byte[], string>> decoders,
+        Dictionary<string, Func<byte[], int, string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
         Dictionary<string, PdfFontResource> fonts,
         List<PdfTextSpan> spans,
@@ -490,8 +490,12 @@ public sealed partial class PdfReadPage {
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
+        string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
+            decoders.TryGetValue(fontRes, out var dec)
+                ? dec(bytes, maximumCharacters)
+                : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
         string DecodeWithFont(string fontRes, byte[] bytes) =>
-            decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes, _limits.MaxDecodedTextCharacters);
+            DecodeWithFontWithinLimit(fontRes, bytes, _limits.MaxDecodedTextCharacters);
         double SumWidth1000(string fontRes, byte[] bytes) =>
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
         string? ResolveBaseFont(string fontRes) =>
@@ -529,7 +533,8 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
-            textOutputBudget: textOutputBudget));
+            textOutputBudget: textOutputBudget,
+            decodeWithFontWithinLimit: DecodeWithFontWithinLimit));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -562,7 +567,7 @@ public sealed partial class PdfReadPage {
             try {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetFontDecodersForForm(formDict, _objects, _limits.MaxDecodedTextCharacters));
+                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetBudgetedFontDecodersForForm(formDict, _objects));
                 var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
                 var formFonts = MergeFonts(fonts, ResourceResolver.GetFontsForResources(formResources, _objects));
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
@@ -825,6 +830,17 @@ public sealed partial class PdfReadPage {
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
         PdfPageOptionalContentVisibility.Create(resources, _objects);
+
+    private static Dictionary<string, Func<byte[], int, string>> MergeDecoders(
+        Dictionary<string, Func<byte[], int, string>> parent,
+        Dictionary<string, Func<byte[], int, string>> local) {
+        var merged = new Dictionary<string, Func<byte[], int, string>>(parent, StringComparer.Ordinal);
+        foreach (var entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
 
     private static Dictionary<string, Func<byte[], string>> MergeDecoders(
         Dictionary<string, Func<byte[], string>> parent,

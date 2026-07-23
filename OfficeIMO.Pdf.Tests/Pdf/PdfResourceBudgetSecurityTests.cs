@@ -112,6 +112,26 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void TextContentParser_PassesRemainingBudgetToEachTextRunDecoder() {
+        var decoderLimits = new List<int>();
+        const string content = "BT /F1 12 Tf (123456789) Tj (abcdefghij) Tj ET";
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content,
+                static (_, _) => throw new InvalidOperationException("The bounded decoder must be used."),
+                static (_, bytes) => bytes.Length * 500D,
+                maxDecodedTextCharacters: 10,
+                decodeWithFontWithinLimit: (_, bytes, maximumCharacters) => {
+                    decoderLimits.Add(maximumCharacters);
+                    return PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
+                }));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+        Assert.Contains(1, decoderLimits);
+    }
+
+    [Fact]
     public void PdfReadPage_BoundsAggregateContentStreamBytes() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R >>",

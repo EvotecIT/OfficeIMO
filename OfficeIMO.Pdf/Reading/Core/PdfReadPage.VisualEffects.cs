@@ -226,9 +226,9 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
-        Dictionary<string, Func<byte[], string>> decoders = MergeDecoders(
-            ResourceResolver.GetFontDecoders(_pageDict, _objects, _limits.MaxDecodedTextCharacters),
-            ResourceResolver.GetFontDecodersForForm(form.Dictionary, _objects, _limits.MaxDecodedTextCharacters));
+        Dictionary<string, Func<byte[], int, string>> decoders = MergeDecoders(
+            ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects),
+            ResourceResolver.GetBudgetedFontDecodersForForm(form.Dictionary, _objects));
         Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(_pageDict, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
         Dictionary<string, PdfFontResource> fonts = MergeFonts(ResourceResolver.GetFontsForResources(pageResources, _objects), ResourceResolver.GetFontsForResources(resources, _objects));
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);

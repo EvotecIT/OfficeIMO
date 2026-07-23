@@ -38,6 +38,16 @@ internal static partial class ResourceResolver {
         return map;
     }
 
+    public static Dictionary<string, System.Func<byte[], int, string>> GetBudgetedFontDecoders(
+        PdfDictionary page,
+        Dictionary<int, PdfIndirectObject> objects) {
+        var map = new Dictionary<string, System.Func<byte[], int, string>>(System.StringComparer.Ordinal);
+        foreach (var kv in GetFontsForPage(page, objects)) {
+            map[kv.Key] = BuildBudgetedDecoderForFont(kv.Value);
+        }
+        return map;
+    }
+
     public static Dictionary<string, System.Func<byte[], double>> GetFontWidthProviders(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
         var map = new Dictionary<string, System.Func<byte[], double>>(System.StringComparer.Ordinal);
         var dict = GetInheritedDictionary(page, "Resources", objects);
@@ -161,6 +171,20 @@ internal static partial class ResourceResolver {
         if (res is null) return map;
         foreach (var kv in GetFontsForResources(res, objects)) {
             map[kv.Key] = BuildDecoderForFont(kv.Value, maxDecodedTextCharacters);
+        }
+
+        return map;
+    }
+
+    public static Dictionary<string, System.Func<byte[], int, string>> GetBudgetedFontDecodersForForm(
+        PdfDictionary formDict,
+        Dictionary<int, PdfIndirectObject> objects) {
+        var map = new Dictionary<string, System.Func<byte[], int, string>>(System.StringComparer.Ordinal);
+        if (!formDict.Items.TryGetValue("Resources", out var resObj)) return map;
+        var res = ResolveDict(resObj, objects);
+        if (res is null) return map;
+        foreach (var kv in GetFontsForResources(res, objects)) {
+            map[kv.Key] = BuildBudgetedDecoderForFont(kv.Value);
         }
 
         return map;
@@ -363,6 +387,35 @@ internal static partial class ResourceResolver {
         }
 
         return baseDecoder;
+    }
+
+    private static System.Func<byte[], int, string> BuildBudgetedDecoderForFont(PdfFontResource font) {
+        if (font.HasToUnicode && font.CMap is not null) {
+            return (bytes, maximumCharacters) => font.CMap.MapBytes(bytes, maximumCharacters);
+        }
+
+        if (font.Differences is not null && font.Differences.Count > 0) {
+            var differences = font.Differences;
+            return (bytes, maximumCharacters) => DecodeWithDifferences(
+                bytes,
+                differences,
+                BuildBaseEncodingDecoder(font.Encoding, maximumCharacters),
+                maximumCharacters);
+        }
+
+        return BuildBudgetedBaseEncodingDecoder(font.Encoding);
+    }
+
+    private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {
+        if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
+            return static (bytes, maximumCharacters) => PdfStandardEncoding.Decode(bytes, maximumCharacters);
+        }
+
+        if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
+            return static (bytes, maximumCharacters) => PdfMacRomanEncoding.Decode(bytes, maximumCharacters);
+        }
+
+        return static (bytes, maximumCharacters) => PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
     }
 
     private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding, int maxDecodedTextCharacters) {

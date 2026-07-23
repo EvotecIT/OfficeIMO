@@ -131,8 +131,11 @@ internal static class TextContentParser {
         }
 
         internal int GetDecodedTextBufferCapacity(int requestedCapacity) {
-            long remaining = _maxDecodedTextCharacters - _decodedTextCharacters;
-            return (int)Math.Min(Math.Max(0L, remaining), Math.Max(0, requestedCapacity));
+            return Math.Min(GetRemainingDecodedTextCharacters(), Math.Max(0, requestedCapacity));
+        }
+
+        internal int GetRemainingDecodedTextCharacters() {
+            return (int)Math.Max(0L, _maxDecodedTextCharacters - _decodedTextCharacters);
         }
     }
 
@@ -204,7 +207,8 @@ internal static class TextContentParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
-        TextOutputBudget? textOutputBudget = null) {
+        TextOutputBudget? textOutputBudget = null,
+        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -571,11 +575,20 @@ internal static class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
+            string DecodeRun(byte[] value) {
+                int remaining = textOutputBudget.GetRemainingDecodedTextCharacters();
+                if (remaining == 0) {
+                    textOutputBudget.ChargeDecodedText(1);
+                }
+                return decodeWithFontWithinLimit != null
+                    ? decodeWithFontWithinLimit(font, value, remaining)
+                    : decodeWithFont(font, value);
+            }
             // Detect 2-byte CIDs (Identity-H) vs single-byte
             bool twoByte = false;
             if (bytes.Length >= 2) {
-                string one = decodeWithFont(font, new byte[] { bytes[0] });
-                string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
+                string one = DecodeRun(new byte[] { bytes[0] });
+                string two = DecodeRun(new byte[] { bytes[0], bytes[1] });
                 double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
                 double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
                 double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
@@ -585,11 +598,11 @@ internal static class TextContentParser {
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             double advTotal = 0;
             char prevChar = '\0';
-            string wholeDecoded = NormalizeDecodedGlyphText(decodeWithFont(font, bytes) ?? string.Empty);
+            string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
-                string t = NormalizeDecodedGlyphText(decodeWithFont(font, g) ?? string.Empty);
+                string t = NormalizeDecodedGlyphText(DecodeRun(g) ?? string.Empty);
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;

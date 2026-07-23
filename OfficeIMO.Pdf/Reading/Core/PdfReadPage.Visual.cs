@@ -1053,7 +1053,7 @@ public sealed partial class PdfReadPage {
         EnsureAnnotationBudget(annotations);
 
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        Dictionary<string, Func<byte[], string>> pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects, _limits.MaxDecodedTextCharacters);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         Dictionary<string, PdfFontResource> pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
@@ -1090,9 +1090,9 @@ public sealed partial class PdfReadPage {
             }
 
             var textSpans = new List<PdfTextSpan>();
-            Dictionary<string, Func<byte[], string>> appearanceDecoders = MergeDecoders(
+            Dictionary<string, Func<byte[], int, string>> appearanceDecoders = MergeDecoders(
                 pageDecoders,
-                ResourceResolver.GetFontDecodersForForm(appearanceStream.Dictionary, _objects, _limits.MaxDecodedTextCharacters));
+                ResourceResolver.GetBudgetedFontDecodersForForm(appearanceStream.Dictionary, _objects));
             Dictionary<string, Func<byte[], double>> appearanceWidthProviders = MergeWidthProviders(pageWidthProviders, ResourceResolver.GetFontWidthProviders(appearanceStream.Dictionary, _objects));
             Dictionary<string, PdfFontResource> appearanceFonts = MergeFonts(pageFonts, ResourceResolver.GetFontsForResources(appearanceResources, _objects));
             string transformedAppearanceContent = WrapContentWithTransform(appearanceContent, appearanceTransform, out int transformedAppearanceContentOffset);
@@ -1276,7 +1276,7 @@ public sealed partial class PdfReadPage {
         pageContentBudget ??= new PageContentBudget(this);
         var spans = new List<PdfTextSpan>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        Dictionary<string, Func<byte[], string>> pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects, _limits.MaxDecodedTextCharacters);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         Dictionary<string, PdfFontResource> pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
