@@ -90,5 +90,11 @@ public enum PdfReadLimitKind {
     NameTreeDepth = 28,
 
     /// <summary>Font-decoded text characters emitted while extracting one page.</summary>
-    DecodedTextCharacters = 29
+    DecodedTextCharacters = 29,
+
+    /// <summary>Attachment records discovered across the document catalog and annotations.</summary>
+    Attachments = 30,
+
+    /// <summary>Aggregate decoded bytes retained for unique embedded attachment streams.</summary>
+    AttachmentBytes = 31
 }

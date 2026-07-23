@@ -72,4 +72,7 @@ public sealed class PdfExtractedAttachment {
 
     /// <summary>Decoded embedded file bytes. The returned array is a defensive copy.</summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
+
+    /// <summary>Decoded payload size without allocating the defensive public copy.</summary>
+    internal int ByteLength => _bytes.Length;
 }

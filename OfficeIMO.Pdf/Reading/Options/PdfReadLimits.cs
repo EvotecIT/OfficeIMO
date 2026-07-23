@@ -11,6 +11,8 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
+    internal const int DefaultMaxAttachments = 100_000;
+    internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
     public static PdfReadLimits Default => new PdfReadLimits();
@@ -72,6 +74,12 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested PDF name-tree depth. Default: 128.</summary>
     public int MaxNameTreeDepth { get; init; } = DefaultMaxNameTreeDepth;
 
+    /// <summary>Maximum attachment records discovered across name trees, associated files, and annotations. Default: 100,000.</summary>
+    public int MaxAttachments { get; init; } = DefaultMaxAttachments;
+
+    /// <summary>Maximum aggregate decoded bytes retained for unique embedded attachment streams. Default: 256 MiB.</summary>
+    public long MaxTotalAttachmentBytes { get; init; } = DefaultMaxTotalAttachmentBytes;
+
     /// <summary>Maximum named appearance states declared for one AcroForm widget. Default: 4,096.</summary>
     public int MaxFormFieldAppearanceStates { get; init; } = 4_096;
 
@@ -108,6 +116,8 @@ public sealed class PdfReadLimits {
             MaxFormFieldDepth = MaxFormFieldDepth,
             MaxNameTreeNodes = MaxNameTreeNodes,
             MaxNameTreeDepth = MaxNameTreeDepth,
+            MaxAttachments = MaxAttachments,
+            MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
             MaxAnnotationsPerPage = MaxAnnotationsPerPage,
             MaxContentOperations = MaxContentOperations,
@@ -161,6 +171,10 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
         ValidatePositive(MaxNameTreeNodes, nameof(MaxNameTreeNodes), "Maximum name-tree nodes must be positive.");
         ValidatePositive(MaxNameTreeDepth, nameof(MaxNameTreeDepth), "Maximum name-tree depth must be positive.");
+        ValidatePositive(MaxAttachments, nameof(MaxAttachments), "Maximum attachments must be positive.");
+        if (MaxTotalAttachmentBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalAttachmentBytes), MaxTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
+        }
         ValidatePositive(MaxFormFieldAppearanceStates, nameof(MaxFormFieldAppearanceStates), "Maximum form-field appearance states must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");

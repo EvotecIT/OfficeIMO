@@ -21,9 +21,12 @@ public class PdfAttachmentExtractorTests {
 
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(pdf);
         IReadOnlyList<PdfExtractedAttachment> documentAttachments = PdfReadDocument.Open(pdf).ExtractAttachments();
+        IReadOnlyList<PdfAttachmentInfo> documentAttachmentInfos = PdfReadDocument.Open(pdf).Attachments;
 
         Assert.Equal(2, attachments.Count);
         Assert.Equal(2, documentAttachments.Count);
+        Assert.Equal(invoiceXml.Length, documentAttachmentInfos[0].SizeBytes);
+        Assert.Equal(sourceBytes.Length, documentAttachmentInfos[1].SizeBytes);
 
         PdfExtractedAttachment invoice = attachments[0];
         Assert.Equal("invoice.xml", invoice.Name);
@@ -118,6 +121,38 @@ public class PdfAttachmentExtractorTests {
         Assert.Equal("alias-999.txt", attachments[999].FileName);
         Assert.All(attachments, attachment => Assert.Equal("payload", Encoding.ASCII.GetString(attachment.Bytes)));
         Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(pdf, "alias-999.txt"));
+    }
+
+    [Fact]
+    public void PdfReadDocument_BoundsAttachmentAliasCount() {
+        byte[] pdf = BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 3);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxAttachments = 2 }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.Attachments, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
+    public void PdfReadDocument_BoundsAggregateUniqueAttachmentBytes() {
+        byte[] pdf = PdfDocument.Create()
+            .AttachFile("first.bin", new byte[] { 1, 2, 3 })
+            .AttachFile("second.bin", new byte[] { 4, 5, 6 })
+            .Paragraph(p => p.Text("Aggregate attachment budget."))
+            .ToBytes();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 5 }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
+        Assert.Equal(5, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
