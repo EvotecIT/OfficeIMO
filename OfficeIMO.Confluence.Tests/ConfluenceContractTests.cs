@@ -288,7 +288,8 @@ public sealed class ConfluenceContractTests {
             options.RetryMaxDelay = TimeSpan.Zero;
         });
         using var destination = new MemoryStream();
-        destination.Write(Encoding.UTF8.GetBytes("prefix:"));
+        byte[] prefix = Encoding.UTF8.GetBytes("prefix:");
+        destination.Write(prefix, 0, prefix.Length);
 
         await client.DownloadAttachmentAsync("123", "a1", destination);
 
