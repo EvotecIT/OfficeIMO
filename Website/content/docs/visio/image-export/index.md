@@ -42,6 +42,8 @@ document.SaveAsPng(
 ## Use the shared image builder
 
 ```csharp
+using OfficeIMO.Drawing;
+
 OfficeImageExportResult webp = document
     .ToImage()
     .AtDpi(144)
