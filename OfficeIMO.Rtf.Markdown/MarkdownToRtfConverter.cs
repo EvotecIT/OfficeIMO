@@ -298,6 +298,8 @@ internal static class MarkdownToRtfConverter {
             if (listBlock is OrderedListBlock orderedList) {
                 int markerValue = orderedList.Reversed ? orderedList.Start - index : orderedList.Start + index;
                 markerText = items[index].MarkerText ?? OrderedListBlock.FormatMarker(markerValue, orderedList.MarkerStyle, orderedList.MarkerDelimiter);
+            } else if (listBlock is UnorderedListBlock) {
+                markerText = items[index].MarkerText ?? "-";
             }
 
             pending.Push(new FlattenedListItem(items[index], markerText));
