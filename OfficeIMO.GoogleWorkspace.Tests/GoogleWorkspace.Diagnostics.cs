@@ -543,6 +543,42 @@ namespace OfficeIMO.Tests {
                     new TranslationReport()));
         }
 
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_RetriesSafeResponseBodyReadFailures() {
+            int attempts = 0;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ => {
+                attempts++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = attempts == 1
+                        ? new TransientReadFailureContent()
+                        : new ByteArrayContent(new byte[] { 1, 2, 3, 4 })
+                });
+            }));
+            var entries = new List<GoogleWorkspaceDiagnosticEntry>();
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 1,
+                    RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                    RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+                    DiagnosticSink = entries.Add
+                });
+
+            byte[] bytes = await transport.SendBytesAsync(
+                "token",
+                HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?alt=media",
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Drive API",
+                new TranslationReport());
+
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, bytes);
+            Assert.Equal(2, attempts);
+            Assert.Contains(entries, entry =>
+                entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry &&
+                entry.Message.Contains("reading response", StringComparison.Ordinal));
+        }
+
         private static HttpResponseMessage CreateJsonResponse(string json) {
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -597,6 +633,25 @@ namespace OfficeIMO.Tests {
                 length = 0;
                 return false;
             }
+        }
+
+        private sealed class TransientReadFailureContent : HttpContent {
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+                throw new InvalidOperationException("ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new TransientReadFailureStream());
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
+        }
+
+        private sealed class TransientReadFailureStream : MemoryStream {
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+                CancellationToken cancellationToken) =>
+                Task.FromException<int>(new IOException("Transient connection failure while reading response body."));
         }
 
         private sealed class BlockingReadStream : Stream {

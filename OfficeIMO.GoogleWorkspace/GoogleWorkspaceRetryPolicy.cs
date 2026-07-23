@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.IO;
 
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
@@ -189,13 +190,33 @@ namespace OfficeIMO.GoogleWorkspace {
                     if (!CanRetry(requestSafety)
                         || !ShouldRetry(response.StatusCode)
                         || attempt >= retryBudget) {
-                        if (!disposeFinalResponse) {
-                            return await responseHandler(response,
-                                timeoutSource.Token).ConfigureAwait(false);
-                        }
-                        using (response) {
-                            return await responseHandler(response,
-                                timeoutSource.Token).ConfigureAwait(false);
+                        try {
+                            if (!disposeFinalResponse) {
+                                return await responseHandler(response,
+                                    timeoutSource.Token).ConfigureAwait(false);
+                            }
+                            using (response) {
+                                return await responseHandler(response,
+                                    timeoutSource.Token).ConfigureAwait(false);
+                            }
+                        } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "network failure while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
+                        } catch (IOException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "network failure while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
+                        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "request timeout while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
                         }
                     }
 
@@ -214,6 +235,27 @@ namespace OfficeIMO.GoogleWorkspace {
                         .ConfigureAwait(false);
                 }
             }
+        }
+
+        private static async Task DelayAfterTransportFailureAsync(
+            string method,
+            string uri,
+            int attempt,
+            int retryBudget,
+            GoogleWorkspaceRetryOptions retryOptions,
+            string trigger,
+            CancellationToken cancellationToken,
+            Action<GoogleWorkspaceRetryEvent>? onRetry) {
+            var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
+            onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
+                method,
+                uri,
+                attempt + 1,
+                retryBudget,
+                trigger,
+                delay,
+                delayStrategy));
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
         }
 
         private static bool CanRetry(GoogleWorkspaceRequestSafety requestSafety) {
