@@ -160,6 +160,10 @@ namespace OfficeIMO.Excel {
             writer.WriteEndArray();
         }
 
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "This compatibility overload intentionally honors caller-provided row and cell converters. The default NativeAOT path uses the typed streaming writer.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This compatibility overload intentionally honors caller-provided row and cell converters. The default NativeAOT path uses the typed streaming writer.")]
         private static void WriteDataTableJson(
             DataTable table,
             JsonEncodedText[] propertyNames,
