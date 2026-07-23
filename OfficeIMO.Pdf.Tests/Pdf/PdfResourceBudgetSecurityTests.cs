@@ -101,6 +101,20 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void TextContentParser_ChargesDecodedGlyphsDroppedByThinSpacingFilter() {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                "BT /F1 12 Tf (AB) Tj ET",
+                static (_, bytes) => bytes.Length == 1 && bytes[0] == (byte)'B'
+                    ? "BBBBBB"
+                    : Encoding.ASCII.GetString(bytes),
+                static (_, bytes) => bytes[0] == (byte)'B' ? 0D : bytes.Length * 500D,
+                maxDecodedTextCharacters: 6));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
+    [Fact]
     public void TextContentParser_BoundsTextRunBufferBeforeDecoding() {
         var budget = new TextContentParser.TextOutputBudget(
             maxActualTextCharacters: 1,

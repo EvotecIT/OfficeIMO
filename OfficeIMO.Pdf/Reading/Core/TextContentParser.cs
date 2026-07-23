@@ -130,6 +130,12 @@ internal static class TextContentParser {
             _decodedTextCharacters = next;
         }
 
+        internal void ThrowDecodedTextLimitExceeded() =>
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.DecodedTextCharacters,
+                _maxDecodedTextCharacters,
+                (long)_maxDecodedTextCharacters + 1L);
+
         internal int GetDecodedTextBufferCapacity(int requestedCapacity) {
             return Math.Min(GetRemainingDecodedTextCharacters(), Math.Max(0, requestedCapacity));
         }
@@ -575,10 +581,10 @@ internal static class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
-            string DecodeRun(byte[] value) {
-                int remaining = textOutputBudget.GetRemainingDecodedTextCharacters();
+            string DecodeRun(byte[] value, int? maximumCharacters = null) {
+                int remaining = maximumCharacters ?? textOutputBudget.GetRemainingDecodedTextCharacters();
                 if (remaining == 0) {
-                    textOutputBudget.ChargeDecodedText(1);
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
                 return decodeWithFontWithinLimit != null
                     ? decodeWithFontWithinLimit(font, value, remaining)
@@ -599,10 +605,19 @@ internal static class TextContentParser {
             double advTotal = 0;
             char prevChar = '\0';
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
+            int decodedGlyphCharacters = 0;
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
-                string t = NormalizeDecodedGlyphText(DecodeRun(g) ?? string.Empty);
+                int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
+                if (remainingGlyphCharacters <= 0) {
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
+                }
+                string t = NormalizeDecodedGlyphText(DecodeRun(g, remainingGlyphCharacters) ?? string.Empty);
+                if (t.Length > remainingGlyphCharacters) {
+                    textOutputBudget.ThrowDecodedTextLimitExceeded();
+                }
+                decodedGlyphCharacters += t.Length;
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
@@ -624,6 +639,7 @@ internal static class TextContentParser {
                 advTotal += advGlyph;
                 idx += step;
             }
+            textOutputBudget.ChargeDecodedText(Math.Max(wholeDecoded.Length, decodedGlyphCharacters));
             if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
@@ -643,10 +659,6 @@ internal static class TextContentParser {
             OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
             PdfPageClipPath? spanClipPath = clipPath;
-            if (textOut.Length > 0) {
-                textOutputBudget.ChargeDecodedText(textOut.Length);
-            }
-
             if (isHidden) {
                 // Hidden optional-content still advances text state but should not emit visible/logical spans.
             } else if (isArtifact) {
