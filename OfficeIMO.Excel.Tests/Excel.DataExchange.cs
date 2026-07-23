@@ -61,12 +61,54 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_DataExchange_JsonRowConverterStillAppliesWithoutWholeTableMaterialization() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonRowConverter.xlsx");
+            const string json = "[{\"Name\":\"Alpha\"}]";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.FromJson(json);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new MarkedRowConverter());
+
+                using JsonDocument parsed = JsonDocument.Parse(sheet.ToJson("A1:A2", jsonOptions: options));
+
+                Assert.True(parsed.RootElement[0].GetProperty("converted").GetBoolean());
+                Assert.Equal("Alpha", parsed.RootElement[0].GetProperty("Name").GetString());
+            }
+        }
+
         private sealed class UppercaseStringConverter : JsonConverter<string> {
             public override string? Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options) =>
                 reader.GetString();
 
             public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
                 writer.WriteStringValue(value.ToUpperInvariant());
+        }
+
+        private sealed class MarkedRowConverter : JsonConverter<Dictionary<string, object?>> {
+            public override Dictionary<string, object?>? Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options) =>
+                throw new System.NotSupportedException();
+
+            public override void Write(Utf8JsonWriter writer, Dictionary<string, object?> value, JsonSerializerOptions options) {
+                writer.WriteStartObject();
+                writer.WriteBoolean("converted", true);
+                foreach (KeyValuePair<string, object?> property in value) {
+                    writer.WritePropertyName(property.Key);
+                    if (property.Value == null) {
+                        writer.WriteNullValue();
+                    } else {
+                        JsonSerializer.Serialize(writer, property.Value, property.Value.GetType(), options);
+                    }
+                }
+                writer.WriteEndObject();
+            }
         }
 
         [Fact]

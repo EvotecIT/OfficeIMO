@@ -411,6 +411,7 @@ public static partial class OfficeSvgDrawingReader {
         if (remaining <= 0) return null;
         if (!OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, remaining,
                 out IReadOnlyList<OfficePathCommand> parsed, out bool commandLimitExceeded)) {
+            pathCommands += Math.Min(remaining, parsed.Count);
             if (commandLimitExceeded) pathCommands = MaximumSvgPathCommands;
             return null;
         }

@@ -24,6 +24,28 @@ public class PdfRedactionImageCoverageTests {
     }
 
     [Fact]
+    public void Apply_EscapesDecodedResourceNamesWhenRewritingImageInvocation() {
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/Im#20Target Do\nQ\n" +
+            "q\n40 0 0 20 100 30 cm\n/Im#20Target Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode",
+            Compress(CreateRgbPixels()),
+            resourceName: "Im#20Target");
+        PdfImagePlacement firstPlacement = PdfImageExtractor.ExtractImagePlacements(source)
+            .OrderBy(placement => placement.X)
+            .First();
+        var area = new PdfRedactionArea(1, firstPlacement.X, firstPlacement.Y, firstPlacement.Width / 2D, firstPlacement.Height, "left-half");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        string raw = PdfEncoding.Latin1GetString(redacted);
+        Assert.Contains("/Im#20TargetRedacted1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("/Im#20Target Do", raw, StringComparison.Ordinal);
+        Assert.Equal(2, PdfImageExtractor.ExtractImagePlacements(redacted).Count);
+        Assert.Contains(DecodeImages(redacted), pixels => CountBlackPixels(pixels) == 4);
+    }
+
+    [Fact]
     public void Apply_EnforcesDecodedImageBudgetBeforeSimplePixelRewrite() {
         byte[] source = BuildImagePdf(
             "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
@@ -112,6 +134,14 @@ public class PdfRedactionImageCoverageTests {
         return pixels;
     }
 
+    private static byte[][] DecodeImages(byte[] pdf) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, null);
+        return PdfImageExtractor.ExtractImages(pdf)
+            .Select(image => Assert.IsType<PdfStream>(objects[image.ObjectNumber].Value))
+            .Select(stream => StreamDecoder.Decode(stream.Dictionary, stream.Data, objects))
+            .ToArray();
+    }
+
     private static int CountBlackPixels(byte[] rgb) {
         int count = 0;
         for (int offset = 0; offset + 2 < rgb.Length; offset += 3) {
@@ -125,14 +155,14 @@ public class PdfRedactionImageCoverageTests {
         255, 0, 255, 0, 255, 255, 128, 64, 32, 240, 240, 240
     };
 
-    private static byte[] BuildImagePdf(string pageContent, string imageEntries, byte[] imageData, string? maskEntries = null, byte[]? maskData = null) {
+    private static byte[] BuildImagePdf(string pageContent, string imageEntries, byte[] imageData, string? maskEntries = null, byte[]? maskData = null, string resourceName = "ImTarget") {
         int pageLength = Encoding.ASCII.GetByteCount(pageContent.TrimEnd('\n'));
         using var output = new MemoryStream();
         void Write(string value) { byte[] bytes = Encoding.ASCII.GetBytes(value); output.Write(bytes, 0, bytes.Length); }
         Write(string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
-            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImTarget 5 0 R >> >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /" + resourceName + " 5 0 R >> >> >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + pageLength.ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
             "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 4 /Height 2 " + imageEntries + " /Length " + imageData.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream"

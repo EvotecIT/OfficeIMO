@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +10,7 @@ namespace OfficeIMO.Reader;
 /// </summary>
 public static class ReaderInputLimits {
     private const long MaximumInMemorySnapshotBytes = 64L * 1024 * 1024;
+    private const uint OwnerDirectoryMode = 0x1C0; // 0700
 
     internal static MemoryStream CreateSnapshotStream(int initialCapacity = 0) {
         return new ReaderSnapshotStream(initialCapacity);
@@ -188,9 +190,36 @@ public static class ReaderInputLimits {
             return new ReaderSnapshotStream(0);
         }
 
-        string path = Path.Combine(Path.GetTempPath(),
-            "officeimo-reader-" + Guid.NewGuid().ToString("N") + ".tmp");
-        return new ReaderSnapshotFileStream(path);
+        return CreatePrivateSnapshotFileStream();
+    }
+
+    private static Stream CreatePrivateSnapshotFileStream() {
+        string directory = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            Directory.CreateDirectory(directory);
+        } else if (CreateDirectoryUnix(directory, OwnerDirectoryMode) != 0) {
+            throw new IOException(
+                "Unable to create the private Reader snapshot directory (OS error " +
+                Marshal.GetLastWin32Error().ToString(CultureInfo.InvariantCulture) + ").");
+        }
+        try {
+            string path = Path.Combine(directory, "snapshot.tmp");
+            return new ReaderSnapshotFileStream(path, directory);
+        } catch {
+            TryDeleteSnapshotDirectory(directory);
+            throw;
+        }
+    }
+
+    private static void TryDeleteSnapshotDirectory(string directory) {
+        try {
+            Directory.Delete(directory, recursive: true);
+        } catch (IOException) {
+            // DeleteOnClose remains the primary cleanup; directory removal is best effort.
+        } catch (UnauthorizedAccessException) {
+            // DeleteOnClose remains the primary cleanup; directory removal is best effort.
+        }
     }
 
     private sealed class ReaderSnapshotStream : MemoryStream {
@@ -199,10 +228,24 @@ public static class ReaderInputLimits {
     }
 
     private sealed class ReaderSnapshotFileStream : FileStream {
-        internal ReaderSnapshotFileStream(string path) : base(path,
-            FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
+        private readonly string _directory;
+
+        internal ReaderSnapshotFileStream(string path, string directory) : base(path,
+            FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None,
             64 * 1024,
             FileOptions.DeleteOnClose | FileOptions.SequentialScan) {
+            _directory = directory;
+        }
+
+        protected override void Dispose(bool disposing) {
+            try {
+                base.Dispose(disposing);
+            } finally {
+                if (disposing) TryDeleteSnapshotDirectory(_directory);
+            }
         }
     }
+
+    [DllImport("libc", EntryPoint = "mkdir", SetLastError = true)]
+    private static extern int CreateDirectoryUnix(string path, uint mode);
 }

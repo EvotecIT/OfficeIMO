@@ -79,6 +79,7 @@ public sealed partial class PdfReadPage {
     internal (double X, double Y) TransformPointToVisual(double x, double y) => GetVisualPageTransform().Transform(x, y);
 
     internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
+        _demandTextExtraction?.Invoke();
         (double Width, double Height) size = GetVisualPageSize();
         return GetVisualTextSpans(size.Height, GetVisualPageTransform());
     }

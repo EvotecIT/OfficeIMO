@@ -33,6 +33,10 @@ namespace OfficeIMO.Excel {
                 ? null
                 : new SortedSet<ConditionalFormattingCandidate>(ConditionalFormattingCandidateComparer.Instance);
             long ruleOrder = 0L;
+            bool discoveryLimitReached = false;
+            // A finite maximum is also a hard discovery-work budget. One lookahead rule may
+            // replace the current worst candidate; truncated signals that later priorities
+            // were intentionally not inspected.
             foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>()) {
                 string range = conditional.SequenceOfReferences?.InnerText ?? string.Empty;
                 if (filter.HasValue && !string.IsNullOrWhiteSpace(range)) {
@@ -61,7 +65,11 @@ namespace OfficeIMO.Excel {
                         retained.Remove(worst);
                         retained.Add(candidate);
                     }
+                    discoveryLimitReached = true;
+                    break;
                 }
+
+                if (discoveryLimitReached) break;
             }
 
             if (retained != null) {

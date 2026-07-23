@@ -314,7 +314,7 @@ internal static partial class PdfRedactionApplier {
 
     private static string ReplaceInvocationResourceName(string content, ImageResourceInvocation invocation, string newName) {
         return content.Remove(invocation.NameStart, invocation.NameEnd - invocation.NameStart)
-            .Insert(invocation.NameStart, "/" + newName);
+            .Insert(invocation.NameStart, "/" + PdfSyntaxEscaper.Name(newName));
     }
 
     private static string CreateUniqueResourceName(PdfDictionary xObjects, string baseName) {

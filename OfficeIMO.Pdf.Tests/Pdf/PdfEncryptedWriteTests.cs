@@ -128,23 +128,28 @@ public class PdfEncryptedWriteTests {
     }
 
     [Fact]
-    public void GeneratedEncryptedFormPdfSupportsFormMutationWithPassword() {
+    public void GeneratedEncryptedFormPdfRequiresOwnerOrExplicitOverrideForFullRewrite() {
         byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .TextField("Name", width: 180, height: 24, value: "Ada")
             .ToBytes();
 
-        var readOptions = new PdfReadOptions { Password = "open" };
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
-        PdfDocument filled = PdfDocument.Open(pdf, readOptions).Forms.Fill(new Dictionary<string, string> {
+        var userOptions = new PdfReadOptions { Password = "open" };
+        PdfDocumentPreflight userPreflight = PdfInspector.Preflight(pdf, userOptions);
+        Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Open(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
+                ["Name"] = "Blocked"
+            }));
+        PdfDocument ownerFilled = PdfDocument.Open(pdf, new PdfReadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
             ["Name"] = "Grace"
         });
 
-        Assert.True(preflight.CanRead);
-        Assert.True(preflight.CanFillSimpleFormFields);
-        Assert.True(preflight.CanFlattenSimpleFormFields);
-        Assert.True(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.False(PdfInspector.Probe(filled.ToBytes()).HasEncryption);
-        Assert.Equal("Grace", Assert.Single(filled.Inspect().FormFields).Value);
+        Assert.True(userPreflight.CanRead);
+        Assert.False(userPreflight.CanFillSimpleFormFields);
+        Assert.False(userPreflight.CanFlattenSimpleFormFields);
+        Assert.False(userPreflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.NotEmpty(userPreflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
+        Assert.Equal("Grace", Assert.Single(ownerFilled.Inspect().FormFields).Value);
     }
 
     [Fact]

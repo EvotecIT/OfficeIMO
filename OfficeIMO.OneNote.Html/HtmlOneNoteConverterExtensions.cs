@@ -232,16 +232,16 @@ public static class HtmlOneNoteConverterExtensions {
                 imageLimit);
             return;
         }
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            Add(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "An embedded HTML image could not be decoded.", HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission);
-            return;
-        }
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded HTML image was omitted because the shared import limit was reached.",
                 HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission,
                 imageLimit);
+            return;
+        }
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            Add(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "An embedded HTML image could not be decoded.", HtmlDiagnosticSeverity.Warning, HtmlConversionLossKind.Omission);
             return;
         }
         target.Add(new OneNoteImage {

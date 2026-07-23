@@ -85,6 +85,22 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void RestrictedInteractionMapRequiresTextExtractionPermission() {
+        byte[] pdf = CreateRestrictedPdf("interaction-open", "interaction-owner", "Restricted interaction text");
+        var enforced = new PdfReadOptions { Password = "interaction-open" };
+
+        Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfPageInteractionMap.Create(pdf, 1, readOptions: enforced));
+
+        var ignored = new PdfReadOptions {
+            Password = "interaction-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(pdf, 1, readOptions: ignored);
+        Assert.Contains("Restricted interaction text", string.Concat(map.TextRegions.Select(region => region.Text)), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AccessibilityPermissionAllowsTextButNotTheFullLogicalObjectModel() {
         byte[] pdf = CreateEncryptedPdf(
             "accessible-open",

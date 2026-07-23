@@ -14,6 +14,7 @@ internal static partial class DocumentReaderEngine {
 
         ReaderFolderOptions effectiveFolder = NormalizeFolderOptions(folderOptions);
         HashSet<string> allowedExtensions = NormalizeExtensions(effectiveFolder.Extensions);
+        long totalBytes = 0L;
         foreach (string path in paths) {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(path)) {
@@ -36,9 +37,28 @@ internal static partial class DocumentReaderEngine {
                     continue;
                 }
 
+                if (effectiveFolder.MaxTotalBytes.HasValue) {
+                    if (!TryGetKnownFileLength(file, out long fileLength) ||
+                        fileLength > effectiveFolder.MaxTotalBytes.Value - totalBytes) {
+                        continue;
+                    }
+
+                    totalBytes += fileLength;
+                }
+
                 filesEnumerated++;
                 yield return file;
             }
+        }
+    }
+
+    private static bool TryGetKnownFileLength(string path, out long length) {
+        try {
+            length = new FileInfo(path).Length;
+            return length >= 0L;
+        } catch {
+            length = 0L;
+            return false;
         }
     }
 }

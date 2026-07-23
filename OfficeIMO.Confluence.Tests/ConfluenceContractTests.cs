@@ -252,6 +252,28 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task AttachmentDownload_DoesNotStageResponseInSharedTemporaryStorage() {
+        string tempRoot = Path.GetTempPath();
+        var before = new HashSet<string>(Directory.EnumerateFiles(tempRoot, "officeimo-confluence-*.tmp"), StringComparer.Ordinal);
+        string[] createdDuringRequest = Array.Empty<string>();
+        var handler = new RecordingHandler(_ => {
+            createdDuringRequest = Directory.EnumerateFiles(tempRoot, "officeimo-confluence-*.tmp")
+                .Where(path => !before.Contains(path))
+                .ToArray();
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("direct-stream")),
+            };
+        });
+        using ConfluenceClient client = CreateClient(handler);
+        using var destination = new MemoryStream();
+
+        await client.DownloadAttachmentAsync("123", "a1", destination);
+
+        Assert.Empty(createdDuringRequest);
+        Assert.Equal("direct-stream", Encoding.UTF8.GetString(destination.ToArray()));
+    }
+
+    [Fact]
     public async Task AttachmentDownload_RetryDoesNotAppendToPartialDestination() {
         int attempt = 0;
         var handler = new RecordingHandler(_ => ++attempt == 1
@@ -266,11 +288,32 @@ public sealed class ConfluenceContractTests {
             options.RetryMaxDelay = TimeSpan.Zero;
         });
         using var destination = new MemoryStream();
+        destination.Write(Encoding.UTF8.GetBytes("prefix:"));
 
         await client.DownloadAttachmentAsync("123", "a1", destination);
 
         Assert.Equal(2, attempt);
-        Assert.Equal("complete", Encoding.UTF8.GetString(destination.ToArray()));
+        Assert.Equal("prefix:complete", Encoding.UTF8.GetString(destination.ToArray()));
+    }
+
+    [Fact]
+    public async Task AttachmentDownload_RejectsSeekableDestinationThatWouldOverwriteExistingData() {
+        int requests = 0;
+        var handler = new RecordingHandler(_ => {
+            requests++;
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("replacement")),
+            };
+        });
+        using ConfluenceClient client = CreateClient(handler);
+        using var destination = new MemoryStream(Encoding.UTF8.GetBytes("preserve-me"), writable: true);
+        destination.Position = 0;
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            client.DownloadAttachmentAsync("123", "a1", destination));
+
+        Assert.Equal(0, requests);
+        Assert.Equal("preserve-me", Encoding.UTF8.GetString(destination.ToArray()));
     }
 
     private static ConfluenceClient CreateClient(RecordingHandler handler, IConfluenceCredentialSource? credential = null, Action<ConfluenceSessionOptions>? configure = null) {

@@ -828,7 +828,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportRetainsHighestPrecedenceRulesWhenBounded() {
+        public void ExcelRange_ImageExportRetainsHigherPrecedenceRuleWithinBoundedLookahead() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("RulePriority");
             var conditional = new ConditionalFormatting {
@@ -855,6 +855,29 @@ namespace OfficeIMO.Tests {
             ExcelConditionalFormattingInfo rule = Assert.Single(retained);
             Assert.Equal(1, rule.Priority);
             Assert.True(rule.StopIfTrue);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportStopsConditionalRuleDiscoveryAfterBoundedLookahead() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RuleDiscovery");
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            conditional.Append(
+                new ConditionalFormattingRule { Type = ConditionalFormatValues.Expression, Priority = 2 },
+                new ConditionalFormattingRule { Type = ConditionalFormatValues.Expression, Priority = 1 });
+            var poison = new ConditionalFormattingRule { Type = ConditionalFormatValues.Expression };
+            poison.SetAttribute(new OpenXmlAttribute("priority", string.Empty, "not-an-integer"));
+            conditional.Append(poison);
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            IReadOnlyList<ExcelConditionalFormattingInfo> retained =
+                sheet.GetConditionalFormattingRules("A1", 1, out bool truncated);
+
+            Assert.True(truncated);
+            Assert.Equal(1, Assert.Single(retained).Priority);
         }
 
         [Fact]

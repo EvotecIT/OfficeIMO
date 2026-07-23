@@ -114,42 +114,72 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
     }
 
     private async Task SendToStreamCoreAsync(HttpMethod method, string relativeUri, Stream destination, CancellationToken cancellationToken) {
-        string bufferPath = Path.Combine(Path.GetTempPath(), "officeimo-confluence-" + Guid.NewGuid().ToString("N") + ".tmp");
-        try {
-            using (var buffer = new FileStream(
-                       bufferPath,
-                       FileMode.CreateNew,
-                       FileAccess.ReadWrite,
-                       FileShare.None,
-                       81920,
-                       FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-                await SendAsync(
-                        method,
-                        relativeUri,
-                        null,
-                        null,
-                        ConfluenceRequestSafety.SafeToRetry,
-                        cancellationToken,
-                        async (response, token) => {
-                            buffer.Position = 0;
-                            buffer.SetLength(0);
-                            using Stream source = await ReadAsStreamAsync(response.Content, token).ConfigureAwait(false);
-                            await source.CopyToAsync(buffer, 81920, token).ConfigureAwait(false);
-                            return true;
-                        })
-                    .ConfigureAwait(false);
+        bool canReset = PrepareDestinationForDirectStreaming(destination, out long initialPosition);
 
-                buffer.Position = 0;
-                await buffer.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
-            }
-        } finally {
-            try {
-                File.Delete(bufferPath);
-            } catch (IOException) {
-                // The completed operation is more useful than surfacing best-effort temp cleanup.
-            } catch (UnauthorizedAccessException) {
-                // The completed operation is more useful than surfacing best-effort temp cleanup.
-            }
+        try {
+            await SendAsync(
+                    method,
+                    relativeUri,
+                    null,
+                    null,
+                    canReset ? ConfluenceRequestSafety.SafeToRetry : ConfluenceRequestSafety.NonIdempotent,
+                    cancellationToken,
+                    async (response, token) => {
+                        if (canReset) ResetDestination(destination, initialPosition);
+                        using Stream source = await ReadAsStreamAsync(response.Content, token).ConfigureAwait(false);
+                        await source.CopyToAsync(destination, 81920, token).ConfigureAwait(false);
+                        return true;
+                    })
+                .ConfigureAwait(false);
+        } catch {
+            if (canReset) TryResetDestination(destination, initialPosition);
+            throw;
+        }
+    }
+
+    private static bool PrepareDestinationForDirectStreaming(Stream destination, out long initialPosition) {
+        initialPosition = 0L;
+        if (!destination.CanSeek) return false;
+
+        long initialLength;
+        try {
+            initialPosition = destination.Position;
+            initialLength = destination.Length;
+        } catch (NotSupportedException exception) {
+            throw new ArgumentException("A seekable attachment destination must expose its current position and length.", nameof(destination), exception);
+        }
+
+        if (initialPosition != initialLength) {
+            throw new ArgumentException("A seekable attachment destination must be positioned at its end so existing data cannot be overwritten.", nameof(destination));
+        }
+
+        try {
+            destination.SetLength(initialLength);
+            destination.Position = initialPosition;
+            return true;
+        } catch (NotSupportedException) {
+            return false;
+        } catch (IOException) {
+            return false;
+        } catch (UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    private static void ResetDestination(Stream destination, long position) {
+        destination.SetLength(position);
+        destination.Position = position;
+    }
+
+    private static void TryResetDestination(Stream destination, long position) {
+        try {
+            ResetDestination(destination, position);
+        } catch (IOException) {
+            // Preserve the original transfer failure when a caller-owned stream becomes non-resettable.
+        } catch (NotSupportedException) {
+            // Preserve the original transfer failure when a caller-owned stream becomes non-resettable.
+        } catch (UnauthorizedAccessException) {
+            // Preserve the original transfer failure when a caller-owned stream becomes non-resettable.
         }
     }
 

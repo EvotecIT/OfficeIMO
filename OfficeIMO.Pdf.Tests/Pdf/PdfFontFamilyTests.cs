@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontFamilyTests {
     [Fact]
-    public void ExplicitDefaultFontResource_IsPreservedAlongsideNamedRuns() {
+    public void ExplicitDefaultFontResource_IsOmittedWhenOnlyNamedRunsUseText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
@@ -32,7 +32,7 @@ public class PdfFontFamilyTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("/BaseFont /ConfiguredDefault-Regular", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /ConfiguredDefault-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /VisibleNamed-Regular", raw, StringComparison.Ordinal);
     }
 

@@ -45,16 +45,16 @@ endbfrange
     }
 
     [Fact]
-    public void ToUnicodeCMap_DoesNotCountRejectedEntriesTowardMappingBudget() {
+    public void ToUnicodeCMap_CountsRejectedEntriesTowardMappingBudget() {
         var cmap = new ToUnicodeCMap();
         MethodInfo addMap = typeof(ToUnicodeCMap).GetMethod("AddMap", BindingFlags.NonPublic | BindingFlags.Instance)!;
         FieldInfo processedMappings = typeof(ToUnicodeCMap).GetField("_processedMappings", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         addMap.Invoke(cmap, new object[] { "0102030405", "0041" });
-        Assert.Equal(0, (int)processedMappings.GetValue(cmap)!);
+        Assert.Equal(1, (int)processedMappings.GetValue(cmap)!);
 
         addMap.Invoke(cmap, new object[] { "01", "0042" });
-        Assert.Equal(1, (int)processedMappings.GetValue(cmap)!);
+        Assert.Equal(2, (int)processedMappings.GetValue(cmap)!);
         Assert.Equal("B", cmap.MapBytes(new byte[] { 0x01 }));
     }
 
