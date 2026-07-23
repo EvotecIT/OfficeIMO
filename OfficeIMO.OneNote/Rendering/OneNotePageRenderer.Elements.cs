@@ -287,9 +287,7 @@ public static partial class OneNotePageRenderer {
                     ? element.Layout.Y.Value * PointsPerHalfInch
                     : cursor + Math.Max(pendingSpace, ParagraphSpaceBefore(element));
                 double remainingWidth = Math.Max(1D, width - Math.Max(0D, elementX));
-                double elementWidth = element.Layout?.Width.HasValue == true
-                    ? Math.Max(1D, element.Layout.Width.Value * PointsPerHalfInch)
-                    : remainingWidth;
+                double elementWidth = ResolveEstimatedWidth(element, remainingWidth, _options);
                 double elementHeight = MeasureElementHeight(element, elementWidth);
                 double extentWidth = MeasureElementWidthExtent(element, elementWidth);
                 right = Math.Max(right, elementX + extentWidth);
@@ -335,9 +333,10 @@ public static partial class OneNotePageRenderer {
                 double childY = child.Layout?.Y.HasValue == true
                     ? child.Layout.Y.Value * PointsPerHalfInch
                     : cursor + Math.Max(pendingSpace, ParagraphSpaceBefore(child));
-                double childWidth = child.Layout?.Width.HasValue == true
-                    ? Math.Max(1D, child.Layout.Width.Value * PointsPerHalfInch)
-                    : Math.Max(1D, width - Math.Max(0D, childX));
+                double childWidth = ResolveEstimatedWidth(
+                    child,
+                    Math.Max(1D, width - Math.Max(0D, childX)),
+                    _options);
                 double childHeight = child.Layout?.Height.HasValue == true
                     ? Math.Max(1D, child.Layout.Height.Value * PointsPerHalfInch)
                     : MeasureElementHeight(child, childWidth);

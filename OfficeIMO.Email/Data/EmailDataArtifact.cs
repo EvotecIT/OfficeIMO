@@ -48,8 +48,17 @@ public static class EmailDataArtifact {
 
     private static EmailDataOpenResult OpenDirectory(string path, EmailDataOpenOptions options,
         CancellationToken cancellationToken) {
-        OfflineAddressBookDiscoveryReport discovery = OfflineAddressBookInspector.Inspect(
-            path, options.AddressBook, cancellationToken);
+        OfflineAddressBookDiscoveryReport discovery;
+        try {
+            discovery = OfflineAddressBookInspector.Inspect(
+                path, options.AddressBook, cancellationToken);
+        } catch (OfflineAddressBookLimitExceededException exception) when (
+            string.Equals(
+                exception.LimitName,
+                nameof(OfflineAddressBookReaderOptions.MaxDirectoryEntries),
+                StringComparison.Ordinal)) {
+            return OpenStore(path, options, cancellationToken);
+        }
         if (discovery.ReadableFullDetailsCount > 0)
             return OpenAddressBook(path, options, cancellationToken);
         return OpenStore(path, options, cancellationToken);

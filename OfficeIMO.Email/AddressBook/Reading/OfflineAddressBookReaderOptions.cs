@@ -48,6 +48,40 @@ public sealed class OfflineAddressBookReaderOptions {
         MaxDirectoryEntries = maxDirectoryEntries;
     }
 
+    /// <summary>
+    /// Creates the reader profile exposed before directory-entry discovery was bounded.
+    /// Retained so already-compiled callers continue to bind to the original constructor signature.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public OfflineAddressBookReaderOptions(
+        long maxInputBytes,
+        int maxDiscoveredFiles,
+        int maxDirectoryDepth,
+        int maxMetadataBytes,
+        int maxPropertiesPerTable,
+        int maxRecordBytes,
+        int maxStringBytes,
+        int maxBinaryBytes,
+        int maxValuesPerProperty,
+        long maxDeclaredEntries,
+        int string8CodePage,
+        bool retainRawPropertyBytes)
+        : this(
+            maxInputBytes,
+            maxDiscoveredFiles,
+            maxDirectoryDepth,
+            maxMetadataBytes,
+            maxPropertiesPerTable,
+            maxRecordBytes,
+            maxStringBytes,
+            maxBinaryBytes,
+            maxValuesPerProperty,
+            maxDeclaredEntries,
+            string8CodePage,
+            retainRawPropertyBytes,
+            maxDirectoryEntries: 100_000) {
+    }
+
     /// <summary>Maximum bytes in one OAB component.</summary>
     public long MaxInputBytes { get; }
     /// <summary>Maximum .oab files discovered below a directory root.</summary>

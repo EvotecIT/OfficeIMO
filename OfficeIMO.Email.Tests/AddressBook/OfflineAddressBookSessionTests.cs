@@ -2,6 +2,35 @@ namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class OfflineAddressBookSessionTests {
     [Fact]
+    public void ReaderOptionsRetainTheOriginalConstructorSignature() {
+        Type[] parameterTypes = {
+            typeof(long), typeof(int), typeof(int), typeof(int),
+            typeof(int), typeof(int), typeof(int), typeof(int),
+            typeof(int), typeof(long), typeof(int), typeof(bool)
+        };
+
+        System.Reflection.ConstructorInfo? constructor =
+            typeof(OfflineAddressBookReaderOptions).GetConstructor(parameterTypes);
+
+        Assert.NotNull(constructor);
+        var options = Assert.IsType<OfflineAddressBookReaderOptions>(constructor!.Invoke(new object[] {
+            64L * 1024 * 1024 * 1024,
+            4096,
+            16,
+            8 * 1024 * 1024,
+            4096,
+            16 * 1024 * 1024,
+            4 * 1024 * 1024,
+            16 * 1024 * 1024,
+            100_000,
+            100_000_000L,
+            1252,
+            true
+        }));
+        Assert.Equal(100_000, options.MaxDirectoryEntries);
+    }
+
+    [Fact]
     public void DirectoryDiscoveryEnforcesAggregateEntryBudgetBeforeMaterialization() {
         string root = Path.Combine(Path.GetTempPath(),
             "officeimo-oab-entry-budget-" + Guid.NewGuid().ToString("N"));

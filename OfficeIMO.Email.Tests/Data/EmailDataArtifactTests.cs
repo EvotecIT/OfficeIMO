@@ -1,3 +1,4 @@
+using OfficeIMO.Email.AddressBook;
 using OfficeIMO.Email.AddressBook.Tests;
 using OfficeIMO.Email.Data;
 using OfficeIMO.Email.Store;
@@ -5,6 +6,28 @@ using OfficeIMO.Email.Store;
 namespace OfficeIMO.Email.Data.Tests;
 
 public sealed class EmailDataArtifactTests {
+    [Fact]
+    public void MailboxDispatchUsesTheMailboxBudgetWhenTheOabProbeLimitIsReached() {
+        string directory = TemporaryDirectory();
+        try {
+            for (int index = 0; index < 4; index++) {
+                File.WriteAllText(
+                    Path.Combine(directory, $"message-{index}.eml"),
+                    $"From: sender@example.test\r\nSubject: message {index}\r\n\r\nBody\r\n");
+            }
+            var options = new EmailDataOpenOptions(
+                addressBook: new OfflineAddressBookReaderOptions(maxDirectoryEntries: 3),
+                store: new EmailStoreReaderOptions(maxDirectoryFileCount: 10));
+
+            using EmailDataOpenResult result = EmailDataArtifact.Open(directory, options);
+
+            Assert.Equal(EmailDataArtifactKind.Store, result.Kind);
+            Assert.Equal(4, result.Store!.EnumerateItems().Count());
+        } finally {
+            TryDeleteDirectory(directory);
+        }
+    }
+
     [Fact]
     public void DirectoryWithUnsupportedOabComponentFallsBackToMailboxStore() {
         string directory = TemporaryDirectory();

@@ -13,13 +13,16 @@ namespace OfficeIMO.Excel {
 
             internal FormulaDefinedNameResolutionCatalog(ExcelSheet owner) {
                 _sheets = owner.WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                var worksheetRelationshipIds = new HashSet<string>(
+                    owner.WorkbookPartRoot.Parts
+                        .Where(pair => pair.OpenXmlPart is DocumentFormat.OpenXml.Packaging.WorksheetPart)
+                        .Select(pair => pair.RelationshipId),
+                    StringComparer.Ordinal);
                 for (int index = 0; index < _sheets.Count; index++) {
                     string? sheetName = _sheets[index].Name?.Value;
                     string? relationshipId = _sheets[index].Id?.Value;
                     bool validWorksheet = !string.IsNullOrWhiteSpace(relationshipId)
-                        && owner.WorkbookPartRoot.Parts.Any(pair =>
-                            string.Equals(pair.RelationshipId, relationshipId, StringComparison.Ordinal)
-                            && pair.OpenXmlPart is DocumentFormat.OpenXml.Packaging.WorksheetPart);
+                        && worksheetRelationshipIds.Contains(relationshipId!);
                     if (validWorksheet) _validSheetIndexes.Add(index);
                     if (validWorksheet && !string.IsNullOrWhiteSpace(sheetName) && !_sheetIndexes.ContainsKey(sheetName!)) {
                         _sheetIndexes.Add(sheetName!, index);

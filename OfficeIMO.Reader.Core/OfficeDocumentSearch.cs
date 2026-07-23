@@ -229,9 +229,16 @@ public static partial class OfficeDocumentReadResultExtensions {
             string query,
             StringComparison comparison,
             bool wholeWord,
-        IReadOnlyList<int> sourceOccurrenceIndexes,
-        out bool hasConflictingPageEvidence) {
+            IReadOnlyList<int> sourceOccurrenceIndexes,
+            out bool hasConflictingPageEvidence) {
         hasConflictingPageEvidence = false;
+        if (sourceText.Length > MaximumFallbackCorrelationCharacters) {
+            hasConflictingPageEvidence = true;
+            return null;
+        }
+        if (HasRepeatedCompleteBlockCopies(locations, blockId, sourceText)) {
+            return null;
+        }
         if (!TryGetCaseInsensitiveOccurrenceOrdinals(
                 sourceText,
                 query,
@@ -264,6 +271,11 @@ public static partial class OfficeDocumentReadResultExtensions {
         }
 
         string combinedText = combined.ToString();
+        if (CountCaseInsensitiveOccurrences(combinedText, query) !=
+            CountCaseInsensitiveOccurrences(sourceText, query)) {
+            hasConflictingPageEvidence = true;
+            return null;
+        }
         var fragmentOccurrenceIndexes = new List<int>(stableOrdinals.Count);
         bool foundSelectedOccurrences = CollectOccurrenceIndexesAtOrdinals(
             combinedText,
@@ -271,10 +283,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             stableOrdinals,
             fragmentOccurrenceIndexes);
         if (!foundSelectedOccurrences) {
-            hasConflictingPageEvidence = !HasRepeatedCompleteBlockCopies(
-                locations,
-                blockId,
-                sourceText);
+            hasConflictingPageEvidence = true;
             return null;
         }
 
@@ -377,6 +386,18 @@ public static partial class OfficeDocumentReadResultExtensions {
             totalOccurrenceCount++;
         }
         return false;
+    }
+
+    private static int CountCaseInsensitiveOccurrences(string text, string query) {
+        int count = 0;
+        int searchFrom = 0;
+        while (searchFrom <= text.Length - query.Length) {
+            int index = text.IndexOf(query, searchFrom, StringComparison.OrdinalIgnoreCase);
+            if (index < 0) break;
+            count++;
+            searchFrom = index + Math.Max(1, query.Length);
+        }
+        return count;
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
