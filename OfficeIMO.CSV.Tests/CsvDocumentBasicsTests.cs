@@ -46,6 +46,30 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Lenient_Multiline_Record_Uses_Flexible_Parser_State()
+    {
+        CsvDocument parsed = CsvDocument.Parse(
+            "A,\"a\" \"b\"\nc\"\n",
+            new CsvLoadOptions { HasHeaderRow = false, TrimWhitespace = true });
+
+        CsvRow row = parsed.AsEnumerable().Single();
+        Assert.Equal("A", row.AsString("Column1"));
+        Assert.Equal("a\"b\nc", row.AsString("Column2"));
+    }
+
+    [Fact]
+    public void Lenient_Multiline_TextDelimiter_Record_Uses_Flexible_Parser_State()
+    {
+        CsvDocument parsed = CsvDocument.Parse(
+            "A||\"a\" \"b\"\nc\"\n",
+            new CsvLoadOptions { HasHeaderRow = false, TrimWhitespace = true, DelimiterText = "||" });
+
+        CsvRow row = parsed.AsEnumerable().Single();
+        Assert.Equal("A", row.AsString("Column1"));
+        Assert.Equal("a\"b\nc", row.AsString("Column2"));
+    }
+
+    [Fact]
     public void RoundTrip_ToString_ParsesBack()
     {
         var doc = new CsvDocument()

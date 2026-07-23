@@ -876,8 +876,8 @@ internal static partial class CsvParser
         }
 
         var continuations = new List<CsvLine>();
-        var inQuotes = false;
-        UpdateQuotedRecordState(firstLine, ref inQuotes);
+        var state = new QuotedRecordState();
+        UpdateQuotedRecordState(firstLine, delimiter, options.TrimWhitespace, ref state);
         while (true)
         {
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
@@ -888,8 +888,8 @@ internal static partial class CsvParser
             }
 
             continuations.Add(new CsvLine(next, nextSeparator));
-            UpdateQuotedRecordState(next, ref inQuotes);
-            if (!inQuotes)
+            UpdateQuotedRecordState(next, delimiter, options.TrimWhitespace, ref state);
+            if (!state.InQuotes)
             {
                 lineNumber += continuations.Count;
                 return true;

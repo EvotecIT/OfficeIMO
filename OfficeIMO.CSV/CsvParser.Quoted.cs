@@ -175,9 +175,9 @@ internal static partial class CsvParser
 
         var logicalRecord = new StringBuilder(firstLine);
         var pendingSeparator = firstLineSeparator;
-        var inQuotes = false;
-        UpdateQuotedRecordState(firstLine, ref inQuotes);
-        while (inQuotes)
+        var state = new QuotedRecordState();
+        UpdateQuotedRecordState(firstLine, delimiter, trim, ref state);
+        while (state.InQuotes)
         {
             ThrowIfCancellationRequested(options);
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
@@ -190,7 +190,7 @@ internal static partial class CsvParser
             logicalRecord.Append(pendingSeparator);
             logicalRecord.Append(next);
             lineNumber++;
-            UpdateQuotedRecordState(next, ref inQuotes);
+            UpdateQuotedRecordState(next, delimiter, trim, ref state);
             pendingSeparator = nextSeparator;
         }
 
@@ -216,9 +216,9 @@ internal static partial class CsvParser
 
         var logicalRecord = new StringBuilder(firstLine);
         var pendingSeparator = firstLineSeparator;
-        var inQuotes = false;
-        UpdateQuotedRecordState(firstLine, ref inQuotes);
-        while (inQuotes)
+        var state = new QuotedRecordState();
+        UpdateQuotedRecordState(firstLine, delimiter, trim, ref state);
+        while (state.InQuotes)
         {
             ThrowIfCancellationRequested(options);
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
@@ -231,29 +231,82 @@ internal static partial class CsvParser
             logicalRecord.Append(pendingSeparator);
             logicalRecord.Append(next);
             lineNumber++;
-            UpdateQuotedRecordState(next, ref inQuotes);
+            UpdateQuotedRecordState(next, delimiter, trim, ref state);
             pendingSeparator = nextSeparator;
         }
 
         return TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, fields);
     }
 
-    private static void UpdateQuotedRecordState(string text, ref bool inQuotes)
+    private struct QuotedRecordState
+    {
+        internal bool InQuotes;
+        internal bool AfterClosingQuote;
+    }
+
+    private static void UpdateQuotedRecordState(string text, char delimiter, bool trim, ref QuotedRecordState state) =>
+        UpdateQuotedRecordState(text, delimiter, null, trim, ref state);
+
+    private static void UpdateQuotedRecordState(string text, string delimiter, bool trim, ref QuotedRecordState state) =>
+        UpdateQuotedRecordState(text, default, delimiter, trim, ref state);
+
+    private static void UpdateQuotedRecordState(
+        string text,
+        char delimiter,
+        string? delimiterText,
+        bool trim,
+        ref QuotedRecordState state)
     {
         for (var index = 0; index < text.Length; index++)
         {
-            if (text[index] != '"')
+            var current = text[index];
+            if (state.InQuotes)
+            {
+                if (current != '"')
+                {
+                    continue;
+                }
+
+                if (index + 1 < text.Length && text[index + 1] == '"')
+                {
+                    index++;
+                    continue;
+                }
+
+                state.InQuotes = false;
+                state.AfterClosingQuote = true;
+                continue;
+            }
+
+            var delimiterLength = delimiterText == null ? 1 : delimiterText.Length;
+            var isDelimiter = delimiterText == null
+                ? current == delimiter
+                : StartsWithDelimiter(text, delimiterText, index);
+            if (isDelimiter)
+            {
+                state.AfterClosingQuote = false;
+                index += delimiterLength - 1;
+                continue;
+            }
+
+            if (current == '"')
+            {
+                if (state.AfterClosingQuote)
+                {
+                    state.AfterClosingQuote = false;
+                    continue;
+                }
+
+                state.InQuotes = true;
+                continue;
+            }
+
+            if (state.AfterClosingQuote && trim && char.IsWhiteSpace(current))
             {
                 continue;
             }
 
-            if (inQuotes && index + 1 < text.Length && text[index + 1] == '"')
-            {
-                index++;
-                continue;
-            }
-
-            inQuotes = !inQuotes;
+            state.AfterClosingQuote = false;
         }
     }
 

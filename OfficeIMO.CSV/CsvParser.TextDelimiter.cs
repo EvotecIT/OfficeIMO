@@ -115,9 +115,9 @@ internal static partial class CsvParser
                 {
                     var logicalRecord = new StringBuilder(line);
                     var pendingSeparator = lineSeparator;
-                    var inQuotes = false;
-                    UpdateQuotedRecordState(line, ref inQuotes);
-                    while (inQuotes)
+                    var state = new QuotedRecordState();
+                    UpdateQuotedRecordState(line, delimiter, trim, ref state);
+                    while (state.InQuotes)
                     {
                         ThrowIfCancellationRequested(options);
                         var next = lineReader.ReadLine(out var nextSeparator);
@@ -129,7 +129,7 @@ internal static partial class CsvParser
                         logicalRecord.Append(pendingSeparator);
                         logicalRecord.Append(next);
                         lineNumber++;
-                        UpdateQuotedRecordState(next, ref inQuotes);
+                        UpdateQuotedRecordState(next, delimiter, trim, ref state);
                         pendingSeparator = nextSeparator;
                     }
 
@@ -320,8 +320,8 @@ internal static partial class CsvParser
         }
 
         var continuationCount = 0;
-        var inQuotes = false;
-        UpdateQuotedRecordState(firstLine, ref inQuotes);
+        var state = new QuotedRecordState();
+        UpdateQuotedRecordState(firstLine, delimiter, trim, ref state);
         while (true)
         {
             ThrowIfCancellationRequested(options);
@@ -332,8 +332,8 @@ internal static partial class CsvParser
             }
 
             continuationCount++;
-            UpdateQuotedRecordState(next, ref inQuotes);
-            if (!inQuotes)
+            UpdateQuotedRecordState(next, delimiter, trim, ref state);
+            if (!state.InQuotes)
             {
                 lineNumber += continuationCount;
                 return true;
