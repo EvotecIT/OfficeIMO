@@ -62,13 +62,13 @@ dotnet test OfficeIMO.Email.Tests -c Release --filter FullyQualifiedName~EmailPe
 
 ## Additional benchmark projects
 
-The repository also contains dedicated projects for Markdown, HTML, OneNote, OpenDocument, and drawing workloads:
+The repository also contains dedicated projects for Markdown, HTML, OneNote, OpenDocument, and SVG-to-drawing import workloads:
 
 - [`OfficeIMO.Markdown.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Markdown.Benchmarks)
 - [`OfficeIMO.Html.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Html.Benchmarks)
 - [`OfficeIMO.OneNote.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.OneNote.Benchmarks)
 - [`OfficeIMO.OpenDocument.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.OpenDocument.Benchmarks)
-- [`OfficeIMO.Drawing.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Drawing.Benchmarks)
+- [`OfficeIMO.Drawing.CodeGlyphX.Benchmarks`](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Drawing.CodeGlyphX.Benchmarks)
 
 Run a project with `--help` first. Its command surface is the source of truth for filters and output options.
 

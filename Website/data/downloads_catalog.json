@@ -168,6 +168,19 @@
         {
           "registry": "nuget",
           "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Rtf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Rtf",
+          "title": "OfficeIMO.Rtf",
+          "summary": "Read, create, edit, and preserve RTF with bounded parsing, lossless syntax access, and conversion diagnostics.",
+          "best_for": "RTF authoring, safe ingestion, loss-preserving edits, and explicit-fidelity conversion workflows",
+          "install": "dotnet add package OfficeIMO.Rtf",
+          "product_url": "/products/rtf/",
+          "docs_url": "/docs/rtf/",
+          "accent": "#0d9488"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
           "registry_package": "OfficeIMO.CSV",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.CSV",
           "release_product": "officeimo.csv",
@@ -445,8 +458,8 @@
           "summary": "EPUB extraction primitives for modular ingestion pipelines.",
           "best_for": "low-level EPUB extraction and reader adapter internals",
           "install": "dotnet add package OfficeIMO.Epub",
-          "product_url": "/products/reader/",
-          "docs_url": "/docs/reader/",
+          "product_url": "/products/epub/",
+          "docs_url": "/docs/epub/",
           "accent": "#c084fc"
         },
         {

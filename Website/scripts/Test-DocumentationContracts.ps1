@@ -7,6 +7,25 @@ $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
 
+function Get-PngDimensions([string] $Path) {
+    [byte[]] $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 24 -or
+        $bytes[0] -ne 137 -or $bytes[1] -ne 80 -or
+        $bytes[2] -ne 78 -or $bytes[3] -ne 71) {
+        throw "'$Path' is not a PNG file with an IHDR chunk."
+    }
+
+    $width = ([int] $bytes[16] -shl 24) -bor
+        ([int] $bytes[17] -shl 16) -bor
+        ([int] $bytes[18] -shl 8) -bor
+        [int] $bytes[19]
+    $height = ([int] $bytes[20] -shl 24) -bor
+        ([int] $bytes[21] -shl 16) -bor
+        ([int] $bytes[22] -shl 8) -bor
+        [int] $bytes[23]
+    return [pscustomobject] @{ Width = $width; Height = $height }
+}
+
 $docsRoot = Join-Path $SiteRoot 'content\docs'
 $tocPath = Join-Path $docsRoot 'toc.json'
 $toc = Get-Content -LiteralPath $tocPath -Raw | ConvertFrom-Json
@@ -105,6 +124,12 @@ foreach ($card in @($showcase.cards)) {
             $previewPath = Join-Path (Join-Path $SiteRoot 'static') ([string] $card.image).TrimStart([char[]] '/')
             if (-not (Test-Path -LiteralPath $previewPath -PathType Leaf)) {
                 Add-Failure "Showcase card '$($card.title)' points to missing preview '$($card.image)'."
+            } elseif ([System.IO.Path]::GetExtension($previewPath) -ieq '.png') {
+                $dimensions = Get-PngDimensions $previewPath
+                if ($dimensions.Width -ne [int] $card.image_width -or
+                    $dimensions.Height -ne [int] $card.image_height) {
+                    Add-Failure "Showcase card '$($card.title)' declares $($card.image_width)x$($card.image_height), but its PNG is $($dimensions.Width)x$($dimensions.Height)."
+                }
             }
         }
     } elseif ($card.preview_kind -eq 'reader') {
@@ -179,6 +204,22 @@ foreach ($previewProperty in 'preview_title', 'preview_heading', 'preview_body',
     if ($oneNoteText -notmatch [regex]::Escape([string] $oneNoteCard.$previewProperty)) {
         Add-Failure "OneNote preview field '$previewProperty' is not present in the bundled HTML export."
     }
+}
+
+$downloadsCatalogPath = Join-Path $SiteRoot 'data\downloads_catalog.json'
+$downloadsCatalog = Get-Content -LiteralPath $downloadsCatalogPath -Raw | ConvertFrom-Json
+$downloadPackages = @($downloadsCatalog.sections.packages)
+$rtfDownload = @($downloadPackages | Where-Object registry_package -eq 'OfficeIMO.Rtf') | Select-Object -First 1
+if ($null -eq $rtfDownload -or
+    $rtfDownload.product_url -ne '/products/rtf/' -or
+    $rtfDownload.docs_url -ne '/docs/rtf/') {
+    Add-Failure 'The Downloads catalog must expose OfficeIMO.Rtf with its dedicated product and documentation routes.'
+}
+$epubDownload = @($downloadPackages | Where-Object registry_package -eq 'OfficeIMO.Epub') | Select-Object -First 1
+if ($null -eq $epubDownload -or
+    $epubDownload.product_url -ne '/products/epub/' -or
+    $epubDownload.docs_url -ne '/docs/epub/') {
+    Add-Failure 'The Downloads catalog must route OfficeIMO.Epub to its dedicated product and documentation pages.'
 }
 
 $openTextFormatsPath = Join-Path $docsRoot 'pswriteoffice\open-text-formats\index.md'
