@@ -625,7 +625,7 @@ internal static class TextContentParser {
             OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
             PdfPageClipPath? spanClipPath = clipPath;
-            if ((isHidden || isArtifact) && textOut.Length > 0) {
+            if (textOut.Length > 0) {
                 textOutputBudget.ChargeDecodedText(textOut.Length);
             }
 
@@ -641,7 +641,6 @@ internal static class TextContentParser {
                     AddTextSpan(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                textOutputBudget.ChargeDecodedText(textOut.Length);
                 AddTextSpan(textOut);
             }
 

@@ -87,6 +87,20 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void TextContentParser_ChargesFontDecodedTextReplacedByActualText() {
+        const string content = "/Span << /ActualText (X) >> BDC BT /F1 12 Tf (AB) Tj ET EMC";
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content,
+                static (_, bytes) => Encoding.ASCII.GetString(bytes),
+                static (_, bytes) => bytes.Length * 500D,
+                maxDecodedTextCharacters: 1));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
+    }
+
+    [Fact]
     public void PdfReadPage_BoundsAggregateContentStreamBytes() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R >>",
