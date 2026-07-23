@@ -418,6 +418,28 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void PdfReadDocument_IgnoresUnknownCatalogNameTreeAliasesBeforeTraversal() {
+        string aliases = string.Join(
+            " ",
+            Enumerable.Range(0, 256).Select(static index => "/Unknown" + index + " 6 0 R"));
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 5 0 R " + aliases + " >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [(Target) [3 0 R /Fit]] >>",
+            "<< /Kids [7 0 R] >>",
+            "<< /Names [(Ignored) [3 0 R /Fit]] >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        Assert.Equal("Target", Assert.Single(document.NamedDestinations).Name);
+    }
+
+    [Fact]
     public void PdfReadDocument_BoundsEmbeddedFileNameTreeDepth() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 5 0 R >> >>",
