@@ -18,6 +18,7 @@ public sealed class MailboxDirectorySessionTests {
             MailboxDirectoryStoreSessionBackend.TrimTrailingDirectorySeparators(nested));
     }
 
+#if NET8_0_OR_GREATER
     [Fact]
     public void WindowsMailboxRootAliasUsesItsPhysicalIdentityForSafeReads() {
         if (!OperatingSystem.IsWindows()) return;
@@ -47,6 +48,7 @@ public sealed class MailboxDirectorySessionTests {
             }
         }
     }
+#endif
 
     [Fact]
     public void FilesystemCaseDetectionUsesExistingNamedAncestorsForNumericDirectories() {
