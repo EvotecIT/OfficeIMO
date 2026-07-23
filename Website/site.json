@@ -112,7 +112,9 @@
   "Social": {
     "Enabled": true,
     "SiteName": "OfficeIMO",
-    "Image": "/images/officeimo-social.png",
+    "Image": "/images/officeimo-social-premium.jpg",
+    "ImageWidth": 1200,
+    "ImageHeight": 630,
     "TwitterCard": "summary_large_image",
     "AutoGenerateCards": true,
     "GeneratedCardsPath": "/assets/social/generated",
