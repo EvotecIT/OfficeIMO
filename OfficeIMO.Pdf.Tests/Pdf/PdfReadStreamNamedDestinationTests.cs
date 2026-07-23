@@ -7,6 +7,37 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfReadStreamTests {
     [Fact]
+    public void NameTreeBudgetCountsAnIndirectDictionaryOnce() {
+        var page = new PdfDictionary();
+        page.Items["Type"] = new PdfName("Page");
+
+        var destination = new PdfArray();
+        destination.Items.Add(new PdfReference(3, 0));
+        destination.Items.Add(new PdfName("Fit"));
+
+        var names = new PdfArray();
+        names.Items.Add(new PdfStringObj("Chapter1"));
+        names.Items.Add(destination);
+
+        var tree = new PdfDictionary();
+        tree.Items["Names"] = names;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [3] = new PdfIndirectObject(3, 0, page),
+            [5] = new PdfIndirectObject(5, 0, tree)
+        };
+
+        bool supported = PdfPageExtractor.TryBuildFlattenedNamedDestinationNameTree(
+            objects,
+            new PdfReference(5, 0),
+            copiedPageObjectIds: null,
+            out PdfDictionary flattened,
+            maximumNodes: 1);
+
+        Assert.True(supported);
+        Assert.True(flattened.Items.ContainsKey("Names"));
+    }
+
+    [Fact]
     public void RewriteApis_PreserveDirectNamedDestinationsForCopiedPages() {
         byte[] namedDestinationPdf = BuildNamedDestinationPdf();
         byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationPdf();
