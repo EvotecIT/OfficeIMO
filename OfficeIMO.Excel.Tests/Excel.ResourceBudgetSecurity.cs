@@ -76,6 +76,22 @@ public sealed class ExcelResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void ReadObjectsOfT_RejectsDenseRangesBeyondConfiguredCellBudget() {
+        string path = CreateWorkbookWithRows(2);
+        try {
+            var options = new ExcelReadOptions { MaxRangeCells = 100 };
+            using var reader = ExcelDocumentReader.Open(path, options);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                reader.GetSheet("Data").ReadObjects<BudgetRow>("A1:Z100").ToList());
+
+            Assert.Contains("2600", exception.Message, StringComparison.Ordinal);
+        } finally {
+            DeleteIfExists(path);
+        }
+    }
+
+    [Fact]
     public void ReadUsedRange_RejectsOversizedTableBackedDimensionBeforeAllocation() {
         string path = GetTemporaryWorkbookPath();
         try {

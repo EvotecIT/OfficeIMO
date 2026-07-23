@@ -156,6 +156,24 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void PdfReadDocument_BoundsMalformedPredictorFallbackAttachmentBytes() {
+        var payload = new byte[64];
+        for (int index = 0; index < payload.Length; index++) {
+            payload[index] = (byte)index;
+        }
+        byte[] pdf = BuildFlateEmbeddedFilePdf(payload, malformedPredictor: true);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 64 }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void PdfReadDocument_RejectsAttachmentCountBeforeDecodingNextPayload() {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("first.bin", new byte[] { 1, 2, 3 })
@@ -255,7 +273,7 @@ public class PdfAttachmentExtractorTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildFlateEmbeddedFilePdf(byte[] payload) {
+    private static byte[] BuildFlateEmbeddedFilePdf(byte[] payload, bool malformedPredictor = false) {
         byte[] compressed = DeflateZlib(payload);
         string header = string.Join("\n", new[] {
             "%PDF-1.4",
@@ -278,7 +296,8 @@ public class PdfAttachmentExtractorTests {
             "<< /Type /Filespec /F (data.bin) /UF (data.bin) /Desc (Payload) /AFRelationship /Data /EF << /F 6 0 R /UF 6 0 R >> >>",
             "endobj",
             "6 0 obj",
-            "<< /Type /EmbeddedFile /Subtype /application#2Foctet-stream /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode >>",
+            "<< /Type /EmbeddedFile /Subtype /application#2Foctet-stream /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode" +
+                (malformedPredictor ? " /DecodeParms << /Predictor 12 /Columns 4 >>" : string.Empty) + " >>",
             "stream"
         });
         string footer = string.Join("\n", new[] {

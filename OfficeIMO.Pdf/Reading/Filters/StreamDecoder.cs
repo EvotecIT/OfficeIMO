@@ -39,7 +39,7 @@ internal static class StreamDecoder {
                                 throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
 
-                            return original;
+                            return ReturnWithinDecodedLimit(original, maxOutputBytes);
                         }
 
                         current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
@@ -70,19 +70,19 @@ internal static class StreamDecoder {
                         current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
                         break;
                     default:
-                        return original;
+                        return ReturnWithinDecodedLimit(original, maxOutputBytes);
                 }
                 ThrowIfDecodedLimitExceeded(current.LongLength, maxOutputBytes);
             } catch (PdfReadLimitException) {
                 throw;
             } catch {
-                return original;
+                return ReturnWithinDecodedLimit(original, maxOutputBytes);
             }
 
             filterIndex++;
         }
 
-        return current;
+        return ReturnWithinDecodedLimit(current, maxOutputBytes);
     }
 
     public static bool TryDecode(PdfDictionary dict, byte[] data, int maxOutputBytes, out byte[] decoded, Dictionary<int, PdfIndirectObject>? objects = null) {
@@ -229,6 +229,11 @@ internal static class StreamDecoder {
 
     private static PdfReadLimitException CreateDecodedLimitException(int maximum, long actual) =>
         PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximum, actual);
+
+    private static byte[] ReturnWithinDecodedLimit(byte[] data, int maximum) {
+        ThrowIfDecodedLimitExceeded(data.LongLength, maximum);
+        return data;
+    }
 
     private static bool HasActiveDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
         var decodeParms = GetDecodeParms(dict, filterIndex, objects);
