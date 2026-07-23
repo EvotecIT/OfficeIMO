@@ -6,6 +6,8 @@ namespace OfficeIMO.Excel {
         private const int MaxConditionalRules = 4_096;
         private const int MaxConditionalReferenceCells = 100_000;
         private const int MaxConditionalRuleCellEvaluations = 1_000_000;
+        // Support probing, stop-if-true discovery, final evaluation, and candidate application can each scan the cells.
+        private const int MaxCellPassesPerConditionalRule = 5;
 
         internal static ExcelConditionalVisualState Evaluate(
             ExcelSheet sheet,
@@ -17,22 +19,25 @@ namespace OfficeIMO.Excel {
                 return ExcelConditionalVisualState.Empty;
             }
 
-            if (cells.Count > MaxConditionalRuleCellEvaluations) {
-                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
-                    $"Conditional formatting was omitted because the rendered range contains {cells.Count.ToString(CultureInfo.InvariantCulture)} cells, exceeding the {MaxConditionalRuleCellEvaluations.ToString(CultureInfo.InvariantCulture)} rule-cell image-export work limit.",
-                    sheet.Name + "!" + range));
-                return ExcelConditionalVisualState.Empty;
-            }
-
-            int maximumRules = Math.Min(
-                MaxConditionalRules,
-                MaxConditionalRuleCellEvaluations / cells.Count);
+            long workPerRule = (long)cells.Count * MaxCellPassesPerConditionalRule;
+            long maximumRulesForWork = MaxConditionalRuleCellEvaluations / workPerRule;
+            int maximumRules = maximumRulesForWork > 0
+                ? (int)Math.Min(MaxConditionalRules, maximumRulesForWork)
+                : 1;
             IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
                 range,
                 maximumRules,
                 out bool rulesTruncated);
+            if (maximumRulesForWork == 0) {
+                if (rules.Count > 0 || rulesTruncated) {
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                        OfficeImageExportDiagnosticSeverity.Warning,
+                        ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
+                        $"Conditional formatting was omitted because the rendered range cannot fit one rule within the {MaxConditionalRuleCellEvaluations.ToString(CultureInfo.InvariantCulture)} rule-cell image-export work limit after reserving all evaluator passes.",
+                        sheet.Name + "!" + range));
+                }
+                return ExcelConditionalVisualState.Empty;
+            }
             if (rulesTruncated) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,

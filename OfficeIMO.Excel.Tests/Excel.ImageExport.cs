@@ -879,7 +879,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportDiagnostic diagnostic = Assert.Single(
                 snapshot.Diagnostics,
                 item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded);
-            Assert.Contains("1000-rule", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("200-rule", diagnostic.Message, StringComparison.Ordinal);
             Assert.Equal("RuleCellWork!A1:A1000", diagnostic.Source);
         }
 
@@ -887,6 +887,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportOmitsConditionalRulesWhenNoRuleFitsWorkBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("OversizedRuleCellWork");
+            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
             var cells = new CountingVisualCellList(1_000_001);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
@@ -903,6 +904,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
             Assert.Contains("1000000 rule-cell", diagnostic.Message, StringComparison.Ordinal);
             Assert.Equal("OversizedRuleCellWork!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReservesEveryConditionalEvaluatorPass() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("MultiPassRuleCellWork");
+            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
+            var cells = new CountingVisualCellList(1_000_000);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Contains("all evaluator passes", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("MultiPassRuleCellWork!A1:XFD1048576", diagnostic.Source);
         }
 
         [Fact]
