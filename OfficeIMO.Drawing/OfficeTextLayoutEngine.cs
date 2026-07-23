@@ -10,6 +10,10 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static partial class OfficeTextLayoutEngine {
     private const int DefaultTabSize = 4;
+    private const int MaximumLayoutTextCharacters = 100_000;
+    private const int MaximumLayoutLines = 4_096;
+    private const int MaximumLayoutTextRuns = 4_096;
+    private const int MaximumExhaustiveEllipsisElements = 256;
 
     /// <summary>
     /// Wraps text into measured lines using the supplied measurement delegate.
@@ -20,12 +24,24 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
     /// <param name="paragraphIndent">Optional first-line and continuation-line offsets applied while wrapping.</param>
     /// <returns>Measured wrapped lines. Empty input returns one empty line.</returns>
-    public static IReadOnlyList<OfficeTextLine> WrapLines(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent? paragraphIndent = null) {
+    public static IReadOnlyList<OfficeTextLine> WrapLines(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent? paragraphIndent = null) =>
+        WrapLines(text, fontSize, maxWidth, measure, paragraphIndent, out _);
+
+    private static IReadOnlyList<OfficeTextLine> WrapLines(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        Func<string?, double, double> measure,
+        OfficeTextParagraphIndent? paragraphIndent,
+        out bool clipped) {
         if (measure == null) {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = ExpandTabs(text ?? string.Empty);
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string expanded = ExpandTabs(bounded);
+        string value = LimitLayoutText(expanded, out bool expandedTruncated);
+        clipped = inputTruncated || expandedTruncated;
         double width = Math.Max(0D, maxWidth);
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         string[] sourceLines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
@@ -34,6 +50,11 @@ public static partial class OfficeTextLayoutEngine {
             string line = sourceLine;
             bool firstVisualLine = true;
             if (line.Length == 0 || IsWhitespaceRun(line)) {
+                if (output.Count >= MaximumLayoutLines) {
+                    clipped = true;
+                    return output;
+                }
+
                 output.Add(new OfficeTextLine(string.Empty, 0D, ResolveLineOffset(indent, firstVisualLine)));
                 continue;
             }
@@ -62,12 +83,22 @@ public static partial class OfficeTextLayoutEngine {
                 if (Measure(token.Text, fontSize, measure) > currentWidth) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
                     if (emitted.Length > 0) {
+                        if (output.Count >= MaximumLayoutLines) {
+                            clipped = true;
+                            return output;
+                        }
+
                         output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
                         firstVisualLine = false;
                     }
 
                     current = string.Empty;
                     foreach (OfficeTextLine part in BreakWord(token.Text, fontSize, width, measure, indent, firstVisualLine)) {
+                        if (output.Count >= MaximumLayoutLines) {
+                            clipped = true;
+                            return output;
+                        }
+
                         output.Add(part);
                         firstVisualLine = false;
                     }
@@ -79,6 +110,11 @@ public static partial class OfficeTextLayoutEngine {
                 if (current.Length > 0 && Measure(candidate, fontSize, measure) > currentWidth) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
                     if (emitted.Length > 0) {
+                        if (output.Count >= MaximumLayoutLines) {
+                            clipped = true;
+                            return output;
+                        }
+
                         output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
                         firstVisualLine = false;
                     }
@@ -92,6 +128,11 @@ public static partial class OfficeTextLayoutEngine {
             if (current.Length > 0) {
                 string emitted = TrimTrailingSoftWrapWhitespace(current);
                 if (emitted.Length > 0) {
+                    if (output.Count >= MaximumLayoutLines) {
+                        clipped = true;
+                        return output;
+                    }
+
                     output.Add(CreateMeasuredLine(emitted, fontSize, measure, ResolveLineOffset(indent, firstVisualLine)));
                 }
             }
@@ -139,6 +180,18 @@ public static partial class OfficeTextLayoutEngine {
         return end == text.Length ? text : text.Substring(0, end);
     }
 
+    private static string LimitLayoutText(string text) {
+        return LimitLayoutText(text, out _);
+    }
+
+    private static string LimitLayoutText(string text, out bool truncated) {
+        truncated = text.Length > MaximumLayoutTextCharacters;
+        if (!truncated) return text;
+        int length = MaximumLayoutTextCharacters;
+        if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
+        return text.Substring(0, length);
+    }
+
     /// <summary>
     /// Gets the widest measured line.
     /// </summary>
@@ -171,21 +224,19 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = ExpandTabs(text ?? string.Empty);
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
+        bool limitTruncated = inputTruncated || expandedTruncated;
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
-            clipped = false;
+            clipped = limitTruncated;
             return new OfficeTextLine(value, measured);
         }
 
         clipped = true;
         const string ellipsis = "...";
-        while (value.Length > 0 && Measure(value + ellipsis, fontSize, measure) > width) {
-            value = OfficeTextElements.RemoveLast(value);
-        }
-
-        value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : value + ellipsis;
+        value = FindFittingTextElementSlice(value, fontSize, width, measure, trimStart: false, ellipsis);
         return new OfficeTextLine(value, Measure(value, fontSize, measure));
     }
 
@@ -203,22 +254,94 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = ExpandTabs(text ?? string.Empty);
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
+        bool limitTruncated = inputTruncated || expandedTruncated;
         double width = Math.Max(0D, maxWidth);
         double measured = Measure(value, fontSize, measure);
         if (measured <= width) {
-            clipped = false;
+            clipped = limitTruncated;
             return new OfficeTextLine(value, measured);
         }
 
         clipped = true;
         const string ellipsis = "...";
-        while (value.Length > 0 && Measure(ellipsis + value, fontSize, measure) > width) {
-            value = OfficeTextElements.RemoveFirst(value);
+        value = FindFittingTextElementSlice(value, fontSize, width, measure, trimStart: true, ellipsis);
+        return new OfficeTextLine(value, Measure(value, fontSize, measure));
+    }
+
+    private static string FindFittingTextElementSlice(
+        string value,
+        double fontSize,
+        double width,
+        Func<string?, double, double> measure,
+        bool trimStart,
+        string ellipsis) {
+        if (Measure(ellipsis, fontSize, measure) > width) return string.Empty;
+        int[] starts = StringInfo.ParseCombiningCharacters(value);
+        double MeasureCandidate(int elementCount) =>
+            Measure(CreateEllipsizedSlice(value, starts, elementCount, trimStart, ellipsis), fontSize, measure);
+
+        // Measurement delegates may be non-monotonic because of kerning or caller-defined
+        // behavior. Preserve the legacy largest-fitting result for ordinary line lengths,
+        // while keeping adversarial long-line trimming logarithmic.
+        if (starts.Length <= MaximumExhaustiveEllipsisElements) {
+            for (int elementCount = starts.Length; elementCount >= 0; elementCount--) {
+                if (MeasureCandidate(elementCount) <= width) {
+                    return CreateEllipsizedSlice(value, starts, elementCount, trimStart, ellipsis);
+                }
+            }
+
+            return ellipsis;
         }
 
-        value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : ellipsis + value;
-        return new OfficeTextLine(value, Measure(value, fontSize, measure));
+        int low = 0;
+        int high = starts.Length;
+        while (low < high) {
+            int middle = low + ((high - low + 1) / 2);
+            if (MeasureCandidate(middle) <= width) {
+                low = middle;
+            } else {
+                high = middle - 1;
+            }
+        }
+
+        const int monotonicityVerificationElements = 8;
+        bool nonMonotonic = false;
+        double previousWidth = MeasureCandidate(low);
+        int verificationEnd = Math.Min(starts.Length, low + monotonicityVerificationElements);
+        for (int elementCount = low + 1; elementCount <= verificationEnd; elementCount++) {
+            double candidateWidth = MeasureCandidate(elementCount);
+            if (candidateWidth < previousWidth) {
+                nonMonotonic = true;
+            }
+            if (candidateWidth <= width) {
+                low = elementCount;
+            }
+            previousWidth = candidateWidth;
+        }
+
+        if (nonMonotonic) {
+            low = 0;
+            for (int elementCount = 0; elementCount <= starts.Length; elementCount++) {
+                if (MeasureCandidate(elementCount) <= width) {
+                    low = elementCount;
+                }
+            }
+        }
+
+        return CreateEllipsizedSlice(value, starts, low, trimStart, ellipsis);
+    }
+
+    private static string CreateEllipsizedSlice(string value, int[] starts, int elementCount, bool trimStart, string ellipsis) {
+        if (elementCount <= 0) return ellipsis;
+        if (trimStart) {
+            int start = elementCount >= starts.Length ? 0 : starts[starts.Length - elementCount];
+            return ellipsis + value.Substring(start);
+        }
+
+        int length = elementCount >= starts.Length ? value.Length : starts[elementCount];
+        return value.Substring(0, length) + ellipsis;
     }
 
     /// <summary>
@@ -375,7 +498,10 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string layoutText = ExpandTabs(forceSingleLine ? NormalizeSingleLineText(text ?? string.Empty) : text ?? string.Empty);
+        string sourceText = text ?? string.Empty;
+        string boundedText = LimitLayoutText(sourceText);
+        string expandedText = ExpandTabs(forceSingleLine ? NormalizeSingleLineText(boundedText) : boundedText);
+        string layoutText = LimitLayoutText(expandedText);
         bool hasHardBreaks = !forceSingleLine && (layoutText.IndexOf('\n') >= 0 || layoutText.IndexOf('\r') >= 0);
         bool effectiveWrap = !forceSingleLine && (wrap || hasHardBreaks);
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
@@ -388,17 +514,19 @@ public static partial class OfficeTextLayoutEngine {
             : resolvedFontSize;
         double lineHeight = Math.Max(1D, Math.Ceiling(layoutFontSize * lineFactor));
         IReadOnlyList<OfficeTextLine> lines;
-        bool clipped = false;
+        bool clipped = boundedText.Length < sourceText.Length || layoutText.Length < expandedText.Length;
 
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         if (effectiveWrap) {
-            lines = WrapLines(layoutText, layoutFontSize, width, measure, indent);
+            lines = WrapLines(layoutText, layoutFontSize, width, measure, indent, out bool lineLimitClipped);
+            clipped |= lineLimitClipped;
         } else {
             string normalized = layoutText.Replace("\r\n", "\n").Replace('\r', '\n');
-            string firstLine = normalized.Split('\n')[0];
+            int lineBreak = normalized.IndexOf('\n');
+            string firstLine = lineBreak >= 0 ? normalized.Substring(0, lineBreak) : normalized;
             double offset = ResolveLineOffset(indent, firstVisualLine: true);
             OfficeTextLine line = ResolveOverflowLine(firstLine, layoutFontSize, Math.Max(0D, width - offset), measure, overflowBehavior, out bool lineClipped, offset);
-            clipped = lineClipped;
+            clipped |= lineClipped;
             lines = new[] { line };
         }
 
@@ -437,13 +565,21 @@ public static partial class OfficeTextLayoutEngine {
         double height = NormalizeNonNegative(maxHeight);
         OfficeTextParagraphIndent indent = paragraphIndent ?? OfficeTextParagraphIndent.Empty;
         OfficeTextBlockLayout layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
-        double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(layout.Height, 1D)));
+        double requiredHeight = Math.Max(layout.Height, layout.Lines.Count * layout.LineHeight);
+        double scaleDown = Math.Min(1D, Math.Min(width / Math.Max(layout.Width, 1D), height / Math.Max(requiredHeight, 1D)));
         if (scaleDown < 0.98D) {
             resolvedFontSize = Math.Max(minFontSize, resolvedFontSize * Math.Max(0D, scaleDown));
             layout = CreateBlockLayout(text, resolvedFontSize, width, lineFactor, measure, indent);
         }
 
-        return layout;
+        return ClipTextBlockToHeight(
+            layout.Lines,
+            layout.FontSize,
+            layout.LineHeight,
+            width,
+            height,
+            measure,
+            layout.Clipped);
     }
 
     /// <summary>
@@ -539,42 +675,23 @@ public static partial class OfficeTextLayoutEngine {
         int[] elementStarts = StringInfo.ParseCombiningCharacters(word);
         IReadOnlyList<int> preferredBreaks = OfficeTextLineBreaks.GetBreakPositions(word);
         int position = 0;
-        while (position < word.Length) {
+        int elementIndex = 0;
+        while (position < word.Length && elementIndex < elementStarts.Length) {
             double offset = ResolveLineOffset(paragraphIndent, firstVisualLine);
             double width = Math.Max(0D, maxWidth - offset);
-            int fittingPreferred = -1;
-            int fittingFallback = -1;
-            int firstBoundary = -1;
-
-            foreach (int boundary in EnumerateTextElementEnds(elementStarts, word.Length, position)) {
-                if (firstBoundary < 0) {
-                    firstBoundary = boundary;
-                }
-
-                string candidate = word.Substring(position, boundary - position);
-                if (Measure(candidate, fontSize, measure) > width) {
-                    if (fittingFallback < 0) {
-                        fittingFallback = boundary;
-                    }
-                    break;
-                }
-
-                fittingFallback = boundary;
-                if (ContainsBreakPosition(preferredBreaks, boundary)) {
-                    fittingPreferred = boundary;
-                }
-
-                if (boundary == word.Length) {
-                    fittingPreferred = boundary;
-                    break;
-                }
-            }
-
-            int selected = fittingPreferred > position
-                ? fittingPreferred
-                : fittingFallback > position
-                    ? fittingFallback
-                    : firstBoundary;
+            int fittingCount = FindFittingElementCount(
+                word,
+                elementStarts,
+                elementIndex,
+                position,
+                fontSize,
+                width,
+                measure);
+            int fittingBoundary = GetTextElementEnd(elementStarts, word.Length, elementIndex + fittingCount - 1);
+            int fittingPreferred = FindLastBreakPosition(preferredBreaks, position, fittingBoundary);
+            int selected = fittingBoundary >= word.Length
+                ? fittingBoundary
+                : fittingPreferred > position ? fittingPreferred : fittingBoundary;
             if (selected <= position) {
                 break;
             }
@@ -582,31 +699,69 @@ public static partial class OfficeTextLayoutEngine {
             string part = word.Substring(position, selected - position);
             yield return new OfficeTextLine(part, Measure(part, fontSize, measure), offset);
             position = selected;
+            if (selected >= word.Length) {
+                elementIndex = elementStarts.Length;
+            } else {
+                int nextIndex = Array.BinarySearch(elementStarts, selected);
+                elementIndex = nextIndex >= 0 ? nextIndex : ~nextIndex;
+            }
             firstVisualLine = false;
         }
     }
 
-    private static IEnumerable<int> EnumerateTextElementEnds(int[] starts, int textLength, int position) {
-        for (int index = 0; index < starts.Length; index++) {
-            if (starts[index] > position) {
-                yield return starts[index];
+    private static int FindFittingElementCount(
+        string word,
+        int[] elementStarts,
+        int elementIndex,
+        int position,
+        double fontSize,
+        double width,
+        Func<string?, double, double> measure) {
+        int remaining = elementStarts.Length - elementIndex;
+        int lower = 0;
+        int upper = 1;
+        while (upper <= remaining) {
+            int boundary = GetTextElementEnd(elementStarts, word.Length, elementIndex + upper - 1);
+            if (Measure(word.Substring(position, boundary - position), fontSize, measure) > width) break;
+            lower = upper;
+            if (upper == remaining) return upper;
+            upper = Math.Min(remaining, checked(upper * 2));
+        }
+
+        if (lower == 0 && upper == 1) return 1;
+        int high = Math.Min(remaining, upper);
+        while (lower + 1 < high) {
+            int middle = lower + ((high - lower) / 2);
+            int boundary = GetTextElementEnd(elementStarts, word.Length, elementIndex + middle - 1);
+            if (Measure(word.Substring(position, boundary - position), fontSize, measure) <= width) {
+                lower = middle;
+            } else {
+                high = middle;
             }
         }
 
-        yield return textLength;
+        return Math.Max(1, lower);
     }
 
-    private static bool ContainsBreakPosition(IReadOnlyList<int> positions, int value) {
-        for (int index = 0; index < positions.Count; index++) {
-            if (positions[index] == value) {
-                return true;
-            }
-            if (positions[index] > value) {
-                return false;
+    private static int GetTextElementEnd(int[] starts, int textLength, int elementIndex) =>
+        elementIndex + 1 < starts.Length ? starts[elementIndex + 1] : textLength;
+
+    private static int FindLastBreakPosition(IReadOnlyList<int> positions, int exclusiveMinimum, int inclusiveMaximum) {
+        int result = -1;
+        int low = 0;
+        int high = positions.Count - 1;
+        while (low <= high) {
+            int middle = low + ((high - low) / 2);
+            int value = positions[middle];
+            if (value <= inclusiveMaximum) {
+                if (value > exclusiveMinimum) result = value;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
             }
         }
 
-        return false;
+        return result;
     }
 
     private static OfficeTextLine ResolveOverflowLine(
@@ -692,11 +847,11 @@ public static partial class OfficeTextLayoutEngine {
         firstVisualLine ? paragraphIndent.FirstLineOffset : paragraphIndent.ContinuationLineOffset;
 
     private static OfficeTextBlockLayout CreateBlockLayout(string? text, double fontSize, double maxWidth, double lineHeightFactor, Func<string?, double, double> measure, OfficeTextParagraphIndent paragraphIndent) {
-        IReadOnlyList<OfficeTextLine> lines = WrapLines(text, fontSize, maxWidth, measure, paragraphIndent);
+        IReadOnlyList<OfficeTextLine> lines = WrapLines(text, fontSize, maxWidth, measure, paragraphIndent, out bool clipped);
         double lineHeight = fontSize * lineHeightFactor;
         double width = MeasureMaxLineWidth(lines);
         double height = Math.Max(fontSize, ((lines.Count - 1) * lineHeight) + fontSize);
-        return new OfficeTextBlockLayout(lines, fontSize, lineHeight, width, height);
+        return new OfficeTextBlockLayout(lines, fontSize, lineHeight, width, height, clipped);
     }
 
     private static double NormalizePositive(double value, double fallback) =>

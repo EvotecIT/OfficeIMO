@@ -3578,7 +3578,7 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeImagePdfCompatibilityPreservesMalformedPngDiagnostics() {
         byte[] invalidCrc = OnePixelPng.ToArray();
-        invalidCrc[^1] ^= 0x01;
+        invalidCrc[invalidCrc.Length - 1] ^= 0x01;
 
         bool valid = OfficeImagePdfCompatibility.TryValidate(
             invalidCrc,

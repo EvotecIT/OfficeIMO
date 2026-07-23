@@ -16,11 +16,13 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
             ExcelWorksheetImageExportOptions options,
+            HeaderFooterSnapshot? headerFooterSnapshot,
             int pageNumber,
             int pageCount,
             ref ExcelRasterRenderState rasterState) {
             DateTime headerFooterDateTime = options.HeaderFooterDateTime ?? DateTime.Now;
-            if (!TryCreateHeaderFooterTextChrome(pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextChrome chrome)) {
+            if (headerFooterSnapshot == null ||
+                !TryCreateHeaderFooterTextChrome(headerFooterSnapshot, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextChrome chrome)) {
                 return content;
             }
 
@@ -259,9 +261,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {
+        private bool TryCreateHeaderFooterTextChrome(HeaderFooterSnapshot snapshot, int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {
             chrome = default;
-            HeaderFooterSnapshot snapshot = GetHeaderFooter();
 
             HeaderFooterVariantText selected = SelectHeaderFooterVariantText(snapshot, pageNumber);
             if (!TryCreateResolvedHeaderFooterTextChrome(

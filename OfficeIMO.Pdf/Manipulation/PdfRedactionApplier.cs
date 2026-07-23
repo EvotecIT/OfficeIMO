@@ -549,6 +549,46 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
+    internal static void ReplacePageContentReferenceAtIndex(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        PdfObject contents,
+        int contentIndex,
+        PdfReference replacement) {
+        if (contentIndex < 0) {
+            return;
+        }
+
+        if (contents is PdfReference reference &&
+            PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+            indirect.Value is PdfArray referencedArray) {
+            contents = CloneArray(referencedArray);
+            page.Items["Contents"] = contents;
+        }
+
+        if (contents is PdfArray array) {
+            int referenceIndex = 0;
+            for (int itemIndex = 0; itemIndex < array.Items.Count; itemIndex++) {
+                if (array.Items[itemIndex] is not PdfReference) {
+                    continue;
+                }
+
+                if (referenceIndex == contentIndex) {
+                    array.Items[itemIndex] = replacement;
+                    return;
+                }
+
+                referenceIndex++;
+            }
+
+            return;
+        }
+
+        if (contentIndex == 0 && contents is PdfReference) {
+            page.Items["Contents"] = replacement;
+        }
+    }
+
     private static void IsolateExistingPageContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary pageDictionary, ref int nextObjectNumber) {
         if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
             return;
@@ -642,6 +682,8 @@ internal static partial class PdfRedactionApplier {
 
     private static PdfObject CloneObject(PdfObject value) {
         switch (value) {
+            case PdfReference reference:
+                return new PdfReference(reference.ObjectNumber, reference.Generation);
             case PdfDictionary dictionary:
                 return CloneDictionary(dictionary);
             case PdfArray array:

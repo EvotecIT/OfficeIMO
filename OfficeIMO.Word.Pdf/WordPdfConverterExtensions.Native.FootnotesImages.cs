@@ -14,13 +14,17 @@ namespace OfficeIMO.Word.Pdf {
         private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, Dictionary<long, int> footnoteNumbersById) {
             var footnotes = new List<PdfFootnote>();
             foreach (WordElement element in elements) {
-                CollectNativeFootnotes(element, footnotes, footnoteNumbersById);
+                CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0);
             }
 
             return footnotes;
         }
 
-        private static void CollectNativeFootnotes(WordElement element, List<PdfFootnote> footnotes, Dictionary<long, int> footnoteNumbersById) {
+        private static void CollectNativeFootnotes(
+            WordElement element,
+            List<PdfFootnote> footnotes,
+            Dictionary<long, int> footnoteNumbersById,
+            int structuredDocumentTagDepth) {
             switch (element) {
                 case WordFootNote footNote:
                     AddNativeFootnote(footNote, footnotes, footnoteNumbersById);
@@ -56,28 +60,37 @@ namespace OfficeIMO.Word.Pdf {
                     foreach (WordTableRow row in table.Rows) {
                         foreach (WordTableCell cell in row.Cells) {
                             foreach (WordParagraph paragraph in cell.Paragraphs) {
-                                CollectNativeFootnotes(paragraph, footnotes, footnoteNumbersById);
+                                CollectNativeFootnotes(paragraph, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
                             }
 
                             foreach (WordTable nested in cell.NestedTables) {
-                                CollectNativeFootnotes(nested, footnotes, footnoteNumbersById);
+                                CollectNativeFootnotes(nested, footnotes, footnoteNumbersById, structuredDocumentTagDepth);
                             }
                         }
                     }
 
                     break;
                 case WordCoverPage coverPage:
+                    EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
                     foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
-                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById);
+                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1);
                     }
 
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
+                    EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
                     foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
-                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById);
+                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1);
                     }
 
                     break;
+            }
+        }
+
+        private static void EnsureNativeStructuredDocumentTagDepth(int depth) {
+            if (depth >= MaximumNativeStructuredDocumentTagDepth) {
+                throw new InvalidDataException(
+                    $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
             }
         }
 

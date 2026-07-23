@@ -278,6 +278,20 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void MarkdownChartJson_RejectsExcessiveDepthAndValueCounts() {
+        string deeplyNested = new string('[', MarkdownPdfJsonValue.MaximumNestingDepth + 2) +
+            "0" +
+            new string(']', MarkdownPdfJsonValue.MaximumNestingDepth + 2);
+        Assert.Throws<FormatException>(() => MarkdownPdfJsonValue.Parse(deeplyNested));
+
+        string tooManyValues = "[" + string.Join(",", Enumerable.Repeat("0", MarkdownPdfJsonValue.MaximumValueNodes + 1)) + "]";
+        Assert.Throws<FormatException>(() => MarkdownPdfJsonValue.Parse(tooManyValues));
+
+        string tooLarge = new string(' ', MarkdownPdfJsonValue.MaximumInputCharacters + 1);
+        Assert.Throws<FormatException>(() => MarkdownPdfJsonValue.Parse(tooLarge));
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFenceInsideCallout_RendersOutsidePanelWithoutThrowing() {
         var callout = new CalloutBlock("note", "Visual", new IMarkdownBlock[] {
             new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """

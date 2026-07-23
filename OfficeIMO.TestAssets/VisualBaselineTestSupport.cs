@@ -219,8 +219,12 @@ namespace OfficeIMO.Tests {
         }
 
         internal static string CreateArtifactDirectory(string familyName) {
+            string? configuredRoot = Environment.GetEnvironmentVariable("OFFICEIMO_VISUAL_BASELINE_ARTIFACTS_DIRECTORY");
+            string root = string.IsNullOrWhiteSpace(configuredRoot)
+                ? Path.GetTempPath()
+                : configuredRoot;
             string directory = Path.Combine(
-                Path.GetTempPath(),
+                root,
                 familyName,
                 DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);

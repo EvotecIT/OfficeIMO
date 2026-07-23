@@ -198,8 +198,9 @@ public sealed partial class OfficeRasterCanvas {
             double patternRemaining = inDash
                 ? dashLength - patternPosition
                 : cycle - patternPosition;
-            if (patternRemaining <= 0D) {
-                patternRemaining = cycle;
+            if (patternRemaining <= MinimumDashSegmentAdvance) {
+                patternPosition = inDash && gapLength > 0D ? dashLength : 0D;
+                continue;
             }
 
             double next = Math.Min(length, position + patternRemaining);
@@ -276,8 +277,13 @@ public sealed partial class OfficeRasterCanvas {
             }
 
             double segmentRemaining = dashPattern[patternIndex] - patternOffset;
-            if (segmentRemaining <= 0D) {
-                segmentRemaining = cycle;
+            if (segmentRemaining <= MinimumDashSegmentAdvance) {
+                double nextBoundary = 0D;
+                for (int index = 0; index <= patternIndex; index++) {
+                    nextBoundary = SaturatingDashCycle(nextBoundary, dashPattern[index]);
+                }
+                patternPosition = nextBoundary >= cycle - MinimumDashSegmentAdvance ? 0D : nextBoundary;
+                continue;
             }
 
             double next = Math.Min(length, position + segmentRemaining);

@@ -11,6 +11,9 @@ internal enum MarkdownPdfJsonValueKind {
 }
 
 internal sealed class MarkdownPdfJsonValue {
+    internal const int MaximumInputCharacters = 1_000_000;
+    internal const int MaximumNestingDepth = 64;
+    internal const int MaximumValueNodes = 100_000;
     private readonly Dictionary<string, MarkdownPdfJsonValue>? _objectValues;
     private readonly List<MarkdownPdfJsonValue>? _arrayValues;
 
@@ -118,14 +121,18 @@ internal sealed class MarkdownPdfJsonValue {
     private sealed class Parser {
         private readonly string _text;
         private int _position;
+        private int _valueNodes;
 
         public Parser(string? text) {
             _text = text ?? string.Empty;
+            if (_text.Length > MaximumInputCharacters) {
+                Throw("Chart JSON exceeds the maximum input size.");
+            }
         }
 
         public MarkdownPdfJsonValue ParseRoot() {
             SkipWhiteSpace();
-            MarkdownPdfJsonValue value = ParseValue();
+            MarkdownPdfJsonValue value = ParseValue(0);
             SkipWhiteSpace();
             if (_position != _text.Length) {
                 Throw("Unexpected trailing JSON content.");
@@ -134,8 +141,10 @@ internal sealed class MarkdownPdfJsonValue {
             return value;
         }
 
-        private MarkdownPdfJsonValue ParseValue() {
+        private MarkdownPdfJsonValue ParseValue(int depth) {
             SkipWhiteSpace();
+            if (depth > MaximumNestingDepth) Throw("Chart JSON exceeds the maximum nesting depth.");
+            if (++_valueNodes > MaximumValueNodes) Throw("Chart JSON exceeds the maximum value count.");
             if (_position >= _text.Length) {
                 Throw("Unexpected end of JSON.");
             }
@@ -143,9 +152,9 @@ internal sealed class MarkdownPdfJsonValue {
             char ch = _text[_position];
             switch (ch) {
                 case '{':
-                    return ParseObject();
+                    return ParseObject(depth);
                 case '[':
-                    return ParseArray();
+                    return ParseArray(depth);
                 case '"':
                     return String(ParseString());
                 case 't':
@@ -167,7 +176,7 @@ internal sealed class MarkdownPdfJsonValue {
             }
         }
 
-        private MarkdownPdfJsonValue ParseObject() {
+        private MarkdownPdfJsonValue ParseObject(int depth) {
             Expect('{');
             var values = new Dictionary<string, MarkdownPdfJsonValue>(StringComparer.OrdinalIgnoreCase);
             SkipWhiteSpace();
@@ -184,7 +193,7 @@ internal sealed class MarkdownPdfJsonValue {
                 string propertyName = ParseString();
                 SkipWhiteSpace();
                 Expect(':');
-                values[propertyName] = ParseValue();
+                values[propertyName] = ParseValue(depth + 1);
                 SkipWhiteSpace();
                 if (TryConsume('}')) {
                     return Object(values);
@@ -194,7 +203,7 @@ internal sealed class MarkdownPdfJsonValue {
             }
         }
 
-        private MarkdownPdfJsonValue ParseArray() {
+        private MarkdownPdfJsonValue ParseArray(int depth) {
             Expect('[');
             var values = new List<MarkdownPdfJsonValue>();
             SkipWhiteSpace();
@@ -203,7 +212,7 @@ internal sealed class MarkdownPdfJsonValue {
             }
 
             while (true) {
-                values.Add(ParseValue());
+                values.Add(ParseValue(depth + 1));
                 SkipWhiteSpace();
                 if (TryConsume(']')) {
                     return Array(values);

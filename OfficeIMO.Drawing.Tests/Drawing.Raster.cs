@@ -715,6 +715,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_KeepsFittingRemainderTogetherAfterPreferredBreak() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("prefix-foo-bar", 1D, 7D, Measure);
+
+            Assert.Equal(new[] { "prefix-", "foo-bar" }, lines.Select(line => line.Text).ToArray());
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_BreaksLongWordsAtTextElementBoundaries() {
             static double Measure(string? value, double size) => string.IsNullOrEmpty(value) ? 0D : value!.Length * size;
             string eAcute = "e\u0301";
@@ -744,6 +753,20 @@ namespace OfficeIMO.Tests {
             Assert.True(wasStartClipped);
             Assert.Equal("...FG", startClipped.Text);
             Assert.Equal(5D, startClipped.Width);
+        }
+
+        [Fact]
+        public void OfficeTextLayoutEngine_ReportsConfiguredTextLimitAsClipping() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+            string oversized = new string('A', 100_001);
+
+            OfficeTextLine endTrimmed = OfficeTextLayoutEngine.TrimLineToWidth(oversized, 1D, 200_000D, Measure, out bool endClipped);
+            OfficeTextLine startTrimmed = OfficeTextLayoutEngine.TrimLineStartToWidth(oversized, 1D, 200_000D, Measure, out bool startClipped);
+
+            Assert.True(endClipped);
+            Assert.True(startClipped);
+            Assert.Equal(100_000, endTrimmed.Text.Length);
+            Assert.Equal(100_000, startTrimmed.Text.Length);
         }
 
         [Fact]
@@ -1163,6 +1186,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_CapsRichTextLinesBeforeHeightClipping() {
+            string text = string.Join("\n", Enumerable.Repeat("A", 5_000));
+
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] { new OfficeRichTextRun(text, 1D, OfficeColor.Black) },
+                10D,
+                100_000D,
+                lineHeightFactor: 1D,
+                static (value, size, _) => (value?.Length ?? 0) * size,
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: 1D,
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+            Assert.True(layout.Clipped);
+            Assert.Equal(4_096, layout.Lines.Count);
+        }
+
+        [Fact]
         public void OfficeTextPlacement_ResolvesSharedHorizontalAndVerticalCoordinates() {
             Assert.Equal(10D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Left));
             Assert.Equal(60D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Center));
@@ -1409,6 +1451,44 @@ namespace OfficeIMO.Tests {
             Assert.True(image.GetPixel(3, 5).A > 0);
             Assert.Equal(0, image.GetPixel(8, 5).A);
             Assert.True(image.GetPixel(12, 5).A > 0);
+        }
+
+        [Fact]
+        public void OfficeRasterCanvas_LongDashedLinesReachTheVisibleEndpoint() {
+            OfficeRasterImage dashed = new OfficeRasterImage(4000, 8, OfficeColor.Transparent);
+            OfficeRasterImage patterned = new OfficeRasterImage(4000, 8, OfficeColor.Transparent);
+
+            new OfficeRasterCanvas(dashed).DrawDashedLine(
+                0D, 3D, 3999D, 3D, OfficeColor.Black, 2D, dashLength: 23.04D, gapLength: 11.52D);
+            new OfficeRasterCanvas(patterned).DrawPatternedLine(
+                0D, 4D, 3999D, 4D, OfficeColor.Black, 2D, new[] { 23.04D, 11.52D });
+
+            Assert.Contains(Enumerable.Range(3900, 100), x => dashed.GetPixel(x, 3).A > 0);
+            Assert.Contains(Enumerable.Range(3900, 100), x => patterned.GetPixel(x, 4).A > 0);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task OfficeRasterCanvas_ZeroGapDashedEllipseAdvancesPastNearBoundaryPhase() {
+            OfficeRasterImage image = new OfficeRasterImage(32, 32, OfficeColor.Transparent);
+            double firstSegmentLength = Math.Sqrt(200D);
+
+            System.Threading.Tasks.Task render = System.Threading.Tasks.Task.Run(() => new OfficeRasterCanvas(image).DrawDashedEllipse(
+                16D,
+                16D,
+                10D,
+                10D,
+                OfficeColor.Black,
+                thickness: 1D,
+                dashLength: firstSegmentLength + 0.0000000005D,
+                gapLength: 0D,
+                segments: 4));
+
+            System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(
+                render,
+                System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(2)));
+            Assert.Same(render, completed);
+            await render;
+            Assert.True(CountPaintedPixels(image) > 0);
         }
 
         [Fact]

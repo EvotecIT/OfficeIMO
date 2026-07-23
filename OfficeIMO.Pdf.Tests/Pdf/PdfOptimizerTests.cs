@@ -1,4 +1,5 @@
 using System.Text;
+using System.Reflection;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -53,6 +54,25 @@ public class PdfOptimizerTests {
         Assert.Contains(result.Actions, action => action.Kind == "RemoveUnreferencedObject" && action.ObjectNumber == 6);
         Assert.True(result.OptimizedLengthBytes < result.OriginalLengthBytes);
         Assert.DoesNotContain("ORPHAN", PdfEncoding.Latin1GetString(result.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReachabilityWalk_HandlesDeepIndirectReferenceChainsIteratively() {
+        const int objectCount = 25_000;
+        var objects = new Dictionary<int, PdfIndirectObject>(objectCount);
+        for (int objectNumber = 1; objectNumber <= objectCount; objectNumber++) {
+            var dictionary = new PdfDictionary();
+            if (objectNumber < objectCount) dictionary.Items["Next"] = new PdfReference(objectNumber + 1, 0);
+            objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, dictionary);
+        }
+
+        var reachable = new HashSet<int>();
+        MethodInfo method = typeof(PdfOptimizer).GetMethod(
+            "CollectReachableObjectNumbers",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        method.Invoke(null, new object[] { objects, new PdfReference(1, 0), reachable });
+
+        Assert.Equal(objectCount, reachable.Count);
     }
 
     [Fact]

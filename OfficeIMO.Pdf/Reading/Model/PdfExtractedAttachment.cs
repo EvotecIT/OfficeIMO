@@ -19,7 +19,8 @@ public sealed class PdfExtractedAttachment {
         byte[] bytes,
         string source = "Names/EmbeddedFiles",
         DateTimeOffset? creationDate = null,
-        DateTimeOffset? modificationDate = null) {
+        DateTimeOffset? modificationDate = null,
+        bool copyBytes = true) {
         Name = name;
         FileName = fileName;
         UnicodeFileName = unicodeFileName;
@@ -32,7 +33,7 @@ public sealed class PdfExtractedAttachment {
         Source = source;
         CreationDate = creationDate;
         ModificationDate = modificationDate;
-        _bytes = (byte[])bytes.Clone();
+        _bytes = copyBytes ? (byte[])bytes.Clone() : bytes;
     }
 
     /// <summary>Name-tree key associated with this embedded file.</summary>

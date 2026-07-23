@@ -1,7 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static string GetActiveTrailerRaw(string text, Dictionary<int, PdfIndirectObject> map, Dictionary<int, int> parsedOffsets) {
+    private static string GetActiveTrailerRaw(
+        string text,
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        int maximumTrailerCharacters) {
         if (TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
             if (TryGetClassicTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out string trailerRaw)) {
                 return trailerRaw;
@@ -13,7 +17,9 @@ internal static partial class PdfSyntax {
         }
 
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
-        return trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+        return trailerIdx >= 0
+            ? SafeSlice(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters)
+            : string.Empty;
     }
 
     private static bool TryGetXrefStreamTrailerChainRaw(

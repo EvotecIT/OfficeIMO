@@ -414,6 +414,8 @@ jobs:
     name: '.NET Framework 4.7.2 / ${{ matrix.name }}'
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      OFFICEIMO_VISUAL_BASELINE_ARTIFACTS_DIRECTORY: ${{ github.workspace }}/TestResults/visual-baselines
     strategy:
       fail-fast: false
       max-parallel: 6
@@ -536,12 +538,16 @@ jobs:
         if: always()
         with:
           name: test-results-net472-${{ matrix.name }}
-          path: '**/*.trx'
+          path: |
+            **/*.trx
+            TestResults/visual-baselines/**
 
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      OFFICEIMO_VISUAL_BASELINE_ARTIFACTS_DIRECTORY: ${{ github.workspace }}/TestResults/visual-baselines
     strategy:
       fail-fast: false
       max-parallel: 6
@@ -1079,7 +1085,9 @@ jobs:
         if: always()
         with:
           name: test-results-ubuntu-${{ matrix.framework }}-${{ matrix.partition }}
-          path: '**/*.trx'
+          path: |
+            **/*.trx
+            TestResults/visual-baselines/**
       - name: Upload coverage to Codecov
         if: ${{ matrix.collectCoverage }}
         uses: codecov/codecov-action@v5

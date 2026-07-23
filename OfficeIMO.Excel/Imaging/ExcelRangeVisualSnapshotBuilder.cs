@@ -4,9 +4,25 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
+    internal sealed class ExcelSourceImageBudget {
+        internal ExcelSourceImageBudget(long maximumBytes) {
+            if (maximumBytes < 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            RemainingBytes = maximumBytes;
+        }
+
+        internal long RemainingBytes { get; private set; }
+
+        internal void Consume(long byteCount) {
+            if (byteCount < 0L || byteCount > RemainingBytes) {
+                throw new InvalidOperationException("The aggregate source-image budget was exceeded.");
+            }
+            RemainingBytes -= byteCount;
+        }
+    }
+
     internal static class ExcelRangeVisualSnapshotBuilder {
         private const int MaxSparklineDataCells = 100_000;
-        internal static ExcelRangeVisualSnapshot Build(ExcelSheet sheet, string range, ExcelImageExportOptions options, IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null) {
+        internal static ExcelRangeVisualSnapshot Build(ExcelSheet sheet, string range, ExcelImageExportOptions options, IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null, ExcelSourceImageBudget? sourceImageBudget = null) {
             if (sheet == null) {
                 throw new ArgumentNullException(nameof(sheet));
             }
@@ -25,6 +41,7 @@ namespace OfficeIMO.Excel {
                     options.MaximumRenderedCells,
                     "MaximumRenderedCells must be greater than zero.");
             }
+            sourceImageBudget ??= new ExcelSourceImageBudget(options.MaximumTotalSourceImageBytes);
 
             long rowCount = (long)lastRow - firstRow + 1L;
             long columnCount = (long)lastColumn - firstColumn + 1L;
@@ -206,7 +223,7 @@ namespace OfficeIMO.Excel {
 
             List<ExcelVisualSparkline> sparklines = BuildSparklines(sheet, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualDrawingObject> drawingObjects = BuildDrawingObjects(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
-            List<ExcelVisualImage> images = BuildImages(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
+            List<ExcelVisualImage> images = BuildImages(sheet, options, sourceImageBudget, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
             List<ExcelVisualChart> charts = BuildCharts(sheet, options, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions, columnsByIndex, rowsByIndex, diagnostics);
             IReadOnlyList<ExcelVisualBounds> commentBodyObstacles = BuildCommentBodyObstacles(drawingObjects, images, charts);
             CommentVisuals commentVisuals = BuildCommentVisuals(sheet, options, firstRow, firstColumn, lastRow, lastColumn, columnsByIndex, rowsByIndex, x, y, commentBodyObstacles, diagnostics);
@@ -555,6 +572,7 @@ namespace OfficeIMO.Excel {
         private static List<ExcelVisualImage> BuildImages(
             ExcelSheet sheet,
             ExcelImageExportOptions options,
+            ExcelSourceImageBudget sourceImageBudget,
             int firstRow,
             int firstColumn,
             int lastRow,
@@ -607,12 +625,14 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                byte[] bytes = image.ToBytes();
                 string source = GetImageDiagnosticSource(sheet, image);
-                if (bytes.Length == 0) {
-                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, "Worksheet image bytes could not be read.", source));
+                if (!image.TryReadBytes(sourceImageBudget.RemainingBytes, out byte[] bytes)) {
+                    const string message = "Worksheet image was omitted because its bytes could not be read within the remaining aggregate source-image budget.";
+                    diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, message, source));
                     continue;
                 }
+
+                sourceImageBudget.Consume(bytes.LongLength);
 
                 bool identifiedImage = OfficeImageReader.TryIdentify(bytes, image.Name, out OfficeImageInfo info);
                 OfficeImageFormat detectedFormat = identifiedImage

@@ -71,6 +71,39 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ScrubsTextPositionedByOuterGraphicsTransform() {
+        byte[] source = BuildTransformedTextRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Transformed secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Transformed secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Transformed secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsTextPositionedByTransformFromPriorContentStream() {
+        byte[] source = BuildSplitTransformedTextRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Split transformed secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Split transformed secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Split transformed secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsTextPositionedByTransformOperandsSplitAcrossContentStreams() {
+        byte[] source = BuildSplitTransformOperandRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Split operand secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Split operand secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Split operand secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_IgnoresEndTextOperatorInsideLiteralStringsWhenScrubbingTextObjects() {
         byte[] source = BuildLiteralEndTextOperatorRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "SSN ET 123");
@@ -113,6 +146,17 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_PreservesTokensSplitAcrossPageContentStreamsWhenLocatingForms() {
+        byte[] source = BuildSplitFormTransformOperandRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Split form secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("Split form secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Split form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_ScrubsMatchedTextInsideNestedFormXObjects() {
         byte[] source = BuildNestedFormXObjectRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Nested secret account 123-45");
@@ -140,6 +184,31 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void ReplacePageContentReferenceAtIndex_ReplacesOnlyTheSelectedRepeatedOccurrence() {
+        var first = new PdfReference(5, 0);
+        var middle = new PdfReference(6, 0);
+        var repeated = new PdfReference(5, 0);
+        var replacement = new PdfReference(7, 0);
+        var contents = new PdfArray();
+        contents.Items.Add(first);
+        contents.Items.Add(middle);
+        contents.Items.Add(repeated);
+        var page = new PdfDictionary();
+        page.Items["Contents"] = contents;
+
+        PdfRedactionApplier.ReplacePageContentReferenceAtIndex(
+            new Dictionary<int, PdfIndirectObject>(),
+            page,
+            contents,
+            contentIndex: 2,
+            replacement);
+
+        Assert.Same(first, contents.Items[0]);
+        Assert.Same(middle, contents.Items[1]);
+        Assert.Same(replacement, contents.Items[2]);
+    }
+
+    [Fact]
     public void Apply_ClonesSharedFormXObjectBeforeScrubbingMatchedText() {
         byte[] source = BuildSharedFormXObjectTextPdf();
         PdfRedactionArea area = FindAreasForText(source, "Shared form secret").Single(redaction => redaction.PageNumber == 1);
@@ -149,6 +218,30 @@ public class PdfRedactionApplierTests {
         string text = PdfTextExtractor.ExtractAllText(redacted);
 
         Assert.Equal(1, CountOccurrences(text, "Shared form secret"));
+    }
+
+    [Fact]
+    public void Apply_ClonesRepeatedFormInvocationBeforeScrubbingIntersectingInstance() {
+        byte[] source = BuildRepeatedFormXObjectTextPdf();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Repeated form secret", occurrenceFromTop: 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Repeated form secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Repeated form secret"));
+    }
+
+    [Fact]
+    public void Apply_ClonesIndirectNestedFormResourcesBeforeScrubbingIntersectingInstance() {
+        byte[] source = BuildRepeatedNestedFormWithIndirectResourcesPdf();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Indirect nested secret", occurrenceFromTop: 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Indirect nested secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Indirect nested secret"));
     }
 
     [Fact]
@@ -302,6 +395,45 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
+    private static byte[] BuildTransformedTextRedactionSource() {
+        const string streamContent = "q\n2 0 0 2 100 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Transformed secret) Tj\nET\nQ\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitTransformedTextRedactionSource() {
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 100 100 cm\n")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n0 0 Td\n(Split transformed secret) Tj\nET\nQ\n"))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitTransformOperandRedactionSource() {
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 1")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Split operand secret) Tj\nET\nQ\n"))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
     private static byte[] BuildLiteralEndTextOperatorRedactionSource() {
         string streamContent = string.Join("\n", new[] {
             "BT",
@@ -367,6 +499,21 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitFormTransformOperandRedactionSource() {
+        const string formContent = "BT\n/F1 12 Tf\n0 0 Td\n(Split form secret) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 7 0 R >> >> /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 1")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\n/Fm1 Do\nQ\n")),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
@@ -522,6 +669,36 @@ public class PdfRedactionApplierTests {
             BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Shared form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 5 0 R >> >>"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildRepeatedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 6 0 R >> >> /Contents [7 0 R 8 0 R] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Repeated form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 0 0 cm\n/FmInner Do\nQ", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /XObject << /FmInner 5 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 30 220 cm\n/Fm1 Do\nQ\nq\n1 0 0 1 3"),
+            BuildStream("0 80 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildRepeatedNestedFormWithIndirectResourcesPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /FmOuter 6 0 R >> >> /Contents 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Indirect nested secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n/FmInner Do\nQ", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources 7 0 R"),
+            "<< /XObject << /FmInner 5 0 R >> >>",
+            BuildStream("q\n1 0 0 1 30 220 cm\n/FmOuter Do\nQ\nq\n1 0 0 1 30 80 cm\n/FmOuter Do\nQ")
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

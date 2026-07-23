@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -243,6 +244,24 @@ public partial class Word {
         Assert.Contains("Body control", text);
         Assert.Contains("Native cell content", text);
         Assert.Contains("Cell control", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_RejectsExcessiveStructuredBlockNesting() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDeepStructuredBlocks.docx");
+        using WordDocument document = WordDocument.Create(docPath);
+        OpenXmlElement nested = new Paragraph(new Run(new Text("deep content")));
+        for (int depth = 0; depth < 130; depth++) {
+            nested = new SdtBlock(
+                new SdtProperties(new SdtAlias { Val = "Nested " + depth }),
+                new SdtContentBlock(nested));
+        }
+
+        document._document.Body!.Append(nested);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.ToPdfDocument(new PdfSaveOptions { IncludePageNumbers = false }));
+        Assert.Contains("nesting exceeds", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
