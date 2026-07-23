@@ -10,7 +10,7 @@ internal sealed class EmailReadWorkspace : IDisposable {
     internal EmailReadWorkspace() {
         _directoryPath = Path.Combine(Path.GetTempPath(),
             string.Concat("OfficeIMO.Email.Read.", Guid.NewGuid().ToString("N")));
-        Directory.CreateDirectory(_directoryPath);
+        EmailTemporaryStorage.CreatePrivateDirectory(_directoryPath);
     }
 
     internal Stream OpenExternalDestination(string logicalPath, long length) {

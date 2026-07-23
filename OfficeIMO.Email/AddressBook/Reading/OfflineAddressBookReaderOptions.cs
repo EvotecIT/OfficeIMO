@@ -18,7 +18,8 @@ public sealed class OfflineAddressBookReaderOptions {
         int maxValuesPerProperty = 100_000,
         long maxDeclaredEntries = 100_000_000,
         int string8CodePage = 1252,
-        bool retainRawPropertyBytes = true) {
+        bool retainRawPropertyBytes = true,
+        int maxDirectoryEntries = 100_000) {
         if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
         if (maxDiscoveredFiles <= 0) throw new ArgumentOutOfRangeException(nameof(maxDiscoveredFiles));
         if (maxDirectoryDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryDepth));
@@ -30,6 +31,7 @@ public sealed class OfflineAddressBookReaderOptions {
         if (maxValuesPerProperty <= 0) throw new ArgumentOutOfRangeException(nameof(maxValuesPerProperty));
         if (maxDeclaredEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDeclaredEntries));
         if (string8CodePage <= 0) throw new ArgumentOutOfRangeException(nameof(string8CodePage));
+        if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
 
         MaxInputBytes = maxInputBytes;
         MaxDiscoveredFiles = maxDiscoveredFiles;
@@ -43,6 +45,7 @@ public sealed class OfflineAddressBookReaderOptions {
         MaxDeclaredEntries = maxDeclaredEntries;
         String8CodePage = string8CodePage;
         RetainRawPropertyBytes = retainRawPropertyBytes;
+        MaxDirectoryEntries = maxDirectoryEntries;
     }
 
     /// <summary>Maximum bytes in one OAB component.</summary>
@@ -69,4 +72,6 @@ public sealed class OfflineAddressBookReaderOptions {
     public int String8CodePage { get; }
     /// <summary>Whether decoded MAPI properties retain their original OAB value encoding.</summary>
     public bool RetainRawPropertyBytes { get; }
+    /// <summary>Maximum total filesystem entries inspected during directory discovery, including non-OAB entries.</summary>
+    public int MaxDirectoryEntries { get; }
 }

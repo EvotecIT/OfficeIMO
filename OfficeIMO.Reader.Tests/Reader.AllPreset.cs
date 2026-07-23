@@ -82,7 +82,23 @@ public sealed class ReaderAllPresetTests {
             OneNoteNotebookWriter.Write(notebook, root);
             OfficeDocumentReadResult notebookResult = reader.ReadDocument(
                 Path.Combine(root, "Open Notebook.onetoc2"));
-            AssertOneNotePresetResult(notebookResult);
+            Assert.Equal(ReaderInputKind.OneNote, notebookResult.Kind);
+            Assert.Contains("officeimo.reader.onenote", notebookResult.CapabilitiesUsed);
+            Assert.DoesNotContain(notebookResult.Chunks, chunk =>
+                chunk.Text.Contains("Reader All OneNote content", StringComparison.Ordinal));
+
+            OfficeDocumentReader siblingEnabled = new OfficeDocumentReaderBuilder()
+                .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+                    OneNote = new OfficeIMO.Reader.OneNote.ReaderOneNoteOptions {
+                        AllowTableOfContentsSiblingFileReads = true
+                    }
+                })
+                .Build();
+            OfficeDocumentReadResult optedInResult = siblingEnabled.ReadDocument(
+                Path.Combine(root, "Open Notebook.onetoc2"));
+            AssertOneNotePresetResult(optedInResult);
+            Assert.Contains(optedInResult.Chunks, chunk =>
+                chunk.Text.Contains("Reader All OneNote content", StringComparison.Ordinal));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, true);
         }

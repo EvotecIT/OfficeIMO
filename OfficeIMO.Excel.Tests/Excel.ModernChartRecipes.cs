@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -171,6 +172,33 @@ namespace OfficeIMO.Tests {
                 includeTotal: false);
             Assert.True(noTotalWaterfall.TryGetData(out ExcelChartData noTotalData));
             Assert.Equal(3, noTotalData.Series.Count);
+        }
+
+        [Fact]
+        public void Test_WaterfallChart_BatchesLargePointLabelSets() {
+            string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.LargeWaterfall.xlsx");
+            const int pointCount = 2_000;
+            string[] categories = Enumerable.Range(0, pointCount).Select(index => "P" + index).ToArray();
+            double[] changes = Enumerable.Range(0, pointCount).Select(index => index % 2 == 0 ? 1D : -1D).ToArray();
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Waterfall");
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                sheet.AddWaterfallChart(categories, changes, 1, 1);
+                stopwatch.Stop();
+                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), stopwatch.Elapsed.ToString());
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            C.BarChart chart = spreadsheet.WorkbookPart!.WorksheetParts
+                .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+                .ChartSpace.Descendants<C.BarChart>()
+                .Single(candidate => candidate.Elements<C.BarChartSeries>().Count() == 4);
+            Assert.Equal(1_000, chart.Elements<C.BarChartSeries>().ElementAt(1)
+                .GetFirstChild<C.DataLabels>()!.Elements<C.DataLabel>().Count());
+            Assert.Equal(1_000, chart.Elements<C.BarChartSeries>().ElementAt(2)
+                .GetFirstChild<C.DataLabels>()!.Elements<C.DataLabel>().Count());
         }
 
         [Fact]

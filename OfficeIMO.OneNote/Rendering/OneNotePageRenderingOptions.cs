@@ -4,6 +4,9 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Controls dependency-free OneNote page layout, rendering, and image export.</summary>
 public class OneNotePageRenderingOptions : OfficeImageExportOptions {
+    /// <summary>Default maximum logical width or height contributed by one embedded image.</summary>
+    public const double DefaultMaximumImageDimensionPoints = 14_400D;
+
     /// <inheritdoc />
     public override double LogicalUnitsPerInch => 72D;
 
@@ -24,6 +27,9 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
 
     /// <summary>Maximum bytes materialized from any single lazy image payload.</summary>
     public long MaxImageBytes { get; set; } = 64L * 1024L * 1024L;
+
+    /// <summary>Maximum logical width or height inferred from an embedded image header, in points.</summary>
+    public double MaximumImageDimensionPoints { get; set; } = DefaultMaximumImageDimensionPoints;
 
     /// <summary>Minimum width used for automatically sized pages, in points.</summary>
     public double AutomaticPageWidthPoints { get; set; } = 612D;
@@ -54,6 +60,7 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
         clone.IncludeMath = IncludeMath;
         clone.IncludeAttachmentPlaceholders = IncludeAttachmentPlaceholders;
         clone.MaxImageBytes = MaxImageBytes;
+        clone.MaximumImageDimensionPoints = MaximumImageDimensionPoints;
         clone.AutomaticPageWidthPoints = AutomaticPageWidthPoints;
         clone.AutomaticPageHeightPoints = AutomaticPageHeightPoints;
         clone.AutomaticPagePaddingPoints = AutomaticPagePaddingPoints;
@@ -66,6 +73,7 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
     internal void Validate() {
         ValidateImageExportOptions();
         if (MaxImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxImageBytes));
+        ValidatePositive(MaximumImageDimensionPoints, nameof(MaximumImageDimensionPoints));
         ValidatePositive(AutomaticPageWidthPoints, nameof(AutomaticPageWidthPoints));
         ValidatePositive(AutomaticPageHeightPoints, nameof(AutomaticPageHeightPoints));
         if (double.IsNaN(AutomaticPagePaddingPoints) || double.IsInfinity(AutomaticPagePaddingPoints) || AutomaticPagePaddingPoints < 0D) {

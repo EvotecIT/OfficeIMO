@@ -9,6 +9,7 @@ internal static class ReaderOneNoteOptionsCloner {
         OneNoteNotebookReaderOptions notebook = CloneNotebook(options.NotebookOptions ?? new OneNoteNotebookReaderOptions());
         notebook.OneNoteOptions = native;
         return new ReaderOneNoteOptions {
+            AllowTableOfContentsSiblingFileReads = options.AllowTableOfContentsSiblingFileReads,
             IncludeAssetPayloads = options.IncludeAssetPayloads,
             IncludeConflictPages = options.IncludeConflictPages,
             IncludeVersionHistory = options.IncludeVersionHistory,

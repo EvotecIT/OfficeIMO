@@ -419,7 +419,10 @@ namespace OfficeIMO.PowerPoint {
             var template = new StringBuilder(Path.Combine(
                 Path.GetTempPath(), "officeimo-powerpoint-"
                 + Guid.NewGuid().ToString("N") + "-XXXXXX"));
-            int descriptor = CreateSecureTemporaryFile(template);
+            int descriptor = CreateSecureTemporaryFile(template,
+                RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? 0x01000000
+                    : 0x00080000);
             if (descriptor < 0) {
                 int error = Marshal.GetLastWin32Error();
                 throw new IOException(
@@ -439,9 +442,9 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        [DllImport("libc", EntryPoint = "mkstemp", SetLastError = true,
+        [DllImport("libc", EntryPoint = "mkostemp", SetLastError = true,
             CharSet = CharSet.Ansi)]
         private static extern int CreateSecureTemporaryFile(
-            StringBuilder template);
+            StringBuilder template, int flags);
     }
 }

@@ -79,7 +79,7 @@ internal sealed class EmailAttachmentStaging : IDisposable {
         if (_directoryPath != null) return _directoryPath;
         _directoryPath = Path.Combine(Path.GetTempPath(),
             string.Concat("OfficeIMO.Email.Write.", Guid.NewGuid().ToString("N")));
-        Directory.CreateDirectory(_directoryPath);
+        EmailTemporaryStorage.CreatePrivateDirectory(_directoryPath);
         return _directoryPath;
     }
 

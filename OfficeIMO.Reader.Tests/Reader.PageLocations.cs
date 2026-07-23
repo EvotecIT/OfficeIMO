@@ -330,6 +330,63 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+    public void Search_LimitedFallbackCorrelationDoesNotCopyUnboundedFragmentText() {
+        const int fragmentCount = 256;
+        const int fragmentLength = 8192;
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-bounded-correlation",
+            Kind = "paragraph",
+            Text = "needle"
+        };
+        string fragmentText = new string('x', fragmentLength);
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = Enumerable.Range(1, fragmentCount)
+                .Select(page => Page(page, PageBlock(sourceBlock, page, fragmentText)))
+                .ToArray()
+        };
+
+#if NET8_0_OR_GREATER
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+#endif
+        OfficeDocumentSearchHit hit = Assert.Single(document.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { MaximumResults = 1 }).Hits);
+#if NET8_0_OR_GREATER
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.InRange(allocated, 0L, 8L * 1024L * 1024L);
+#endif
+
+        Assert.Empty(hit.Pages);
+    }
+
+    [Fact]
+    public void Search_PageMappingScalesAcrossManyFragments() {
+        const int fragmentCount = 10_000;
+        var sourceBlock = new OfficeDocumentBlock {
+            Id = "paragraph-many-fragments",
+            Kind = "paragraph",
+            Text = new string('x', fragmentCount)
+        };
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = Enumerable.Range(1, fragmentCount)
+                .Select(page => Page(page, PageBlock(sourceBlock, page, "x")))
+                .ToArray()
+        };
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        OfficeDocumentSearchResult result = document.Search("x",
+            new OfficeDocumentSearchOptions { MaximumResults = fragmentCount });
+        stopwatch.Stop();
+
+        Assert.Equal(fragmentCount, result.Hits.Count);
+        Assert.Equal(1, result.Hits[0].Pages.Single().Number);
+        Assert.Equal(fragmentCount, result.Hits[^1].Pages.Single().Number);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+    }
+
+    [Fact]
     public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

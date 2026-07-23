@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using PresentationDocument = DocumentFormat.OpenXml.Packaging.PresentationDocument;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -52,6 +53,31 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointImagePartExtensionsRejectUnsupportedWebP() {
             Assert.Throws<NotSupportedException>(() => ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Webp));
+        }
+
+        [Fact]
+        public void DanglingPictureRelationshipReturnsNoContentTypeInsteadOfThrowing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddPicture(imagePath);
+                    presentation.Save();
+                }
+                using (PresentationDocument package = PresentationDocument.Open(filePath, true)) {
+                    DocumentFormat.OpenXml.Presentation.Picture picture = package.PresentationPart!.SlideParts
+                        .Single().Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Single();
+                    picture.BlipFill!.Blip!.Embed = "rIdMissingPreview";
+                    package.PresentationPart.SlideParts.Single().Slide.Save();
+                }
+
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                PowerPointPicture pictureModel = Assert.Single(reopened.Slides.Single().Pictures);
+                Assert.Null(pictureModel.ContentType);
+                Assert.Null(pictureModel.MimeType);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
         }
 
         [Theory]

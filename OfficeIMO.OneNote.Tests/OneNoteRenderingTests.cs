@@ -637,6 +637,30 @@ public sealed class OneNoteRenderingTests {
     }
 
     [Fact]
+    public void AutomaticCanvasCapsUntrustedImageLayoutDimensions() {
+        var page = new OneNotePage { PageSize = OneNotePageSize.Automatic };
+        page.DirectContent.Add(new OneNoteImage {
+            FileName = "oversized.png",
+            Layout = new OneNoteLayout { Width = double.MaxValue, Height = double.MaxValue },
+            Payload = OneNoteBinaryPayload.FromBytes(OfficePngWriter.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.CornflowerBlue)))
+        });
+        var options = new OneNotePageRenderingOptions {
+            IncludeTitle = false,
+            MaximumImageDimensionPoints = 100D,
+            AutomaticPagePaddingPoints = 10D
+        };
+
+        OfficeDrawing drawing = page.ToDrawing(options);
+        OfficeDrawingImage image = Assert.Single(drawing.Elements.OfType<OfficeDrawingImage>());
+
+        Assert.InRange(image.Projection.Width, 1D, 100D);
+        Assert.InRange(image.Projection.Height, 1D, 100D);
+        Assert.InRange(drawing.Width, 1D, 800D);
+        Assert.InRange(drawing.Height, 1D, 800D);
+    }
+
+    [Fact]
     public void AutomaticCanvasDoesNotRematerializeImagesBetweenMeasurementPasses() {
         byte[] payload = OfficePngWriter.Encode(new OfficeRasterImage(10, 1600, OfficeColor.CornflowerBlue));
         int opens = 0;

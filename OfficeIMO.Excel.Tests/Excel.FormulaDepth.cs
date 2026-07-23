@@ -1128,6 +1128,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaInspection_DoesNotExpandOversizedSharedFormulaFollowers() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Shared");
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet;
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
+            const int followerCount = 1_000;
+            string masterFormula = new string('A', 8_193);
+            sheetData.RemoveAllChildren<Row>();
+            for (int rowIndex = 1; rowIndex <= followerCount; rowIndex++) {
+                var cell = new Cell { CellReference = "A" + rowIndex };
+                cell.CellFormula = rowIndex == 1
+                    ? new CellFormula(masterFormula) {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 19U,
+                        Reference = "A1:A" + followerCount
+                    }
+                    : new CellFormula {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 19U
+                    };
+                sheetData.Append(new Row(cell) { RowIndex = (uint)rowIndex });
+            }
+            worksheet.Save();
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            Assert.Equal(string.Empty, sheet.GetFormulaText(followerCount, 1));
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            stopwatch.Stop();
+
+            Assert.Equal(followerCount, inspection.Formulas.Count);
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void Test_FormulaInspection_IgnoresDefinedNamesScopedToMalformedSheets() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet valid = document.AddWorksheet("Valid");
+            valid.CellFormula(1, 1, "Broken!ScopedValue");
+
+            uint malformedSheetIndex = (uint)document.WorkbookRoot.Sheets!.Elements<Sheet>().Count();
+            document.WorkbookRoot.Sheets.Append(new Sheet {
+                Name = "Broken",
+                SheetId = malformedSheetIndex + 1U
+            });
+            document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            document.WorkbookRoot.DefinedNames.Append(new DefinedName("Valid!$B$1") {
+                Name = "ScopedValue",
+                LocalSheetId = malformedSheetIndex
+            });
+            document.WorkbookRoot.Save();
+
+            ExcelFormulaInspection inspection = document.InspectFormulas();
+            ExcelFormulaCellInfo formula = Assert.Single(inspection.Formulas);
+            Assert.Equal("A1", formula.CellReference);
+            Assert.Empty(formula.Dependencies);
+        }
+
+        [Fact]
         public void Test_FormulaDependencyGraph_IgnoresDefinedNamesInsideErrorLiterals() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Errors");

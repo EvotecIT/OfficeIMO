@@ -531,6 +531,62 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        internal ExcelChart SetSeriesDataLabelsForPoints(int seriesIndex, IReadOnlyList<int> pointIndices,
+            bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null,
+            bool? showLegendKey = null, bool? showPercent = null, bool? showBubbleSize = null,
+            C.DataLabelPositionValues? position = null, string? numberFormat = null, bool sourceLinked = false) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndices == null) {
+                throw new ArgumentNullException(nameof(pointIndices));
+            }
+            if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabels labels = EnsureDataLabels(series);
+                var labelsByIndex = new Dictionary<uint, C.DataLabel>();
+                foreach (C.DataLabel existing in labels.Elements<C.DataLabel>()) {
+                    uint? existingIndex = existing.GetFirstChild<C.Index>()?.Val?.Value;
+                    if (existingIndex.HasValue && !labelsByIndex.ContainsKey(existingIndex.Value)) {
+                        labelsByIndex.Add(existingIndex.Value, existing);
+                    }
+                }
+
+                var requested = new HashSet<uint>();
+                foreach (int pointIndex in pointIndices) {
+                    if (pointIndex < 0) {
+                        throw new ArgumentOutOfRangeException(nameof(pointIndices), "Point indices cannot be negative.");
+                    }
+
+                    uint index = (uint)pointIndex;
+                    if (!requested.Add(index)) continue;
+                    if (!labelsByIndex.TryGetValue(index, out C.DataLabel? label)) {
+                        label = new C.DataLabel(new C.Index { Val = index });
+                        OpenXmlElement? insertBefore = labels.ChildElements.FirstOrDefault(child => child is not C.DataLabel);
+                        if (insertBefore != null) {
+                            labels.InsertBefore(label, insertBefore);
+                        } else {
+                            labels.Append(label);
+                        }
+                        labelsByIndex.Add(index, label);
+                    }
+
+                    ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName,
+                        showPercent, showBubbleSize, position, numberFormat, sourceLinked);
+                }
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
         /// <summary>
         /// Configures a single data label point by series name and point index.
         /// </summary>

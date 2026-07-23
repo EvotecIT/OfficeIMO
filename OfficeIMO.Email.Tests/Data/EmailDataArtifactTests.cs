@@ -6,6 +6,23 @@ namespace OfficeIMO.Email.Data.Tests;
 
 public sealed class EmailDataArtifactTests {
     [Fact]
+    public void DirectoryWithUnsupportedOabComponentFallsBackToMailboxStore() {
+        string directory = TemporaryDirectory();
+        try {
+            File.WriteAllBytes(Path.Combine(directory, "unsupported.oab"), new byte[] { 7, 0, 0, 0 });
+            File.WriteAllText(Path.Combine(directory, "message.eml"),
+                "From: sender@example.test\r\nSubject: mailbox fallback\r\n\r\nBody\r\n");
+
+            using EmailDataOpenResult result = EmailDataArtifact.Open(directory);
+
+            Assert.Equal(EmailDataArtifactKind.Store, result.Kind);
+            Assert.Single(result.Store!.EnumerateItems());
+        } finally {
+            TryDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
     public void Opens_individual_email_calendar_and_contact_through_existing_owners() {
         string directory = TemporaryDirectory();
         try {

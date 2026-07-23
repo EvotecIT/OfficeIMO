@@ -8,6 +8,88 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class MailboxDirectorySessionTests {
     [Fact]
+    public void FilesystemCaseDetectionUsesExistingNamedAncestorsForNumericDirectories() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-case-ancestor-" + Guid.NewGuid().ToString("N"));
+        string numeric = Path.Combine(root, "123456");
+        try {
+            Directory.CreateDirectory(numeric);
+
+            Assert.Equal(
+                EmailStorePathIdentity.IsCaseInsensitiveFileSystem(root),
+                EmailStorePathIdentity.IsCaseInsensitiveFileSystem(numeric));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void MailboxDirectorySkipsNamedPipeCandidatesWithoutBlocking() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-fifo-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            string fifo = Path.Combine(root, "blocking.emlx");
+            Assert.Equal(0, CreateNamedPipe(fifo, 0x180));
+
+            var stopwatch = Stopwatch.StartNew();
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            stopwatch.Stop();
+
+            Assert.Empty(session.EnumerateItems());
+            Assert.Contains(session.Diagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_DIRECTORY_SPECIAL_FILE_SKIPPED");
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), stopwatch.Elapsed.ToString());
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task MailboxDirectoryReadRejectsFileReplacedWithNamedPipeWithoutBlocking() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-fifo-swap-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            string path = Path.Combine(root, "message.eml");
+            File.WriteAllText(path, "Subject: Safe\r\n\r\nBody");
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            File.Delete(path);
+            Assert.Equal(0, CreateNamedPipe(path, 0x180));
+
+            Task<Exception> read = Task.Run(() => Record.Exception(() => session.ReadItem(reference)));
+            bool completedWithoutWriter = ReferenceEquals(
+                await Task.WhenAny(read, Task.Delay(TimeSpan.FromMilliseconds(500))),
+                read);
+            if (!completedWithoutWriter) {
+                int nonBlocking = OperatingSystem.IsMacOS() ? 0x0004 : 0x0800;
+                int descriptor = OpenNamedPipe(path, 0x0002 | nonBlocking);
+                if (descriptor >= 0) CloseDescriptor(descriptor);
+                Assert.Same(read, await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(2))));
+            }
+
+            Assert.True(completedWithoutWriter, "Reading a swapped FIFO waited for a writer.");
+            Assert.IsType<IOException>(await read);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern int CreateNamedPipe(string path, uint mode);
+
+    [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern int OpenNamedPipe(string path, int flags);
+
+    [DllImport("libc", EntryPoint = "close", SetLastError = true)]
+    private static extern int CloseDescriptor(int descriptor);
+#endif
+
+    [Fact]
     public void Opens_apple_mail_and_maildir_trees_as_one_lazy_store() {
         string root = CreateMailboxDirectory();
         try {

@@ -54,7 +54,9 @@ namespace OfficeIMO.PowerPoint {
         private ImagePart? GetImagePart() {
             Picture picture = (Picture)Element;
             string? relationshipId = picture.BlipFill?.Blip?.Embed?.Value;
-            return relationshipId != null ? _ownerPart.GetPartById(relationshipId) as ImagePart : null;
+            return relationshipId != null && _ownerPart.TryGetPartById(relationshipId, out OpenXmlPart? part)
+                ? part as ImagePart
+                : null;
         }
 
         /// <summary>

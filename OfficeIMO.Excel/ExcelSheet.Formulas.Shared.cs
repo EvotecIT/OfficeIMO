@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
                     || cellFormula.SharedIndex?.Value is not uint sharedIndex
                     || string.IsNullOrWhiteSpace(cellFormula.Text)
+                    || cellFormula.Text.Length > MaxSupportedFormulaLength
                     || !A1.TryParseCellReferenceFast(cell.CellReference?.Value, out int row, out int column)) {
                     continue;
                 }
@@ -121,7 +122,8 @@ namespace OfficeIMO.Excel {
         }
 
         private string TranslateSharedFormula(string formula, int rowOffset, int columnOffset) {
-            if (formula.Length == 0 || (rowOffset == 0 && columnOffset == 0)) {
+            if (formula.Length == 0 || formula.Length > MaxSupportedFormulaLength
+                || (rowOffset == 0 && columnOffset == 0)) {
                 return formula;
             }
 

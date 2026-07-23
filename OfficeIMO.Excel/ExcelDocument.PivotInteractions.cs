@@ -93,11 +93,6 @@ namespace OfficeIMO.Excel {
 
         private bool IsDateOnlyPivotSourceField(ExcelPivotTableInfo pivot, string sourceField) {
             PivotTablePart? pivotPart = FindPivotTablePart(pivot);
-            bool? currentSourceResult = TryIsDateOnlyPivotSourceFieldFromCurrentSource(pivot, sourceField, pivotPart);
-            if (currentSourceResult.HasValue) {
-                return currentSourceResult.Value;
-            }
-
             CacheField? cacheField = pivotPart?
                 .PivotTableCacheDefinitionPart?
                 .PivotCacheDefinition?
@@ -116,7 +111,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return false;
+            return TryIsDateOnlyPivotSourceFieldFromCurrentSource(
+                pivot, sourceField, pivotPart) == true;
         }
 
         private PivotTablePart? FindPivotTablePart(ExcelPivotTableInfo pivot) {
@@ -311,15 +307,19 @@ namespace OfficeIMO.Excel {
             string sourceField,
             IReadOnlyList<ExcelPivotInteractionCacheInfo> existingCaches) {
             string baseName = CreatePivotInteractionCacheName(prefix, sourceField);
-            if (!existingCaches.Any(cache => string.Equals(cache.Name, baseName, StringComparison.OrdinalIgnoreCase))) {
+            var existingNames = new HashSet<string>(
+                existingCaches.Select(cache => cache.Name),
+                StringComparer.OrdinalIgnoreCase);
+            if (!existingNames.Contains(baseName)) {
                 return baseName;
             }
 
-            for (int suffix = 2; suffix < int.MaxValue; suffix++) {
+            long maximumSuffix = (long)existingNames.Count + 1L;
+            for (long suffix = 2; suffix <= maximumSuffix; suffix++) {
                 string suffixText = "_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 int baseLength = Math.Min(baseName.Length, 255 - suffixText.Length);
                 string candidate = baseName.Substring(0, baseLength) + suffixText;
-                if (!existingCaches.Any(cache => string.Equals(cache.Name, candidate, StringComparison.OrdinalIgnoreCase))) {
+                if (!existingNames.Contains(candidate)) {
                     return candidate;
                 }
             }

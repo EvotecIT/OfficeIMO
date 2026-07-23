@@ -2,6 +2,26 @@ namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class OfflineAddressBookSessionTests {
     [Fact]
+    public void DirectoryDiscoveryEnforcesAggregateEntryBudgetBeforeMaterialization() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-oab-entry-budget-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            for (int index = 0; index < 4; index++) {
+                File.WriteAllText(Path.Combine(root, "entry" + index + ".txt"), "x");
+            }
+
+            OfflineAddressBookLimitExceededException exception = Assert.Throws<OfflineAddressBookLimitExceededException>(
+                () => OfflineAddressBookInspector.Inspect(root,
+                    new OfflineAddressBookReaderOptions(maxDirectoryEntries: 3)));
+
+            Assert.Equal(nameof(OfflineAddressBookReaderOptions.MaxDirectoryEntries), exception.LimitName);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OpensStreamFromCurrentPositionAndRestoresIt() {
         byte[] oab = new OabV4Fixture().Build();
         using (var stream = new MemoryStream()) {

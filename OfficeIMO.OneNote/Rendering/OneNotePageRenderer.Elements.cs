@@ -244,19 +244,18 @@ public static partial class OneNotePageRenderer {
             Math.Max(fontSize * 1.25D, ParagraphDistance(paragraph.Style.ExactLineSpacing));
 
         internal double MeasureElementHeight(OneNoteElement element, double width) {
-            if (element.Layout?.Height.HasValue == true) return Math.Max(1D, element.Layout.Height.Value * PointsPerHalfInch);
-            if (element is OneNoteParagraph paragraph) return MeasureParagraphHeight(paragraph, width);
-            if (element is OneNoteOutline outline) return MeasureElementsBounds(outline.Children, width).Bottom;
-            if (element is OneNoteTable table) return MeasureTableHeight(table, width);
             if (element is OneNoteImage image) {
                 if (!_options.IncludeImages) return 0D;
-                if (image.HeightHalfInches.HasValue) return Math.Max(1D, image.HeightHalfInches.Value * PointsPerHalfInch);
                 if (TryIdentifyImage(image, out OfficeImageInfo? info)) {
                     double renderWidth = ResolveImageWidth(image, info, width);
                     return Math.Max(1D, ResolveImageHeight(image, info, renderWidth));
                 }
-                return Math.Max(80D, Math.Min(240D, width) * 0.6D);
+                return ResolveImageHeight(image, null, width);
             }
+            if (element.Layout?.Height.HasValue == true) return Math.Max(1D, element.Layout.Height.Value * PointsPerHalfInch);
+            if (element is OneNoteParagraph paragraph) return MeasureParagraphHeight(paragraph, width);
+            if (element is OneNoteOutline outline) return MeasureElementsBounds(outline.Children, width).Bottom;
+            if (element is OneNoteTable table) return MeasureTableHeight(table, width);
             if (element is OneNoteInk ink) {
                 OfficeInkBounds bounds = ink.Ink.GetBounds();
                 if (bounds.IsEmpty) return DefaultParagraphHeight;
@@ -705,18 +704,34 @@ public static partial class OneNotePageRenderer {
         }
 
         private double ResolveImageWidth(OneNoteImage image, OfficeImageInfo? info, double fallback) {
-            if (image.Layout?.Width.HasValue == true) return image.Layout.Width.Value * PointsPerHalfInch;
-            if (image.WidthHalfInches.HasValue) return image.WidthHalfInches.Value * PointsPerHalfInch;
-            if (info != null && info.Width > 0) return info.Width / info.DpiX * 72D;
-            return Math.Min(240D, fallback);
+            double resolved;
+            if (image.Layout?.Width.HasValue == true) resolved = image.Layout.Width.Value * PointsPerHalfInch;
+            else if (image.WidthHalfInches.HasValue) resolved = image.WidthHalfInches.Value * PointsPerHalfInch;
+            else if (info != null && info.Width > 0 && IsFinitePositive(info.DpiX)) resolved = info.Width / info.DpiX * 72D;
+            else resolved = Math.Min(240D, fallback);
+            return ClampImageDimension(resolved, Math.Min(240D, fallback));
         }
 
-        private static double ResolveImageHeight(OneNoteImage image, OfficeImageInfo? info, double width) {
-            if (image.Layout?.Height.HasValue == true) return image.Layout.Height.Value * PointsPerHalfInch;
-            if (image.HeightHalfInches.HasValue) return image.HeightHalfInches.Value * PointsPerHalfInch;
-            if (info?.AspectRatio.HasValue == true) return width / info.AspectRatio.Value;
-            return Math.Max(80D, width * 0.6D);
+        private double ResolveImageHeight(OneNoteImage image, OfficeImageInfo? info, double width) {
+            double fallback = Math.Max(80D, Math.Min(width, _options.MaximumImageDimensionPoints) * 0.6D);
+            double resolved;
+            if (image.Layout?.Height.HasValue == true) resolved = image.Layout.Height.Value * PointsPerHalfInch;
+            else if (image.HeightHalfInches.HasValue) resolved = image.HeightHalfInches.Value * PointsPerHalfInch;
+            else if (info?.AspectRatio.HasValue == true && IsFinitePositive(info.AspectRatio.Value)) {
+                resolved = width / info.AspectRatio.Value;
+            } else {
+                resolved = fallback;
+            }
+            return ClampImageDimension(resolved, fallback);
         }
+
+        private double ClampImageDimension(double value, double fallback) {
+            double resolved = IsFinitePositive(value) ? value : Math.Max(1D, fallback);
+            return Math.Max(1D, Math.Min(resolved, _options.MaximumImageDimensionPoints));
+        }
+
+        private static bool IsFinitePositive(double value) =>
+            !double.IsNaN(value) && !double.IsInfinity(value) && value > 0D;
 
         private OfficeMathRenderOptions CreateMathOptions(OneNoteTextRun run) {
             OfficeMathRenderOptions options = _options.Math.Clone();

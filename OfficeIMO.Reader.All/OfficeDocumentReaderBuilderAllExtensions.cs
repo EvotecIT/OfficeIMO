@@ -41,6 +41,9 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
 
         ReaderAllOptions configured = options ?? new ReaderAllOptions();
+        ReaderOneNoteOptions oneNoteOptions = configured.OneNote ?? new ReaderOneNoteOptions {
+            AllowTableOfContentsSiblingFileReads = false
+        };
         return builder
             .AddPlainTextHandlers()
             .AddAsciiDocHandler(configured.AsciiDoc)
@@ -54,7 +57,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
             .AddNotebookHandler(configured.Notebook)
-            .AddOneNoteHandler(configured.OneNote)
+            .AddOneNoteHandler(oneNoteOptions)
             .AddOpenDocumentHandler(configured.OpenDocument)
             .AddPdfHandler(configured.Pdf)
             .AddPowerPointHandler(configured.PowerPoint)

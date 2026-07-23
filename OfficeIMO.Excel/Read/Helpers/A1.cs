@@ -354,7 +354,7 @@ namespace OfficeIMO.Excel {
                     row = (row * 10) + digit;
                 }
 
-                if (row <= 0 || col <= 0) {
+                if (row <= 0 || row > MaxRows || col <= 0 || col > MaxColumns) {
                     row = 0;
                     col = 0;
                     return false;
@@ -656,7 +656,7 @@ namespace OfficeIMO.Excel {
                 row = row * 10 + digit;
             }
 
-            if (row <= 0 || col <= 0) {
+            if (row <= 0 || row > MaxRows || col <= 0 || col > MaxColumns) {
                 row = 0;
                 col = 0;
                 return false;

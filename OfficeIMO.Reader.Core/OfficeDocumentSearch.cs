@@ -86,6 +86,8 @@ public sealed class OfficeDocumentSearchResult {
 }
 
 public static partial class OfficeDocumentReadResultExtensions {
+    private const int MaximumFallbackCorrelationCharacters = 1024 * 1024;
+
     /// <summary>
     /// Searches normalized document blocks and attaches page-like locations to every occurrence.
     /// </summary>
@@ -227,15 +229,14 @@ public static partial class OfficeDocumentReadResultExtensions {
             string query,
             StringComparison comparison,
             bool wholeWord,
-            IReadOnlyList<int> sourceOccurrenceIndexes,
-            out bool hasConflictingPageEvidence) {
+        IReadOnlyList<int> sourceOccurrenceIndexes,
+        out bool hasConflictingPageEvidence) {
         hasConflictingPageEvidence = false;
-        IReadOnlyList<int>? stableOrdinals = FindStableOccurrenceOrdinals(
-            sourceText,
-            query,
-            sourceOccurrenceIndexes,
-            out int sourceStableOccurrenceCount);
-        if (stableOrdinals == null) {
+        if (!TryGetCaseInsensitiveOccurrenceOrdinals(
+                sourceText,
+                query,
+                sourceOccurrenceIndexes,
+                out IReadOnlyList<int> stableOrdinals)) {
             hasConflictingPageEvidence = true;
             return null;
         }
@@ -250,8 +251,13 @@ public static partial class OfficeDocumentReadResultExtensions {
                     continue;
                 }
 
+                string fragmentText = pageBlock.Text ?? string.Empty;
+                if (fragmentText.Length > MaximumFallbackCorrelationCharacters - combined.Length) {
+                    hasConflictingPageEvidence = true;
+                    return null;
+                }
                 fragmentStarts.Add(combined.Length);
-                combined.Append(pageBlock.Text ?? string.Empty);
+                combined.Append(fragmentText);
                 fragmentEnds.Add(combined.Length);
                 fragmentLocations.Add(location);
             }
@@ -259,13 +265,12 @@ public static partial class OfficeDocumentReadResultExtensions {
 
         string combinedText = combined.ToString();
         var fragmentOccurrenceIndexes = new List<int>(stableOrdinals.Count);
-        int fragmentStableOccurrenceCount = CollectOccurrenceIndexesAtOrdinals(
+        bool foundSelectedOccurrences = CollectOccurrenceIndexesAtOrdinals(
             combinedText,
             query,
             stableOrdinals,
             fragmentOccurrenceIndexes);
-        if (fragmentStableOccurrenceCount != sourceStableOccurrenceCount ||
-            fragmentOccurrenceIndexes.Count != stableOrdinals.Count) {
+        if (!foundSelectedOccurrences) {
             hasConflictingPageEvidence = !HasRepeatedCompleteBlockCopies(
                 locations,
                 blockId,
@@ -296,6 +301,38 @@ public static partial class OfficeDocumentReadResultExtensions {
             fragmentOccurrenceIndexes.Count);
     }
 
+    private static bool TryGetCaseInsensitiveOccurrenceOrdinals(
+        string text,
+        string query,
+        IReadOnlyList<int> selectedOccurrenceIndexes,
+        out IReadOnlyList<int> selectedOrdinals) {
+        var ordinals = new List<int>(selectedOccurrenceIndexes.Count);
+        int selectedIndex = 0;
+        int ordinal = 0;
+        int searchFrom = 0;
+        while (selectedIndex < selectedOccurrenceIndexes.Count &&
+               searchFrom <= text.Length - query.Length) {
+            int occurrenceIndex = text.IndexOf(query, searchFrom, StringComparison.OrdinalIgnoreCase);
+            if (occurrenceIndex < 0 || occurrenceIndex > selectedOccurrenceIndexes[selectedIndex]) {
+                selectedOrdinals = null!;
+                return false;
+            }
+            if (occurrenceIndex == selectedOccurrenceIndexes[selectedIndex]) {
+                ordinals.Add(ordinal);
+                selectedIndex++;
+            }
+            ordinal++;
+            searchFrom = occurrenceIndex + Math.Max(1, query.Length);
+        }
+
+        if (selectedIndex != selectedOccurrenceIndexes.Count) {
+            selectedOrdinals = null!;
+            return false;
+        }
+        selectedOrdinals = ordinals.AsReadOnly();
+        return true;
+    }
+
     private static bool HasRepeatedCompleteBlockCopies(
         IReadOnlyList<OfficeDocumentPageLocation> locations,
         string blockId,
@@ -313,40 +350,12 @@ public static partial class OfficeDocumentReadResultExtensions {
         return false;
     }
 
-    private static IReadOnlyList<int>? FindStableOccurrenceOrdinals(
-        string text,
-        string query,
-        IReadOnlyList<int> selectedOccurrenceIndexes,
-        out int totalOccurrenceCount) {
-        var selectedOrdinals = new List<int>(selectedOccurrenceIndexes.Count);
-        int selectedIndex = 0;
-        int searchFrom = 0;
-        totalOccurrenceCount = 0;
-        while (searchFrom <= text.Length - query.Length) {
-            int index = text.IndexOf(query, searchFrom, StringComparison.OrdinalIgnoreCase);
-            if (index < 0) {
-                break;
-            }
-
-            searchFrom = index + Math.Max(1, query.Length);
-            if (selectedIndex < selectedOccurrenceIndexes.Count &&
-                index == selectedOccurrenceIndexes[selectedIndex]) {
-                selectedOrdinals.Add(totalOccurrenceCount);
-                selectedIndex++;
-            }
-            totalOccurrenceCount++;
-        }
-
-        return selectedIndex == selectedOccurrenceIndexes.Count
-            ? selectedOrdinals.AsReadOnly()
-            : null;
-    }
-
-    private static int CollectOccurrenceIndexesAtOrdinals(
+    private static bool CollectOccurrenceIndexesAtOrdinals(
         string text,
         string query,
         IReadOnlyList<int> selectedOrdinals,
         List<int> selectedOccurrenceIndexes) {
+        if (selectedOrdinals.Count == 0) return true;
         int selectedOrdinalIndex = 0;
         int searchFrom = 0;
         int totalOccurrenceCount = 0;
@@ -361,10 +370,13 @@ public static partial class OfficeDocumentReadResultExtensions {
                 totalOccurrenceCount == selectedOrdinals[selectedOrdinalIndex]) {
                 selectedOccurrenceIndexes.Add(index);
                 selectedOrdinalIndex++;
+                if (selectedOrdinalIndex == selectedOrdinals.Count) {
+                    return true;
+                }
             }
             totalOccurrenceCount++;
         }
-        return totalOccurrenceCount;
+        return false;
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficeDocumentPageLocation>>?
@@ -427,15 +439,20 @@ public static partial class OfficeDocumentReadResultExtensions {
             int occurrenceCount) {
         var mapped =
             new List<IReadOnlyList<OfficeDocumentPageLocation>>(occurrenceCount);
+        int firstPossibleFragment = 0;
         for (int occurrenceIndex = 0; occurrenceIndex < occurrenceCount; occurrenceIndex++) {
             int occurrenceStart = occurrenceIndexes[occurrenceIndex];
             int occurrenceEnd = occurrenceStart + queryLength;
+            while (firstPossibleFragment < fragmentLocations.Count
+                   && fragmentEnds[firstPossibleFragment] <= occurrenceStart) {
+                firstPossibleFragment++;
+            }
             var occurrenceLocations = new List<OfficeDocumentPageLocation>();
-            for (int fragmentIndex = 0; fragmentIndex < fragmentLocations.Count; fragmentIndex++) {
-                if (fragmentStarts[fragmentIndex] >= occurrenceEnd ||
-                    fragmentEnds[fragmentIndex] <= occurrenceStart) {
-                    continue;
-                }
+            for (int fragmentIndex = firstPossibleFragment;
+                 fragmentIndex < fragmentLocations.Count
+                 && fragmentStarts[fragmentIndex] < occurrenceEnd;
+                 fragmentIndex++) {
+                if (fragmentEnds[fragmentIndex] <= occurrenceStart) continue;
 
                 OfficeDocumentPageLocation location = fragmentLocations[fragmentIndex];
                 if (!occurrenceLocations.Contains(location)) {

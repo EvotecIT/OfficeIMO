@@ -52,10 +52,6 @@ public static class EmailDataArtifact {
             path, options.AddressBook, cancellationToken);
         if (discovery.ReadableFullDetailsCount > 0)
             return OpenAddressBook(path, options, cancellationToken);
-        if (discovery.Files.Count > 0) {
-            throw new NotSupportedException(
-                "OAB components were discovered, but none is a readable version 4 Full Details component.");
-        }
         return OpenStore(path, options, cancellationToken);
     }
 
