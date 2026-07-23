@@ -382,7 +382,8 @@ public sealed class ReaderPageLocationTests {
 
         Assert.Equal(fragmentCount, result.Hits.Count);
         Assert.Equal(1, result.Hits[0].Pages.Single().Number);
-        Assert.Equal(fragmentCount, result.Hits[^1].Pages.Single().Number);
+        Assert.Equal(fragmentCount,
+            result.Hits[result.Hits.Count - 1].Pages.Single().Number);
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
     }
 
