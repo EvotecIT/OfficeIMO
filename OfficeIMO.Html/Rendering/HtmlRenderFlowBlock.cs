@@ -28,9 +28,13 @@ internal sealed class HtmlRenderFlowBlock {
         double collapsibleMarginTop = 0D,
         double collapsibleMarginBottom = 0D,
         IElement? ownerElement = null,
-        bool collapsesThrough = false) {
+        bool collapsesThrough = false,
+        double? unclampedHeight = null) {
         Width = width;
         Height = height;
+        UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
+            ? unclampedHeight.Value
+            : height;
         Visuals = new List<HtmlRenderVisual>(visuals);
         BreakBefore = breakBefore;
         BreakAfter = breakAfter;
@@ -80,6 +84,7 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal double Width { get; }
     internal double Height { get; }
+    internal double UnclampedHeight { get; }
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal HtmlPageBreakTarget BreakBefore { get; }
     internal HtmlPageBreakTarget BreakAfter { get; }
@@ -118,7 +123,8 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: CollapsibleMarginTop,
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
-            collapsesThrough: CollapsesThrough);
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: UnclampedHeight);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -140,7 +146,8 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: CollapsibleMarginTop,
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
-            collapsesThrough: CollapsesThrough);
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: UnclampedHeight);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -162,11 +169,13 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: CollapsibleMarginTop,
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
-            collapsesThrough: CollapsesThrough);
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: UnclampedHeight);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
-        double adjustedHeight = Math.Max(0.01D, Height - adjustment);
+        double adjustedUnclampedHeight = UnclampedHeight - adjustment;
+        double adjustedHeight = Math.Max(0.01D, adjustedUnclampedHeight);
         return new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
@@ -186,7 +195,8 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: CollapsibleMarginTop,
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
-            collapsesThrough: CollapsesThrough);
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: adjustedUnclampedHeight);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
@@ -209,11 +219,13 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: top,
             collapsibleMarginBottom: bottom,
             ownerElement: ownerElement,
-            collapsesThrough: collapsesThrough);
+            collapsesThrough: collapsesThrough,
+            unclampedHeight: UnclampedHeight);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
-        double adjustedHeight = Math.Max(0.01D, Height - adjustment);
+        double adjustedUnclampedHeight = UnclampedHeight - adjustment;
+        double adjustedHeight = Math.Max(0.01D, adjustedUnclampedHeight);
         return new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
@@ -233,7 +245,8 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTop: CollapsibleMarginTop,
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
-            collapsesThrough: CollapsesThrough);
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: adjustedUnclampedHeight);
     }
 }
 

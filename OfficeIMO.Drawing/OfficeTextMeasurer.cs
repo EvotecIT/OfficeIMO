@@ -155,8 +155,13 @@ public sealed class OfficeTextMeasurer {
 
     private static bool TryGetBaseScalar(string element, out int scalar) {
         for (int index = 0; index < element.Length;) {
-            scalar = char.ConvertToUtf32(element, index);
-            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(element, index);
+            bool surrogatePair = char.IsHighSurrogate(element[index])
+                && index + 1 < element.Length
+                && char.IsLowSurrogate(element[index + 1]);
+            scalar = surrogatePair ? char.ConvertToUtf32(element[index], element[index + 1]) : element[index];
+            UnicodeCategory category = surrogatePair
+                ? CharUnicodeInfo.GetUnicodeCategory(element, index)
+                : char.IsSurrogate(element[index]) ? UnicodeCategory.OtherNotAssigned : CharUnicodeInfo.GetUnicodeCategory(element, index);
             if (category != UnicodeCategory.Control
                 && category != UnicodeCategory.Format
                 && category != UnicodeCategory.NonSpacingMark
@@ -164,7 +169,7 @@ public sealed class OfficeTextMeasurer {
                 && category != UnicodeCategory.EnclosingMark
                 && scalar != 0x00AD
                 && scalar != 0x200B) return true;
-            index += scalar > char.MaxValue ? 2 : 1;
+            index += surrogatePair ? 2 : 1;
         }
 
         scalar = 0;

@@ -138,6 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double available = targetHeight - y;
                 double remaining = child.Height - start;
                 if (available <= 0.0001D) {
+                    EnsureMultiColumnLimit(column + 2);
                     column++;
                     y = 0D;
                     continue;
@@ -149,6 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else {
                     end = FindFragmentEnd(child, start, available, child.Height);
                     if (end <= start + 0.0001D && y > 0.0001D) {
+                        EnsureMultiColumnLimit(column + 2);
                         column++;
                         y = 0D;
                         continue;
@@ -162,6 +164,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 usedHeight = Math.Max(usedHeight, y);
                 start = end;
                 if (start < child.Height - 0.0001D) {
+                    EnsureMultiColumnLimit(column + 2);
                     column++;
                     y = 0D;
                 }

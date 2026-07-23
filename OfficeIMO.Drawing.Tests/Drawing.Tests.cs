@@ -3197,6 +3197,18 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextMeasurerTreatsMalformedSurrogatesAsSingleReplacementScalars() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
+
+        double replacement = measurer.MeasureWidth("\ufffd", style);
+
+        Assert.Equal(replacement, measurer.MeasureWidth("\ud800", style), 6);
+        Assert.Equal(replacement, measurer.MeasureWidth("\udc00", style), 6);
+        Assert.Equal(replacement * 2D, measurer.MeasureWidth("\ud800\ud800", style), 6);
+    }
+
+    [Fact]
     public void OfficeTextElementsDetectsRightToLeftScriptScalars() {
         Assert.False(OfficeTextElements.ContainsRightToLeft(null));
         Assert.False(OfficeTextElements.ContainsRightToLeft("OfficeIMO 123"));

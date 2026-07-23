@@ -20,7 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : 150D;
         ReplacedContentSize size = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
-        return size.Width + style.HorizontalInsets;
+        double boxWidth = size.Width + style.HorizontalInsets;
+        double boxHeight = size.Height + style.VerticalInsets;
+        EnsureReplacedBoxSize(boxWidth, boxHeight);
+        return boxWidth;
     }
 
     private ReplacedContentSize ResolveReplacedContentSize(
@@ -139,6 +142,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double ClampWithMinimumPrecedence(double value, double minimum, double maximum) =>
         Math.Max(minimum, Math.Min(value, maximum));
+
+    private void EnsureReplacedBoxSize(double width, double height) {
+        double pixelWidth = Math.Ceiling(width * _options.Scale);
+        double pixelHeight = Math.Ceiling(height * _options.Scale);
+        if (double.IsNaN(pixelWidth) || double.IsInfinity(pixelWidth)
+            || double.IsNaN(pixelHeight) || double.IsInfinity(pixelHeight)
+            || pixelWidth > _options.MaxSurfaceWidth
+            || pixelHeight > _options.MaxSurfaceHeight) {
+            throw new InvalidOperationException("HTML replaced content exceeded the configured maximum image surface dimensions.");
+        }
+    }
 
     private static void PreserveVisibleCrop(ref double start, ref double end) {
         double total = start + end;

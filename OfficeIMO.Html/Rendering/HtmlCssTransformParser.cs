@@ -26,9 +26,15 @@ internal static class HtmlCssTransformParser {
         }
         originX += boxX;
         originY += boxY;
-        transform = OfficeTransform.Translate(-originX, -originY)
-            .Then(functions)
-            .Then(OfficeTransform.Translate(originX, originY));
+        if (!IsFinite(originX) || !IsFinite(originY)) {
+            detail = "transform-origin=" + transformOriginValue.Trim();
+            return false;
+        }
+        if (!TryThen(OfficeTransform.Translate(-originX, -originY), functions, out OfficeTransform centered)
+            || !TryThen(centered, OfficeTransform.Translate(originX, originY), out transform)) {
+            detail = "transform=" + value;
+            return false;
+        }
         return true;
     }
 
@@ -77,7 +83,10 @@ internal static class HtmlCssTransformParser {
                 detail = name + "(" + arguments + ")";
                 return false;
             }
-            transform = function.Then(transform);
+            if (!TryThen(function, transform, out transform)) {
+                detail = name + "(" + arguments + ")";
+                return false;
+            }
             found = true;
         }
         if (!found) detail = "transform=" + value;
@@ -136,26 +145,48 @@ internal static class HtmlCssTransformParser {
                 double skewY = 0D;
                 if (values.Count < 1 || values.Count > 2 || !TryAngle(values[0], out double skewX)
                     || values.Count == 2 && !TryAngle(values[1], out skewY)) return false;
-                transform = CreateSkew(skewX, values.Count == 2 ? skewY : 0D);
-                return true;
+                return TryCreateSkew(skewX, values.Count == 2 ? skewY : 0D, out transform);
             case "skewx":
                 if (values.Count != 1 || !TryAngle(values[0], out double xAngle)) return false;
-                transform = CreateSkew(xAngle, 0D);
-                return true;
+                return TryCreateSkew(xAngle, 0D, out transform);
             case "skewy":
                 if (values.Count != 1 || !TryAngle(values[0], out double yAngle)) return false;
-                transform = CreateSkew(0D, yAngle);
-                return true;
+                return TryCreateSkew(0D, yAngle, out transform);
             default:
                 return false;
         }
     }
 
-    private static OfficeTransform CreateSkew(double xDegrees, double yDegrees) {
-        double x = Math.Tan(xDegrees * Math.PI / 180D);
-        double y = Math.Tan(yDegrees * Math.PI / 180D);
-        return new OfficeTransform(1D, y, x, 1D, 0D, 0D);
+    private static bool TryCreateSkew(double xDegrees, double yDegrees, out OfficeTransform transform) {
+        double xRadians = Math.IEEERemainder(xDegrees, 180D) * Math.PI / 180D;
+        double yRadians = Math.IEEERemainder(yDegrees, 180D) * Math.PI / 180D;
+        double x = Math.Tan(xRadians);
+        double y = Math.Tan(yRadians);
+        if (!IsFinite(x) || !IsFinite(y)) {
+            transform = OfficeTransform.Identity;
+            return false;
+        }
+        transform = new OfficeTransform(1D, y, x, 1D, 0D, 0D);
+        return true;
     }
+
+    private static bool TryThen(OfficeTransform first, OfficeTransform next, out OfficeTransform transform) {
+        double m11 = next.M11 * first.M11 + next.M21 * first.M12;
+        double m12 = next.M12 * first.M11 + next.M22 * first.M12;
+        double m21 = next.M11 * first.M21 + next.M21 * first.M22;
+        double m22 = next.M12 * first.M21 + next.M22 * first.M22;
+        double offsetX = next.M11 * first.OffsetX + next.M21 * first.OffsetY + next.OffsetX;
+        double offsetY = next.M12 * first.OffsetX + next.M22 * first.OffsetY + next.OffsetY;
+        if (!IsFinite(m11) || !IsFinite(m12) || !IsFinite(m21) || !IsFinite(m22)
+            || !IsFinite(offsetX) || !IsFinite(offsetY)) {
+            transform = OfficeTransform.Identity;
+            return false;
+        }
+        transform = new OfficeTransform(m11, m12, m21, m22, offsetX, offsetY);
+        return true;
+    }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static IReadOnlyList<string> SplitArguments(string value) {
         IReadOnlyList<string> commas = HtmlRenderCssValues.SplitTopLevelCommas(value);

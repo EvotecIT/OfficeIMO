@@ -331,6 +331,7 @@ public static partial class HtmlResourcePipeline {
             kind = HtmlResourceKind.Script;
         } else if (isPreload) {
             kind = GetPreloadKind(element.GetAttribute("as"));
+            if (kind == HtmlResourceKind.Stylesheet) kind = HtmlResourceKind.Other;
         } else if (relTokens.Contains("font")) {
             kind = HtmlResourceKind.Font;
         } else if (relTokens.Contains("icon") || relTokens.Contains("apple-touch-icon") || relTokens.Contains("shortcut icon")) {

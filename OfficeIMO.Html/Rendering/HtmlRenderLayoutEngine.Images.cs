@@ -28,6 +28,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
+        EnsureReplacedBoxSize(boxWidth, boxHeight);
         var visuals = new List<HtmlRenderVisual>();
         var objectVisuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);

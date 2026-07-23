@@ -80,7 +80,11 @@ public static partial class OfficeDocumentStructuredExtractor {
         OfficeDocumentReadResult document,
         ExtractionState state) {
         var selected = new List<OfficeDocumentFormField>();
-        foreach (OfficeDocumentFormField form in OfficeDocumentModelTraversal.Forms(document)) {
+        int candidateLimit = state.Options.MaxForms == int.MaxValue ? int.MaxValue : state.Options.MaxForms + 1;
+        foreach (OfficeDocumentFormField form in OfficeDocumentModelTraversal.Forms(
+                     document,
+                     candidateLimit,
+                     () => state.AddLimitDiagnostic("structured-form-limit", state.Options.MaxForms, "form candidates"))) {
             state.CancellationToken.ThrowIfCancellationRequested();
             if (selected.Count >= state.Options.MaxForms) {
                 state.AddLimitDiagnostic("structured-form-limit", state.Options.MaxForms, "forms");

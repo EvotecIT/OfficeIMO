@@ -127,6 +127,21 @@ public sealed class ReaderStructuredExtractionTests {
     }
 
     [Fact]
+    public void Extract_BoundsDuplicateFormCandidatesBeforeIdentityMaterialization() {
+        OfficeDocumentFormField[] duplicates = Enumerable.Range(0, 50_000)
+            .Select(index => new OfficeDocumentFormField { Id = "duplicate", Name = "Duplicate " + index })
+            .ToArray();
+        var document = new OfficeDocumentReadResult { Forms = duplicates };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(
+            document,
+            new OfficeDocumentStructuredExtractionOptions { MaxForms = 2 });
+
+        Assert.Single(result.Forms);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "structured-form-limit");
+    }
+
+    [Fact]
     public void Extract_ProjectsChunkOnlyFormFieldsIntoTypedFormsAndRecords() {
         var document = new OfficeDocumentReadResult {
             Chunks = new[] {

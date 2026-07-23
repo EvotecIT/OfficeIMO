@@ -15,7 +15,13 @@ internal static class HtmlCssLinearGradientParser {
         int open = functionName.Length;
         if (open >= text.Length || text[open] != '(' || text[text.Length - 1] != ')') return false;
 
-        IReadOnlyList<string> arguments = HtmlRenderCssValues.SplitTopLevelCommas(text.Substring(open + 1, text.Length - open - 2));
+        if (!HtmlRenderCssValues.TrySplitTopLevelCommas(
+                text.Substring(open + 1, text.Length - open - 2),
+                maximumStops == int.MaxValue ? int.MaxValue : maximumStops + 1,
+                out IReadOnlyList<string> arguments)) {
+            stopLimitExceeded = true;
+            return false;
+        }
         if (arguments.Count < 2) return false;
 
         double officeAngle = 90D;

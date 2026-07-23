@@ -162,6 +162,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
         double headerStart = rowY;
+        var hasBodyAfter = new bool[rowLayouts.Count];
+        bool bodySeen = false;
+        for (int rowIndex = rowLayouts.Count - 1; rowIndex >= 0; rowIndex--) {
+            hasBodyAfter[rowIndex] = bodySeen;
+            TableRowLayout candidate = rowLayouts[rowIndex];
+            if (!candidate.IsHeader && !candidate.IsFooter) bodySeen = true;
+        }
+
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
             CheckCancellation();
             TableRowLayout row = rowLayouts[rowIndex];
@@ -245,7 +253,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             rowY += row.Height + verticalSpacing;
-            bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
+            bool headerHasBodyAfter = row.IsHeader && hasBodyAfter[rowIndex];
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
         }
         if (style.BorderCollapse == "collapse") {

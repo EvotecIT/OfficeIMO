@@ -481,7 +481,7 @@ internal static class HtmlPdfRenderedConverter {
                     });
                     continue;
                 }
-                if (element is not OfficeDrawingText text || text.Text.Length == 0) continue;
+            if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
                 FlushShapes();
                 double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;
                 double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY * PointsPerCssPixel;

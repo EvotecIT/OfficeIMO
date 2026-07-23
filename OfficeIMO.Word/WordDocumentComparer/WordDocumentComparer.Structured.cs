@@ -48,12 +48,41 @@ namespace OfficeIMO.Word {
         public static WordComparisonResult CompareStructure(string sourcePath, string targetPath, WordComparisonOptions? options) {
             if (string.IsNullOrEmpty(sourcePath)) throw new ArgumentNullException(nameof(sourcePath));
             if (string.IsNullOrEmpty(targetPath)) throw new ArgumentNullException(nameof(targetPath));
-            options ??= WordComparisonOptions.Default;
 
             using WordDocument source = WordDocument.Load(sourcePath);
             using WordDocument target = WordDocument.Load(targetPath);
+            return CompareStructureCore(source, target, sourcePath, targetPath, options);
+        }
 
-            WordComparisonResult result = new(sourcePath, targetPath);
+        /// <summary>
+        /// Compares two already-loaded documents without writing them to disk and returns a machine-readable summary.
+        /// </summary>
+        /// <param name="source">Original document.</param>
+        /// <param name="target">Modified document.</param>
+        /// <param name="options">Optional comparison switches for text normalization and feature families.</param>
+        /// <param name="sourceLabel">Logical source label included in reports.</param>
+        /// <param name="targetLabel">Logical target label included in reports.</param>
+        /// <returns>A deterministic comparison result that can be used for review reports and automation.</returns>
+        public static WordComparisonResult CompareStructure(
+            WordDocument source,
+            WordDocument target,
+            WordComparisonOptions? options = null,
+            string sourceLabel = "source",
+            string targetLabel = "target") {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            return CompareStructureCore(source, target, sourceLabel, targetLabel, options);
+        }
+
+        private static WordComparisonResult CompareStructureCore(
+            WordDocument source,
+            WordDocument target,
+            string sourceLabel,
+            string targetLabel,
+            WordComparisonOptions? options) {
+            options ??= WordComparisonOptions.Default;
+
+            WordComparisonResult result = new(sourceLabel, targetLabel);
             var comparisonWorkBudget = new ComparisonWorkBudget(MaxComparisonTextWorkUnits);
             AnalyzeParagraphs(source, target, result, options, comparisonWorkBudget);
             if (options.CompareFields) {
