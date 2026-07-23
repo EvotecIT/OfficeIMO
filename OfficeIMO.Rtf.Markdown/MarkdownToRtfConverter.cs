@@ -260,8 +260,12 @@ internal static class MarkdownToRtfConverter {
                 continue;
             }
 
-            ListItem item = (ListItem)next;
+            FlattenedListItem flattenedItem = (FlattenedListItem)next;
+            ListItem item = flattenedItem.Item;
             RtfParagraph paragraph = AddListContinuationParagraph(document, parentLevel);
+            if (flattenedItem.MarkerText != null) {
+                paragraph.AddText(flattenedItem.MarkerText + " ");
+            }
             if (item.IsTask) {
                 paragraph.AddText(item.Checked ? "[x] " : "[ ] ");
             }
@@ -290,8 +294,24 @@ internal static class MarkdownToRtfConverter {
             ? unorderedList.Items
             : ((OrderedListBlock)listBlock).Items;
         for (int index = items.Count - 1; index >= 0; index--) {
-            pending.Push(items[index]);
+            string? markerText = null;
+            if (listBlock is OrderedListBlock orderedList) {
+                int markerValue = orderedList.Reversed ? orderedList.Start - index : orderedList.Start + index;
+                markerText = items[index].MarkerText ?? OrderedListBlock.FormatMarker(markerValue, orderedList.MarkerStyle, orderedList.MarkerDelimiter);
+            }
+
+            pending.Push(new FlattenedListItem(items[index], markerText));
         }
+    }
+
+    private sealed class FlattenedListItem {
+        internal FlattenedListItem(ListItem item, string? markerText) {
+            Item = item;
+            MarkerText = markerText;
+        }
+
+        internal ListItem Item { get; }
+        internal string? MarkerText { get; }
     }
 
     private static void ConvertNestedContinuationBlock(RtfDocument document, IMarkdownBlock block, int parentLevel, MarkdownToRtfConversionContext context, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {

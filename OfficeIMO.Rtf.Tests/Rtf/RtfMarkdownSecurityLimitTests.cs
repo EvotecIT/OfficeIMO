@@ -84,6 +84,25 @@ public class RtfMarkdownSecurityLimitTests {
     }
 
     [Fact]
+    public void MarkdownListConversionPreservesOrderedMarkersWhenFlatteningCappedLists() {
+        ListItem root = ListItem.Text("Root");
+        root.NestedBlocks.Add(new OrderedListBlock {
+            Start = 3,
+            Items = {
+                ListItem.Text("Third"),
+                ListItem.Text("Fourth")
+            }
+        });
+        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { root } });
+
+        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
+        string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+
+        Assert.Contains("3. Third", plainText, StringComparison.Ordinal);
+        Assert.Contains("4. Fourth", plainText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CodeBlockInfoBookmarkPayloadIsBounded() {
         string infoString = new string('x', 2_000);
         MarkdownDoc markdown = MarkdownDoc.Create().Add(new CodeBlock(infoString, "value"));

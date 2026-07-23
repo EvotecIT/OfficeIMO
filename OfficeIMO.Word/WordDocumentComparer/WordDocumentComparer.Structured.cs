@@ -298,8 +298,10 @@ namespace OfficeIMO.Word {
             int bestIndex = targetStart;
             double bestSimilarity = currentSimilarity;
 
-            int boundedTargetEnd = Math.Min(targetEnd, targetStart + MaxComparisonAlignmentWindow);
-            for (int index = targetStart + 1; index < boundedTargetEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                targetStart + 1,
+                targetEnd,
+                index => GetRowAlignmentPrefilterSimilarity(sourceRow, targetRows[index], options))) {
                 double similarity = GetRowSimilarity(sourceRow, targetRows[index], options);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
@@ -320,8 +322,10 @@ namespace OfficeIMO.Word {
             int bestIndex = sourceStart;
             double bestSimilarity = currentSimilarity;
 
-            int boundedSourceEnd = Math.Min(sourceEnd, sourceStart + MaxComparisonAlignmentWindow);
-            for (int index = sourceStart + 1; index < boundedSourceEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                sourceStart + 1,
+                sourceEnd,
+                index => GetRowAlignmentPrefilterSimilarity(sourceRows[index], targetRow, options))) {
                 double similarity = GetRowSimilarity(sourceRows[index], targetRow, options);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
@@ -701,6 +705,16 @@ namespace OfficeIMO.Word {
             }
 
             return GetContainmentAwareTextSimilarity(NormalizeComparisonText(GetRowText(source), options), NormalizeComparisonText(GetRowText(target), options));
+        }
+
+        private static double GetRowAlignmentPrefilterSimilarity(WordTableRow source, WordTableRow target, WordComparisonOptions options) {
+            if (source.Cells.Count != target.Cells.Count) {
+                return 0;
+            }
+
+            return GetBoundedTextSimilarity(
+                NormalizeComparisonText(GetRowText(source), options),
+                NormalizeComparisonText(GetRowText(target), options));
         }
 
         private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target, WordComparisonOptions options) {

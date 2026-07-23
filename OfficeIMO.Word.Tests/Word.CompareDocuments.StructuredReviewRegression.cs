@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CompareStructureAlignsModifiedParagraphBeyondBoundedInsertionWindow() {
+        public void CompareStructureAlignsModifiedParagraphInMiddleOfLargeInsertionRange() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_inserted_paragraph_range.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Status: Pending");
@@ -334,20 +334,24 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_inserted_paragraph_range.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 for (int index = 0; index < 300; index++) {
-                    doc.AddParagraph("Evidence row " + index);
+                    doc.AddParagraph("Evidence before " + index);
                 }
 
                 doc.AddParagraph("Status: Approved");
+                for (int index = 0; index < 300; index++) {
+                    doc.AddParagraph("Evidence after " + index);
+                }
+
                 doc.AddParagraph("Closing");
                 doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
-            Assert.Equal(300, result.Findings.Count(finding =>
+            Assert.Equal(600, result.Findings.Count(finding =>
                 finding.Scope == WordComparisonScope.Paragraph &&
                 finding.ChangeKind == WordComparisonChangeKind.Inserted &&
-                finding.TargetText?.StartsWith("Evidence row ", StringComparison.Ordinal) == true));
+                finding.TargetText?.StartsWith("Evidence ", StringComparison.Ordinal) == true));
             Assert.Contains(result.Findings, finding =>
                 finding.Scope == WordComparisonScope.Paragraph &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified &&
@@ -357,7 +361,7 @@ namespace OfficeIMO.Tests {
                 finding.Scope == WordComparisonScope.Paragraph &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified &&
                 finding.SourceText == "Status: Pending" &&
-                finding.TargetText?.StartsWith("Evidence row ", StringComparison.Ordinal) == true);
+                finding.TargetText?.StartsWith("Evidence ", StringComparison.Ordinal) == true);
         }
 
         [Fact]
