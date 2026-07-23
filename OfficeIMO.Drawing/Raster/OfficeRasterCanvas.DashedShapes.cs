@@ -183,6 +183,9 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double cycle = SaturatingDashCycle(dashLength, gapLength);
+        if (cycle <= 0D) {
+            return;
+        }
 
         OfficePoint clippedStart = start;
         OfficePoint clippedEnd = end;

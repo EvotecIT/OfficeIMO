@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
@@ -254,6 +255,105 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(slide.Shapes);
             Assert.Empty(slide.ClassicAnimations);
+        }
+
+        [Fact]
+        public void PackageFingerprintRejectsOversizedXmlStreamsBeforeParsing() {
+            using var stream = new MemoryStream(new byte[17]);
+
+            Assert.ThrowsAny<IOException>(() =>
+                PowerPointPackageFingerprint.EnsureStreamWithinLimit(stream, maximumBytes: 16));
+        }
+
+        [Fact]
+        public void PackageFingerprintChecksApplicationPropertiesSizeBeforeLoadingSignatureMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ExtendedFilePropertiesPart propertiesPart = document.ExtendedFilePropertiesPart
+                        ?? document.AddExtendedFilePropertiesPart();
+                    propertiesPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                    propertiesPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                    propertiesPart.Properties.Save();
+                }
+
+                using PresentationDocument reopened = PresentationDocument.Open(filePath, false);
+                ExtendedFilePropertiesPart reopenedProperties = reopened.ExtendedFilePropertiesPart!;
+                Assert.False(reopenedProperties.IsRootElementLoaded);
+                long serializedLength;
+                using (Stream source = reopenedProperties.GetStream(FileMode.Open, FileAccess.Read)) {
+                    serializedLength = source.Length;
+                }
+
+                Assert.ThrowsAny<IOException>(() =>
+                    PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength - 1));
+                Assert.False(reopenedProperties.IsRootElementLoaded);
+                Assert.True(PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength));
+                Assert.True(reopenedProperties.IsRootElementLoaded);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void SignedPackageXmlIsBoundedBeforePresentationRootsAreLoaded() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ExtendedFilePropertiesPart propertiesPart = document.ExtendedFilePropertiesPart
+                        ?? document.AddExtendedFilePropertiesPart();
+                    propertiesPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                    propertiesPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                    propertiesPart.Properties.Save();
+
+                    PresentationPart presentationPart = document.PresentationPart!;
+                    string xml;
+                    using (var reader = new StreamReader(
+                               presentationPart.GetStream(FileMode.Open, FileAccess.Read),
+                               Encoding.UTF8, detectEncodingFromByteOrderMarks: true)) {
+                        xml = reader.ReadToEnd();
+                    }
+                    xml = xml.Replace(
+                        "</p:presentation>",
+                        "<!--" + new string('x', 4096) + "--></p:presentation>");
+                    using (var writer = new StreamWriter(
+                               presentationPart.GetStream(FileMode.Create, FileAccess.Write),
+                               new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
+                        writer.Write(xml);
+                    }
+                }
+
+                using PresentationDocument reopened = PresentationDocument.Open(filePath, false);
+                PresentationPart reopenedPresentation = reopened.PresentationPart!;
+                Assert.False(reopenedPresentation.IsRootElementLoaded);
+                long applicationPropertiesLength;
+                using (Stream source = reopened.ExtendedFilePropertiesPart!
+                           .GetStream(FileMode.Open, FileAccess.Read)) {
+                    applicationPropertiesLength = source.Length;
+                }
+                long presentationLength;
+                using (Stream source = reopenedPresentation.GetStream(FileMode.Open, FileAccess.Read)) {
+                    presentationLength = source.Length;
+                }
+                Assert.True(presentationLength > applicationPropertiesLength);
+
+                Assert.ThrowsAny<IOException>(() =>
+                    PowerPointPackageFingerprint.HasSignatureAndEnsurePackageXmlWithinLimit(
+                        reopened, presentationLength - 1));
+                Assert.False(reopenedPresentation.IsRootElementLoaded);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
         }
 
         [Fact]

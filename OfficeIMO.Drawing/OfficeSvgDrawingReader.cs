@@ -366,7 +366,12 @@ public static partial class OfficeSvgDrawingReader {
         bool parsed = TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
             out IReadOnlyList<double> values, out bool limitExceeded);
         if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
-            if (limitExceeded) pathCommands = MaximumSvgPathCommands;
+            if (limitExceeded) {
+                pathCommands = MaximumSvgPathCommands;
+            } else if (values.Count > 0) {
+                int parsedCommands = Math.Max(1, (values.Count + 1) / 2);
+                pathCommands += Math.Min(remainingCommands, parsedCommands);
+            }
             return null;
         }
         int commandCount = values.Count / 2;
@@ -734,16 +739,29 @@ public static partial class OfficeSvgDrawingReader {
         if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
         int index = 0;
         while (index < value!.Length) {
-            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
+            int separatorStart = index;
+            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) {
+                index++;
+                if (index - separatorStart > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
             if (index >= value.Length) break;
             if (result.Count >= maximumValues) {
                 limitExceeded = true;
                 return false;
             }
             int start = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') index++;
+            while (index < value.Length && !char.IsWhiteSpace(value[index]) && value[index] != ',') {
+                index++;
+                if (index - start > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
             int length = index - start;
-            if (length <= 0 || length > 128
+            if (length <= 0
                 || !double.TryParse(value.Substring(start, length), NumberStyles.Float,
                     CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number)
