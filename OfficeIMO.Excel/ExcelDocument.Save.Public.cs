@@ -366,6 +366,13 @@ namespace OfficeIMO.Excel {
                 options,
                 preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
 
+#if NETFRAMEWORK
+            if (!destination.CanSeek) {
+                SaveNonSeekableFrameworkDestination(destination, format, options);
+                return;
+            }
+#endif
+
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
             }
@@ -497,6 +504,13 @@ namespace OfficeIMO.Excel {
                 options,
                 preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
 
+#if NETFRAMEWORK
+            if (!destination.CanSeek) {
+                await SaveNonSeekableFrameworkDestinationAsync(destination, format, options, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+#endif
+
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
@@ -559,6 +573,39 @@ namespace OfficeIMO.Excel {
                 throw;
             }
         }
+
+#if NETFRAMEWORK
+        private void SaveNonSeekableFrameworkDestination(
+            Stream destination,
+            ExcelFileFormat format,
+            ExcelSaveOptions? options) {
+            using FileStream staging = OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-",
+                ".tmp",
+                FileOptions.SequentialScan,
+                out _);
+            SaveToStreamCore(staging, format, options);
+            staging.Position = 0L;
+            staging.CopyTo(destination, 81920);
+            destination.Flush();
+        }
+
+        private async Task SaveNonSeekableFrameworkDestinationAsync(
+            Stream destination,
+            ExcelFileFormat format,
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken) {
+            using FileStream staging = OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-",
+                ".tmp",
+                FileOptions.Asynchronous | FileOptions.SequentialScan,
+                out _);
+            await SaveToStreamAsyncCore(staging, format, options, cancellationToken).ConfigureAwait(false);
+            staging.Position = 0L;
+            await staging.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
+            await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+#endif
 
         /// <summary>
         /// Asynchronously saves the document.
