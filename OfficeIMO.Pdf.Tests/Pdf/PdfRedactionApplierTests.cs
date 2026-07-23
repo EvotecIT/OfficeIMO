@@ -233,6 +233,18 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ClonesIndirectNestedFormResourcesBeforeScrubbingIntersectingInstance() {
+        byte[] source = BuildRepeatedNestedFormWithIndirectResourcesPdf();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Indirect nested secret", occurrenceFromTop: 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Indirect nested secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Indirect nested secret"));
+    }
+
+    [Fact]
     public void Apply_IsolatesExistingContentBeforePaintingRedactionOverlay() {
         byte[] source = BuildLeakingGraphicsStateRedactionSource();
         var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
@@ -672,6 +684,21 @@ public class PdfRedactionApplierTests {
             BuildStream("q\n1 0 0 1 0 0 cm\n/FmInner Do\nQ", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /XObject << /FmInner 5 0 R >> >>"),
             BuildStream("q\n1 0 0 1 30 220 cm\n/Fm1 Do\nQ\nq\n1 0 0 1 3"),
             BuildStream("0 80 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildRepeatedNestedFormWithIndirectResourcesPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /FmOuter 6 0 R >> >> /Contents 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Indirect nested secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n/FmInner Do\nQ", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources 7 0 R"),
+            "<< /XObject << /FmInner 5 0 R >> >>",
+            BuildStream("q\n1 0 0 1 30 220 cm\n/FmOuter Do\nQ\nq\n1 0 0 1 30 80 cm\n/FmOuter Do\nQ")
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

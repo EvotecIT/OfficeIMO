@@ -41,6 +41,7 @@ internal static partial class PdfRedactionApplier {
                     resources,
                     reference,
                     formStream,
+                    !SameReference(reference, sourceReference),
                     invocation.Transform,
                     textTargets,
                     parentFontDecoders,
@@ -78,6 +79,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary inheritedResources,
         PdfReference formReference,
         PdfStream formStream,
+        bool isolateResources,
         Matrix2D invocationTransform,
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
@@ -85,8 +87,10 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         ref int nextObjectNumber) {
-        PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? inheritedResources;
-        PdfDictionary formXObjects = ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
+        PdfDictionary formResources = ResolveTextFormResources(objects, inheritedResources, formStream, isolateResources);
+        PdfDictionary formXObjects = isolateResources
+            ? EnsureResourceXObjects(objects, formResources)
+            : ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
         Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects));
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
@@ -114,6 +118,26 @@ internal static partial class PdfRedactionApplier {
         }
 
         return new TextFormScrubContentResult(changed || nestedResult.HasChanges, rewrittenContent);
+    }
+
+    private static PdfDictionary ResolveTextFormResources(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary inheritedResources,
+        PdfStream formStream,
+        bool isolateResources) {
+        if (!isolateResources) {
+            return ResolveDictionary(
+                objects,
+                formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? inheritedResources;
+        }
+
+        if (formStream.Dictionary.Items.ContainsKey("Resources")) {
+            return EnsureFormResources(objects, formStream);
+        }
+
+        PdfDictionary resources = CloneDictionary(inheritedResources);
+        formStream.Dictionary.Items["Resources"] = resources;
+        return resources;
     }
 
     private readonly struct TextFormScrubContentResult {
