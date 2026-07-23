@@ -41,10 +41,16 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 IReadOnlyList<double> candidateValues = candidates.Select(candidate => candidate.Value).ToArray();
+                if (!ExcelConditionalFormatThresholds.TryCreateColorScaleEvaluator(
+                        candidateValues,
+                        rule.ColorScaleColors,
+                        rule.ColorScaleThresholds,
+                        out ExcelConditionalFormatThresholds.ColorScaleEvaluator? colorScale) ||
+                    colorScale == null) {
+                    continue;
+                }
                 foreach (var candidate in candidates) {
-                    if (ExcelConditionalFormatThresholds.TryGetColorScaleRgb(candidateValues, rule.ColorScaleColors, rule.ColorScaleThresholds, candidate.Value, out string rgbHex)) {
-                        fills[(candidate.Row, candidate.Column)] = rgbHex;
-                    }
+                    fills[(candidate.Row, candidate.Column)] = colorScale.GetRgbHex(candidate.Value);
                 }
             }
 

@@ -68,20 +68,23 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        internal static bool TryGetColorScaleRgb(
+        internal static bool TryCreateColorScaleEvaluator(
             IReadOnlyList<double> values,
             IReadOnlyList<string> colors,
             IReadOnlyList<ExcelConditionalFormatThreshold> thresholds,
-            double value,
-            out string rgbHex) {
-            rgbHex = string.Empty;
-            if (values.Count == 0 || colors.Count < 2) {
+            out ColorScaleEvaluator? evaluator) {
+            evaluator = null;
+            if (values.Count == 0 || (colors.Count != 2 && colors.Count != 3)) {
                 return false;
             }
 
             double min = values.Min();
             double max = values.Max();
             int stopCount = colors.Count;
+            IReadOnlyList<double>? sortedValues = thresholds.Any(threshold =>
+                string.Equals(threshold.Type, "percentile", StringComparison.OrdinalIgnoreCase))
+                ? values.OrderBy(item => item).ToArray()
+                : null;
             var stops = new List<ColorStop>(stopCount);
             for (int i = 0; i < stopCount; i++) {
                 if (!TryGetRgb(colors[i], out byte red, out byte green, out byte blue)) {
@@ -92,30 +95,12 @@ namespace OfficeIMO.Excel {
                     ? min
                     : min + ((max - min) * i / (stopCount - 1));
                 double thresholdValue = i < thresholds.Count
-                    ? ResolveThresholdValue(thresholds[i], values, min, max, fallback)
+                    ? ResolveThresholdValue(thresholds[i], values, min, max, fallback, sortedValues)
                     : fallback;
                 stops.Add(new ColorStop(thresholdValue, red, green, blue));
             }
 
-            if (value <= stops[0].Value) {
-                rgbHex = ToRgbHex(stops[0].Red, stops[0].Green, stops[0].Blue);
-                return true;
-            }
-
-            for (int i = 0; i < stops.Count - 1; i++) {
-                ColorStop start = stops[i];
-                ColorStop end = stops[i + 1];
-                if (value > end.Value) {
-                    continue;
-                }
-
-                double ratio = end.Value <= start.Value ? 1D : Math.Max(0D, Math.Min(1D, (value - start.Value) / (end.Value - start.Value)));
-                rgbHex = InterpolateRgbHex(start.Red, start.Green, start.Blue, end.Red, end.Green, end.Blue, ratio);
-                return true;
-            }
-
-            ColorStop last = stops[stops.Count - 1];
-            rgbHex = ToRgbHex(last.Red, last.Green, last.Blue);
+            evaluator = new ColorScaleEvaluator(stops);
             return true;
         }
 
@@ -145,7 +130,13 @@ namespace OfficeIMO.Excel {
             return (0D, positiveRatio);
         }
 
-        private static double ResolveThresholdValue(ExcelConditionalFormatThreshold threshold, IReadOnlyList<double> values, double min, double max, double fallback) {
+        private static double ResolveThresholdValue(
+            ExcelConditionalFormatThreshold threshold,
+            IReadOnlyList<double> values,
+            double min,
+            double max,
+            double fallback,
+            IReadOnlyList<double>? sortedValues = null) {
             string type = threshold.Type ?? string.Empty;
             if (string.Equals(type, "min", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(type, "minimum", StringComparison.OrdinalIgnoreCase)) {
@@ -170,7 +161,9 @@ namespace OfficeIMO.Excel {
 
             if (string.Equals(type, "percentile", StringComparison.OrdinalIgnoreCase)) {
                 double percentile = TryParseThresholdNumber(threshold.Value, out double number) ? Math.Max(0D, Math.Min(100D, number)) : 0D;
-                return CalculatePercentile(values, percentile);
+                return sortedValues == null
+                    ? CalculatePercentile(values, percentile)
+                    : CalculatePercentileSorted(sortedValues, percentile);
             }
 
             return fallback;
@@ -182,6 +175,10 @@ namespace OfficeIMO.Excel {
             }
 
             List<double> sorted = values.OrderBy(value => value).ToList();
+            return CalculatePercentileSorted(sorted, percentile);
+        }
+
+        private static double CalculatePercentileSorted(IReadOnlyList<double> sorted, double percentile) {
             if (sorted.Count == 1) {
                 return sorted[0];
             }
@@ -214,7 +211,35 @@ namespace OfficeIMO.Excel {
             return (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio), MidpointRounding.AwayFromZero)));
         }
 
-        private readonly struct ColorStop {
+        internal sealed class ColorScaleEvaluator {
+            private readonly IReadOnlyList<ColorStop> _stops;
+
+            internal ColorScaleEvaluator(IReadOnlyList<ColorStop> stops) {
+                _stops = stops;
+            }
+
+            internal string GetRgbHex(double value) {
+                if (value <= _stops[0].Value) {
+                    return ToRgbHex(_stops[0].Red, _stops[0].Green, _stops[0].Blue);
+                }
+
+                for (int i = 0; i < _stops.Count - 1; i++) {
+                    ColorStop start = _stops[i];
+                    ColorStop end = _stops[i + 1];
+                    if (value > end.Value) {
+                        continue;
+                    }
+
+                    double ratio = end.Value <= start.Value ? 1D : Math.Max(0D, Math.Min(1D, (value - start.Value) / (end.Value - start.Value)));
+                    return InterpolateRgbHex(start.Red, start.Green, start.Blue, end.Red, end.Green, end.Blue, ratio);
+                }
+
+                ColorStop last = _stops[_stops.Count - 1];
+                return ToRgbHex(last.Red, last.Green, last.Blue);
+            }
+        }
+
+        internal readonly struct ColorStop {
             internal ColorStop(double value, byte red, byte green, byte blue) {
                 Value = value;
                 Red = red;

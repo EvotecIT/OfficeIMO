@@ -4,11 +4,109 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
+using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportTests {
+        [Fact]
+        public void ExcelChart_ImageExportClampsUntrustedLineWidths() {
+            var properties = new ChartShapeProperties(
+                new A.Outline { Width = int.MaxValue });
+            System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
+                "TryGetLineWidth",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object?[] arguments = { properties, 0D };
+
+            bool resolved = (bool)method.Invoke(null, arguments)!;
+
+            Assert.True(resolved);
+            Assert.Equal(64D, Assert.IsType<double>(arguments[1]));
+        }
+
+        [Fact]
+        public void ExcelChart_ImageExportClampsUntrustedMarkerOutlineWidths() {
+            var marker = new Marker(
+                new ChartShapeProperties(
+                    new A.Outline { Width = int.MaxValue }));
+            System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
+                "GetImageExportMarkerOutlineWidth",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            double? width = (double?)method.Invoke(null, new object?[] { marker });
+
+            Assert.Equal(64D, width);
+        }
+
+        [Fact]
+        public void ExcelChart_ImageExportPreservesOnePixelTwoCellAnchors() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("TinyAnchor");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Only");
+            sheet.CellValue(2, 2, 1);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ReplaceChartAnchorWithTwoCell(
+                document,
+                new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("9525"), new Xdr.RowId("0"), new Xdr.RowOffset("9525")));
+
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(1, snapshot.WidthPixels);
+            Assert.Equal(1, snapshot.HeightPixels);
+        }
+
+        [Fact]
+        public void ExcelChart_ImageExportRefreshesTwoCellGeometryAfterWorksheetMutation() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("MutableGeometry");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Only");
+            sheet.CellValue(2, 2, 1);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ReplaceChartAnchorWithTwoCell(
+                document,
+                new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1"), new Xdr.RowOffset("0")));
+
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot before));
+            sheet.SetColumnWidth(1, 30D);
+            sheet.SetRowHeight(1, 45D);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot after));
+
+            Assert.True(after.WidthPixels > before.WidthPixels);
+            Assert.True(after.HeightPixels > before.HeightPixels);
+        }
+
+        [Fact]
+        public void ExcelChart_ImageExportUsesCustomRowGeometryAfterInitialIndexBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("LateGeometry");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Only");
+            sheet.CellValue(2, 2, 1);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ReplaceChartAnchorWithTwoCell(
+                document,
+                new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("100000"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("100001"), new Xdr.RowOffset("0")));
+
+            X.SheetData sheetData = sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!;
+            sheetData.RemoveAllChildren<X.Row>();
+            for (uint index = 1; index <= 100000U; index++) {
+                sheetData.Append(new X.Row { RowIndex = index });
+            }
+            sheetData.Append(new X.Row { RowIndex = 100001U, Height = 60D, CustomHeight = true });
+            sheetData.Append(new X.Row { RowIndex = 100001U, Height = 30D, CustomHeight = true });
+
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(80, snapshot.HeightPixels);
+        }
+
         [Fact]
         public void ExcelRange_ImageExportPreservesScatterSeriesCachedXYValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
@@ -540,6 +638,23 @@ namespace OfficeIMO.Tests {
             reference.Append(new NumberingCache(
                 new PointCount { Val = pointCount },
                 new NumericPoint(new NumericValue("1")) { Index = 0U }));
+        }
+
+        private static void ReplaceChartAnchorWithTwoCell(
+            ExcelDocument document,
+            Xdr.FromMarker fromMarker,
+            Xdr.ToMarker toMarker) {
+            ChartPart chartPart = GetFirstChartPart(document);
+            DrawingsPart drawingsPart = chartPart.GetParentParts().OfType<DrawingsPart>().Single();
+            Xdr.OneCellAnchor oneCellAnchor = Assert.Single(drawingsPart.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
+            Xdr.GraphicFrame frame = oneCellAnchor.GetFirstChild<Xdr.GraphicFrame>()!;
+            frame.Remove();
+            oneCellAnchor.Remove();
+            drawingsPart.WorksheetDrawing.Append(new Xdr.TwoCellAnchor(
+                fromMarker,
+                toMarker,
+                frame,
+                new Xdr.ClientData()));
         }
 
         [Fact]

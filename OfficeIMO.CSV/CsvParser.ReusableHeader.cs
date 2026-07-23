@@ -131,30 +131,9 @@ internal static partial class CsvParser
 
             try
             {
-                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                if (!TryParseQuotedRecordWithContinuations(lineReader, pendingLines, line, lineSeparator, delimiter, trim, strictQuotes, options, ref lineNumber, reusableQuotedRecord))
                 {
-                    var logicalRecord = new System.Text.StringBuilder(line);
-                    var pendingSeparator = lineSeparator;
-                    while (true)
-                    {
-                        ThrowIfCancellationRequested(options);
-                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                        if (next == null)
-                        {
-                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                        }
-
-                        logicalRecord.Append(pendingSeparator);
-                        logicalRecord.Append(next);
-                        lineNumber++;
-
-                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                        {
-                            break;
-                        }
-
-                        pendingSeparator = nextSeparator;
-                    }
+                    throw new CsvParseException("Unterminated quoted field.", lineNumber);
                 }
             }
             catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))

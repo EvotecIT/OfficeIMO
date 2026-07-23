@@ -128,13 +128,15 @@ public sealed partial class CsvDocument
         var pendingLines = new Queue<string>();
         while (TryReadDelimiterDetectionLine(reader, pendingLines, out var line))
         {
-            if (shouldSkipRawCommentRecord(line) && !IsLogicalDelimiterDetectionRecordComplete(line))
+            var inQuotes = false;
+            UpdateLogicalDelimiterDetectionQuoteState(line, ref inQuotes);
+            if (shouldSkipRawCommentRecord(line) && inQuotes)
             {
                 SkipRawDelimiterDetectionCommentRecord(reader, pendingLines, line, isHeaderCandidate);
                 continue;
             }
 
-            if (IsLogicalDelimiterDetectionRecordComplete(line))
+            if (!inQuotes)
             {
                 yield return line;
                 continue;
@@ -145,7 +147,8 @@ public sealed partial class CsvDocument
             {
                 record.Append('\n');
                 record.Append(line);
-                if (IsLogicalDelimiterDetectionRecordComplete(record.ToString()))
+                UpdateLogicalDelimiterDetectionQuoteState(line, ref inQuotes);
+                if (!inQuotes)
                 {
                     break;
                 }
@@ -181,11 +184,13 @@ public sealed partial class CsvDocument
         Func<string, bool> isHeaderCandidate)
     {
         var continuations = new List<string>();
+        var inQuotes = false;
+        UpdateLogicalDelimiterDetectionQuoteState(firstLine, ref inQuotes);
         while (reader.ReadLine() is { } next)
         {
             continuations.Add(next);
-            var candidate = string.Concat(firstLine, "\n", next);
-            if (IsLogicalDelimiterDetectionRecordComplete(candidate))
+            UpdateLogicalDelimiterDetectionQuoteState(next, ref inQuotes);
+            if (!inQuotes)
             {
                 return;
             }
@@ -195,8 +200,6 @@ public sealed partial class CsvDocument
                 EnqueueDelimiterDetectionContinuations(pendingLines, continuations);
                 return;
             }
-
-            firstLine = candidate;
         }
 
         EnqueueDelimiterDetectionContinuations(pendingLines, continuations);
@@ -213,14 +216,20 @@ public sealed partial class CsvDocument
     private static bool IsLogicalDelimiterDetectionRecordComplete(string record)
     {
         var inQuotes = false;
-        for (var i = 0; i < record.Length; i++)
+        UpdateLogicalDelimiterDetectionQuoteState(record, ref inQuotes);
+        return !inQuotes;
+    }
+
+    private static void UpdateLogicalDelimiterDetectionQuoteState(string text, ref bool inQuotes)
+    {
+        for (var i = 0; i < text.Length; i++)
         {
-            if (record[i] != '"')
+            if (text[i] != '"')
             {
                 continue;
             }
 
-            if (inQuotes && i + 1 < record.Length && record[i + 1] == '"')
+            if (inQuotes && i + 1 < text.Length && text[i + 1] == '"')
             {
                 i++;
                 continue;
@@ -228,8 +237,6 @@ public sealed partial class CsvDocument
 
             inQuotes = !inQuotes;
         }
-
-        return !inQuotes;
     }
 
     private static bool ShouldSkipCommentDuringDelimiterDetection(string line, CsvLoadOptions options, bool useHeaderDiscovery, bool allowPreHeaderCommentSkip)

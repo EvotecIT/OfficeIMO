@@ -436,6 +436,14 @@ namespace OfficeIMO.Excel {
             if (values.Count == 0) {
                 values = candidates.Select(candidate => candidate.Value).ToArray();
             }
+            if (!ExcelConditionalFormatThresholds.TryCreateColorScaleEvaluator(
+                    values,
+                    rule.ColorScaleColors,
+                    rule.ColorScaleThresholds,
+                    out ExcelConditionalFormatThresholds.ColorScaleEvaluator? colorScale) ||
+                colorScale == null) {
+                return;
+            }
 
             foreach (ConditionalNumericCell candidate in candidates) {
                 string key = Key(candidate.Cell.Row, candidate.Cell.Column);
@@ -444,9 +452,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (ExcelConditionalFormatThresholds.TryGetColorScaleRgb(values, rule.ColorScaleColors, rule.ColorScaleThresholds, candidate.Value, out string rgbHex)) {
-                    ApplyFillFormat(key, "FF" + rgbHex, formats);
-                }
+                ApplyFillFormat(key, "FF" + colorScale.GetRgbHex(candidate.Value), formats);
             }
         }
 

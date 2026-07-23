@@ -257,7 +257,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (TryFormatFraction(value, normalized, selectedSection, out string fractionText)) {
-                return ApplyNumericAffixes(normalized, fractionText);
+                return ApplyFractionAffixes(normalized, fractionText);
             }
 
             if (lower.Contains("e+") || lower.Contains("e-")) {
@@ -372,27 +372,38 @@ namespace OfficeIMO.Excel {
             double displayValue = selectedSection == 1 ? Math.Abs(value) : value;
             bool negative = displayValue < 0D;
             double absoluteValue = Math.Abs(displayValue);
-            int whole = (int)Math.Floor(absoluteValue);
+            if (absoluteValue >= long.MaxValue) {
+                return false;
+            }
+
+            long whole = (long)Math.Floor(absoluteValue);
             double fractional = absoluteValue - whole;
-            int numerator = 0;
-            int denominator = 1;
+            long numerator = 0L;
+            long denominator = 1L;
 
             if (fractional > 0.0000000001D) {
-                double bestError = double.MaxValue;
-                int startDenominator = fixedDenominator ? fixedValue : 1;
-                int endDenominator = fixedDenominator ? fixedValue : maxDenominator;
-                for (int currentDenominator = startDenominator; currentDenominator <= endDenominator; currentDenominator++) {
-                    int currentNumerator = (int)Math.Round(fractional * currentDenominator, MidpointRounding.AwayFromZero);
-                    double candidate = currentNumerator / (double)currentDenominator;
-                    double error = Math.Abs(candidate - fractional);
-                    if (error + 0.0000000001D < bestError) {
-                        bestError = error;
-                        numerator = currentNumerator;
-                        denominator = currentDenominator;
+                if (fixedDenominator) {
+                    denominator = fixedValue;
+                    numerator = (int)Math.Round(fractional * denominator, MidpointRounding.AwayFromZero);
+                } else {
+                    double bestError = double.MaxValue;
+                    for (int currentDenominator = 1; currentDenominator <= maxDenominator; currentDenominator++) {
+                        long currentNumerator = (long)Math.Round(fractional * currentDenominator, MidpointRounding.AwayFromZero);
+                        double candidate = currentNumerator / (double)currentDenominator;
+                        double error = Math.Abs(candidate - fractional);
+                        if (error + 0.0000000001D < bestError) {
+                            bestError = error;
+                            numerator = currentNumerator;
+                            denominator = currentDenominator;
+                        }
                     }
                 }
 
                 if (numerator >= denominator) {
+                    if (whole > long.MaxValue - (numerator / denominator)) {
+                        return false;
+                    }
+
                     whole += numerator / denominator;
                     numerator %= denominator;
                 }
@@ -400,6 +411,10 @@ namespace OfficeIMO.Excel {
 
             bool mixedFraction = HasMixedFractionWholePart(formatCode, slash);
             if (!mixedFraction && numerator > 0) {
+                if (whole > (long.MaxValue - numerator) / denominator) {
+                    return false;
+                }
+
                 numerator += whole * denominator;
                 whole = 0;
             }
@@ -804,6 +819,42 @@ namespace OfficeIMO.Excel {
         private static string ApplyNumericAffixes(string formatCode, string numericText) {
             int first = FindFirstNumericPlaceholder(formatCode);
             int last = FindLastNumericPlaceholder(formatCode);
+            if (first < 0 || last < first) {
+                return CleanLiteralAffix(formatCode);
+            }
+
+            string prefix = CleanLiteralAffix(formatCode.Substring(0, first));
+            string suffix = CleanLiteralAffix(formatCode.Substring(last + 1));
+            return prefix + numericText + suffix;
+        }
+
+        private static string ApplyFractionAffixes(string formatCode, string numericText) {
+            int first = FindFirstNumericPlaceholder(formatCode);
+            int last = FindLastNumericPlaceholder(formatCode);
+            int slash = formatCode.IndexOf('/');
+            if (slash >= 0) {
+                int denominatorEnd = slash;
+                for (int i = slash + 1; i < formatCode.Length; i++) {
+                    char ch = formatCode[i];
+                    if (char.IsWhiteSpace(ch)) {
+                        if (denominatorEnd > slash) {
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    if (char.IsDigit(ch) || IsNumericPlaceholder(ch)) {
+                        denominatorEnd = i;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                last = Math.Max(last, denominatorEnd);
+            }
+
             if (first < 0 || last < first) {
                 return CleanLiteralAffix(formatCode);
             }

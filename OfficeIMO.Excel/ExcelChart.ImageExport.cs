@@ -678,7 +678,9 @@ namespace OfficeIMO.Excel {
                 .GetFirstChild<C.ChartShapeProperties>()?
                 .GetFirstChild<A.Outline>();
             long? emu = outline?.Width?.Value;
-            return emu.HasValue && emu.Value > 0 ? emu.Value / 12700D : null;
+            return emu.HasValue && emu.Value > 0
+                ? ExcelImageExportLimits.ClampStrokeWidth(emu.Value / 12700D)
+                : null;
         }
 
         private IReadOnlyList<OfficeImageExportDiagnostic> CreateImageExportDiagnostics() {
@@ -867,7 +869,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            width = emu.Value / 12700D;
+            width = ExcelImageExportLimits.ClampStrokeWidth(emu.Value / 12700D);
             return true;
         }
 
