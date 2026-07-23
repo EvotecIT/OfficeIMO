@@ -54,6 +54,7 @@ internal static partial class PdfRedactionApplier {
                     pageDictionary,
                     ref currentContentsObject,
                     contentReferences[index],
+                    index,
                     content,
                     scrubbed,
                     referenceCounts,
@@ -62,7 +63,8 @@ internal static partial class PdfRedactionApplier {
             }
         } else {
             var graphicsState = new TextScrubGraphicsState();
-            foreach (PdfReference reference in contentReferences) {
+            for (int index = 0; index < contentReferences.Length; index++) {
+                PdfReference reference = contentReferences[index];
                 if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                     indirect.Value is not PdfStream stream ||
                     stream.DecodingFailed) {
@@ -77,6 +79,7 @@ internal static partial class PdfRedactionApplier {
                     pageDictionary,
                     ref currentContentsObject,
                     reference,
+                    index,
                     content,
                     scrubbed,
                     referenceCounts,
@@ -92,6 +95,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary pageDictionary,
         ref PdfObject currentContentsObject,
         PdfReference reference,
+        int contentIndex,
         string content,
         string scrubbed,
         IReadOnlyDictionary<int, int> referenceCounts,
@@ -105,7 +109,7 @@ internal static partial class PdfRedactionApplier {
         PdfReference targetReference = reference;
         if (IsSharedReference(referenceCounts, reference)) {
             targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
-            ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+            ReplacePageContentReferenceAtIndex(objects, pageDictionary, currentContentsObject, contentIndex, targetReference);
             currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
                 ? updatedContentsObject
                 : currentContentsObject;

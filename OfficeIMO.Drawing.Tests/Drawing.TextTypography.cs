@@ -170,6 +170,27 @@ public class DrawingTextTypographyTests {
     }
 
     [Fact]
+    public void TextLayout_MarksPlainLineLimitAsClipped() {
+        string text = string.Join("\n", Enumerable.Repeat("A", 4_097));
+
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            text,
+            fontSize: 1,
+            maxWidth: 2,
+            maxHeight: 5_000,
+            lineHeightFactor: 1,
+            minimumFontSize: 1,
+            static (value, size) => (value?.Length ?? 0) * size,
+            wrap: true,
+            forceSingleLine: false,
+            shrinkToFit: false,
+            overflowBehavior: OfficeTextOverflowBehavior.Clip);
+
+        Assert.True(layout.Clipped);
+        Assert.Equal(4_096, layout.Lines.Count);
+    }
+
+    [Fact]
     public void TextLayout_FallsBackWhenTextMeasurementIsNonMonotonic() {
         static double Measure(string? value, double _) => value switch {
             "ABC" => 10D,

@@ -184,6 +184,31 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void ReplacePageContentReferenceAtIndex_ReplacesOnlyTheSelectedRepeatedOccurrence() {
+        var first = new PdfReference(5, 0);
+        var middle = new PdfReference(6, 0);
+        var repeated = new PdfReference(5, 0);
+        var replacement = new PdfReference(7, 0);
+        var contents = new PdfArray();
+        contents.Items.Add(first);
+        contents.Items.Add(middle);
+        contents.Items.Add(repeated);
+        var page = new PdfDictionary();
+        page.Items["Contents"] = contents;
+
+        PdfRedactionApplier.ReplacePageContentReferenceAtIndex(
+            new Dictionary<int, PdfIndirectObject>(),
+            page,
+            contents,
+            contentIndex: 2,
+            replacement);
+
+        Assert.Same(first, contents.Items[0]);
+        Assert.Same(middle, contents.Items[1]);
+        Assert.Same(replacement, contents.Items[2]);
+    }
+
+    [Fact]
     public void Apply_ClonesSharedFormXObjectBeforeScrubbingMatchedText() {
         byte[] source = BuildSharedFormXObjectTextPdf();
         PdfRedactionArea area = FindAreasForText(source, "Shared form secret").Single(redaction => redaction.PageNumber == 1);
