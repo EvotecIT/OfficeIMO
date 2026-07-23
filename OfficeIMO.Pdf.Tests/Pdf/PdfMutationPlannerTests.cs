@@ -431,6 +431,31 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void DocumentMutationPlanningRetainsBytesForSignatureReservationValidation() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Document signature planning source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 256 });
+        PdfDocument document = PdfDocument.Open(preparation.PreparedPdf);
+
+        PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.FinalizeExternalSignature);
+        PdfMutationPortfolioReport portfolio = document.AssessMutations(new[] {
+            PdfMutationOperation.FinalizeExternalSignature
+        });
+        PdfMutationPlan portfolioPlan = portfolio.Get(PdfMutationOperation.FinalizeExternalSignature);
+
+        Assert.True(plan.CanExecute);
+        Assert.True(portfolioPlan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, portfolioPlan.ExecutionMode);
+        Assert.DoesNotContain("SignatureReservation.Invalid", plan.BlockerCodes);
+        Assert.DoesNotContain("SignatureReservation.Invalid", portfolioPlan.BlockerCodes);
+        Assert.Same(portfolio.Preflight, portfolioPlan.Preflight);
+    }
+
+    [Fact]
     public void ExternalSignatureFinalizationRejectsByteRangeThatDoesNotMatchReservation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Signature reservation validation"))
@@ -445,9 +470,12 @@ public class PdfMutationPlannerTests {
             (originalTailLength + 1L).ToString("00000000000000000000", System.Globalization.CultureInfo.InvariantCulture));
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(crafted, PdfMutationOperation.FinalizeExternalSignature);
+        PdfMutationPlan documentPlan = PdfDocument.Open(crafted).PlanMutation(PdfMutationOperation.FinalizeExternalSignature);
 
         Assert.False(plan.CanExecute);
+        Assert.False(documentPlan.CanExecute);
         Assert.Contains("SignatureReservation.Invalid", plan.BlockerCodes);
+        Assert.Contains("SignatureReservation.Invalid", documentPlan.BlockerCodes);
         Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Open(crafted).CompleteExternalSignature(new byte[] { 0x30, 0x01, 0x00 }));
     }

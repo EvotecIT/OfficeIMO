@@ -42,9 +42,7 @@ internal static class PdfMutationPlanner {
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
-        bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
-            PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
-        return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated);
+        return Plan(preflight, pdf, operation, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation for a readable PDF stream.</summary>
@@ -107,6 +105,20 @@ internal static class PdfMutationPlanner {
             fieldNames,
             executionPreference,
             finalizationReservationValidated: operation != PdfMutationOperation.FinalizeExternalSignature);
+    }
+
+    /// <summary>Plans a mutation from a shared preflight while retaining source bytes for reservation validation.</summary>
+    internal static PdfMutationPlan Plan(
+        PdfDocumentPreflight preflight,
+        byte[] pdf,
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        Guard.NotNull(preflight, nameof(preflight));
+        Guard.NotNull(pdf, nameof(pdf));
+        bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
+            PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
+        return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated);
     }
 
     private static PdfMutationPlan PlanCore(
