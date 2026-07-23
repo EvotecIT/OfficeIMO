@@ -206,16 +206,7 @@ internal static partial class OneNoteReaderAdapter {
         foreach (ProjectionPart source in units) {
             if (!source.Fits(maxChars)) {
                 FlushProjectionPart(result, text, markdown);
-                IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(
-                    source.Text, maxChars);
-                IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(
-                    source.Markdown, maxChars);
-                int partCount = Math.Max(textParts.Count, markdownParts.Count);
-                for (int partIndex = 0; partIndex < partCount; partIndex++) {
-                    result.Add(new ProjectionPart(
-                        partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
-                        partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty));
-                }
+                result.Add(source);
                 continue;
             }
             string textSeparator = text.Length == 0 || source.Text.Length == 0 ? string.Empty : Environment.NewLine;

@@ -520,6 +520,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(64 * 1024, exception.ResponseBody.Length);
         }
 
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_TimesOutWhileReadingUnboundedByteResponse() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new BlockingReadContent()
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    RequestTimeout = TimeSpan.FromMilliseconds(50),
+                    MaxRetryCount = 0
+                });
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                transport.SendBytesAsync(
+                    "token",
+                    HttpMethod.Get,
+                    "https://www.googleapis.com/drive/v3/files/file-1?alt=media",
+                    GoogleWorkspaceRequestSafety.Safe,
+                    "Google Drive API",
+                    new TranslationReport()));
+        }
+
         private static HttpResponseMessage CreateJsonResponse(string json) {
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -561,6 +584,42 @@ namespace OfficeIMO.Tests {
                 length = 0;
                 return false;
             }
+        }
+
+        private sealed class BlockingReadContent : HttpContent {
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+                throw new InvalidOperationException("ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new BlockingReadStream());
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
+        }
+
+        private sealed class BlockingReadStream : Stream {
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) =>
+                throw new InvalidOperationException("The response body must be read asynchronously.");
+            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+                CancellationToken cancellationToken) {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+                return 0;
+            }
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

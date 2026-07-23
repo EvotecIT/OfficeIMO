@@ -102,17 +102,52 @@ internal static class SubtitleReaderAdapter {
         int firstPartPrefixLength) {
         int limit = Math.Max(1, maxChars);
         int firstMarkdownLimit = Math.Max(1, limit - firstPartPrefixLength);
-        IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(value, limit);
-        IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(
-            EscapeCueMarkdown(value), firstMarkdownLimit, limit);
-        int partCount = Math.Max(textParts.Count, markdownParts.Count);
-        var result = new List<SubtitleProjectionPart>(partCount);
-        for (int index = 0; index < partCount; index++) {
-            result.Add(new SubtitleProjectionPart(
-                index < textParts.Count ? textParts[index] : string.Empty,
-                index < markdownParts.Count ? markdownParts[index] : string.Empty));
+        var result = new List<SubtitleProjectionPart>();
+        int offset = 0;
+        int markdownLimit = firstMarkdownLimit;
+        while (offset < value.Length) {
+            int length = FindAlignedCuePartLength(value, offset, limit, markdownLimit);
+            string text = value.Substring(offset, length);
+            result.Add(new SubtitleProjectionPart(text, EscapeCueMarkdown(text)));
+            offset += length;
+            markdownLimit = limit;
         }
         return result;
+    }
+
+    private static int FindAlignedCuePartLength(
+        string value,
+        int offset,
+        int textLimit,
+        int markdownLimit) {
+        int length = 0;
+        int markdownLength = 0;
+        while (offset + length < value.Length) {
+            int scalarLength = char.IsHighSurrogate(value[offset + length]) &&
+                offset + length + 1 < value.Length && char.IsLowSurrogate(value[offset + length + 1])
+                ? 2
+                : 1;
+            int escapedLength = scalarLength == 1
+                ? EscapedCueCharacterLength(value[offset + length])
+                : scalarLength;
+            if (length > 0 &&
+                (length + scalarLength > textLimit || markdownLength + escapedLength > markdownLimit)) {
+                break;
+            }
+            length += scalarLength;
+            markdownLength += escapedLength;
+            if (length >= textLimit || markdownLength >= markdownLimit) break;
+        }
+        return Math.Max(1, length);
+    }
+
+    private static int EscapedCueCharacterLength(char value) {
+        switch (value) {
+            case '&': return 5;
+            case '<':
+            case '>': return 4;
+            default: return 1;
+        }
     }
 
     private static string EscapeCueMarkdown(string value) => value

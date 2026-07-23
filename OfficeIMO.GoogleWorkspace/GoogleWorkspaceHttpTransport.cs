@@ -261,14 +261,11 @@ namespace OfficeIMO.GoogleWorkspace {
             long? maxResponseBytes,
             CancellationToken cancellationToken,
             bool truncateAtLimit = false) {
-            if (!maxResponseBytes.HasValue) {
-                return await content.ReadAsByteArrayAsync().ConfigureAwait(false);
-            }
-            long limit = maxResponseBytes.Value;
-            if (content.Headers.ContentLength is long declaredLength
-                && declaredLength > limit && !truncateAtLimit) {
+            long? limit = maxResponseBytes;
+            if (limit.HasValue && content.Headers.ContentLength is long declaredLength
+                && declaredLength > limit.Value && !truncateAtLimit) {
                 throw new InvalidDataException(
-                    $"The response declared {declaredLength} bytes, exceeding the configured limit of {limit} bytes.");
+                    $"The response declared {declaredLength} bytes, exceeding the configured limit of {limit.Value} bytes.");
             }
 
             using Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -279,17 +276,17 @@ namespace OfficeIMO.GoogleWorkspace {
                 int read = await input.ReadAsync(buffer, 0, buffer.Length,
                     cancellationToken).ConfigureAwait(false);
                 if (read == 0) break;
-                if (read > limit - total) {
+                if (limit.HasValue && read > limit.Value - total) {
                     if (truncateAtLimit) {
-                        output.Write(buffer, 0, checked((int)(limit - total)));
+                        output.Write(buffer, 0, checked((int)(limit.Value - total)));
                         break;
                     }
                     throw new InvalidDataException(
-                        $"The response exceeded the configured limit of {limit} bytes.");
+                        $"The response exceeded the configured limit of {limit.Value} bytes.");
                 }
                 output.Write(buffer, 0, read);
                 total += read;
-                if (truncateAtLimit && total == limit) break;
+                if (truncateAtLimit && limit.HasValue && total == limit.Value) break;
             }
             return output.ToArray();
         }

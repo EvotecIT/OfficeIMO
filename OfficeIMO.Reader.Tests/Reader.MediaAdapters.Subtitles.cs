@@ -5,6 +5,11 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderMediaAdapterTests {
+    private static string EscapeSubtitleMarkdown(string value) => value
+        .Replace("&", "&amp;")
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
+
     [Theory]
     [InlineData("first<br>second")]
     [InlineData("first<BR/>second")]
