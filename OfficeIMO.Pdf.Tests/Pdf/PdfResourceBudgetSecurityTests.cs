@@ -101,6 +101,17 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void TextContentParser_BoundsTextRunBufferBeforeDecoding() {
+        var budget = new TextContentParser.TextOutputBudget(
+            maxActualTextCharacters: 1,
+            maxDecodedTextCharacters: 1);
+
+        Assert.Equal(1, budget.GetDecodedTextBufferCapacity(int.MaxValue));
+        budget.ChargeDecodedText(1);
+        Assert.Equal(0, budget.GetDecodedTextBufferCapacity(int.MaxValue));
+    }
+
+    [Fact]
     public void PdfReadPage_BoundsAggregateContentStreamBytes() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R >>",

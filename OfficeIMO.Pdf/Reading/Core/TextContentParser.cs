@@ -129,6 +129,11 @@ internal static class TextContentParser {
 
             _decodedTextCharacters = next;
         }
+
+        internal int GetDecodedTextBufferCapacity(int requestedCapacity) {
+            long remaining = _maxDecodedTextCharacters - _decodedTextCharacters;
+            return (int)Math.Min(Math.Max(0L, remaining), Math.Max(0, requestedCapacity));
+        }
     }
 
     internal readonly struct FormInvocation {
@@ -577,7 +582,7 @@ internal static class TextContentParser {
                 twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
-            var sbOut = new StringBuilder(bytes.Length);
+            var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             double advTotal = 0;
             char prevChar = '\0';
             string wholeDecoded = NormalizeDecodedGlyphText(decodeWithFont(font, bytes) ?? string.Empty);
