@@ -30,10 +30,12 @@ OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed
 ## Quick start
 
 ```csharp
+using System.Collections.Generic;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("Sales.xlsx");
-var sheet = workbook.AddSheet("Q4 Sales");
+var sheet = workbook.AddWorksheet("Q4 Sales");
 
 // Set headers
 sheet.Cells["A1"].Value = "Product";
@@ -54,11 +56,19 @@ for (int i = 0; i < products.Length; i++)
     sheet.Cells[$"C{row}"].NumberFormat = "$#,##0";
 }
 
-// Create a table from the data range
-var table = sheet.AddTable("SalesTable", "A1", $"C{products.Length + 1}");
-table.Style = ExcelTableStyle.Medium9;
-table.ShowTotalsRow = true;
-table.Columns["Revenue"].TotalsFunction = ExcelTotalsFunction.Sum;
+// Create a styled table with a totals row
+int totalsRow = products.Length + 2;
+sheet.AddTable(
+    $"A1:C{totalsRow}",
+    hasHeader: true,
+    name: "SalesTable",
+    style: TableStyle.TableStyleMedium9);
+sheet.SetTableTotalsByName(
+    "SalesTable",
+    new Dictionary<string, TotalsRowFunctionValues>
+    {
+        ["Revenue"] = TotalsRowFunctionValues.Sum
+    });
 
 // AutoFit for a clean layout
 sheet.AutoFitColumns();
