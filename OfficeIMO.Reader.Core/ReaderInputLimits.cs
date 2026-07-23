@@ -244,6 +244,16 @@ public static class ReaderInputLimits {
                 if (disposing) TryDeleteSnapshotDirectory(_directory);
             }
         }
+
+#if NET6_0_OR_GREATER
+        public override async ValueTask DisposeAsync() {
+            try {
+                await base.DisposeAsync().ConfigureAwait(false);
+            } finally {
+                TryDeleteSnapshotDirectory(_directory);
+            }
+        }
+#endif
     }
 
     [DllImport("libc", EntryPoint = "mkdir", SetLastError = true)]

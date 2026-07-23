@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -78,6 +79,7 @@ namespace OfficeIMO.Excel {
         [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided row and cell converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
         private static string DataTableToJsonWithOptions(DataTable table, JsonSerializerOptions options) {
+            EnsureStreamingJsonOptionsSupported(options);
             JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options);
             int estimatedCapacity = EstimateJsonCapacity(table, propertyNames);
             var writerOptions = new JsonWriterOptions {
@@ -100,6 +102,21 @@ namespace OfficeIMO.Excel {
             byte[] jsonBytes = stream.ToArray();
             return Encoding.UTF8.GetString(jsonBytes, 0, jsonBytes.Length);
 #endif
+        }
+
+        private static void EnsureStreamingJsonOptionsSupported(JsonSerializerOptions options) {
+            if (options.ReferenceHandler != null) {
+                throw new NotSupportedException(
+                    "ReferenceHandler is not supported for bounded DataTable JSON export because reference metadata requires whole-table materialization.");
+            }
+
+            Type rootType = typeof(List<Dictionary<string, object?>>);
+            foreach (JsonConverter converter in options.Converters) {
+                if (converter.CanConvert(rootType)) {
+                    throw new NotSupportedException(
+                        "Converters for the complete DataTable row collection are not supported by bounded JSON export. Register row or value converters instead.");
+                }
+            }
         }
 
         private static string DataTableToJsonStreaming(DataTable table) {

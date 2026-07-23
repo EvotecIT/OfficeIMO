@@ -115,6 +115,7 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
 
     private async Task SendToStreamCoreAsync(HttpMethod method, string relativeUri, Stream destination, CancellationToken cancellationToken) {
         bool canReset = PrepareDestinationForDirectStreaming(destination, out long initialPosition);
+        bool destinationWriteStarted = false;
 
         try {
             await SendAsync(
@@ -122,18 +123,35 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
                     relativeUri,
                     null,
                     null,
-                    canReset ? ConfluenceRequestSafety.SafeToRetry : ConfluenceRequestSafety.NonIdempotent,
+                    ConfluenceRequestSafety.SafeToRetry,
                     cancellationToken,
                     async (response, token) => {
                         if (canReset) ResetDestination(destination, initialPosition);
+                        destinationWriteStarted = false;
                         using Stream source = await ReadAsStreamAsync(response.Content, token).ConfigureAwait(false);
-                        await source.CopyToAsync(destination, 81920, token).ConfigureAwait(false);
+                        await CopyToDestinationAsync(source, destination, token, () => destinationWriteStarted = true)
+                            .ConfigureAwait(false);
                         return true;
-                    })
+                    },
+                    () => canReset || !destinationWriteStarted)
                 .ConfigureAwait(false);
         } catch {
             if (canReset) TryResetDestination(destination, initialPosition);
             throw;
+        }
+    }
+
+    private static async Task CopyToDestinationAsync(
+        Stream source,
+        Stream destination,
+        CancellationToken cancellationToken,
+        Action onWriteStarting) {
+        var buffer = new byte[81920];
+        while (true) {
+            int read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+            if (read == 0) return;
+            onWriteStarting();
+            await destination.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -209,7 +227,8 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
         Action<HttpRequestMessage>? configure,
         ConfluenceRequestSafety safety,
         CancellationToken cancellationToken,
-        Func<HttpResponseMessage, CancellationToken, Task<T>> readSuccess) {
+        Func<HttpResponseMessage, CancellationToken, Task<T>> readSuccess,
+        Func<bool>? retryAllowed = null) {
         ThrowIfDisposed();
         Uri uri = ResolveUri(relativeUri);
         int attempt = 0;
@@ -227,7 +246,8 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
                 using HttpResponseMessage response = await _client
                     .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
                     .ConfigureAwait(false);
-                if (ShouldRetry(response.StatusCode, safety, attempt)) {
+                if (ShouldRetry(response.StatusCode, safety, attempt)
+                    && (retryAllowed?.Invoke() ?? true)) {
                     TimeSpan delay = GetRetryDelay(response, attempt);
                     attempt++;
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
@@ -238,12 +258,15 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
                     throw new ConfluenceApiException(response.StatusCode, method.Method, uri, Encoding.UTF8.GetString(body));
                 }
                 return await readSuccess(response, timeout.Token).ConfigureAwait(false);
-            } catch (HttpRequestException) when (CanRetry(safety, attempt)) {
+            } catch (HttpRequestException) when (CanRetry(safety, attempt)
+                && (retryAllowed?.Invoke() ?? true)) {
                 TimeSpan delay = GetRetryDelay(attempt);
                 attempt++;
                 await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 continue;
-            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(safety, attempt)) {
+            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested
+                && CanRetry(safety, attempt)
+                && (retryAllowed?.Invoke() ?? true)) {
                 TimeSpan delay = GetRetryDelay(attempt);
                 attempt++;
                 await Task.Delay(delay, cancellationToken).ConfigureAwait(false);

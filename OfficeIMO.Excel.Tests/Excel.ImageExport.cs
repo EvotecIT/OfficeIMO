@@ -881,6 +881,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportBoundsSkippedConditionalContainers() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SkippedContainers");
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            for (int index = 0; index < 10; index++) {
+                worksheet.InsertAfter(new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "B" + (index + 1) }
+                }, worksheet.GetFirstChild<SheetData>());
+            }
+
+            IReadOnlyList<ExcelConditionalFormattingInfo> retained =
+                sheet.GetConditionalFormattingRules("A1", 1, out bool truncated);
+
+            Assert.True(truncated);
+            Assert.Empty(retained);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportBoundsSkippedConditionalReferenceLists() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SkippedReferences");
+            string references = string.Join(" ", Enumerable.Repeat("B1", 1_000));
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = references }
+            };
+            conditional.Append(new ConditionalFormattingRule {
+                Type = ConditionalFormatValues.Expression,
+                Priority = 1
+            });
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            IReadOnlyList<ExcelConditionalFormattingInfo> retained =
+                sheet.GetConditionalFormattingRules("A1", 1, out bool truncated);
+
+            Assert.True(truncated);
+            Assert.Empty(retained);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportBoundsConditionalRuleCellWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("RuleCellWork");

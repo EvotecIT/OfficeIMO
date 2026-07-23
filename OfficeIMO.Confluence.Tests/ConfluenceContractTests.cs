@@ -298,6 +298,50 @@ public sealed class ConfluenceContractTests {
     }
 
     [Fact]
+    public async Task AttachmentDownload_NonSeekableDestinationRetriesBeforeWriting() {
+        int attempt = 0;
+        var handler = new RecordingHandler(_ => ++attempt == 1
+            ? Response(HttpStatusCode.ServiceUnavailable, "later")
+            : new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("complete")),
+            });
+        using ConfluenceClient client = CreateClient(handler, configure: options => {
+            options.RetryBaseDelay = TimeSpan.Zero;
+            options.RetryMaxDelay = TimeSpan.Zero;
+        });
+        using var storage = new MemoryStream();
+        using var destination = new NonSeekableWriteStream(storage);
+
+        await client.DownloadAttachmentAsync("123", "a1", destination);
+
+        Assert.Equal(2, attempt);
+        Assert.Equal("complete", Encoding.UTF8.GetString(storage.ToArray()));
+    }
+
+    [Fact]
+    public async Task AttachmentDownload_NonSeekableDestinationDoesNotRetryAfterWritingStarts() {
+        int attempt = 0;
+        var handler = new RecordingHandler(_ => {
+            attempt++;
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StreamContent(new PartialReadFailureStream(Encoding.UTF8.GetBytes("partial"))),
+            };
+        });
+        using ConfluenceClient client = CreateClient(handler, configure: options => {
+            options.RetryBaseDelay = TimeSpan.Zero;
+            options.RetryMaxDelay = TimeSpan.Zero;
+        });
+        using var storage = new MemoryStream();
+        using var destination = new NonSeekableWriteStream(storage);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.DownloadAttachmentAsync("123", "a1", destination));
+
+        Assert.Equal(1, attempt);
+        Assert.Equal("partial", Encoding.UTF8.GetString(storage.ToArray()));
+    }
+
+    [Fact]
     public async Task AttachmentDownload_RejectsSeekableDestinationThatWouldOverwriteExistingData() {
         int requests = 0;
         var handler = new RecordingHandler(_ => {
@@ -373,6 +417,26 @@ public sealed class ConfluenceContractTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class NonSeekableWriteStream : Stream {
+        private readonly Stream _inner;
+
+        internal NonSeekableWriteStream(Stream inner) => _inner = inner;
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() => _inner.Flush();
+        public override Task FlushAsync(CancellationToken cancellationToken) => _inner.FlushAsync(cancellationToken);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            _inner.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
     private sealed class RecordingHandler : HttpMessageHandler {

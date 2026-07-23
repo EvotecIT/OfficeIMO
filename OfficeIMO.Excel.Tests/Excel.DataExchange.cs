@@ -84,6 +84,35 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_DataExchange_JsonRejectsReferencePreservationThatRequiresWholeTableMaterialization() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Name");
+            sheet.CellValue(2, 1, "Alpha");
+            var options = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                sheet.ToJson("A1:A2", jsonOptions: options));
+
+            Assert.Contains("ReferenceHandler", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_DataExchange_JsonRejectsRootCollectionConvertersThatBypassStreaming() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Name");
+            sheet.CellValue(2, 1, "Alpha");
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new RootRowsConverter());
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                sheet.ToJson("A1:A2", jsonOptions: options));
+
+            Assert.Contains("complete DataTable row collection", exception.Message, StringComparison.Ordinal);
+        }
+
         private sealed class UppercaseStringConverter : JsonConverter<string> {
             public override string? Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options) =>
                 reader.GetString();
@@ -109,6 +138,18 @@ namespace OfficeIMO.Tests {
                 }
                 writer.WriteEndObject();
             }
+        }
+
+        private sealed class RootRowsConverter : JsonConverter<List<Dictionary<string, object?>>> {
+            public override List<Dictionary<string, object?>>? Read(
+                ref Utf8JsonReader reader,
+                System.Type typeToConvert,
+                JsonSerializerOptions options) => throw new System.NotSupportedException();
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                List<Dictionary<string, object?>> value,
+                JsonSerializerOptions options) => throw new System.InvalidOperationException("Root converter must not run.");
         }
 
         [Fact]

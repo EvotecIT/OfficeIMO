@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -44,5 +45,26 @@ public sealed class ReaderInputLimitTests {
         }
 
         Assert.False(Directory.Exists(snapshotDirectory));
+    }
+
+    [Fact]
+    public async Task LargeSnapshotAsyncDisposalRemovesPrivateDirectory() {
+#if NET6_0_OR_GREATER
+        byte[] payload = System.Text.Encoding.UTF8.GetBytes(
+            "bounded asynchronous snapshot");
+        using var source = new MemoryStream(payload, writable: false);
+        Stream prepared = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
+            source,
+            maxInputBytes: 64L * 1024 * 1024 + 1,
+            CancellationToken.None);
+        string snapshotPath = Assert.IsAssignableFrom<FileStream>(prepared).Name;
+        string snapshotDirectory = Path.GetDirectoryName(snapshotPath)!;
+
+        await prepared.DisposeAsync();
+
+        Assert.False(Directory.Exists(snapshotDirectory));
+#else
+        await Task.CompletedTask;
+#endif
     }
 }
