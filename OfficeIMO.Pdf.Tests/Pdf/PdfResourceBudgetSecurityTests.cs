@@ -45,7 +45,7 @@ public sealed class PdfResourceBudgetSecurityTests {
                 content,
                 static (_, bytes) => Encoding.ASCII.GetString(bytes),
                 static (_, bytes) => bytes.Length * 500D,
-                actualTextForProperty: static _ => "123456",
+                actualTextForProperty: static _ => Encoding.ASCII.GetBytes("123456"),
                 maxActualTextCharacters: 10));
 
         Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
@@ -70,6 +70,20 @@ public sealed class PdfResourceBudgetSecurityTests {
 
         Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
         Assert.Equal("AB", Assert.Single(spans).Text);
+    }
+
+    [Fact]
+    public void TextContentParser_ChargesDiscardedArtifactTextToDecodedBudget() {
+        const string content = "/Artifact BMC BT /F1 12 Tf (AB) Tj ET EMC";
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content,
+                static (_, bytes) => Encoding.ASCII.GetString(bytes),
+                static (_, bytes) => bytes.Length * 500D,
+                maxDecodedTextCharacters: 1));
+
+        Assert.Equal(PdfReadLimitKind.DecodedTextCharacters, exception.Kind);
     }
 
     [Fact]
@@ -159,6 +173,24 @@ public sealed class PdfResourceBudgetSecurityTests {
             BuildStream(formContent, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
         var options = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxActualTextCharacters = 10 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(pdf, options).Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
+    }
+
+    [Fact]
+    public void PdfReadPage_BoundsNamedActualTextFromRawBytes() {
+        const string pageContent = "/Span /MC0 BDC BT /F1 12 Tf (X) Tj ET EMC";
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Properties << /MC0 << /ActualText <FEFF00410042> >> >> >> /Contents 4 0 R >>",
+            BuildStream(pageContent));
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxActualTextCharacters = 1 }
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>

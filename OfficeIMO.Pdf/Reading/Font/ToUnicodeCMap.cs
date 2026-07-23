@@ -101,7 +101,6 @@ internal sealed class ToUnicodeCMap {
             return;
         }
 
-        _processedMappings++;
         if (dstHex.Length > MaxDestinationHexCharactersWithWhitespace) {
             return;
         }
@@ -113,6 +112,7 @@ internal sealed class ToUnicodeCMap {
             return;
         }
 
+        _processedMappings++;
         _maxKeyBytes = Math.Max(_maxKeyBytes, srcHex.Length / 2);
         string key = srcHex.ToUpperInvariant();
         // dst may be multi-codepoints; keep as UTF-16 string

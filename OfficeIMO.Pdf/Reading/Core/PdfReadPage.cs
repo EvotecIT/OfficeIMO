@@ -498,8 +498,8 @@ public sealed partial class PdfReadPage {
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
-        string? ResolveActualTextProperty(string propertyName) =>
-            GetMarkedContentActualText(resources, propertyName);
+        byte[]? ResolveActualTextProperty(string propertyName) =>
+            GetMarkedContentActualTextBytes(resources, propertyName);
 
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -801,7 +801,7 @@ public sealed partial class PdfReadPage {
             paintOrder);
     }
 
-    private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {
+    private byte[]? GetMarkedContentActualTextBytes(PdfDictionary? resources, string propertyName) {
         if (resources is null ||
             !resources.Items.TryGetValue("Properties", out var propertiesObj)) {
             return null;
@@ -820,7 +820,7 @@ public sealed partial class PdfReadPage {
             return null;
         }
 
-        return actualText.Value;
+        return actualText.RawBytes;
     }
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>

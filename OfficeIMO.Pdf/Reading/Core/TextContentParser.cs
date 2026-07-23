@@ -175,7 +175,7 @@ internal static class TextContentParser {
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
-        System.Func<string, string?>? actualTextForProperty = null,
+        System.Func<string, byte[]?>? actualTextForProperty = null,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
@@ -625,6 +625,10 @@ internal static class TextContentParser {
             OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
             PdfPageClipPath? spanClipPath = clipPath;
+            if ((isHidden || isArtifact) && textOut.Length > 0) {
+                textOutputBudget.ChargeDecodedText(textOut.Length);
+            }
+
             if (isHidden) {
                 // Hidden optional-content still advances text state but should not emit visible/logical spans.
             } else if (isArtifact) {
@@ -727,8 +731,8 @@ internal static class TextContentParser {
 
         ActualTextValue? GetActualText(object? propertyObject) {
             if (propertyObject is string propertyName) {
-                string? text = actualTextForProperty?.Invoke(propertyName);
-                return text is null ? (ActualTextValue?)null : new ActualTextValue(text);
+                byte[]? propertyBytes = actualTextForProperty?.Invoke(propertyName);
+                return propertyBytes is null ? (ActualTextValue?)null : new ActualTextValue(propertyBytes);
             }
 
             if (propertyObject is PdfContentDictionary dictionary &&
