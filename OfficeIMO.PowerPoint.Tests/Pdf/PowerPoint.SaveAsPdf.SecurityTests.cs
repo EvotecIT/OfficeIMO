@@ -33,4 +33,29 @@ public class PowerPointSaveAsPdfSecurityTests {
             }
         }
     }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointHandouts_HonorZeroGroupDepth() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
+            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
+
+            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+                PageLayout = PowerPointPdfPageLayout.Handouts,
+                HandoutSlidesPerPage = 1,
+                MaxGroupShapeDepth = 0
+            });
+
+            Assert.Contains(result.Warnings, warning =>
+                warning.Message.Contains(nameof(PowerPointPdfSaveOptions.MaxGroupShapeDepth), StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
 }

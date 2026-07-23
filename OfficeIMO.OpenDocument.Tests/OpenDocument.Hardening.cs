@@ -118,6 +118,20 @@ public sealed class OpenDocumentHardeningTests {
         Assert.Contains("character limit", oversized.Error, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("of:=----------------1")]
+    [InlineData("of:=1^1^1^1^1^1^1^1^1")]
+    public void FormulaSyntaxDepthBoundsRecursiveUnaryAndPowerOperators(string formula) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data");
+
+        OdsFormulaEvaluationResult result = OdsFormulaEvaluator.EvaluateExpression(document, "Data", formula,
+            new OdsFormulaEvaluationOptions { MaximumDependencyDepth = 4 });
+
+        Assert.False(result.Success);
+        Assert.Contains("syntax depth", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void DetectsInvalidRepeatsAndStyleCyclesWithoutUnboundedTraversal() {
         OdsDocument created = OdsDocument.Create();

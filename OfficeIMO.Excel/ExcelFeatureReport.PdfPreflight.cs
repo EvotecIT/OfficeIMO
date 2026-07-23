@@ -335,11 +335,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (image.WidthPixels <= 0 || image.HeightPixels <= 0) {
-                reason = "image has non-positive dimensions.";
-                return false;
-            }
-
             byte[] bytes = image.ToBytes();
             if (bytes.Length == 0) {
                 reason = "image has empty bytes.";
@@ -348,6 +343,11 @@ namespace OfficeIMO.Excel {
 
             if (!OfficeImagePdfCompatibility.TryValidate(bytes, out OfficeImageInfo? imageInfo, out string? unsupportedReason)) {
                 reason = unsupportedReason ?? "image bytes are not supported by the first-party PDF image writer.";
+                return false;
+            }
+
+            if (image.WidthPixels <= 0 || image.HeightPixels <= 0) {
+                reason = "image has non-positive dimensions.";
                 return false;
             }
 

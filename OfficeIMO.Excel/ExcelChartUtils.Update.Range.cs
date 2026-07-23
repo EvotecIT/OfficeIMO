@@ -9,6 +9,43 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
+        private const int MaxChartDataPoints = 1_000_000;
+
+        private sealed class ChartDataPointBudget {
+            private long _remaining;
+            private long _remainingSourceReads;
+
+            internal ChartDataPointBudget() : this(MaxChartDataPoints) { }
+
+            internal ChartDataPointBudget(long maximum) {
+                _remaining = maximum;
+                _remainingSourceReads = maximum;
+            }
+
+            internal bool CanCharge(long count) => count >= 0 && count <= _remaining;
+
+            internal bool TryCharge(long count) {
+                if (!CanCharge(count)) {
+                    return false;
+                }
+                _remaining -= count;
+                return true;
+            }
+
+            internal bool TryChargeSourceRead(long count) {
+                if (count < 0 || count > _remainingSourceReads) return false;
+                _remainingSourceReads -= count;
+                return true;
+            }
+
+            internal void RestoreUnusedSourceReads(long reserved, long consumed) {
+                long unused = reserved - consumed;
+                if (unused > 0) {
+                    _remainingSourceReads += unused;
+                }
+            }
+        }
+
         internal static ExcelChartDataRange? TryExtractDataRange(ChartPart chartPart) {
             var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
             var plotArea = chart?.GetFirstChild<PlotArea>();
@@ -54,7 +91,8 @@ namespace OfficeIMO.Excel {
             int valueColumns = valC2 - valC1 + 1;
             bool horizontal = categoryRows == 1 && categoryColumns > 1 && valueRows == 1 && valueColumns == categoryColumns && valC1 == c1 && valC2 == c2;
             int categoryCount = horizontal ? categoryColumns : categoryRows;
-            if (categoryCount <= 0) return null;
+            if (categoryCount <= 0 ||
+                (long)categoryCount + ((long)categoryCount * seriesList.Count) > MaxChartDataPoints) return null;
 
             if (horizontal) {
                 if (valR1 != r1 + 1 || !HorizontalSeriesRangesAreContiguous(seriesList, sheetName, valR1, c1, c2)) {
@@ -259,6 +297,8 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelChartData? TryReadChartData(ExcelSheet sheet, ExcelChartDataRange range) {
             try {
+                if (range.CategoryCount <= 0 || range.SeriesCount <= 0 ||
+                    (long)range.CategoryCount + ((long)range.CategoryCount * range.SeriesCount) > MaxChartDataPoints) return null;
                 var categories = new List<string>(range.CategoryCount);
                 for (int i = 0; i < range.CategoryCount; i++) {
                     int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.CategoryStartRow;
@@ -301,7 +341,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) {
+        internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) =>
+            TryReadChartDataCore(chartPart, contextSheet, new ChartDataPointBudget());
+
+        private static ExcelChartData? TryReadChartDataCore(
+            ChartPart chartPart,
+            ExcelSheet contextSheet,
+            ChartDataPointBudget pointBudget) {
             try {
                 var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
                 var plotArea = chart?.GetFirstChild<PlotArea>();
@@ -314,7 +360,7 @@ namespace OfficeIMO.Excel {
                     return null;
                 }
 
-                if (!TryReadCategoryValues(seriesList[0], contextSheet, out IReadOnlyList<string>? categories) || categories == null || categories.Count == 0) {
+                if (!TryReadCategoryValues(seriesList[0], contextSheet, pointBudget, out IReadOnlyList<string>? categories) || categories == null || categories.Count == 0) {
                     return null;
                 }
 
@@ -327,16 +373,25 @@ namespace OfficeIMO.Excel {
                         : $"Series {i + 1}";
                     IReadOnlyList<double>? xValues = null;
                     if (seriesElement is ScatterChartSeries scatterSeries) {
-                        NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                        NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
-                        if (!TryReadNumberLiteralValues(xLiteral, out xValues) &&
-                            !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
-                            TryReadCachedNumberValues(xReference, out xValues);
+                        if (i == 0) {
+                            xValues = ParseNumericCategories(categories);
+                        } else {
+                            NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
+                            NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
+                            if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out xValues) &&
+                                !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out xValues)) {
+                                TryReadCachedNumberValues(xReference, pointBudget, out xValues);
+                            }
                         }
                     }
 
-                    TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, out IReadOnlyList<double>? referencedValues);
-                    TryReadCachedNumberValues(valuesReference, out IReadOnlyList<double>? cachedValues);
+                    TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedValues);
+                    IReadOnlyList<double>? cachedValues = null;
+                    if (referencedValues == null ||
+                        xValues != null && referencedValues.Count != xValues.Count) {
+                        TryReadCachedNumberValues(valuesReference, pointBudget, out cachedValues);
+                    }
+
                     IReadOnlyList<double>? values = referencedValues;
                     if (xValues != null &&
                         referencedValues != null &&
@@ -369,14 +424,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryReadCategoryValues(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, out IReadOnlyList<string>? categories) {
+        private static bool TryReadCategoryValues(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, ChartDataPointBudget pointBudget, out IReadOnlyList<string>? categories) {
             categories = null;
             if (seriesElement is ScatterChartSeries scatterSeries) {
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
                 NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
-                if (!TryReadNumberLiteralValues(xLiteral, out IReadOnlyList<double>? numericValues) &&
-                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out numericValues)) {
-                    TryReadCachedNumberValues(xReference, out numericValues);
+                if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out IReadOnlyList<double>? numericValues) &&
+                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out numericValues)) {
+                    TryReadCachedNumberValues(xReference, pointBudget, out numericValues);
                 }
 
                 if (numericValues == null) {
@@ -389,17 +444,17 @@ namespace OfficeIMO.Excel {
 
             CategoryAxisData? categoryAxisData = seriesElement.GetFirstChild<CategoryAxisData>();
             StringReference? stringReference = categoryAxisData?.GetFirstChild<StringReference>();
-            if (TryReadReferencedTextValues(contextSheet, stringReference?.Formula?.Text, out categories)) {
+            if (TryReadReferencedTextValues(contextSheet, stringReference?.Formula?.Text, pointBudget, out categories)) {
                 return true;
             }
 
-            if (TryReadCachedStringValues(stringReference, out categories)) {
+            if (TryReadCachedStringValues(stringReference, pointBudget, out categories)) {
                 return true;
             }
 
             NumberReference? numberReference = categoryAxisData?.GetFirstChild<NumberReference>();
-            if (!TryReadReferencedNumberValues(contextSheet, numberReference?.Formula?.Text, out IReadOnlyList<double>? numberValues)) {
-                TryReadCachedNumberValues(numberReference, out numberValues);
+            if (!TryReadReferencedNumberValues(contextSheet, numberReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? numberValues)) {
+                TryReadCachedNumberValues(numberReference, pointBudget, out numberValues);
             }
 
             if (numberValues == null) {
@@ -412,25 +467,24 @@ namespace OfficeIMO.Excel {
 
         private static bool TryReadSeriesName(OpenXmlCompositeElement seriesElement, ExcelSheet contextSheet, out string? name) {
             name = null;
+            var nameBudget = new ChartDataPointBudget(1L);
             SeriesText? seriesText = seriesElement.GetFirstChild<SeriesText>();
             StringReference? reference = seriesText?.GetFirstChild<StringReference>();
-            if (TryReadReferencedTextValues(contextSheet, reference?.Formula?.Text, out IReadOnlyList<string>? referencedValues) && referencedValues != null && referencedValues.Count > 0) {
+            if (TryReadReferencedTextValues(contextSheet, reference?.Formula?.Text, nameBudget, out IReadOnlyList<string>? referencedValues) && referencedValues != null && referencedValues.Count > 0) {
                 name = referencedValues[0];
                 return true;
             }
 
-            if (TryReadCachedStringValues(reference, out IReadOnlyList<string>? cachedValues) && cachedValues != null && cachedValues.Count > 0) {
+            nameBudget = new ChartDataPointBudget(1L);
+            if (TryReadCachedStringValues(reference, nameBudget, out IReadOnlyList<string>? cachedValues) && cachedValues != null && cachedValues.Count > 0) {
                 name = cachedValues[0];
                 return true;
             }
 
             StringLiteral? literal = seriesText?.GetFirstChild<StringLiteral>();
-            string? literalText = literal?.Elements<StringPoint>()
-                .OrderBy(point => point.Index?.Value ?? uint.MaxValue)
-                .FirstOrDefault()?
-                .NumericValue?
-                .Text;
-            if (!string.IsNullOrWhiteSpace(literalText)) {
+            nameBudget = new ChartDataPointBudget(1L);
+            if (TryReadFirstStringLiteralValue(literal, nameBudget, out string? literalText) &&
+                !string.IsNullOrWhiteSpace(literalText)) {
                 name = literalText;
                 return true;
             }
@@ -442,6 +496,34 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        private static bool TryReadFirstStringLiteralValue(
+            StringLiteral? literal,
+            ChartDataPointBudget pointBudget,
+            out string? value) {
+            value = null;
+            uint selectedIndex = uint.MaxValue;
+            bool selected = false;
+            if (literal == null) {
+                return false;
+            }
+
+            foreach (StringPoint point in literal.Elements<StringPoint>()) {
+                if (!pointBudget.TryCharge(1)) {
+                    value = null;
+                    return false;
+                }
+
+                uint index = point.Index?.Value ?? uint.MaxValue;
+                if (!selected || index < selectedIndex) {
+                    selected = true;
+                    selectedIndex = index;
+                    value = point.NumericValue?.Text;
+                }
+            }
+
+            return selected;
         }
 
         internal static ExcelChartData ApplyChartSeriesTypes(ChartPart chartPart, ExcelChartData data, ExcelChartType defaultType) {
@@ -509,7 +591,8 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            var scatterValuesByIndex = new Dictionary<int, (IReadOnlyList<double>? XValues, IReadOnlyList<double>? YValues)>();
+            var pointBudget = new ChartDataPointBudget();
+            var scatterXValuesByIndex = new Dictionary<int, IReadOnlyList<double>>();
             int seriesOrder = 0;
             foreach (OpenXmlElement seriesElement in GetChartSeries(plotArea)) {
                 int index = seriesOrder++;
@@ -522,68 +605,59 @@ namespace OfficeIMO.Excel {
                 }
 
                 NumberReference? xReference = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberReference>();
-                NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
                 NumberLiteral? xLiteral = scatterSeries.GetFirstChild<XValues>()?.GetFirstChild<NumberLiteral>();
-                if (!TryReadNumberLiteralValues(xLiteral, out IReadOnlyList<double>? xValues) &&
-                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, out xValues)) {
-                    TryReadCachedNumberValues(xReference, out xValues);
+                if (!TryReadNumberLiteralValues(xLiteral, pointBudget, out IReadOnlyList<double>? xValues) &&
+                    !TryReadReferencedNumberValues(contextSheet, xReference?.Formula?.Text, pointBudget, out xValues)) {
+                    TryReadCachedNumberValues(xReference, pointBudget, out xValues);
                 }
 
-                TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, out IReadOnlyList<double>? referencedYValues);
-                TryReadCachedNumberValues(yReference, out IReadOnlyList<double>? cachedYValues);
-                IReadOnlyList<double>? yValues = referencedYValues;
-                if (xValues != null &&
-                    referencedYValues != null &&
-                    referencedYValues.Count != xValues.Count &&
-                    cachedYValues != null &&
-                    cachedYValues.Count == xValues.Count) {
-                    yValues = cachedYValues;
-                }
-
-                yValues ??= cachedYValues;
-                if (xValues != null || yValues != null) {
-                    scatterValuesByIndex[index] = (xValues, yValues);
+                if (xValues != null) {
+                    scatterXValuesByIndex[index] = xValues;
                 }
             }
 
-            if (scatterValuesByIndex.Count == 0) {
+            if (scatterXValuesByIndex.Count == 0) {
                 return data;
             }
 
             var series = new List<ExcelChartSeries>(data.Series.Count);
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
-                if (!scatterValuesByIndex.TryGetValue(i, out var cachedValues)) {
+                if (!scatterXValuesByIndex.TryGetValue(i, out IReadOnlyList<double>? xValues)) {
                     series.Add(current);
                     continue;
                 }
 
-                IReadOnlyList<double> values = cachedValues.YValues ?? current.Values;
-                series.Add(current.WithValuesAndXValues(values, cachedValues.XValues ?? current.XValues));
+                series.Add(current.WithXValues(xValues));
             }
 
             return new ExcelChartData(data.Categories, series);
         }
 
-        private static bool TryReadCachedNumberValues(NumberReference? reference, out IReadOnlyList<double>? values) {
+        private static bool TryReadCachedNumberValues(NumberReference? reference, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
             values = null;
             NumberingCache? cache = reference?.GetFirstChild<NumberingCache>();
-            return TryReadNumberPoints(cache, out values);
+            return TryReadNumberPoints(cache, pointBudget, out values);
         }
 
-        private static bool TryReadNumberLiteralValues(NumberLiteral? literal, out IReadOnlyList<double>? values) {
-            return TryReadNumberPoints(literal, out values);
+        private static bool TryReadNumberLiteralValues(NumberLiteral? literal, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
+            return TryReadNumberPoints(literal, pointBudget, out values);
         }
 
-        private static bool TryReadNumberPoints(OpenXmlCompositeElement? container, out IReadOnlyList<double>? values) {
+        private static bool TryReadNumberPoints(OpenXmlCompositeElement? container, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
             values = null;
             if (container == null) {
                 return false;
             }
 
             uint? pointCount = container.GetFirstChild<PointCount>()?.Val?.Value;
+            int actualPointCount = container.Elements<NumericPoint>().Take(MaxChartDataPoints + 1).Count();
+            if (actualPointCount > MaxChartDataPoints) {
+                return false;
+            }
             if (pointCount.HasValue) {
-                if (pointCount.Value > int.MaxValue) {
+                long chargedPoints = Math.Max((long)pointCount.Value, actualPointCount);
+                if (pointCount.Value > MaxChartDataPoints || !pointBudget.TryCharge(chargedPoints)) {
                     return false;
                 }
 
@@ -609,7 +683,10 @@ namespace OfficeIMO.Excel {
                 return hasValues;
             }
 
-            var numericValues = new List<double>();
+            if (!pointBudget.TryCharge(actualPointCount)) {
+                return false;
+            }
+            var numericValues = new List<double>(actualPointCount);
             foreach (NumericPoint point in container.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
                 string? text = point.NumericValue?.Text;
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
@@ -623,21 +700,24 @@ namespace OfficeIMO.Excel {
             return numericValues.Count > 0;
         }
 
-        private static bool TryReadCachedStringValues(StringReference? reference, out IReadOnlyList<string>? values) {
+        private static bool TryReadCachedStringValues(StringReference? reference, ChartDataPointBudget pointBudget, out IReadOnlyList<string>? values) {
             values = null;
             StringCache? cache = reference?.GetFirstChild<StringCache>();
             if (cache == null) {
                 return false;
             }
 
-            values = cache.Elements<StringPoint>()
+            int actualPointCount = cache.Elements<StringPoint>().Take(MaxChartDataPoints + 1).Count();
+            if (actualPointCount > MaxChartDataPoints || !pointBudget.TryCharge(actualPointCount)) return false;
+            string[] cachedValues = cache.Elements<StringPoint>()
                 .OrderBy(point => point.Index?.Value ?? uint.MaxValue)
                 .Select(point => point.NumericValue?.Text ?? string.Empty)
                 .ToArray();
+            values = cachedValues;
             return values.Count > 0;
         }
 
-        private static bool TryReadReferencedTextValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<string>? values) {
+        private static bool TryReadReferencedTextValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<string>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
                 !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
@@ -648,6 +728,12 @@ namespace OfficeIMO.Excel {
             try {
                 sheet = contextSheet.Document[sheetName];
             } catch {
+                return false;
+            }
+
+            long requestedPointCount = (long)(r2 - r1 + 1) * (c2 - c1 + 1);
+            if (!pointBudget.CanCharge(requestedPointCount) ||
+                !pointBudget.TryChargeSourceRead(requestedPointCount)) {
                 return false;
             }
 
@@ -658,11 +744,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (textValues.Count == 0 || !pointBudget.TryCharge(requestedPointCount)) return false;
             values = textValues;
-            return textValues.Count > 0;
+            return true;
         }
 
-        private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, out IReadOnlyList<double>? values) {
+        private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
                 !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
@@ -676,9 +763,17 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            long requestedPointCount = (long)(r2 - r1 + 1) * (c2 - c1 + 1);
+            if (!pointBudget.CanCharge(requestedPointCount) ||
+                !pointBudget.TryChargeSourceRead(requestedPointCount)) {
+                return false;
+            }
+
             var numericValues = new List<double>();
+            long consumedSourceReads = 0;
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
+                    consumedSourceReads++;
                     if (!sheet.TryGetCellText(row, column, out string? raw) ||
                         string.IsNullOrWhiteSpace(raw)) {
                         numericValues.Add(0D);
@@ -686,6 +781,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
+                        pointBudget.RestoreUnusedSourceReads(requestedPointCount, consumedSourceReads);
                         return false;
                     }
 
@@ -693,8 +789,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (numericValues.Count == 0 || !pointBudget.TryCharge(requestedPointCount)) {
+                return false;
+            }
             values = numericValues;
-            return numericValues.Count > 0;
+            return true;
         }
 
         private static bool TryGetChartElementType(OpenXmlElement element, out ExcelChartType chartType) {

@@ -32,8 +32,20 @@ namespace OfficeIMO.Excel {
             int schemaSampleRows = 1024,
             OfficeIMO.Excel.ExecutionMode? mode = null,
             CancellationToken ct = default) {
+            if (chunkRows <= 0 || chunkRows > _opt.MaxDataReaderChunkRows) {
+                throw new ArgumentOutOfRangeException(nameof(chunkRows),
+                    $"Chunk row count must be between 1 and {_opt.MaxDataReaderChunkRows}.");
+            }
             if (schemaSampleRows < 0) {
                 throw new ArgumentOutOfRangeException(nameof(schemaSampleRows), "Schema sample row count cannot be negative.");
+            }
+            if (schemaSampleRows > _opt.MaxDataReaderSchemaSampleRows) {
+                throw new ArgumentOutOfRangeException(nameof(schemaSampleRows),
+                    $"Schema sample row count exceeds {_opt.MaxDataReaderSchemaSampleRows}.");
+            }
+            if (_opt.MaxDataReaderColumns <= 0 || _opt.MaxDataReaderChunkRows <= 0 ||
+                _opt.MaxDataReaderSchemaSampleRows < 0 || _opt.MaxDataReaderBufferedCells <= 0L) {
+                throw new InvalidOperationException("Excel data-reader safety limits must be positive.");
             }
 
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
@@ -43,11 +55,27 @@ namespace OfficeIMO.Excel {
 
             int cols = c2 - c1 + 1;
             int rows = r2 - r1 + 1;
+            if (cols > _opt.MaxDataReaderColumns) {
+                throw new InvalidDataException($"Range data-reader column count exceeds {nameof(ExcelReadOptions.MaxDataReaderColumns)}.");
+            }
+            long sampleCells = (long)Math.Min(Math.Max(0, rows - (headersInFirstRow ? 1 : 0)), schemaSampleRows) * cols;
+            if (sampleCells > _opt.MaxDataReaderBufferedCells) {
+                throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+            }
             if (schemaSampleRows == 0
                 && rows > BufferedRangeStreamRowLimit
                 && mode != OfficeIMO.Excel.ExecutionMode.Parallel
                 && CanUseRangeStreamXmlReader()) {
+                if (cols > _opt.MaxDataReaderBufferedCells) {
+                    throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                }
+
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct);
+            }
+
+            long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
+            if (chunkCells > _opt.MaxDataReaderBufferedCells) {
+                throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
             }
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct);

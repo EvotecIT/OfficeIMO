@@ -938,8 +938,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class FormulaExpressionParser {
+            private const int MaxExpressionLength = 16_384;
+            private const int MaxSyntaxDepth = 128;
             private readonly string _expression;
             private int _position;
+            private int _syntaxDepth;
 
             private FormulaExpressionParser(string expression) {
                 _expression = expression;
@@ -948,6 +951,11 @@ namespace OfficeIMO.Word {
             internal static bool TryEvaluate(string expression, out decimal result, out string? diagnostic) {
                 result = 0m;
                 diagnostic = null;
+
+                if (expression.Length > MaxExpressionLength) {
+                    diagnostic = $"Formula expression exceeds the supported length of {MaxExpressionLength} characters.";
+                    return false;
+                }
 
                 try {
                     var parser = new FormulaExpressionParser(expression);
@@ -977,26 +985,31 @@ namespace OfficeIMO.Word {
             private char CurrentChar => IsAtEnd ? '\0' : _expression[_position];
 
             private decimal ParseComparison() {
-                decimal value = ParseExpression();
+                EnterSyntax();
+                try {
+                    decimal value = ParseExpression();
 
-                while (true) {
-                    SkipWhitespace();
+                    while (true) {
+                        SkipWhitespace();
 
-                    if (TryConsume("<>")) {
-                        value = value != ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("<=")) {
-                        value = value <= ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume(">=")) {
-                        value = value >= ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("=")) {
-                        value = value == ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume("<")) {
-                        value = value < ParseExpression() ? 1m : 0m;
-                    } else if (TryConsume(">")) {
-                        value = value > ParseExpression() ? 1m : 0m;
-                    } else {
-                        return value;
+                        if (TryConsume("<>")) {
+                            value = value != ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("<=")) {
+                            value = value <= ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume(">=")) {
+                            value = value >= ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("=")) {
+                            value = value == ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume("<")) {
+                            value = value < ParseExpression() ? 1m : 0m;
+                        } else if (TryConsume(">")) {
+                            value = value > ParseExpression() ? 1m : 0m;
+                        } else {
+                            return value;
+                        }
                     }
+                } finally {
+                    _syntaxDepth--;
                 }
             }
 
@@ -1017,15 +1030,15 @@ namespace OfficeIMO.Word {
             }
 
             private decimal ParseTerm() {
-                decimal value = ParsePower();
+                decimal value = ParseUnary();
 
                 while (true) {
                     SkipWhitespace();
 
                     if (TryConsume('*')) {
-                        value *= ParsePower();
+                        value *= ParseUnary();
                     } else if (TryConsume('/')) {
-                        decimal divisor = ParsePower();
+                        decimal divisor = ParseUnary();
                         if (divisor == 0m) {
                             throw new DivideByZeroException();
                         }
@@ -1038,33 +1051,63 @@ namespace OfficeIMO.Word {
             }
 
             private decimal ParsePower() {
-                decimal value = ParseUnary();
-                SkipWhitespace();
-
-                if (!TryConsume('^')) {
-                    return value;
+                var operands = new List<decimal> { ParsePostfix() };
+                var signs = new List<int> { 1 };
+                while (true) {
+                    SkipWhitespace();
+                    if (!TryConsume('^')) {
+                        break;
+                    }
+                    signs.Add(ParseUnarySign());
+                    operands.Add(ParsePostfix());
                 }
 
-                decimal exponent = ParsePower();
-                if (decimal.Truncate(exponent) != exponent) {
-                    throw new InvalidOperationException("Formula exponent must be an integer.");
+                decimal value = signs[signs.Count - 1] * operands[operands.Count - 1];
+                for (int i = operands.Count - 2; i >= 0; i--) {
+                    if (decimal.Truncate(value) != value) {
+                        throw new InvalidOperationException("Formula exponent must be an integer.");
+                    }
+                    value = DecimalPower(operands[i], value);
+                    value *= signs[i];
                 }
-
-                return DecimalPower(value, exponent);
+                return value;
             }
 
             private decimal ParseUnary() {
-                SkipWhitespace();
-
-                if (TryConsume('+')) {
-                    return ParseUnary();
+                EnterSyntax();
+                try {
+                    return ParseUnarySign() * ParsePower();
+                } finally {
+                    _syntaxDepth--;
                 }
+            }
 
-                if (TryConsume('-')) {
-                    return -ParseUnary();
+            private int ParseUnarySign() {
+                int sign = 1;
+                int operators = 0;
+                while (true) {
+                    SkipWhitespace();
+                    if (TryConsume('+')) {
+                        operators++;
+                    } else if (TryConsume('-')) {
+                        sign = -sign;
+                        operators++;
+                    } else {
+                        return sign;
+                    }
+
+                    if (operators > MaxSyntaxDepth) {
+                        throw new InvalidOperationException($"Formula expression exceeds the supported syntax depth of {MaxSyntaxDepth}.");
+                    }
                 }
+            }
 
-                return ParsePostfix();
+            private void EnterSyntax() {
+                _syntaxDepth++;
+                if (_syntaxDepth > MaxSyntaxDepth) {
+                    _syntaxDepth--;
+                    throw new InvalidOperationException($"Formula expression exceeds the supported syntax depth of {MaxSyntaxDepth}.");
+                }
             }
 
             private decimal ParsePostfix() {
@@ -1506,11 +1549,13 @@ namespace OfficeIMO.Word {
                 }
 
                 bool negativeExponent = power < 0;
-                power = Math.Abs(power);
-
+                long remaining = Math.Abs((long)power);
                 decimal result = 1m;
-                for (int i = 0; i < power; i++) {
-                    result *= value;
+                decimal factor = value;
+                while (remaining > 0) {
+                    if ((remaining & 1L) != 0) result *= factor;
+                    remaining >>= 1;
+                    if (remaining > 0) factor *= factor;
                 }
 
                 return negativeExponent ? 1m / result : result;

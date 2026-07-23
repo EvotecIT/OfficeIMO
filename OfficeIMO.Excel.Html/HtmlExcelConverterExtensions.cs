@@ -470,6 +470,15 @@ public static partial class HtmlExcelConverterExtensions {
             toColumn = NormalizeImportInt(toColumn, Math.Min(A1.MaxColumns, column + 1), 1, A1.MaxColumns, budget, result, "image ending column");
             int endRow = Math.Max(row, toRow - 1);
             int endColumn = Math.Max(column, toColumn - 1);
+            long anchoredCells = (long)(endRow - row + 1) * (endColumn - column + 1);
+            if (anchoredCells > budget.Limits.MaxTableCells) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                    "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' exceeded MaxTableCells for its two-cell anchor and was restored to its fallback cell anchor.",
+                    lossKind: HtmlConversionLossKind.Approximation);
+                return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY,
+                    name: name.Length == 0 ? null : name,
+                    altText: description.Length == 0 ? null : description);
+            }
             int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
             int endOffsetX = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0, 0, 0, maxGeometry, budget, result, "image ending x offset");
             int endOffsetY = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0, 0, 0, maxGeometry, budget, result, "image ending y offset");

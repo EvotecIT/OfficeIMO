@@ -3,6 +3,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelConditionalVisualEvaluator {
+        private const int MaxConditionalReferenceCells = 100_000;
+
         internal static ExcelConditionalVisualState Evaluate(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
@@ -14,22 +16,52 @@ namespace OfficeIMO.Excel {
                 return ExcelConditionalVisualState.Empty;
             }
 
+            rules = ExcludeOversizedConditionalRules(sheet, rules, diagnostics);
+            if (rules.Count == 0) {
+                return ExcelConditionalVisualState.Empty;
+            }
+
             ReportUnsupportedConditionalRules(sheet, cells, rules, conditionalFormattingDate, diagnostics);
 
+            IReadOnlyDictionary<string, int> firstStoppingPriorityByCell =
+                BuildFirstStoppingPriorityByCell(sheet, cells, rules, conditionalFormattingDate);
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             var cellFormats = BuildConditionalCellFormats(sheet, cells, rules, conditionalFormattingDate, stoppedCells);
-            var dataBars = BuildConditionalDataBars(sheet, cells, rules, conditionalFormattingDate);
-            var icons = BuildConditionalIcons(sheet, cells, rules, conditionalFormattingDate, diagnostics);
+            var dataBars = BuildConditionalDataBars(sheet, cells, rules, firstStoppingPriorityByCell);
+            var icons = BuildConditionalIcons(sheet, cells, rules, firstStoppingPriorityByCell, diagnostics);
             return cellFormats.Count == 0 && dataBars.Count == 0 && icons.Count == 0
                 ? ExcelConditionalVisualState.Empty
                 : new ExcelConditionalVisualState(cellFormats, dataBars, icons);
+        }
+
+        private static IReadOnlyList<ExcelConditionalFormattingInfo> ExcludeOversizedConditionalRules(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            var retained = new List<ExcelConditionalFormattingInfo>(rules.Count);
+            foreach (ExcelConditionalFormattingInfo rule in rules) {
+                if (!EnumerateReferenceCells(rule.Range, MaxConditionalReferenceCells + 1)
+                    .Skip(MaxConditionalReferenceCells)
+                    .Any()) {
+                    retained.Add(rule);
+                    continue;
+                }
+
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
+                    $"Conditional formatting rule was omitted because its reference exceeds the {MaxConditionalReferenceCells.ToString(CultureInfo.InvariantCulture)}-cell image-export limit.",
+                    sheet.Name + "!" + rule.Range));
+            }
+
+            return retained;
         }
 
         private static List<ExcelVisualConditionalDataBar> BuildConditionalDataBars(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
-            DateTime conditionalFormattingDate) {
+            IReadOnlyDictionary<string, int> firstStoppingPriorityByCell) {
             var dataBars = new List<ExcelVisualConditionalDataBar>();
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(rule.DataBarColor))
@@ -38,9 +70,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                HashSet<string> stoppedCells = BuildStoppedCellsBeforePriority(sheet, cells, rules, rule, conditionalFormattingDate);
+                int priority = NormalizePriority(rule.Priority);
                 List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
-                    .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                    .Where(candidate => !WasStoppedBeforePriority(firstStoppingPriorityByCell,
+                        Key(candidate.Cell.Row, candidate.Cell.Column), priority))
                     .ToList();
                 if (candidates.Count == 0) {
                     continue;
@@ -71,24 +104,38 @@ namespace OfficeIMO.Excel {
             return dataBars;
         }
 
-        private static HashSet<string> BuildStoppedCellsBeforePriority(
+        private static IReadOnlyDictionary<string, int> BuildFirstStoppingPriorityByCell(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
-            ExcelConditionalFormattingInfo currentRule,
             DateTime conditionalFormattingDate) {
-            int currentPriority = NormalizePriority(currentRule.Priority);
-            ExcelConditionalFormattingInfo[] higherPriorityStopRules = rules
-                .Where(rule => rule.StopIfTrue && NormalizePriority(rule.Priority) < currentPriority)
-                .OrderBy(rule => NormalizePriority(rule.Priority))
-                .ToArray();
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
-            if (higherPriorityStopRules.Length > 0) {
-                _ = BuildConditionalCellFormats(sheet, cells, higherPriorityStopRules, conditionalFormattingDate, stoppedCells);
+            var result = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (IGrouping<int, ExcelConditionalFormattingInfo> priorityGroup in rules
+                .OrderBy(rule => NormalizePriority(rule.Priority))
+                .GroupBy(rule => NormalizePriority(rule.Priority))) {
+                foreach (ExcelConditionalFormattingInfo stopRule in priorityGroup.Where(rule => rule.StopIfTrue)) {
+                    Dictionary<string, ExcelConditionalCellFormat> newlyStopped = BuildConditionalCellFormats(
+                        sheet,
+                        cells,
+                        new[] { stopRule },
+                        conditionalFormattingDate,
+                        stoppedCells);
+                    foreach (string key in newlyStopped.Keys) {
+                        if (!result.ContainsKey(key)) {
+                            result.Add(key, priorityGroup.Key);
+                        }
+                    }
+                }
             }
-
-            return stoppedCells;
+            return result;
         }
+
+        private static bool WasStoppedBeforePriority(
+            IReadOnlyDictionary<string, int> firstStoppingPriorityByCell,
+            string key,
+            int priority) =>
+            firstStoppingPriorityByCell.TryGetValue(key, out int stoppingPriority) && stoppingPriority < priority;
 
         private static void ReportUnsupportedConditionalRules(
             ExcelSheet sheet,
@@ -868,18 +915,24 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(string referenceList) {
+        private static IEnumerable<(int Row, int Column)> EnumerateReferenceCells(
+            string referenceList,
+            int maximumCells = MaxConditionalReferenceCells) {
             if (string.IsNullOrWhiteSpace(referenceList)) {
                 yield break;
             }
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            int emitted = 0;
             foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (emitted >= maximumCells) yield break;
                 string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
                 if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     for (int row = firstRow; row <= lastRow; row++) {
                         for (int column = firstColumn; column <= lastColumn; column++) {
+                            if (emitted >= maximumCells) yield break;
                             if (seen.Add(Key(row, column))) {
+                                emitted++;
                                 yield return (row, column);
                             }
                         }
@@ -890,6 +943,7 @@ namespace OfficeIMO.Excel {
 
                 if (A1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn) &&
                     seen.Add(Key(singleRow, singleColumn))) {
+                    emitted++;
                     yield return (singleRow, singleColumn);
                 }
             }

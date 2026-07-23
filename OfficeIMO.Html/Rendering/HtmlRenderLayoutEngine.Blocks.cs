@@ -156,7 +156,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ChargeLayoutOperation(string source) {
-        _layoutOperationCount++;
+        ChargeLayoutOperations(1L, source);
+    }
+
+    private void ChargeLayoutOperations(long count, string source) {
+        if (count < 0L || _layoutOperationCount > _options.MaxLayoutOperations - count) {
+            _layoutOperationCount = (long)_options.MaxLayoutOperations + 1L;
+        } else {
+            _layoutOperationCount += count;
+        }
         if (_layoutOperationCount > _options.MaxLayoutOperations) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded,

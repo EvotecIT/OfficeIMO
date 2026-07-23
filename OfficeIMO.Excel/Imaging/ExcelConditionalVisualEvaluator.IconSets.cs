@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
-            DateTime conditionalFormattingDate,
+            IReadOnlyDictionary<string, int> firstStoppingPriorityByCell,
             List<OfficeImageExportDiagnostic> diagnostics) {
             var icons = new List<ExcelVisualConditionalIcon>();
             foreach (ExcelConditionalFormattingInfo rule in rules
@@ -17,9 +17,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                HashSet<string> stoppedCells = BuildStoppedCellsBeforePriority(sheet, cells, rules, rule, conditionalFormattingDate);
+                int priority = NormalizePriority(rule.Priority);
                 List<ConditionalNumericCell> candidates = GetNumericCandidates(sheet, cells, rule.Range)
-                    .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                    .Where(candidate => !WasStoppedBeforePriority(firstStoppingPriorityByCell,
+                        Key(candidate.Cell.Row, candidate.Cell.Column), priority))
                     .ToList();
                 if (candidates.Count == 0) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(

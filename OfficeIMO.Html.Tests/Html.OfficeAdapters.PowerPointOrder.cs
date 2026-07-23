@@ -68,4 +68,16 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         Assert.Equal(230D, importedLastText.TopPoints, 3);
         Assert.Empty(result.Report.Diagnostics);
     }
+
+    [Fact]
+    public void PowerPointHtml_UsesTheLastStandaloneNotesMarkerAfterManyFalseCandidates() {
+        string falseCandidates = string.Join("\n", Enumerable.Repeat("prefix ### Notes suffix", 10_000));
+        string html = "<section class='officeimo-slide'><pre class='officeimo-source-markdown'>"
+            + falseCandidates + "\n### Notes\nBounded presenter notes</pre></section>";
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation presentation = result.Value;
+
+        Assert.Equal("Bounded presenter notes", Assert.Single(presentation.Slides).Notes.Text);
+    }
 }

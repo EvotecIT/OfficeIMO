@@ -27,6 +27,12 @@ namespace OfficeIMO.Drawing {
                 return false;
             }
 
+            // Preserve actionable PNG diagnostics even when the general image reader
+            // correctly rejects a malformed container during format identification.
+            if (StartsWith(bytes, PngSignature) && !TryValidatePngContainer(bytes, out unsupportedReason)) {
+                return false;
+            }
+
             if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo detected)) {
                 unsupportedReason = "Image bytes do not contain a supported image header.";
                 return false;

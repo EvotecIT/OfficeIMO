@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -196,6 +197,24 @@ namespace OfficeIMO.PowerPoint {
         public bool HasAnimations => Nodes.Count > 0;
     }
 
+    /// <summary>Safety limits for inspecting untrusted presentation timing trees.</summary>
+    public sealed class PowerPointAnimationInspectionOptions {
+        /// <summary>Maximum XML elements visited across all slide timing trees.</summary>
+        public int MaxXmlElements { get; set; } = 100_000;
+        /// <summary>Maximum timing-tree nesting depth visited.</summary>
+        public int MaxXmlDepth { get; set; } = 128;
+        /// <summary>Maximum animation nodes projected into the report.</summary>
+        public int MaxAnimationNodes { get; set; } = 10_000;
+        /// <summary>Optional cancellation token checked during inspection.</summary>
+        public CancellationToken CancellationToken { get; set; }
+
+        internal void Validate() {
+            if (MaxXmlElements <= 0) throw new ArgumentOutOfRangeException(nameof(MaxXmlElements));
+            if (MaxXmlDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxXmlDepth));
+            if (MaxAnimationNodes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxAnimationNodes));
+        }
+    }
+
     public sealed partial class PowerPointPresentation {
         /// <summary>Inspects classic and modern comments without mutating review markup.</summary>
         public PowerPointReviewReport InspectReviewComments() {
@@ -211,36 +230,107 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Inspects slide timing trees before any animation authoring is attempted.</summary>
-        public PowerPointAnimationReport InspectAnimations() {
+        public PowerPointAnimationReport InspectAnimations() => InspectAnimations(new PowerPointAnimationInspectionOptions());
+
+        /// <summary>Inspects slide timing trees with explicit traversal and result limits.</summary>
+        public PowerPointAnimationReport InspectAnimations(PowerPointAnimationInspectionOptions options) {
             ThrowIfDisposed();
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            options.Validate();
             var nodes = new List<PowerPointAnimationNode>();
+            int visitedElements = 0;
             for (int index = 0; index < _slides.Count; index++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 PowerPointSlide slide = _slides[index];
                 Timing? timing = slide.SlidePart.Slide?.Timing;
                 if (timing == null) continue;
-                foreach (OpenXmlElement element in timing.Descendants().Where(IsAnimationElement)) {
-                    OpenXmlElement? common = FindOwnedAnimationDescendant(element, "cTn");
-                    OpenXmlElement? target = FindOwnedAnimationDescendant(element, "spTgt");
-                    uint? shapeId = ParseUInt(GetAttribute(target, "spid"));
-                    string? shapeName = shapeId.HasValue
-                        ? slide.EnumerateShapesDeep(slide.Shapes.Concat(slide.GetInheritedShapesForExport()))
-                            .FirstOrDefault(shape => shape.Id == shapeId)?.Name
+                var slideItems = new List<AnimationInspectionItem>();
+                InspectAnimationTree(timing, options, ref visitedElements, nodes.Count, slideItems);
+                uint?[] shapeIds = slideItems
+                    .Select(item => ParseUInt(GetAttribute(item.Target, "spid")))
+                    .ToArray();
+                Dictionary<uint, string?> shapeNames = ResolveAnimationShapeNames(slide, shapeIds);
+                for (int itemIndex = 0; itemIndex < slideItems.Count; itemIndex++) {
+                    AnimationInspectionItem item = slideItems[itemIndex];
+                    uint? shapeId = shapeIds[itemIndex];
+                    string? shapeName = shapeId.HasValue && shapeNames.TryGetValue(shapeId.Value, out string? resolvedName)
+                        ? resolvedName
                         : null;
-                    OpenXmlElement? condition = FindOwnedAnimationDescendant(element, "cond");
-                    nodes.Add(new PowerPointAnimationNode(index + 1, MapAnimationKind(element.LocalName),
-                        element.LocalName, GetAttribute(common, "id"), shapeId, shapeName,
-                        GetAttribute(condition, "evt"), GetAttribute(condition, "delay"),
-                        GetAttribute(common, "dur"), GetAttribute(common, "presetClass"),
-                        GetAttribute(common, "presetID"), GetAttribute(common, "presetSubtype")));
+                    nodes.Add(new PowerPointAnimationNode(index + 1, MapAnimationKind(item.Element.LocalName),
+                        item.Element.LocalName, GetAttribute(item.Common, "id"), shapeId, shapeName,
+                        GetAttribute(item.Condition, "evt"), GetAttribute(item.Condition, "delay"),
+                        GetAttribute(item.Common, "dur"), GetAttribute(item.Common, "presetClass"),
+                        GetAttribute(item.Common, "presetID"), GetAttribute(item.Common, "presetSubtype")));
                 }
             }
             return new PowerPointAnimationReport(nodes);
         }
 
-        private static OpenXmlElement? FindOwnedAnimationDescendant(OpenXmlElement animation, string localName) =>
-            animation.Descendants().FirstOrDefault(candidate =>
-                candidate.LocalName == localName &&
-                ReferenceEquals(candidate.Ancestors().FirstOrDefault(IsAnimationElement), animation));
+        private static Dictionary<uint, string?> ResolveAnimationShapeNames(
+            PowerPointSlide slide,
+            IEnumerable<uint?> shapeIds) {
+            var unresolvedShapeIds = new HashSet<uint>(shapeIds.Where(shapeId => shapeId.HasValue)
+                .Select(shapeId => shapeId!.Value));
+            var shapeNames = new Dictionary<uint, string?>();
+            if (unresolvedShapeIds.Count == 0) return shapeNames;
+
+            foreach (PowerPointShape shape in slide
+                         .EnumerateShapesDeep(slide.Shapes.Concat(slide.GetInheritedShapesForExport()))) {
+                if (!shape.Id.HasValue || !unresolvedShapeIds.Remove(shape.Id.Value)) continue;
+                shapeNames.Add(shape.Id.Value, shape.Name);
+                if (unresolvedShapeIds.Count == 0) break;
+            }
+            return shapeNames;
+        }
+
+        private static void InspectAnimationTree(Timing timing, PowerPointAnimationInspectionOptions options,
+            ref int visitedElements, int existingAnimationCount, IList<AnimationInspectionItem> destination) {
+            var stack = new Stack<(OpenXmlElement Element, int Depth, AnimationInspectionItem? Owner)>();
+            int scheduledElements = visitedElements;
+            for (int childIndex = timing.ChildElements.Count - 1; childIndex >= 0; childIndex--) {
+                if (scheduledElements >= options.MaxXmlElements) {
+                    throw new InvalidDataException("Animation inspection exceeded MaxXmlElements.");
+                }
+                stack.Push((timing.ChildElements[childIndex], 1, null));
+                scheduledElements++;
+            }
+            while (stack.Count > 0) {
+                (OpenXmlElement element, int depth, AnimationInspectionItem? owner) = stack.Pop();
+                if ((visitedElements++ & 0xFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
+                if (visitedElements > options.MaxXmlElements) throw new InvalidDataException("Animation inspection exceeded MaxXmlElements.");
+                if (depth > options.MaxXmlDepth) throw new InvalidDataException("Animation inspection exceeded MaxXmlDepth.");
+
+                AnimationInspectionItem? childOwner = owner;
+                if (IsAnimationElement(element)) {
+                    if (existingAnimationCount + destination.Count >= options.MaxAnimationNodes) {
+                        throw new InvalidDataException("Animation inspection exceeded MaxAnimationNodes.");
+                    }
+                    childOwner = new AnimationInspectionItem(element);
+                    destination.Add(childOwner);
+                } else if (owner != null) {
+                    if (element.LocalName == "cTn" && owner.Common == null) owner.Common = element;
+                    else if (element.LocalName == "spTgt" && owner.Target == null) owner.Target = element;
+                    else if (element.LocalName == "cond" && owner.Condition == null) owner.Condition = element;
+                }
+
+                for (int childIndex = element.ChildElements.Count - 1; childIndex >= 0; childIndex--) {
+                    if (scheduledElements >= options.MaxXmlElements) {
+                        throw new InvalidDataException("Animation inspection exceeded MaxXmlElements.");
+                    }
+                    if ((scheduledElements & 0xFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
+                    stack.Push((element.ChildElements[childIndex], depth + 1, childOwner));
+                    scheduledElements++;
+                }
+            }
+        }
+
+        private sealed class AnimationInspectionItem {
+            internal AnimationInspectionItem(OpenXmlElement element) { Element = element; }
+            internal OpenXmlElement Element { get; }
+            internal OpenXmlElement? Common { get; set; }
+            internal OpenXmlElement? Target { get; set; }
+            internal OpenXmlElement? Condition { get; set; }
+        }
 
         private Dictionary<uint, string> GetClassicAuthors() {
             var result = new Dictionary<uint, string>();

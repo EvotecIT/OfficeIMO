@@ -226,12 +226,320 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 30);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            object?[] args = { sheet, "BlankPoints!$B$2:$B$4", null };
+            object budget = CreateChartDataPointBudget(utilities);
+            object?[] args = { sheet, "BlankPoints!$B$2:$B$4", budget, null };
 
             bool read = (bool)method.Invoke(null, args)!;
 
             Assert.True(read);
-            Assert.Equal(new[] { 10D, 0D, 30D }, (IReadOnlyList<double>)args[2]!);
+            Assert.Equal(new[] { 10D, 0D, 30D }, (IReadOnlyList<double>)args[3]!);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsUnboundedChartFormulaRangesBeforeEnumeration() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object budget = CreateChartDataPointBudget(utilities);
+            object?[] args = { sheet, "Data!$A$1:$XFD$1048576", budget, null };
+
+            bool read = (bool)method.Invoke(null, args)!;
+
+            Assert.False(read);
+            Assert.Null(args[3]);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsOversizedChartCachePointCountsBeforeAllocation() {
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var cache = new DocumentFormat.OpenXml.Drawing.Charts.NumberingCache(
+                new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 1_000_001U });
+            object budget = CreateChartDataPointBudget(utilities);
+            object?[] args = { cache, budget, null };
+
+            bool read = (bool)method.Invoke(null, args)!;
+
+            Assert.False(read);
+            Assert.Null(args[2]);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportChargesActualCachePointsWhenPointCountIsUnderstated() {
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var cache = new DocumentFormat.OpenXml.Drawing.Charts.NumberingCache(
+                new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 1U },
+                new NumericPoint(new NumericValue("1")) { Index = 0U },
+                new NumericPoint(new NumericValue("2")) { Index = 1U });
+            object budget = CreateChartDataPointBudget(utilities);
+            object?[] args = { cache, budget, null };
+
+            Assert.True((bool)method.Invoke(null, args)!);
+
+            System.Reflection.FieldInfo remaining = budget.GetType().GetField("_remaining", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            Assert.Equal(999_998L, (long)remaining.GetValue(budget)!);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportSharesOneAggregateBudgetAcrossChartReferences() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("AggregateBudget");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 2);
+            sheet.CellValue(1, 2, 3);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            object budget = CreateChartDataPointBudget(utilities);
+            object?[] first = { sheet, "AggregateBudget!$A$1:$A$2", budget, null };
+            object?[] second = { sheet, "AggregateBudget!$B$1", budget, null };
+
+            Assert.True((bool)method.Invoke(null, first)!);
+            Assert.True((bool)method.Invoke(null, second)!);
+
+            System.Reflection.FieldInfo remaining = budget.GetType().GetField("_remaining", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            Assert.Equal(999_997L, (long)remaining.GetValue(budget)!);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeUnusedSeriesCaches() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("SourceBudget");
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "First");
+            sheet.CellValue(1, 3, "Second");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(2, 2, 10D);
+            sheet.CellValue(3, 2, 20D);
+            sheet.CellValue(2, 3, 30D);
+            sheet.CellValue(3, 3, 40D);
+            sheet.AddChartFromRange(
+                "A1:C3",
+                row: 1,
+                column: 5,
+                widthPixels: 260,
+                heightPixels: 170,
+                type: ExcelChartType.ColumnClustered,
+                title: "Source budget");
+
+            ChartPart chartPart = GetFirstChartPart(document);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 6L },
+                culture: null)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod(
+                "TryReadChartDataCore",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+
+            Assert.NotNull(data);
+            Assert.Equal(new[] { "Jan", "Feb" }, data!.Categories);
+            Assert.Equal(2, data.Series.Count);
+            Assert.Equal(new[] { 10D, 20D }, data.Series[0].Values);
+            Assert.Equal(new[] { 30D, 40D }, data.Series[1].Values);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeMissingChartSourcesBeforeCacheFallback() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 2L },
+                culture: null)!;
+            object?[] missingReference = { sheet, "Missing!$A$1:$A$1000000", budget, null };
+            var cache = new NumberingCache(
+                new PointCount { Val = 2U },
+                new NumericPoint(new NumericValue("10")) { Index = 0U },
+                new NumericPoint(new NumericValue("20")) { Index = 1U });
+            object?[] cachedValues = { cache, budget, null };
+
+            Assert.False((bool)readReference.Invoke(null, missingReference)!);
+            Assert.True((bool)readCache.Invoke(null, cachedValues)!);
+            Assert.Equal(new[] { 10D, 20D }, (IReadOnlyList<double>)cachedValues[2]!);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRestoresUnusedReadsAfterInvalidChartSourceFallback() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "not-a-number");
+            sheet.CellValue(2, 1, 20D);
+            sheet.CellValue(3, 1, 30D);
+            sheet.CellValue(4, 1, 40D);
+            sheet.CellValue(1, 2, 50D);
+            sheet.CellValue(2, 2, 60D);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 4L },
+                culture: null)!;
+            object?[] invalidReference = { sheet, "Data!$A$1:$A$4", budget, null };
+            var cache = new NumberingCache(
+                new PointCount { Val = 1U },
+                new NumericPoint(new NumericValue("10")) { Index = 0U });
+            object?[] cachedValues = { cache, budget, null };
+            object?[] validReference = { sheet, "Data!$B$1:$B$2", budget, null };
+
+            Assert.False((bool)readReference.Invoke(null, invalidReference)!);
+            Assert.True((bool)readCache.Invoke(null, cachedValues)!);
+            Assert.True((bool)readReference.Invoke(null, validReference)!);
+            Assert.Equal(new[] { 10D }, (IReadOnlyList<double>)cachedValues[2]!);
+            Assert.Equal(new[] { 50D, 60D }, (IReadOnlyList<double>)validReference[3]!);
+            System.Reflection.FieldInfo remainingSourceReads = budgetType.GetField("_remainingSourceReads", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            Assert.Equal(1L, (long)remainingSourceReads.GetValue(budget)!);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReusesFirstScatterXValuesWithinAggregateBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("ScatterBudget");
+            sheet.CellValue(1, 1, 1D);
+            sheet.CellValue(2, 1, 2D);
+            sheet.CellValue(1, 3, 10D);
+            sheet.CellValue(2, 3, 20D);
+            sheet.AddScatterChartFromRanges(
+                new[] { new ExcelChartSeriesRange("Points", "A1:A2", "C1:C2") },
+                row: 1,
+                column: 5,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Budget");
+            ChartPart chartPart = GetFirstChartPart(document);
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 4L },
+                culture: null)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod(
+                "TryReadChartDataCore",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+
+            Assert.NotNull(data);
+            ExcelChartSeries series = Assert.Single(data!.Series);
+            Assert.Equal(new[] { 1D, 2D }, series.XValues);
+            Assert.Equal(new[] { 10D, 20D }, series.Values);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotRechargeMaterializedScatterYValues() {
+            const uint pointsPerSeries = 200_000U;
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("ScatterXYBudget");
+            for (int column = 1; column <= 8; column++) {
+                sheet.CellValue(1, column, column);
+            }
+            sheet.AddScatterChartFromRanges(
+                new[] {
+                    new ExcelChartSeriesRange("One", "A1:A1", "B1:B1"),
+                    new ExcelChartSeriesRange("Two", "C1:C1", "D1:D1"),
+                    new ExcelChartSeriesRange("Three", "E1:E1", "F1:F1"),
+                    new ExcelChartSeriesRange("Four", "G1:G1", "H1:H1")
+                },
+                row: 1,
+                column: 10,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "XY budget");
+
+            ChartPart chartPart = GetFirstChartPart(document);
+            foreach (ScatterChartSeries chartSeries in chartPart.ChartSpace!.Descendants<ScatterChartSeries>()) {
+                ReplaceWithLargeNumberCache(chartSeries.GetFirstChild<XValues>()!.GetFirstChild<NumberReference>()!, pointsPerSeries);
+                ReplaceWithLargeNumberCache(chartSeries.GetFirstChild<YValues>()!.GetFirstChild<NumberReference>()!, pointsPerSeries);
+            }
+            chartPart.ChartSpace.Save();
+
+            string[] categories = new string[(int)pointsPerSeries];
+            double[] values = new double[(int)pointsPerSeries];
+            var input = new ExcelChartData(
+                categories,
+                Enumerable.Range(1, 4).Select(index => new ExcelChartSeries("Series " + index, values, ExcelChartType.Scatter)));
+
+            ExcelChartData result = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, input, sheet);
+
+            Assert.All(result.Series, series => {
+                Assert.NotNull(series.XValues);
+                Assert.Equal((int)pointsPerSeries, series.XValues!.Count);
+            });
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportDoesNotChargeReferencedSeriesNamesToDataPointBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("CaptionBudget");
+            sheet.CellValue(1, 1, 1D);
+            sheet.CellValue(2, 1, 2D);
+            sheet.CellValue(1, 2, "Referenced caption");
+            sheet.CellValue(1, 3, 10D);
+            sheet.CellValue(2, 3, 20D);
+            sheet.AddScatterChartFromRanges(
+                new[] { new ExcelChartSeriesRange("Placeholder", "A1:A2", "C1:C2") },
+                row: 1,
+                column: 5,
+                widthPixels: 260,
+                heightPixels: 170,
+                title: "Budget");
+            ChartPart chartPart = GetFirstChartPart(document);
+            ScatterChartSeries chartSeries = chartPart.ChartSpace!.Descendants<ScatterChartSeries>().First();
+            SeriesText seriesText = chartSeries.GetFirstChild<SeriesText>()!;
+            seriesText.RemoveAllChildren();
+            seriesText.Append(new StringReference(new Formula("CaptionBudget!$B$1")));
+            chartPart.ChartSpace.Save();
+
+            Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            object budget = Activator.CreateInstance(
+                budgetType,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                binder: null,
+                args: new object[] { 4L },
+                culture: null)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod(
+                "TryReadChartDataCore",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+
+            Assert.NotNull(data);
+            ExcelChartSeries series = Assert.Single(data!.Series);
+            Assert.Equal("Referenced caption", series.Name);
+            Assert.Equal(new[] { 1D, 2D }, series.XValues);
+            Assert.Equal(new[] { 10D, 20D }, series.Values);
+        }
+
+        private static object CreateChartDataPointBudget(Type utilities) {
+            Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
+            return Activator.CreateInstance(budgetType, nonPublic: true)!;
+        }
+
+        private static void ReplaceWithLargeNumberCache(NumberReference reference, uint pointCount) {
+            reference.RemoveAllChildren();
+            reference.Append(new NumberingCache(
+                new PointCount { Val = pointCount },
+                new NumericPoint(new NumericValue("1")) { Index = 0U }));
         }
 
         [Fact]

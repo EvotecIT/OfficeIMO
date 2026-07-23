@@ -84,9 +84,9 @@ namespace OfficeIMO.PowerPoint {
             if (options.IncludeSlideContent) {
                 A.ColorScheme? colorScheme = GetSlideColorScheme(slide);
                 AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options);
+                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, 0);
                 AddSlideContent(slide.Shapes, drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options);
+                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, 0);
             }
 
             return drawing;
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options) {
+            A.ColorScheme? colorScheme, PowerPointImageExportOptions options, int groupDepth) {
             foreach (PowerPointShape shape in shapes) {
                 if (shape.Hidden && !options.IncludeHiddenShapes) {
                     continue;
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (shape is PowerPointGroupShape groupShape) {
-                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options);
+                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options, groupDepth);
                 } else if (shape is PowerPointPicture picture) {
                     AddPicture(drawing, picture, diagnostics, mapping);
                 } else if (shape is PowerPointTable table) {
@@ -142,7 +142,12 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
             List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options) {
+            A.ColorScheme? colorScheme, PowerPointImageExportOptions options, int groupDepth) {
+            if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
+                AddUnsupportedShapeDiagnostic(diagnostics, groupShape,
+                    "Skipped nested PowerPoint group content because MaxGroupShapeDepth was reached.");
+                return;
+            }
             if (groupShape.OwnerSlide == null) {
                 AddUnsupportedShapeDiagnostic(diagnostics, groupShape, "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
                 return;
@@ -158,7 +163,7 @@ namespace OfficeIMO.PowerPoint {
                 groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options);
+                    localChildMapping, colorScheme, options, groupDepth + 1);
 
                 try {
                     OfficeImageFrameTransform groupFrameTransform = CreateGroupFrameTransform(groupShape, left, top, width, height);
@@ -180,7 +185,7 @@ namespace OfficeIMO.PowerPoint {
                 groupDrawing.Fonts.AddRange(drawing.Fonts);
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
                 AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options);
+                    localChildMapping, colorScheme, options, groupDepth + 1);
                 if (RequiresGroupClip(groupDrawing, clipWidth, clipHeight)) {
                     drawing.AddClippedDrawing(groupDrawing, clipLeft, clipTop, OfficeClipPath.Rectangle(clipWidth, clipHeight));
                     return;
@@ -188,7 +193,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), drawing, diagnostics,
-                childMapping, colorScheme, options);
+                childMapping, colorScheme, options, groupDepth + 1);
         }
 
         private static bool RequiresGroupClip(OfficeDrawing groupDrawing, double width, double height) {

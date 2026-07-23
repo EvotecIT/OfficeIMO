@@ -84,6 +84,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_RejectsRangesBeyondBufferedCellBudget() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Header");
+            }
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReadOptions {
+                MaxDataReaderBufferedCells = 2
+            });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                reader.GetSheet("Data").ReadRangeAsDataReader("A1:C2"));
+
+            Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutHeadersPreservesBlankRowsInsideRange() {
             using var memory = new MemoryStream();
 
@@ -200,6 +216,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Gamma", lastName);
             Assert.Equal(4097, lastTypedId);
             Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_XmlFastPathDoesNotChargeUnusedChunkBuffer() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "First");
+                sheet.CellValue(5000, 1000, "Last");
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:ALL5000", schemaSampleRows: 0);
+
+            Assert.Equal(1000, dataReader.FieldCount);
+            Assert.True(dataReader.Read());
+            Assert.True(dataReader.IsDBNull(0));
         }
 
         [Fact]

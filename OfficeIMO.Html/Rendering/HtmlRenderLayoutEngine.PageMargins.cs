@@ -14,6 +14,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             var visuals = new List<HtmlRenderVisual>(page.Scene);
             foreach (HtmlCssPageMarginTemplate box in boxes.Values.OrderBy(item => item.Position)) {
+                ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber, pages.Count),
+                    "@page @" + GetMarginBoxName(box.Position) + " generated content");
                 string text = box.Content.Render(page.PageNumber, pages.Count);
                 if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, box.Font.Size, out double x, out double y, out double width, out double height)) continue;
                 visuals.Add(new HtmlRenderText(

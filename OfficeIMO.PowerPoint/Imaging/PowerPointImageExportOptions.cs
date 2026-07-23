@@ -40,6 +40,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool IncludeHiddenShapes { get; set; }
 
+        /// <summary>Maximum nested group-shape depth rendered into a shared visual snapshot. Zero skips group content; negative values disable the depth limit.</summary>
+        public int MaxGroupShapeDepth { get; set; } = 32;
+
         /// <summary>Creates an independent options snapshot.</summary>
         public PowerPointImageExportOptions Clone() =>
             CopyPowerPointOptionsTo(new PowerPointImageExportOptions());
@@ -54,10 +57,13 @@ namespace OfficeIMO.PowerPoint {
             target.IncludeTables = IncludeTables;
             target.IncludeCharts = IncludeCharts;
             target.IncludeHiddenShapes = IncludeHiddenShapes;
+            target.MaxGroupShapeDepth = MaxGroupShapeDepth;
             return target;
         }
 
-        internal void Validate() => ValidateImageExportOptions();
+        internal void Validate() {
+            ValidateImageExportOptions();
+        }
     }
 
     /// <summary>

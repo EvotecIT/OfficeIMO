@@ -22,6 +22,7 @@ public static class OfficePngReader {
             OfficeRasterGuards.EnsurePayloadWithinLimits(bytes.Length, "PNG payload exceeds size limits.");
 
             bool hasHeader = false;
+            bool hasImageData = false;
             bool hasEnd = false;
             int declaredFrameCount = 1;
             int offset = Signature.Length;
@@ -40,6 +41,9 @@ public static class OfficePngReader {
                     int candidate = ReadBigEndianInt32(bytes, dataOffset);
                     if (candidate <= 0) return false;
                     declaredFrameCount = candidate;
+                } else if (type == "IDAT") {
+                    if (!hasHeader) return false;
+                    hasImageData = true;
                 } else if (type == "IEND") {
                     if (length != 0) return false;
                     hasEnd = true;
@@ -50,7 +54,7 @@ public static class OfficePngReader {
                 offset = (int)chunkEnd;
             }
 
-            if (!hasHeader || !hasEnd || offset != bytes.Length) return false;
+            if (!hasHeader || !hasImageData || !hasEnd || offset != bytes.Length) return false;
             frameCount = declaredFrameCount;
             return true;
         } catch {

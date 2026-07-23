@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing:
                 case ExcelImageExportDiagnosticCodes.FillGradientUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported:
+                case ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded:
                 case ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalColorScaleUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalDataBarUnsupported:

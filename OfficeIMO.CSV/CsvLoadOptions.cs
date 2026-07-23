@@ -148,8 +148,9 @@ public sealed class CsvLoadOptions
 
     /// <summary>
     /// Gets or sets an optional limit for decompressed bytes read from compressed CSV files.
+    /// Defaults to 256 MiB. Set to <c>null</c> only for trusted inputs that intentionally exceed the limit.
     /// </summary>
-    public long? MaxDecompressedBytes { get; set; }
+    public long? MaxDecompressedBytes { get; set; } = DefaultMaxInputBytes;
 
     /// <summary>
     /// Gets or sets the maximum number of bytes accepted by stream-based load APIs.
