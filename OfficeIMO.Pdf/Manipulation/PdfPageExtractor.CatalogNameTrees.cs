@@ -105,12 +105,15 @@ internal static partial class PdfPageExtractor {
                 !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return false;
             }
-    
-            return TryCollectNamedDestinationNameTreeEntries(sourceObjects, indirect.Value, entries, visitedReferences, depth, maximumNodes, ref traversedNodes);
+
+            if (++traversedNodes > maximumNodes) {
+                return false;
+            }
+
+            value = indirect.Value;
         }
 
-        if (value is not PdfDictionary tree ||
-            ++traversedNodes > maximumNodes) {
+        if (value is not PdfDictionary tree) {
             return false;
         }
     

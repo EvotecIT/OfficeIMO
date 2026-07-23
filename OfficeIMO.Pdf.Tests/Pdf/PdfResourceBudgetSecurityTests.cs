@@ -250,9 +250,46 @@ public sealed class PdfResourceBudgetSecurityTests {
     }
 
     [Fact]
+    public void PdfReadDocument_CountsOnlyUniqueIndirectNameTreeNodes() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [5 0 R 5 0 R] >> >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [(Target) [3 0 R /Fit]] >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        Assert.Equal("Target", Assert.Single(document.NamedDestinations).Name);
+    }
+
+    [Fact]
     public void PdfReadDocument_CountsReferencedCatalogActionNameTreeNodeOnce() {
         byte[] pdf = BuildPdfObjects(
             "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript 5 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+            BuildStream(string.Empty),
+            "<< /Names [(Open) 6 0 R] >>",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+
+        PdfCatalogAction action = Assert.Single(document.CatalogActions);
+        Assert.Equal("Open", action.Name);
+        Assert.Equal("JavaScript", action.ActionType);
+    }
+
+    [Fact]
+    public void PdfReadDocument_CountsOnlyUniqueIndirectCatalogActionNameTreeNodes() {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Kids [5 0 R 5 0 R] >> >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
             BuildStream(string.Empty),

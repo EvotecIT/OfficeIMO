@@ -91,8 +91,12 @@ internal static class PdfSemanticRepairDiagnostics {
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
-        EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
-        if (nodeObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return;
+        EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
+        if (nodeObject is PdfReference reference) {
+            if (!visited.Add(reference.ObjectNumber)) return;
+            EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
+        }
+
         PdfDictionary? node = ResolveDictionary(objects, nodeObject);
         if (node is null) { AddDefect(options, diagnostics, "InvalidNameTreeNode", "The " + treeName + " name tree contains a node that does not resolve to a dictionary.", nodeObject is PdfReference missing ? missing.ObjectNumber : null, recovered: false); return; }
         PdfArray? pairs = ResolveArray(objects, node.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
@@ -113,8 +117,12 @@ internal static class PdfSemanticRepairDiagnostics {
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
-        EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
-        if (nodeObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return;
+        EnsureNameTreeBudget(options.Limits, depth, traversedNodes);
+        if (nodeObject is PdfReference reference) {
+            if (!visited.Add(reference.ObjectNumber)) return;
+            EnsureNameTreeBudget(options.Limits, depth, ++traversedNodes);
+        }
+
         PdfDictionary? node = ResolveDictionary(objects, nodeObject); if (node is null) return;
         if (ResolveArray(objects, node.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null) is PdfArray pairs) {
             for (int i = 1; i < pairs.Items.Count; i += 2) if (!IsValidDestination(objects, pairs.Items[i], pageObjectNumbers)) AddDefect(options, diagnostics, "BrokenNamedDestination", "A named destination does not resolve to a reachable page and was left unchanged for caller review.", FindObjectNumber(objects, node), recovered: false);

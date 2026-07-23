@@ -38,6 +38,41 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
+    public void NameTreeBudgetDoesNotCountADirectRootDictionary() {
+        var page = new PdfDictionary();
+        page.Items["Type"] = new PdfName("Page");
+
+        var destination = new PdfArray();
+        destination.Items.Add(new PdfReference(3, 0));
+        destination.Items.Add(new PdfName("Fit"));
+
+        var names = new PdfArray();
+        names.Items.Add(new PdfStringObj("Chapter1"));
+        names.Items.Add(destination);
+
+        var leaf = new PdfDictionary();
+        leaf.Items["Names"] = names;
+        var kids = new PdfArray();
+        kids.Items.Add(new PdfReference(5, 0));
+        var root = new PdfDictionary();
+        root.Items["Kids"] = kids;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [3] = new PdfIndirectObject(3, 0, page),
+            [5] = new PdfIndirectObject(5, 0, leaf)
+        };
+
+        bool supported = PdfPageExtractor.TryBuildFlattenedNamedDestinationNameTree(
+            objects,
+            root,
+            copiedPageObjectIds: null,
+            out PdfDictionary flattened,
+            maximumNodes: 1);
+
+        Assert.True(supported);
+        Assert.True(flattened.Items.ContainsKey("Names"));
+    }
+
+    [Fact]
     public void RewriteApis_PreserveDirectNamedDestinationsForCopiedPages() {
         byte[] namedDestinationPdf = BuildNamedDestinationPdf();
         byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationPdf();

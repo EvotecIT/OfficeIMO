@@ -378,8 +378,7 @@ internal static partial class PdfSyntax {
         HashSet<int> visitedReferences,
         int depth,
         ref int traversedNodes) {
-        if (depth > PdfReadLimits.DefaultMaxNameTreeDepth ||
-            ++traversedNodes > PdfReadLimits.DefaultMaxNameTreeNodes) {
+        if (depth > PdfReadLimits.DefaultMaxNameTreeDepth) {
             return false;
         }
 
@@ -389,7 +388,11 @@ internal static partial class PdfSyntax {
                 return false;
             }
 
-            return TryCollectNamedDestinationNameTreeEntries(map, indirect.Value, visitedReferences, depth, ref traversedNodes);
+            if (++traversedNodes > PdfReadLimits.DefaultMaxNameTreeNodes) {
+                return false;
+            }
+
+            value = indirect.Value;
         }
 
         if (value is not PdfDictionary tree) {
