@@ -265,18 +265,27 @@ namespace OfficeIMO.Excel {
                 .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
                 .SetValueAxisNumberFormat(waterfallNumberFormat, sourceLinked: false);
 
+            var increasePoints = new List<int>();
+            var decreasePoints = new List<int>();
             for (int index = 0; index < points.Count; index++) {
                 if (points[index].Value > 0) {
-                    chart.SetSeriesDataLabelForPoint(1, index, showValue: true,
-                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
+                    increasePoints.Add(index);
                 } else if (points[index].Value < 0) {
-                    chart.SetSeriesDataLabelForPoint(2, index, showValue: true,
-                        position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
+                    decreasePoints.Add(index);
                 }
             }
 
+            if (increasePoints.Count > 0) {
+                chart.SetSeriesDataLabelsForPoints(1, increasePoints, showValue: true,
+                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "+" + waterfallNumberFormat);
+            }
+            if (decreasePoints.Count > 0) {
+                chart.SetSeriesDataLabelsForPoints(2, decreasePoints, showValue: true,
+                    position: C.DataLabelPositionValues.OutsideEnd, numberFormat: "-" + waterfallNumberFormat);
+            }
+
             if (includeTotal) {
-                chart.SetSeriesDataLabelForPoint(3, count - 1, showValue: true,
+                chart.SetSeriesDataLabelsForPoints(3, new[] { count - 1 }, showValue: true,
                     position: C.DataLabelPositionValues.OutsideEnd, numberFormat: waterfallNumberFormat);
             }
 

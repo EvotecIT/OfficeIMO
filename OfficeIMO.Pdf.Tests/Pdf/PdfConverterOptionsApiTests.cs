@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConverterOptionsApiTests {
     [Fact]
-    public void ConverterOptionsExposeUnifiedBalancedResourceDefaults() {
+    public void ConverterOptionsExposeExpectedResourceDefaults() {
         var markdown = new MarkdownPdfSaveOptions();
         var word = new OfficeIMO.Word.Pdf.PdfSaveOptions();
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
@@ -21,7 +21,7 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Equal(PdfTextFallbackFeatures.Default, excel.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, powerPoint.TextFallbacks);
         AssertBalancedDefault(markdown.ResourcePolicy);
-        AssertBalancedDefault(word.ResourcePolicy);
+        AssertPortable(word.ResourcePolicy);
         AssertBalancedDefault(excel.ResourcePolicy);
         AssertBalancedDefault(powerPoint.ResourcePolicy);
         AssertBalancedDefault(html.ResourcePolicy);

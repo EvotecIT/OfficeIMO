@@ -48,15 +48,29 @@ public static class EmailDataArtifact {
 
     private static EmailDataOpenResult OpenDirectory(string path, EmailDataOpenOptions options,
         CancellationToken cancellationToken) {
-        OfflineAddressBookDiscoveryReport discovery = OfflineAddressBookInspector.Inspect(
-            path, options.AddressBook, cancellationToken);
+        OfflineAddressBookDiscoveryReport discovery;
+        try {
+            discovery = OfflineAddressBookInspector.Inspect(
+                path, options.AddressBook, cancellationToken);
+        } catch (OfflineAddressBookLimitExceededException exception) when (
+            string.Equals(
+                exception.LimitName,
+                nameof(OfflineAddressBookReaderOptions.MaxDirectoryEntries),
+                StringComparison.Ordinal)) {
+            EmailDataOpenResult boundedStore = OpenStore(path, options, cancellationToken);
+            if (boundedStore.Store!.EnumerateItems().Any()) return boundedStore;
+            boundedStore.Dispose();
+            throw;
+        }
         if (discovery.ReadableFullDetailsCount > 0)
             return OpenAddressBook(path, options, cancellationToken);
-        if (discovery.Files.Count > 0) {
-            throw new NotSupportedException(
-                "OAB components were discovered, but none is a readable version 4 Full Details component.");
+        EmailDataOpenResult store = OpenStore(path, options, cancellationToken);
+        if (discovery.Files.Count == 0 || store.Store!.EnumerateItems().Any()) {
+            return store;
         }
-        return OpenStore(path, options, cancellationToken);
+        store.Dispose();
+        throw new NotSupportedException(
+            "The directory contains OAB components, but none is a supported version 4 Full Details file.");
     }
 
     private static EmailDataOpenResult OpenExpected(string path, EmailDataArtifactKind kind,

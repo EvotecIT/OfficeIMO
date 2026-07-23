@@ -7,14 +7,24 @@ namespace OfficeIMO.Excel {
 
         private sealed class FormulaDefinedNameResolutionCatalog {
             private readonly List<Sheet> _sheets;
+            private readonly HashSet<int> _validSheetIndexes = new HashSet<int>();
             private readonly Dictionary<string, int> _sheetIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             private readonly Dictionary<string, DefinedName> _definedNames = new Dictionary<string, DefinedName>(StringComparer.OrdinalIgnoreCase);
 
             internal FormulaDefinedNameResolutionCatalog(ExcelSheet owner) {
                 _sheets = owner.WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                var worksheetRelationshipIds = new HashSet<string>(
+                    owner.WorkbookPartRoot.Parts
+                        .Where(pair => pair.OpenXmlPart is DocumentFormat.OpenXml.Packaging.WorksheetPart)
+                        .Select(pair => pair.RelationshipId),
+                    StringComparer.Ordinal);
                 for (int index = 0; index < _sheets.Count; index++) {
                     string? sheetName = _sheets[index].Name?.Value;
-                    if (!string.IsNullOrWhiteSpace(sheetName) && !_sheetIndexes.ContainsKey(sheetName!)) {
+                    string? relationshipId = _sheets[index].Id?.Value;
+                    bool validWorksheet = !string.IsNullOrWhiteSpace(relationshipId)
+                        && worksheetRelationshipIds.Contains(relationshipId!);
+                    if (validWorksheet) _validSheetIndexes.Add(index);
+                    if (validWorksheet && !string.IsNullOrWhiteSpace(sheetName) && !_sheetIndexes.ContainsKey(sheetName!)) {
                         _sheetIndexes.Add(sheetName!, index);
                     }
                 }
@@ -43,7 +53,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal bool TryGetSheet(uint index, out Sheet sheet) {
-                if (index < (uint)_sheets.Count) {
+                if (index < (uint)_sheets.Count && _validSheetIndexes.Contains((int)index)) {
                     sheet = _sheets[(int)index];
                     return true;
                 }

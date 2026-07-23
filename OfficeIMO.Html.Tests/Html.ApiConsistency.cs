@@ -149,6 +149,19 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
+    public void HtmlPdfOptions_FromRenderOptionsPreserveCallerUrlPolicy() {
+        var source = new HtmlRenderOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
+        };
+
+        var copied = new HtmlPdfSaveOptions(source);
+
+        Assert.False(copied.UrlPolicy.RestrictUrlSchemes);
+        Assert.False(copied.UrlPolicy.DisallowFileUrls);
+        Assert.True(copied.UrlPolicy.AllowDataUrls);
+    }
+
+    [Fact]
     public void HtmlPdf_ByteSerializationHonorsCancellation() {
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Cancellation contract</p>").ToPdfDocumentResult();
         using var cancellation = new CancellationTokenSource();

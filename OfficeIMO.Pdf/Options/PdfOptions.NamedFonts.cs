@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    internal const int MaximumNamedFontFamilies = 64;
+
     /// <summary>
     /// Embedded named font families available to run-level text without consuming a standard-font slot.
     /// </summary>
@@ -29,6 +31,11 @@ public sealed partial class PdfOptions {
     public PdfOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
         string key = NormalizeNamedFontFamilyKey(fontFamily.FamilyName);
+        if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies
+            && _namedFontFamilies?.ContainsKey(key) != true) {
+            throw new InvalidOperationException(
+                $"No more than {MaximumNamedFontFamilies} named font families can be registered.");
+        }
         (_namedFontFamilies ??= new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal))[key] = fontFamily.Clone();
         RemoveNamedFontProgramCache(key);
         return this;
@@ -45,6 +52,16 @@ public sealed partial class PdfOptions {
         if (string.IsNullOrWhiteSpace(familyNames) ||
             !TryLoadOfficeFontFamily(familyNames!, out PdfEmbeddedFontFamily? family) ||
             family == null) {
+            return false;
+        }
+
+        string key = NormalizeNamedFontFamilyKey(family.FamilyName);
+        if (_namedFontFamilies != null &&
+            _namedFontFamilies.TryGetValue(key, out PdfEmbeddedFontFamily? registered)) {
+            registeredFamilyName = registered.FamilyName;
+            return true;
+        }
+        if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies) {
             return false;
         }
 

@@ -4,6 +4,12 @@ namespace OfficeIMO.Reader.OneNote;
 
 /// <summary>Options for offline OneNote ingestion.</summary>
 public sealed class ReaderOneNoteOptions {
+    /// <summary>
+    /// Allows a <c>.onetoc2</c> path to load sibling section and nested table-of-contents files.
+    /// Disable this for isolated-file ingestion. Direct OneNote registration retains the compatibility default.
+    /// </summary>
+    public bool AllowTableOfContentsSiblingFileReads { get; set; } = true;
+
     /// <summary>Native OneNote parser limits and compatibility settings.</summary>
     public OneNoteReaderOptions OneNoteOptions { get; set; } = new OneNoteReaderOptions();
 

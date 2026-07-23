@@ -214,6 +214,20 @@ public class DrawingInkTests {
     }
 
     [Fact]
+    public void InkRendererSkipsNumericallyDegenerateSegmentsAfterTransform() {
+        var stroke = new OfficeInkStroke {
+            Transform = OfficeTransform.Scale(0.00000000000001D, 0.00000000000001D)
+        }
+            .AddPoint(10D, 10D)
+            .AddPoint(11D, 11D);
+
+        OfficeDrawing drawing = OfficeInkRenderer.Render(
+            new OfficeInkDocument().Add(stroke), 100D, 100D);
+
+        Assert.Empty(drawing.Shapes);
+    }
+
+    [Fact]
     public void InkPointsValidatePressureAndCoordinates() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(double.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(0, 0, 1.01));

@@ -126,7 +126,7 @@ public static class OfficeInkRenderer {
             double y1 = from.Y;
             double x2 = to.X;
             double y2 = to.Y;
-            if (x1.Equals(x2) && y1.Equals(y2)) continue;
+            if (IsDegenerateSegment(x1, y1, x2, y2)) continue;
             if (affineTipGeometry) {
                 AddAffineTipSegment(drawing, stroke, renderColor, from, to, opacity, options, transformedTipWidth, transformedTipHeight);
                 AddTransformedTip(drawing, stroke, renderColor, to, opacity, ResolvePointPressure(stroke, to, options));
@@ -141,7 +141,7 @@ public static class OfficeInkRenderer {
             double clipHalfWidth = transformedTipWidth * pressure / 2D;
             double clipHalfHeight = transformedTipHeight * pressure / 2D;
             if (!TryClipLine(-clipHalfWidth, -clipHalfHeight, drawing.Width + clipHalfWidth, drawing.Height + clipHalfHeight, ref x1, ref y1, ref x2, ref y2)) continue;
-            if (x1.Equals(x2) && y1.Equals(y2)) continue;
+            if (IsDegenerateSegment(x1, y1, x2, y2)) continue;
 
             OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);
             shape.StrokeColor = renderColor;
@@ -180,7 +180,7 @@ public static class OfficeInkRenderer {
         double clipHalfWidth = transformedTipWidth * maximumPressure / 2D;
         double clipHalfHeight = transformedTipHeight * maximumPressure / 2D;
         if (!TryClipLine(-clipHalfWidth, -clipHalfHeight, drawing.Width + clipHalfWidth, drawing.Height + clipHalfHeight, ref x1, ref y1, ref x2, ref y2)) return;
-        if (x1.Equals(x2) && y1.Equals(y2)) return;
+        if (IsDegenerateSegment(x1, y1, x2, y2)) return;
 
         OfficePoint support = stroke.GetTransformedTipSupport(-deltaY, deltaX);
         OfficePoint fromSupport = new OfficePoint(support.X * fromPressure, support.Y * fromPressure);
@@ -284,6 +284,9 @@ public static class OfficeInkRenderer {
         }
         return true;
     }
+
+    private static bool IsDegenerateSegment(double x1, double y1, double x2, double y2) =>
+        Math.Abs(x2 - x1) <= 0.000000000001D && Math.Abs(y2 - y1) <= 0.000000000001D;
 
     private static double ResolvePointPressure(OfficeInkStroke stroke, OfficeInkPoint point, OfficeInkRenderOptions options) =>
         options.UsePressure && !stroke.IgnorePressure

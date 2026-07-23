@@ -86,6 +86,14 @@ internal static partial class EmailStorePathIdentity {
             } catch (IOException) {
             } catch (UnauthorizedAccessException) {
             }
+
+            string? ancestor = Path.GetDirectoryName(TrimEndingDirectorySeparators(directory));
+            while (!string.IsNullOrEmpty(ancestor)) {
+                if (TryDetectFromExistingName(ancestor, out caseInsensitive)) return caseInsensitive;
+                string? parent = Path.GetDirectoryName(TrimEndingDirectorySeparators(ancestor));
+                if (string.Equals(parent, ancestor, StringComparison.Ordinal)) break;
+                ancestor = parent;
+            }
         }
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     }

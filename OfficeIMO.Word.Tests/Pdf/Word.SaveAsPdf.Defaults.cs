@@ -10,6 +10,15 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void SaveAsPdf_DefaultsDoNotReadInstalledHostFonts() {
+            var options = new PdfSaveOptions();
+
+            Assert.False(options.ResourcePolicy.AllowSystemFontEmbedding);
+            Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
+            Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
+        }
+
+        [Fact]
         public void SaveAsPdf_Uses_DefaultPageSettings() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfDefaultSettings.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfDefaultSettings.pdf");

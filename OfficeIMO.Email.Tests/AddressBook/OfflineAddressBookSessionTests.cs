@@ -2,6 +2,72 @@ namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class OfflineAddressBookSessionTests {
     [Fact]
+    public void ReaderOptionsRetainTheOriginalConstructorSignature() {
+        Type[] parameterTypes = {
+            typeof(long), typeof(int), typeof(int), typeof(int),
+            typeof(int), typeof(int), typeof(int), typeof(int),
+            typeof(int), typeof(long), typeof(int), typeof(bool)
+        };
+
+        System.Reflection.ConstructorInfo? constructor =
+            typeof(OfflineAddressBookReaderOptions).GetConstructor(parameterTypes);
+
+        Assert.NotNull(constructor);
+        var options = Assert.IsType<OfflineAddressBookReaderOptions>(constructor!.Invoke(new object[] {
+            64L * 1024 * 1024 * 1024,
+            4096,
+            16,
+            8 * 1024 * 1024,
+            4096,
+            16 * 1024 * 1024,
+            4 * 1024 * 1024,
+            16 * 1024 * 1024,
+            100_000,
+            100_000_000L,
+            1252,
+            true
+        }));
+        Assert.Equal(100_000, options.MaxDirectoryEntries);
+    }
+
+    [Fact]
+    public void DirectoryDiscoveryEnforcesAggregateEntryBudgetBeforeMaterialization() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-oab-entry-budget-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            for (int index = 0; index < 4; index++) {
+                File.WriteAllText(Path.Combine(root, "entry" + index + ".txt"), "x");
+            }
+
+            OfflineAddressBookLimitExceededException exception = Assert.Throws<OfflineAddressBookLimitExceededException>(
+                () => OfflineAddressBookInspector.Inspect(root,
+                    new OfflineAddressBookReaderOptions(maxDirectoryEntries: 3)));
+
+            Assert.Equal(nameof(OfflineAddressBookReaderOptions.MaxDirectoryEntries), exception.LimitName);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DirectoryDiscoveryAcceptsAnEmptyDirectoryAtTheExactEntryBudget() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-oab-empty-entry-budget-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(Path.Combine(root, "empty"));
+
+            OfflineAddressBookDiscoveryReport report = OfflineAddressBookInspector.Inspect(
+                root,
+                new OfflineAddressBookReaderOptions(maxDirectoryEntries: 1));
+
+            Assert.Empty(report.Files);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OpensStreamFromCurrentPositionAndRestoresIt() {
         byte[] oab = new OabV4Fixture().Build();
         using (var stream = new MemoryStream()) {

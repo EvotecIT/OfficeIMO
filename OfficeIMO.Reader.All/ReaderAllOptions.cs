@@ -41,7 +41,10 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets Jupyter Notebook adapter options.</summary>
     public Notebook.ReaderNotebookOptions? Notebook { get; set; }
 
-    /// <summary>Gets or sets offline OneNote adapter options.</summary>
+    /// <summary>
+    /// Gets or sets offline OneNote adapter options. When omitted, the all-formats preset does not follow sibling
+    /// files referenced by a <c>.onetoc2</c> path. Supply explicit options to opt into that compatibility behavior.
+    /// </summary>
     public OneNote.ReaderOneNoteOptions? OneNote { get; set; }
 
     /// <summary>Gets or sets OpenDocument adapter options.</summary>

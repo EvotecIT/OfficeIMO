@@ -9,6 +9,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontSecurityTests {
     [Fact]
+    public void NamedFontRegistrationRejectsUnboundedDistinctFamilies() {
+        var options = new PdfOptions();
+        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                "SecurityFont" + index.ToString(), new byte[] { 1 }));
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OverflowFont", new byte[] { 1 })));
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("SecurityFont0", new byte[] { 2 }));
+        Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
+    }
+
+    [Fact]
     public void ToUnicodeCMap_SkipsOversizedSequentialRanges() {
         byte[] cmapBytes = Encoding.ASCII.GetBytes("""
 beginbfchar

@@ -48,6 +48,40 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        internal static bool TryParseRangeCoordinates(string a1Range,
+            out int r1, out int c1, out int r2, out int c2) {
+            r1 = c1 = r2 = c2 = 0;
+            if (string.IsNullOrWhiteSpace(a1Range)) return false;
+            int start = 0;
+            int length = a1Range.Length;
+            TrimBounds(a1Range, ref start, ref length);
+
+            int separator = a1Range.IndexOf(':', start, length);
+            if (separator < 0
+                || separator != a1Range.LastIndexOf(':', start + length - 1,
+                    length)) {
+                return false;
+            }
+
+            if (!TryParseCellRef(a1Range, start, separator - start,
+                    out r1, out c1, enforceWorksheetBounds: false)
+                || !TryParseCellRef(a1Range, separator + 1,
+                    start + length - separator - 1, out r2, out c2,
+                    enforceWorksheetBounds: false)) {
+                r1 = c1 = r2 = c2 = 0;
+                return false;
+            }
+
+            if (c1 > c2) (c1, c2) = (c2, c1);
+            if (r1 > r2) (r1, r2) = (r2, r1);
+            return true;
+        }
+
+        internal static bool TryParseCellReferenceCoordinates(string? cellRef,
+            out int row, out int column) => TryParseCellRef(cellRef, 0,
+            cellRef?.Length ?? 0, out row, out column,
+            enforceWorksheetBounds: false);
+
         internal static bool TryParseWholeColumnRange(string reference, out int c1, out int c2) {
             c1 = c2 = 0;
             if (!TrySplitWholeRange(reference, out string start, out string end)
@@ -354,7 +388,7 @@ namespace OfficeIMO.Excel {
                     row = (row * 10) + digit;
                 }
 
-                if (row <= 0 || col <= 0) {
+                if (row <= 0 || row > MaxRows || col <= 0 || col > MaxColumns) {
                     row = 0;
                     col = 0;
                     return false;
@@ -597,7 +631,8 @@ namespace OfficeIMO.Excel {
             return BuildCellReference(row, column, absolute: true);
         }
 
-        private static bool TryParseCellRef(string? text, int start, int length, out int row, out int col) {
+        private static bool TryParseCellRef(string? text, int start, int length,
+            out int row, out int col, bool enforceWorksheetBounds = true) {
             row = 0;
             col = 0;
             if (string.IsNullOrEmpty(text) || length <= 0) {
@@ -656,7 +691,9 @@ namespace OfficeIMO.Excel {
                 row = row * 10 + digit;
             }
 
-            if (row <= 0 || col <= 0) {
+            if (row <= 0 || col <= 0
+                || (enforceWorksheetBounds
+                    && (row > MaxRows || col > MaxColumns))) {
                 row = 0;
                 col = 0;
                 return false;

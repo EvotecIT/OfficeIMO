@@ -1,4 +1,6 @@
 using OfficeIMO.Email;
+using Microsoft.Win32.SafeHandles;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Email.Store;
 
@@ -61,8 +63,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 "The item reference does not belong to this mailbox-directory session.");
         }
         bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
-        using (var stream = new FileStream(
-            file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan)) {
+        using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
             EmailDocument document;
             if (file.IsEmlx) {
                 EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent)
@@ -131,6 +132,14 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                     continue;
                 }
                 if (!(entry is FileInfo file) || !IsMailboxFile(file)) continue;
+                if (!IsRegularMailboxFile(file.FullName)) {
+                    _diagnostics.Add(new EmailStoreDiagnostic(
+                        "EMAIL_STORE_DIRECTORY_SPECIAL_FILE_SKIPPED",
+                        "A non-regular mailbox candidate was skipped without opening it as a blocking stream.",
+                        EmailStoreDiagnosticSeverity.Warning,
+                        ToRelativePath(file.FullName)));
+                    continue;
+                }
                 if (candidates.Count >= _options.MaxDirectoryFileCount) {
                     throw new EmailStoreLimitExceededException(
                         nameof(EmailStoreReaderOptions.MaxDirectoryFileCount),
@@ -270,14 +279,102 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         if (!string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase)) return true;
         try {
-            using (var stream = new FileStream(
-                file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 4 * 1024,
-                FileOptions.SequentialScan)) {
+            if (!TryOpenRegularMailboxFile(file.FullName, 4 * 1024, out FileStream stream)) {
+                return false;
+            }
+            using (stream) {
                 return EmlxStoreReader.HasEnvelopePrefix(stream);
             }
         } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
             return false;
         }
+    }
+
+    private static bool IsRegularMailboxFile(string path) {
+        if (!TryOpenRegularMailboxFile(path, 4 * 1024, out FileStream stream)) return false;
+        stream.Dispose();
+        return true;
+    }
+
+    private static FileStream OpenRegularMailboxFile(string path) {
+        if (TryOpenRegularMailboxFile(path, 64 * 1024, out FileStream stream)) return stream;
+        throw new IOException("The mailbox item is no longer a regular readable file.");
+    }
+
+    private static bool TryOpenRegularMailboxFile(
+        string path,
+        int bufferSize,
+        out FileStream stream) {
+        stream = null!;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            try {
+                stream = new FileStream(
+                    path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize,
+                    FileOptions.SequentialScan);
+                return true;
+            } catch (Exception exception) when (
+                exception is IOException || exception is UnauthorizedAccessException) {
+                return false;
+            }
+        }
+
+        int nonBlocking = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x0004 : 0x0800;
+        int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
+        int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+        int descriptor = OpenUnix(path, nonBlocking | closeOnExec | noFollow);
+        if (descriptor < 0) return false;
+        if (GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) != 0 ||
+            (status.Mode & 0xF000) != 0x8000) {
+            CloseUnix(descriptor);
+            return false;
+        }
+        if (SeekUnix(descriptor, 0L, 1) < 0L) {
+            CloseUnix(descriptor);
+            return false;
+        }
+
+        var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+        try {
+            stream = new FileStream(handle, FileAccess.Read, bufferSize, isAsync: false);
+            return true;
+        } catch {
+            handle.Dispose();
+            throw;
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern int OpenUnix(string path, int flags);
+
+    [DllImport("libc", EntryPoint = "lseek", SetLastError = true)]
+    private static extern long SeekUnix(int descriptor, long offset, int origin);
+
+    [DllImport("System.Native", EntryPoint = "SystemNative_FStat", SetLastError = true)]
+    private static extern int GetUnixFileStatus(IntPtr descriptor, out UnixFileStatus status);
+
+    [DllImport("libc", EntryPoint = "close", SetLastError = true)]
+    private static extern int CloseUnix(int descriptor);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct UnixFileStatus {
+        internal int Flags;
+        internal int Mode;
+        internal uint Uid;
+        internal uint Gid;
+        internal long Size;
+        internal long AccessTime;
+        internal long AccessTimeNanoseconds;
+        internal long ModificationTime;
+        internal long ModificationTimeNanoseconds;
+        internal long ChangeTime;
+        internal long ChangeTimeNanoseconds;
+        internal long BirthTime;
+        internal long BirthTimeNanoseconds;
+        internal long Device;
+        internal long RawDevice;
+        internal long Inode;
+        internal uint UserFlags;
+        internal int HardLinkCount;
     }
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {

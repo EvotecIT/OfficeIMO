@@ -104,6 +104,7 @@ internal static partial class OneNoteReaderAdapter {
             return CreateNotebookContext(package, source, reader, native, cancellationToken);
         }
         if (header.FileKind == OneNoteFileKind.TableOfContents) {
+            ApplyTableOfContentsFileReadPolicy(native);
             OneNoteNotebook notebook = OneNoteNotebookReader.Read(path, native.NotebookOptions);
             return CreateNotebookContext(notebook, source, reader, native, cancellationToken);
         }
@@ -139,6 +140,7 @@ internal static partial class OneNoteReaderAdapter {
                 return CreateNotebookContext(package, source, reader, native, cancellationToken);
             }
             if (header.FileKind == OneNoteFileKind.TableOfContents) {
+                ApplyTableOfContentsFileReadPolicy(native);
                 OneNoteNotebook notebook = OneNoteNotebookReader.Read(parseStream, logicalName, native.NotebookOptions);
                 return CreateNotebookContext(notebook, source, reader, native, cancellationToken);
             }
@@ -159,6 +161,12 @@ internal static partial class OneNoteReaderAdapter {
         clone.OneNoteOptions.MaxInputBytes = EffectiveLimit(reader.MaxInputBytes, clone.OneNoteOptions.MaxInputBytes);
         clone.NotebookOptions.OneNoteOptions = clone.OneNoteOptions;
         return clone;
+    }
+
+    private static void ApplyTableOfContentsFileReadPolicy(ReaderOneNoteOptions options) {
+        if (options.AllowTableOfContentsSiblingFileReads) return;
+        options.NotebookOptions.LoadSectionContent = false;
+        options.NotebookOptions.RecurseSectionGroups = false;
     }
 
     private static ReadContext CreateSectionContext(

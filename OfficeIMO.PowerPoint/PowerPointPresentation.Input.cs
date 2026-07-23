@@ -419,11 +419,33 @@ namespace OfficeIMO.PowerPoint {
             var template = new StringBuilder(Path.Combine(
                 Path.GetTempPath(), "officeimo-powerpoint-"
                 + Guid.NewGuid().ToString("N") + "-XXXXXX"));
-            int descriptor = CreateSecureTemporaryFile(template);
+            bool isMacOS = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            int descriptor = isMacOS
+                ? CreateSecureTemporaryFile(template)
+                : CreateSecureTemporaryFileWithFlags(template, 0x00080000);
             if (descriptor < 0) {
                 int error = Marshal.GetLastWin32Error();
                 throw new IOException(
                     $"Unable to create a secure temporary presentation file (error {error}).");
+            }
+            if (isMacOS) {
+                int originalDescriptor = descriptor;
+                descriptor = OpenExistingFileDescriptor(
+                    "/dev/fd/" + originalDescriptor,
+                    0x01000002);
+                if (descriptor < 0) {
+                    int error = Marshal.GetLastWin32Error();
+                    new SafeFileHandle(
+                        new IntPtr(originalDescriptor), ownsHandle: true)
+                        .Dispose();
+                    string failedPath = template.ToString();
+                    if (File.Exists(failedPath)) File.Delete(failedPath);
+                    throw new IOException(
+                        $"Unable to protect a temporary presentation descriptor from child processes (error {error}).");
+                }
+                new SafeFileHandle(
+                    new IntPtr(originalDescriptor), ownsHandle: true)
+                    .Dispose();
             }
             var handle = new SafeFileHandle(
                 new IntPtr(descriptor), ownsHandle: true);
@@ -443,5 +465,14 @@ namespace OfficeIMO.PowerPoint {
             CharSet = CharSet.Ansi)]
         private static extern int CreateSecureTemporaryFile(
             StringBuilder template);
+
+        [DllImport("libc", EntryPoint = "mkostemp", SetLastError = true,
+            CharSet = CharSet.Ansi)]
+        private static extern int CreateSecureTemporaryFileWithFlags(
+            StringBuilder template, int flags);
+
+        [DllImport("libc", EntryPoint = "open", SetLastError = true,
+            CharSet = CharSet.Ansi)]
+        private static extern int OpenExistingFileDescriptor(string path, int flags);
     }
 }

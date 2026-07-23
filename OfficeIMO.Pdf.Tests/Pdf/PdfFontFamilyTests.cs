@@ -201,6 +201,34 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void NamedOfficeFontRegistrationHonorsInstalledCandidateOrderBeforeReuse() {
+        string[] candidates = {
+            "Arial", "Calibri", "Helvetica", "Times New Roman",
+            "DejaVu Sans", "Liberation Sans", "Noto Sans"
+        };
+        PdfEmbeddedFontFamily[] installed = candidates
+            .Select(candidate => PdfEmbeddedFontFamily.TryFromSystem(
+                candidate,
+                out PdfEmbeddedFontFamily? family)
+                ? family
+                : null)
+            .Where(family => family != null)
+            .Cast<PdfEmbeddedFontFamily>()
+            .GroupBy(family => family.FamilyName, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Take(2)
+            .ToArray();
+        if (installed.Length < 2) return;
+        var options = new PdfOptions().RegisterNamedFontFamily(installed[1]);
+
+        Assert.True(options.TryRegisterNamedOfficeFontFamily(
+            installed[0].FamilyName + ", " + installed[1].FamilyName,
+            out string? registeredFamilyName));
+
+        Assert.Equal(installed[0].FamilyName, registeredFamilyName, ignoreCase: true);
+    }
+
+    [Fact]
     public void PdfOptions_UseOfficeFontFamilyFallsBackThroughFamilyListToStandardFont() {
         PdfOptions options = new PdfOptions()
             .UseOfficeFontFamily("OfficeIMO Missing Display, Consolas, monospace", embedSystemFont: false);

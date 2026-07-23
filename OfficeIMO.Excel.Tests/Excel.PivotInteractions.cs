@@ -132,7 +132,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotTimelineCache_ValidatesRetargetedLiveSourceBeforeStaleCacheMetadata() {
+        public void Test_PivotInteractionCaches_BoundDefaultNameSearchToExistingCaches() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Sales");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(2, 1, "East");
+            sheet.CellValue(2, 2, 10d);
+            sheet.AddPivotTable(
+                sourceRange: "A1:B2",
+                destinationCell: "D2",
+                name: "SalesPivot",
+                rowFields: new[] { "Region" },
+                dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
+
+            WorkbookPart workbookPart = document._spreadSheetDocument.WorkbookPart!;
+            const int existingCount = 512;
+            for (int suffix = 1; suffix <= existingCount; suffix++) {
+                string name = suffix == 1 ? "Slicer_Region" : "Slicer_Region_" + suffix;
+                WriteExtendedPart(
+                    workbookPart.AddExtendedPart(
+                        "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                        "application/vnd.ms-excel.slicerCache+xml",
+                        "xml"),
+                    "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\""
+                    + name + "\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
+            }
+
+            IReadOnlyList<ExcelPivotInteractionCacheInfo> existing = document.GetWorkbookSlicerCaches();
+            Assert.True(existing.Count > 50, existing.Count.ToString());
+            var existingNames = new HashSet<string>(existing.Select(cache => cache.Name), StringComparer.OrdinalIgnoreCase);
+            int expectedSuffix = Enumerable.Range(2, existing.Count + 1)
+                .First(suffix => !existingNames.Contains("Slicer_Region_" + suffix));
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            document.AddPivotSlicerCache("SalesPivot", "Region");
+            stopwatch.Stop();
+
+            Assert.Contains(document.GetWorkbookSlicerCaches(), cache =>
+                cache.Name == "Slicer_Region_" + expectedSuffix);
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+        }
+
+        [Fact]
+        public void Test_PivotTimelineCache_UsesDecisiveCacheBeforeUntrustedSourceRange() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet original = document.AddWorksheet("Original");
             original.CellValue(1, 1, "Region");
@@ -148,17 +190,22 @@ namespace OfficeIMO.Tests {
                 rowFields: new[] { "Region" },
                 dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum) });
 
-            ExcelSheet replacement = document.AddWorksheet("Replacement");
-            replacement.CellValue(1, 1, "Region");
-            replacement.CellValue(1, 2, "OrderDate");
-            replacement.CellValue(1, 3, "Sales");
-            replacement.CellValue(2, 1, "West");
-            replacement.CellValue(2, 2, "not a date");
-            replacement.CellValue(2, 3, 20d);
+            PivotTablePart pivotPart = original.WorksheetPart.PivotTableParts.Single();
+            PivotCacheDefinition cache = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            CacheField orderDate = cache.CacheFields!.Elements<CacheField>()
+                .Single(field => field.Name?.Value == "OrderDate");
+            orderDate.SharedItems = new SharedItems(
+                new DateTimeItem { Val = new DateTime(2026, 1, 2) }) {
+                ContainsDate = true,
+                ContainsString = false,
+                ContainsNumber = false,
+                Count = 1U
+            };
+            cache.CacheSource!.WorksheetSource!.Reference = "A1:A2147483647";
+            cache.Save();
 
-            original.UpdatePivotTableSource("SalesPivot", replacement, "A1:C2");
-
-            Assert.Throws<ArgumentException>(() => document.AddPivotTimelineCache("SalesPivot", "OrderDate"));
+            document.AddPivotTimelineCache("SalesPivot", "OrderDate");
+            Assert.Equal("OrderDate", Assert.Single(document.GetWorkbookTimelineCaches()).SourceName);
         }
 
         [Fact]

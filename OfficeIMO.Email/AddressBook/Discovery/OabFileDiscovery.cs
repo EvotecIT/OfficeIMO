@@ -27,13 +27,23 @@ internal static class OabFileDiscovery {
         var diagnostics = new List<EmailDiagnostic>();
         var paths = new List<string>();
         var pending = new Stack<DirectoryNode>();
+        int inspectedEntries = 0;
         pending.Push(new DirectoryNode(fullPath, 0));
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             DirectoryNode node = pending.Pop();
             FileSystemInfo[] entries;
             try {
-                entries = new DirectoryInfo(node.Path).GetFileSystemInfos();
+                int remainingEntries = options.MaxDirectoryEntries - inspectedEntries;
+                int probeEntries = remainingEntries <= 0
+                    ? 1
+                    : remainingEntries == int.MaxValue
+                        ? int.MaxValue
+                        : remainingEntries + 1;
+                entries = new DirectoryInfo(node.Path)
+                    .EnumerateFileSystemInfos()
+                    .Take(probeEntries)
+                    .ToArray();
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 diagnostics.Add(new EmailDiagnostic(
                     "OAB_DIRECTORY_SKIPPED",
@@ -42,6 +52,12 @@ internal static class OabFileDiscovery {
                     node.Path));
                 continue;
             }
+            if (entries.Length > options.MaxDirectoryEntries - inspectedEntries) {
+                throw new OfflineAddressBookLimitExceededException(
+                    nameof(options.MaxDirectoryEntries), inspectedEntries + entries.Length,
+                    options.MaxDirectoryEntries, fullPath);
+            }
+            inspectedEntries += entries.Length;
 
             foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
                 cancellationToken.ThrowIfCancellationRequested();

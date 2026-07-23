@@ -161,10 +161,11 @@ public static partial class OneNotePageRenderer {
         OneNoteElement element,
         double fallback,
         OneNotePageRenderingOptions options) {
-        if (element.Layout?.Width.HasValue == true) return Math.Max(1D, element.Layout.Width.Value * PointsPerHalfInch);
-        if (element is OneNoteImage image && image.WidthHalfInches.HasValue) {
-            return Math.Max(1D, image.WidthHalfInches.Value * PointsPerHalfInch);
+        if (element is OneNoteImage image) {
+            double? requested = image.Layout?.Width ?? image.WidthHalfInches;
+            return ResolveBoundedImageDimension(requested, fallback, options.MaximumImageDimensionPoints);
         }
+        if (element.Layout?.Width.HasValue == true) return Math.Max(1D, element.Layout.Width.Value * PointsPerHalfInch);
         if (element is OneNoteInk ink) {
             OfficeInkBounds bounds = ink.Ink.GetBounds();
             if (!bounds.IsEmpty) return Math.Max(1D, (bounds.X + bounds.Width) * PointsPerHalfInch);
@@ -173,6 +174,16 @@ public static partial class OneNotePageRenderer {
             return Math.Max(1D, OfficeMathRenderer.Measure(math.GetExpression(), options.Math).Width);
         }
         return Math.Max(1D, fallback);
+    }
+
+    private static double ResolveBoundedImageDimension(double? halfInches, double fallback, double maximumPoints) {
+        if (!halfInches.HasValue || double.IsNaN(halfInches.Value) || halfInches.Value <= 0D) {
+            return Math.Max(1D, Math.Min(fallback, maximumPoints));
+        }
+        if (double.IsInfinity(halfInches.Value) || halfInches.Value >= maximumPoints / PointsPerHalfInch) {
+            return maximumPoints;
+        }
+        return Math.Max(1D, Math.Min(halfInches.Value * PointsPerHalfInch, maximumPoints));
     }
 
     private static double ResolveMargin(double? origin, double? margin, double fallback) => origin ?? margin ?? fallback;

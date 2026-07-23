@@ -4,6 +4,25 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailStreamingSafetyTests {
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void EmailTemporaryStorageCreatesOwnerOnlyUnixDirectories() {
+        if (OperatingSystem.IsWindows()) return;
+        string path = Path.Combine(Path.GetTempPath(),
+            "officeimo-email-private-" + Guid.NewGuid().ToString("N"));
+        try {
+            EmailTemporaryStorage.CreatePrivateDirectory(path);
+
+            UnixFileMode permissions = File.GetUnixFileMode(path);
+            Assert.Equal(UnixFileMode.None, permissions &
+                (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                 UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute));
+        } finally {
+            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+        }
+    }
+#endif
+
     [Fact]
     public void InvalidBase64AttachmentIsPreservedAndDiagnosed() {
         byte[] artifact = Encoding.ASCII.GetBytes(

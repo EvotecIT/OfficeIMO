@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Pdf {
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
     public class PdfSaveOptions {
-        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic();
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         public string? FontFamily { get; set; }
 
-        /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+        /// <summary>Host-resource policy. Defaults to portable deterministic conversion; callers must explicitly opt in before installed host fonts or external resources are read.</summary>
         public PdfCore.PdfResourcePolicy ResourcePolicy {
             get => _resourcePolicy;
             set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));

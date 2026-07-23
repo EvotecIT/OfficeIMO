@@ -33,7 +33,8 @@ internal static class ReaderEmailAddressBookOptionsCloner {
             source.MaxValuesPerProperty,
             source.MaxDeclaredEntries,
             source.String8CodePage,
-            source.RetainRawPropertyBytes);
+            source.RetainRawPropertyBytes,
+            source.MaxDirectoryEntries);
     }
 
     internal static OfflineAddressBookSearchQuery CreateEffectiveQuery(
