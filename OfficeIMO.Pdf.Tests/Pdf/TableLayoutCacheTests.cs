@@ -89,6 +89,19 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void CombinedRowGridOffsetsAreRejectedBeforeColumnArraysAreAllocated() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1);
+            table.GridColumnWidth = new List<int>();
+            table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_384 });
+            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_384 });
+            table.Rows[0].Cells[0].HorizontalMerge = W.MergedCellValues.Continue;
+
+            Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));
+        }
+
+        [Fact]
         public void NestedTableWidthsPropagateToParent() {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 2);

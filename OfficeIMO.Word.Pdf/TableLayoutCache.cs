@@ -105,6 +105,7 @@ namespace OfficeIMO.Word.Pdf {
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = rows[rowIndex];
                 long rowColumns = (long)rowStartColumns[rowIndex] + rowTrailingColumns[rowIndex];
+                EnsureSupportedColumnCount(rowColumns);
                 foreach (WordTableCell cell in row) {
                     if (cell.HorizontalMerge == MergedCellValues.Continue) {
                         continue;
@@ -145,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
             return value.Value;
         }
 
-        private static void EnsureSupportedColumnCount(int columnCount) {
+        private static void EnsureSupportedColumnCount(long columnCount) {
             if (columnCount > MaxTableGridColumns) {
                 throw new InvalidDataException($"The table grid exceeds the supported limit of {MaxTableGridColumns} columns.");
             }
