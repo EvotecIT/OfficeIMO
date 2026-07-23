@@ -437,13 +437,14 @@ namespace OfficeIMO.PowerPoint {
             try {
                 PresentationDocument document = PresentationDocument.Open(
                     packageStream, editable, CreateOpenSettings(options.OpenSettings));
+                bool hasSignature = PowerPointPackageFingerprint
+                    .HasSignatureAndEnsurePackageXmlWithinLimit(document);
                 var presentation = new PowerPointPresentation(document, filePath ?? string.Empty, isNewPresentation: false) {
                     _packageStream = packageStream,
                     _sourceStream = associatedStream,
                     _persistenceMode = options.PersistenceMode
                 };
-                if (document.DigitalSignatureOriginPart != null ||
-                    PowerPointPackageFingerprint.HasApplicationSignatureFlag(document)) {
+                if (hasSignature) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
                 presentation.MarkLoadedFromOpenXml(bytes);

@@ -222,19 +222,24 @@ public static partial class ReaderHierarchicalChunker {
             yield break;
         }
 
-        int inspectedPageBlocks = 0;
+        int inspectedPageEntries = 0;
         for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
+            if (inspectedPageEntries >= maximumInspections) {
+                yield return FallbackBlock.LimitMarker;
+                yield break;
+            }
             cancellationToken.ThrowIfCancellationRequested();
+            inspectedPageEntries++;
             OfficeDocumentPage page = pages[pageIndexValue];
             if (page?.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
             for (int blockIndex = 0; blockIndex < pageBlocks.Count; blockIndex++) {
-                if (inspectedPageBlocks >= maximumInspections) {
+                if (inspectedPageEntries >= maximumInspections) {
                     yield return FallbackBlock.LimitMarker;
                     yield break;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                inspectedPageBlocks++;
+                inspectedPageEntries++;
                 OfficeDocumentBlock block = pageBlocks[blockIndex];
                 if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
                 if (emittedBlocks >= maximumInputChunks) {
@@ -274,18 +279,22 @@ public static partial class ReaderHierarchicalChunker {
             }
         }
 
-        int inspectedBlocks = 0;
+        int inspections = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            if (inspections >= maximumInspections) {
+                return new PageBlockIndex(byReference, byId);
+            }
             cancellationToken.ThrowIfCancellationRequested();
+            inspections++;
             OfficeDocumentPage page = pages[pageIndex];
             if (page?.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
             for (int blockIndex = 0;
-                 blockIndex < pageBlocks.Count && inspectedBlocks < maximumInspections;
+                 blockIndex < pageBlocks.Count && inspections < maximumInspections;
                  blockIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeDocumentBlock block = pageBlocks[blockIndex];
-                inspectedBlocks++;
+                inspections++;
                 if (block == null) continue;
                 if (remaining.Contains(block)) {
                     byReference[block] = page;
@@ -298,7 +307,7 @@ public static partial class ReaderHierarchicalChunker {
                 }
                 if (remaining.Count == 0) return new PageBlockIndex(byReference, byId);
             }
-            if (inspectedBlocks >= maximumInspections) {
+            if (inspections >= maximumInspections) {
                 return new PageBlockIndex(byReference, byId);
             }
         }

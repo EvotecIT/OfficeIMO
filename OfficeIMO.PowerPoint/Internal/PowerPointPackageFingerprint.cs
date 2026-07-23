@@ -183,6 +183,25 @@ namespace OfficeIMO.PowerPoint {
             return propertiesPart.Properties?.DigitalSignature != null;
         }
 
+        internal static bool HasSignatureAndEnsurePackageXmlWithinLimit(
+            PresentationDocument document,
+            long maximumXmlBytes = MaximumNormalizedXmlBytes) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            bool hasSignature = document.DigitalSignatureOriginPart != null ||
+                HasApplicationSignatureFlag(document, maximumXmlBytes);
+            if (!hasSignature) return false;
+
+            HashSet<OpenXmlPart> parts = CollectParts(
+                document, MaximumPartCount, MaximumPartDepth, MaximumRelationshipCount);
+            foreach (OpenXmlPart part in parts) {
+                if (!IsXmlContentType(part.ContentType)) continue;
+                using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
+                EnsureStreamWithinLimit(source, maximumXmlBytes);
+            }
+
+            return true;
+        }
+
         internal static void EnsureStreamWithinLimit(Stream stream, long maximumBytes) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
