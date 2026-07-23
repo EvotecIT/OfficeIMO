@@ -627,9 +627,7 @@ namespace OfficeIMO.Excel {
 
                 string source = GetImageDiagnosticSource(sheet, image);
                 if (!image.TryReadBytes(sourceImageBudget.RemainingBytes, out byte[] bytes)) {
-                    string message = sourceImageBudget.RemainingBytes < ExcelImageExportLimits.MaximumSourceImageBytes
-                        ? "Worksheet image was omitted because the aggregate source-image budget was exhausted."
-                        : "Worksheet image bytes could not be read within the configured source-image limit.";
+                    const string message = "Worksheet image was omitted because its bytes could not be read within the remaining aggregate source-image budget.";
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, message, source));
                     continue;
                 }

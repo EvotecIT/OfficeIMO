@@ -1872,13 +1872,38 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExcelImageExportLimitsRejectOversizedSeekableSourceBeforeReading() {
-            using var source = new LengthOnlyImageStream(ExcelImageExportLimits.MaximumSourceImageBytes + 1L);
+            using var source = new LengthOnlyImageStream(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes + 1L);
 
             bool success = ExcelImageExportLimits.TryReadSourceImageBytes(source, out byte[] bytes);
 
             Assert.False(success);
             Assert.Empty(bytes);
             Assert.Equal(0, source.ReadCount);
+        }
+
+        [Fact]
+        public void ExcelImageExportLimitsUseTheCallerAggregateBudgetWithoutAHiddenPerImageCap() {
+            const long priorPerImageLimit = 128L * 1024L * 1024L;
+            using var source = new LengthOnlyImageStream(priorPerImageLimit + 1L);
+            using var defaultBudgetSource = new LengthOnlyImageStream(priorPerImageLimit + 1L);
+
+            bool success = ExcelImageExportLimits.TryReadSourceImageBytes(source, priorPerImageLimit, out byte[] bytes);
+
+            Assert.False(success);
+            Assert.Empty(bytes);
+            Assert.Equal(0, source.ReadCount);
+
+            success = ExcelImageExportLimits.TryReadSourceImageBytes(source, priorPerImageLimit + 1L, out bytes);
+
+            Assert.False(success);
+            Assert.Empty(bytes);
+            Assert.Equal(1, source.ReadCount);
+
+            success = ExcelImageExportLimits.TryReadSourceImageBytes(defaultBudgetSource, out bytes);
+
+            Assert.False(success);
+            Assert.Empty(bytes);
+            Assert.Equal(1, defaultBudgetSource.ReadCount);
         }
 
         [Fact]

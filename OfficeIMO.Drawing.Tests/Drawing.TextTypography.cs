@@ -143,6 +143,33 @@ public class DrawingTextTypographyTests {
     }
 
     [Fact]
+    public void TextLayout_MarksStackedTextElementLimitAsClipped() {
+        string text = new string('A', 4_097);
+
+        OfficeTextBlockLayout plain = OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            text,
+            fontSize: 1,
+            maxWidth: 2,
+            maxHeight: 5_000,
+            lineHeightFactor: 1,
+            minimumFontSize: 1,
+            static (value, size) => (value?.Length ?? 0) * size,
+            shrinkToFit: false);
+        OfficeRichTextBlockLayout rich = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            new[] { new OfficeRichTextRun(text, 1D, OfficeColor.Black) },
+            maxWidth: 2,
+            maxHeight: 5_000,
+            lineHeightFactor: 1,
+            static (value, size, _) => (value?.Length ?? 0) * size,
+            shrinkToFit: false);
+
+        Assert.True(plain.Clipped);
+        Assert.True(rich.Clipped);
+        Assert.Equal(4_096, plain.Lines.Count);
+        Assert.Equal(4_096, rich.Lines.Count);
+    }
+
+    [Fact]
     public void TextLayout_FallsBackWhenTextMeasurementIsNonMonotonic() {
         static double Measure(string? value, double _) => value switch {
             "ABC" => 10D,

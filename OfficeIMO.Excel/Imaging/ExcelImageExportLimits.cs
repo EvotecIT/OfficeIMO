@@ -2,7 +2,6 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelImageExportLimits {
-        internal const long MaximumSourceImageBytes = 128L * 1024L * 1024L;
         internal const int MaximumAnchorSpanCells = 10_000;
         internal const int MaximumAnchorOffsetPixels = 100_000;
         internal const int MaximumAnchorExtentPixels = 16_384;
@@ -45,7 +44,7 @@ namespace OfficeIMO.Excel {
             to - from <= MaximumAnchorSpanCells;
 
         internal static bool TryReadSourceImageBytes(Stream source, out byte[] bytes) =>
-            TryReadSourceImageBytes(source, MaximumSourceImageBytes, out bytes);
+            TryReadSourceImageBytes(source, ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes, out bytes);
 
         internal static bool TryReadSourceImageBytes(Stream source, long remainingAggregateBytes, out byte[] bytes) {
             if (remainingAggregateBytes <= 0L) {
@@ -54,7 +53,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                bytes = OfficeStreamReader.ReadAllBytes(source, Math.Min(MaximumSourceImageBytes, remainingAggregateBytes));
+                bytes = OfficeStreamReader.ReadAllBytes(source, remainingAggregateBytes);
                 return bytes.Length > 0;
             } catch (InvalidDataException) {
                 bytes = Array.Empty<byte>();

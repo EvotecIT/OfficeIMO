@@ -29,7 +29,7 @@ public static partial class OfficeTextLayoutEngine {
             throw new ArgumentNullException(nameof(measure));
         }
 
-        string value = NormalizeStackedText(text);
+        string value = NormalizeStackedText(text, out bool inputTruncated);
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
         double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
@@ -39,14 +39,14 @@ public static partial class OfficeTextLayoutEngine {
             return new OfficeTextBlockLayout(new[] { new OfficeTextLine(string.Empty, 0D) }, resolvedFontSize, Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor)), 0D, Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor)));
         }
 
-        IReadOnlyList<string> elements = SplitTextElements(value);
+        IReadOnlyList<string> elements = SplitTextElements(value, out bool elementLimitTruncated);
         if (shrinkToFit) {
             resolvedFontSize = FitStackedFontSize(elements, resolvedFontSize, minFontSize, width, height, lineFactor, measure);
         }
 
         double lineHeight = Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor));
         List<OfficeTextLine> lines = CreateStackedLines(elements, resolvedFontSize, measure);
-        return ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure);
+        return ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         IReadOnlyList<OfficeRichTextRun> normalizedRuns = NormalizeRichTextRuns(runs, out bool inputTruncated);
-        IReadOnlyList<OfficeRichTextRun> elements = SplitRichTextElements(normalizedRuns);
+        IReadOnlyList<OfficeRichTextRun> elements = SplitRichTextElements(normalizedRuns, out bool elementLimitTruncated);
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
         double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
@@ -126,7 +126,7 @@ public static partial class OfficeTextLayoutEngine {
         double maxFontSize = ResolveMaxRichTextFontSize(elements);
         double resolvedLineHeight = Math.Max(1D, Math.Ceiling(maxFontSize * lineFactor));
         List<OfficeRichTextLine> lines = CreateStackedRichTextLines(elements, measure, resolvedLineHeight);
-        return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated);
+        return ClipStackedRichTextBlockToHeight(lines, resolvedLineHeight, width, height, measure, inputTruncated || elementLimitTruncated);
     }
 
     private static double FitStackedFontSize(
@@ -297,19 +297,25 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
     }
 
-    private static IReadOnlyList<string> SplitTextElements(string text) {
+    private static IReadOnlyList<string> SplitTextElements(string text, out bool truncated) {
         var elements = new List<string>();
+        truncated = false;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
+            if (elements.Count >= MaximumLayoutLines) {
+                truncated = true;
+                break;
+            }
+
             elements.Add(element);
-            if (elements.Count >= MaximumLayoutLines) break;
         }
 
         if (elements.Count == 0) elements.Add(string.Empty);
         return elements;
     }
 
-    private static IReadOnlyList<OfficeRichTextRun> SplitRichTextElements(IReadOnlyList<OfficeRichTextRun> runs) {
+    private static IReadOnlyList<OfficeRichTextRun> SplitRichTextElements(IReadOnlyList<OfficeRichTextRun> runs, out bool truncated) {
         var elements = new List<OfficeRichTextRun>();
+        truncated = false;
         for (int i = 0; i < runs.Count; i++) {
             OfficeRichTextRun run = runs[i];
             string value = NormalizeStackedText(run.Text);
@@ -318,6 +324,11 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             foreach (string textElement in OfficeTextElements.Enumerate(value)) {
+                if (elements.Count >= MaximumLayoutLines) {
+                    truncated = true;
+                    return elements;
+                }
+
                 elements.Add(new OfficeRichTextRun(
                     textElement,
                     run.FontSize,
@@ -328,7 +339,6 @@ public static partial class OfficeTextLayoutEngine {
                     run.FontFamily,
                     run.Strikethrough,
                     run.BackgroundColor));
-                if (elements.Count >= MaximumLayoutLines) return elements;
             }
         }
 
@@ -336,8 +346,16 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static string NormalizeStackedText(string? text) =>
-        LimitLayoutText(ExpandTabs(LimitLayoutText(text ?? string.Empty)))
+        NormalizeStackedText(text, out _);
+
+    private static string NormalizeStackedText(string? text, out bool truncated) {
+        string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        string expanded = ExpandTabs(bounded);
+        string value = LimitLayoutText(expanded, out bool expandedTruncated);
+        truncated = inputTruncated || expandedTruncated;
+        return value
             .Replace("\r\n", string.Empty)
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty);
+    }
 }

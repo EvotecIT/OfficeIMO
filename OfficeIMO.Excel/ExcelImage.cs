@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryReadBytes(out byte[] bytes) =>
-            TryReadBytes(ExcelImageExportLimits.MaximumSourceImageBytes, out bytes);
+            TryReadBytes(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes, out bytes);
 
         internal bool TryReadBytes(long remainingAggregateBytes, out byte[] bytes) {
             ImagePart? imagePart = ImagePart;
