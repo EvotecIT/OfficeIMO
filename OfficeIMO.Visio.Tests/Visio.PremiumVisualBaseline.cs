@@ -15,6 +15,7 @@ namespace OfficeIMO.Tests {
     public class VisioPremiumVisualBaselineTests {
         private const string PrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.png";
         private const string LinuxPrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.linux.png";
+        private const string WindowsPrintAuditTrailNativePngBaseline = "officeimo-visio-premium-print-audit-trail-native-page1.windows.png";
 
         private static readonly IReadOnlyDictionary<string, string> BaselinePrefixes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["Premium Cloud Architecture"] = "officeimo-visio-premium-cloud-architecture",
@@ -129,9 +130,11 @@ namespace OfficeIMO.Tests {
                 AssertNativePngBaselineIsNonBlank(pngPath);
             }
 
-            string linuxPngPath = Path.Combine(baselineDirectory, LinuxPrintAuditTrailNativePngBaseline);
-            Assert.True(File.Exists(linuxPngPath), "Missing approved Linux native PNG baseline: " + linuxPngPath);
-            AssertNativePngBaselineIsNonBlank(linuxPngPath);
+            foreach (string platformBaseline in new[] { LinuxPrintAuditTrailNativePngBaseline, WindowsPrintAuditTrailNativePngBaseline }) {
+                string platformPngPath = Path.Combine(baselineDirectory, platformBaseline);
+                Assert.True(File.Exists(platformPngPath), "Missing approved platform native PNG baseline: " + platformPngPath);
+                AssertNativePngBaselineIsNonBlank(platformPngPath);
+            }
         }
 
         [Fact]
@@ -418,11 +421,19 @@ namespace OfficeIMO.Tests {
             baselineName.IndexOf("-native-", StringComparison.OrdinalIgnoreCase) >= 0 &&
             baselineName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
 
-        private static string ResolveExpectedBaselineName(string baselineName) =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
-            string.Equals(baselineName, PrintAuditTrailNativePngBaseline, StringComparison.OrdinalIgnoreCase)
-                ? LinuxPrintAuditTrailNativePngBaseline
+        private static string ResolveExpectedBaselineName(string baselineName) {
+            if (!string.Equals(baselineName, PrintAuditTrailNativePngBaseline, StringComparison.OrdinalIgnoreCase)) {
+                return baselineName;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                return LinuxPrintAuditTrailNativePngBaseline;
+            }
+
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? WindowsPrintAuditTrailNativePngBaseline
                 : baselineName;
+        }
 
         private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
             int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
