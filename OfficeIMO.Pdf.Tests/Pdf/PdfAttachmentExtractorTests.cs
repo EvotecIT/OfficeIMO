@@ -108,13 +108,16 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
-    public void ExtractAttachments_DeduplicatesManyAnnotationAliasesBeforePayloadDecode() {
-        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
-            BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 1_000));
+    public void ExtractAttachments_CachesSharedPayloadWithoutDroppingAliases() {
+        byte[] pdf = BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 1_000);
 
-        PdfExtractedAttachment attachment = Assert.Single(attachments);
-        Assert.Equal("alias-0.txt", attachment.FileName);
-        Assert.Equal("payload", Encoding.ASCII.GetString(attachment.Bytes));
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(pdf);
+
+        Assert.Equal(1_000, attachments.Count);
+        Assert.Equal("alias-0.txt", attachments[0].FileName);
+        Assert.Equal("alias-999.txt", attachments[999].FileName);
+        Assert.All(attachments, attachment => Assert.Equal("payload", Encoding.ASCII.GetString(attachment.Bytes)));
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(pdf, "alias-999.txt"));
     }
 
     [Fact]

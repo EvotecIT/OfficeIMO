@@ -144,7 +144,7 @@ internal static class PdfAttachmentExtractor {
                         "FileAttachment",
                         decodedEmbeddedStreams,
                         maximumDecodedStreamBytes);
-                    if (attachment != null && !ContainsAttachment(attachments, attachment)) {
+                    if (attachment != null) {
                         attachments.Add(attachment);
                     }
                 }
@@ -165,13 +165,6 @@ internal static class PdfAttachmentExtractor {
             }
         }
     }
-
-    private static bool ContainsAttachment(
-        IEnumerable<PdfExtractedAttachment> attachments,
-        PdfExtractedAttachment candidate) =>
-        attachments.Any(attachment =>
-            candidate.FileSpecObjectNumber > 0 && attachment.FileSpecObjectNumber == candidate.FileSpecObjectNumber ||
-            candidate.EmbeddedFileObjectNumber > 0 && attachment.EmbeddedFileObjectNumber == candidate.EmbeddedFileObjectNumber);
 
     private static void ReadEmbeddedFilesNameTree(
         Dictionary<int, PdfIndirectObject> objects,
@@ -271,9 +264,14 @@ internal static class PdfAttachmentExtractor {
         string? mimeType = TryReadStreamSubtype(objects, stream.Dictionary);
         PdfAssociatedFileRelationship relationship = TryReadRelationship(objects, fileSpec);
         string filter = GetFilterName(objects, stream.Dictionary.Items.TryGetValue("Filter", out var filterObject) ? filterObject : null);
-        if (decodedEmbeddedStreams.ContainsKey(stream)) return null;
-        byte[] bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
-        decodedEmbeddedStreams[stream] = bytes;
+        byte[] bytes;
+        if (decodedEmbeddedStreams.TryGetValue(stream, out byte[]? cachedBytes) && cachedBytes is not null) {
+            bytes = cachedBytes;
+        } else {
+            bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
+            decodedEmbeddedStreams[stream] = bytes;
+        }
+
         PdfDictionary? parameters = ResolveDictionary(objects, stream.Dictionary.Items.TryGetValue("Params", out PdfObject? parametersObject) ? parametersObject : null);
         DateTimeOffset? creationDate = TryReadPdfDate(objects, parameters, "CreationDate");
         DateTimeOffset? modificationDate = TryReadPdfDate(objects, parameters, "ModDate");
@@ -291,7 +289,8 @@ internal static class PdfAttachmentExtractor {
             bytes,
             source,
             creationDate,
-            modificationDate);
+            modificationDate,
+            copyBytes: false);
     }
 
     private static DateTimeOffset? TryReadPdfDate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? dictionary, string key) {
