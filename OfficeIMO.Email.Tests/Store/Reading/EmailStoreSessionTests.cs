@@ -123,8 +123,10 @@ public sealed class EmailStoreSessionTests {
 
     [Fact]
     public void Searches_selective_pst_summaries_without_decoding_message_bodies() {
-        using var source = new MemoryStream(PstTestFileBuilder.Create());
-        var options = new EmailStoreReaderOptions(maxPropertiesPerItem: 2);
+        using var source = new MemoryStream(PstTestFileBuilder.Create(attachmentContent: new byte[128]));
+        var options = new EmailStoreReaderOptions(
+            maxPropertiesPerItem: 3,
+            maxAttachmentBytes: 64);
         using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst", options);
 
         EmailStoreSearchResult result = Assert.Single(session.Search(new EmailStoreQuery(
@@ -174,8 +176,10 @@ public sealed class EmailStoreSessionTests {
 
     [Fact]
     public void Validates_summaries_and_reports_bounded_full_item_failures() {
-        using var source = new MemoryStream(PstTestFileBuilder.Create());
-        var readerOptions = new EmailStoreReaderOptions(maxPropertiesPerItem: 2);
+        using var source = new MemoryStream(PstTestFileBuilder.Create(attachmentContent: new byte[128]));
+        var readerOptions = new EmailStoreReaderOptions(
+            maxPropertiesPerItem: 3,
+            maxAttachmentBytes: 64);
         using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst", readerOptions);
 
         EmailStoreValidationReport summaries = session.Validate(
