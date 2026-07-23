@@ -127,13 +127,8 @@ public sealed class BrowserConversionServiceTests {
         Assert.True(root.GetProperty("output").GetProperty("tagged").GetBoolean());
         Assert.Equal(result.FidelityStatus, root.GetProperty("fidelityStatus").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("conversionId").GetString()));
-        JsonElement manifestWarning = root.GetProperty("warnings").EnumerateArray().First();
-        Assert.True(manifestWarning.TryGetProperty("code", out _));
-        Assert.False(manifestWarning.TryGetProperty("Code", out _));
-        Assert.Contains(result.Warnings, warning =>
-            warning.Contains("Carlito", StringComparison.Ordinal));
-        Assert.DoesNotContain(result.Warnings, warning =>
-            warning.Contains("unsupported-font-ligature-substitution", StringComparison.Ordinal));
+        Assert.Empty(root.GetProperty("warnings").EnumerateArray());
+        Assert.Empty(result.Warnings);
     }
 
     [Fact]

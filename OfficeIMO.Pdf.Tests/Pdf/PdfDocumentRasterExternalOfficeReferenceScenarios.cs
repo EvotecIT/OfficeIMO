@@ -242,7 +242,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             hash.AppendData(new byte[] { 0 });
             hash.AppendData(asset.Value);
         }
-        string fingerprint = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        string fingerprint = BitConverter.ToString(hash.GetHashAndReset())
+            .Replace("-", string.Empty)
+            .ToLowerInvariant();
         Assert.Equal(scenario.FontProfileFingerprint, fingerprint);
 
         var family = new PdfCore.PdfEmbeddedFontFamily(

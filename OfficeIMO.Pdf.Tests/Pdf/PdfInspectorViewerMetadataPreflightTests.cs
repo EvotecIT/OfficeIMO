@@ -72,6 +72,21 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_DoesNotTreatMarkInfoWithoutStructureTreeAsReadableTaggedContent() {
+        string markedOnly = System.Text.Encoding.ASCII.GetString(BuildTaggedPdf())
+            .Replace(" /StructTreeRoot 5 0 R", string.Empty);
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(markedOnly);
+
+        PdfReadDocument read = PdfReadDocument.Open(pdf);
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.False(read.HasTaggedContent);
+        Assert.Null(read.TaggedContent);
+        Assert.False(info.HasReadableTaggedContent);
+        Assert.Null(info.TaggedContent);
+    }
+
+    [Fact]
     public void Inspect_ReadsParentTreeIndexesFromNumberTreeKids() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildTaggedPdfWithParentTreeKids());
 

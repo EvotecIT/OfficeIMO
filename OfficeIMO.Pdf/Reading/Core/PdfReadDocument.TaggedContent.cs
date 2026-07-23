@@ -13,10 +13,9 @@ public sealed partial class PdfReadDocument {
             return null;
         }
 
-        PdfDictionary? markInfo = ResolveDict(catalog.Items.TryGetValue("MarkInfo", out PdfObject? markInfoObject) ? markInfoObject : null);
         PdfObject? structTreeRootObject = catalog.Items.TryGetValue("StructTreeRoot", out PdfObject? rootObject) ? rootObject : null;
         PdfDictionary? structTreeRoot = ResolveDict(structTreeRootObject);
-        if (markInfo is null && structTreeRoot is null) {
+        if (structTreeRoot is null) {
             return null;
         }
 

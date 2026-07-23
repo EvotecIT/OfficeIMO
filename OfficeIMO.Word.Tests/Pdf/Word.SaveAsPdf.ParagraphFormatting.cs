@@ -1209,6 +1209,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_PdfOptions_Font_Profile_Over_Document_Defaults() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeConfiguredFontProfile.docx"));
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.GetFirstChild<RunPropertiesDefault>() ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.GetFirstChild<RunPropertiesBaseStyle>() ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts {
+                Ascii = "Calibri",
+                HighAnsi = "Calibri"
+            };
+            document.AddParagraph("Configured PDF font profile");
+
+            Type nativeFontMapType = typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
+            MethodInfo createOptions = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeOptions",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            var configured = new PdfOptions {
+                DefaultFont = PdfStandardFont.TimesRoman,
+                HeaderFont = PdfStandardFont.Courier,
+                FooterFont = PdfStandardFont.Courier
+            };
+            var saveOptions = new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PdfOptions = configured
+            };
+
+            PdfOptions effective = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
+                document,
+                saveOptions,
+                nativeFontMap
+            }));
+
+            Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
+            Assert.Equal(PdfStandardFont.Courier, effective.HeaderFont);
+            Assert.Equal(PdfStandardFont.Courier, effective.FooterFont);
+            Assert.True((bool)nativeFontMapType
+                .GetProperty("UsePdfDefaultForDocumentDefaultFont", BindingFlags.Public | BindingFlags.Instance)!
+                .GetValue(nativeFontMap)!);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Document_Default_Language_To_Pdf_Catalog() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultLanguage.docx"));
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
