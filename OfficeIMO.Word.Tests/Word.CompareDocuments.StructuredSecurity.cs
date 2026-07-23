@@ -174,6 +174,92 @@ namespace OfficeIMO.Tests {
                 finding.TargetText?.StartsWith("Unrelated", StringComparison.Ordinal) == true);
         }
 
+        [Fact]
+        public void CompareStructureTableSimilarityConsumesSharedComparisonWorkBudget() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_budget.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText(new string('A', 100));
+                document.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_budget.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText(new string('B', 100));
+                document.Save();
+            }
+
+            var options = new WordComparisonOptions();
+            using WordDocument source = WordDocument.Load(sourcePath);
+            using WordDocument target = WordDocument.Load(targetPath);
+            MethodInfo getTableSnapshots = typeof(WordDocumentComparer).GetMethod(
+                "GetTableSnapshots",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Table snapshot implementation was not found.");
+            object sourceSnapshots = getTableSnapshots.Invoke(null, new object[] { source, options })
+                ?? throw new InvalidOperationException("Source table snapshots were not created.");
+            object targetSnapshots = getTableSnapshots.Invoke(null, new object[] { target, options })
+                ?? throw new InvalidOperationException("Target table snapshots were not created.");
+            object sourceSnapshot = sourceSnapshots.GetType().GetProperty("Item")?.GetValue(sourceSnapshots, new object[] { 0 })
+                ?? throw new InvalidOperationException("Source table snapshot was not available.");
+            object targetSnapshot = targetSnapshots.GetType().GetProperty("Item")?.GetValue(targetSnapshots, new object[] { 0 })
+                ?? throw new InvalidOperationException("Target table snapshot was not available.");
+            object comparisonWorkBudget = CreateComparisonWorkBudget(1);
+            MethodInfo getTableSimilarity = typeof(WordDocumentComparer).GetMethod(
+                "GetTableSimilarity",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Table similarity implementation was not found.");
+
+            getTableSimilarity.Invoke(null, new[] { sourceSnapshot, targetSnapshot, comparisonWorkBudget });
+
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
+        }
+
+        [Fact]
+        public void CompareStructureTableCellAlignmentConsumesSharedComparisonWorkBudget() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_budget.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText(new string('A', 100));
+                document.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_budget.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                WordTable table = document.AddTable(1, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText(new string('B', 100));
+                table.Rows[0].Cells[1].Paragraphs[0].SetText(new string('C', 100));
+                document.Save();
+            }
+
+            var options = new WordComparisonOptions();
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, options);
+            using WordDocument source = WordDocument.Load(sourcePath);
+            using WordDocument target = WordDocument.Load(targetPath);
+            object comparisonWorkBudget = CreateComparisonWorkBudget(1);
+            MethodInfo analyzeTableRow = typeof(WordDocumentComparer).GetMethod(
+                "AnalyzeTableRow",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Table row analysis implementation was not found.");
+
+            analyzeTableRow.Invoke(null, new object?[] {
+                source.Tables[0].Rows[0],
+                target.Tables[0].Rows[0],
+                null,
+                null,
+                0,
+                0,
+                0,
+                0,
+                result,
+                options,
+                comparisonWorkBudget
+            });
+
+            Assert.Equal(0, GetRemainingComparisonWorkUnits(comparisonWorkBudget));
+        }
+
         private static TimeSpan MeasureSimilarity(
             Func<string, string, double> similarity,
             string source,
@@ -186,6 +272,29 @@ namespace OfficeIMO.Tests {
 
             stopwatch.Stop();
             return stopwatch.Elapsed;
+        }
+
+        private static object CreateComparisonWorkBudget(long maximumWorkUnits) {
+            Type workBudgetType = typeof(WordDocumentComparer).GetNestedType(
+                "ComparisonWorkBudget",
+                BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Comparison work budget implementation was not found.");
+            ConstructorInfo constructor = workBudgetType.GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(long) },
+                null)
+                ?? throw new InvalidOperationException("Comparison work budget constructor was not found.");
+            return constructor.Invoke(new object[] { maximumWorkUnits });
+        }
+
+        private static long GetRemainingComparisonWorkUnits(object comparisonWorkBudget) {
+            FieldInfo remainingWorkUnits = comparisonWorkBudget.GetType().GetField(
+                "_remainingWorkUnits",
+                BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Comparison work budget state was not found.");
+            return (long)(remainingWorkUnits.GetValue(comparisonWorkBudget)
+                ?? throw new InvalidOperationException("Comparison work budget state was not available."));
         }
 
         private sealed class FingerprintProbe : WordDocumentComparer.IComparisonFingerprint {
