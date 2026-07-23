@@ -49,15 +49,19 @@ public sealed partial class PdfOptions {
     /// <returns>True when an installed embeddable family was found and registered.</returns>
     public bool TryRegisterNamedOfficeFontFamily(string? familyNames, out string? registeredFamilyName) {
         registeredFamilyName = null;
-        if (TryGetNamedFontFamily(familyNames, out PdfEmbeddedFontFamily? registered)
-            && registered != null) {
+        if (string.IsNullOrWhiteSpace(familyNames) ||
+            !TryLoadOfficeFontFamily(familyNames!, out PdfEmbeddedFontFamily? family) ||
+            family == null) {
+            return false;
+        }
+
+        string key = NormalizeNamedFontFamilyKey(family.FamilyName);
+        if (_namedFontFamilies != null &&
+            _namedFontFamilies.TryGetValue(key, out PdfEmbeddedFontFamily? registered)) {
             registeredFamilyName = registered.FamilyName;
             return true;
         }
-        if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies
-            || string.IsNullOrWhiteSpace(familyNames) ||
-            !TryLoadOfficeFontFamily(familyNames!, out PdfEmbeddedFontFamily? family) ||
-            family == null) {
+        if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies) {
             return false;
         }
 

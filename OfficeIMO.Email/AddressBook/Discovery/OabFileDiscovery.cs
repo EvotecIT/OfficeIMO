@@ -35,14 +35,14 @@ internal static class OabFileDiscovery {
             FileSystemInfo[] entries;
             try {
                 int remainingEntries = options.MaxDirectoryEntries - inspectedEntries;
-                if (remainingEntries <= 0) {
-                    throw new OfflineAddressBookLimitExceededException(
-                        nameof(options.MaxDirectoryEntries), inspectedEntries + 1L,
-                        options.MaxDirectoryEntries, fullPath);
-                }
+                int probeEntries = remainingEntries <= 0
+                    ? 1
+                    : remainingEntries == int.MaxValue
+                        ? int.MaxValue
+                        : remainingEntries + 1;
                 entries = new DirectoryInfo(node.Path)
                     .EnumerateFileSystemInfos()
-                    .Take(remainingEntries == int.MaxValue ? int.MaxValue : remainingEntries + 1)
+                    .Take(probeEntries)
                     .ToArray();
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 diagnostics.Add(new EmailDiagnostic(

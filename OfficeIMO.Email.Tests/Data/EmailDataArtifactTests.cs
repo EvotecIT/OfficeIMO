@@ -46,6 +46,20 @@ public sealed class EmailDataArtifactTests {
     }
 
     [Fact]
+    public void DirectoryWithOnlyUnsupportedOabComponentsPreservesTheFormatError() {
+        string directory = TemporaryDirectory();
+        try {
+            File.WriteAllBytes(
+                Path.Combine(directory, "unsupported.oab"),
+                new byte[] { 7, 0, 0, 0 });
+
+            Assert.Throws<NotSupportedException>(() => EmailDataArtifact.Open(directory));
+        } finally {
+            TryDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
     public void Opens_individual_email_calendar_and_contact_through_existing_owners() {
         string directory = TemporaryDirectory();
         try {

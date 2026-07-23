@@ -51,6 +51,23 @@ public sealed class OfflineAddressBookSessionTests {
     }
 
     [Fact]
+    public void DirectoryDiscoveryAcceptsAnEmptyDirectoryAtTheExactEntryBudget() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-oab-empty-entry-budget-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(Path.Combine(root, "empty"));
+
+            OfflineAddressBookDiscoveryReport report = OfflineAddressBookInspector.Inspect(
+                root,
+                new OfflineAddressBookReaderOptions(maxDirectoryEntries: 1));
+
+            Assert.Empty(report.Files);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OpensStreamFromCurrentPositionAndRestoresIt() {
         byte[] oab = new OabV4Fixture().Build();
         using (var stream = new MemoryStream()) {

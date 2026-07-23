@@ -48,6 +48,19 @@ public sealed class MailboxDirectorySessionTests {
     }
 
     [Fact]
+    public void MailboxRegularFileCheckRejectsSeekableDeviceDescriptors() {
+        if (OperatingSystem.IsWindows()) return;
+        Type backend = typeof(EmailStoreSession).Assembly.GetType(
+            "OfficeIMO.Email.Store.MailboxDirectoryStoreSessionBackend",
+            throwOnError: true)!;
+        System.Reflection.MethodInfo method = backend.GetMethod(
+            "IsRegularMailboxFile",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
+        Assert.False(Assert.IsType<bool>(method.Invoke(null, new object[] { "/dev/null" })));
+    }
+
+    [Fact]
     public async Task MailboxDirectoryReadRejectsFileReplacedWithNamedPipeWithoutBlocking() {
         if (OperatingSystem.IsWindows()) return;
         string root = Path.Combine(Path.GetTempPath(),

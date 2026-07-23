@@ -323,6 +323,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
         int descriptor = OpenUnix(path, nonBlocking | closeOnExec | noFollow);
         if (descriptor < 0) return false;
+        if (GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) != 0 ||
+            (status.Mode & 0xF000) != 0x8000) {
+            CloseUnix(descriptor);
+            return false;
+        }
         if (SeekUnix(descriptor, 0L, 1) < 0L) {
             CloseUnix(descriptor);
             return false;
@@ -344,8 +349,33 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     [DllImport("libc", EntryPoint = "lseek", SetLastError = true)]
     private static extern long SeekUnix(int descriptor, long offset, int origin);
 
+    [DllImport("System.Native", EntryPoint = "SystemNative_FStat", SetLastError = true)]
+    private static extern int GetUnixFileStatus(IntPtr descriptor, out UnixFileStatus status);
+
     [DllImport("libc", EntryPoint = "close", SetLastError = true)]
     private static extern int CloseUnix(int descriptor);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct UnixFileStatus {
+        internal int Flags;
+        internal int Mode;
+        internal uint Uid;
+        internal uint Gid;
+        internal long Size;
+        internal long AccessTime;
+        internal long AccessTimeNanoseconds;
+        internal long ModificationTime;
+        internal long ModificationTimeNanoseconds;
+        internal long ChangeTime;
+        internal long ChangeTimeNanoseconds;
+        internal long BirthTime;
+        internal long BirthTimeNanoseconds;
+        internal long Device;
+        internal long RawDevice;
+        internal long Inode;
+        internal uint UserFlags;
+        internal int HardLinkCount;
+    }
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
         if (name == null) throw new ArgumentNullException(nameof(name));

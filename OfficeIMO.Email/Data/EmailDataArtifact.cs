@@ -57,11 +57,20 @@ public static class EmailDataArtifact {
                 exception.LimitName,
                 nameof(OfflineAddressBookReaderOptions.MaxDirectoryEntries),
                 StringComparison.Ordinal)) {
-            return OpenStore(path, options, cancellationToken);
+            EmailDataOpenResult boundedStore = OpenStore(path, options, cancellationToken);
+            if (boundedStore.Store!.EnumerateItems().Any()) return boundedStore;
+            boundedStore.Dispose();
+            throw;
         }
         if (discovery.ReadableFullDetailsCount > 0)
             return OpenAddressBook(path, options, cancellationToken);
-        return OpenStore(path, options, cancellationToken);
+        EmailDataOpenResult store = OpenStore(path, options, cancellationToken);
+        if (discovery.Files.Count == 0 || store.Store!.EnumerateItems().Any()) {
+            return store;
+        }
+        store.Dispose();
+        throw new NotSupportedException(
+            "The directory contains OAB components, but none is a supported version 4 Full Details file.");
     }
 
     private static EmailDataOpenResult OpenExpected(string path, EmailDataArtifactKind kind,
