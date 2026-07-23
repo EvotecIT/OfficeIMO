@@ -96,11 +96,13 @@ public class CsvStreamingTests
                     new CsvDataReaderOptions { InferSchema = true });
                 reader.Read();
             });
+#if NET8_0_OR_GREATER
             Assert.Throws<InvalidOperationException>(() =>
             {
                 var visitor = new CapturingRowFieldSpanVisitor(new List<string>());
                 CsvDocument.ReadRowFieldSpans(path, ref visitor, options);
             });
+#endif
             await Assert.ThrowsAsync<InvalidOperationException>(() => CsvDocument.LoadAsync(path, options));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
