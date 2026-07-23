@@ -317,8 +317,6 @@ internal static partial class PdfWriter {
                 if (page.UsedBoldItalic) {
                     EnsurePageFontResource(ChooseBoldItalic(normalFont), "F4");
                 }
-            } else if (pageOpts.HasExplicitDefaultFont) {
-                EnsurePageFontResource(normalFont, "F1");
             }
             if (LayoutUsesFontResource("F1")) {
                 EnsurePageFontResource(normalFont, "F1");

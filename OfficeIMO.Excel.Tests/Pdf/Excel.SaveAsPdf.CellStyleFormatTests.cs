@@ -61,7 +61,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void SaveAsPdf_ExcelWorkbook_Preserves_Helvetica_Cell_Font_When_Default_Font_Changes() {
+    public void SaveAsPdf_ExcelWorkbook_PreservesCellFontsWhenDefaultFontChangesAcrossPlatforms() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHelveticaCellWithTimesDefault.xlsx");
 
         byte[] bytes;
@@ -87,7 +87,6 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Helvetica", "Arial", "Calibri", "LiberationSans", "Liberation Sans");
-        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
     }
 
     [Fact]
@@ -172,7 +171,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void SaveAsPdf_ExcelWorkbook_PreservesConfiguredDefaultFontSlot() {
+    public void SaveAsPdf_ExcelWorkbook_PreservesNamedCellFontWithConfiguredDefault() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultFontSlot.xlsx");
 
         byte[] bytes;
@@ -198,7 +197,6 @@ public partial class Excel {
         Assert.Contains("DefaultSerif", text);
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
-        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
 

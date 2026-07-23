@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -15,10 +16,20 @@ public sealed class ReaderInputLimitTests {
             maxInputBytes: 64L * 1024 * 1024 + 1,
             CancellationToken.None,
             out bool ownsStream);
+        string snapshotPath = Assert.IsAssignableFrom<FileStream>(prepared).Name;
+        string snapshotDirectory = Path.GetDirectoryName(snapshotPath)!;
         using (prepared) {
             Assert.True(ownsStream);
-            Assert.IsAssignableFrom<FileStream>(prepared);
             Assert.True(ReaderInputLimits.IsSnapshotStream(prepared));
+            Assert.NotEqual(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), snapshotDirectory.TrimEnd(Path.DirectorySeparatorChar));
+            Assert.Throws<IOException>(() => new FileStream(snapshotPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+#if NET6_0_OR_GREATER
+            if (!OperatingSystem.IsWindows()) {
+                Assert.Equal(
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(snapshotDirectory));
+            }
+#endif
             using var copy = new MemoryStream();
             prepared.CopyTo(copy);
             Assert.Equal(payload, copy.ToArray());
@@ -32,5 +43,28 @@ public sealed class ReaderInputLimitTests {
             Assert.False(ownsReused);
             Assert.Equal(0, reused.Position);
         }
+
+        Assert.False(Directory.Exists(snapshotDirectory));
+    }
+
+    [Fact]
+    public async Task LargeSnapshotAsyncDisposalRemovesPrivateDirectory() {
+#if NET6_0_OR_GREATER
+        byte[] payload = System.Text.Encoding.UTF8.GetBytes(
+            "bounded asynchronous snapshot");
+        using var source = new MemoryStream(payload, writable: false);
+        Stream prepared = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
+            source,
+            maxInputBytes: 64L * 1024 * 1024 + 1,
+            CancellationToken.None);
+        string snapshotPath = Assert.IsAssignableFrom<FileStream>(prepared).Name;
+        string snapshotDirectory = Path.GetDirectoryName(snapshotPath)!;
+
+        await prepared.DisposeAsync();
+
+        Assert.False(Directory.Exists(snapshotDirectory));
+#else
+        await Task.CompletedTask;
+#endif
     }
 }

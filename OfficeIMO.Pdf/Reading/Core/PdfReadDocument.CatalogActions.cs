@@ -37,7 +37,7 @@ public sealed partial class PdfReadDocument {
         ref int traversedNodes) {
         EnsureNameTreeBudget(depth, traversedNodes);
         if (treeObject is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber)) {
+            if (visitedReferences.Contains(reference.ObjectNumber)) {
                 return;
             }
 
@@ -46,6 +46,7 @@ public sealed partial class PdfReadDocument {
                 return;
             }
 
+            visitedReferences.Add(reference.ObjectNumber);
             treeObject = indirect.Value;
         }
 

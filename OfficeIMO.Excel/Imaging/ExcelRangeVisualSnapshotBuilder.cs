@@ -689,8 +689,14 @@ namespace OfficeIMO.Excel {
                 return charts;
             }
 
-            foreach (ExcelChart chart in sheet.Charts) {
-                if (!chart.TryGetSnapshot(out ExcelChartSnapshot chartSnapshot)) {
+            IReadOnlyList<ExcelChart> worksheetCharts = sheet.Charts.ToArray();
+            if (worksheetCharts.Count == 0) {
+                return charts;
+            }
+
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart);
+            foreach (ExcelChart chart in worksheetCharts) {
+                if (!chart.TryGetSnapshot(geometry, out ExcelChartSnapshot chartSnapshot)) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ChartSnapshotUnavailable, "Worksheet chart data could not be converted to a renderable snapshot.", sheet.Name + "!" + chart.Name));
                     continue;
                 }

@@ -30,11 +30,6 @@ internal static partial class PdfWriter {
             PdfOptions pageOptions = page.Options ?? options;
             PdfStandardFont normalFont = ChooseNormal(pageOptions.DefaultFont);
 
-            if (pageOptions.HasExplicitDefaultFont) {
-                fonts.Add(normalFont);
-                AddGeneratedFontUsage(fontUsages, normalFont, pageOptions);
-            }
-
             AddLayoutStandardFontUsage("F1", normalFont);
             AddLayoutStandardFontUsage("F2", ChooseBold(normalFont));
             AddLayoutStandardFontUsage("F3", ChooseItalic(normalFont));

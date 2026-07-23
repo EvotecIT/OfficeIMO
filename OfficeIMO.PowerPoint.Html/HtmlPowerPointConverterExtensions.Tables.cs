@@ -12,15 +12,15 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlSemanticBlock? semanticBlock = null) {
-        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, budget, result);
-        if (grid.Rows == 0 || grid.Columns == 0) {
-            return top;
-        }
-
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "A slide table was omitted because the shared import limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: tableLimit);
+            return top;
+        }
+
+        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, budget, result);
+        if (grid.Rows == 0 || grid.Columns == 0) {
             return top;
         }
 

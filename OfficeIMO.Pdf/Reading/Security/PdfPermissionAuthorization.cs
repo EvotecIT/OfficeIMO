@@ -39,6 +39,15 @@ internal static class PdfPermissionAuthorization {
         }
     }
 
+    internal static bool CanRewriteFormFields(
+        PdfDocumentSecurityInfo security,
+        PdfPermissionPolicy policy,
+        PdfMutationOperation operation) =>
+        CanMutate(security, policy, operation) &&
+        (!security.HasEncryption ||
+         security.HasOwnerAuthorization ||
+         policy == PdfPermissionPolicy.IgnoreRestrictions);
+
     internal static void DemandTextExtraction(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) {
         if (CanExtractText(security, policy)) {
             return;

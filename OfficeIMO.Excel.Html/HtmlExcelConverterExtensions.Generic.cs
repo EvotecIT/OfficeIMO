@@ -122,16 +122,16 @@ public static partial class HtmlExcelConverterExtensions {
                     lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
                 continue;
             }
-            if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                    "An embedded generic worksheet image could not be decoded.",
-                    lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
-                continue;
-            }
             if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
                     lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
+                continue;
+            }
+            if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                    "An embedded generic worksheet image could not be decoded.",
+                    lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
                 continue;
             }
             if (row > A1.MaxRows) break;
@@ -164,11 +164,33 @@ public static partial class HtmlExcelConverterExtensions {
         if (table == null) return;
         int row = firstRow;
         foreach (HtmlSemanticTableRow sourceRow in table.Rows) {
+            if (row > A1.MaxRows) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Semantic table formatting beyond the native Excel row limit was omitted.",
+                    lossKind: HtmlConversionLossKind.Omission, detail: "MaxRows=" + A1.MaxRows);
+                break;
+            }
+
             int column = firstColumn;
             foreach (HtmlSemanticTableCell sourceCell in sourceRow.Cells) {
+                if (column > A1.MaxColumns) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "Semantic table formatting beyond the native Excel column limit was omitted.",
+                        lossKind: HtmlConversionLossKind.Omission, detail: "MaxColumns=" + A1.MaxColumns);
+                    break;
+                }
+
                 ApplySemanticCellFormatting(sheet, row, column, sourceCell.Runs, sourceCell.IsHeader,
                     sourceCell.Style, result, budget);
-                column += Math.Max(1, sourceCell.ColumnSpan);
+                int remainingColumns = A1.MaxColumns - column + 1;
+                int requestedSpan = Math.Max(1, sourceCell.ColumnSpan);
+                int boundedSpan = Math.Min(requestedSpan, remainingColumns);
+                if (boundedSpan < requestedSpan) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "A semantic table column span was clamped to the native Excel column limit.",
+                        lossKind: HtmlConversionLossKind.Approximation, detail: "MaxColumns=" + A1.MaxColumns);
+                }
+                column = boundedSpan == remainingColumns ? A1.MaxColumns + 1 : column + boundedSpan;
             }
             row++;
         }

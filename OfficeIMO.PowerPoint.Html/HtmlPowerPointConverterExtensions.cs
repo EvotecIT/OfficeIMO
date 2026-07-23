@@ -138,16 +138,16 @@ public static partial class HtmlPowerPointConverterExtensions {
             return;
         }
 
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
-            return;
-        }
-
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded slide picture was omitted because the shared import limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: imageLimit);
+            return;
+        }
+
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 

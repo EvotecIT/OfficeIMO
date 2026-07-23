@@ -102,6 +102,47 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void ExcelHtml_GenericMalformedImageConsumesTheSharedImageBudgetBeforeDecode() {
+        const string html = """
+            <img src="data:image/png;base64,!!!!" alt="Malformed">
+            <img src="data:image/png;base64,AQID" alt="Would otherwise be accepted">
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        limits.MaxShapes = 1;
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+
+        Assert.Equal(0, result.Images);
+        Assert.Empty(Assert.Single(workbook.Sheets).Images);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceDecodeFailed);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void PowerPointHtml_GenericMalformedImageConsumesTheSharedShapeBudgetBeforeDecode() {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
+        string html = "<img src='data:image/png;base64,!!!!' alt='Malformed'>"
+            + "<img src='data:image/png;base64," + png + "' alt='Would otherwise be accepted'>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        limits.MaxShapes = 1;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(
+            new HtmlToPowerPointOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Pictures);
+        Assert.Empty(Assert.Single(presentation.Slides).Pictures);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void ExcelHtml_UsesOneFormulaDecisionForCellMetadataAndCompatibilityInventory() {
         const string html = """
             <main class="officeimo-document" data-officeimo-source="excel" data-officeimo-profile="ExcelSemanticTables" data-officeimo-schema-version="1">

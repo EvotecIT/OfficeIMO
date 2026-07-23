@@ -145,22 +145,32 @@ public class PdfEncryptedReadTests {
 
 
     [Fact]
-    public void StandardPasswordEncryptedFormPdf_FillsWithValidPassword() {
+    public void StandardPasswordEncryptedFormPdf_RequiresOwnerOrExplicitOverrideForRewrite() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        var readOptions = new PdfReadOptions { Password = "open" };
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
-        PdfDocument filled = PdfDocument.Open(pdf, readOptions).Forms.Fill(new Dictionary<string, string> {
+        var userOptions = new PdfReadOptions { Password = "open" };
+        PdfDocumentPreflight userPreflight = PdfInspector.Preflight(pdf, userOptions);
+        Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Open(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
+                ["Name"] = "Blocked"
+            }));
+
+        PdfDocument ownerFilled = PdfDocument.Open(pdf, new PdfReadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
             ["Name"] = "Grace"
         });
+        PdfDocument explicitlyAuthorized = PdfDocument.Open(pdf, new PdfReadOptions {
+            Password = "open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        }).Forms.Fill(new Dictionary<string, string> {
+            ["Name"] = "Ada"
+        });
 
-        Assert.True(preflight.CanRead);
-        Assert.False(preflight.CanRewrite);
-        Assert.True(preflight.CanFillSimpleFormFields);
-        Assert.True(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
-        Assert.False(PdfInspector.Probe(filled.ToBytes()).HasEncryption);
-        Assert.Equal("Grace", Assert.Single(filled.Inspect().FormFields).Value);
+        Assert.False(userPreflight.CanFillSimpleFormFields);
+        Assert.False(userPreflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.NotEmpty(userPreflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
+        Assert.Equal("Grace", Assert.Single(ownerFilled.Inspect().FormFields).Value);
+        Assert.Equal("Ada", Assert.Single(explicitlyAuthorized.Inspect().FormFields).Value);
     }
 
     private static class EncryptedPdfFixture {

@@ -49,9 +49,10 @@ public class PdfOcrTests {
             Selection = PdfPageSelection.From(2)
         });
         Assert.Equal(2, Assert.Single(selected.Pages).PageNumber);
-        Assert.Equal(new[] { 1, 2 }, selected.NativeDocument.Pages.Select(page => page.PageNumber).ToArray());
-        Assert.Contains(selected.NativeDocument.Pages[0].TextBlocks, block => block.Text.Contains("One", StringComparison.Ordinal));
-        Assert.Contains(selected.NativeDocument.Pages[1].TextBlocks, block => block.Text.Contains("Two", StringComparison.Ordinal));
+        PdfLogicalPage selectedNativePage = Assert.Single(selected.NativeDocument.Pages);
+        Assert.Equal(2, selectedNativePage.PageNumber);
+        Assert.Contains(selectedNativePage.TextBlocks, block => block.Text.Contains("Two", StringComparison.Ordinal));
+        Assert.DoesNotContain(selectedNativePage.TextBlocks, block => block.Text.Contains("One", StringComparison.Ordinal));
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

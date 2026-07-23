@@ -188,7 +188,7 @@ public sealed partial class PdfDocumentPreflight {
             Probe.HasActiveContent ||
             _documentInfo?.AcroFormSignaturesExist == true ||
             _documentInfo?.HasActiveContent == true ||
-            (Probe.HasEncryption && !PdfPermissionAuthorization.CanMutate(Probe.Security, PermissionPolicy, operation));
+            !PdfPermissionAuthorization.CanRewriteFormFields(Probe.Security, PermissionPolicy, operation);
     }
 
     private bool HasImageExtractionBlocker() {
@@ -385,8 +385,10 @@ public sealed partial class PdfDocumentPreflight {
             return messages.AsReadOnly();
         }
 
-        if (Probe.HasEncryption) {
-            AddDistinct(messages, "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+        if (Probe.HasEncryption &&
+            !Probe.Security.HasOwnerAuthorization &&
+            !PermissionRestrictionsIgnored) {
+            AddDistinct(messages, "Encrypted PDF form filling and flattening require owner authorization or an explicit IgnoreRestrictions permission policy because the operation performs an unencrypted full rewrite.");
             AddRange(messages, SecurityDiagnostics);
         }
 

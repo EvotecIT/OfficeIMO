@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -74,27 +75,48 @@ namespace OfficeIMO.Excel {
         }
 
         [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
-            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided row and cell converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
         [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
-            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
+            Justification = "The JsonSerializerOptions compatibility path intentionally honors caller-provided row and cell converters and metadata. The default NativeAOT path uses the typed streaming writer.")]
         private static string DataTableToJsonWithOptions(DataTable table, JsonSerializerOptions options) {
-            int columnCount = table.Columns.Count;
-            string[] columnNames = new string[columnCount];
-            for (int column = 0; column < columnCount; column++) {
-                columnNames[column] = table.Columns[column].ColumnName;
+            EnsureStreamingJsonOptionsSupported(options);
+            JsonEncodedText[] propertyNames = CreateJsonPropertyNames(table.Columns, options);
+            int estimatedCapacity = EstimateJsonCapacity(table, propertyNames);
+            var writerOptions = new JsonWriterOptions {
+                Encoder = options.Encoder,
+                Indented = options.WriteIndented
+            };
+#if NET6_0_OR_GREATER
+            var buffer = new ArrayBufferWriter<byte>(estimatedCapacity);
+            using (var writer = new Utf8JsonWriter(buffer, writerOptions)) {
+                WriteDataTableJson(table, propertyNames, writer, options);
             }
 
-            var rows = new List<Dictionary<string, object?>>(table.Rows.Count);
-            foreach (DataRow row in table.Rows) {
-                var item = new Dictionary<string, object?>(columnCount, StringComparer.OrdinalIgnoreCase);
-                for (int column = 0; column < columnCount; column++) {
-                    item[columnNames[column]] = row.IsNull(column) ? null : row[column];
+            return Encoding.UTF8.GetString(buffer.WrittenSpan);
+#else
+            using var stream = new MemoryStream(estimatedCapacity);
+            using (var writer = new Utf8JsonWriter(stream, writerOptions)) {
+                WriteDataTableJson(table, propertyNames, writer, options);
+            }
+
+            byte[] jsonBytes = stream.ToArray();
+            return Encoding.UTF8.GetString(jsonBytes, 0, jsonBytes.Length);
+#endif
+        }
+
+        private static void EnsureStreamingJsonOptionsSupported(JsonSerializerOptions options) {
+            if (options.ReferenceHandler != null) {
+                throw new NotSupportedException(
+                    "ReferenceHandler is not supported for bounded DataTable JSON export because reference metadata requires whole-table materialization.");
+            }
+
+            Type rootType = typeof(List<Dictionary<string, object?>>);
+            foreach (JsonConverter converter in options.Converters) {
+                if (converter.CanConvert(rootType)) {
+                    throw new NotSupportedException(
+                        "Converters for the complete DataTable row collection are not supported by bounded JSON export. Register row or value converters instead.");
                 }
-
-                rows.Add(item);
             }
-
-            return JsonSerializer.Serialize(rows, options);
         }
 
         private static string DataTableToJsonStreaming(DataTable table) {
@@ -133,6 +155,28 @@ namespace OfficeIMO.Excel {
                 }
 
                 writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+        }
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "This compatibility overload intentionally honors caller-provided row and cell converters. The default NativeAOT path uses the typed streaming writer.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This compatibility overload intentionally honors caller-provided row and cell converters. The default NativeAOT path uses the typed streaming writer.")]
+        private static void WriteDataTableJson(
+            DataTable table,
+            JsonEncodedText[] propertyNames,
+            Utf8JsonWriter writer,
+            JsonSerializerOptions options) {
+            writer.WriteStartArray();
+            foreach (DataRow row in table.Rows) {
+                var item = new Dictionary<string, object?>(propertyNames.Length, StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < propertyNames.Length; i++) {
+                    item[table.Columns[i].ColumnName] = row.IsNull(i) ? null : row[i];
+                }
+
+                JsonSerializer.Serialize(writer, item, options);
             }
 
             writer.WriteEndArray();

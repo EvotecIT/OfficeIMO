@@ -408,17 +408,17 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
 
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
-            return;
-        }
-
         if (!budget.TryReserveImageWithShape(dataUri, out imageLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An embedded worksheet image was omitted because the shared import limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission,
                 detail: imageLimit);
+            return;
+        }
+
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 

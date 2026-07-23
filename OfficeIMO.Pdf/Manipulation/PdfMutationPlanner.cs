@@ -755,6 +755,15 @@ internal static class PdfMutationPlanner {
             return false;
         }
 
+        if ((operation == PdfMutationOperation.FillFormFields ||
+             operation == PdfMutationOperation.FlattenFormFields ||
+             operation == PdfMutationOperation.FillAndFlattenFormFields)) {
+            return PdfPermissionAuthorization.CanRewriteFormFields(
+                security,
+                preflight.PermissionPolicy,
+                operation);
+        }
+
         return PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation);
     }
 

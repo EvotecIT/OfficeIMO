@@ -81,9 +81,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
             return;
         }
-        if (!budget.IsImageWithinLimit(dataUri, out string limit) || !dataUri.TryDecodeBytes(out byte[] bytes)) {
+        if (!budget.IsImageWithinLimit(dataUri, out string limit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An inline generic slide image was omitted because it was invalid or exceeded the shared image limit.",
+                "An inline generic slide image was omitted because it exceeded the shared image limit.",
                 lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: limit);
             return;
         }
@@ -91,6 +91,12 @@ public static partial class HtmlPowerPointConverterExtensions {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An inline generic slide image was omitted because the shared image or shape limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, source: resource.Source, detail: limit);
+            return;
+        }
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "An inline generic slide image could not be decoded.",
+                lossKind: HtmlConversionLossKind.Omission, source: resource.Source);
             return;
         }
         double maximum = budget.Limits.MaxAbsoluteGeometry;

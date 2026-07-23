@@ -60,6 +60,23 @@ public class HtmlOfficeAdaptersExcelSemantics {
     }
 
     [Fact]
+    public void ExcelHtml_SemanticFormattingClampsHostileColumnSpanToNativeBounds() {
+        const string html = """
+            <table><tr><td colspan="2147483647"><strong>First</strong></td><td>Second</td></tr></table>
+            """;
+
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
+        using ExcelDocument workbook = result.Value;
+
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? first));
+        Assert.Equal("First", first!.Text);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void ExcelHtml_TwoCellImageFallsBackBeforeEnumeratingAnOversizedAnchor() {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
         string html = "<section class='officeimo-sheet' data-officeimo-sheet='Images'><table><tr><td>A</td></tr></table>"

@@ -5,8 +5,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal byte[] BuildSubsetFontFile() {
         var glyphs = new SortedSet<int>(GetUsedGlyphIds());
-        if (glyphs.Count == 0 ||
-            !_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
+        if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
             !_tables.TryGetValue("loca", out TableRecord originalLoca)) {
             return _data.ToArray();
         }

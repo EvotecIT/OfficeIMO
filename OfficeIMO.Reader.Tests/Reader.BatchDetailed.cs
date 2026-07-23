@@ -87,10 +87,18 @@ public sealed class ReaderBatchDetailedTests {
             string[] recursive = reader.EnumerateDocumentPaths(
                 new[] { root },
                 new ReaderFolderOptions { Recurse = true, MaxFiles = int.MaxValue }).ToArray();
+            string[] byteBounded = reader.EnumerateDocumentPaths(
+                new[] { root },
+                new ReaderFolderOptions {
+                    Recurse = true,
+                    MaxFiles = int.MaxValue,
+                    MaxTotalBytes = new FileInfo(first).Length
+                }).ToArray();
             string[] explicitUnsupported = reader.EnumerateDocumentPaths(new[] { ignored }).ToArray();
 
             Assert.Equal(new[] { first }, topLevel);
             Assert.Equal(new[] { first, second }, recursive);
+            Assert.Equal(new[] { first }, byteBounded);
             Assert.Equal(new[] { ignored }, explicitUnsupported);
         } finally {
             Directory.Delete(root, recursive: true);

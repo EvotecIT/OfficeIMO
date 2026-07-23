@@ -75,6 +75,28 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void AssessComplianceIgnoresUnusedExplicitStandardDefaultFont() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = CreatePdfA3GroundworkOptions();
+        options.DefaultFont = PdfStandardFont.TimesRoman;
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            "Named Compliance Only",
+            File.ReadAllBytes(fontPath)));
+        PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .FontFamily("Named Compliance Only")
+                .Text("Only the embedded named font paints text."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void AssessComplianceIncludesNamedPageTextAndListMarkerResourcesInEmbeddedCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
