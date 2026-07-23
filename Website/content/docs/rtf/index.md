@@ -60,11 +60,26 @@ The untrusted profile limits input, group depth/count, tokens, text, binary payl
 
 Focused adapters connect RTF to Word, Markdown, HTML, PDF, and Reader. Each adapter reports preserved, flattened, omitted, blocked, and failed content through `RtfConversionReport`.
 
+Install the adapter for the destination you need. This example uses `OfficeIMO.Rtf.Markdown`:
+
+```shell
+dotnet add package OfficeIMO.Rtf.Markdown
+```
+
 ```csharp
+using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Markdown;
+
+RtfReadResult read = RtfDocument.Load("input.rtf");
+RtfConversionResult<string> conversion =
+    read.Document.ToMarkdownResult();
+
 var report = new RtfConversionReport();
-report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
-report.Merge(adapterReport);
+report.AddReadDiagnostics(read.Diagnostics, "input.rtf");
+report.Merge(conversion.Report);
 report.RequireNoLoss();
+
+File.WriteAllText("output.md", conversion.Value);
 ```
 
 Use `RequireNoLoss()` for strict archival or compliance workflows. In permissive workflows, inspect each diagnostic and accept only the tradeoffs appropriate for the destination.

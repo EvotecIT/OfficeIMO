@@ -86,11 +86,20 @@ Choose file names and directory layout from stable identifiers or sanitized meta
 PST conversion can write a verification manifest containing keyed semantic fingerprints, match status, paths, and lengths without message subjects, addresses, attachment names, or body values:
 
 ```csharp
+string encodedDigestKey =
+    Environment.GetEnvironmentVariable("OFFICEIMO_EMAIL_DIGEST_KEY")
+    ?? throw new InvalidOperationException(
+        "Set OFFICEIMO_EMAIL_DIGEST_KEY to a private Base64-encoded key.");
+
+byte[] digestKey = Convert.FromBase64String(encodedDigestKey);
+var verificationOptions = new EmailSemanticComparisonOptions(digestKey: digestKey);
+
 using EmailStoreSession source = EmailStoreSession.Open("source.ost");
 
 EmailStorePstConversionReport report = source.ExportToPst(
     "destination.pst",
     new EmailStorePstConversionOptions(
+        verificationOptions: verificationOptions,
         verificationManifestPath: "destination.verification.tsv"));
 
 if (report.Verification is { IsSuccessful: false } verification) {
@@ -100,4 +109,4 @@ if (report.Verification is { IsSuccessful: false } verification) {
 }
 ```
 
-The caller should supply a private digest key when fingerprints will be persisted for private mail. See [safety and verification](/docs/email/safety-and-verification/) for comparison profiles and limits.
+Generate the digest key outside the application, store it as a secret, and provide at least 16 random bytes. Do not commit or log it. The same key is required when comparing persisted fingerprints later. See [safety and verification](/docs/email/safety-and-verification/) for comparison profiles and limits.
