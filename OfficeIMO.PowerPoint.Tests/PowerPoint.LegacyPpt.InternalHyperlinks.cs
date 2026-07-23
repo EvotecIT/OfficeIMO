@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -196,6 +197,17 @@ namespace OfficeIMO.Tests {
                     projectedTarget);
             });
             Assert.Empty(projected.ValidateDocument());
+
+            LegacyPptProjectionFingerprint fingerprint =
+                LegacyPptProjectionFingerprint.Create(
+                    projected.OpenXmlDocument,
+                    projected.LegacyPptProjectionMap!);
+            Assert.True(fingerprint.Matches(projected.OpenXmlDocument,
+                projected.LegacyPptProjectionMap!));
+            foreach (A.HyperlinkOnClick link in links) link.Remove();
+            projectedMaster.SlideMaster.Save();
+            Assert.False(fingerprint.Matches(projected.OpenXmlDocument,
+                projected.LegacyPptProjectionMap!));
         }
 
         [Fact]
@@ -277,9 +289,15 @@ namespace OfficeIMO.Tests {
                 AddInternalSlideHyperlink(appended, existing, appendedShape,
                     mouseOver: true, screenTip: "Back");
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite,
-                    string.Join(Environment.NewLine, report.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -295,7 +313,7 @@ namespace OfficeIMO.Tests {
                 backInteraction.Hyperlink!.TargetSlideId);
             Assert.Equal("Forward", forward.ScreenTip);
             Assert.Equal("Back", backInteraction.Hyperlink.ScreenTip);
-            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+            Assert.False(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
         }
@@ -317,8 +335,17 @@ namespace OfficeIMO.Tests {
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
                 imported.MoveSlide(2, 1);
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                LegacyPptWritePreflightReport report = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);

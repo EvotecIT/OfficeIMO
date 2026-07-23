@@ -219,6 +219,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TextProjection_DropsInvalidXmlCharactersFromLegacyFontsAndBullets() {
+            var characterRun = new LegacyPptCharacterRun(
+                0, 1, "A", bold: null, italic: null, underline: null,
+                shadow: null, farEastHint: null, kumi: null, emboss: null,
+                fontIndex: 1, oldEastAsianFontIndex: 2, ansiFontIndex: 3,
+                symbolFontIndex: 4, typeface: "Primary\u0001Font",
+                oldEastAsianTypeface: "East\uD800Font",
+                ansiTypeface: "Ansi\u0002Font",
+                symbolTypeface: "Symbol\uDC00Font", fontSizePoints: null,
+                color: null, colorSchemeIndex: null,
+                baselinePositionPercent: null,
+                hasUnprojectedFormatting: false);
+            var paragraphRun = new LegacyPptParagraphRun(
+                0, 1, 0, hasBullet: true, bulletHasFont: true,
+                bulletHasColor: null, bulletHasSize: null,
+                bulletCharacter: '\uD800', bulletFontIndex: 5,
+                bulletTypeface: "Bullet\u0003Font", bulletSize: null,
+                bulletColor: null, bulletColorSchemeIndex: null,
+                alignment: null, lineSpacing: null, spaceBefore: null,
+                spaceAfter: null, fontAlignment: null,
+                characterWrap: null, wordWrap: null, overflow: null,
+                textDirection: null, hasUnprojectedFormatting: false);
+            var body = new LegacyPptTextBody(
+                "A", new[] { characterRun }, new[] { paragraphRun },
+                hasStyleRecord: true,
+                hasUnprojectedCharacterFormatting: false,
+                hasUnprojectedParagraphFormatting: false);
+
+            A.Paragraph projected = Assert.Single(
+                LegacyPptTextProjection.CreateTextBody(body)
+                    .Elements<A.Paragraph>());
+            A.ParagraphProperties paragraphProperties =
+                projected.ParagraphProperties!;
+            Assert.Equal("BulletFont", paragraphProperties
+                .GetFirstChild<A.BulletFont>()!.Typeface!.Value);
+            Assert.Null(paragraphProperties.GetFirstChild<A.CharacterBullet>());
+            A.RunProperties runProperties = Assert.Single(
+                projected.Elements<A.Run>()).RunProperties!;
+            Assert.Equal("AnsiFont", runProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            Assert.Equal("EastFont", runProperties
+                .GetFirstChild<A.EastAsianFont>()!.Typeface!.Value);
+            Assert.Equal("SymbolFont", runProperties
+                .GetFirstChild<A.SymbolFont>()!.Typeface!.Value);
+        }
+
+        [Fact]
         public void TextRulerReader_RejectsReservedMaskBitsWithoutEscapingBounds() {
             byte[] payload = { 0x00, 0x00, 0x00, 0x80 };
             var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA6, 0, payload.Length);

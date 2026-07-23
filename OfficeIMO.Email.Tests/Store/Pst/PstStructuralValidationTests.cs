@@ -74,4 +74,29 @@ public sealed class PstStructuralValidationTests {
         Assert.False(report.IsComplete);
         Assert.True(report.IsValid);
     }
+
+    [Fact]
+    public void ReportsUnsignedChildOffsetsOutsideTheSupportedStreamRange() {
+        const int nbtOffset = 1536;
+        const int pageDataLength = 496;
+        byte[] bytes = PstTestFileBuilder.Create();
+        using var source = new MemoryStream(bytes);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "mailbox.pst");
+        bytes[nbtOffset + 491] = 1;
+        Buffer.BlockCopy(BitConverter.GetBytes(ulong.MaxValue), 0, bytes, nbtOffset + 16, 8);
+        Buffer.BlockCopy(BitConverter.GetBytes(PstCrc32.Compute(bytes, nbtOffset, pageDataLength)),
+            0, bytes, nbtOffset + 500, 4);
+
+        EmailStoreValidationReport report = session.Validate(
+            new EmailStoreValidationOptions(
+                mode: EmailStoreValidationMode.Shallow,
+                verifyStructuralIntegrity: true,
+                maxStructuralPages: 100,
+                maxStructuralBlocks: 100,
+                maxStructuralBytes: 1024 * 1024));
+
+        Assert.Contains(report.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_STORE_PST_PAGE_CHILD_OFFSET");
+        Assert.False(report.IsValid);
+    }
 }

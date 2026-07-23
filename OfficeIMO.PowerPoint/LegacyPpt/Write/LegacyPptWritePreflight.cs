@@ -14,8 +14,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool canPreserve = presentation.CanPreserveOriginalLegacyPackage
                 || LegacyPptPreservingWriter.CanWritePresentation(
                     presentation);
-            if (canPreserve
-                && !presentation.CanPreserveOriginalLegacyPackage) {
+            if (canPreserve) {
                 AddPreservedActiveContentFindings(presentation, findings);
             }
             if (canPreserve && packageFindingCount == 0) {

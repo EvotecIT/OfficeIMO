@@ -469,6 +469,116 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_BoundsUnknownLengthByteResponses() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new UnknownLengthContent(new byte[128])
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                transport.SendBytesAsync(
+                    "token",
+                    HttpMethod.Get,
+                    "https://lh3.googleusercontent.com/image.png",
+                    GoogleWorkspaceRequestSafety.Safe,
+                    "Google content",
+                    new TranslationReport(),
+                    maxResponseBytes: 8));
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_TruncatesUnknownLengthErrorResponses() {
+            byte[] responseBytes = Encoding.UTF8.GetBytes(
+                new string('x', 128 * 1024));
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                    Content = new UnknownLengthContent(responseBytes)
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            GoogleWorkspaceApiException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() =>
+                    transport.SendBytesAsync(
+                        "token",
+                        HttpMethod.Get,
+                        "https://lh3.googleusercontent.com/image.png",
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google content",
+                        new TranslationReport(),
+                        maxResponseBytes: 8));
+
+            Assert.Equal(64 * 1024, exception.ResponseBody.Length);
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_TimesOutWhileReadingUnboundedByteResponse() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new BlockingReadContent()
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    RequestTimeout = TimeSpan.FromMilliseconds(50),
+                    MaxRetryCount = 0
+                });
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                transport.SendBytesAsync(
+                    "token",
+                    HttpMethod.Get,
+                    "https://www.googleapis.com/drive/v3/files/file-1?alt=media",
+                    GoogleWorkspaceRequestSafety.Safe,
+                    "Google Drive API",
+                    new TranslationReport()));
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_RetriesSafeResponseBodyReadFailures() {
+            int attempts = 0;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ => {
+                attempts++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = attempts == 1
+                        ? new TransientReadFailureContent()
+                        : new ByteArrayContent(new byte[] { 1, 2, 3, 4 })
+                });
+            }));
+            var entries = new List<GoogleWorkspaceDiagnosticEntry>();
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 1,
+                    RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                    RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+                    DiagnosticSink = entries.Add
+                });
+
+            byte[] bytes = await transport.SendBytesAsync(
+                "token",
+                HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?alt=media",
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Drive API",
+                new TranslationReport());
+
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, bytes);
+            Assert.Equal(2, attempts);
+            Assert.Contains(entries, entry =>
+                entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry &&
+                entry.Message.Contains("reading response", StringComparison.Ordinal));
+        }
+
         private static HttpResponseMessage CreateJsonResponse(string json) {
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -487,6 +597,84 @@ namespace OfficeIMO.Tests {
         private sealed class TransportReadResponse {
             [System.Text.Json.Serialization.JsonPropertyName("id")]
             public string? Id { get; set; }
+        }
+
+        private sealed class UnknownLengthContent : HttpContent {
+            private readonly byte[] _bytes;
+
+            internal UnknownLengthContent(byte[] bytes) {
+                _bytes = bytes;
+            }
+
+            protected override Task SerializeToStreamAsync(
+                Stream stream,
+                TransportContext? context) =>
+                throw new InvalidOperationException(
+                    "ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new MemoryStream(_bytes,
+                    writable: false));
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
+        }
+
+        private sealed class BlockingReadContent : HttpContent {
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+                throw new InvalidOperationException("ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new BlockingReadStream());
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
+        }
+
+        private sealed class TransientReadFailureContent : HttpContent {
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+                throw new InvalidOperationException("ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new TransientReadFailureStream());
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
+        }
+
+        private sealed class TransientReadFailureStream : MemoryStream {
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count,
+                CancellationToken cancellationToken) =>
+                Task.FromException<int>(new IOException("Transient connection failure while reading response body."));
+        }
+
+        private sealed class BlockingReadStream : Stream {
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) =>
+                throw new InvalidOperationException("The response body must be read asynchronously.");
+            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
+                CancellationToken cancellationToken) {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+                return 0;
+            }
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

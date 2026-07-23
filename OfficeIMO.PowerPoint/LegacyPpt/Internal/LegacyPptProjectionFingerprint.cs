@@ -558,7 +558,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 NormalizeShapeFormatting(shape.ShapeProperties,
                     shapeProjection);
                 if (shape.TextBody != null) {
-                    shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                    bool retainsSecuritySensitiveTextInteractions =
+                        !normalizeInteractions && shape.TextBody.Descendants()
+                            .Any(element => element is A.HyperlinkOnClick
+                                or A.HyperlinkOnHover
+                                or A.HyperlinkOnMouseOver);
+                    if (!retainsSecuritySensitiveTextInteractions) {
+                        shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                    }
                     if (shapeProjection.CanEditTextFrame
                         && shape.TextBody.BodyProperties != null) {
                         shape.TextBody.BodyProperties.ClearAllAttributes();

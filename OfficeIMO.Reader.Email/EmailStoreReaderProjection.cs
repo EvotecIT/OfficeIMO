@@ -64,16 +64,18 @@ internal static class EmailStoreReaderProjection {
                 folder.Id, folder.ParentId, folder.Name)).ToArray(),
             itemDiagnostics,
             cancellationToken);
-        int probeLimit = adapterOptions.MaxItems == int.MaxValue
+        EmailStoreReaderOptions storeOptions = GetStoreOptions(adapterOptions);
+        int maximumItems = Math.Min(adapterOptions.MaxItems, storeOptions.MaxItemCount);
+        int probeLimit = maximumItems == int.MaxValue
             ? int.MaxValue
-            : adapterOptions.MaxItems + 1;
+            : maximumItems + 1;
         EmailStoreQuery? query = adapterOptions.Query == null
             ? null
             : CopyQuery(adapterOptions.Query, Math.Min(adapterOptions.Query.MaxResults, probeLimit));
         IEnumerable<EmailStoreItemReference> references = query == null
             ? session.EnumerateItems(new EmailStoreEnumerationOptions(
-                includeAssociatedItems: GetStoreOptions(adapterOptions).IncludeAssociatedItems,
-                includeOrphanedItems: GetStoreOptions(adapterOptions).IncludeOrphanedItems,
+                includeAssociatedItems: storeOptions.IncludeAssociatedItems,
+                includeOrphanedItems: storeOptions.IncludeOrphanedItems,
                 maxItems: probeLimit), cancellationToken)
             : session.Search(query, cancellationToken).Select(result => result.Reference);
         int attempted = 0;
@@ -81,7 +83,7 @@ internal static class EmailStoreReaderProjection {
         bool selectionLimitReached = false;
         foreach (EmailStoreItemReference reference in references) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (attempted >= adapterOptions.MaxItems) {
+            if (attempted >= maximumItems) {
                 selectionLimitReached = true;
                 break;
             }

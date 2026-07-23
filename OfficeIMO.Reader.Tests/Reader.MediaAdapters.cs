@@ -785,6 +785,27 @@ public sealed partial class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void SubtitleAdapter_SplitsEscapedMarkdownAtMatchingSourceRanges() {
+        string cueText = string.Concat(Enumerable.Repeat("123456<789&ABC>DEF", 40));
+        string srt = "1\n00:00:00,000 --> 00:00:01,000\n" + cueText + "\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddSubtitleHandler(new ReaderSubtitleOptions { IncludeTimestampsInMarkdown = false })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(srt),
+            "aligned.srt",
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.True(result.Chunks.Count > 1);
+        Assert.Equal(cueText, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.Equal(EscapeSubtitleMarkdown(cueText),
+            string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+        Assert.All(result.Chunks, chunk =>
+            Assert.Equal(EscapeSubtitleMarkdown(chunk.Text), chunk.Markdown));
+    }
+
+    [Fact]
     public void AdapterSnapshot_ReappliesTheRegisteredDefaultInputLimit() {
         const string extension = ".adapterlimit";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

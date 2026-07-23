@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 using OfficeIMO.PowerPoint;
+using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
@@ -432,10 +433,15 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static JsonObject Rgb(string hex) {
             string value = hex.TrimStart('#'); if (value.Length >= 6) value = value.Substring(value.Length - 6);
             if (value.Length != 6) return new JsonObject();
+            if (!int.TryParse(value.Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int red)
+                || !int.TryParse(value.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int green)
+                || !int.TryParse(value.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int blue)) {
+                return new JsonObject();
+            }
             return Obj(
-                ("red", Convert.ToInt32(value.Substring(0, 2), 16) / 255d),
-                ("green", Convert.ToInt32(value.Substring(2, 2), 16) / 255d),
-                ("blue", Convert.ToInt32(value.Substring(4, 2), 16) / 255d));
+                ("red", red / 255d),
+                ("green", green / 255d),
+                ("blue", blue / 255d));
         }
 
         private static List<JsonObject> BuildSpeakerNotesRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current) {

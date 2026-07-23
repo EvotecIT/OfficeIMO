@@ -1,6 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -11,6 +12,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// Dependency-light HTTP transport shared by Google Workspace domain packages.
     /// </summary>
     public sealed class GoogleWorkspaceHttpTransport : IDisposable {
+        private const long MaximumErrorResponseBytes = 64L * 1024;
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
             PropertyNamingPolicy = null,
@@ -215,29 +217,78 @@ namespace OfficeIMO.GoogleWorkspace {
             string serviceName,
             TranslationReport report,
             CancellationToken cancellationToken = default,
-            bool preserveRequestUri = false) {
+            bool preserveRequestUri = false,
+            bool includeAuthorization = true,
+            long? maxResponseBytes = null) {
             ThrowIfDisposed();
+            if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
+            }
             string effectiveUri = preserveRequestUri
                 ? uri
                 : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 
-            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+            return await GoogleWorkspaceRetryPolicy.SendAndProcessAsync(
                 _client,
-                () => CreateRequest(accessToken, method, effectiveUri, null, requestId),
+                () => CreateRequest(accessToken, method, effectiveUri, null, requestId, includeAuthorization),
                 retryOptions,
                 requestSafety,
                 _options.RequestTimeout,
                 cancellationToken,
-                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                if (!response.IsSuccessStatusCode) {
-                    string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
-                }
+                async (response, responseToken) => {
+                    if (!response.IsSuccessStatusCode) {
+                        byte[] errorBytes = await ReadResponseBytesAsync(
+                            response.Content,
+                            MaximumErrorResponseBytes,
+                            responseToken,
+                            truncateAtLimit: true).ConfigureAwait(false);
+                        string body = Encoding.UTF8.GetString(errorBytes);
+                        throw GoogleWorkspaceApiException.Create(serviceName,
+                            method, effectiveUri, response.StatusCode, body);
+                    }
 
-                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    return await ReadResponseBytesAsync(response.Content,
+                        maxResponseBytes, responseToken).ConfigureAwait(false);
+                },
+                retryEvent => ReportRetry(report, serviceName, retryEvent))
+                .ConfigureAwait(false);
+        }
+
+        private static async Task<byte[]> ReadResponseBytesAsync(
+            HttpContent content,
+            long? maxResponseBytes,
+            CancellationToken cancellationToken,
+            bool truncateAtLimit = false) {
+            long? limit = maxResponseBytes;
+            if (limit.HasValue && content.Headers.ContentLength is long declaredLength
+                && declaredLength > limit.Value && !truncateAtLimit) {
+                throw new InvalidDataException(
+                    $"The response declared {declaredLength} bytes, exceeding the configured limit of {limit.Value} bytes.");
             }
+
+            using Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var output = new MemoryStream();
+            byte[] buffer = new byte[81920];
+            long total = 0;
+            while (true) {
+                int read = await input.ReadAsync(buffer, 0, buffer.Length,
+                    cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                if (limit.HasValue && read > limit.Value - total) {
+                    if (truncateAtLimit) {
+                        output.Write(buffer, 0, checked((int)(limit.Value - total)));
+                        break;
+                    }
+                    throw new InvalidDataException(
+                        $"The response exceeded the configured limit of {limit.Value} bytes.");
+                }
+                output.Write(buffer, 0, read);
+                total += read;
+                if (truncateAtLimit && limit.HasValue && total == limit.Value) break;
+            }
+            return output.ToArray();
         }
 
         public async Task<GoogleWorkspaceHttpResponse> SendRawAsync(
@@ -317,9 +368,12 @@ namespace OfficeIMO.GoogleWorkspace {
             HttpMethod method,
             string uri,
             Func<HttpContent?>? contentFactory,
-            string? requestId) {
+            string? requestId,
+            bool includeAuthorization = true) {
             var request = new HttpRequestMessage(method, uri);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            if (includeAuthorization) {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            }
             request.Headers.UserAgent.ParseAdd(BuildUserAgent(_options.ApplicationName));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 

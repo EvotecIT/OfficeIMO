@@ -49,7 +49,17 @@ namespace OfficeIMO.Tests {
                 projected.OpenXmlDocument.DocumentType);
             Assert.Equal(projectBytes, ReadVbaProject(projected));
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptWritePreflightReport projectedPreflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(projectedPreflight.CanWrite);
+            Assert.Contains(projectedPreflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-PRESERVED-VBA");
+            Assert.Throws<NotSupportedException>(() =>
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         [Fact]
@@ -78,7 +88,10 @@ namespace OfficeIMO.Tests {
             }
             Assert.Equal(projectBytes, ReadVbaProject(imported));
             byte[] binaryAfterPptxExport = imported.ToBytes(
-                PowerPointFileFormat.Ppt);
+                PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                });
             Assert.Equal(projectBytes, Assert.IsType<LegacyPptVbaProject>(
                 LegacyPptPresentation.Load(binaryAfterPptxExport)
                     .VbaProject).GetBytes());
@@ -325,8 +338,17 @@ namespace OfficeIMO.Tests {
             using (var input = new MemoryStream(sourceBytes))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
                 Assert.Equal(projectBytes, ReadVbaProject(imported));
-                Assert.Equal(sourceBytes,
+                LegacyPptWritePreflightReport exactPreflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(exactPreflight.CanWrite);
+                Assert.Contains(exactPreflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-VBA");
+                Assert.Throws<NotSupportedException>(() =>
                     imported.ToBytes(PowerPointFileFormat.Ppt));
+                Assert.Equal(sourceBytes, imported.ToBytes(
+                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    }));
                 PowerPointTextBox title = Assert.Single(imported.Slides[0]
                     .TextBoxes, item => item.Text == "Compressed VBA");
                 title.Left += 15875L;

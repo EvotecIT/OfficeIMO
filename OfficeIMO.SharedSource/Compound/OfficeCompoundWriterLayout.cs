@@ -62,8 +62,7 @@ namespace OfficeIMO.Drawing.Internal {
             foreach (string name in segments) {
                 ValidateName(name);
                 path = path.Length == 0 ? name : string.Concat(path, "/", name);
-                OfficeCompoundWriterEntry? existing = parent.Children.FirstOrDefault(child =>
-                    string.Equals(child.Name, name, StringComparison.OrdinalIgnoreCase));
+                OfficeCompoundWriterEntry? existing = parent.FindChild(name);
                 if (existing != null) {
                     if (existing.ObjectType != 1) {
                         throw new ArgumentException(string.Concat("Conflicting compound storage path '", path, "'."),
@@ -73,7 +72,7 @@ namespace OfficeIMO.Drawing.Internal {
                     continue;
                 }
                 var created = new OfficeCompoundWriterEntry(name, path, 1, null);
-                parent.Children.Add(created);
+                parent.AddChild(created);
                 parent = created;
             }
         }
@@ -104,8 +103,7 @@ namespace OfficeIMO.Drawing.Internal {
                 ValidateName(name);
                 path = path.Length == 0 ? name : string.Concat(path, "/", name);
                 bool isStream = i + 1 == segments.Length;
-                OfficeCompoundWriterEntry? existing = parent.Children.FirstOrDefault(child =>
-                    string.Equals(child.Name, name, StringComparison.OrdinalIgnoreCase));
+                OfficeCompoundWriterEntry? existing = parent.FindChild(name);
                 if (existing != null) {
                     if (isStream || existing.ObjectType != 1) {
                         throw new ArgumentException(string.Concat("Duplicate or conflicting compound path '", path, "'."), nameof(stream));
@@ -116,7 +114,7 @@ namespace OfficeIMO.Drawing.Internal {
 
                 var created = new OfficeCompoundWriterEntry(name, path, isStream ? (byte)2 : (byte)1,
                     isStream ? stream : (OfficeCompoundStream?)null);
-                parent.Children.Add(created);
+                parent.AddChild(created);
                 parent = created;
             }
         }
@@ -161,6 +159,9 @@ namespace OfficeIMO.Drawing.Internal {
     }
 
     internal sealed class OfficeCompoundWriterEntry {
+        private readonly Dictionary<string, OfficeCompoundWriterEntry> _childrenByName =
+            new Dictionary<string, OfficeCompoundWriterEntry>(StringComparer.OrdinalIgnoreCase);
+
         internal OfficeCompoundWriterEntry(string name, string path, byte objectType, OfficeCompoundStream? stream) {
             Name = name;
             Path = path;
@@ -177,6 +178,21 @@ namespace OfficeIMO.Drawing.Internal {
         internal OfficeCompoundStream? Stream { get; }
 
         internal List<OfficeCompoundWriterEntry> Children { get; } = new List<OfficeCompoundWriterEntry>();
+
+        internal OfficeCompoundWriterEntry? FindChild(string name) =>
+            _childrenByName.TryGetValue(name, out OfficeCompoundWriterEntry? child)
+                ? child
+                : null;
+
+        internal void AddChild(OfficeCompoundWriterEntry child) {
+            if (_childrenByName.ContainsKey(child.Name)) {
+                throw new ArgumentException(
+                    string.Concat("Duplicate compound entry '", child.Name, "'."),
+                    nameof(child));
+            }
+            _childrenByName.Add(child.Name, child);
+            Children.Add(child);
+        }
 
         internal Guid ClassId { get; private set; }
 

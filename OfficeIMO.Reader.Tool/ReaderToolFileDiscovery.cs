@@ -17,6 +17,7 @@ internal static class ReaderToolFileDiscovery {
             AttributesToSkip = FileAttributes.ReparsePoint,
             ReturnSpecialDirectories = false
         };
+        long totalBytes = 0;
 
         foreach (string file in Directory.EnumerateFiles(
             Path.GetFullPath(rootPath),
@@ -28,20 +29,15 @@ internal static class ReaderToolFileDiscovery {
                 continue;
             }
 
-            selected.Add(file);
-            if (selected.Count > maxFiles) {
-                selected.Remove(selected.Max!);
-            }
-        }
-
-        var results = new List<string>(selected.Count);
-        long totalBytes = 0;
-        foreach (string file in selected) {
             long length = new FileInfo(file).Length;
-            if (maxTotalBytes.HasValue && length > maxTotalBytes.Value - totalBytes) break;
+            if (maxTotalBytes.HasValue
+                && length > maxTotalBytes.Value - totalBytes) {
+                break;
+            }
             totalBytes += length;
-            results.Add(file);
+            selected.Add(file);
+            if (selected.Count >= maxFiles) break;
         }
-        return results;
+        return selected.ToList();
     }
 }

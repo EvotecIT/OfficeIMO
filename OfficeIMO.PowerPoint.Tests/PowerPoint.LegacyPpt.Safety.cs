@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
@@ -793,6 +794,23 @@ namespace OfficeIMO.Tests {
                     }));
             Assert.Contains("Compound stream bytes exceed",
                 routeException.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void CompoundWriterLayoutScalesAcrossManySiblingStorages() {
+            const int storageCount = 10_000;
+            OfficeCompoundStream[] streams = Enumerable.Range(0, storageCount)
+                .Select(index => new OfficeCompoundStream(
+                    "Storage" + index.ToString("D5") + "/Item",
+                    Array.Empty<byte>()))
+                .ToArray();
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            stopwatch.Stop();
+
+            Assert.Equal(storageCount, layout.Streams.Count);
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
         }
 
         [Fact]

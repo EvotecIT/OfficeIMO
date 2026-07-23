@@ -703,6 +703,85 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MalformedExternalObjectLists_FallBackWithoutCrashing(
+            bool duplicateList) {
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointAutoShape shape = slide.AddRectangle(
+                    100000, 100000, 1000000, 500000);
+                HyperlinkRelationship relationship = slide.SlidePart
+                    .AddHyperlinkRelationship(
+                        new Uri("https://example.com/malformed-list"), true);
+                ((P.Shape)shape.Element).NonVisualShapeProperties!
+                    .NonVisualDrawingProperties!
+                    .Append(new A.HyperlinkOnClick {
+                        Id = relationship.Id
+                    });
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation sourcePresentation =
+                LegacyPptPresentation.Load(binary);
+            LegacyPptPersistObject documentPersist = sourcePresentation
+                .Package.PersistObjects[sourcePresentation.Package
+                    .DocumentPersistId];
+            LegacyPptRecord document = LegacyPptRecordReader.ReadSingle(
+                documentPersist.RecordBytes, 0,
+                new LegacyPptImportOptions());
+            LegacyPptRecord list = Assert.Single(document.Children,
+                child => child.Type == 0x0409);
+            var documentChildren = new List<byte[]>();
+            foreach (LegacyPptRecord child in document.Children) {
+                if (!ReferenceEquals(child, list)) {
+                    documentChildren.Add(child.CopyRecordBytes());
+                    continue;
+                }
+                if (duplicateList) {
+                    documentChildren.Add(child.CopyRecordBytes());
+                    documentChildren.Add(child.CopyRecordBytes());
+                    continue;
+                }
+                LegacyPptRecord atom = Assert.Single(list.Children,
+                    item => item.Type == 0x040A);
+                var listChildren = new List<byte[]>();
+                foreach (LegacyPptRecord listChild in list.Children) {
+                    listChildren.Add(listChild.CopyRecordBytes());
+                    if (ReferenceEquals(listChild, atom)) {
+                        listChildren.Add(listChild.CopyRecordBytes());
+                    }
+                }
+                documentChildren.Add(BuildVbaRecord(list.Version,
+                    list.Instance, list.Type,
+                    JoinExternalObjectRecords(listChildren)));
+            }
+            byte[] malformed = AppendLegacyDocumentPersist(
+                sourcePresentation, BuildVbaRecord(document.Version,
+                    document.Instance, document.Type,
+                    JoinExternalObjectRecords(documentChildren)));
+
+            using var input = new MemoryStream(malformed, writable: false);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            Assert.Single(imported.Slides[0].Shapes).Left += 1000;
+
+            LegacyPptWritePreflightReport report = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.False(report.CanWrite);
+            Assert.Throws<NotSupportedException>(() =>
+                imported.ToBytes(PowerPointFileFormat.Ppt));
+            byte[] rewritten = imported.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                });
+            Assert.Single(LegacyPptPresentation.Load(rewritten).Slides);
+        }
+
+        [Theory]
         [InlineData(0, OfficePackageSecurityRule.EmbeddedPayloads)]
         [InlineData(1, OfficePackageSecurityRule.ExternalRelationships)]
         [InlineData(2, OfficePackageSecurityRule.ActiveX)]
