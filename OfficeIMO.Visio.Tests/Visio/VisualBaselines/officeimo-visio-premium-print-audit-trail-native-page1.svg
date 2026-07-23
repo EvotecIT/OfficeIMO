@@ -3,7 +3,7 @@
   <g data-officeimo-visio-page="Premium Print Audit Trail">
     <g data-visio-shape-id="start" data-visio-nameu="Ellipse">
       <path d="M 520.8 192 L 516.956 180.819 L 505.688 170.4 L 487.762 161.453 L 464.4 154.588 L 437.195 150.272 L 408 148.8 L 378.805 150.272 L 351.6 154.588 L 328.238 161.453 L 310.312 170.4 L 299.044 180.819 L 295.2 192 L 299.044 203.181 L 310.312 213.6 L 328.238 222.547 L 351.6 229.412 L 378.805 233.728 L 408 235.2 L 437.195 233.728 L 464.4 229.412 L 487.762 222.547 L 505.688 213.6 L 516.956 203.181 Z" data-officeimo-preserved-geometry="true" fill="#F5F5F5" stroke="#1F2937" stroke-width="1.536" />
-      <text x="408" y="192" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="190.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Review window opens</tspan>
       </text>
     </g>
@@ -13,43 +13,43 @@
         <path d="M397.376 288.075C397.376 284.099 418.624 284.099 418.624 288.075L418.624 300.797C418.624 304.772 397.376 304.772 397.376 300.797Z" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
         <path d="M397.376 288.075C397.376 292.051 418.624 292.051 418.624 288.075" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
       </g>
-      <text x="408" y="320.16" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="318.827" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Export access snapshot</tspan>
       </text>
     </g>
     <g data-visio-shape-id="owner-review" data-visio-nameu="Process">
       <path d="M 295.2 505.92 L 520.8 505.92 L 520.8 405.12 L 295.2 405.12 Z" data-officeimo-preserved-geometry="true" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.536" />
-      <text x="408" y="455.52" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="454.187" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Owner review</tspan>
       </text>
     </g>
     <g data-visio-shape-id="evidence-complete" data-visio-nameu="Decision">
       <path d="M 408 679.68 L 520.8 610.08 L 408 540.48 L 295.2 610.08 Z" data-officeimo-preserved-geometry="true" fill="#E8E8E8" stroke="#111827" stroke-width="1.728" />
-      <text x="408" y="610.08" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="608.747" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Evidence complete?</tspan>
       </text>
     </g>
     <g data-visio-shape-id="remediate" data-visio-nameu="Process">
       <path d="M 295.2 815.04 L 520.8 815.04 L 520.8 714.24 L 295.2 714.24 Z" data-officeimo-preserved-geometry="true" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.536" />
-      <text x="408" y="764.64" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="763.307" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Remediate gaps</tspan>
       </text>
     </g>
     <g data-visio-shape-id="evidence" data-visio-nameu="Process">
       <path d="M 295.2 950.4 L 520.8 950.4 L 520.8 849.6 L 295.2 849.6 Z" data-officeimo-preserved-geometry="true" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.536" />
-      <text x="408" y="900" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="898.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Attach evidence</tspan>
       </text>
     </g>
     <g data-visio-shape-id="archive" data-visio-nameu="Ellipse">
       <path d="M 520.8 1028.16 L 516.956 1016.979 L 505.688 1006.56 L 487.762 997.613 L 464.4 990.748 L 437.195 986.432 L 408 984.96 L 378.805 986.432 L 351.6 990.748 L 328.238 997.613 L 310.312 1006.56 L 299.044 1016.979 L 295.2 1028.16 L 299.044 1039.341 L 310.312 1049.76 L 328.238 1058.707 L 351.6 1065.572 L 378.805 1069.888 L 408 1071.36 L 437.195 1069.888 L 464.4 1065.572 L 487.762 1058.707 L 505.688 1049.76 L 516.956 1039.341 Z" data-officeimo-preserved-geometry="true" fill="#F5F5F5" stroke="#1F2937" stroke-width="1.536" />
-      <text x="408" y="1028.16" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="1026.827" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Archive signed record</tspan>
       </text>
     </g>
     <g data-visio-shape-id="title" data-visio-nameu="Text Box">
       <path d="M 57.6 115.2 L 758.4 115.2 L 758.4 72 L 57.6 72 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <text x="408" y="93.6" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
+      <text x="408" y="90.667" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Quarter-End Access Review - Print Audit Trail</tspan>
       </text>
     </g>

@@ -1,4 +1,4 @@
-﻿<svg width="1296" height="562" viewBox="0 0 1296 561.6" role="img" aria-label="Premium Release Timeline" xmlns="http://www.w3.org/2000/svg">
+<svg width="1296" height="562" viewBox="0 0 1296 561.6" role="img" aria-label="Premium Release Timeline" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="1296" height="561.6" fill="#FFFFFF" />
   <g data-officeimo-visio-page="Premium Release Timeline">
     <g data-visio-shape-id="timeline-axis" data-visio-nameu="Rectangle">
@@ -6,31 +6,31 @@
     </g>
     <g data-visio-shape-id="timeline-start-label" data-visio-nameu="Rectangle">
       <path d="M 12 389.76 L 112.8 389.76 L 112.8 362.88 L 12 362.88 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="62.4" y="376.32" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="62.4" y="374.987" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="62.4" dy="0">Jun 1</tspan>
       </text>
     </g>
     <g data-visio-shape-id="timeline-end-label" data-visio-nameu="Rectangle">
       <path d="M 1183.2 389.76 L 1284 389.76 L 1284 362.88 L 1183.2 362.88 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="1233.6" y="376.32" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="1233.6" y="374.987" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="1233.6" dy="0">Sep 30</tspan>
       </text>
     </g>
     <g data-visio-shape-id="gallery" data-visio-nameu="Rectangle">
       <path d="M 81.759 224.64 L 459.253 224.64 L 459.253 195.84 L 81.759 195.84 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
-      <text x="270.506" y="210.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="270.506" y="208.907" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="270.506" dy="0">Premium gallery</tspan>
       </text>
     </g>
     <g data-visio-shape-id="stencils" data-visio-nameu="Rectangle">
       <path d="M 226.949 182.4 L 730.274 182.4 L 730.274 153.6 L 226.949 153.6 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
-      <text x="478.612" y="168" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="478.612" y="166.667" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="478.612" dy="0">Stencil packs</tspan>
       </text>
     </g>
     <g data-visio-shape-id="baselines" data-visio-nameu="Rectangle">
       <path d="M 488.291 476.16 L 1040.013 476.16 L 1040.013 447.36 L 488.291 447.36 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
-      <text x="764.152" y="461.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="764.152" y="460.427" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="764.152" dy="0">Visual baselines</tspan>
       </text>
     </g>
@@ -39,7 +39,7 @@
     </g>
     <g data-visio-shape-id="brief-label" data-visio-nameu="Rectangle">
       <path d="M 31.517 281.28 L 170.717 281.28 L 170.717 235.2 L 31.517 235.2 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="101.117" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="101.117" y="248.907" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="101.117" dy="0">Design brief</tspan>
         <tspan x="101.117" dy="16">Jun 5</tspan>
       </text>
@@ -49,7 +49,7 @@
     </g>
     <g data-visio-shape-id="gate-label" data-visio-nameu="Rectangle">
       <path d="M 457.408 436.8 L 596.608 436.8 L 596.608 390.72 L 457.408 390.72 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="527.008" y="405.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="527.008" y="404.427" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="527.008" dy="0">Visual gate</tspan>
         <tspan x="527.008" dy="16">Jul 19</tspan>
       </text>
@@ -62,7 +62,7 @@
     </g>
     <g data-visio-shape-id="risk-label" data-visio-nameu="Rectangle">
       <path d="M 709.071 281.28 L 848.271 281.28 L 848.271 235.2 L 709.071 235.2 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
-      <text x="778.671" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="778.671" y="248.907" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="778.671" dy="0">Export drift</tspan>
         <tspan x="778.671" dy="16">Aug 14</tspan>
       </text>
@@ -72,7 +72,7 @@
     </g>
     <g data-visio-shape-id="preview-label" data-visio-nameu="Rectangle">
       <path d="M 912.337 436.8 L 1051.537 436.8 L 1051.537 390.72 L 912.337 390.72 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="981.937" y="405.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="981.937" y="404.427" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="981.937" dy="0">Preview</tspan>
         <tspan x="981.937" dy="16">Sep 4</tspan>
       </text>
@@ -82,14 +82,14 @@
     </g>
     <g data-visio-shape-id="ship-label" data-visio-nameu="Rectangle">
       <path d="M 1105.924 281.28 L 1245.124 281.28 L 1245.124 235.2 L 1105.924 235.2 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
-      <text x="1175.524" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+      <text x="1175.524" y="248.907" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
         <tspan x="1175.524" dy="0">Ship</tspan>
         <tspan x="1175.524" dy="16">Sep 24</tspan>
       </text>
     </g>
     <g data-visio-shape-id="title" data-visio-nameu="Text Box">
       <path d="M 62.4 96 L 1233.6 96 L 1233.6 52.8 L 62.4 52.8 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <text x="648" y="74.4" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+      <text x="648" y="71.733" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="648" dy="0">Visio Premium Gallery Roadmap</tspan>
       </text>
     </g>
