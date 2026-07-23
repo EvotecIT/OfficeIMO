@@ -2009,16 +2009,18 @@ body.pf-api-docs {
 
 .imo-showcase-card__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 1rem;
 }
 
 .imo-showcase-card__actions .imo-btn {
+  min-width: 0;
   min-height: 40px;
   padding: 0.55rem 0.65rem;
   font-size: 0.76rem;
+  white-space: normal;
 }
 
 .imo-showcase-card__actions nav {
@@ -2026,13 +2028,16 @@ body.pf-api-docs {
   grid-column: 1 / -1;
   flex-wrap: wrap;
   gap: 0.75rem;
+  min-width: 0;
   padding-top: 0.25rem;
 }
 
 .imo-showcase-card__actions nav a {
+  min-width: 0;
   color: var(--imo-primary);
   font-size: 0.78rem;
   font-weight: 750;
+  overflow-wrap: anywhere;
   text-decoration: none;
 }
 
@@ -2186,6 +2191,7 @@ body.pf-api-docs {
   .imo-featured-workflow__pipeline { grid-template-columns: 1fr; }
   .imo-featured-workflow__arrow { transform: rotate(90deg); }
   .imo-featured-workflow__node { min-height: 96px; }
+  .imo-showcase-card__actions { grid-template-columns: 1fr; }
   .imo-showcase-proof-note { grid-template-columns: 1fr; gap: 0.35rem; }
 
   .pf-api-docs .api-layout,

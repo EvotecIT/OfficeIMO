@@ -35,7 +35,7 @@ The renderer supports continuous or paged layout and PNG, JPEG, TIFF, SVG, and W
 | RTF | `OfficeIMO.Html` with the focused RTF adapter |
 | Reader results | `OfficeIMO.Reader.Html` |
 
-The [generated output gallery](/showcase/) includes an HTML invoice rendered through the native PDF converter and linked to its visual baseline.
+The [generated output gallery](/showcase/) includes a runnable invoice workflow with a downloadable PDF and the PNG rendered from the same HTML document and options object.
 
 ## Control resources
 

@@ -213,6 +213,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--html-invoice")) {
+                Html.Html.Example_HtmlInvoiceShowcase(folderPath, HasArgument(args, "--open-pdf"));
+                return;
+            }
+
             if (HasArgument(args, "--pdf-professional")) {
                 Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
                 return;

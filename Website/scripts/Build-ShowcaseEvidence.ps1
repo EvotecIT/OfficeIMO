@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string] $Framework = 'net10.0',
-    [switch] $SkipGeneration
+    [switch] $SkipGeneration,
+    [switch] $ManifestOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,10 +72,11 @@ function New-ReaderProjection {
     }
 }
 
-if (-not $SkipGeneration) {
+if (-not $SkipGeneration -and -not $ManifestOnly) {
     foreach ($exampleSwitch in @(
         '--powerpoint-design-brief',
         '--pdf-showcase',
+        '--html-invoice',
         '--excel-report-workflow',
         '--onenote',
         '--visio-premium'
@@ -87,7 +89,9 @@ if (-not $SkipGeneration) {
 
 $powerPointPath = Join-Path $documentsRoot 'PowerPoint Design Brief Recommendations.pptx'
 $readerPath = Join-Path $documentsRoot 'PowerPoint-Design-Brief.reader.public.json'
-New-ReaderProjection -InputPath $powerPointPath -OutputPath $readerPath
+if (-not $ManifestOnly) {
+    New-ReaderProjection -InputPath $powerPointPath -OutputPath $readerPath
+}
 
 $artifacts = @(
     [ordered]@{
@@ -117,6 +121,27 @@ $artifacts = @(
         destination = 'pdf/showcase-dashboard-page1.png'
         generator = 'OfficeIMO.Pdf visual baseline rendered with Poppler'
         evidence = 'Approved page-one visual baseline for the generated dashboard.'
+    },
+    [ordered]@{
+        id = 'html-pdf-output'
+        source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.pdf')
+        destination = 'html/invoice.pdf'
+        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        evidence = 'PDF generated directly from the same parsed HTML and options object as the image outputs.'
+    },
+    [ordered]@{
+        id = 'html-png-output'
+        source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.png')
+        destination = 'html/invoice.png'
+        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        evidence = 'PNG generated directly from the same parsed HTML and options object as the PDF.'
+    },
+    [ordered]@{
+        id = 'html-svg-output'
+        source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.svg')
+        destination = 'html/invoice.svg'
+        generator = 'dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice'
+        evidence = 'SVG generated directly from the same parsed HTML and options object as the PDF.'
     },
     [ordered]@{
         id = 'excel-output'
@@ -199,7 +224,13 @@ $artifacts = @(
 
 $manifestArtifacts = foreach ($artifact in $artifacts) {
     $destination = Join-Path $downloadRoot $artifact.destination
-    Copy-Evidence -Source $artifact.source -Destination $destination
+    if ($ManifestOnly) {
+        if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+            throw "Expected showcase evidence is missing: $destination"
+        }
+    } else {
+        Copy-Evidence -Source $artifact.source -Destination $destination
+    }
     $file = Get-Item -LiteralPath $destination
     [ordered]@{
         id = $artifact.id

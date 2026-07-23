@@ -35,6 +35,30 @@
       "evidence": "Approved page-one visual baseline for the generated dashboard."
     },
     {
+      "id": "html-pdf-output",
+      "path": "/downloads/showcase/html/invoice.pdf",
+      "bytes": 19578,
+      "sha256": "e3b6c41b209d533385a99d0b9e276e366015c8509af7d41d8e8268e52b1d428d",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
+      "evidence": "PDF generated directly from the same parsed HTML and options object as the image outputs."
+    },
+    {
+      "id": "html-png-output",
+      "path": "/downloads/showcase/html/invoice.png",
+      "bytes": 59870,
+      "sha256": "c20033657a3a36c2d8c045dbd85c8cb136a1f12522637d7c0c485a0e20814cdd",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
+      "evidence": "PNG generated directly from the same parsed HTML and options object as the PDF."
+    },
+    {
+      "id": "html-svg-output",
+      "path": "/downloads/showcase/html/invoice.svg",
+      "bytes": 9399,
+      "sha256": "605b7a5c9ffe4b5dab01a6f6bd19553fb86fac6a2afc5acc15e56ff1a120e050",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
+      "evidence": "SVG generated directly from the same parsed HTML and options object as the PDF."
+    },
+    {
       "id": "excel-output",
       "path": "/downloads/showcase/excel/report-workflow.xlsx",
       "bytes": 11782,
