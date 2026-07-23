@@ -88,7 +88,26 @@ public class CsvStreamingTests
             Assert.Throws<InvalidOperationException>(() => CsvDocument.Load(path, options));
             Assert.Throws<InvalidOperationException>(() =>
                 CsvDocument.ReadRows(path, (_, _) => { }, options));
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                using var reader = CsvDocument.CreateDataReader(
+                    path,
+                    options,
+                    new CsvDataReaderOptions { InferSchema = true });
+                reader.Read();
+            });
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                var visitor = new CapturingRowFieldSpanVisitor(new List<string>());
+                CsvDocument.ReadRowFieldSpans(path, ref visitor, options);
+            });
             await Assert.ThrowsAsync<InvalidOperationException>(() => CsvDocument.LoadAsync(path, options));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                CsvDocument.CreateDataReader(
+                    path,
+                    new CsvLoadOptions { Mode = CsvLoadMode.Stream, MaxInputBytes = 0 },
+                    new CsvDataReaderOptions { InferSchema = true }));
         }
         finally
         {
