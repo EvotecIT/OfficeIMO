@@ -1,6 +1,6 @@
 ---
 title: "Showcase"
-description: "Find runnable document workflows with real generated output, source, and practical guides."
+description: "Explore OfficeIMO and PSWriteOffice workflows with downloadable documents, rendered proof, source code, validation evidence, and honest limitations."
 layout: showcase
-meta.seo_title: "OfficeIMO examples and generated document gallery"
+meta.seo_title: "OfficeIMO examples, downloads, and generated document gallery"
 ---

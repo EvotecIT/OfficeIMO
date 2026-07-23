@@ -70,11 +70,114 @@ if ($powerPointImageExport -notmatch 'PowerPointPresentation\.Load\("Quarterly-R
 
 $showcasePath = Join-Path $SiteRoot 'data\showcase.json'
 $showcase = Get-Content -LiteralPath $showcasePath -Raw | ConvertFrom-Json
+if (@($showcase.cards).Count -lt 6) {
+    Add-Failure 'The showcase must retain at least six evidence-backed workflows.'
+}
 foreach ($card in @($showcase.cards)) {
-    foreach ($requiredProperty in 'format', 'title', 'description', 'proof', 'source_url', 'guide_url', 'api_url') {
+    foreach ($requiredProperty in @(
+        'format', 'title', 'description', 'preview_kind', 'proof', 'limit',
+        'artifact_url', 'artifact_label', 'evidence_url', 'evidence_label',
+        'source_url', 'guide_url', 'api_url'
+    )) {
         if ([string]::IsNullOrWhiteSpace([string] $card.$requiredProperty)) {
             Add-Failure "Showcase card '$($card.title)' is missing '$requiredProperty'."
         }
+    }
+
+    foreach ($localUrlProperty in 'artifact_url', 'evidence_url') {
+        $localUrl = [string] $card.$localUrlProperty
+        if (-not $localUrl.StartsWith('/downloads/showcase/', [StringComparison]::Ordinal)) {
+            Add-Failure "Showcase card '$($card.title)' uses a non-evidence '$localUrlProperty' URL: $localUrl"
+            continue
+        }
+
+        $localPath = Join-Path (Join-Path $SiteRoot 'static') $localUrl.TrimStart([char[]] '/')
+        if (-not (Test-Path -LiteralPath $localPath -PathType Leaf)) {
+            Add-Failure "Showcase card '$($card.title)' points to missing evidence '$localUrl'."
+        }
+    }
+
+    if ($card.preview_kind -eq 'image') {
+        if ([string]::IsNullOrWhiteSpace([string] $card.image) -or
+            [string] $card.image -match '/images/formats/') {
+            Add-Failure "Showcase card '$($card.title)' must use generated visual evidence, not a format icon."
+        } else {
+            $previewPath = Join-Path (Join-Path $SiteRoot 'static') ([string] $card.image).TrimStart([char[]] '/')
+            if (-not (Test-Path -LiteralPath $previewPath -PathType Leaf)) {
+                Add-Failure "Showcase card '$($card.title)' points to missing preview '$($card.image)'."
+            }
+        }
+    } elseif ($card.preview_kind -eq 'reader') {
+        if (@($card.preview_items).Count -lt 3 -or [string]::IsNullOrWhiteSpace([string] $card.preview_title)) {
+            Add-Failure "Showcase card '$($card.title)' has an incomplete Reader preview."
+        }
+    } elseif ($card.preview_kind -eq 'onenote') {
+        foreach ($previewProperty in 'preview_title', 'preview_heading', 'preview_body', 'preview_item') {
+            if ([string]::IsNullOrWhiteSpace([string] $card.$previewProperty)) {
+                Add-Failure "Showcase card '$($card.title)' is missing OneNote preview field '$previewProperty'."
+            }
+        }
+    } else {
+        Add-Failure "Showcase card '$($card.title)' has unsupported preview kind '$($card.preview_kind)'."
+    }
+}
+
+$showcaseManifestPath = Join-Path $SiteRoot 'static\downloads\showcase\manifest.json'
+$showcaseManifest = Get-Content -LiteralPath $showcaseManifestPath -Raw | ConvertFrom-Json
+if ($showcaseManifest.schema -ne 'officeimo.showcase-evidence' -or $showcaseManifest.schemaVersion -ne 1) {
+    Add-Failure 'The showcase evidence manifest has an unsupported schema.'
+}
+$manifestPaths = @($showcaseManifest.artifacts | ForEach-Object { [string] $_.path })
+foreach ($artifact in @($showcaseManifest.artifacts)) {
+    $artifactPath = Join-Path (Join-Path $SiteRoot 'static') ([string] $artifact.path).TrimStart([char[]] '/')
+    if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+        Add-Failure "Showcase manifest artifact '$($artifact.id)' is missing '$($artifact.path)'."
+        continue
+    }
+
+    $file = Get-Item -LiteralPath $artifactPath
+    if ($file.Length -ne [long] $artifact.bytes) {
+        Add-Failure "Showcase manifest artifact '$($artifact.id)' has a stale byte count."
+    }
+    $actualHash = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne [string] $artifact.sha256) {
+        Add-Failure "Showcase manifest artifact '$($artifact.id)' has a stale SHA-256 hash."
+    }
+}
+foreach ($card in @($showcase.cards)) {
+    foreach ($evidenceUrl in @([string] $card.artifact_url, [string] $card.evidence_url)) {
+        if ($manifestPaths -notcontains $evidenceUrl) {
+            Add-Failure "Showcase card '$($card.title)' evidence '$evidenceUrl' is missing from the manifest."
+        }
+    }
+}
+
+$readerCard = @($showcase.cards | Where-Object preview_kind -eq 'reader') | Select-Object -First 1
+$readerEvidencePath = Join-Path (Join-Path $SiteRoot 'static') ([string] $readerCard.artifact_url).TrimStart([char[]] '/')
+$readerEvidenceRaw = Get-Content -LiteralPath $readerEvidencePath -Raw
+$readerEvidence = $readerEvidenceRaw | ConvertFrom-Json
+if ($readerEvidence.schemaId -ne 'officeimo.document.read-result' -or
+    $readerEvidence.schemaVersion -ne 6 -or
+    $readerEvidence.kind -ne 'PowerPoint' -or
+    @($readerEvidence.chunks).Count -ne 4) {
+    Add-Failure 'The bundled Reader proof is not the expected four-slide schema-v6 PowerPoint result.'
+}
+if ($readerEvidenceRaw -match '"path"\s*:\s*"[A-Za-z]:\\\\') {
+    Add-Failure 'The bundled Reader proof leaks a machine-local repository path.'
+}
+foreach ($previewItem in @($readerCard.preview_items)) {
+    if ([string] $readerEvidence.markdown -notmatch [regex]::Escape([string] $previewItem)) {
+        Add-Failure "Reader preview item '$previewItem' is not present in the bundled Reader output."
+    }
+}
+
+$oneNoteCard = @($showcase.cards | Where-Object preview_kind -eq 'onenote') | Select-Object -First 1
+$oneNoteHtmlPath = Join-Path $SiteRoot 'static\downloads\showcase\onenote\offline-planning.html.txt'
+$oneNoteHtml = Get-Content -LiteralPath $oneNoteHtmlPath -Raw
+$oneNoteText = $oneNoteHtml -replace '<[^>]+>', ''
+foreach ($previewProperty in 'preview_title', 'preview_heading', 'preview_body', 'preview_item') {
+    if ($oneNoteText -notmatch [regex]::Escape([string] $oneNoteCard.$previewProperty)) {
+        Add-Failure "OneNote preview field '$previewProperty' is not present in the bundled HTML export."
     }
 }
 

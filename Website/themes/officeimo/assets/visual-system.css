@@ -1543,11 +1543,10 @@ body.pf-api-docs {
 
 /* Example gallery: workflow discovery backed by real generated artifacts. */
 .imo-showcase-hero {
-  padding: clamp(3rem, 7vw, 5.3rem) 0 1.5rem;
+  padding: clamp(1rem, 2vw, 1.5rem) 0 0.5rem;
   text-align: center;
 }
 
-.imo-showcase-eyebrow,
 .imo-showcase-heading span,
 .imo-featured-workflow__copy > span {
   display: block;
@@ -1561,17 +1560,17 @@ body.pf-api-docs {
 
 .imo-showcase-hero h1 {
   margin: 0;
-  font-size: clamp(2.7rem, 7vw, 4.8rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
+  font-size: clamp(2.35rem, 4.5vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
 
 .imo-showcase-hero > .imo-container > p:not(.imo-showcase-eyebrow) {
   max-width: 700px;
-  margin: 1rem auto 0;
+  margin: 0.65rem auto 0;
   color: var(--imo-text-secondary);
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .imo-showcase-filters {
@@ -1579,7 +1578,7 @@ body.pf-api-docs {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.55rem;
-  margin-top: 1.5rem;
+  margin-top: 0.9rem;
 }
 
 .imo-showcase-filter {
@@ -1608,14 +1607,14 @@ body.pf-api-docs {
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22);
 }
 
-.imo-section--showcase { padding-top: 1rem; }
+.imo-section--showcase { padding-top: 0.5rem; }
 
 .imo-featured-workflow {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(460px, 1.4fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(560px, 1.55fr);
   gap: 2rem;
   align-items: center;
-  padding: clamp(1.4rem, 3vw, 2.2rem);
+  padding: clamp(1.2rem, 2vw, 1.65rem);
   border: 1px solid var(--imo-border);
   border-radius: 18px;
   background:
@@ -1626,53 +1625,117 @@ body.pf-api-docs {
 
 .imo-featured-workflow h2 {
   margin: 0 0 0.65rem;
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
   line-height: 1.08;
 }
 
 .imo-featured-workflow p {
   margin: 0 0 1rem;
   color: var(--imo-text-secondary);
-  line-height: 1.65;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
-.imo-featured-workflow__steps {
+.imo-featured-workflow__pipeline {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2.2rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: minmax(112px, 0.75fr) auto minmax(260px, 1.75fr) auto minmax(130px, 0.9fr);
+  gap: 0.75rem;
+  align-items: center;
 }
 
-.imo-featured-workflow__steps li {
-  position: relative;
-  display: grid;
-  place-content: center;
-  min-height: 116px;
-  padding: 1rem;
+.imo-featured-workflow__node,
+.imo-featured-workflow__office {
+  min-width: 0;
   border: 1px solid var(--imo-border);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--imo-bg-elevated) 88%, var(--imo-primary-light));
+  background: color-mix(in srgb, var(--imo-bg-elevated) 92%, var(--imo-primary-light));
   text-align: center;
 }
 
-.imo-featured-workflow__steps li:not(:last-child)::after {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 0.55rem);
-  width: 1rem;
-  content: "→";
-  color: var(--imo-text-secondary);
-  font-weight: 800;
-  transform: translateY(-50%);
+.imo-featured-workflow__node {
+  display: flex;
+  min-height: 126px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem;
 }
 
-.imo-featured-workflow__steps strong { font-size: 0.92rem; }
-.imo-featured-workflow__steps span {
-  margin-top: 0.35rem;
+.imo-featured-workflow__icon {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  margin-bottom: 0.55rem;
+  border-radius: 10px;
+  background: var(--imo-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.imo-featured-workflow__node strong,
+.imo-featured-workflow__office > strong {
+  font-size: 0.85rem;
+}
+
+.imo-featured-workflow__node small,
+.imo-featured-workflow__office small {
+  margin-top: 0.25rem;
   color: var(--imo-text-secondary);
-  font-size: 0.74rem;
+  font-size: 0.66rem;
+  font-style: normal;
+}
+
+.imo-featured-workflow__arrow {
+  color: var(--imo-text-secondary);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.imo-featured-workflow__office {
+  padding: 0.75rem;
+}
+
+.imo-featured-workflow__office > strong {
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.imo-featured-workflow__office > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.imo-featured-workflow__office span {
+  display: flex;
+  min-height: 80px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.35rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 10px;
+  background: var(--imo-bg-elevated);
+}
+
+.imo-featured-workflow__office b {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  margin-bottom: 0.3rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--imo-primary) 13%, var(--imo-bg-elevated));
+  color: var(--imo-primary);
+  font-size: 0.78rem;
+}
+
+.imo-featured-workflow__office em {
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .imo-showcase-heading {
@@ -1680,7 +1743,7 @@ body.pf-api-docs {
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
-  margin: 3.5rem 0 1rem;
+  margin: 1.7rem 0 1rem;
 }
 
 .imo-showcase-heading h2 {
@@ -1745,6 +1808,116 @@ body.pf-api-docs {
   filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.13));
 }
 
+.imo-showcase-reader,
+.imo-showcase-onenote {
+  width: min(100%, 330px);
+  min-height: 184px;
+  border: 1px solid color-mix(in srgb, var(--imo-border) 86%, var(--imo-primary));
+  border-radius: 12px;
+  background: var(--imo-bg-elevated);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  color: var(--imo-text);
+}
+
+.imo-showcase-reader {
+  padding: 0.85rem;
+}
+
+.imo-showcase-reader > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--imo-border);
+}
+
+.imo-showcase-reader > div b { font-size: 0.75rem; }
+.imo-showcase-reader > div small {
+  color: var(--imo-text-secondary);
+  font-size: 0.58rem;
+}
+
+.imo-showcase-reader > strong {
+  display: block;
+  margin: 0.7rem 0 0.45rem;
+  font-family: var(--imo-font-mono);
+  font-size: 0.7rem;
+}
+
+.imo-showcase-reader ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imo-showcase-reader li {
+  padding: 0.34rem 0.45rem 0.34rem 1.4rem;
+  border-radius: 6px;
+  background: var(--imo-bg-alt);
+  color: var(--imo-text-secondary);
+  font-size: 0.63rem;
+}
+
+.imo-showcase-reader li::before {
+  margin-left: -0.9rem;
+  margin-right: 0.45rem;
+  content: "§";
+  color: var(--imo-primary);
+  font-weight: 900;
+}
+
+.imo-showcase-onenote {
+  overflow: hidden;
+  padding: 0 1rem 1rem;
+}
+
+.imo-showcase-onenote > div {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 -1rem 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--imo-border);
+  background: color-mix(in srgb, #7c3aed 10%, var(--imo-bg-elevated));
+}
+
+.imo-showcase-onenote > div span {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 6px;
+  background: #7c3aed;
+  color: #fff;
+  font-weight: 900;
+}
+
+.imo-showcase-onenote > div small {
+  color: var(--imo-text-secondary);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.imo-showcase-onenote h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.imo-showcase-onenote h4 {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+}
+
+.imo-showcase-onenote p,
+.imo-showcase-onenote li {
+  color: var(--imo-text-secondary);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
 .imo-showcase-card__body {
   display: flex;
   flex: 1;
@@ -1763,6 +1936,23 @@ body.pf-api-docs {
   color: var(--imo-text-secondary);
   font-size: 0.86rem;
   line-height: 1.6;
+}
+
+.imo-showcase-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+
+.imo-showcase-card__tags span {
+  padding: 0.23rem 0.48rem;
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 22%, var(--imo-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--imo-primary) 7%, var(--imo-bg-elevated));
+  color: var(--imo-primary);
+  font-size: 0.64rem;
+  font-weight: 800;
 }
 
 .imo-showcase-card__io {
@@ -1789,19 +1979,33 @@ body.pf-api-docs {
 
 .imo-showcase-card__io dd { margin: 0; font-weight: 800; }
 
-.imo-showcase-card details {
+.imo-showcase-card__proof {
   margin-top: 0.85rem;
   color: var(--imo-text-secondary);
   font-size: 0.78rem;
 }
 
-.imo-showcase-card summary {
+.imo-showcase-card__proof summary {
   color: var(--imo-text);
   font-weight: 700;
   cursor: pointer;
 }
 
-.imo-showcase-card details p { margin: 0.45rem 0 0; line-height: 1.55; }
+.imo-showcase-card__proof > div {
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  border-left: 3px solid #10b981;
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, #10b981 7%, var(--imo-bg-elevated));
+}
+
+.imo-showcase-card__proof > div.is-limit {
+  border-left-color: #f59e0b;
+  background: color-mix(in srgb, #f59e0b 8%, var(--imo-bg-elevated));
+}
+
+.imo-showcase-card__proof strong { color: var(--imo-text); }
+.imo-showcase-card__proof p { margin: 0.3rem 0 0; line-height: 1.55; }
 
 .imo-showcase-card__actions {
   display: grid;
@@ -1817,11 +2021,25 @@ body.pf-api-docs {
   font-size: 0.76rem;
 }
 
-.imo-showcase-card__actions .imo-action-link {
+.imo-showcase-card__actions nav {
+  display: flex;
   grid-column: 1 / -1;
-  justify-self: start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   padding-top: 0.25rem;
+}
+
+.imo-showcase-card__actions nav a {
+  color: var(--imo-primary);
   font-size: 0.78rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.imo-showcase-card__actions nav a:hover,
+.imo-showcase-card__actions nav a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .imo-showcase-proof-note {
@@ -1965,9 +2183,9 @@ body.pf-api-docs {
   .imo-proof-card__actions { align-items: flex-start; flex-direction: column; }
   .imo-showcase-grid { grid-template-columns: 1fr; }
   .imo-showcase-card__preview { height: 280px; }
-  .imo-featured-workflow__steps { grid-template-columns: 1fr; gap: 0.65rem; }
-  .imo-featured-workflow__steps li { min-height: 86px; }
-  .imo-featured-workflow__steps li:not(:last-child)::after { display: none; }
+  .imo-featured-workflow__pipeline { grid-template-columns: 1fr; }
+  .imo-featured-workflow__arrow { transform: rotate(90deg); }
+  .imo-featured-workflow__node { min-height: 96px; }
   .imo-showcase-proof-note { grid-template-columns: 1fr; gap: 0.35rem; }
 
   .pf-api-docs .api-layout,

@@ -7,6 +7,10 @@
 # producer line endings, because corpus SHA-256 checks must match on every OS.
 OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text
 
+# Public showcase downloads are generated binary evidence. Preserve exact bytes
+# so the committed manifest hashes remain stable across platforms and checkouts.
+Website/static/downloads/showcase/** -text -diff
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
