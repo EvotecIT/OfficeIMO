@@ -203,8 +203,18 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--excel-report-workflow")) {
+                Excel.ReportWorkflow.Example(folderPath, false);
+                return;
+            }
+
             if (HasArgument(args, "--html-direct")) {
                 Html.Html.Example_Html11_DirectOutputs(folderPath, HasArgument(args, "--open-pdf"));
+                return;
+            }
+
+            if (HasArgument(args, "--html-invoice")) {
+                Html.Html.Example_HtmlInvoiceShowcase(folderPath, HasArgument(args, "--open-pdf"));
                 return;
             }
 

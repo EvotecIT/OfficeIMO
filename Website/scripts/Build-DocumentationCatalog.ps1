@@ -48,6 +48,8 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Html' { return '/docs/html/' }
         '^OfficeIMO\.OpenDocument' { return '/docs/open-document/' }
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
+        '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
+        '^OfficeIMO\.Epub' { return '/docs/epub/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }
         '^OfficeIMO\.Reader' { return '/docs/reader/' }

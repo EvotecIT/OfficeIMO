@@ -1,0 +1,1 @@
+PDF-unrendered pivot tables (1, PartiallyEditable): Pivot table metadata is not rendered by the first-party Excel-to-PDF path unless the pivot output is already materialized as ordinary worksheet cells. [Report: 1 pivot table(s)]

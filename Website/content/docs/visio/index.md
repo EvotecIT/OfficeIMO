@@ -1,26 +1,29 @@
 ---
-title: Visio Diagrams
-description: Generate VSDX diagrams with builders, pages, shapes, connectors, stencils, and graph layouts.
+title: "Create and edit Visio diagrams in .NET"
+description: "Create, edit, inspect, validate, and export VSDX diagrams with builders, pages, shapes, connectors, stencils, and graph layouts."
+meta.seo_title: "Create, edit, and export VSDX Visio diagrams in .NET"
 order: 52
 ---
 
-`OfficeIMO.Visio` focuses on generating `.vsdx` diagrams from pure .NET code. It is a good fit when your application already knows the topology, flow, or system shape it wants to draw and you need a repeatable way to emit diagrams without manual Visio authoring.
+`OfficeIMO.Visio` creates, edits, inspects, validates, and exports `.vsdx` diagrams without COM automation and without Microsoft Visio installed. Use a diagram builder for common topology and process models, or work directly with pages, shapes, connectors, layers, Shape Data, containers, comments, and metadata.
 
-## Good use cases
+## Choose your workflow
 
-- Infrastructure and architecture diagrams generated from configuration or inventory data.
-- Network maps, dependency graphs, and deployment flows.
-- Org charts, timelines, sequences, swimlanes, or process diagrams produced from business system exports.
-- Native or external stencil-pack diagrams generated from installed Visio stencils or `.vssx` repositories.
-- Report pipelines that need a diagram artifact alongside Word, Excel, or PowerPoint output.
+| You need to | Start here |
+|---|---|
+| Generate flowcharts, architectures, networks, org charts, sequences, timelines, or generic graphs | [Diagram builders](/docs/visio/diagram-builders/) |
+| Load a VSDX, select and update shapes, maintain metadata, or validate output | [Editing and validation](/docs/visio/editing-and-validation/) |
+| Use built-in, installed, or external VSSX/VSTX shapes | [Stencils and catalogs](/docs/visio/stencils-and-catalogs/) |
+| Produce SVG, PNG, JPEG, TIFF, or WebP previews without Visio | [Image export](/docs/visio/image-export/) |
 
-## Building blocks
+## What the package handles
 
-- **Documents and pages** to organize one or more related views.
-- **Shapes, masters, stencils, and catalogs** for generated, native, and external-pack visuals.
-- **Connectors** for relationships, directional flows, labels, Shape Data, and hyperlinks.
-- **Diagram builders** for flowcharts, architecture, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs.
-- **Quality and polish helpers** for page fitting, text sizing, connector labels, and visual validation.
+- VSDX document and page creation, loading, editing, saving, and validation
+- shapes, text, styles, connection points, connectors, routing hints, labels, hyperlinks, and Shape Data
+- layers, containers, comments, metadata, and topology queries
+- fluent builders for common business and technical diagram types
+- generated catalogs, installed Visio stencils, external VSSX/VSTX packs, and stencil migration planning
+- headless SVG, PNG, JPEG, TIFF, and lossless WebP export
 
 ## Quick start
 
@@ -43,17 +46,4 @@ VisioDocument.Create("topology.vsdx")
     .Save();
 ```
 
-## Recommended workflow
-
-1. Define the nodes and relationships you want to visualize from your source data.
-2. Choose a domain builder, such as architecture, network, flowchart, dependency, swimlane, timeline, or graph.
-3. Use generated catalogs, installed Visio stencils, or external `.vssx` packs when real domain symbols matter.
-4. Attach Shape Data, hyperlinks, and stable IDs so regenerated diagrams remain searchable and diff-friendly.
-5. Save the `.vsdx` output as a build artifact or generated report attachment.
-
-## Related packages
-
-- [OfficeIMO.Visio API reference](/api/visio/) for diagram, shape, connector, and fluent builder types.
-- [OfficeIMO.Word](/products/word/) for report documents that embed or reference generated diagrams.
-- [OfficeIMO.PowerPoint](/products/powerpoint/) for slide decks built from the same topology data.
-- [OfficeIMO.Reader](/products/reader/) when your workflow also needs ingestion and extraction.
+Run the [architecture example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Visio/ArchitectureDiagramBuilder.cs) to inspect a generated VSDX and validation result. The [Visio API reference](/api/visio/) contains the complete lower-level model.

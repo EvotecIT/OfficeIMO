@@ -15,18 +15,18 @@ OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a s
 
 ## Features
 
-- **Fluent document builder** -- construct Markdown documents programmatically with a chainable API
-- **Typed block & inline AST model** -- headings, paragraphs, lists, tables, code blocks, emphasis, links, and images as strongly typed objects
-- **Source spans for every node** -- line, column, and offset tracking for diagnostics and editor support
-- **Multiple reader profiles** -- OfficeIMO, CommonMark, GFM, and Portable profiles with configurable strictness
-- **HTML rendering** -- emit fragment or full-page HTML with customizable templates
-- **Front matter support** -- parse YAML and TOML front matter into typed dictionaries
-- **TOC helpers & callouts** -- generate table of contents from headings and render note/warning/tip callouts
-- **Tables from objects** -- build Markdown tables directly from collections with column selectors
-- **Input normalization presets** -- normalize line endings, whitespace, and encoding before parsing
-- **Post-parse document transforms** -- rewrite, filter, or augment the AST after parsing
-- **Extension API** -- register custom block and inline parsers for domain-specific syntax
-- **Zero external dependencies** -- ships as a single assembly with no third-party references
+- **Fluent document builder** — construct Markdown documents programmatically with a chainable API
+- **Typed block & inline AST model** — headings, paragraphs, lists, tables, code blocks, emphasis, links, and images as strongly typed objects
+- **Source spans for every node** — line, column, and offset tracking for diagnostics and editor support
+- **Multiple reader profiles** — OfficeIMO, CommonMark, GFM, and Portable profiles with configurable strictness
+- **HTML rendering** — emit fragment or full-page HTML with customizable templates
+- **Front matter support** — parse YAML and TOML front matter into typed dictionaries
+- **TOC helpers & callouts** — generate table of contents from headings and render note/warning/tip callouts
+- **Tables from objects** — build Markdown tables directly from collections with column selectors
+- **Input normalization presets** — normalize line endings, whitespace, and encoding before parsing
+- **Post-parse document transforms** — rewrite, filter, or augment the AST after parsing
+- **Extension API** — register custom block and inline parsers for domain-specific syntax
+- **Zero external dependencies** — ships as a single assembly with no third-party references
 
 ## Quick start
 
@@ -44,11 +44,10 @@ var doc = MarkdownDoc.Create()
         .Item("HTML fragment and full-page rendering"))
     .H2("Performance")
     .Table(t => t
-        .Headers("Benchmark", "v2.4", "v3.0")
-        .Row("Parse 10K lines", "48 ms", "21 ms")
-        .Row("Render to HTML", "35 ms", "14 ms")
-        .Row("Round-trip fidelity", "97%", "100%")
-        .AlignNumericRight())
+        .Headers("Package", "Change", "Owner")
+        .Row("OfficeIMO.Markdown", "Typed AST traversal", "Documentation")
+        .Row("OfficeIMO.Word.Markdown", "Word conversion", "Automation")
+        .Row("OfficeIMO.Markdown.Html", "HTML conversion", "Web"))
     .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
 string markdown = doc.ToMarkdown();

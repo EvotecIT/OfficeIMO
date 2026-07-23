@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 12,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
-    "conceptualPageCount": 69,
-    "conceptualWordCount": 28713
+    "conceptualPageCount": 89,
+    "conceptualWordCount": 35508
   },
   "categories": [
     {
@@ -127,7 +127,7 @@
       "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 308,
+      "sourceFileCount": 309,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -153,7 +153,7 @@
       "description": "Managed email and Outlook data engine for EML, MSG/OFT, TNEF, ICS, vCard, Mbox, PST/OST, OLM, EMLX, Maildir, and Offline Address Book artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "sourceFileCount": 395,
+      "sourceFileCount": 397,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
@@ -168,7 +168,7 @@
       "projectPath": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
       "sourceFileCount": 25,
       "referencingTestProjectCount": 2,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/epub/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub"
     },
@@ -181,7 +181,7 @@
       "projectPath": "OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/epub/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image"
     },
@@ -192,7 +192,7 @@
       "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Excel documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 870,
+      "sourceFileCount": 874,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -595,7 +595,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 916,
+      "sourceFileCount": 918,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1037,9 +1037,9 @@
       "description": "Managed Rich Text Format (RTF) reader, writer, lossless syntax tree, bounded parser, and editable document model for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
-      "sourceFileCount": 226,
+      "sourceFileCount": 227,
       "referencingTestProjectCount": 4,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf"
     },
@@ -1052,7 +1052,7 @@
       "projectPath": "OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
       "sourceFileCount": 8,
       "referencingTestProjectCount": 3,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown"
     },
@@ -1065,7 +1065,7 @@
       "projectPath": "OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
       "sourceFileCount": 13,
       "referencingTestProjectCount": 3,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/rtf/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf"
     },

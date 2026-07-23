@@ -46,9 +46,14 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
 if ($pageHtml -notmatch 'data-benchmark-family="excel"' -or
     $pageHtml -notmatch 'data-benchmark-family="csv"' -or
     $pageHtml -notmatch 'id="excel-matrix"' -or
-    $pageHtml -notmatch 'Public baseline planned' -or
-    $pageHtml -notmatch 'Word and PowerPoint') {
-    throw "Benchmark page did not render the format-specific evidence hub and publication status."
+    $pageHtml -notmatch 'Coverage boundary' -or
+    $pageHtml -notmatch 'Word and PowerPoint' -or
+    $pageHtml -notmatch '/docs/capabilities/benchmarks/') {
+    throw "Benchmark page did not render the format-specific evidence hub, coverage boundary, and reproduction guide."
+}
+
+if ($pageHtml -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main') {
+    throw "Benchmark page contains a public evidence link to the nonexistent OfficeIMO 'main' branch."
 }
 
 if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or $pageHtml -notmatch 'data-benchmark-filter="search"' -or $pageHtml -notmatch 'data-benchmark-reset' -or $pageHtml -notmatch 'data-benchmark-sort-mode' -or $pageHtml -notmatch '/js/benchmarks.js') {

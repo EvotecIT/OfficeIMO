@@ -116,5 +116,5 @@ workbook.SheetCachingEnabled = false;
 
 ## Further Reading
 
-- [Worksheets](/docs/excel/worksheets) -- Cell values, formatting, formulas, and named ranges.
-- [Tables and Ranges](/docs/excel/tables-ranges) -- AutoFilter tables, validation, and conditional formatting.
+- [Worksheets](/docs/excel/worksheets) — Cell values, formatting, formulas, and named ranges.
+- [Tables and Ranges](/docs/excel/tables-ranges) — AutoFilter tables, validation, and conditional formatting.

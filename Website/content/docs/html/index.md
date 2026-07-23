@@ -33,3 +33,5 @@ byte[] png = source.ToPng(new HtmlRenderOptions {
 - Reusable semantic mappings for Markdown, Word, RTF, Email, and PDF adapters.
 
 Install only the adapter needed by the destination, such as `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, or `OfficeIMO.Html.Pdf`. See the [HTML API reference](/api/html/).
+
+Continue with [rendering and conversion examples](/docs/html/render-and-convert/) for image, PDF, Word, Markdown, and service-safe resource-policy patterns.

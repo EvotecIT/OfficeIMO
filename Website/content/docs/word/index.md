@@ -124,11 +124,11 @@ document.Save();
 
 ## Further Reading
 
-- [Paragraphs](/docs/word/paragraphs/) -- Text formatting, alignment, spacing, and fonts.
-- [Tables](/docs/word/tables/) -- Creating, styling, merging, and inspecting tables.
-- [Images](/docs/word/images/) -- Adding images from files, streams, URLs, and base64.
-- [Headers and Footers](/docs/word/headers-footers/) -- Page numbers, different first-page headers, and section-specific content.
-- [Templates, forms, and mail merge](/docs/word/templates/) -- Preflight and bind layout-owned templates.
-- [Review and comparison](/docs/word/review/) -- Inspect comments and revisions, compare structure, create redlines, and enforce signed-document policy.
-- [Conversion and rendering](/docs/word/conversion/) -- Choose HTML, Markdown, PDF, OpenDocument, RTF, Google Docs, or image output.
-- [Market readiness](/docs/word/market-readiness/) -- Current readiness evidence, proof artifacts, and known limits.
+- [Paragraphs](/docs/word/paragraphs/) — Text formatting, alignment, spacing, and fonts.
+- [Tables](/docs/word/tables/) — Creating, styling, merging, and inspecting tables.
+- [Images](/docs/word/images/) — Adding images from files, streams, URLs, and base64.
+- [Headers and Footers](/docs/word/headers-footers/) — Page numbers, different first-page headers, and section-specific content.
+- [Templates, forms, and mail merge](/docs/word/templates/) — Preflight and bind layout-owned templates.
+- [Review and comparison](/docs/word/review/) — Inspect comments and revisions, compare structure, create redlines, and enforce signed-document policy.
+- [Conversion and rendering](/docs/word/conversion/) — Choose HTML, Markdown, PDF, OpenDocument, RTF, Google Docs, or image output.
+- [Production workflows](/docs/word/market-readiness/) — Template assembly, conversion, review, proof artifacts, and validation.

@@ -143,7 +143,7 @@ presentation.MoveSlide(2, 0);
 
 ## Related guides
 
-- [PowerPoint overview](/docs/powerpoint/) -- Package scope, workflow, and positioning.
-- [Designer Decks](/docs/powerpoint/designer/) -- Use higher-level design briefs, semantic plans, and composer primitives when manual placement becomes too repetitive.
-- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build slides from PowerShell.
-- [OfficeIMO.PowerPoint product page](/products/powerpoint/) -- Install and package overview.
+- [PowerPoint overview](/docs/powerpoint/) — Package scope and workflow.
+- [Designer Decks](/docs/powerpoint/designer/) — Use higher-level design briefs, semantic plans, and composer primitives when manual placement becomes too repetitive.
+- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) — Build slides from PowerShell.
+- [OfficeIMO.PowerPoint product page](/products/powerpoint/) — Install and package overview.

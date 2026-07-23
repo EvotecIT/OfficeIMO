@@ -12,15 +12,15 @@
       <article class="imo-showcase-card" role="listitem">
         {{ if card.image }}
         <div class="imo-showcase-card__media">
-          <img src="{{ card.image }}" alt="{{ card.title }}" loading="lazy" />
+          <img src="{{ card.image }}" alt="{{ card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
         </div>
         {{ end }}
         <div class="imo-showcase-card__body">
           <h3>{{ card.title }}</h3>
           <p>{{ card.description }}</p>
-          {{ if card.tags }}
+          {{ if card.badge_tags }}
           <div class="imo-showcase-card__tags">
-            {{ for tag in card.tags }}
+            {{ for tag in card.badge_tags }}
             <span class="imo-badge">{{ tag }}</span>
             {{ end }}
           </div>

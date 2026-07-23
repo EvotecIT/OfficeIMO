@@ -1,17 +1,21 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using System.Text;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
-    /// Demonstrates a template-to-report workflow with formulas, charts, pivots, preflight, and PDF export.
+    /// Demonstrates a template-to-report workflow with formulas, charts, pivots, and an honest PDF preflight decision.
     /// </summary>
     public static class ReportWorkflow {
         public static void Example(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Report workflow");
             string workbookPath = Path.Combine(folderPath, "ExcelReportWorkflow.xlsx");
             string pdfPath = Path.Combine(folderPath, "ExcelReportWorkflow.pdf");
+            string previewPath = Path.Combine(folderPath, "ExcelReportWorkflow.png");
+            string diagnosticsPath = Path.Combine(folderPath, "ExcelReportWorkflow.preflight.txt");
 
             using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
                 ExcelSheet sheet = document.Sheets[0];
@@ -45,16 +49,24 @@ namespace OfficeIMO.Examples.Excel {
                     dataFields: new[] { new ExcelPivotDataField("Revenue", DataConsolidateFunctionValues.Sum, "Total Revenue") },
                     pivotStyleName: "PivotStyleMedium9");
 
+                OfficeImageExportResult preview = sheet.Range("A1:J20").ExportImage(OfficeImageExportFormat.Png);
+                File.WriteAllBytes(previewPath, preview.Bytes);
+
                 ExcelFeatureReport report = document.InspectFeatures();
+                document.Save();
                 if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
+                    IReadOnlyList<string> diagnostics = report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport);
+                    File.WriteAllLines(diagnosticsPath, diagnostics, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
                     Console.WriteLine("[!] Excel-to-PDF export is blocked:");
-                    foreach (string diagnostic in report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)) {
+                    foreach (string diagnostic in diagnostics) {
                         Console.WriteLine("  - " + diagnostic);
                     }
+                    Console.WriteLine("    Workbook: " + workbookPath);
+                    Console.WriteLine("    Preview: " + previewPath);
+                    Console.WriteLine("    Diagnostics: " + diagnosticsPath);
                     return;
                 }
 
-                document.Save();
                 document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,

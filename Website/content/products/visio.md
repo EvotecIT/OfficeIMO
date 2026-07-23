@@ -16,13 +16,13 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 
 ## Features
 
-- **Create, load & save .vsdx files** -- full round-trip support for the Visio Open XML format
-- **Diagram builders** -- create flowcharts, architecture diagrams, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs
-- **Stencils and catalogs** -- use generated catalogs, installed Visio stencils, or external `.vssx` / `.vstx` packs
-- **Connectors with metadata** -- connect shapes with labels, hyperlinks, Shape Data, waypoints, and routing hints
-- **Fluent and low-level APIs** -- chain common diagrams or edit individual pages, shapes, connectors, and masters
-- **Multiple measurement units** -- work in inches, millimeters, centimeters, or points
-- **Connection points** -- define and target specific connection points on shapes for precise routing
+- **Create, load, and save VSDX files** — round-trip the Visio Open XML format
+- **Diagram builders** — create flowcharts, architecture diagrams, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs
+- **Stencils and catalogs** — use generated catalogs, installed Visio stencils, or external `.vssx` and `.vstx` packs
+- **Connectors with metadata** — connect shapes with labels, hyperlinks, Shape Data, waypoints, and routing hints
+- **Fluent and low-level APIs** — chain common diagrams or edit individual pages, shapes, connectors, and masters
+- **Headless image export** — render SVG, PNG, JPEG, TIFF, and WebP previews without Microsoft Visio
+- **Validation** — inspect generated and loaded diagrams for package and model issues
 
 ## Diagram types you can automate
 
@@ -87,7 +87,11 @@ OfficeIMO.Visio runs on Windows, Linux, and macOS. Generated files open in Micro
 
 | Guide | Description |
 |-------|-------------|
-| [Visio documentation](/docs/visio/) | Review the shape, page, and connector model before you build diagrams. |
+| [Visio documentation](/docs/visio/) | Choose a creation, editing, stencil, validation, or image-export workflow. |
+| [Diagram builders](/docs/visio/diagram-builders/) | Generate architecture, network, flow, sequence, timeline, and graph diagrams. |
+| [Editing and validation](/docs/visio/editing-and-validation/) | Update loaded VSDX files and validate the result. |
+| [Stencils and catalogs](/docs/visio/stencils-and-catalogs/) | Work with generated, installed, and external stencil packs. |
+| [Image export](/docs/visio/image-export/) | Render SVG, PNG, JPEG, TIFF, and WebP previews. |
 | [Visio API reference](/api/visio/) | Browse diagram, shape, connector, and fluent builder types. |
 | [Getting Started](/docs/getting-started/) | Set up the package and validate your first generated diagram. |
 | [OfficeIMO.Word](/products/word/) | Pair diagrams with generated reports, architecture notes, or implementation docs. |

@@ -11,29 +11,31 @@ api_url: "/api/excel/"
 
 ## Why OfficeIMO.Excel?
 
-OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed code. Generate dashboards, data exports, financial models, and bulk reports without ever touching COM or requiring an Office license. The API is designed for real-world scenarios -- from one-off scripts to high-throughput server pipelines.
+OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed code. Generate dashboards, data exports, financial models, and bulk reports without ever touching COM or requiring an Office license. The API is designed for real-world scenarios — from one-off scripts to high-throughput server pipelines.
 
 ## Features
 
-- **Worksheets & cell values** -- strings, numbers, dates, booleans, and shared strings with full type fidelity
-- **Tables with AutoFilter** -- structured tables with column headers, totals row, and built-in filter controls
-- **Named ranges & formulas** -- workbook and sheet-scoped names, cell formulas, and calculated columns
-- **Charts** -- column, pie, doughnut, scatter, and bubble charts with series data, axis labels, and legends
-- **Conditional formatting** -- color scales, data bars, icon sets, and rule-based highlight formatting
-- **Validation** -- list, whole number, decimal, date, time, text length, and custom formula validators
-- **Pivot tables & sparklines** -- summarize large data sets and embed inline sparklines in cells
-- **Parallel execution** -- bulk read/write operations optimized for multi-core workloads
-- **Images & hyperlinks** -- embed images in cells and attach hyperlinks to cells or shapes
-- **AutoFit columns** -- automatically size columns to fit content width
-- **Headers, footers & print setup** -- page headers, footers, margins, orientation, and print area
+- **Worksheets & cell values** — strings, numbers, dates, booleans, and shared strings with full type fidelity
+- **Tables with AutoFilter** — structured tables with column headers, totals row, and built-in filter controls
+- **Named ranges & formulas** — workbook and sheet-scoped names, cell formulas, and calculated columns
+- **Charts** — column, pie, doughnut, scatter, and bubble charts with series data, axis labels, and legends
+- **Conditional formatting** — color scales, data bars, icon sets, and rule-based highlight formatting
+- **Validation** — list, whole number, decimal, date, time, text length, and custom formula validators
+- **Pivot tables & sparklines** — summarize large data sets and embed inline sparklines in cells
+- **Parallel execution** — bulk read/write operations optimized for multi-core workloads
+- **Images & hyperlinks** — embed images in cells and attach hyperlinks to cells or shapes
+- **AutoFit columns** — automatically size columns to fit content width
+- **Headers, footers & print setup** — page headers, footers, margins, orientation, and print area
 
 ## Quick start
 
 ```csharp
+using System.Collections.Generic;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("Sales.xlsx");
-var sheet = workbook.AddSheet("Q4 Sales");
+var sheet = workbook.AddWorksheet("Q4 Sales");
 
 // Set headers
 sheet.Cells["A1"].Value = "Product";
@@ -54,11 +56,19 @@ for (int i = 0; i < products.Length; i++)
     sheet.Cells[$"C{row}"].NumberFormat = "$#,##0";
 }
 
-// Create a table from the data range
-var table = sheet.AddTable("SalesTable", "A1", $"C{products.Length + 1}");
-table.Style = ExcelTableStyle.Medium9;
-table.ShowTotalsRow = true;
-table.Columns["Revenue"].TotalsFunction = ExcelTotalsFunction.Sum;
+// Create a styled table with a totals row
+int totalsRow = products.Length + 2;
+sheet.AddTable(
+    $"A1:C{totalsRow}",
+    hasHeader: true,
+    name: "SalesTable",
+    style: TableStyle.TableStyleMedium9);
+sheet.SetTableTotalsByName(
+    "SalesTable",
+    new Dictionary<string, TotalsRowFunctionValues>
+    {
+        ["Revenue"] = TotalsRowFunctionValues.Sum
+    });
 
 // AutoFit for a clean layout
 sheet.AutoFitColumns();

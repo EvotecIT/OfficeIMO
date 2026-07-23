@@ -1,0 +1,1 @@
+<article class="markdown-body"><h1 id="offline-planning">Offline planning</h1><h2 id="release-checklist">Release checklist</h2><p><strong>OfficeIMO OneNote</strong> works entirely offline.</p><ul><li>Validate the packed artifact</li></ul></article>
