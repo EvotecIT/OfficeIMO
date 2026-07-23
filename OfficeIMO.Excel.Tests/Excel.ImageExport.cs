@@ -828,6 +828,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportRetainsHighestPrecedenceRulesWhenBounded() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("RulePriority");
+            var conditional = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            };
+            conditional.Append(
+                new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 100,
+                    StopIfTrue = false
+                },
+                new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 1,
+                    StopIfTrue = true
+                });
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            worksheet.InsertAfter(conditional, worksheet.GetFirstChild<SheetData>());
+
+            IReadOnlyList<ExcelConditionalFormattingInfo> retained =
+                sheet.GetConditionalFormattingRules("A1", 1, out bool truncated);
+
+            Assert.True(truncated);
+            ExcelConditionalFormattingInfo rule = Assert.Single(retained);
+            Assert.Equal(1, rule.Priority);
+            Assert.True(rule.StopIfTrue);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportBoundsConditionalRuleCellWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("RuleCellWork");

@@ -26,6 +26,10 @@ namespace OfficeIMO.Excel {
             var workbookPart = _excelDocument.WorkbookPartRoot;
             Stylesheet? stylesheet = workbookPart.WorkbookStylesPart?.Stylesheet;
             var list = new List<ExcelConditionalFormattingInfo>();
+            SortedSet<ConditionalFormattingCandidate>? retained = maximumRules == int.MaxValue
+                ? null
+                : new SortedSet<ConditionalFormattingCandidate>(ConditionalFormattingCandidateComparer.Instance);
+            long ruleOrder = 0L;
             foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>()) {
                 string range = conditional.SequenceOfReferences?.InnerText ?? string.Empty;
                 if (filter.HasValue && !string.IsNullOrWhiteSpace(range)) {
@@ -33,50 +37,111 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (var rule in conditional.Elements<ConditionalFormattingRule>()) {
-                    if (list.Count >= maximumRules) {
-                        truncated = true;
-                        return list;
+                    if (retained == null) {
+                        list.Add(ReadConditionalFormattingInfo(rule, range, stylesheet, workbookPart));
+                        continue;
                     }
 
-                    uint? differentialFormatId = ReadDifferentialFormatId(rule);
-                    list.Add(new ExcelConditionalFormattingInfo {
-                        Range = range,
-                        Type = ReadConditionalFormatType(rule),
-                        Operator = ReadConditionalFormatOperator(rule),
-                        Text = rule.Text?.Value,
-                        TimePeriod = ReadConditionalTimePeriod(rule),
-                        Priority = (int)(rule.Priority?.Value ?? 0),
-                        StopIfTrue = rule.StopIfTrue?.Value ?? false,
-                        DifferentialFormatId = differentialFormatId,
-                        DifferentialFillColorArgb = ReadDifferentialFillColor(stylesheet, workbookPart, differentialFormatId),
-                        DifferentialFontColorArgb = ReadDifferentialFontColor(stylesheet, workbookPart, differentialFormatId),
-                        DifferentialFontBold = ReadDifferentialFontBold(stylesheet, differentialFormatId),
-                        DifferentialFontItalic = ReadDifferentialFontItalic(stylesheet, differentialFormatId),
-                        DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
-                        DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
-                        DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
-                        DifferentialBorder = ReadDifferentialBorder(stylesheet, workbookPart, differentialFormatId),
-                        Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
-                        ColorScaleColors = ReadColorScaleColors(rule),
-                        ColorScaleThresholds = ReadColorScaleThresholds(rule),
-                        DataBarColor = ReadDataBarColor(rule),
-                        DataBarThresholds = ReadDataBarThresholds(rule),
-                        DataBarShowValue = ReadDataBarShowValue(rule),
-                        IconSet = ReadIconSetName(rule),
-                        IconSetShowValue = ReadIconSetShowValue(rule),
-                        IconSetReverse = ReadIconSetReverse(rule),
-                        IconSetThresholds = ReadIconSetThresholds(rule),
-                        TopBottomRank = rule.Rank?.Value,
-                        TopBottomBottom = rule.Bottom?.Value ?? false,
-                        TopBottomPercent = rule.Percent?.Value ?? false,
-                        AboveAverageAbove = rule.AboveAverage?.Value ?? true,
-                        AboveAverageEqual = rule.EqualAverage?.Value ?? false,
-                        AboveAverageStdDev = rule.StdDev?.Value
-                    });
+                    var candidate = new ConditionalFormattingCandidate(
+                        rule,
+                        range,
+                        NormalizeConditionalFormattingPriority(rule),
+                        ruleOrder++);
+                    if (retained.Count < maximumRules) {
+                        retained.Add(candidate);
+                        continue;
+                    }
+
+                    truncated = true;
+                    ConditionalFormattingCandidate worst = retained.Max;
+                    if (ConditionalFormattingCandidateComparer.Instance.Compare(candidate, worst) < 0) {
+                        retained.Remove(worst);
+                        retained.Add(candidate);
+                    }
+                }
+            }
+
+            if (retained != null) {
+                foreach (ConditionalFormattingCandidate candidate in retained) {
+                    list.Add(ReadConditionalFormattingInfo(candidate.Rule, candidate.Range, stylesheet, workbookPart));
                 }
             }
 
             return list;
+        }
+
+        private static ExcelConditionalFormattingInfo ReadConditionalFormattingInfo(
+            ConditionalFormattingRule rule,
+            string range,
+            Stylesheet? stylesheet,
+            WorkbookPart workbookPart) {
+            uint? differentialFormatId = ReadDifferentialFormatId(rule);
+            return new ExcelConditionalFormattingInfo {
+                Range = range,
+                Type = ReadConditionalFormatType(rule),
+                Operator = ReadConditionalFormatOperator(rule),
+                Text = rule.Text?.Value,
+                TimePeriod = ReadConditionalTimePeriod(rule),
+                Priority = (int)(rule.Priority?.Value ?? 0),
+                StopIfTrue = rule.StopIfTrue?.Value ?? false,
+                DifferentialFormatId = differentialFormatId,
+                DifferentialFillColorArgb = ReadDifferentialFillColor(stylesheet, workbookPart, differentialFormatId),
+                DifferentialFontColorArgb = ReadDifferentialFontColor(stylesheet, workbookPart, differentialFormatId),
+                DifferentialFontBold = ReadDifferentialFontBold(stylesheet, differentialFormatId),
+                DifferentialFontItalic = ReadDifferentialFontItalic(stylesheet, differentialFormatId),
+                DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
+                DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
+                DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
+                DifferentialBorder = ReadDifferentialBorder(stylesheet, workbookPart, differentialFormatId),
+                Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
+                ColorScaleColors = ReadColorScaleColors(rule),
+                ColorScaleThresholds = ReadColorScaleThresholds(rule),
+                DataBarColor = ReadDataBarColor(rule),
+                DataBarThresholds = ReadDataBarThresholds(rule),
+                DataBarShowValue = ReadDataBarShowValue(rule),
+                IconSet = ReadIconSetName(rule),
+                IconSetShowValue = ReadIconSetShowValue(rule),
+                IconSetReverse = ReadIconSetReverse(rule),
+                IconSetThresholds = ReadIconSetThresholds(rule),
+                TopBottomRank = rule.Rank?.Value,
+                TopBottomBottom = rule.Bottom?.Value ?? false,
+                TopBottomPercent = rule.Percent?.Value ?? false,
+                AboveAverageAbove = rule.AboveAverage?.Value ?? true,
+                AboveAverageEqual = rule.EqualAverage?.Value ?? false,
+                AboveAverageStdDev = rule.StdDev?.Value
+            };
+        }
+
+        private static int NormalizeConditionalFormattingPriority(ConditionalFormattingRule rule) {
+            int priority = (int)(rule.Priority?.Value ?? 0);
+            return priority <= 0 ? int.MaxValue : priority;
+        }
+
+        private readonly struct ConditionalFormattingCandidate {
+            internal ConditionalFormattingCandidate(
+                ConditionalFormattingRule rule,
+                string range,
+                int priority,
+                long order) {
+                Rule = rule;
+                Range = range;
+                Priority = priority;
+                Order = order;
+            }
+
+            internal ConditionalFormattingRule Rule { get; }
+            internal string Range { get; }
+            internal int Priority { get; }
+            internal long Order { get; }
+        }
+
+        private sealed class ConditionalFormattingCandidateComparer : IComparer<ConditionalFormattingCandidate> {
+            internal static readonly ConditionalFormattingCandidateComparer Instance = new ConditionalFormattingCandidateComparer();
+
+            public int Compare(ConditionalFormattingCandidate left, ConditionalFormattingCandidate right) {
+                int priority = left.Priority.CompareTo(right.Priority);
+                return priority != 0 ? priority : left.Order.CompareTo(right.Order);
+            }
         }
 
         private static string ReadConditionalFormatType(ConditionalFormattingRule rule) {
