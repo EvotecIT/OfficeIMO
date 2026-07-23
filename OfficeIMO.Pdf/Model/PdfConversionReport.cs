@@ -53,6 +53,25 @@ public sealed class PdfConversionReport {
     public bool HasLoss => Warnings.Any(static warning => warning.Severity != PdfConversionWarningSeverity.Information);
 
     /// <summary>
+    /// High-level fidelity outcome derived from the structured warnings. Declared font-family and
+    /// bounded typography substitutions are distinguished from other lossy or unsupported behavior.
+    /// </summary>
+    public PdfConversionFidelityStatus FidelityStatus {
+        get {
+            PdfConversionWarning[] lossWarnings = Warnings
+                .Where(static warning => warning.Severity != PdfConversionWarningSeverity.Information)
+                .ToArray();
+            if (lossWarnings.Length == 0) {
+                return PdfConversionFidelityStatus.Faithful;
+            }
+
+            return lossWarnings.All(IsDeclaredSubstitutionWarning)
+                ? PdfConversionFidelityStatus.FaithfulWithSubstitutions
+                : PdfConversionFidelityStatus.Degraded;
+        }
+    }
+
+    /// <summary>
     /// Builds a stable count summary for proof packs, logs, wrapper routing, and user-facing diagnostics.
     /// </summary>
     public PdfConversionReportSummary Summarize() {
@@ -168,4 +187,10 @@ public sealed class PdfConversionReport {
 
         return message + " First warning: " + warnings[0].ToString();
     }
+
+    private static bool IsDeclaredSubstitutionWarning(PdfConversionWarning warning) =>
+        warning.Code.EndsWith("FontFamilySubstituted", StringComparison.OrdinalIgnoreCase) ||
+        warning.Code.EndsWith("FontSubstitution", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "font-family-substitution", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "unsupported-font-ligature-substitution", StringComparison.OrdinalIgnoreCase);
 }

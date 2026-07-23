@@ -241,9 +241,10 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            bool hasExplicitWeight = style.ColumnWidthWeights != null && column < style.ColumnWidthWeights.Count;
             double weight = 1D;
-            if (style.ColumnWidthWeights != null && column < style.ColumnWidthWeights.Count) {
-                weight = style.ColumnWidthWeights[column];
+            if (hasExplicitWeight) {
+                weight = style.ColumnWidthWeights![column];
                 if (weight <= 0 || double.IsNaN(weight) || double.IsInfinity(weight)) {
                     throw new ArgumentException("Table column width weights must be positive finite values.");
                 }
@@ -251,7 +252,7 @@ internal static partial class PdfWriter {
                 weight = autoFitWeights[column];
             }
 
-            if (autoFitWeights != null && minWidth.HasValue) {
+            if (!hasExplicitWeight && autoFitWeights != null && minWidth.HasValue) {
                 AutoFitColumnProfile profile = autoFitProfiles != null && column < autoFitProfiles.Length
                     ? autoFitProfiles[column]
                     : default;

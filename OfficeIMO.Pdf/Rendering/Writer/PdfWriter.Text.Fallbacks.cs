@@ -109,11 +109,16 @@ internal static partial class PdfWriter {
             value,
             shapingMode: options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar);
         if (!plan.IsFullyCovered ||
-            !TryResolveFallbackFontSlots(fallbackSet, plan, selectedFont, options, out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots)) {
+            options == null) {
             return false;
         }
 
-        if (options == null) {
+        if (fallbackSet.UsesNamedFontFamilies) {
+            plannedRuns = plan.ToNamedTextRuns(fallbackSet.FontFamilyNames, styleTemplate);
+            return true;
+        }
+
+        if (!TryResolveFallbackFontSlots(fallbackSet, plan, selectedFont, options, out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots)) {
             return false;
         }
 

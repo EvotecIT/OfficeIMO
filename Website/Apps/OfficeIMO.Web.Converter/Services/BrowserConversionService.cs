@@ -6,6 +6,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Web.Converter.Models;
@@ -18,6 +19,10 @@ namespace OfficeIMO.Web.Converter.Services;
 public sealed class BrowserConversionService {
     public const long MaxPackageBytes = 25L * 1024L * 1024L;
     public const int MaxTextInputChars = 500_000;
+    internal const int MaxPackagePartCount = 5_000;
+    internal const long MaxPartUncompressedBytes = 32L * 1024L * 1024L;
+    internal const long MaxTotalUncompressedBytes = 128L * 1024L * 1024L;
+    internal const double MaxCompressionRatio = 200D;
 
     public ConversionResult ConvertFile(ConversionRoute route, SelectedDocument file, bool limitExcelRows) => route.Id switch {
         "docx-pdf" => ConvertWordToPdf(file),
@@ -50,11 +55,19 @@ public sealed class BrowserConversionService {
             });
         var options = new PdfSaveOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
-            IncludePageNumbers = true
+            IncludePageNumbers = false,
+            FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         var conversion = document.ToPdfDocumentResult(options);
         byte[] bytes = conversion.ToBytes();
-        return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
+        return PdfResult(
+            file,
+            bytes,
+            conversion.Report,
+            "OfficeIMO.Word.Pdf",
+            "includePageNumbers=false");
     }
 
     private static ConversionResult ConvertExcelToPdf(SelectedDocument file, bool limitRowsPerSheet) {
@@ -64,10 +77,20 @@ public sealed class BrowserConversionService {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new ExcelPdfSaveOptions { MaxRowsPerSheet = limitRowsPerSheet ? 250 : null };
+        var options = new ExcelPdfSaveOptions {
+            MaxRowsPerSheet = limitRowsPerSheet ? 250 : null,
+            FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        };
         var conversion = document.ToPdfDocumentResult(options);
         byte[] bytes = conversion.ToBytes();
-        return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
+        return PdfResult(
+            file,
+            bytes,
+            conversion.Report,
+            "OfficeIMO.Excel.Pdf",
+            limitRowsPerSheet ? "maxRowsPerSheet=250" : "maxRowsPerSheet=unlimited");
     }
 
     private static ConversionResult ConvertPowerPointToPdf(SelectedDocument file) {
@@ -77,21 +100,48 @@ public sealed class BrowserConversionService {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new PowerPointPdfSaveOptions { WarnOnPictureAspectRatioDistortion = true };
+        var options = new PowerPointPdfSaveOptions {
+            WarnOnPictureAspectRatioDistortion = true,
+            FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        };
         var conversion = presentation.ToPdfDocumentResult(options);
         byte[] bytes = conversion.ToBytes();
-        return PdfResult(file, bytes, conversion.Warnings.Select(static warning => warning.ToString()).ToArray());
+        return PdfResult(
+            file,
+            bytes,
+            conversion.Report,
+            "OfficeIMO.PowerPoint.Pdf",
+            "warnOnPictureAspectRatioDistortion=true");
     }
 
-    private static ConversionResult PdfResult(SelectedDocument file, byte[] bytes, IReadOnlyList<string> warnings) {
+    private static ConversionResult PdfResult(
+        SelectedDocument file,
+        byte[] bytes,
+        PdfConversionReport report,
+        string converter,
+        string optionProfile) {
         EnsurePdf(bytes);
+        string fileName = Path.GetFileNameWithoutExtension(file.Name) + ".pdf";
+        BrowserConversionArtifact companionReport = BrowserPdfConversionManifest.Create(
+            file,
+            fileName,
+            bytes,
+            report,
+            converter,
+            optionProfile);
         return new ConversionResult(
             bytes,
-            Path.GetFileNameWithoutExtension(file.Name) + ".pdf",
+            fileName,
             "application/pdf",
             null,
             null,
-            warnings);
+            report.Warnings.Select(static warning => warning.ToString()).ToArray()) {
+            FidelityStatus = report.FidelityStatus.ToString(),
+            ProvenanceSummary = $"{BrowserPortablePdfProfile.FontPackId} · {BrowserPortablePdfProfile.FontPackFingerprint[..12]}",
+            CompanionReport = companionReport
+        };
     }
 
     private static ConversionResult ConvertMarkdownToHtml(string input) {
@@ -128,10 +178,10 @@ public sealed class BrowserConversionService {
     private static OfficePackageSecurityOptions CreateBrowserPackageSecurity() {
         OfficePackageSecurityOptions options = OfficePackageSecurityOptions.SecureDefaults;
         options.MaxPackageBytes = MaxPackageBytes;
-        options.MaxPartCount = 5_000;
-        options.MaxPartUncompressedBytes = 32L * 1024L * 1024L;
-        options.MaxTotalUncompressedBytes = 128L * 1024L * 1024L;
-        options.MaxCompressionRatio = 200D;
+        options.MaxPartCount = MaxPackagePartCount;
+        options.MaxPartUncompressedBytes = MaxPartUncompressedBytes;
+        options.MaxTotalUncompressedBytes = MaxTotalUncompressedBytes;
+        options.MaxCompressionRatio = MaxCompressionRatio;
         return options;
     }
 

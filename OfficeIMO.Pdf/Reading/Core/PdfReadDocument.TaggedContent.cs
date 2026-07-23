@@ -4,6 +4,9 @@ public sealed partial class PdfReadDocument {
     /// <summary>Tagged PDF structure metadata discovered from /MarkInfo and /StructTreeRoot.</summary>
     public PdfTaggedContentInfo? TaggedContent => ReadLogicalContent(_taggedContent);
 
+    /// <summary>True when a readable tagged-PDF structure tree was discovered.</summary>
+    public bool HasTaggedContent => TaggedContent is not null;
+
     private PdfTaggedContentInfo? ExtractTaggedContent() {
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {

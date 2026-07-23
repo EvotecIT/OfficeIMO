@@ -23,4 +23,10 @@
     <ProjectReference Include="..\..\..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Fonts\*.ttf" />
+    <None Update="Assets\Fonts\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Assets\Fonts\font-pack.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -41,6 +41,44 @@
       "maximumMeanLuminanceError": 10.0
     },
     {
+      "id": "word-business-delivery-summary",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20131.20154",
+      "exportPreset": "standard-print-export",
+      "fontProfile": "officeimo-browser-compact",
+      "fontProfileFingerprint": "99fe9605fae25324712287bc2212236771b67515ec77dab263a35fc48079e72f",
+      "sourcePath": "word-business-delivery-summary.docx",
+      "sourceSha256": "cac35c025abb249028181a9b54bfae02a4fcc1d1138cf34071eb01341a97438a",
+      "referencePdfPath": "microsoft-word-windows-word-business-delivery-summary.pdf",
+      "referencePdfSha256": "cad719da2c81ac64d342bbed2b24039c2f7d3ca40c807322f764fb621a98a673",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20131.20154",
+        "operatingSystem": "Windows 11",
+        "operatingSystemBuild": "10.0.26200.0"
+      },
+      "sanitization": {
+        "source": "Synthetic delivery-summary report",
+        "replacements": "Machine, customer, analyst, and domain identifiers were replaced with example values before export."
+      },
+      "pages": [
+        { "number": 1, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1520, "measuredMeanAbsoluteError": 14.541, "measuredRootMeanSquareError": 52.543, "measuredMeanLuminanceError": 19.435 },
+        { "number": 2, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1563, "measuredMeanAbsoluteError": 14.232, "measuredRootMeanSquareError": 51.138, "measuredMeanLuminanceError": 19.032 },
+        { "number": 3, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1832, "measuredMeanAbsoluteError": 15.396, "measuredRootMeanSquareError": 51.129, "measuredMeanLuminanceError": 20.553 },
+        { "number": 4, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1735, "measuredMeanAbsoluteError": 16.294, "measuredRootMeanSquareError": 55.052, "measuredMeanLuminanceError": 21.766 },
+        { "number": 5, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1561, "measuredMeanAbsoluteError": 14.156, "measuredRootMeanSquareError": 50.631, "measuredMeanLuminanceError": 18.900 },
+        { "number": 6, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1774, "measuredMeanAbsoluteError": 16.121, "measuredRootMeanSquareError": 54.019, "measuredMeanLuminanceError": 21.525 },
+        { "number": 7, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1667, "measuredMeanAbsoluteError": 14.856, "measuredRootMeanSquareError": 51.460, "measuredMeanLuminanceError": 19.829 },
+        { "number": 8, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1617, "measuredMeanAbsoluteError": 14.664, "measuredRootMeanSquareError": 51.515, "measuredMeanLuminanceError": 19.566 },
+        { "number": 9, "widthPoints": 612.0, "heightPoints": 792.0, "rasterWidth": 612, "rasterHeight": 792, "measuredDifferentPixelRatio": 0.1524, "measuredMeanAbsoluteError": 15.197, "measuredRootMeanSquareError": 54.224, "measuredMeanLuminanceError": 20.278 }
+      ],
+      "maximumDifferentPixelRatio": 0.19,
+      "maximumMeanAbsoluteError": 17.0,
+      "maximumRootMeanSquareError": 57.0,
+      "maximumMeanLuminanceError": 23.0
+    },
+    {
       "id": "excel-native-daily-workbook",
       "converterId": "excel",
       "producer": "Microsoft Excel",

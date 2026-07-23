@@ -17,6 +17,50 @@ The target is not pixel identity with Microsoft Office. The target is a premium,
 - browser, server, and desktop conversions behave consistently when given the same font and rendering capabilities;
 - unsupported constructs degrade deliberately and visibly rather than silently producing a plausible but wrong PDF.
 
+## Implementation Status
+
+The first end-to-end implementation milestone is now delivered on
+`codex/pdf-fidelity-roadmap`:
+
+- [x] The shared PDF writer prevents a table from starting with fewer than two
+  body rows when that group fits on a fresh page.
+- [x] Word's omitted table-layout mode follows the OOXML auto-fit default and
+  preserves non-uniform authored grid proportions instead of forcing equal
+  columns.
+- [x] Word document-default fonts and language flow into PDF font registration,
+  diagnostics, measurement, catalog metadata, and drawing.
+- [x] The portable browser profile embeds the licensed, pinned Carlito,
+  Noto Sans Arabic, and Noto Sans Symbols 2 font programs and publishes their
+  content fingerprint.
+- [x] Named fallback families no longer consume the three compatibility font
+  slots, so Latin, Arabic, and symbol coverage can coexist.
+- [x] Conversion results report `Faithful`, `FaithfulWithSubstitutions`, or
+  `Degraded` from structured warnings.
+- [x] Browser Word, Excel, and PowerPoint conversions use the same tagged,
+  portable, deterministic PDF profile.
+- [x] The playground no longer adds page numbers to Word documents, shows live
+  duration in the result UI, and offers a deterministic JSON companion report
+  with hashes, engine/font/options provenance, limits, tagging state, and
+  structured warnings.
+- [x] A sanitized nine-page business DOCX and a Microsoft Word
+  16.0.20131.20154 reference PDF are pinned with hashes and producer metadata.
+- [x] The business fixture has raster, page-count, margin, table-placement,
+  text-order, language, and tagged-structure gates.
+- [x] The exact supplied document now keeps the planning table together at the
+  top of page two, uses the source's approximate 40/60 column relationship,
+  preserves one-inch margins, embeds its portable fonts, emits tags, and adds
+  no page numbers.
+- [x] Deterministic PDF bytes and conversion ids are tested for identical
+  inputs; browser ZIP-bomb and package limits remain enforced.
+
+This milestone does not close the longer roadmap. The pinned nine-page raster
+distance is currently `0.1520` to `0.1832` changed-pixel ratio by page, below
+the previous live-output average but above the proposed `0.12` premium target
+on several pages. Advanced OpenType shaping, floating Word drawings,
+full Excel print-title/scale parity, PowerPoint master/effect parity, formal
+PDF/UA validation, peak-memory instrumentation, and support-bundle/debug-overlay
+UX remain explicit follow-on workstreams rather than hidden claims.
+
 ## Current Assessment
 
 ### Audit basis

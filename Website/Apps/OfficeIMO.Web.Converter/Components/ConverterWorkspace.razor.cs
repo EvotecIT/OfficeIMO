@@ -43,7 +43,9 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private SelectedDocument? SelectedFile { get; set; }
     private ConversionResult? Output { get; set; }
     private string? OutputUrl { get; set; }
+    private string? OutputReportUrl { get; set; }
     private string OutputFileName { get; set; } = "officeimo-output";
+    private string? OutputReportFileName { get; set; }
     private string TextInput { get; set; } = DefaultMarkdown;
     private bool LimitExcelRows { get; set; }
     private bool PreviewOutput { get; set; } = true;
@@ -145,7 +147,15 @@ This **Markdown** becomes a browser preview or an editable Word document.
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             OutputFileName = Output.FileName;
             OutputUrl = await _interop.CreateObjectUrlAsync(Output.Bytes, Output.ContentType);
-            Diagnostics.Add(new("Conversion complete", $"Created {Output.FileName} locally in {ElapsedLabel}.", "ocx-dot--good"));
+            if (Output.CompanionReport is not null) {
+                OutputReportFileName = Output.CompanionReport.FileName;
+                OutputReportUrl = await _interop.CreateObjectUrlAsync(
+                    Output.CompanionReport.Bytes,
+                    Output.CompanionReport.ContentType);
+            }
+            string fidelity = Output.FidelityStatus ?? "Complete";
+            string tone = string.Equals(fidelity, "Degraded", StringComparison.Ordinal) ? "ocx-dot--warn" : "ocx-dot--good";
+            Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
             foreach (string warning in Output.Warnings.Take(8)) {
                 Diagnostics.Add(new("Review this result", warning, "ocx-dot--warn"));
             }
@@ -162,7 +172,12 @@ This **Markdown** becomes a browser preview or an editable Word document.
         if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {
             await _interop.RevokeObjectUrlAsync(OutputUrl);
         }
+        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputReportUrl)) {
+            await _interop.RevokeObjectUrlAsync(OutputReportUrl);
+        }
         OutputUrl = null;
+        OutputReportUrl = null;
+        OutputReportFileName = null;
         Output = null;
         ElapsedMilliseconds = 0;
     }
@@ -200,6 +215,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     public async ValueTask DisposeAsync() {
         if (_interop is not null) {
             await _interop.RevokeObjectUrlAsync(OutputUrl);
+            await _interop.RevokeObjectUrlAsync(OutputReportUrl);
             await _interop.DisposeAsync();
         }
     }

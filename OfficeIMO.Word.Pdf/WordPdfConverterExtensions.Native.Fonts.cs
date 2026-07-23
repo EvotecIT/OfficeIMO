@@ -50,41 +50,56 @@ namespace OfficeIMO.Word.Pdf {
                        _namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out registeredFamilyName);
             }
 
-            public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string occupyingFontFamily) {
+            public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string? occupyingFontFamily) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
                 }
 
                 PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(fallbackSlot);
+                string message = string.IsNullOrWhiteSpace(occupyingFontFamily)
+                    ? "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; runs use the mapped PDF family " + normalizedSlot + "."
+                    : "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; runs use the occupying embedded family '" + occupyingFontFamily + "' in the logical " + normalizedSlot + " slot.";
+                var details = new Dictionary<string, string> {
+                    ["fontFamily"] = familyName,
+                    ["fallbackSlot"] = normalizedSlot.ToString()
+                };
+                if (!string.IsNullOrWhiteSpace(occupyingFontFamily)) {
+                    details["occupyingFontFamily"] = occupyingFontFamily!;
+                }
+
                 _report.Add(new PdfCore.PdfConversionWarning(
                     "OfficeIMO.Word.Pdf",
                     "NativeFontFamilySlotExhausted",
                     "word:font[" + familyName + "]",
-                    "The installed font family could not receive a distinct embedded PDF family slot because all standard-family slots are occupied; runs use the occupying embedded family '" + occupyingFontFamily + "' in the logical " + normalizedSlot + " slot.",
-                    details: new Dictionary<string, string> {
-                        ["fontFamily"] = familyName,
-                        ["fallbackSlot"] = normalizedSlot.ToString(),
-                        ["occupyingFontFamily"] = occupyingFontFamily
-                    }));
+                    message,
+                    details: details));
             }
 
-            public void ReportFontSubstitution(string familyName, PdfCore.PdfStandardFont fallbackSlot) {
+            public void ReportFontSubstitution(string familyName, PdfCore.PdfStandardFont fallbackSlot, string? resolvedFontFamily = null) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
                 }
 
                 PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(fallbackSlot);
+                string message = string.IsNullOrWhiteSpace(resolvedFontFamily)
+                    ? "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedSlot + "."
+                    : "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the embedded family '" + resolvedFontFamily + "' through the logical " + normalizedSlot + " PDF slot.";
+                var details = new Dictionary<string, string> {
+                    ["fontFamily"] = familyName,
+                    ["fallbackSlot"] = normalizedSlot.ToString()
+                };
+                if (!string.IsNullOrWhiteSpace(resolvedFontFamily)) {
+                    details["resolvedFontFamily"] = resolvedFontFamily!;
+                }
+
                 _report.Add(new PdfCore.PdfConversionWarning(
                     "OfficeIMO.Word.Pdf",
                     "NativeFontFamilySubstituted",
                     "word:font[" + familyName + "]",
-                    "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedSlot + ".",
-                    details: new Dictionary<string, string> {
-                        ["fontFamily"] = familyName,
-                        ["fallbackSlot"] = normalizedSlot.ToString()
-                    }));
+                    message,
+                    details: details));
             }
         }
 

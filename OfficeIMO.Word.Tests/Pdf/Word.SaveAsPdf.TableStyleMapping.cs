@@ -24,7 +24,7 @@ public partial class Word {
 
         Assert.Equal(144D, preferredStyle.MaxWidth);
         Assert.Equal(11D, preferredStyle.FontSize);
-        Assert.False(preferredStyle.AutoFitColumns);
+        Assert.True(preferredStyle.AutoFitColumns);
         Assert.True(preferredStyle.PreserveWidth);
 
         WordTable autoFit = document.AddTable(1, 2);
@@ -43,6 +43,26 @@ public partial class Word {
         PdfCore.PdfTableStyle spacedStyle = CreateNativeTableStyleForTest(spaced);
 
         Assert.Equal(12D, spacedStyle.CellSpacing);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Default_Autofit_For_Percentage_Table_When_Layout_Is_Omitted() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
+
+        WordTable table = document.AddTable(2, 2);
+        table.WidthType = TableWidthUnitValues.Pct;
+        table.Width = 5000;
+        table._tableProperties!.TableLayout?.Remove();
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Worksheet";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Purpose";
+        table.Rows[1].Cells[0].Paragraphs[0].Text = "Action plan";
+        table.Rows[1].Cells[1].Paragraphs[0].Text = "Sequence recommendations, review ownership, confirm acceptance criteria, and set the next planning step.";
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
+
+        Assert.True(style.AutoFitColumns);
+        Assert.Equal(468D, style.MaxWidth);
+        Assert.Null(style.ColumnWidthWeights);
     }
 
     [Fact]

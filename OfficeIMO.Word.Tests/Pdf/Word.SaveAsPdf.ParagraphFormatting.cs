@@ -1181,6 +1181,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reports_Document_Default_Font_Substitution() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontSubstitution.docx"));
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.GetFirstChild<RunPropertiesDefault>() ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.GetFirstChild<RunPropertiesBaseStyle>() ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts {
+                Ascii = "Calibri",
+                HighAnsi = "Calibri"
+            };
+            document.AddParagraph("Document default font diagnostic");
+
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+            });
+            _ = result.ToBytes();
+
+            PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
+                item.Code == "NativeFontFamilySubstituted" &&
+                item.Details.TryGetValue("fontFamily", out string? family) &&
+                family == "Calibri");
+            Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+            Assert.False(warning.Details.ContainsKey("resolvedFontFamily"));
+            Assert.DoesNotContain("embedded family", warning.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Document_Default_Language_To_Pdf_Catalog() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultLanguage.docx"));
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.GetFirstChild<RunPropertiesDefault>() ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.GetFirstChild<RunPropertiesBaseStyle>() ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.Languages = new Languages { Val = "pl-PL" };
+            document.AddParagraph("Document language");
+
+            byte[] bytes = document.ToPdf(new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+
+            Assert.Equal("pl-PL", PdfReadDocument.Open(bytes).CatalogLanguage);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Ignores_Bar_And_Clear_TabStops_For_Text_Tabs() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeIgnoredTabStops.docx"));
             WordParagraph paragraph = document.AddParagraph("Native ignored tab stops");

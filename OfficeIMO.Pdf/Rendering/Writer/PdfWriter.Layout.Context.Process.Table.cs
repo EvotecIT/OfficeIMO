@@ -227,6 +227,22 @@ internal static partial class PdfWriter {
                 }
             }
 
+            int minimumFirstPageBodyRows = Math.Min(
+                style.MinimumBodyRowsOnFirstPage,
+                Math.Max(0, footerStartRowIndex - headerRowCount));
+            if (!skipInitialHeaderRows && minimumFirstPageBodyRows > 0 && y < yStart - 0.001) {
+                int firstPageRowCount = headerRowCount + minimumFirstPageBodyRows;
+                double firstPageGroupHeight =
+                    tableSpacingBefore +
+                    (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter) +
+                    GetTableRowsHeight(rowHeights, 0, firstPageRowCount, rowGapPx);
+                if (firstPageGroupHeight <= maxContentHeight + 0.001 &&
+                    y - firstPageGroupHeight < currentOpts.MarginBottom) {
+                    NewPage();
+                    tableSpacingBefore = 0D;
+                }
+            }
+
             if (tableSpacingBefore > 0) {
                 if (y < yStart - 0.001 && y - tableSpacingBefore < currentOpts.MarginBottom) {
                     NewPage();

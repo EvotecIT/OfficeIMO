@@ -6,6 +6,26 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfEmbeddedFontFallbackSet {
     private readonly List<PdfEmbeddedFontFallbackCandidate> _candidates;
     private readonly List<PdfStandardFont> _fontSlots;
+    private readonly List<string> _fontFamilyNames;
+
+    /// <summary>
+    /// Creates a reusable fallback set whose candidates are registered as named embedded families.
+    /// Named fallback families do not consume the Helvetica, Times, or Courier compatibility slots,
+    /// so they can coexist with document fonts that already use all three slots.
+    /// </summary>
+    /// <param name="candidates">Fallback font candidates in priority order. Candidate names must be unique.</param>
+    public PdfEmbeddedFontFallbackSet(IEnumerable<PdfEmbeddedFontFallbackCandidate> candidates) {
+        Guard.NotNull(candidates, nameof(candidates));
+
+        _candidates = candidates.Select(CloneCandidate).ToList();
+        _fontSlots = new List<PdfStandardFont>();
+        _fontFamilyNames = _candidates.Select(candidate => candidate.FontName.Trim()).ToList();
+
+        ValidateCandidates();
+        if (_fontFamilyNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != _fontFamilyNames.Count) {
+            throw new ArgumentException("Named embedded font fallback candidates must use distinct font names.", nameof(candidates));
+        }
+    }
 
     /// <summary>
     /// Creates a reusable fallback set from prioritized candidates and matching generated font slots.
@@ -20,10 +40,9 @@ public sealed class PdfEmbeddedFontFallbackSet {
 
         _candidates = candidates.Select(CloneCandidate).ToList();
         _fontSlots = fontSlots.Select(NormalizeFontSlot).ToList();
+        _fontFamilyNames = new List<string>();
 
-        if (_candidates.Count == 0) {
-            throw new ArgumentException("At least one embedded font fallback candidate is required.", nameof(candidates));
-        }
+        ValidateCandidates();
 
         if (_candidates.Count != _fontSlots.Count) {
             throw new ArgumentException("Embedded font fallback candidates and font slots must have the same number of entries.", nameof(fontSlots));
@@ -43,8 +62,18 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <summary>Generated standard-font family slots ordered the same way as <see cref="Candidates"/>.</summary>
     public IReadOnlyList<PdfStandardFont> FontSlots => _fontSlots.AsReadOnly();
 
-    internal PdfEmbeddedFontFallbackSet Clone() =>
-        new PdfEmbeddedFontFallbackSet(_candidates, _fontSlots);
+    /// <summary>
+    /// Named embedded font families ordered the same way as <see cref="Candidates"/>.
+    /// This is populated when the fallback set was created without compatibility slots.
+    /// </summary>
+    public IReadOnlyList<string> FontFamilyNames => _fontFamilyNames.AsReadOnly();
+
+    /// <summary>True when fallback runs use named embedded font families instead of compatibility slots.</summary>
+    public bool UsesNamedFontFamilies => _fontFamilyNames.Count != 0;
+
+    internal PdfEmbeddedFontFallbackSet Clone() => UsesNamedFontFamilies
+        ? new PdfEmbeddedFontFallbackSet(_candidates)
+        : new PdfEmbeddedFontFallbackSet(_candidates, _fontSlots);
 
     /// <summary>
     /// Registers every fallback candidate into its generated font family slot, including bold and italic variants.
@@ -53,6 +82,15 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <returns>The supplied options for fluent chaining.</returns>
     public PdfOptions RegisterFonts(PdfOptions options) {
         Guard.NotNull(options, nameof(options));
+        if (UsesNamedFontFamilies) {
+            foreach (PdfEmbeddedFontFallbackCandidate candidate in _candidates) {
+                options.RegisterNamedFontFamily(
+                    new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+            }
+
+            return options;
+        }
+
         RegisterFonts(options, _fontSlots);
         return options;
     }
@@ -122,7 +160,9 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
     public IReadOnlyList<TextRun> PlanTextRuns(string text, string source = "", TextRun? styleTemplate = null, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
-        PlanText(text, source, shapingMode).ToTextRuns(_fontSlots, styleTemplate);
+        UsesNamedFontFamilies
+            ? PlanText(text, source, shapingMode).ToNamedTextRuns(_fontFamilyNames, styleTemplate)
+            : PlanText(text, source, shapingMode).ToTextRuns(_fontSlots, styleTemplate);
 
     /// <summary>
     /// Plans text and returns renderable rich text runs only when every non-layout scalar is covered.
@@ -154,8 +194,16 @@ public sealed class PdfEmbeddedFontFallbackSet {
             return false;
         }
 
-        runs = plan.ToTextRuns(_fontSlots, styleTemplate);
+        runs = UsesNamedFontFamilies
+            ? plan.ToNamedTextRuns(_fontFamilyNames, styleTemplate)
+            : plan.ToTextRuns(_fontSlots, styleTemplate);
         return true;
+    }
+
+    private void ValidateCandidates() {
+        if (_candidates.Count == 0) {
+            throw new ArgumentException("At least one embedded font fallback candidate is required.", "candidates");
+        }
     }
 
     private List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(PdfTextFallbackPlan plan, string source) {
