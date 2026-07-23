@@ -884,6 +884,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportOmitsConditionalRulesWhenNoRuleFitsWorkBudget() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("OversizedRuleCellWork");
+            var cells = new CountingVisualCellList(1_000_001);
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+            ExcelConditionalVisualState state = ExcelConditionalVisualEvaluator.Evaluate(
+                sheet,
+                cells,
+                "A1:XFD1048576",
+                new DateTime(2026, 1, 1),
+                diagnostics);
+
+            Assert.Same(ExcelConditionalVisualState.Empty, state);
+            Assert.Equal(0, cells.ReadCount);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+            Assert.Equal(ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded, diagnostic.Code);
+            Assert.Contains("1000000 rule-cell", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Equal("OversizedRuleCellWork!A1:XFD1048576", diagnostic.Source);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportKeepsStoppedCellsInColorScaleThresholds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -5247,6 +5269,28 @@ namespace OfficeIMO.Tests {
             }
             public override void SetLength(long value) => throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
+        private sealed class CountingVisualCellList : IReadOnlyList<ExcelVisualCell> {
+            internal CountingVisualCellList(int count) {
+                Count = count;
+            }
+
+            public int Count { get; }
+            internal int ReadCount { get; private set; }
+
+            public ExcelVisualCell this[int index] {
+                get {
+                    ReadCount++;
+                    throw new InvalidOperationException("The oversized conditional-formatting guard must run before cell access.");
+                }
+            }
+
+            public IEnumerator<ExcelVisualCell> GetEnumerator() {
+                for (int index = 0; index < Count; index++) yield return this[index];
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }

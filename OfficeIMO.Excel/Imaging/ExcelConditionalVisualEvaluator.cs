@@ -17,9 +17,18 @@ namespace OfficeIMO.Excel {
                 return ExcelConditionalVisualState.Empty;
             }
 
+            if (cells.Count > MaxConditionalRuleCellEvaluations) {
+                diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
+                    $"Conditional formatting was omitted because the rendered range contains {cells.Count.ToString(CultureInfo.InvariantCulture)} cells, exceeding the {MaxConditionalRuleCellEvaluations.ToString(CultureInfo.InvariantCulture)} rule-cell image-export work limit.",
+                    sheet.Name + "!" + range));
+                return ExcelConditionalVisualState.Empty;
+            }
+
             int maximumRules = Math.Min(
                 MaxConditionalRules,
-                Math.Max(1, MaxConditionalRuleCellEvaluations / cells.Count));
+                MaxConditionalRuleCellEvaluations / cells.Count);
             IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
                 range,
                 maximumRules,
