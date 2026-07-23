@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel {
     internal static partial class ExcelConditionalVisualEvaluator {
         private const int MaxConditionalRules = 4_096;
         private const int MaxConditionalReferenceCells = 100_000;
+        private const int MaxConditionalRuleCellEvaluations = 1_000_000;
 
         internal static ExcelConditionalVisualState Evaluate(
             ExcelSheet sheet,
@@ -12,19 +13,26 @@ namespace OfficeIMO.Excel {
             string range,
             DateTime conditionalFormattingDate,
             List<OfficeImageExportDiagnostic> diagnostics) {
+            if (cells.Count == 0) {
+                return ExcelConditionalVisualState.Empty;
+            }
+
+            int maximumRules = Math.Min(
+                MaxConditionalRules,
+                Math.Max(1, MaxConditionalRuleCellEvaluations / cells.Count));
             IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(
                 range,
-                MaxConditionalRules,
+                maximumRules,
                 out bool rulesTruncated);
             if (rulesTruncated) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ConditionalReferenceLimitExceeded,
-                    $"Conditional formatting rules beyond the {MaxConditionalRules.ToString(CultureInfo.InvariantCulture)}-rule image-export limit were omitted.",
+                    $"Conditional formatting rules beyond the {maximumRules.ToString(CultureInfo.InvariantCulture)}-rule image-export work limit were omitted.",
                     sheet.Name + "!" + range));
             }
 
-            if (rules.Count == 0 || cells.Count == 0) {
+            if (rules.Count == 0) {
                 return ExcelConditionalVisualState.Empty;
             }
 

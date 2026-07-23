@@ -130,6 +130,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("BoundedGroupScale!XFD1", visible.Source);
             Assert.Equal(1D, visible.ScaleMinimum);
             Assert.Equal(1D, visible.ScaleMaximum);
+
+            ExcelVisualSparkline lastVisible = Assert.Single(sheet.Range("XFD7:XFD7").CreateVisualSnapshot().Sparklines);
+            Assert.Equal("BoundedGroupScale!XFD7", lastVisible.Source);
+            Assert.Equal(new[] { 1000D }, lastVisible.Values);
+            Assert.Equal(1000D, lastVisible.ScaleMaximum);
         }
 
         [Fact]
