@@ -174,7 +174,7 @@ The converter handles the following HTML elements:
 
 | HTML Element | Word Equivalent |
 |-------------|-----------------|
-| `&lt;h1&gt;` -- `&lt;h6&gt;` | Heading1 -- Heading6 paragraph styles |
+| `&lt;h1&gt;` through `&lt;h6&gt;` | Heading1 through Heading6 paragraph styles |
 | `&lt;p&gt;` | Normal paragraph |
 | `&lt;strong&gt;`, `&lt;b&gt;` | Bold formatting |
 | `&lt;em&gt;`, `&lt;i&gt;` | Italic formatting |

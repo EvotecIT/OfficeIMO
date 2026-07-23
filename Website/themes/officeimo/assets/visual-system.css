@@ -724,7 +724,7 @@ p { text-wrap: pretty; }
 .imo-docs-toolbar__links a { font-size: 0.78rem; }
 
 .imo-docs {
-  grid-template-columns: 248px minmax(0, 820px) minmax(180px, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr) minmax(180px, 260px);
   min-height: calc(100vh - 106px);
 }
 
@@ -789,6 +789,7 @@ p { text-wrap: pretty; }
 .imo-docs__link { padding: 0.34rem 0.5rem; font-size: 0.82rem; line-height: 1.42; }
 
 .imo-docs__main {
+  justify-self: center;
   max-width: 880px;
   padding: 2.5rem clamp(2rem, 3.5vw, 3.5rem) 4.5rem;
 }
@@ -1540,6 +1541,307 @@ body.pf-api-docs {
 
 .imo-proof-card__actions .imo-btn { min-height: 40px; padding: 0.58rem 0.85rem; }
 
+/* Example gallery: workflow discovery backed by real generated artifacts. */
+.imo-showcase-hero {
+  padding: clamp(3rem, 7vw, 5.3rem) 0 1.5rem;
+  text-align: center;
+}
+
+.imo-showcase-eyebrow,
+.imo-showcase-heading span,
+.imo-featured-workflow__copy > span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--imo-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.imo-showcase-hero h1 {
+  margin: 0;
+  font-size: clamp(2.7rem, 7vw, 4.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.imo-showcase-hero > .imo-container > p:not(.imo-showcase-eyebrow) {
+  max-width: 700px;
+  margin: 1rem auto 0;
+  color: var(--imo-text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.imo-showcase-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+}
+
+.imo-showcase-filter {
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  background: var(--imo-bg-elevated);
+  color: var(--imo-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.imo-showcase-filter:hover,
+.imo-showcase-filter:focus-visible {
+  border-color: var(--imo-primary);
+  color: var(--imo-primary);
+}
+
+.imo-showcase-filter.is-active {
+  border-color: var(--imo-primary);
+  background: var(--imo-primary);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22);
+}
+
+.imo-section--showcase { padding-top: 1rem; }
+
+.imo-featured-workflow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(460px, 1.4fr);
+  gap: 2rem;
+  align-items: center;
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  border: 1px solid var(--imo-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(37, 99, 235, 0.1), transparent 35%),
+    var(--imo-bg-elevated);
+  box-shadow: var(--imo-shadow-md);
+}
+
+.imo-featured-workflow h2 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.08;
+}
+
+.imo-featured-workflow p {
+  margin: 0 0 1rem;
+  color: var(--imo-text-secondary);
+  line-height: 1.65;
+}
+
+.imo-featured-workflow__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.imo-featured-workflow__steps li {
+  position: relative;
+  display: grid;
+  place-content: center;
+  min-height: 116px;
+  padding: 1rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--imo-bg-elevated) 88%, var(--imo-primary-light));
+  text-align: center;
+}
+
+.imo-featured-workflow__steps li:not(:last-child)::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.55rem);
+  width: 1rem;
+  content: "→";
+  color: var(--imo-text-secondary);
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.imo-featured-workflow__steps strong { font-size: 0.92rem; }
+.imo-featured-workflow__steps span {
+  margin-top: 0.35rem;
+  color: var(--imo-text-secondary);
+  font-size: 0.74rem;
+}
+
+.imo-showcase-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 3.5rem 0 1rem;
+}
+
+.imo-showcase-heading h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.imo-showcase-heading p {
+  margin: 0 0 0.35rem;
+  color: var(--imo-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.imo-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.imo-showcase-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--imo-border);
+  border-radius: 16px;
+  background: var(--imo-bg-elevated);
+  box-shadow: var(--imo-shadow-sm);
+}
+
+.imo-showcase-card[hidden] { display: none; }
+
+.imo-showcase-card__preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 245px;
+  padding: 1.8rem 1rem 1rem;
+  overflow: hidden;
+  border-bottom: 1px solid var(--imo-border);
+  background: color-mix(in srgb, var(--imo-bg-alt) 86%, var(--imo-primary-light));
+}
+
+.imo-showcase-card__preview > span {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: var(--imo-primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.imo-showcase-card__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.13));
+}
+
+.imo-showcase-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.15rem;
+}
+
+.imo-showcase-card__body h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.imo-showcase-card__body > p {
+  margin: 0;
+  color: var(--imo-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.imo-showcase-card__io {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+}
+
+.imo-showcase-card__io div {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+.imo-showcase-card__io dt {
+  color: var(--imo-text-secondary);
+  font-weight: 700;
+}
+
+.imo-showcase-card__io dd { margin: 0; font-weight: 800; }
+
+.imo-showcase-card details {
+  margin-top: 0.85rem;
+  color: var(--imo-text-secondary);
+  font-size: 0.78rem;
+}
+
+.imo-showcase-card summary {
+  color: var(--imo-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.imo-showcase-card details p { margin: 0.45rem 0 0; line-height: 1.55; }
+
+.imo-showcase-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.imo-showcase-card__actions .imo-btn {
+  min-height: 40px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.76rem;
+}
+
+.imo-showcase-card__actions .imo-action-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding-top: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.imo-showcase-proof-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid color-mix(in srgb, #10b981 42%, var(--imo-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, #10b981 8%, var(--imo-bg-elevated));
+  color: var(--imo-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.imo-showcase-proof-note strong { color: #047857; }
+[data-theme="dark"] .imo-showcase-proof-note strong { color: #6ee7b7; }
+
 /* Inline code must remain legible in both themes; blocks keep their syntax palette. */
 .imo-prose :not(pre) > code,
 [data-theme="light"] .imo-prose :not(pre) > code {
@@ -1563,6 +1865,7 @@ body.pf-api-docs {
   .imo-docs { grid-template-columns: 232px minmax(0, 1fr); }
   .imo-docs__toc { display: none; }
   .imo-docs-paths__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .imo-showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1023px) {
@@ -1606,6 +1909,7 @@ body.pf-api-docs {
   .imo-api-landing__actions { grid-column: 1; margin-top: 0.5rem; }
   .imo-docs-platform-proof { grid-template-columns: 1fr; align-items: start; }
   .imo-blog-featured { grid-template-columns: 1fr; }
+  .imo-featured-workflow { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1659,6 +1963,12 @@ body.pf-api-docs {
   .imo-proof-card__format { align-items: center; }
   .imo-proof-card__format span { padding-top: 0; }
   .imo-proof-card__actions { align-items: flex-start; flex-direction: column; }
+  .imo-showcase-grid { grid-template-columns: 1fr; }
+  .imo-showcase-card__preview { height: 280px; }
+  .imo-featured-workflow__steps { grid-template-columns: 1fr; gap: 0.65rem; }
+  .imo-featured-workflow__steps li { min-height: 86px; }
+  .imo-featured-workflow__steps li:not(:last-child)::after { display: none; }
+  .imo-showcase-proof-note { grid-template-columns: 1fr; gap: 0.35rem; }
 
   .pf-api-docs .api-layout,
   .pf-api-docs .type-detail-shell,

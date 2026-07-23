@@ -20,40 +20,72 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
   {{ include "header" }}
   <main id="content">
-    <section class="imo-page-hero">
+    <section class="imo-showcase-hero">
       <div class="imo-container">
-        {{ if data.showcase }}
+        <p class="imo-showcase-eyebrow">Examples with evidence</p>
         <h1>{{ data.showcase.title }}</h1>
-        <p class="imo-page-hero-desc">{{ data.showcase.description }}</p>
-        {{ else }}
-        <h1>{{ page.title }}</h1>
-        {{ end }}
+        <p>{{ data.showcase.description }}</p>
+        <div class="imo-showcase-filters" role="group" aria-label="Filter workflows">
+          {{ for filter in data.showcase.filters }}
+          <button type="button" class="imo-showcase-filter{{ if filter.active }} is-active{{ end }}" data-showcase-filter="{{ filter.id }}" aria-pressed="{{ if filter.active }}true{{ else }}false{{ end }}">{{ filter.label }}</button>
+          {{ end }}
+        </div>
       </div>
     </section>
-    <section class="imo-section">
+
+    <section class="imo-section imo-section--showcase">
       <div class="imo-container">
-        {{ if data.showcase && data.showcase.cards }}
-        <div class="imo-proof-grid">
+        <article class="imo-featured-workflow">
+          <div class="imo-featured-workflow__copy">
+            <span>{{ data.showcase.featured.eyebrow }}</span>
+            <h2>{{ data.showcase.featured.title }}</h2>
+            <p>{{ data.showcase.featured.description }}</p>
+            <a class="imo-action-link" href="{{ data.showcase.featured.guide_url }}">Follow the database reporting guide <span aria-hidden="true">→</span></a>
+          </div>
+          <ol class="imo-featured-workflow__steps" aria-label="Workflow steps">
+            {{ for step in data.showcase.featured.steps }}
+            <li><strong>{{ step.title }}</strong><span>{{ step.detail }}</span></li>
+            {{ end }}
+          </ol>
+        </article>
+
+        <div class="imo-showcase-heading">
+          <div><span>Real generated output</span><h2>Workflow gallery</h2></div>
+          <p id="showcase-result-count" aria-live="polite">8 workflows</p>
+        </div>
+
+        <div class="imo-showcase-grid">
           {{ for card in data.showcase.cards }}
-          <article class="imo-proof-card">
-            <div class="imo-proof-card__format">
-              {{ if card.image }}<img src="{{ card.image }}" alt="" loading="lazy" decoding="async" />{{ end }}
+          <article class="imo-showcase-card" data-showcase-tags="{{ card.tags }}">
+            <div class="imo-showcase-card__preview">
               <span>{{ card.format }}</span>
+              <img src="{{ card.image }}" alt="{{ card.image_alt }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
             </div>
-            <div class="imo-proof-card__body">
+            <div class="imo-showcase-card__body">
               <h2>{{ card.title }}</h2>
               <p>{{ card.description }}</p>
-              <p class="imo-proof-card__proof"><strong>What you can inspect</strong>{{ card.proof }}</p>
-              <div class="imo-proof-card__actions">
-                <a class="imo-btn imo-btn-primary" href="{{ card.guide_url }}">Follow the {{ card.format }} guide</a>
-                <a class="imo-action-link" href="{{ card.source_url }}" target="_blank" rel="noopener">Open {{ card.format }} proof <span aria-hidden="true">→</span></a>
-                <a class="imo-action-link" href="{{ card.api_url }}">Browse the {{ card.format }} API <span aria-hidden="true">→</span></a>
+              <dl class="imo-showcase-card__io">
+                <div><dt>Input</dt><dd>{{ card.input }}</dd></div>
+                <div><dt>Output</dt><dd>{{ card.output }}</dd></div>
+              </dl>
+              <details>
+                <summary>What this preview proves</summary>
+                <p>{{ card.proof }}</p>
+              </details>
+              <div class="imo-showcase-card__actions">
+                <a class="imo-btn imo-btn-primary" href="{{ card.guide_url }}">View the {{ card.title }} guide</a>
+                <a class="imo-btn imo-btn-secondary" href="{{ card.source_url }}" target="_blank" rel="noopener">Inspect {{ card.title }} source</a>
+                <a class="imo-action-link" href="{{ card.api_url }}">Open the {{ card.format }} API <span aria-hidden="true">→</span></a>
               </div>
             </div>
           </article>
           {{ end }}
         </div>
-        {{ end }}
+
+        <aside class="imo-showcase-proof-note">
+          <strong>Generated output, not concept art</strong>
+          <span>Every preview above is a committed example render or visual baseline tied to source and test coverage. The gallery does not use the design mockup as product evidence.</span>
+        </aside>
 {{ content }}
       </div>
     </section>

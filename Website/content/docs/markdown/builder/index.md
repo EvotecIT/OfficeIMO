@@ -1,6 +1,6 @@
 ---
 title: Markdown Builder
-description: Fluent API for building Markdown documents -- headings, paragraphs, lists, tables, code blocks, images, and callouts.
+description: Fluent API for building Markdown documents — headings, paragraphs, lists, tables, code blocks, images, and callouts.
 order: 41
 ---
 

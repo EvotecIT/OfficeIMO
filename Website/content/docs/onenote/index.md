@@ -37,3 +37,5 @@ section.Save("Projects-updated.one");
 | Notebook directory | Yes | Yes |
 
 Add `OfficeIMO.OneNote.Markdown`, `.Html`, or `.Pdf` for conversion, or `OfficeIMO.Reader.OneNote` for normalized extraction. See the [OneNote API reference](/api/onenote/) for storage and model details.
+
+The [OneNote export and conversion guide](/docs/onenote/export-and-convert/) shows page and notebook image export plus semantic and visual HTML/PDF routes.

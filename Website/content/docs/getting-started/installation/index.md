@@ -217,19 +217,19 @@ Get-Module PSWriteOffice
 
 OfficeIMO.Word and OfficeIMO.Excel depend on:
 
-- **DocumentFormat.OpenXml** (`[3.5.1, 4.0.0)`) -- The Microsoft Open XML SDK.
-- **OfficeIMO.Drawing** -- First-party color and image metadata helpers used by the document packages.
+- **DocumentFormat.OpenXml** (`[3.5.1, 4.0.0)`) — The Microsoft Open XML SDK.
+- **OfficeIMO.Drawing** — First-party color and image metadata helpers used by the document packages.
 
 OfficeIMO.Word and OfficeIMO.Excel also use a compatibility helper on older targets:
 
-- **Microsoft.Bcl.AsyncInterfaces** (`10.0.9`) -- Async interface compatibility for `netstandard2.0` and `net472`.
+- **Microsoft.Bcl.AsyncInterfaces** (`10.0.9`) — Async interface compatibility for `netstandard2.0` and `net472`.
 
 OfficeIMO.Excel additionally uses **System.Text.Json** (`[10.0.7,11.0.0)`) for JSON support on `netstandard2.0` and `net472`.
 
 OfficeIMO.Word.Html uses the first-party OfficeIMO.Html package, which depends on:
 
-- **AngleSharp** (`1.5.2`) -- HTML parsing and DOM manipulation.
-- **AngleSharp.Css** (`1.0.0-beta.216`) -- CSS parsing for style mapping.
+- **AngleSharp** (`1.5.2`) — HTML parsing and DOM manipulation.
+- **AngleSharp.Css** (`1.0.0-beta.216`) — CSS parsing for style mapping.
 
 OfficeIMO.Pdf depends on the first-party OfficeIMO.Drawing and OfficeIMO.Security packages. OfficeIMO.Security brings **BouncyCastle.Cryptography** (`[2.6.2,3.0.0)`) for cryptographic and signature support.
 

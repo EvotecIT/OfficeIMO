@@ -40,6 +40,16 @@
     "install": "dotnet add package OfficeIMO.Html", "url": "/products/html/", "secondary_url": "/docs/html/", "secondary_label": "Guide", "highlights": ["HTML", "MHTML", "Images"], "family": "formats", "color": "#ea580c"
   },
   {
+    "id": "rtf", "title": "OfficeIMO.Rtf", "tagline": "Read, create, preserve, and convert RTF with bounded parsing and fidelity reports.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 3h7l5 5v13H7z'/><path d='M14 3v6h6M9 13h7m-7 4h5'/></svg>",
+    "install": "dotnet add package OfficeIMO.Rtf", "url": "/products/rtf/", "secondary_url": "/docs/rtf/", "secondary_label": "Guide", "highlights": ["RTF", "Lossless edits", "Conversion"], "family": "formats", "color": "#0f766e"
+  },
+  {
+    "id": "epub", "title": "OfficeIMO.Epub", "tagline": "Extract EPUB metadata, navigation, chapters, and bounded resources.",
+    "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5h7a3 3 0 013 3v11H7a3 3 0 00-3 2z'/><path d='M20 5h-3a3 3 0 00-3 3v11h3a3 3 0 013 2z'/></svg>",
+    "install": "dotnet add package OfficeIMO.Epub", "url": "/products/epub/", "secondary_url": "/docs/epub/", "secondary_label": "Guide", "highlights": ["EPUB", "Chapters", "Extraction"], "family": "formats", "color": "#9333ea"
+  },
+  {
     "id": "markdown", "title": "OfficeIMO.Markdown", "tagline": "Build, parse, transform, and render Markdown with a typed AST.",
     "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16v12H4z'/><path d='M7 15V9l3 3 3-3v6m3-3h2m-1-1v4'/></svg>",
     "install": "dotnet add package OfficeIMO.Markdown", "url": "/products/markdown/", "secondary_url": "/docs/markdown/", "secondary_label": "Guide", "highlights": ["Markdown", "AST", "HTML"], "family": "formats", "color": "#6366f1"

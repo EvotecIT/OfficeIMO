@@ -44,11 +44,10 @@ var doc = MarkdownDoc.Create()
         .Item("HTML fragment and full-page rendering"))
     .H2("Performance")
     .Table(t => t
-        .Headers("Benchmark", "v2.4", "v3.0")
-        .Row("Parse 10K lines", "48 ms", "21 ms")
-        .Row("Render to HTML", "35 ms", "14 ms")
-        .Row("Round-trip fidelity", "97%", "100%")
-        .AlignNumericRight())
+        .Headers("Package", "Change", "Owner")
+        .Row("OfficeIMO.Markdown", "Typed AST traversal", "Documentation")
+        .Row("OfficeIMO.Word.Markdown", "Word conversion", "Automation")
+        .Row("OfficeIMO.Markdown.Html", "HTML conversion", "Web"))
     .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
 string markdown = doc.ToMarkdown();

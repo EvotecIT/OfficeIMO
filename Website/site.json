@@ -17,7 +17,29 @@
       "Destination": "./projects/pswriteoffice"
     }
   ],
-  "StaticAssets": [{ "Source": "static" }],
+  "StaticAssets": [
+    { "Source": "static" },
+    {
+      "Source": "../OfficeIMO.Pdf.Tests/Pdf/VisualBaselines/officeimo-pdf-professional-report.page1.poppler.png",
+      "Destination": "images/proof/pdf-professional-report.png"
+    },
+    {
+      "Source": "../OfficeIMO.Excel.Tests/Excel/VisualBaselines/officeimo-excel-image-premium-range.png",
+      "Destination": "images/proof/excel-premium-range.png"
+    },
+    {
+      "Source": "../OfficeIMO.Visio.Tests/Visio/VisualBaselines/officeimo-visio-premium-cloud-architecture-native-page1.png",
+      "Destination": "images/proof/visio-cloud-architecture.png"
+    },
+    {
+      "Source": "../OfficeIMO.Pdf.Tests/Pdf/VisualBaselines/officeimo-pdf-native-html-invoice.page1.poppler.png",
+      "Destination": "images/proof/html-invoice-pdf.png"
+    },
+    {
+      "Source": "../OfficeIMO.Pdf.Tests/Pdf/VisualBaselines/officeimo-pdf-native-word-report.page1.poppler.png",
+      "Destination": "images/proof/word-report-pdf.png"
+    }
+  ],
   "Collections": [
     {
       "Name": "pages",
@@ -352,6 +374,8 @@
                   { "Title": "Email", "Url": "/products/email/", "Description": "EML, MSG, stores, calendars, and contacts" },
                   { "Title": "OpenDocument", "Url": "/products/open-document/", "Description": "ODT, ODS, ODP, and Office adapters" },
                   { "Title": "HTML", "Url": "/products/html/", "Description": "HTML, MHTML, resource policy, and rendering" },
+                  { "Title": "RTF", "Url": "/products/rtf/", "Description": "Rich Text Format editing, preservation, and conversion" },
+                  { "Title": "EPUB", "Url": "/products/epub/", "Description": "EPUB metadata, chapters, resources, and extraction" },
                   { "Title": "Markdown", "Url": "/products/markdown/", "Description": "Typed AST, transforms, and rendering" },
                   { "Title": "Visio", "Url": "/products/visio/", "Description": "VSDX pages, shapes, and connectors" }
                 ]
@@ -374,8 +398,9 @@
               {
                 "Title": "By task",
                 "Items": [
-                  { "Title": "Build reports", "Url": "/docs/getting-started/", "Description": "Create Word, Excel, PowerPoint, and PDF output" },
-                  { "Title": "Convert documents", "Url": "/playground/", "Description": "Move between Office, PDF, HTML, and Markdown" },
+                  { "Title": "Find a workflow", "Url": "/docs/workflows/", "Description": "Choose a route by input, output, and deployment" },
+                  { "Title": "Build reports", "Url": "/docs/workflows/database-reporting/", "Description": "Create Excel, CSV, Word, PowerPoint, and PDF output" },
+                  { "Title": "Convert documents", "Url": "/docs/workflows/content-publishing/", "Description": "Move between Office, PDF, HTML, Markdown, RTF, and open formats" },
                   { "Title": "Extract content", "Url": "/docs/reader/", "Description": "Normalize documents for search and AI workflows" },
                   { "Title": "Automate with PowerShell", "Url": "/docs/pswriteoffice/", "Description": "Build repeatable document jobs from scripts" }
                 ]
@@ -468,6 +493,8 @@
           { "Title": "OfficeIMO.Email", "Url": "/products/email/" },
           { "Title": "OfficeIMO.OneNote", "Url": "/products/onenote/" },
           { "Title": "OfficeIMO.OpenDocument", "Url": "/products/open-document/" },
+          { "Title": "OfficeIMO.Rtf", "Url": "/products/rtf/" },
+          { "Title": "OfficeIMO.Epub", "Url": "/products/epub/" },
           { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/" },
           { "Title": "OfficeIMO.CSV", "Url": "/products/csv/" },
           { "Title": "OfficeIMO.Visio", "Url": "/products/visio/" },
@@ -479,12 +506,16 @@
         "Name": "footer-docs",
         "Items": [
           { "Title": "Getting Started", "Url": "/docs/getting-started/" },
+          { "Title": "Workflow Finder", "Url": "/docs/workflows/" },
+          { "Title": "Database Reporting", "Url": "/docs/workflows/database-reporting/" },
           { "Title": "Word Docs", "Url": "/docs/word/" },
           { "Title": "Excel Docs", "Url": "/docs/excel/" },
           { "Title": "PowerPoint Docs", "Url": "/docs/powerpoint/" },
           { "Title": "PDF Docs", "Url": "/docs/pdf/" },
           { "Title": "Email Docs", "Url": "/docs/email/" },
           { "Title": "OneNote Docs", "Url": "/docs/onenote/" },
+          { "Title": "RTF Docs", "Url": "/docs/rtf/" },
+          { "Title": "EPUB Docs", "Url": "/docs/epub/" },
           { "Title": "Markdown Docs", "Url": "/docs/markdown/" },
           { "Title": "CSV Docs", "Url": "/docs/csv/" },
           { "Title": "Visio Docs", "Url": "/docs/visio/" },

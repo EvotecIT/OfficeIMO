@@ -153,9 +153,10 @@ conversions are blocked. Password-protected binary files use RC4 CryptoAPI for l
 
 ## Further reading
 
-- [Slides](/docs/powerpoint/slides) -- Creating slides with text boxes, shapes, images, and charts.
-- [Designer Decks](/docs/powerpoint/designer/) -- Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
-- [Templates and Brand Kits](/docs/powerpoint/templates/) -- Consume corporate `.pptx` and `.potx` files through named layouts, semantic placeholders, and imported theme tokens.
-- [Capability Matrix](/docs/powerpoint/capabilities/) -- Understand native authoring, preservation, preview, and reporting boundaries.
-- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build decks from PowerShell with DSL aliases and cmdlets.
-- [OfficeIMO.PowerPoint product page](/products/powerpoint/) -- Package-level overview, install command, and positioning.
+- [Slides](/docs/powerpoint/slides) — Creating slides with text boxes, shapes, images, and charts.
+- [Designer Decks](/docs/powerpoint/designer/) — Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
+- [Templates and Brand Kits](/docs/powerpoint/templates/) — Consume corporate `.pptx` and `.potx` files through named layouts, semantic placeholders, and imported theme tokens.
+- [Image export](/docs/powerpoint/image-export/) — Render slides for previews, review, and visual baselines.
+- [Capability Matrix](/docs/powerpoint/capabilities/) — Understand native authoring, preservation, preview, and reporting boundaries.
+- [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) — Build decks from PowerShell with DSL aliases and cmdlets.
+- [OfficeIMO.PowerPoint product page](/products/powerpoint/) — Package-level overview, install command, and positioning.

@@ -1,14 +1,14 @@
 ---
 title: Markdown
-description: Overview of the OfficeIMO.Markdown package -- fluent builder, typed reader/AST, and HTML renderer.
+description: Overview of the OfficeIMO.Markdown package — fluent builder, typed reader/AST, and HTML renderer.
 order: 40
 ---
 
 The `OfficeIMO.Markdown` package provides a focused Markdown toolkit for .NET with three main capabilities:
 
-1. **Fluent Builder** -- Compose Markdown documents programmatically with a chainable API.
-2. **Reader / AST** -- Parse Markdown text into a typed Abstract Syntax Tree (AST) for analysis and transformation.
-3. **HTML Renderer** -- Convert Markdown documents to HTML with GitHub-like output, syntax highlighting, and table-of-contents generation.
+1. **Fluent Builder** — Compose Markdown documents programmatically with a chainable API.
+2. **Reader / AST** — Parse Markdown text into a typed Abstract Syntax Tree (AST) for analysis and transformation.
+3. **HTML Renderer** — Convert Markdown documents to HTML with GitHub-like output, syntax highlighting, and table-of-contents generation.
 
 The package has **zero external dependencies** and targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2.
 
@@ -103,5 +103,5 @@ var contributing = ContributingScaffold.Contributing("MyProject");
 
 ## Further Reading
 
-- [Builder API](/docs/markdown/builder) -- Detailed guide to the fluent builder methods.
-- [Word to Markdown Conversion](/docs/converters/word-markdown) -- Convert between Word documents and Markdown.
+- [Builder API](/docs/markdown/builder) — Detailed guide to the fluent builder methods.
+- [Word to Markdown Conversion](/docs/converters/word-markdown) — Convert between Word documents and Markdown.

@@ -40,6 +40,18 @@ The counts below are generated from the same manifest used by module packaging. 
 
 Browse [all 15 generated families](/docs/pswriteoffice/command-families/) or search the [full PowerShell API reference](/api/powershell/) for parameter-level detail.
 
+## Start from a real workflow
+
+| Job | Working path |
+|---|---|
+| Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the [runnable Excel example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1) |
+| Move database data through CSV | [Runnable CSV round-trip example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1) |
+| Create an operational Excel dashboard | [Excel showcase example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) |
+| Build a PowerPoint service brief | [PowerPoint showcase example](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) |
+| Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
+| Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
+| Evaluate mixed search, authenticated PDF, or Confluence publishing | [Release-preview status](/docs/workflows/release-previews/) |
+
 ## Quick start
 
 ```powershell
@@ -124,6 +136,9 @@ PSWriteOffice is available from the [PowerShell Gallery](https://www.powershellg
 | [PSWriteOffice overview](/docs/pswriteoffice/) | Start with installation, command families, and module scope. |
 | [PowerPoint cmdlets](/docs/pswriteoffice/powerpoint/) | Build generated decks with slides, bullets, tables, and images. |
 | [Markdown cmdlets](/docs/pswriteoffice/open-text-formats/#markdown) | Generate Markdown reports and repository-friendly docs from scripts. |
+| [Database reporting](/docs/workflows/database-reporting/) | Connect DbaClientX queries and bulk writes to Excel and CSV artifacts. |
+| [Performance evidence](/docs/workflows/powershell-benchmarks/) | Reproduce the PowerForge-backed Excel and CSV comparisons. |
+| [Release previews](/docs/workflows/release-previews/) | See implemented commands that are still waiting for package publication. |
 | [PowerShell API reference](/api/powershell/) | Browse the full cmdlet surface with parameters and examples. |
 
 ## Related packages

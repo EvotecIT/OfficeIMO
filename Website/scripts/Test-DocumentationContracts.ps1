@@ -78,7 +78,7 @@ $expectedRepositoryCounts = [ordered]@{
     benchmarkProjectCount = 12
     validationProjectCount = 17
     apiReferenceCount = 17
-    conceptualPageCount = 78
+    conceptualPageCount = 89
 }
 foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
     $actual = [int] $catalog.repository.($expectedCount.Key)

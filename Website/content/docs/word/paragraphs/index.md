@@ -1,6 +1,6 @@
 ---
 title: Paragraphs
-description: Working with paragraphs in OfficeIMO.Word -- text formatting, alignment, spacing, fonts, and colors.
+description: Working with paragraphs in OfficeIMO.Word — text formatting, alignment, spacing, fonts, and colors.
 order: 11
 ---
 

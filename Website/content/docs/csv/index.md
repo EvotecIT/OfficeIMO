@@ -4,7 +4,7 @@ description: Overview of the OfficeIMO.CSV package for strongly-typed CSV docume
 order: 50
 ---
 
-The `OfficeIMO.CSV` package provides a fluent, strongly-typed CSV document model for .NET. It supports reading, writing, validation, schema enforcement, streaming, and object mapping -- all with zero external dependencies.
+The `OfficeIMO.CSV` package provides a fluent, strongly typed CSV document model for .NET. It supports reading, writing, validation, schema enforcement, streaming, and object mapping with zero external dependencies.
 
 ## Key Classes
 

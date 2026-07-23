@@ -157,7 +157,7 @@ WordHeader.RemoveHeaders(
 
 ## Header and Footer Paragraphs
 
-Headers and footers support the full paragraph API -- you can add formatted text, hyperlinks, fields, and tab stops:
+Headers and footers support the full paragraph API, including formatted text, hyperlinks, fields, and tab stops:
 
 ```csharp
 document.AddHeadersAndFooters();

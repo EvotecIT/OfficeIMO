@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 150" role="img" aria-labelledby="title desc">
+  <title id="title">OneNote workflow</title>
+  <desc id="desc">A notebook page branching to HTML, Markdown, and PDF outputs.</desc>
+  <rect width="220" height="150" rx="18" fill="#f7f2ff"/>
+  <rect x="20" y="47" width="45" height="56" rx="9" fill="#7719aa"/>
+  <path d="M31 62h9l10 22V62h8v31h-9L39 71v22h-8z" fill="#fff"/>
+  <path d="M65 75h27m0 0 18-27m-18 27 18 27" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="92" cy="75" r="4" fill="#7c3aed"/>
+  <g font-family="Arial, sans-serif" font-size="11" font-weight="700">
+    <rect x="110" y="30" width="88" height="30" rx="8" fill="#fff" stroke="#d8c5e8"/>
+    <text x="129" y="49" fill="#15213a">HTML</text>
+    <rect x="110" y="60" width="88" height="30" rx="8" fill="#fff" stroke="#d8c5e8"/>
+    <text x="129" y="79" fill="#15213a">Markdown</text>
+    <rect x="110" y="90" width="88" height="30" rx="8" fill="#fff" stroke="#d8c5e8"/>
+    <text x="129" y="109" fill="#15213a">PDF</text>
+  </g>
+</svg>

@@ -494,6 +494,40 @@
     highlight();
   }
 
+  function initShowcaseFilters() {
+    var controls = Array.prototype.slice.call(document.querySelectorAll("[data-showcase-filter]"));
+    var cards = Array.prototype.slice.call(document.querySelectorAll("[data-showcase-tags]"));
+    var resultCount = document.getElementById("showcase-result-count");
+    if (!controls.length || !cards.length) return;
+
+    function applyFilter(filter) {
+      var visible = 0;
+
+      cards.forEach(function (card) {
+        var tags = (card.getAttribute("data-showcase-tags") || "").split(/\s+/);
+        var matches = filter === "all" || tags.indexOf(filter) !== -1;
+        card.hidden = !matches;
+        if (matches) visible += 1;
+      });
+
+      controls.forEach(function (control) {
+        var active = control.getAttribute("data-showcase-filter") === filter;
+        control.classList.toggle("is-active", active);
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+
+      if (resultCount) {
+        resultCount.textContent = visible + (visible === 1 ? " workflow" : " workflows");
+      }
+    }
+
+    controls.forEach(function (control) {
+      control.addEventListener("click", function () {
+        applyFilter(control.getAttribute("data-showcase-filter") || "all");
+      });
+    });
+  }
+
   function init() {
     initTheme();
     initMobileNav();
@@ -505,6 +539,7 @@
     initConverterFrame();
     initDocsSidebar();
     initPrism();
+    initShowcaseFilters();
   }
 
   if (document.readyState === "loading") {
