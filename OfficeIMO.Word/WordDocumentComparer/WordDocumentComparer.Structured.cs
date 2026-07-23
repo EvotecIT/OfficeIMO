@@ -10,6 +10,7 @@ namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private const int LcsCellLimit = 1_000_000;
         private const int MaxComparisonAlignmentWindow = 256;
+        private const long MaxComparisonTextWorkUnits = 64_000_000;
         private const int MaxBoundedTextSimilaritySamples = 64;
         private const int MaxBoundedTextSimilarityAnchors = 8;
         private const int BoundedTextSimilarityAnchorLength = 8;
@@ -53,7 +54,8 @@ namespace OfficeIMO.Word {
             using WordDocument target = WordDocument.Load(targetPath);
 
             WordComparisonResult result = new(sourcePath, targetPath);
-            AnalyzeParagraphs(source, target, result, options);
+            var comparisonWorkBudget = new ComparisonWorkBudget(MaxComparisonTextWorkUnits);
+            AnalyzeParagraphs(source, target, result, options, comparisonWorkBudget);
             if (options.CompareFields) {
                 AnalyzeFields(source, target, result, options);
             }
@@ -82,7 +84,7 @@ namespace OfficeIMO.Word {
                 AnalyzeRevisions(source, target, result, options);
             }
 
-            AnalyzeTables(source, target, result, options);
+            AnalyzeTables(source, target, result, options, comparisonWorkBudget);
             if (options.CompareImages) {
                 AnalyzeImages(source, target, result);
             }
@@ -108,7 +110,12 @@ namespace OfficeIMO.Word {
                 (hasExcludedScopes && options.ExcludedScopes!.Contains(finding.Scope)));
         }
 
-        private static void AnalyzeTables(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeTables(
+            WordDocument source,
+            WordDocument target,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             List<TableSnapshot> sourceTables = GetTableSnapshots(source, options);
             List<TableSnapshot> targetTables = GetTableSnapshots(target, options);
             IReadOnlyList<MatchedIndexPair> matchedTables = FindMatchingIndexes(
@@ -120,12 +127,12 @@ namespace OfficeIMO.Word {
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedTables) {
-                AddTableRangeFindings(sourceTables, targetTables, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options);
+                AddTableRangeFindings(sourceTables, targetTables, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options, comparisonWorkBudget);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddTableRangeFindings(sourceTables, targetTables, sourceStart, sourceTables.Count, targetStart, targetTables.Count, result, options);
+            AddTableRangeFindings(sourceTables, targetTables, sourceStart, sourceTables.Count, targetStart, targetTables.Count, result, options, comparisonWorkBudget);
         }
 
         private static void AddTableRangeFindings(
@@ -136,15 +143,16 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result,
-            WordComparisonOptions options) {
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int sourceIndex = sourceStart;
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
                 if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
                     targetIndex + 1 < targetEnd &&
-                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex + 1], options) >
-                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex], options)) {
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex + 1], comparisonWorkBudget) >
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex], comparisonWorkBudget)) {
                     AddInsertedTableFinding(targetTables, targetIndex, result);
                     targetIndex++;
                     continue;
@@ -152,8 +160,8 @@ namespace OfficeIMO.Word {
 
                 if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
                     sourceIndex + 1 < sourceEnd &&
-                    GetTableSimilarity(sourceTables[sourceIndex + 1], targetTables[targetIndex], options) >
-                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex], options)) {
+                    GetTableSimilarity(sourceTables[sourceIndex + 1], targetTables[targetIndex], comparisonWorkBudget) >
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex], comparisonWorkBudget)) {
                     AddDeletedTableFinding(sourceTables, sourceIndex, result);
                     sourceIndex++;
                     continue;
@@ -167,7 +175,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                AnalyzeTable(sourceTables[sourceIndex], targetTables[targetIndex], targetIndex, targetTables[targetIndex].DocumentOrder, result, options);
+                AnalyzeTable(sourceTables[sourceIndex], targetTables[targetIndex], targetIndex, targetTables[targetIndex].DocumentOrder, result, options, comparisonWorkBudget);
                 sourceIndex++;
                 targetIndex++;
             }
@@ -209,9 +217,22 @@ namespace OfficeIMO.Word {
                 sourceTables[tableIndex].DocumentOrder);
         }
 
-        private static void AnalyzeTable(TableSnapshot source, TableSnapshot target, int tableIndex, int tableDocumentOrder, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeTable(
+            TableSnapshot source,
+            TableSnapshot target,
+            int tableIndex,
+            int tableDocumentOrder,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             List<WordTableRow> sourceRows = source.Table.Rows.ToList();
             List<WordTableRow> targetRows = target.Table.Rows.ToList();
+            List<string> sourceRowComparisonTexts = sourceRows
+                .Select(row => NormalizeComparisonText(GetRowText(row), options))
+                .ToList();
+            List<string> targetRowComparisonTexts = targetRows
+                .Select(row => NormalizeComparisonText(GetRowText(row), options))
+                .ToList();
             IReadOnlyList<MatchedIndexPair> matchedRows = FindMatchingIndexes(
                 sourceRows.Select(row => GetRowMatchKey(row, source.Part, options)).ToList(),
                 targetRows.Select(row => GetRowMatchKey(row, target.Part, options)).ToList(),
@@ -221,17 +242,19 @@ namespace OfficeIMO.Word {
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedRows) {
-                AddTableRowRangeFindings(sourceRows, targetRows, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options);
+                AddTableRowRangeFindings(sourceRows, targetRows, sourceRowComparisonTexts, targetRowComparisonTexts, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options, comparisonWorkBudget);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddTableRowRangeFindings(sourceRows, targetRows, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, sourceRows.Count, targetStart, targetRows.Count, result, options);
+            AddTableRowRangeFindings(sourceRows, targetRows, sourceRowComparisonTexts, targetRowComparisonTexts, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, sourceRows.Count, targetStart, targetRows.Count, result, options, comparisonWorkBudget);
         }
 
         private static void AddTableRowRangeFindings(
             IReadOnlyList<WordTableRow> sourceRows,
             IReadOnlyList<WordTableRow> targetRows,
+            IReadOnlyList<string> sourceRowComparisonTexts,
+            IReadOnlyList<string> targetRowComparisonTexts,
             OpenXmlPart? sourcePart,
             OpenXmlPart? targetPart,
             int tableIndex,
@@ -241,12 +264,20 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result,
-            WordComparisonOptions options) {
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int sourceIndex = sourceStart;
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
-                int betterTargetIndex = FindBetterTargetRowAlignmentIndex(sourceRows[sourceIndex], targetRows, targetIndex, targetEnd, options);
+                int betterTargetIndex = FindBetterTargetRowAlignmentIndex(
+                    sourceRows[sourceIndex],
+                    sourceRowComparisonTexts[sourceIndex],
+                    targetRows,
+                    targetRowComparisonTexts,
+                    targetIndex,
+                    targetEnd,
+                    comparisonWorkBudget);
                 if (betterTargetIndex > targetIndex) {
                     while (targetIndex < betterTargetIndex) {
                         AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
@@ -256,7 +287,14 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                int betterSourceIndex = FindBetterSourceRowAlignmentIndex(sourceRows, sourceIndex, sourceEnd, targetRows[targetIndex], options);
+                int betterSourceIndex = FindBetterSourceRowAlignmentIndex(
+                    sourceRows,
+                    sourceRowComparisonTexts,
+                    sourceIndex,
+                    sourceEnd,
+                    targetRows[targetIndex],
+                    targetRowComparisonTexts[targetIndex],
+                    comparisonWorkBudget);
                 if (betterSourceIndex > sourceIndex) {
                     while (sourceIndex < betterSourceIndex) {
                         AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
@@ -267,7 +305,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (sourceRows[sourceIndex].Cells.Count != targetRows[targetIndex].Cells.Count &&
-                    AreComparisonTextEqual(GetRowText(sourceRows[sourceIndex]), GetRowText(targetRows[targetIndex]), options)) {
+                    string.Equals(sourceRowComparisonTexts[sourceIndex], targetRowComparisonTexts[targetIndex], StringComparison.Ordinal)) {
                     AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
                     AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
                     sourceIndex++;
@@ -275,7 +313,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result, options);
+                AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result, options, comparisonWorkBudget);
                 sourceIndex++;
                 targetIndex++;
             }
@@ -293,19 +331,22 @@ namespace OfficeIMO.Word {
 
         private static int FindBetterTargetRowAlignmentIndex(
             WordTableRow sourceRow,
+            string sourceComparisonText,
             IReadOnlyList<WordTableRow> targetRows,
+            IReadOnlyList<string> targetComparisonTexts,
             int targetStart,
             int targetEnd,
-            WordComparisonOptions options) {
-            double currentSimilarity = GetRowSimilarity(sourceRow, targetRows[targetStart], options);
+            ComparisonWorkBudget comparisonWorkBudget) {
+            double currentSimilarity = GetRowSimilarity(sourceRow, sourceComparisonText, targetRows[targetStart], targetComparisonTexts[targetStart], comparisonWorkBudget);
             int bestIndex = targetStart;
             double bestSimilarity = currentSimilarity;
 
             foreach (int index in SelectBoundedAlignmentCandidates(
                 targetStart + 1,
                 targetEnd,
-                index => GetRowAlignmentPrefilterSimilarity(sourceRow, targetRows[index], options))) {
-                double similarity = GetRowSimilarity(sourceRow, targetRows[index], options);
+                index => GetRowAlignmentPrefilterSimilarity(sourceRow, sourceComparisonText, targetRows[index], targetComparisonTexts[index], comparisonWorkBudget),
+                comparisonWorkBudget)) {
+                double similarity = GetRowSimilarity(sourceRow, sourceComparisonText, targetRows[index], targetComparisonTexts[index], comparisonWorkBudget);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
                     bestIndex = index;
@@ -317,19 +358,22 @@ namespace OfficeIMO.Word {
 
         private static int FindBetterSourceRowAlignmentIndex(
             IReadOnlyList<WordTableRow> sourceRows,
+            IReadOnlyList<string> sourceComparisonTexts,
             int sourceStart,
             int sourceEnd,
             WordTableRow targetRow,
-            WordComparisonOptions options) {
-            double currentSimilarity = GetRowSimilarity(sourceRows[sourceStart], targetRow, options);
+            string targetComparisonText,
+            ComparisonWorkBudget comparisonWorkBudget) {
+            double currentSimilarity = GetRowSimilarity(sourceRows[sourceStart], sourceComparisonTexts[sourceStart], targetRow, targetComparisonText, comparisonWorkBudget);
             int bestIndex = sourceStart;
             double bestSimilarity = currentSimilarity;
 
             foreach (int index in SelectBoundedAlignmentCandidates(
                 sourceStart + 1,
                 sourceEnd,
-                index => GetRowAlignmentPrefilterSimilarity(sourceRows[index], targetRow, options))) {
-                double similarity = GetRowSimilarity(sourceRows[index], targetRow, options);
+                index => GetRowAlignmentPrefilterSimilarity(sourceRows[index], sourceComparisonTexts[index], targetRow, targetComparisonText, comparisonWorkBudget),
+                comparisonWorkBudget)) {
+                double similarity = GetRowSimilarity(sourceRows[index], sourceComparisonTexts[index], targetRow, targetComparisonText, comparisonWorkBudget);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
                     bestIndex = index;
@@ -365,9 +409,26 @@ namespace OfficeIMO.Word {
                 GetTableChildDocumentOrder(tableDocumentOrder, sourceRows[rowIndex]._tableRow));
         }
 
-        private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, OpenXmlPart? sourcePart, OpenXmlPart? targetPart, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int targetRowIndex, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeTableRow(
+            WordTableRow source,
+            WordTableRow target,
+            OpenXmlPart? sourcePart,
+            OpenXmlPart? targetPart,
+            int tableIndex,
+            int tableDocumentOrder,
+            int sourceRowIndex,
+            int targetRowIndex,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             List<WordTableCell> sourceCells = source.Cells.ToList();
             List<WordTableCell> targetCells = target.Cells.ToList();
+            List<string> sourceCellComparisonTexts = sourceCells
+                .Select(cell => NormalizeComparisonText(GetCellText(cell), options))
+                .ToList();
+            List<string> targetCellComparisonTexts = targetCells
+                .Select(cell => NormalizeComparisonText(GetCellText(cell), options))
+                .ToList();
             IReadOnlyList<MatchedIndexPair> matchedCells = FindMatchingIndexes(
                 sourceCells.Select(cell => GetCellMatchKey(cell, sourcePart, options)).ToList(),
                 targetCells.Select(cell => GetCellMatchKey(cell, targetPart, options)).ToList(),
@@ -377,17 +438,19 @@ namespace OfficeIMO.Word {
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedCells) {
-                AddTableCellRangeFindings(sourceCells, targetCells, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options);
+                AddTableCellRangeFindings(sourceCells, targetCells, sourceCellComparisonTexts, targetCellComparisonTexts, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options, comparisonWorkBudget);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddTableCellRangeFindings(sourceCells, targetCells, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, sourceCells.Count, targetStart, targetCells.Count, result, options);
+            AddTableCellRangeFindings(sourceCells, targetCells, sourceCellComparisonTexts, targetCellComparisonTexts, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, sourceCells.Count, targetStart, targetCells.Count, result, options, comparisonWorkBudget);
         }
 
         private static void AddTableCellRangeFindings(
             IReadOnlyList<WordTableCell> sourceCells,
             IReadOnlyList<WordTableCell> targetCells,
+            IReadOnlyList<string> sourceCellComparisonTexts,
+            IReadOnlyList<string> targetCellComparisonTexts,
             OpenXmlPart? sourcePart,
             OpenXmlPart? targetPart,
             int tableIndex,
@@ -399,15 +462,16 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result,
-            WordComparisonOptions options) {
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int sourceIndex = sourceStart;
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
                 if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
                     targetIndex + 1 < targetEnd &&
-                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex + 1], options) >
-                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex], options)) {
+                    GetCellSimilarity(sourceCellComparisonTexts[sourceIndex], targetCellComparisonTexts[targetIndex + 1], comparisonWorkBudget) >
+                    GetCellSimilarity(sourceCellComparisonTexts[sourceIndex], targetCellComparisonTexts[targetIndex], comparisonWorkBudget)) {
                     AddInsertedTableCellFinding(targetCells, tableIndex, tableDocumentOrder, targetRowIndex, targetIndex, result);
                     targetIndex++;
                     continue;
@@ -415,8 +479,8 @@ namespace OfficeIMO.Word {
 
                 if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
                     sourceIndex + 1 < sourceEnd &&
-                    GetCellSimilarity(sourceCells[sourceIndex + 1], targetCells[targetIndex], options) >
-                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex], options)) {
+                    GetCellSimilarity(sourceCellComparisonTexts[sourceIndex + 1], targetCellComparisonTexts[targetIndex], comparisonWorkBudget) >
+                    GetCellSimilarity(sourceCellComparisonTexts[sourceIndex], targetCellComparisonTexts[targetIndex], comparisonWorkBudget)) {
                     AddDeletedTableCellFinding(sourceCells, tableIndex, tableDocumentOrder, sourceRowIndex, sourceIndex, result);
                     sourceIndex++;
                     continue;
@@ -485,15 +549,31 @@ namespace OfficeIMO.Word {
         }
 
         private static IReadOnlyList<MatchedIndexPair> FindMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) where T : notnull {
-            if ((long)(source.Count + 1) * (target.Count + 1) > LcsCellLimit) {
+            if (((long)source.Count + 1) * ((long)target.Count + 1) > LcsCellLimit) {
                 return FindGreedyMatchingIndexes(source, target, comparer);
+            }
+
+            int[] sourceHashCodes = new int[source.Count];
+            ulong[] sourceFingerprints = new ulong[source.Count];
+            for (int sourceIndex = 0; sourceIndex < source.Count; sourceIndex++) {
+                sourceHashCodes[sourceIndex] = comparer.GetHashCode(source[sourceIndex]);
+                sourceFingerprints[sourceIndex] = GetComparisonFingerprint(source[sourceIndex]);
+            }
+
+            int[] targetHashCodes = new int[target.Count];
+            ulong[] targetFingerprints = new ulong[target.Count];
+            for (int targetIndex = 0; targetIndex < target.Count; targetIndex++) {
+                targetHashCodes[targetIndex] = comparer.GetHashCode(target[targetIndex]);
+                targetFingerprints[targetIndex] = GetComparisonFingerprint(target[targetIndex]);
             }
 
             int[,] lengths = new int[source.Count + 1, target.Count + 1];
 
             for (int sourceIndex = source.Count - 1; sourceIndex >= 0; sourceIndex--) {
                 for (int targetIndex = target.Count - 1; targetIndex >= 0; targetIndex--) {
-                    lengths[sourceIndex, targetIndex] = comparer.Equals(source[sourceIndex], target[targetIndex])
+                    lengths[sourceIndex, targetIndex] = sourceHashCodes[sourceIndex] == targetHashCodes[targetIndex] &&
+                        sourceFingerprints[sourceIndex] == targetFingerprints[targetIndex] &&
+                        comparer.Equals(source[sourceIndex], target[targetIndex])
                         ? lengths[sourceIndex + 1, targetIndex + 1] + 1
                         : Math.Max(lengths[sourceIndex + 1, targetIndex], lengths[sourceIndex, targetIndex + 1]);
                 }
@@ -504,7 +584,9 @@ namespace OfficeIMO.Word {
             int targetCursor = 0;
 
             while (sourceCursor < source.Count && targetCursor < target.Count) {
-                if (comparer.Equals(source[sourceCursor], target[targetCursor])) {
+                if (sourceHashCodes[sourceCursor] == targetHashCodes[targetCursor] &&
+                    sourceFingerprints[sourceCursor] == targetFingerprints[targetCursor] &&
+                    comparer.Equals(source[sourceCursor], target[targetCursor])) {
                     matches.Add(new MatchedIndexPair(sourceCursor, targetCursor));
                     sourceCursor++;
                     targetCursor++;
@@ -594,7 +676,7 @@ namespace OfficeIMO.Word {
                 var wordTable = new WordTable(document, table);
                 string text = GetTableText(wordTable);
                 string matchText = GetTableMatchText(wordTable, part, options);
-                snapshots.Add(new TableSnapshot(wordTable, part, text, matchText, GetTableMatchKey(partKey, wordTable, part, options), partKey, ordered.DocumentOrder));
+                snapshots.Add(new TableSnapshot(wordTable, part, text, NormalizeComparisonText(text, options), matchText, GetTableMatchKey(partKey, wordTable, part, options), partKey, ordered.DocumentOrder));
             }
         }
 
@@ -702,34 +784,42 @@ namespace OfficeIMO.Word {
             return value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + value;
         }
 
-        private static double GetRowSimilarity(WordTableRow source, WordTableRow target, WordComparisonOptions options) {
+        private static double GetRowSimilarity(
+            WordTableRow source,
+            string sourceComparisonText,
+            WordTableRow target,
+            string targetComparisonText,
+            ComparisonWorkBudget comparisonWorkBudget) {
             if (source.Cells.Count != target.Cells.Count) {
                 return 0;
             }
 
-            return GetContainmentAwareTextSimilarity(NormalizeComparisonText(GetRowText(source), options), NormalizeComparisonText(GetRowText(target), options));
+            return GetContainmentAwareTextSimilarity(sourceComparisonText, targetComparisonText, comparisonWorkBudget);
         }
 
-        private static double GetRowAlignmentPrefilterSimilarity(WordTableRow source, WordTableRow target, WordComparisonOptions options) {
+        private static double GetRowAlignmentPrefilterSimilarity(
+            WordTableRow source,
+            string sourceComparisonText,
+            WordTableRow target,
+            string targetComparisonText,
+            ComparisonWorkBudget comparisonWorkBudget) {
             if (source.Cells.Count != target.Cells.Count) {
                 return 0;
             }
 
-            return GetBoundedTextSimilarity(
-                NormalizeComparisonText(GetRowText(source), options),
-                NormalizeComparisonText(GetRowText(target), options));
+            return GetBoundedTextSimilarity(sourceComparisonText, targetComparisonText, comparisonWorkBudget);
         }
 
-        private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target, WordComparisonOptions options) {
+        private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target, ComparisonWorkBudget comparisonWorkBudget) {
             if (!string.Equals(source.PartKey, target.PartKey, StringComparison.Ordinal)) {
                 return 0;
             }
 
-            return GetTextSimilarity(NormalizeComparisonText(source.Text, options), NormalizeComparisonText(target.Text, options));
+            return GetTextSimilarity(source.ComparisonText, target.ComparisonText, comparisonWorkBudget);
         }
 
-        private static double GetCellSimilarity(WordTableCell source, WordTableCell target, WordComparisonOptions options) {
-            return GetTextSimilarity(NormalizeComparisonText(GetCellText(source), options), NormalizeComparisonText(GetCellText(target), options));
+        private static double GetCellSimilarity(string sourceComparisonText, string targetComparisonText, ComparisonWorkBudget comparisonWorkBudget) {
+            return GetTextSimilarity(sourceComparisonText, targetComparisonText, comparisonWorkBudget);
         }
 
         private static string GetStableElementPath(OpenXmlElement element) {
@@ -856,10 +946,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableSnapshot {
-            internal TableSnapshot(WordTable table, OpenXmlPart? part, string text, string matchText, string matchKey, string partKey, int documentOrder) {
+            internal TableSnapshot(WordTable table, OpenXmlPart? part, string text, string comparisonText, string matchText, string matchKey, string partKey, int documentOrder) {
                 Table = table;
                 Part = part;
                 Text = text;
+                ComparisonText = comparisonText;
                 MatchText = matchText;
                 MatchKey = matchKey;
                 PartKey = partKey;
@@ -871,6 +962,8 @@ namespace OfficeIMO.Word {
             internal OpenXmlPart? Part { get; }
 
             internal string Text { get; }
+
+            internal string ComparisonText { get; }
 
             internal string MatchText { get; }
 
