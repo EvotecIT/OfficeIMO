@@ -1544,6 +1544,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_RejectsNonFiniteDashedLineLengths() {
+            OfficeRasterImage image = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var points = new[] { new OfficePoint(0D, 3D), new OfficePoint(31D, 3D) };
+
+            canvas.DrawDashedLine(0D, 3D, 31D, 3D, OfficeColor.Black, dashLength: double.PositiveInfinity);
+            canvas.DrawDashedLine(0D, 3D, 31D, 3D, OfficeColor.Black, gapLength: double.NaN);
+            canvas.DrawDashedPolyline(points, OfficeColor.Black, dashLength: double.PositiveInfinity);
+            canvas.DrawDashedPolyline(points, OfficeColor.Black, gapLength: double.PositiveInfinity);
+
+            Assert.All(image.GetPixels(), value => Assert.Equal(0, value));
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_OddDashPatternsPreserveAlternatingParityAcrossWrap() {
             OfficeRasterImage odd = new OfficeRasterImage(32, 8, OfficeColor.Transparent);
             OfficeRasterImage duplicated = new OfficeRasterImage(32, 8, OfficeColor.Transparent);

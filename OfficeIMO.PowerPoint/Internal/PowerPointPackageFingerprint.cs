@@ -32,6 +32,10 @@ namespace OfficeIMO.PowerPoint {
                 content.Append(part.Uri.ToString());
                 content.Append(part.ContentType);
                 try {
+                    if (IsXmlContentType(part.ContentType) && !part.IsRootElementLoaded) {
+                        using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
+                        EnsureStreamWithinLimit(source, MaximumNormalizedXmlBytes);
+                    }
                     OpenXmlPartRootElement? root = part.RootElement;
                     if (root != null) {
                         if (normalizeRoot != null) {
@@ -158,6 +162,35 @@ namespace OfficeIMO.PowerPoint {
         private static void AppendPackageProperty(FingerprintWriter content, string name, string? value) {
             content.Append(name);
             content.Append(value ?? string.Empty);
+        }
+
+        private static bool IsXmlContentType(string? contentType) =>
+            !string.IsNullOrWhiteSpace(contentType) &&
+            (contentType!.EndsWith("+xml", StringComparison.OrdinalIgnoreCase) ||
+             contentType.IndexOf("/xml", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        internal static void EnsureStreamWithinLimit(Stream stream, long maximumBytes) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            if (stream.CanSeek) {
+                long remaining = stream.Length - stream.Position;
+                if (remaining > maximumBytes) {
+                    throw new FingerprintLimitExceededException(
+                        "A presentation XML part exceeds the fingerprint normalization limit.");
+                }
+                return;
+            }
+
+            var buffer = new byte[81920];
+            long inspected = 0L;
+            int read;
+            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
+                if (read > maximumBytes - inspected) {
+                    throw new FingerprintLimitExceededException(
+                        "A presentation XML part exceeds the fingerprint normalization limit.");
+                }
+                inspected += read;
+            }
         }
 
         private sealed class FingerprintWriter : IDisposable {

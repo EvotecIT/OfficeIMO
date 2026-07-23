@@ -322,7 +322,8 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Draws a dashed line segment.</summary>
     public void DrawDashedLine(double x1, double y1, double x2, double y2, OfficeColor color, double thickness = 1D, double dashLength = 6D, double gapLength = 4D) {
-        if (color.A == 0 || thickness <= 0D || dashLength <= 0D || gapLength < 0D) {
+        if (color.A == 0 || thickness <= 0D || dashLength <= 0D || gapLength < 0D
+            || !IsFinite(dashLength) || !IsFinite(gapLength)) {
             return;
         }
 

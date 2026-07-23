@@ -9,6 +9,7 @@ namespace OfficeIMO.Reader;
 
 /// <summary>Creates bounded token-aware chunks and a document/container/heading hierarchy.</summary>
 public static partial class ReaderHierarchicalChunker {
+    private const int PageIndexInspectionMultiplier = 16;
     private static readonly ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath> FallbackHeadingIdentities =
         new ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath>();
     private static readonly ReaderChunk FallbackInputLimitMarker = new ReaderChunk();
@@ -201,7 +202,14 @@ public static partial class ReaderHierarchicalChunker {
             emittedBlocks++;
         }
 
-        PageBlockIndex pageIndex = IndexPageBlocks(pages, retainedDocumentBlocks, cancellationToken);
+        int maximumPageIndexInspections = (int)Math.Min(
+            int.MaxValue,
+            (long)maximumInputChunks * PageIndexInspectionMultiplier);
+        PageBlockIndex pageIndex = IndexPageBlocks(
+            pages,
+            retainedDocumentBlocks,
+            maximumPageIndexInspections,
+            cancellationToken);
         for (int blockIndex = 0; blockIndex < retainedDocumentBlocks.Count; blockIndex++) {
             OfficeDocumentBlock block = retainedDocumentBlocks[blockIndex];
             if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page) && !string.IsNullOrWhiteSpace(block.Id)) {
@@ -250,6 +258,7 @@ public static partial class ReaderHierarchicalChunker {
     private static PageBlockIndex IndexPageBlocks(
         IReadOnlyList<OfficeDocumentPage> pages,
         IReadOnlyList<OfficeDocumentBlock> targetBlocks,
+        int maximumInspections,
         CancellationToken cancellationToken) {
         var byReference = new Dictionary<OfficeDocumentBlock, OfficeDocumentPage>(
             ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
@@ -265,12 +274,18 @@ public static partial class ReaderHierarchicalChunker {
             }
         }
 
+        int inspectedBlocks = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentPage page = pages[pageIndex];
             if (page?.Blocks == null) continue;
-            foreach (OfficeDocumentBlock block in page.Blocks) {
+            IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
+            for (int blockIndex = 0;
+                 blockIndex < pageBlocks.Count && inspectedBlocks < maximumInspections;
+                 blockIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                OfficeDocumentBlock block = pageBlocks[blockIndex];
+                inspectedBlocks++;
                 if (block == null) continue;
                 if (remaining.Contains(block)) {
                     byReference[block] = page;
@@ -282,6 +297,9 @@ public static partial class ReaderHierarchicalChunker {
                     remaining.Remove(target);
                 }
                 if (remaining.Count == 0) return new PageBlockIndex(byReference, byId);
+            }
+            if (inspectedBlocks >= maximumInspections) {
+                return new PageBlockIndex(byReference, byId);
             }
         }
         return new PageBlockIndex(byReference, byId);

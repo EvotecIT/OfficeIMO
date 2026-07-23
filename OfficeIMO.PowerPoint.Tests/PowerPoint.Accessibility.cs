@@ -257,6 +257,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageFingerprintRejectsOversizedXmlStreamsBeforeParsing() {
+            using var stream = new MemoryStream(new byte[17]);
+
+            Assert.ThrowsAny<IOException>(() =>
+                PowerPointPackageFingerprint.EnsureStreamWithinLimit(stream, maximumBytes: 16));
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");

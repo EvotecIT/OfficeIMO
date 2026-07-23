@@ -366,7 +366,12 @@ public static partial class OfficeSvgDrawingReader {
         bool parsed = TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
             out IReadOnlyList<double> values, out bool limitExceeded);
         if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
-            if (limitExceeded) pathCommands = MaximumSvgPathCommands;
+            if (limitExceeded) {
+                pathCommands = MaximumSvgPathCommands;
+            } else if (values.Count > 0) {
+                int parsedCommands = Math.Max(1, (values.Count + 1) / 2);
+                pathCommands += Math.Min(remainingCommands, parsedCommands);
+            }
             return null;
         }
         int commandCount = values.Count / 2;

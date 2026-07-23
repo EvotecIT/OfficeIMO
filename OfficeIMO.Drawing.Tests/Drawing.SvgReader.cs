@@ -460,6 +460,23 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderChargesRepeatedMalformedUsePolylinesToOneCommandBudget() {
+        var points = new StringBuilder("0");
+        for (int index = 1; index < 9_999; index++) points.Append(' ').Append(index % 10);
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'><defs><polyline id='p' points='")
+            .Append(points).Append("' stroke='black'/></defs>");
+        for (int index = 0; index < 10; index++) svg.Append("<use href='#p'/>");
+        svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out int unsupported));
+
+        Assert.NotNull(drawing);
+        Assert.Empty(drawing!.Shapes);
+        Assert.True(unsupported > 0);
+    }
+
+    [Fact]
     public void SvgReaderRejectsTransformArgumentsBeyondSupportedArity() {
         var arguments = new StringBuilder("0");
         for (int index = 1; index < 1000; index++) arguments.Append(" 0");
