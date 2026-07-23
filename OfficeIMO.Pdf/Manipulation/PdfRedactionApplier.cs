@@ -682,6 +682,8 @@ internal static partial class PdfRedactionApplier {
 
     private static PdfObject CloneObject(PdfObject value) {
         switch (value) {
+            case PdfReference reference:
+                return new PdfReference(reference.ObjectNumber, reference.Generation);
             case PdfDictionary dictionary:
                 return CloneDictionary(dictionary);
             case PdfArray array:

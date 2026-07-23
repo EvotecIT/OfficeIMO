@@ -151,9 +151,11 @@ internal static partial class PdfRedactionApplier {
 
         PdfDictionary xObjects = PdfPageResourceHelper.EnsurePageXObjects(objects, pageDictionary, "redaction text scrubbing");
         resources = ResolveDictionary(objects, pageDictionary.Items.TryGetValue("Resources", out PdfObject? pageResources) ? pageResources : null) ?? resources;
-        var contentSegments = new List<string>();
+        PdfReference[] contentReferences = EnumerateContentReferences(objects, contentsObject).ToArray();
+        var contentSegments = new string?[contentReferences.Length];
         bool allStreamsDecoded = true;
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
+        for (int index = 0; index < contentReferences.Length; index++) {
+            PdfReference reference = contentReferences[index];
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
                 stream.DecodingFailed) {
@@ -161,70 +163,52 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            contentSegments.Add(PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects)));
+            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
         }
 
         bool changed = false;
-        if (allStreamsDecoded && contentSegments.Count > 0) {
+        if (allStreamsDecoded && contentSegments.Length > 0) {
             string combinedContent = string.Concat(contentSegments);
-            return ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber);
+            if (!string.Equals(result.Content, combinedContent, StringComparison.Ordinal)) {
+                PdfObject currentContentsObject = contentsObject;
+                for (int index = 0; index < contentReferences.Length; index++) {
+                    string replacement = index == 0 ? result.Content : string.Empty;
+                    changed = ReplacePageContentStreamIfChanged(
+                        objects,
+                        pageDictionary,
+                        ref currentContentsObject,
+                        contentReferences[index],
+                        index,
+                        contentSegments[index]!,
+                        replacement,
+                        referenceCounts,
+                        ref nextObjectNumber) || changed;
+                }
+            }
+
+            return result.HasChanges || changed;
         }
 
-        for (int i = 0; i < contentSegments.Count; i++) {
-            changed = ScrubFormInvocations(objects, resources, xObjects, contentSegments[i], textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber) || changed;
-        }
-
-        return changed;
-    }
-
-    private static bool ScrubFormInvocations(
-        Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary resources,
-        PdfDictionary xObjects,
-        string content,
-        RedactionTextTarget[] textTargets,
-        IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
-        IReadOnlyList<Matrix2D> parentTransforms,
-        IReadOnlyDictionary<int, int> referenceCounts,
-        HashSet<int> activeForms,
-        ref int nextObjectNumber) {
-        bool changed = false;
-        foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) {
-            if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
-                formStream.DecodingFailed ||
-                !activeForms.Add(reference.ObjectNumber)) {
+        PdfObject fallbackContentsObject = contentsObject;
+        for (int index = 0; index < contentSegments.Length; index++) {
+            string? content = contentSegments[index];
+            if (content is null) {
                 continue;
             }
 
-            int activeObjectNumber = reference.ObjectNumber;
-            try {
-                if (IsSharedReference(referenceCounts, reference) &&
-                    PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? sourceIndirect)) {
-                    reference = CloneIndirectObject(objects, reference, sourceIndirect, ref nextObjectNumber);
-                    xObjects.Items[invocation.Name] = reference;
-                    formStream = (PdfStream)objects[reference.ObjectNumber].Value;
-                    changed = true;
-                }
-
-                PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
-                PdfDictionary formXObjects = ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
-                Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects));
-                Matrix2D[] effectiveTransforms = parentTransforms
-                    .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocation.Transform), formStream.Dictionary))
-                    .ToArray();
-                byte[] formBytes = StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects);
-                string formContent = PdfEncoding.Latin1GetString(formBytes);
-                string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, effectiveTransforms);
-                if (!string.Equals(formContent, scrubbed, StringComparison.Ordinal)) {
-                    objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
-                    formContent = scrubbed;
-                    changed = true;
-                }
-
-                changed = ScrubFormInvocations(objects, formResources, formXObjects, formContent, textTargets, formDecoders, effectiveTransforms, referenceCounts, activeForms, ref nextObjectNumber) || changed;
-            } finally {
-                activeForms.Remove(activeObjectNumber);
-            }
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber);
+            changed = result.HasChanges || changed;
+            changed = ReplacePageContentStreamIfChanged(
+                objects,
+                pageDictionary,
+                ref fallbackContentsObject,
+                contentReferences[index],
+                index,
+                content,
+                result.Content,
+                referenceCounts,
+                ref nextObjectNumber) || changed;
         }
 
         return changed;

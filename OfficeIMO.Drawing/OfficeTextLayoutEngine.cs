@@ -689,7 +689,9 @@ public static partial class OfficeTextLayoutEngine {
                 measure);
             int fittingBoundary = GetTextElementEnd(elementStarts, word.Length, elementIndex + fittingCount - 1);
             int fittingPreferred = FindLastBreakPosition(preferredBreaks, position, fittingBoundary);
-            int selected = fittingPreferred > position ? fittingPreferred : fittingBoundary;
+            int selected = fittingBoundary >= word.Length
+                ? fittingBoundary
+                : fittingPreferred > position ? fittingPreferred : fittingBoundary;
             if (selected <= position) {
                 break;
             }

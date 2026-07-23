@@ -715,6 +715,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_KeepsFittingRemainderTogetherAfterPreferredBreak() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size;
+
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines("prefix-foo-bar", 1D, 7D, Measure);
+
+            Assert.Equal(new[] { "prefix-", "foo-bar" }, lines.Select(line => line.Text).ToArray());
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_BreaksLongWordsAtTextElementBoundaries() {
             static double Measure(string? value, double size) => string.IsNullOrEmpty(value) ? 0D : value!.Length * size;
             string eAcute = "e\u0301";
@@ -1456,6 +1465,30 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(Enumerable.Range(3900, 100), x => dashed.GetPixel(x, 3).A > 0);
             Assert.Contains(Enumerable.Range(3900, 100), x => patterned.GetPixel(x, 4).A > 0);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task OfficeRasterCanvas_ZeroGapDashedEllipseAdvancesPastNearBoundaryPhase() {
+            OfficeRasterImage image = new OfficeRasterImage(32, 32, OfficeColor.Transparent);
+            double firstSegmentLength = Math.Sqrt(200D);
+
+            System.Threading.Tasks.Task render = System.Threading.Tasks.Task.Run(() => new OfficeRasterCanvas(image).DrawDashedEllipse(
+                16D,
+                16D,
+                10D,
+                10D,
+                OfficeColor.Black,
+                thickness: 1D,
+                dashLength: firstSegmentLength + 0.0000000005D,
+                gapLength: 0D,
+                segments: 4));
+
+            System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(
+                render,
+                System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(2)));
+            Assert.Same(render, completed);
+            await render;
+            Assert.True(CountPaintedPixels(image) > 0);
         }
 
         [Fact]

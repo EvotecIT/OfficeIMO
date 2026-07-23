@@ -199,7 +199,7 @@ public sealed partial class OfficeRasterCanvas {
                 ? dashLength - patternPosition
                 : cycle - patternPosition;
             if (patternRemaining <= MinimumDashSegmentAdvance) {
-                patternPosition = inDash ? dashLength : 0D;
+                patternPosition = inDash && gapLength > 0D ? dashLength : 0D;
                 continue;
             }
 
