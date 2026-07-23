@@ -34,5 +34,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public GoogleSlidesImportMode Mode { get; set; } = GoogleSlidesImportMode.DriveExport;
         public PowerPointLoadOptions LoadOptions { get; set; } = new PowerPointLoadOptions();
         public IProgress<OfficeIMO.GoogleWorkspace.Drive.GoogleDriveTransferProgress>? Progress { get; set; }
+
+        /// <summary>
+        /// Maximum bytes accepted for each Google-hosted image during native import.
+        /// </summary>
+        public long MaxImageBytes { get; set; } = 50L * 1024 * 1024;
     }
 }

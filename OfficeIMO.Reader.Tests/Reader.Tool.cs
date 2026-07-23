@@ -306,7 +306,7 @@ public sealed class ReaderToolTests {
     }
 
     [Fact]
-    public void FolderDiscoverySelectsTheSameBoundedLexicographicSubset() {
+    public void FolderDiscoveryStopsAtTheConfiguredSupportedFileBound() {
         using var temporary = new ReaderToolTemporaryDirectory();
         for (int index = 99; index >= 0; index--) {
             File.WriteAllText(Path.Combine(temporary.Path, index.ToString("D3") + ".md"), "# Document");
@@ -322,7 +322,28 @@ public sealed class ReaderToolTests {
             CancellationToken.None);
 
         Assert.Equal(3, paths.Count);
-        Assert.Equal(new[] { "000.md", "001.md", "002.md" }, paths.Select(Path.GetFileName));
+        Assert.All(paths, path => Assert.Equal(".md", Path.GetExtension(path)));
+    }
+
+    [Fact]
+    public void FolderDiscoveryStopsWhenTheNextSupportedFileExceedsTheByteBudget() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        File.WriteAllText(Path.Combine(temporary.Path, "oversized.md"),
+            new string('x', 128));
+        File.WriteAllText(Path.Combine(temporary.Path, "unvisited.md"),
+            new string('y', 128));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddMarkdownHandler().Build();
+
+        IReadOnlyList<string> paths = ReaderToolFileDiscovery.FindSupportedFiles(
+            temporary.Path,
+            reader,
+            recurse: true,
+            maxFiles: 100,
+            maxTotalBytes: 64,
+            CancellationToken.None);
+
+        Assert.Empty(paths);
     }
 
     [Fact]

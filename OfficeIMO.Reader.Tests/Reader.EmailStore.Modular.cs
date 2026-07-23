@@ -180,6 +180,35 @@ public sealed class ReaderEmailStoreModularTests {
     }
 
     [Fact]
+    public void RegisteredStoreItemBoundCannotBeWidenedByTheReaderProjection() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-store-bound-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(Path.Combine(root, "first.eml"), "Subject: First\r\n\r\nBody");
+            File.WriteAllText(Path.Combine(root, "second.eml"), "Subject: Second\r\n\r\nBody");
+            var storeOptions = new EmailStoreReaderOptions(maxItemCount: 1);
+            var adapterOptions = new ReaderEmailStoreOptions {
+                MaxItems = 10,
+                StoreOptions = storeOptions
+            };
+            using EmailStoreSession session = EmailStoreSession.Open(root, storeOptions);
+
+            OfficeIMO.Reader.Email.EmailStoreProjection projection = EmailStoreReaderProjection.Create(
+                session,
+                "mailbox",
+                adapterOptions,
+                default);
+
+            Assert.Single(projection.Documents);
+            Assert.Equal("First", projection.Documents[0].Subject);
+            Assert.True(projection.SelectionLimitReached);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Store_source_hash_is_opt_in_while_chunk_hashes_remain_available() {
         byte[] emlx = CreateEmlx(CreateMultipartMessage(), null);
         string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-store-" + Guid.NewGuid().ToString("N") + ".emlx");

@@ -432,16 +432,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             int direction = shadow.Direction?.Value ?? 0;
             double radians = direction / 60000D * Math.PI / 180D;
-            long offsetX = checked((long)Math.Round(Math.Cos(radians)
-                * distance, MidpointRounding.AwayFromZero));
-            long offsetY = checked((long)Math.Round(Math.Sin(radians)
-                * distance, MidpointRounding.AwayFromZero));
-            if (offsetX < int.MinValue || offsetX > int.MaxValue
-                || offsetY < int.MinValue || offsetY > int.MaxValue
+            double roundedOffsetX = Math.Round(Math.Cos(radians)
+                * distance, MidpointRounding.AwayFromZero);
+            double roundedOffsetY = Math.Round(Math.Sin(radians)
+                * distance, MidpointRounding.AwayFromZero);
+            if (double.IsNaN(roundedOffsetX) || double.IsInfinity(roundedOffsetX)
+                || double.IsNaN(roundedOffsetY) || double.IsInfinity(roundedOffsetY)
+                || roundedOffsetX < int.MinValue || roundedOffsetX > int.MaxValue
+                || roundedOffsetY < int.MinValue || roundedOffsetY > int.MaxValue
                 || blur > int.MaxValue) {
                 reason = "The outer shadow exceeds the classic OfficeArt coordinate range.";
                 return false;
             }
+            int offsetX = (int)roundedOffsetX;
+            int offsetY = (int)roundedOffsetY;
             properties.Add(new LegacyPptWriterFoptProperty(0x0200, 0U));
             properties.Add(new LegacyPptWriterFoptProperty(0x0201,
                 PackOfficeArtColor(color)));
@@ -450,9 +454,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ToOfficeArtOpacity(alpha.Value)));
             }
             properties.Add(new LegacyPptWriterFoptProperty(0x0205,
-                unchecked((uint)checked((int)offsetX))));
+                unchecked((uint)offsetX)));
             properties.Add(new LegacyPptWriterFoptProperty(0x0206,
-                unchecked((uint)checked((int)offsetY))));
+                unchecked((uint)offsetY)));
             if (blur > 0L) {
                 properties.Add(new LegacyPptWriterFoptProperty(0x021C,
                     checked((uint)blur)));

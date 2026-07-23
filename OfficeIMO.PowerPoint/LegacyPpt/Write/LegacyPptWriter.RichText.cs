@@ -473,6 +473,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .ParagraphProperties;
                 if (properties == null) continue;
                 int level = properties.Level?.Value ?? 0;
+                if (level < 0 || level > 4) {
+                    reason = "Base binary PowerPoint text supports paragraph levels zero through four.";
+                    return false;
+                }
                 maximumLevel = Math.Max(maximumLevel, level);
                 if (properties.LeftMargin?.HasValue == true) {
                     if (!TryToMasterInt16(properties.LeftMargin.Value,

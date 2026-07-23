@@ -78,7 +78,17 @@ namespace OfficeIMO.Tests {
                     relationship.Id == projectedProgram.Id?.Value);
             Assert.Equal(programUri, projectedRelationship.Uri);
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptWritePreflightReport projectedPreflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(projectedPreflight.CanWrite);
+            Assert.Contains(projectedPreflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-PRESERVED-RUN-PROGRAM");
+            Assert.Throws<NotSupportedException>(() =>
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         [Fact]

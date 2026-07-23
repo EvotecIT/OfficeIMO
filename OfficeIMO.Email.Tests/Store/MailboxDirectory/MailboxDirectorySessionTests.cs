@@ -8,6 +8,36 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class MailboxDirectorySessionTests {
     [Fact]
+    public void WindowsMailboxRootAliasUsesItsPhysicalIdentityForSafeReads() {
+        if (!OperatingSystem.IsWindows()) return;
+        string physicalRoot = CreateMailboxDirectory();
+        string aliasRoot = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-root-alias-" + Guid.NewGuid().ToString("N"));
+        try {
+            try {
+                Directory.CreateSymbolicLink(aliasRoot, physicalRoot);
+            } catch (Exception exception) when (
+                exception is IOException || exception is UnauthorizedAccessException
+                || exception is PlatformNotSupportedException) {
+                return;
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(aliasRoot);
+            EmailStoreItemReference reference = Assert.Single(
+                session.EnumerateItems(), item =>
+                    session.ReadSummary(item).Subject == "Apple directory message");
+
+            Assert.Equal("Apple directory message",
+                session.ReadItem(reference).Document.Subject);
+        } finally {
+            if (Directory.Exists(aliasRoot)) Directory.Delete(aliasRoot);
+            if (Directory.Exists(physicalRoot)) {
+                Directory.Delete(physicalRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void FilesystemCaseDetectionUsesExistingNamedAncestorsForNumericDirectories() {
         string root = Path.Combine(Path.GetTempPath(),
             "officeimo-case-ancestor-" + Guid.NewGuid().ToString("N"));
@@ -50,14 +80,20 @@ public sealed class MailboxDirectorySessionTests {
     [Fact]
     public void MailboxRegularFileCheckRejectsSeekableDeviceDescriptors() {
         if (OperatingSystem.IsWindows()) return;
+        int descriptor = OpenNamedPipe("/dev/null", 0);
+        Assert.True(descriptor >= 0);
         Type backend = typeof(EmailStoreSession).Assembly.GetType(
             "OfficeIMO.Email.Store.MailboxDirectoryStoreSessionBackend",
             throwOnError: true)!;
         System.Reflection.MethodInfo method = backend.GetMethod(
-            "IsRegularMailboxFile",
+            "IsRegularUnixDescriptor",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-
-        Assert.False(Assert.IsType<bool>(method.Invoke(null, new object[] { "/dev/null" })));
+        try {
+            Assert.False(Assert.IsType<bool>(method.Invoke(null,
+                new object[] { descriptor })));
+        } finally {
+            CloseDescriptor(descriptor);
+        }
     }
 
     [Fact]
@@ -89,6 +125,33 @@ public sealed class MailboxDirectorySessionTests {
             Assert.IsType<IOException>(await read);
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void MailboxDirectoryReadRejectsParentDirectoryReplacedWithSymlink() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-parent-swap-" + Guid.NewGuid().ToString("N"));
+        string outside = Path.Combine(Path.GetTempPath(),
+            "officeimo-mailbox-parent-target-" + Guid.NewGuid().ToString("N"));
+        string indexedDirectory = Path.Combine(root, "Inbox");
+        try {
+            Directory.CreateDirectory(indexedDirectory);
+            Directory.CreateDirectory(outside);
+            File.WriteAllText(Path.Combine(indexedDirectory, "message.eml"),
+                "Subject: Indexed\r\n\r\nSafe");
+            File.WriteAllText(Path.Combine(outside, "message.eml"),
+                "Subject: Outside\r\n\r\nUnsafe");
+            using EmailStoreSession session = EmailStoreSession.Open(root);
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            Directory.Delete(indexedDirectory, recursive: true);
+            Directory.CreateSymbolicLink(indexedDirectory, outside);
+
+            Assert.Throws<IOException>(() => session.ReadItem(reference));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(outside)) Directory.Delete(outside, recursive: true);
         }
     }
 

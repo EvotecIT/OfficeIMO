@@ -292,6 +292,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_ReportsOutOfRangeRichTextLevelBeforeBuildingRuler() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextBox textBox = presentation.AddSlide(P.SlideLayoutValues.Blank)
+                .AddTextBoxPoints("Unsafe level", 30, 30, 240, 120);
+            P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
+            A.Paragraph paragraph = Assert.Single(shape.TextBody!.Elements<A.Paragraph>());
+            paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+            paragraph.ParagraphProperties.Level = 32767;
+            paragraph.ParagraphProperties.LeftMargin = 0;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-RICH-TEXT");
+        }
+
+        [Fact]
         public void NativeWriter_AuthorsTextFrameMarginsWrappingAnchorDirectionAndAutoFit() {
             byte[] bytes;
             using (PowerPointPresentation presentation = PowerPointPresentation
@@ -496,9 +513,15 @@ namespace OfficeIMO.Tests {
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(preflight.CanWrite,
-                    string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(preflight.CanWrite);
+                Assert.Contains(preflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(
@@ -519,9 +542,8 @@ namespace OfficeIMO.Tests {
                 paragraph.Alignment);
             Assert.Contains(saved.Fonts,
                 font => font.Typeface == "OfficeIMO Appended");
-            Assert.Equal(original.Package.UserEdits.Count + 1,
-                saved.Package.UserEdits.Count);
-            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+            Assert.Single(saved.Package.UserEdits);
+            Assert.False(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
 

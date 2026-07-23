@@ -40,7 +40,8 @@ internal static class SubtitleReaderAdapter {
                 ? "**" + SubtitleParser.FormatTimestamp(cue.Start) + " → " + SubtitleParser.FormatTimestamp(cue.End) + "**" +
                     Environment.NewLine + Environment.NewLine
                 : string.Empty;
-            IReadOnlyList<string> cueParts = SplitCueText(cue.Text, readerOptions.MaxChars, markdownPrefix.Length);
+            IReadOnlyList<SubtitleProjectionPart> cueParts = SplitCueProjection(
+                cue.Text, readerOptions.MaxChars, markdownPrefix.Length);
             string[]? warnings = BuildCueWarnings(cue.Truncated, cueParts.Count > 1);
             for (int partIndex = 0; partIndex < cueParts.Count; partIndex++) {
                 string anchor = partIndex == 0
@@ -55,14 +56,14 @@ internal static class SubtitleReaderAdapter {
                     SourceBlockKind = "subtitle-cue",
                     BlockAnchor = anchor
                 };
-                string text = cueParts[partIndex];
+                SubtitleProjectionPart part = cueParts[partIndex];
                 var chunk = new ReaderChunk {
                     Id = anchor,
                     Kind = ReaderInputKind.Text,
                     ContinuesPreviousChunk = partIndex > 0,
                     Location = location,
-                    Text = text,
-                    Markdown = partIndex == 0 ? markdownPrefix + text : text,
+                    Text = part.Text,
+                    Markdown = partIndex == 0 ? markdownPrefix + part.Markdown : part.Markdown,
                     Warnings = warnings
                 };
                 DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
@@ -95,11 +96,29 @@ internal static class SubtitleReaderAdapter {
         return result;
     }
 
-    private static IReadOnlyList<string> SplitCueText(string value, int maxChars, int firstPartPrefixLength) {
+    private static IReadOnlyList<SubtitleProjectionPart> SplitCueProjection(
+        string value,
+        int maxChars,
+        int firstPartPrefixLength) {
         int limit = Math.Max(1, maxChars);
-        int firstLimit = Math.Max(1, limit - firstPartPrefixLength);
-        return DocumentReaderEngine.SplitAdapterProjection(value, firstLimit, limit);
+        int firstMarkdownLimit = Math.Max(1, limit - firstPartPrefixLength);
+        IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(value, limit);
+        IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(
+            EscapeCueMarkdown(value), firstMarkdownLimit, limit);
+        int partCount = Math.Max(textParts.Count, markdownParts.Count);
+        var result = new List<SubtitleProjectionPart>(partCount);
+        for (int index = 0; index < partCount; index++) {
+            result.Add(new SubtitleProjectionPart(
+                index < textParts.Count ? textParts[index] : string.Empty,
+                index < markdownParts.Count ? markdownParts[index] : string.Empty));
+        }
+        return result;
     }
+
+    private static string EscapeCueMarkdown(string value) => value
+        .Replace("&", "&amp;")
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;");
 
     private static string[]? BuildCueWarnings(bool cueTruncated, bool wasSplit) {
         if (!cueTruncated && !wasSplit) return null;
@@ -155,5 +174,15 @@ internal static class SubtitleReaderAdapter {
         using var stream = new MemoryStream(bytes, writable: false);
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         return reader.ReadToEnd();
+    }
+
+    private readonly struct SubtitleProjectionPart {
+        internal SubtitleProjectionPart(string text, string markdown) {
+            Text = text;
+            Markdown = markdown;
+        }
+
+        internal string Text { get; }
+        internal string Markdown { get; }
     }
 }

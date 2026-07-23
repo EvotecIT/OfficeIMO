@@ -126,9 +126,16 @@ internal sealed partial class PstNdbReader {
                     ulong childBid = _header.IsUnicode
                         ? PstBinary.UInt64(page, entryOffset + keySize)
                         : PstBinary.UInt32(page, entryOffset + keySize);
-                    long childOffset = _header.IsUnicode
-                        ? checked((long)PstBinary.UInt64(page, entryOffset + keySize + bidSize))
+                    ulong rawChildOffset = _header.IsUnicode
+                        ? PstBinary.UInt64(page, entryOffset + keySize + bidSize)
                         : PstBinary.UInt32(page, entryOffset + keySize + bidSize);
+                    if (rawChildOffset > long.MaxValue) {
+                        AddPageDiagnostic("EMAIL_STORE_PST_PAGE_CHILD_OFFSET",
+                            "A PST B-tree child offset is outside the supported stream range.", offset);
+                        invalid = true;
+                        continue;
+                    }
+                    long childOffset = (long)rawChildOffset;
                     TraversePage(childOffset, childBid, expectedType, isBlockTree, depth + 1);
                 }
             } else if (isBlockTree) {

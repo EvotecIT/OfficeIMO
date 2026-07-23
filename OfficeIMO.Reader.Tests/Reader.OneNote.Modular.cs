@@ -232,7 +232,7 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
-    public void OneNoteAdapter_PreservesOversizedMarkdownConstructsAsWholeChunks() {
+    public void OneNoteAdapter_SplitsOversizedNonTextUnitsAtMaxChars() {
         string title = "Heading " + new string('h', 40);
         string altText = "Preview " + new string('i', 40);
         var section = new OneNoteSection { Name = "Oversized" };
@@ -249,17 +249,15 @@ public sealed class ReaderOneNoteModularTests {
             section,
             readerOptions: new ReaderOptions { MaxChars = 16 });
 
-        Assert.Collection(result.Chunks,
-            heading => {
-                Assert.Equal(title, heading.Text);
-                Assert.Equal("# " + title, heading.Markdown);
-                Assert.Contains(heading.Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
-            },
-            image => {
-                Assert.Equal("[Image: " + altText + "]", image.Text);
-                Assert.Equal("![" + altText + "](onenote-page-0001-asset-0001)", image.Markdown);
-                Assert.Contains(image.Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
-            });
+        Assert.True(result.Chunks.Count > 2);
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 16, chunk.Text);
+            Assert.True(chunk.Markdown!.Length <= 16, chunk.Markdown);
+        });
+        Assert.Equal(title + "[Image: " + altText + "]",
+            string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.Equal("# " + title + "![" + altText + "](onenote-page-0001-asset-0001)",
+            string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
     }
 
     [Theory]

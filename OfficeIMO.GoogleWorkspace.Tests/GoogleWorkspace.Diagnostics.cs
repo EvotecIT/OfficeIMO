@@ -469,6 +469,57 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_BoundsUnknownLengthByteResponses() {
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new UnknownLengthContent(new byte[128])
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                transport.SendBytesAsync(
+                    "token",
+                    HttpMethod.Get,
+                    "https://lh3.googleusercontent.com/image.png",
+                    GoogleWorkspaceRequestSafety.Safe,
+                    "Google content",
+                    new TranslationReport(),
+                    maxResponseBytes: 8));
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_TruncatesUnknownLengthErrorResponses() {
+            byte[] responseBytes = Encoding.UTF8.GetBytes(
+                new string('x', 128 * 1024));
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                    Content = new UnknownLengthContent(responseBytes)
+                })));
+            using var transport = new GoogleWorkspaceHttpTransport(
+                new GoogleWorkspaceSessionOptions {
+                    HttpClient = httpClient,
+                    MaxRetryCount = 0
+                });
+
+            GoogleWorkspaceApiException exception =
+                await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() =>
+                    transport.SendBytesAsync(
+                        "token",
+                        HttpMethod.Get,
+                        "https://lh3.googleusercontent.com/image.png",
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google content",
+                        new TranslationReport(),
+                        maxResponseBytes: 8));
+
+            Assert.Equal(64 * 1024, exception.ResponseBody.Length);
+        }
+
         private static HttpResponseMessage CreateJsonResponse(string json) {
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -487,6 +538,29 @@ namespace OfficeIMO.Tests {
         private sealed class TransportReadResponse {
             [System.Text.Json.Serialization.JsonPropertyName("id")]
             public string? Id { get; set; }
+        }
+
+        private sealed class UnknownLengthContent : HttpContent {
+            private readonly byte[] _bytes;
+
+            internal UnknownLengthContent(byte[] bytes) {
+                _bytes = bytes;
+            }
+
+            protected override Task SerializeToStreamAsync(
+                Stream stream,
+                TransportContext? context) =>
+                throw new InvalidOperationException(
+                    "ResponseContentRead attempted to buffer the response.");
+
+            protected override Task<Stream> CreateContentReadStreamAsync() =>
+                Task.FromResult<Stream>(new MemoryStream(_bytes,
+                    writable: false));
+
+            protected override bool TryComputeLength(out long length) {
+                length = 0;
+                return false;
+            }
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

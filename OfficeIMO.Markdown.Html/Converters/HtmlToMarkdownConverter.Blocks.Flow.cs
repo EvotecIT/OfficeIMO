@@ -267,6 +267,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (language.Length == 0) language = ReadCodeLanguageAttribute(codeElement);
         if (language.Length == 0) language = ExtractCodeLanguage(element.GetAttribute("class"));
         if (language.Length == 0) language = ReadCodeLanguageAttribute(element);
+        language = NormalizeCodeLanguage(language);
 
         string content = codeElement?.TextContent ?? element.TextContent ?? string.Empty;
         content = content.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
@@ -307,6 +308,24 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         return string.Empty;
+    }
+
+    private static string NormalizeCodeLanguage(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        string candidate = value!.Trim();
+        if (candidate.Length > 64) return string.Empty;
+        for (int index = 0; index < candidate.Length; index++) {
+            char character = candidate[index];
+            if (!(char.IsLetterOrDigit(character)
+                || character == '-'
+                || character == '_'
+                || character == '+'
+                || character == '.'
+                || character == '#')) {
+                return string.Empty;
+            }
+        }
+        return candidate;
     }
 
 }

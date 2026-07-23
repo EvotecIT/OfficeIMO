@@ -9,9 +9,14 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (string.IsNullOrWhiteSpace(presentationId)) throw new ArgumentException("Presentation ID is required.", nameof(presentationId));
             if (session == null) throw new ArgumentNullException(nameof(session));
             GoogleSlidesImportOptions effective = options ?? new GoogleSlidesImportOptions();
+            if (effective.MaxImageBytes <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options),
+                    "MaxImageBytes must be greater than zero.");
+            }
             return effective.Mode == GoogleSlidesImportMode.DriveExport
                 ? await ImportDriveAsync(presentationId, session, effective, cancellationToken).ConfigureAwait(false)
-                : await ImportNativeAsync(presentationId, session, cancellationToken).ConfigureAwait(false);
+                : await ImportNativeAsync(presentationId, session, effective,
+                    cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task<GoogleSlidesImportResult> ImportDriveAsync(string id, GoogleWorkspaceSession session, GoogleSlidesImportOptions options, CancellationToken cancellationToken) {
@@ -28,7 +33,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report), report);
         }
 
-        private static async Task<GoogleSlidesImportResult> ImportNativeAsync(string id, GoogleWorkspaceSession session, CancellationToken cancellationToken) {
+        private static async Task<GoogleSlidesImportResult> ImportNativeAsync(string id,
+            GoogleWorkspaceSession session, GoogleSlidesImportOptions options,
+            CancellationToken cancellationToken) {
             var report = new TranslationReport();
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(id, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -38,12 +45,20 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,
                 $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
                 GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);
-            PowerPointPresentation presentation = await ProjectAsync(response, transport, token.AccessToken, report, cancellationToken).ConfigureAwait(false);
+            PowerPointPresentation presentation = await ProjectAsync(response,
+                transport, token.AccessToken, options, report,
+                cancellationToken).ConfigureAwait(false);
             report.Add(TranslationSeverity.Info, "NativeImport", "Slides, text boxes, core text styles, tables, images, geometry, and speaker-note text were projected into OfficeIMO.", code: "SLIDES.IMPORT.NATIVE", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report, response), report);
         }
 
-        private static async Task<PowerPointPresentation> ProjectAsync(GoogleSlidesApiPresentationResponse source, GoogleWorkspaceHttpTransport transport, string token, TranslationReport report, CancellationToken cancellationToken) {
+        private static async Task<PowerPointPresentation> ProjectAsync(
+            GoogleSlidesApiPresentationResponse source,
+            GoogleWorkspaceHttpTransport transport,
+            string token,
+            GoogleSlidesImportOptions options,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
             var stream = new MemoryStream();
             PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             try {
@@ -57,15 +72,18 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     } else if (sourceSlide.PageProperties?.PageBackgroundFill?.StretchedPictureFill?.ContentUrl is string backgroundUrl
                         && !string.IsNullOrWhiteSpace(backgroundUrl)) {
                         try {
+                            Uri trustedUrl = GetTrustedImageUrl(backgroundUrl);
                             byte[] bytes = await transport.SendBytesAsync(
                                 token,
                                 HttpMethod.Get,
-                                backgroundUrl,
+                                trustedUrl.AbsoluteUri,
                                 GoogleWorkspaceRequestSafety.Safe,
                                 "Google Slides background image",
                                 report,
                                 cancellationToken,
-                                preserveRequestUri: true).ConfigureAwait(false);
+                                preserveRequestUri: true,
+                                includeAuthorization: false,
+                                maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                             using var image = new MemoryStream(bytes, writable: false);
                             slide.SetBackgroundImage(image, DetectImageType(bytes));
                         } catch (Exception ex) when (!(ex is OperationCanceledException)) {
@@ -125,15 +143,18 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         } else if (element.Image?.ContentUrl is string url && !string.IsNullOrWhiteSpace(url)) {
                             try {
+                                Uri trustedUrl = GetTrustedImageUrl(url);
                                 byte[] bytes = await transport.SendBytesAsync(
                                     token,
                                     HttpMethod.Get,
-                                    url,
+                                    trustedUrl.AbsoluteUri,
                                     GoogleWorkspaceRequestSafety.Safe,
                                     "Google Slides image",
                                     report,
                                     cancellationToken,
-                                    preserveRequestUri: true).ConfigureAwait(false);
+                                    preserveRequestUri: true,
+                                    includeAuthorization: false,
+                                    maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
                                 PowerPointPicture picture = slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
                                 ApplyTransform(picture, geometry);
@@ -355,6 +376,24 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
             return ImagePartType.Jpeg;
         }
+
+        private static Uri GetTrustedImageUrl(string value) {
+            if (!Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)
+                || !string.Equals(uri.Scheme, Uri.UriSchemeHttps,
+                    StringComparison.OrdinalIgnoreCase)
+                || !uri.IsDefaultPort && uri.Port != 443
+                || !IsGoogleContentHost(uri.Host)) {
+                throw new InvalidDataException(
+                    "Native Google Slides image URLs must use HTTPS on a Google content host.");
+            }
+            return uri;
+        }
+
+        private static bool IsGoogleContentHost(string host) =>
+            string.Equals(host, "googleusercontent.com",
+                StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".googleusercontent.com",
+                StringComparison.OrdinalIgnoreCase);
 
         private static void EnsurePresentation(GoogleDriveFile file, string id) {
             if (!string.Equals(file.MimeType, GoogleDriveMimeTypes.Presentation, StringComparison.Ordinal)) throw new InvalidOperationException($"Drive file '{id}' is not a Google presentation.");

@@ -204,6 +204,20 @@ internal static partial class OneNoteReaderAdapter {
         var markdown = new StringBuilder();
 
         foreach (ProjectionPart source in units) {
+            if (!source.Fits(maxChars)) {
+                FlushProjectionPart(result, text, markdown);
+                IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(
+                    source.Text, maxChars);
+                IReadOnlyList<string> markdownParts = DocumentReaderEngine.SplitAdapterProjection(
+                    source.Markdown, maxChars);
+                int partCount = Math.Max(textParts.Count, markdownParts.Count);
+                for (int partIndex = 0; partIndex < partCount; partIndex++) {
+                    result.Add(new ProjectionPart(
+                        partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
+                        partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty));
+                }
+                continue;
+            }
             string textSeparator = text.Length == 0 || source.Text.Length == 0 ? string.Empty : Environment.NewLine;
             string markdownSeparator = markdown.Length == 0 || source.Markdown.Length == 0
                 ? string.Empty
@@ -211,9 +225,7 @@ internal static partial class OneNoteReaderAdapter {
             bool fits = text.Length + textSeparator.Length + source.Text.Length <= maxChars &&
                         markdown.Length + markdownSeparator.Length + source.Markdown.Length <= maxChars;
             if (!fits && (text.Length > 0 || markdown.Length > 0)) {
-                result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
-                text.Clear();
-                markdown.Clear();
+                FlushProjectionPart(result, text, markdown);
                 textSeparator = string.Empty;
                 markdownSeparator = string.Empty;
             }
@@ -225,6 +237,16 @@ internal static partial class OneNoteReaderAdapter {
             result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
         }
         return result;
+    }
+
+    private static void FlushProjectionPart(
+        ICollection<ProjectionPart> result,
+        StringBuilder text,
+        StringBuilder markdown) {
+        if (text.Length == 0 && markdown.Length == 0) return;
+        result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
+        text.Clear();
+        markdown.Clear();
     }
 
     private readonly struct ProjectionPart {

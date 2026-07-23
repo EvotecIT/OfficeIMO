@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     IsSkipped = source.Hidden,
                 };
                 PowerPointSlideBackground background = source.GetBackground();
-                if (background.Kind == PowerPointSlideBackgroundKind.SolidColor) target.BackgroundColorHex = background.Color;
+                if (background.Kind == PowerPointSlideBackgroundKind.SolidColor) target.BackgroundColorHex = NormalizeColorHex(background.Color);
                 else if (IsSupportedSlidesBackgroundImage(background)) {
                     target.BackgroundImage = new GoogleSlidesImage(
                         ObjectId("background", slideIndex, 0),
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
-                                text.FontSize = firstRun.FontSize; text.FontFamily = firstRun.FontName; text.ForegroundColorHex = firstRun.Color;
+                                text.FontSize = firstRun.FontSize; text.FontFamily = firstRun.FontName; text.ForegroundColorHex = NormalizeColorHex(firstRun.Color);
                                 text.Hyperlink = firstRun.Hyperlink?.AbsoluteUri;
                             }
                             target.Add(text); plan.NativeTextBoxCount++;
@@ -156,7 +156,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             Underline = run.Underline,
                             FontSize = run.FontSize,
                             FontFamily = run.FontName,
-                            ForegroundColorHex = run.Color,
+                            ForegroundColorHex = NormalizeColorHex(run.Color),
                             Hyperlink = run.Hyperlink?.AbsoluteUri,
                         });
                     }
@@ -203,9 +203,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static void PreserveShapeStyle(GoogleSlidesShapeStyle target, PowerPointShape source) {
-            target.FillColorHex = source.FillColor;
+            target.FillColorHex = NormalizeColorHex(source.FillColor);
             target.FillTransparencyPercent = source.FillTransparency;
-            target.OutlineColorHex = source.OutlineColor;
+            target.OutlineColorHex = NormalizeColorHex(source.OutlineColor);
             target.OutlineWidthPoints = source.OutlineWidthPoints;
         }
 
@@ -232,6 +232,22 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             "image/gif" => ".gif",
             _ => ".png",
         };
+
+        private static string? NormalizeColorHex(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            string candidate = value!.Trim().TrimStart('#');
+            if (candidate.Length >= 6) candidate = candidate.Substring(candidate.Length - 6);
+            if (candidate.Length != 6) return null;
+            for (int index = 0; index < candidate.Length; index++) {
+                char character = candidate[index];
+                if (!((character >= '0' && character <= '9')
+                    || (character >= 'a' && character <= 'f')
+                    || (character >= 'A' && character <= 'F'))) {
+                    return null;
+                }
+            }
+            return candidate.ToUpperInvariant();
+        }
 
         private static bool HasMergedCells(PowerPointTable table) {
             return table.RowItems.SelectMany(row => row.Cells).Any(cell => cell.IsMergedCell || cell.IsMergeAnchor);
