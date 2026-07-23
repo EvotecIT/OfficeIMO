@@ -739,7 +739,14 @@ public static partial class OfficeSvgDrawingReader {
         if (maximumValues <= 0 || string.IsNullOrWhiteSpace(value)) return false;
         int index = 0;
         while (index < value!.Length) {
-            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) index++;
+            int separatorStart = index;
+            while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) {
+                index++;
+                if (index - separatorStart > 128) {
+                    limitExceeded = true;
+                    return false;
+                }
+            }
             if (index >= value.Length) break;
             if (result.Count >= maximumValues) {
                 limitExceeded = true;
