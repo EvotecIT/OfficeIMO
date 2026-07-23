@@ -459,7 +459,7 @@ namespace OfficeIMO.Word {
             return new ImageFingerprint(length, Convert.ToBase64String(sha256.Hash ?? Array.Empty<byte>()));
         }
 
-        private sealed class ImageSnapshot {
+        private sealed class ImageSnapshot : IComparisonFingerprint {
             private ImageSnapshot(ImageFingerprint? embeddedFingerprint, string? externalUri, string visualSignature, string partKey, int documentOrder, string positionKey) {
                 EmbeddedFingerprint = embeddedFingerprint;
                 ExternalUri = externalUri;
@@ -482,6 +482,30 @@ namespace OfficeIMO.Word {
             internal string PositionKey { get; }
 
             internal string DisplayText => ExternalUri == null ? "[Image]" : "[Image: " + ExternalUri + "]";
+
+            public ulong ComparisonFingerprint {
+                get {
+                    ulong fingerprint = CombineComparisonFingerprints(
+                        GetOrdinalTextFingerprint(PartKey),
+                        GetOrdinalTextFingerprint(VisualSignature));
+                    if (ExternalUri != null) {
+                        return CombineComparisonFingerprints(
+                            fingerprint,
+                            CombineComparisonFingerprints(0x45585445524E414CUL, GetOrdinalTextFingerprint(ExternalUri)));
+                    }
+
+                    if (EmbeddedFingerprint != null) {
+                        ulong embedded = CombineComparisonFingerprints(
+                            unchecked((ulong)EmbeddedFingerprint.Value.Length),
+                            GetOrdinalTextFingerprint(EmbeddedFingerprint.Value.Sha256));
+                        return CombineComparisonFingerprints(
+                            fingerprint,
+                            CombineComparisonFingerprints(0x454D424544444544UL, embedded));
+                    }
+
+                    return fingerprint;
+                }
+            }
 
             internal static ImageSnapshot FromEmbedded(ImageFingerprint embeddedFingerprint, string visualSignature, string partKey, int documentOrder, string positionKey) {
                 return new ImageSnapshot(embeddedFingerprint, null, visualSignature, partKey, documentOrder, positionKey);

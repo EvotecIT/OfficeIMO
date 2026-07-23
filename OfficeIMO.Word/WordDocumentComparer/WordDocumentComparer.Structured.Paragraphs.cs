@@ -6,7 +6,12 @@ using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeParagraphs(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+        private static void AnalyzeParagraphs(
+            WordDocument source,
+            WordDocument target,
+            WordComparisonResult result,
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             List<ParagraphSnapshot> sourceParagraphs = GetLogicalBodyParagraphs(source, options);
             List<ParagraphSnapshot> targetParagraphs = GetLogicalBodyParagraphs(target, options);
             IReadOnlyList<MatchedIndexPair> matchedParagraphs = FindMatchingIndexes(
@@ -18,7 +23,7 @@ namespace OfficeIMO.Word {
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedParagraphs) {
-                AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options);
+                AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options, comparisonWorkBudget);
                 AnalyzeParagraphStyle(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
                 AnalyzeParagraphEffectiveFormatting(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
                 AnalyzeParagraphRuns(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
@@ -26,7 +31,7 @@ namespace OfficeIMO.Word {
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, sourceParagraphs.Count, targetStart, targetParagraphs.Count, result, options);
+            AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, sourceParagraphs.Count, targetStart, targetParagraphs.Count, result, options, comparisonWorkBudget);
         }
 
         private static void AddParagraphRangeFindings(
@@ -37,12 +42,13 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result,
-            WordComparisonOptions options) {
+            WordComparisonOptions options,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int sourceIndex = sourceStart;
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
-                int betterTargetIndex = FindBetterTargetAlignmentIndex(sourceParagraphs[sourceIndex], targetParagraphs, targetIndex, targetEnd);
+                int betterTargetIndex = FindBetterTargetAlignmentIndex(sourceParagraphs[sourceIndex], targetParagraphs, targetIndex, targetEnd, comparisonWorkBudget);
                 if (betterTargetIndex > targetIndex) {
                     while (targetIndex < betterTargetIndex) {
                         AddInsertedParagraphFinding(targetParagraphs, targetIndex, result);
@@ -52,7 +58,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                int betterSourceIndex = FindBetterSourceAlignmentIndex(sourceParagraphs, sourceIndex, sourceEnd, targetParagraphs[targetIndex]);
+                int betterSourceIndex = FindBetterSourceAlignmentIndex(sourceParagraphs, sourceIndex, sourceEnd, targetParagraphs[targetIndex], comparisonWorkBudget);
                 if (betterSourceIndex > sourceIndex) {
                     while (sourceIndex < betterSourceIndex) {
                         AddDeletedParagraphFinding(sourceParagraphs, sourceIndex, result);
@@ -211,18 +217,25 @@ namespace OfficeIMO.Word {
                 targetParagraph.DocumentOrder);
         }
 
-        private static int FindBetterTargetAlignmentIndex(ParagraphSnapshot sourceParagraph, IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetStart, int targetEnd) {
+        private static int FindBetterTargetAlignmentIndex(
+            ParagraphSnapshot sourceParagraph,
+            IReadOnlyList<ParagraphSnapshot> targetParagraphs,
+            int targetStart,
+            int targetEnd,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int bestIndex = targetStart;
-            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[targetStart]);
+            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[targetStart], comparisonWorkBudget);
             double bestVisibleSimilarity = currentVisibleSimilarity;
-            double bestSimilarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart]);
+            double currentSimilarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart], comparisonWorkBudget);
+            double bestSimilarity = currentSimilarity;
 
             foreach (int index in SelectBoundedAlignmentCandidates(
                 targetStart + 1,
                 targetEnd,
-                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraph, targetParagraphs[index]))) {
-                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index]);
-                double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index]);
+                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraph, targetParagraphs[index], comparisonWorkBudget),
+                comparisonWorkBudget)) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index], comparisonWorkBudget);
+                double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index], comparisonWorkBudget);
                 if (visibleSimilarity < bestVisibleSimilarity ||
                     (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
                     continue;
@@ -236,23 +249,30 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart])
+            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > currentSimilarity
                 ? bestIndex
                 : targetStart;
         }
 
-        private static int FindBetterSourceAlignmentIndex(IReadOnlyList<ParagraphSnapshot> sourceParagraphs, int sourceStart, int sourceEnd, ParagraphSnapshot targetParagraph) {
+        private static int FindBetterSourceAlignmentIndex(
+            IReadOnlyList<ParagraphSnapshot> sourceParagraphs,
+            int sourceStart,
+            int sourceEnd,
+            ParagraphSnapshot targetParagraph,
+            ComparisonWorkBudget comparisonWorkBudget) {
             int bestIndex = sourceStart;
-            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[sourceStart], targetParagraph);
+            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[sourceStart], targetParagraph, comparisonWorkBudget);
             double bestVisibleSimilarity = currentVisibleSimilarity;
-            double bestSimilarity = GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph);
+            double currentSimilarity = GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph, comparisonWorkBudget);
+            double bestSimilarity = currentSimilarity;
 
             foreach (int index in SelectBoundedAlignmentCandidates(
                 sourceStart + 1,
                 sourceEnd,
-                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraphs[index], targetParagraph))) {
-                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph);
-                double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph);
+                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraphs[index], targetParagraph, comparisonWorkBudget),
+                comparisonWorkBudget)) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph, comparisonWorkBudget);
+                double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph, comparisonWorkBudget);
                 if (visibleSimilarity < bestVisibleSimilarity ||
                     (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
                     continue;
@@ -266,34 +286,48 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph)
+            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > currentSimilarity
                 ? bestIndex
                 : sourceStart;
         }
 
-        private static double GetParagraphSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+        private static double GetParagraphSimilarity(
+            ParagraphSnapshot sourceParagraph,
+            ParagraphSnapshot targetParagraph,
+            ComparisonWorkBudget comparisonWorkBudget) {
             if (!string.Equals(sourceParagraph.PartKind, targetParagraph.PartKind, StringComparison.Ordinal)) {
                 return 0;
             }
 
             return Math.Max(
-                GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
-                GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText));
+                GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText, comparisonWorkBudget),
+                GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, comparisonWorkBudget));
         }
 
-        private static double GetParagraphAlignmentPrefilterSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+        private static double GetParagraphAlignmentPrefilterSimilarity(
+            ParagraphSnapshot sourceParagraph,
+            ParagraphSnapshot targetParagraph,
+            ComparisonWorkBudget comparisonWorkBudget) {
             if (!string.Equals(sourceParagraph.PartKind, targetParagraph.PartKind, StringComparison.Ordinal)) {
                 return 0;
             }
 
             return Math.Max(
-                GetBoundedTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
-                GetBoundedTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText));
+                GetBoundedTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText, comparisonWorkBudget),
+                GetBoundedTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, comparisonWorkBudget));
         }
 
-        private static IReadOnlyList<int> SelectBoundedAlignmentCandidates(int start, int end, Func<int, double> getPrefilterSimilarity) {
+        private static IReadOnlyList<int> SelectBoundedAlignmentCandidates(
+            int start,
+            int end,
+            Func<int, double> getPrefilterSimilarity,
+            ComparisonWorkBudget comparisonWorkBudget) {
             var candidates = new SortedSet<AlignmentCandidate>(AlignmentCandidateComparer.Instance);
             for (int index = start; index < end; index++) {
+                if (!comparisonWorkBudget.TryConsume(1)) {
+                    break;
+                }
+
                 var candidate = new AlignmentCandidate(index, getPrefilterSimilarity(index));
                 candidates.Add(candidate);
                 if (candidates.Count > MaxComparisonAlignmentWindow) {
@@ -327,19 +361,15 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static double GetParagraphVisibleTextSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+        private static double GetParagraphVisibleTextSimilarity(
+            ParagraphSnapshot sourceParagraph,
+            ParagraphSnapshot targetParagraph,
+            ComparisonWorkBudget comparisonWorkBudget) {
             if (!string.Equals(sourceParagraph.PartKind, targetParagraph.PartKind, StringComparison.Ordinal)) {
                 return 0;
             }
 
-            if (sourceParagraph.ComparisonText.Length > 0 &&
-                targetParagraph.ComparisonText.Length > 0 &&
-                (sourceParagraph.ComparisonText.IndexOf(targetParagraph.ComparisonText, StringComparison.Ordinal) >= 0 ||
-                 targetParagraph.ComparisonText.IndexOf(sourceParagraph.ComparisonText, StringComparison.Ordinal) >= 0)) {
-                return GetContainmentAwareTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText);
-            }
-
-            return GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText);
+            return GetContainmentAwareTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, comparisonWorkBudget);
         }
 
         private static void AddInsertedParagraphFinding(IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetIndex, WordComparisonResult result) {
@@ -735,129 +765,11 @@ namespace OfficeIMO.Word {
                    paragraph.Descendants<V.ImageData>().Any();
         }
 
-        private static double GetContainmentAwareTextSimilarity(string source, string target) {
-            if (source.Length > 0 &&
-                target.Length > 0 &&
-                (source.IndexOf(target, StringComparison.Ordinal) >= 0 ||
-                 target.IndexOf(source, StringComparison.Ordinal) >= 0)) {
-                return 0.75 + (0.25 * Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length));
-            }
-
-            return GetTextSimilarity(source, target);
-        }
-
-        private static double GetTextSimilarity(string source, string target) {
-            if (string.Equals(source, target, StringComparison.Ordinal)) {
-                return 1;
-            }
-
-            if (source.Length == 0 || target.Length == 0) {
-                return 0;
-            }
-
-            if ((long)(source.Length + 1) * (target.Length + 1) > LcsCellLimit) {
-                return GetBoundedTextSimilarity(source, target);
-            }
-
-            return (double)GetCommonSubsequenceLength(source, target) / Math.Max(source.Length, target.Length);
-        }
-
-        private static bool AreComparisonTextEqual(string? source, string? target, WordComparisonOptions options) =>
-            string.Equals(NormalizeComparisonText(source ?? string.Empty, options), NormalizeComparisonText(target ?? string.Empty, options), StringComparison.Ordinal);
-
-        private static string NormalizeComparisonText(string value, WordComparisonOptions options) {
-            string normalized = value ?? string.Empty;
-            if (options.IgnoreWhitespace) {
-                normalized = string.Join(" ", normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-            }
-
-            if (options.IgnoreCase) {
-                normalized = normalized.ToUpperInvariant();
-            }
-
-            return normalized;
-        }
-
-        private static double GetBoundedTextSimilarity(string source, string target) {
-            int prefixLength = 0;
-            int maxPrefixLength = Math.Min(source.Length, target.Length);
-            while (prefixLength < maxPrefixLength && source[prefixLength] == target[prefixLength]) {
-                prefixLength++;
-            }
-
-            int suffixLength = 0;
-            int sourceSuffixIndex = source.Length - 1;
-            int targetSuffixIndex = target.Length - 1;
-            while (sourceSuffixIndex >= prefixLength &&
-                   targetSuffixIndex >= prefixLength &&
-                   source[sourceSuffixIndex] == target[targetSuffixIndex]) {
-                suffixLength++;
-                sourceSuffixIndex--;
-                targetSuffixIndex--;
-            }
-
-            double edgeSimilarity = (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
-            int sampleCount = Math.Min(MaxBoundedTextSimilaritySamples, Math.Min(source.Length, target.Length));
-            if (sampleCount <= 1) {
-                return edgeSimilarity;
-            }
-
-            int matchingSamples = 0;
-            for (int sample = 0; sample < sampleCount; sample++) {
-                int sourceIndex = (int)((long)sample * (source.Length - 1) / (sampleCount - 1));
-                int targetIndex = (int)((long)sample * (target.Length - 1) / (sampleCount - 1));
-                if (source[sourceIndex] == target[targetIndex]) {
-                    matchingSamples++;
-                }
-            }
-
-            double lengthRatio = (double)Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length);
-            double sampledSimilarity = (double)matchingSamples / sampleCount * lengthRatio;
-            double anchorSimilarity = GetBoundedAnchorTextSimilarity(source, target, lengthRatio);
-            return Math.Max(edgeSimilarity, Math.Max(sampledSimilarity, anchorSimilarity));
-        }
-
-        private static double GetBoundedAnchorTextSimilarity(string source, string target, double lengthRatio) {
-            string anchors = source.Length <= target.Length ? source : target;
-            string searchable = source.Length <= target.Length ? target : source;
-            if (anchors.Length == 0) return 0D;
-
-            int anchorLength = Math.Min(BoundedTextSimilarityAnchorLength, anchors.Length);
-            int maximumStart = anchors.Length - anchorLength;
-            int sampleCount = Math.Min(MaxBoundedTextSimilarityAnchors, maximumStart + 1);
-            int matchingAnchors = 0;
-            for (int sample = 0; sample < sampleCount; sample++) {
-                int start = sampleCount == 1
-                    ? 0
-                    : (int)((long)sample * maximumStart / (sampleCount - 1));
-                string anchor = anchors.Substring(start, anchorLength);
-                if (searchable.IndexOf(anchor, StringComparison.Ordinal) >= 0) {
-                    matchingAnchors++;
-                }
-            }
-
-            return (double)matchingAnchors / sampleCount * lengthRatio;
-        }
-
-        private static int GetCommonSubsequenceLength(string source, string target) {
-            int[,] lengths = new int[source.Length + 1, target.Length + 1];
-
-            for (int sourceIndex = source.Length - 1; sourceIndex >= 0; sourceIndex--) {
-                for (int targetIndex = target.Length - 1; targetIndex >= 0; targetIndex--) {
-                    lengths[sourceIndex, targetIndex] = source[sourceIndex] == target[targetIndex]
-                        ? lengths[sourceIndex + 1, targetIndex + 1] + 1
-                        : Math.Max(lengths[sourceIndex + 1, targetIndex], lengths[sourceIndex, targetIndex + 1]);
-                }
-            }
-
-            return lengths[0, 0];
-        }
-
         private static string ParagraphLocation(int paragraphIndex) {
             return "paragraph[" + paragraphIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
         }
 
-        private sealed class ParagraphSnapshot {
+        private sealed class ParagraphSnapshot : IComparisonFingerprint {
             internal ParagraphSnapshot(string partKind, OpenXmlPart? part, Paragraph paragraph, string text, string comparisonText, string matchText, string styleId, string formatSignature, int documentOrder) {
                 PartKind = partKind;
                 Part = part;
@@ -868,6 +780,9 @@ namespace OfficeIMO.Word {
                 StyleId = styleId;
                 FormatSignature = formatSignature;
                 DocumentOrder = documentOrder;
+                ComparisonFingerprint = CombineComparisonFingerprints(
+                    GetOrdinalTextFingerprint(partKind),
+                    GetOrdinalTextFingerprint(matchText));
             }
 
             internal string PartKind { get; }
@@ -887,6 +802,8 @@ namespace OfficeIMO.Word {
             internal string FormatSignature { get; }
 
             internal int DocumentOrder { get; }
+
+            public ulong ComparisonFingerprint { get; }
         }
 
         private readonly struct ParagraphTextSnapshot {

@@ -464,6 +464,8 @@ namespace OfficeIMO.Word {
             public string DetailedLocation { get; }
 
             public int DocumentOrder { get; }
+
+            ulong IComparisonFingerprint.ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
 
         private sealed class HyperlinkSnapshot : IFeatureSnapshot {
@@ -487,6 +489,8 @@ namespace OfficeIMO.Word {
             public string DetailedLocation { get; }
 
             public int DocumentOrder { get; }
+
+            ulong IComparisonFingerprint.ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
 
         private sealed class ListSnapshot : IFeatureSnapshot {
@@ -510,6 +514,8 @@ namespace OfficeIMO.Word {
             public string DetailedLocation { get; }
 
             public int DocumentOrder { get; }
+
+            ulong IComparisonFingerprint.ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
     }
 }

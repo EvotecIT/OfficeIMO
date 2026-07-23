@@ -320,7 +320,7 @@ namespace OfficeIMO.Word {
             return ParagraphLocation(paragraphIndex) + "/run[" + runIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
         }
 
-        private sealed class RunSnapshot {
+        private sealed class RunSnapshot : IComparisonFingerprint {
             internal RunSnapshot(int index, string text, string comparisonText, string matchKey, string formatSignature, int documentOrder) {
                 Index = index;
                 Text = text;
@@ -341,6 +341,8 @@ namespace OfficeIMO.Word {
             internal string FormatSignature { get; }
 
             internal int DocumentOrder { get; }
+
+            public ulong ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
 
         private readonly struct RunTextSegment {

@@ -387,7 +387,7 @@ namespace OfficeIMO.Word {
             return string.Join("/", parts.Where(part => !string.IsNullOrWhiteSpace(part)).ToArray());
         }
 
-        private interface IFeatureSnapshot {
+        private interface IFeatureSnapshot : IComparisonFingerprint {
             int Index { get; }
 
             string MatchKey { get; }
@@ -425,6 +425,8 @@ namespace OfficeIMO.Word {
             public string DetailedLocation { get; }
 
             public int DocumentOrder { get; }
+
+            ulong IComparisonFingerprint.ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
 
         private sealed class ContentControlSnapshot : IFeatureSnapshot {
@@ -451,6 +453,8 @@ namespace OfficeIMO.Word {
             public string DetailedLocation { get; }
 
             public int DocumentOrder { get; }
+
+            ulong IComparisonFingerprint.ComparisonFingerprint => GetOrdinalTextFingerprint(MatchKey);
         }
 
         private sealed class FeatureSnapshotKeyComparer<TSnapshot> : IEqualityComparer<TSnapshot>
