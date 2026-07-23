@@ -9,6 +9,10 @@ using V = DocumentFormat.OpenXml.Vml;
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private const int LcsCellLimit = 1_000_000;
+        private const int MaxComparisonAlignmentWindow = 256;
+        private const int MaxBoundedTextSimilaritySamples = 64;
+        private const int MaxBoundedTextSimilarityAnchors = 8;
+        private const int BoundedTextSimilarityAnchorLength = 8;
         private const int BodyPartOrderBase = 0;
         private const int HeaderPartOrderBase = 1_000_000;
         private const int FooterPartOrderBase = 2_000_000;
@@ -297,7 +301,10 @@ namespace OfficeIMO.Word {
             int bestIndex = targetStart;
             double bestSimilarity = currentSimilarity;
 
-            for (int index = targetStart + 1; index < targetEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                targetStart + 1,
+                targetEnd,
+                index => GetRowAlignmentPrefilterSimilarity(sourceRow, targetRows[index], options))) {
                 double similarity = GetRowSimilarity(sourceRow, targetRows[index], options);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
@@ -318,7 +325,10 @@ namespace OfficeIMO.Word {
             int bestIndex = sourceStart;
             double bestSimilarity = currentSimilarity;
 
-            for (int index = sourceStart + 1; index < sourceEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                sourceStart + 1,
+                sourceEnd,
+                index => GetRowAlignmentPrefilterSimilarity(sourceRows[index], targetRow, options))) {
                 double similarity = GetRowSimilarity(sourceRows[index], targetRow, options);
                 if (similarity > bestSimilarity) {
                     bestSimilarity = similarity;
@@ -474,7 +484,7 @@ namespace OfficeIMO.Word {
                 GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
         }
 
-        private static IReadOnlyList<MatchedIndexPair> FindMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) {
+        private static IReadOnlyList<MatchedIndexPair> FindMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) where T : notnull {
             if ((long)(source.Count + 1) * (target.Count + 1) > LcsCellLimit) {
                 return FindGreedyMatchingIndexes(source, target, comparer);
             }
@@ -508,19 +518,33 @@ namespace OfficeIMO.Word {
             return matches;
         }
 
-        private static IReadOnlyList<MatchedIndexPair> FindGreedyMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) {
+        private static IReadOnlyList<MatchedIndexPair> FindGreedyMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) where T : notnull {
             var matches = new List<MatchedIndexPair>();
+            var targetIndexes = new Dictionary<T, Queue<int>>(comparer);
+            for (int targetIndex = 0; targetIndex < target.Count; targetIndex++) {
+                if (!targetIndexes.TryGetValue(target[targetIndex], out Queue<int>? indexes)) {
+                    indexes = new Queue<int>();
+                    targetIndexes.Add(target[targetIndex], indexes);
+                }
+
+                indexes.Enqueue(targetIndex);
+            }
+
             int targetCursor = 0;
 
             for (int sourceIndex = 0; sourceIndex < source.Count && targetCursor < target.Count; sourceIndex++) {
-                for (int targetIndex = targetCursor; targetIndex < target.Count; targetIndex++) {
-                    if (!comparer.Equals(source[sourceIndex], target[targetIndex])) {
-                        continue;
-                    }
+                if (!targetIndexes.TryGetValue(source[sourceIndex], out Queue<int>? indexes)) {
+                    continue;
+                }
 
+                while (indexes.Count > 0 && indexes.Peek() < targetCursor) {
+                    indexes.Dequeue();
+                }
+
+                if (indexes.Count > 0) {
+                    int targetIndex = indexes.Dequeue();
                     matches.Add(new MatchedIndexPair(sourceIndex, targetIndex));
                     targetCursor = targetIndex + 1;
-                    break;
                 }
             }
 
@@ -684,6 +708,16 @@ namespace OfficeIMO.Word {
             }
 
             return GetContainmentAwareTextSimilarity(NormalizeComparisonText(GetRowText(source), options), NormalizeComparisonText(GetRowText(target), options));
+        }
+
+        private static double GetRowAlignmentPrefilterSimilarity(WordTableRow source, WordTableRow target, WordComparisonOptions options) {
+            if (source.Cells.Count != target.Cells.Count) {
+                return 0;
+            }
+
+            return GetBoundedTextSimilarity(
+                NormalizeComparisonText(GetRowText(source), options),
+                NormalizeComparisonText(GetRowText(target), options));
         }
 
         private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target, WordComparisonOptions options) {

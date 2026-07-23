@@ -88,7 +88,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
         return attributes.ToString();
     }
 
-    private static string FormatMarker(int value, MarkdownOrderedListMarkerStyle style, char delimiter) {
+    internal static string FormatMarker(int value, MarkdownOrderedListMarkerStyle style, char delimiter) {
         var text = style switch {
             MarkdownOrderedListMarkerStyle.LowerAlpha => FormatAlpha(value, uppercase: false),
             MarkdownOrderedListMarkerStyle.UpperAlpha => FormatAlpha(value, uppercase: true),

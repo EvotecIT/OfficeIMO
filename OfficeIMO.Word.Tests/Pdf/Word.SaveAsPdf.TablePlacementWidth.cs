@@ -14,6 +14,29 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void TableLayoutCache_AccountsForNestedTablesInsideCellContentControls() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNestedTableContentControlWidth.docx");
+        using WordDocument document = WordDocument.Create(docPath);
+        WordTable outer = document.AddTable(1, 1);
+        WordTableCell cell = outer.Rows[0].Cells[0];
+        WordTable nested = cell.AddTable(1, 2);
+        foreach (WordTableCell nestedCell in nested.Rows[0].Cells) {
+            nestedCell.Width = 2880;
+            nestedCell.WidthType = TableWidthUnitValues.Dxa;
+        }
+
+        nested._table.Remove();
+        cell._tableCell.Append(new SdtBlock(
+            new SdtProperties(new SdtAlias { Val = "Nested table host" }),
+            new SdtContentBlock(nested._table)));
+
+        OfficeIMO.Word.Pdf.TableLayout layout = TableLayoutCache.GetLayout(outer);
+
+        Assert.Single(cell.DirectNestedTables);
+        Assert.True(Assert.Single(layout.ColumnWidths) >= 288F);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Placement() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePlacement.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePlacement.pdf");

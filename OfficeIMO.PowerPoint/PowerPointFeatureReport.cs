@@ -300,6 +300,10 @@ namespace OfficeIMO.PowerPoint {
     }
 
     public sealed partial class PowerPointPresentation {
+        private const int MaxFeatureInspectionParts = 100_000;
+        private const int MaxFeatureInspectionRelationships = 500_000;
+        private const int MaxFeatureInspectionDepth = 128;
+
         /// <summary>
         /// Inspects presentation features and reports which ones OfficeIMO can edit, partially edit, preserve, or does not support yet.
         /// </summary>
@@ -455,41 +459,57 @@ namespace OfficeIMO.PowerPoint {
 
         private static IEnumerable<OpenXmlPart> EnumeratePowerPointPartsAndPackage(PresentationDocument document, OpenXmlPart root) {
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Stack<(OpenXmlPart Part, int Depth)>();
+            int relationshipCount = 0;
             foreach (var pair in document.Parts) {
-                foreach (var part in EnumeratePowerPointParts(pair.OpenXmlPart, visited)) {
-                    yield return part;
+                relationshipCount++;
+                if (relationshipCount > MaxFeatureInspectionRelationships) {
+                    throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported relationship limit of {MaxFeatureInspectionRelationships}.");
                 }
+
+                pending.Push((pair.OpenXmlPart, 0));
             }
 
-            foreach (var part in EnumeratePowerPointParts(root, visited)) {
-                yield return part;
+            relationshipCount++;
+            if (relationshipCount > MaxFeatureInspectionRelationships) {
+                throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported relationship limit of {MaxFeatureInspectionRelationships}.");
             }
+
+            pending.Push((root, 0));
 
             if (document.DigitalSignatureOriginPart != null) {
-                foreach (var part in EnumeratePowerPointParts(document.DigitalSignatureOriginPart, visited)) {
-                    yield return part;
+                relationshipCount++;
+                if (relationshipCount > MaxFeatureInspectionRelationships) {
+                    throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported relationship limit of {MaxFeatureInspectionRelationships}.");
                 }
-            }
-        }
 
-        private static IEnumerable<OpenXmlPart> EnumeratePowerPointParts(OpenXmlPart part, HashSet<string> visited) {
-            string key = part.Uri.OriginalString + "|" + part.ContentType;
-            if (!visited.Add(key)) {
-                yield break;
+                pending.Push((document.DigitalSignatureOriginPart, 0));
             }
 
-            yield return part;
+            while (pending.Count > 0) {
+                (OpenXmlPart part, int depth) = pending.Pop();
+                if (depth > MaxFeatureInspectionDepth) {
+                    throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported relationship depth of {MaxFeatureInspectionDepth}.");
+                }
 
-            foreach (var child in EnumeratePowerPointParts((OpenXmlPartContainer)part, visited)) {
-                yield return child;
-            }
-        }
+                string key = part.Uri.OriginalString + "|" + part.ContentType;
+                if (!visited.Add(key)) {
+                    continue;
+                }
 
-        private static IEnumerable<OpenXmlPart> EnumeratePowerPointParts(OpenXmlPartContainer container, HashSet<string> visited) {
-            foreach (var pair in container.Parts) {
-                var part = pair.OpenXmlPart;
-                foreach (var child in EnumeratePowerPointParts(part, visited)) {
-                    yield return child;
+                if (visited.Count > MaxFeatureInspectionParts) {
+                    throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported part limit of {MaxFeatureInspectionParts}.");
+                }
+
+                yield return part;
+
+                foreach (IdPartPair pair in part.Parts) {
+                    relationshipCount++;
+                    if (relationshipCount > MaxFeatureInspectionRelationships) {
+                        throw new InvalidDataException($"PowerPoint feature inspection exceeded the supported relationship limit of {MaxFeatureInspectionRelationships}.");
+                    }
+
+                    pending.Push((pair.OpenXmlPart, depth + 1));
                 }
             }
         }

@@ -72,5 +72,8 @@ public enum PdfReadLimitKind {
     OcrArtifacts = 22,
 
     /// <summary>Rendered bytes retained by one managed render operation.</summary>
-    RenderBytes = 23
+    RenderBytes = 23,
+
+    /// <summary>Named appearance states declared for one AcroForm widget.</summary>
+    FormAppearanceStates = 24
 }

@@ -366,6 +366,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureAlignsModifiedTableRowInMiddleOfLargeInsertionRange() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_inserted_row_range.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(2, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Status: Pending");
+                table.Rows[1].Cells[0].Paragraphs[0].SetText("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_inserted_row_range.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(602, 1);
+                for (int index = 0; index < 300; index++) {
+                    table.Rows[index].Cells[0].Paragraphs[0].SetText("Evidence before " + index);
+                }
+
+                table.Rows[300].Cells[0].Paragraphs[0].SetText("Status: Approved");
+                for (int index = 0; index < 300; index++) {
+                    table.Rows[index + 301].Cells[0].Paragraphs[0].SetText("Evidence after " + index);
+                }
+
+                table.Rows[601].Cells[0].Paragraphs[0].SetText("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(600, result.Findings.Count(finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText?.StartsWith("Evidence ", StringComparison.Ordinal) == true));
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText == "Status: Approved");
+        }
+
+        [Fact]
         public void CompareStructureReportsFootnoteAndEndnoteBodyChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_notes.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {

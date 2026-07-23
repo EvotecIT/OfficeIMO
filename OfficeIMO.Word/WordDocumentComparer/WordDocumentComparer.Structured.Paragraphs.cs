@@ -217,7 +217,10 @@ namespace OfficeIMO.Word {
             double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart]);
 
-            for (int index = targetStart + 1; index < targetEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                targetStart + 1,
+                targetEnd,
+                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraph, targetParagraphs[index]))) {
                 double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index]);
                 double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index]);
                 if (visibleSimilarity < bestVisibleSimilarity ||
@@ -244,7 +247,10 @@ namespace OfficeIMO.Word {
             double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph);
 
-            for (int index = sourceStart + 1; index < sourceEnd; index++) {
+            foreach (int index in SelectBoundedAlignmentCandidates(
+                sourceStart + 1,
+                sourceEnd,
+                index => GetParagraphAlignmentPrefilterSimilarity(sourceParagraphs[index], targetParagraph))) {
                 double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph);
                 double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph);
                 if (visibleSimilarity < bestVisibleSimilarity ||
@@ -273,6 +279,52 @@ namespace OfficeIMO.Word {
             return Math.Max(
                 GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
                 GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText));
+        }
+
+        private static double GetParagraphAlignmentPrefilterSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+            if (!string.Equals(sourceParagraph.PartKind, targetParagraph.PartKind, StringComparison.Ordinal)) {
+                return 0;
+            }
+
+            return Math.Max(
+                GetBoundedTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
+                GetBoundedTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText));
+        }
+
+        private static IReadOnlyList<int> SelectBoundedAlignmentCandidates(int start, int end, Func<int, double> getPrefilterSimilarity) {
+            var candidates = new SortedSet<AlignmentCandidate>(AlignmentCandidateComparer.Instance);
+            for (int index = start; index < end; index++) {
+                var candidate = new AlignmentCandidate(index, getPrefilterSimilarity(index));
+                candidates.Add(candidate);
+                if (candidates.Count > MaxComparisonAlignmentWindow) {
+                    candidates.Remove(candidates.Min);
+                }
+            }
+
+            return candidates
+                .OrderByDescending(candidate => candidate.Similarity)
+                .ThenBy(candidate => candidate.Index)
+                .Select(candidate => candidate.Index)
+                .ToArray();
+        }
+
+        private readonly struct AlignmentCandidate {
+            internal AlignmentCandidate(int index, double similarity) {
+                Index = index;
+                Similarity = similarity;
+            }
+
+            internal int Index { get; }
+            internal double Similarity { get; }
+        }
+
+        private sealed class AlignmentCandidateComparer : IComparer<AlignmentCandidate> {
+            internal static readonly AlignmentCandidateComparer Instance = new AlignmentCandidateComparer();
+
+            public int Compare(AlignmentCandidate x, AlignmentCandidate y) {
+                int similarity = x.Similarity.CompareTo(y.Similarity);
+                return similarity != 0 ? similarity : y.Index.CompareTo(x.Index);
+            }
         }
 
         private static double GetParagraphVisibleTextSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
@@ -744,7 +796,47 @@ namespace OfficeIMO.Word {
                 targetSuffixIndex--;
             }
 
-            return (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
+            double edgeSimilarity = (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
+            int sampleCount = Math.Min(MaxBoundedTextSimilaritySamples, Math.Min(source.Length, target.Length));
+            if (sampleCount <= 1) {
+                return edgeSimilarity;
+            }
+
+            int matchingSamples = 0;
+            for (int sample = 0; sample < sampleCount; sample++) {
+                int sourceIndex = (int)((long)sample * (source.Length - 1) / (sampleCount - 1));
+                int targetIndex = (int)((long)sample * (target.Length - 1) / (sampleCount - 1));
+                if (source[sourceIndex] == target[targetIndex]) {
+                    matchingSamples++;
+                }
+            }
+
+            double lengthRatio = (double)Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length);
+            double sampledSimilarity = (double)matchingSamples / sampleCount * lengthRatio;
+            double anchorSimilarity = GetBoundedAnchorTextSimilarity(source, target, lengthRatio);
+            return Math.Max(edgeSimilarity, Math.Max(sampledSimilarity, anchorSimilarity));
+        }
+
+        private static double GetBoundedAnchorTextSimilarity(string source, string target, double lengthRatio) {
+            string anchors = source.Length <= target.Length ? source : target;
+            string searchable = source.Length <= target.Length ? target : source;
+            if (anchors.Length == 0) return 0D;
+
+            int anchorLength = Math.Min(BoundedTextSimilarityAnchorLength, anchors.Length);
+            int maximumStart = anchors.Length - anchorLength;
+            int sampleCount = Math.Min(MaxBoundedTextSimilarityAnchors, maximumStart + 1);
+            int matchingAnchors = 0;
+            for (int sample = 0; sample < sampleCount; sample++) {
+                int start = sampleCount == 1
+                    ? 0
+                    : (int)((long)sample * maximumStart / (sampleCount - 1));
+                string anchor = anchors.Substring(start, anchorLength);
+                if (searchable.IndexOf(anchor, StringComparison.Ordinal) >= 0) {
+                    matchingAnchors++;
+                }
+            }
+
+            return (double)matchingAnchors / sampleCount * lengthRatio;
         }
 
         private static int GetCommonSubsequenceLength(string source, string target) {

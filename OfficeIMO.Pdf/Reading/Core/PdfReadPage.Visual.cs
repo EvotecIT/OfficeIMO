@@ -1118,6 +1118,13 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
+        if (stateDictionary.Items.Count > _limits.MaxFormFieldAppearanceStates) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.FormAppearanceStates,
+                _limits.MaxFormFieldAppearanceStates,
+                stateDictionary.Items.Count);
+        }
+
         if (annotation.Items.TryGetValue("AS", out PdfObject? appearanceStateObject) &&
             ResolveObject(appearanceStateObject) is PdfName appearanceState) {
             if (stateDictionary.Items.TryGetValue(appearanceState.Name, out PdfObject? stateObject) &&

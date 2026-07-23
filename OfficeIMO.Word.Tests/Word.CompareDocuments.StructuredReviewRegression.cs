@@ -323,6 +323,122 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureAlignsModifiedParagraphInMiddleOfLargeInsertionRange() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_inserted_paragraph_range.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Status: Pending");
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_inserted_paragraph_range.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                for (int index = 0; index < 300; index++) {
+                    doc.AddParagraph("Evidence before " + index);
+                }
+
+                doc.AddParagraph("Status: Approved");
+                for (int index = 0; index < 300; index++) {
+                    doc.AddParagraph("Evidence after " + index);
+                }
+
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(600, result.Findings.Count(finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText?.StartsWith("Evidence ", StringComparison.Ordinal) == true));
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText == "Status: Approved");
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText?.StartsWith("Evidence ", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
+        public void CompareStructureRetainsModifiedParagraphWithStrongInternalMatch() {
+            string sharedMiddle = string.Concat(Enumerable.Repeat("shared middle content ", 12));
+            string sourceText = "A source start " + sharedMiddle + " source end";
+            string targetText = "B target start " + sharedMiddle + " target end";
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph(sourceText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                for (int index = 0; index < 260; index++) {
+                    doc.AddParagraph("A inserted candidate " + index);
+                }
+
+                doc.AddParagraph(targetText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText == targetText);
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText?.StartsWith("A inserted candidate ", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
+        public void CompareStructureRetainsModifiedParagraphWithShiftedInternalMatch() {
+            string sharedMiddle = string.Concat(Enumerable.Range(0, 512).Select(index => index % 2 == 0 ? 'x' : 'y'));
+            string sourceText = "A" + sharedMiddle + "ZXCVBNMASD";
+            string targetText = "B12345" + sharedMiddle + "QWERT";
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_shifted_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph(sourceText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_shifted_internal_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                for (int index = 0; index < 260; index++) {
+                    doc.AddParagraph("A inserted candidate " + index);
+                }
+
+                doc.AddParagraph(targetText);
+                doc.AddParagraph("Closing");
+                doc.Save();
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText == targetText);
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText?.StartsWith("A inserted candidate ", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
         public void CompareStructureReadsExplicitNormalFootnotes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_explicit_normal_footnote.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {

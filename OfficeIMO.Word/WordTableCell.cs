@@ -941,6 +941,21 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal List<WordTable> DirectNestedTables {
+            get {
+                var tables = new List<WordTable>();
+                foreach (Table table in _tableCell.Descendants<Table>()) {
+                    if (!ReferenceEquals(table.Ancestors<TableCell>().FirstOrDefault(), _tableCell)) {
+                        continue;
+                    }
+
+                    tables.Add(new WordTable(_document, table));
+                }
+
+                return tables;
+            }
+        }
+
         /// <summary>
         /// Determines whether this instance and another cell reference the same underlying OpenXML cell.
         /// </summary>

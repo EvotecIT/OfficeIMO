@@ -52,6 +52,9 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested AcroForm field-tree depth. Default: 256.</summary>
     public int MaxFormFieldDepth { get; init; } = 256;
 
+    /// <summary>Maximum named appearance states declared for one AcroForm widget. Default: 4,096.</summary>
+    public int MaxFormFieldAppearanceStates { get; init; } = 4_096;
+
     /// <summary>Maximum annotations declared on one page. Default: 100,000.</summary>
     public int MaxAnnotationsPerPage { get; init; } = 100_000;
 
@@ -80,6 +83,7 @@ public sealed class PdfReadLimits {
             MaxPages = MaxPages,
             MaxFormFields = MaxFormFields,
             MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
             MaxAnnotationsPerPage = MaxAnnotationsPerPage,
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
@@ -126,6 +130,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxPages, nameof(MaxPages), "Maximum pages must be positive.");
         ValidatePositive(MaxFormFields, nameof(MaxFormFields), "Maximum form fields must be positive.");
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
+        ValidatePositive(MaxFormFieldAppearanceStates, nameof(MaxFormFieldAppearanceStates), "Maximum form-field appearance states must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");

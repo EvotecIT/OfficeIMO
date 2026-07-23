@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -10,6 +11,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
+        private const int MaxChartCachePoints = 100_000;
+
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
@@ -451,7 +454,8 @@ namespace OfficeIMO.PowerPoint {
                 return Array.Empty<string>();
             }
 
-            List<C.StringPoint> stringPoints = container.Descendants<C.StringPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
+            List<C.StringPoint> stringPoints = GetBoundedCachedPoints(container.Descendants<C.StringPoint>());
+            stringPoints.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
             if (stringPoints.Count > 0) {
                 return CreateIndexedCache(
                     container,
@@ -461,7 +465,8 @@ namespace OfficeIMO.PowerPoint {
                     string.Empty);
             }
 
-            List<C.NumericPoint> numericPoints = container.Descendants<C.NumericPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
+            List<C.NumericPoint> numericPoints = GetBoundedCachedPoints(container.Descendants<C.NumericPoint>());
+            numericPoints.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
             if (numericPoints.Count > 0) {
                 return CreateIndexedCache(
                     container,
@@ -479,7 +484,8 @@ namespace OfficeIMO.PowerPoint {
                 return Array.Empty<double>();
             }
 
-            List<C.NumericPoint> points = container.Descendants<C.NumericPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
+            List<C.NumericPoint> points = GetBoundedCachedPoints(container.Descendants<C.NumericPoint>());
+            points.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
             if (points.Count == 0) {
                 return Array.Empty<double>();
             }
@@ -523,14 +529,35 @@ namespace OfficeIMO.PowerPoint {
             return values;
         }
 
+        private static List<TPoint> GetBoundedCachedPoints<TPoint>(IEnumerable<TPoint> points) {
+            List<TPoint> boundedPoints = points.Take(MaxChartCachePoints + 1).ToList();
+            if (boundedPoints.Count > MaxChartCachePoints) {
+                throw new InvalidDataException($"The chart cache exceeds the supported limit of {MaxChartCachePoints} points.");
+            }
+
+            return boundedPoints;
+        }
+
         private static int GetCachedPointLength<TPoint>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex) {
+            if (points.Count > MaxChartCachePoints) {
+                throw new InvalidDataException($"The chart cache exceeds the supported limit of {MaxChartCachePoints} points.");
+            }
+
             uint? pointCount = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
+            if (pointCount > MaxChartCachePoints) {
+                throw new InvalidDataException($"The chart cache declares more than the supported limit of {MaxChartCachePoints} points.");
+            }
+
             uint maxIndex = 0U;
             bool hasIndexedPoint = false;
             for (int i = 0; i < points.Count; i++) {
                 uint? index = getIndex(points[i]);
                 if (!index.HasValue) {
                     continue;
+                }
+
+                if (index.Value >= MaxChartCachePoints) {
+                    throw new InvalidDataException($"The chart cache point index exceeds the supported limit of {MaxChartCachePoints} points.");
                 }
 
                 hasIndexedPoint = true;
@@ -541,10 +568,6 @@ namespace OfficeIMO.PowerPoint {
 
             uint indexedLength = hasIndexedPoint ? maxIndex + 1U : (uint)points.Count;
             uint length = Math.Max(pointCount ?? 0U, indexedLength);
-            if (length > int.MaxValue) {
-                return points.Count;
-            }
-
             return (int)length;
         }
 

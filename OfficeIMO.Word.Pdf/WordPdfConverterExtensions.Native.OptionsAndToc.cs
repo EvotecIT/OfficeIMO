@@ -205,26 +205,24 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RegisterNativeTableFonts(WordTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
-            NativeTableStyleDefaults tableStyleDefaults = GetNativeTableStyleDefaults(
-                table,
-                GetNativeDocumentDefaults(table.Document),
-                ignoreFallbackTableStyle: pdfOptions.HasExplicitDefaultTableStyle);
+            foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                NativeTableStyleDefaults tableStyleDefaults = GetNativeTableStyleDefaults(
+                    currentTable,
+                    GetNativeDocumentDefaults(currentTable.Document),
+                    ignoreFallbackTableStyle: pdfOptions.HasExplicitDefaultTableStyle);
 
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph paragraph in cell.Paragraphs) {
-                        RegisterNativeParagraphContentFonts(
-                            paragraph,
-                            tableStyleDefaults.RunStyle,
-                            pdfOptions,
-                            registeredFamilies,
-                            registeredFontSlots,
-                            allowSystemFontEmbedding,
-                            nativeFontMap);
-                    }
-
-                    foreach (WordTable nestedTable in cell.NestedTables) {
-                        RegisterNativeTableFonts(nestedTable, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                foreach (WordTableRow row in currentTable.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordParagraph paragraph in cell.Paragraphs) {
+                            RegisterNativeParagraphContentFonts(
+                                paragraph,
+                                tableStyleDefaults.RunStyle,
+                                pdfOptions,
+                                registeredFamilies,
+                                registeredFontSlots,
+                                allowSystemFontEmbedding,
+                                nativeFontMap);
+                        }
                     }
                 }
             }

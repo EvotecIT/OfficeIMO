@@ -977,15 +977,29 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<OfficeChartSeries> barSeriesValues = barSeries.Select(item => item.Series).ToArray();
         var stackedSlots = new Dictionary<OfficeChartKind, int>();
         var clusteredSlots = new Dictionary<int, int>();
+        var stackedSeriesByKind = new Dictionary<OfficeChartKind, List<OfficeChartSeries>>();
         int slotCount = 0;
         for (int i = 0; i < barSeries.Count; i++) {
             OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, barSeries[i].Series);
             if (IsStackedBarOrColumnChart(kind) || IsPercentStackedBarOrColumnChart(kind)) {
+                if (!stackedSeriesByKind.TryGetValue(kind, out List<OfficeChartSeries>? stackGroup)) {
+                    stackGroup = new List<OfficeChartSeries>();
+                    stackedSeriesByKind.Add(kind, stackGroup);
+                }
+
+                stackGroup.Add(barSeries[i].Series);
                 if (!stackedSlots.ContainsKey(kind)) {
                     stackedSlots[kind] = slotCount++;
                 }
             } else {
                 clusteredSlots[barSeries[i].SourceIndex] = slotCount++;
+            }
+        }
+
+        var percentStackedTotalsByKind = new Dictionary<OfficeChartKind, PercentStackedTotals>();
+        foreach (KeyValuePair<OfficeChartKind, List<OfficeChartSeries>> stackGroup in stackedSeriesByKind) {
+            if (IsPercentStackedBarOrColumnChart(stackGroup.Key)) {
+                percentStackedTotalsByKind.Add(stackGroup.Key, BuildPercentStackedTotals(stackGroup.Value, categories.Count));
             }
         }
 
@@ -1025,12 +1039,8 @@ public static partial class OfficeChartDrawingRenderer {
                 double baseline = 0D;
                 double plottedValue = value;
                 if (seriesStacked) {
-                    IReadOnlyList<OfficeChartSeries> stackGroup = barSeries
-                        .Where(item => GetEffectiveSeriesKind(snapshot, item.Series) == seriesKind)
-                        .Select(item => item.Series)
-                        .ToArray();
                     if (seriesPercentStacked) {
-                        plottedValue = NormalizePercentStackedValue(stackGroup, category, value);
+                        plottedValue = NormalizePercentStackedValue(percentStackedTotalsByKind[seriesKind], category, value);
                     }
 
                     positiveBases.TryGetValue(seriesKind, out double positiveBase);
@@ -1191,13 +1201,17 @@ public static partial class OfficeChartDrawingRenderer {
         double step = plotWidth / (categories.Count - 1);
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
+        var stackedSeriesByKind = areaSeries
+            .Where(item => IsStackedAreaChart(item.Kind) || IsPercentStackedAreaChart(item.Kind))
+            .GroupBy(item => item.Kind)
+            .ToDictionary(group => group.Key, group => group.Select(item => item.Series).ToList());
+        var percentStackedTotalsByKind = stackedSeriesByKind
+            .Where(group => IsPercentStackedAreaChart(group.Key))
+            .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
 
         foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind kind) in areaSeries) {
             bool currentStacked = IsStackedAreaChart(kind) || IsPercentStackedAreaChart(kind);
             bool currentPercentStacked = IsPercentStackedAreaChart(kind);
-            List<OfficeChartSeries> stackSeries = currentStacked
-                ? areaSeries.Where(item => item.Kind == kind).Select(item => item.Series).ToList()
-                : new List<OfficeChartSeries>();
             double[] positiveCumulative = currentStacked ? GetCumulative(positiveCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             double[] negativeCumulative = currentStacked ? GetCumulative(negativeCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
@@ -1217,7 +1231,7 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double rawValue = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, value) : value;
+                double rawValue = currentPercentStacked ? NormalizePercentStackedValue(percentStackedTotalsByKind[kind], i, value) : value;
                 double baseline = currentStacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
@@ -1229,11 +1243,10 @@ public static partial class OfficeChartDrawingRenderer {
                 runCategoryIndices.Add(i);
 
                 if (currentStacked) {
-                    double stackedValue = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, value) : value;
-                    if (stackedValue >= 0D) {
-                        positiveCumulative[i] += stackedValue;
+                    if (rawValue >= 0D) {
+                        positiveCumulative[i] += rawValue;
                     } else {
-                        negativeCumulative[i] += stackedValue;
+                        negativeCumulative[i] += rawValue;
                     }
                 }
             }
@@ -1305,12 +1318,16 @@ public static partial class OfficeChartDrawingRenderer {
         double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
+        var stackedSeriesByKind = lineSeries
+            .Where(item => IsStackedLineChart(item.Kind) || IsPercentStackedLineChart(item.Kind))
+            .GroupBy(item => item.Kind)
+            .ToDictionary(group => group.Key, group => group.Select(item => item.Series).ToList());
+        var percentStackedTotalsByKind = stackedSeriesByKind
+            .Where(group => IsPercentStackedLineChart(group.Key))
+            .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
         foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind kind) in lineSeries) {
             bool currentStacked = IsStackedLineChart(kind) || IsPercentStackedLineChart(kind);
             bool currentPercentStacked = IsPercentStackedLineChart(kind);
-            List<OfficeChartSeries> stackSeries = currentStacked
-                ? lineSeries.Where(item => item.Kind == kind).Select(item => item.Series).ToList()
-                : new List<OfficeChartSeries>();
             double[] positiveCumulative = currentStacked ? GetCumulative(positiveCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             double[] negativeCumulative = currentStacked ? GetCumulative(negativeCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
@@ -1323,7 +1340,7 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double rawValue = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, value) : value;
+                double rawValue = currentPercentStacked ? NormalizePercentStackedValue(percentStackedTotalsByKind[kind], i, value) : value;
                 double baseline = currentStacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
@@ -1380,7 +1397,7 @@ public static partial class OfficeChartDrawingRenderer {
                         continue;
                     }
 
-                    double value = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, seriesValue) : seriesValue;
+                    double value = currentPercentStacked ? NormalizePercentStackedValue(percentStackedTotalsByKind[kind], i, seriesValue) : seriesValue;
                     if (value >= 0D) {
                         positiveCumulative[i] += value;
                     } else {

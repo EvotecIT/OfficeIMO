@@ -107,5 +107,33 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Second section note1", allText);
             }
         }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Numbers_Nested_Table_Footnotes_In_Document_Order() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNestedTableFootnotes.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNestedTableFootnotes.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordTable outer = document.AddTable(1, 2);
+                WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+                nested.Rows[0].Cells[0].Paragraphs[0]
+                    .SetText("Nested table note")
+                    .AddFootNote("Nested table footnote");
+                outer.Rows[0].Cells[1].Paragraphs[0]
+                    .SetText("Later outer note")
+                    .AddFootNote("Later outer footnote");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions { IncludePageNumbers = false });
+            }
+
+            using (var pdf = PdfPigDocument.Open(pdfPath)) {
+                string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+                string normalizedText = Regex.Replace(allText, @"\s+", " ");
+                Assert.Contains("Later outer note2", allText);
+                Assert.Contains("1 Nested table footnote", normalizedText);
+                Assert.Contains("2 Later outer footnote", normalizedText);
+                Assert.DoesNotContain("Later outer note1", allText);
+            }
+        }
     }
 }

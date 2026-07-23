@@ -1,6 +1,8 @@
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using System.IO;
+using System.Reflection;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
@@ -69,6 +71,36 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(144f, layout.ColumnWidths[1]);
         }
 
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void OversizedRowGridOffsetsAreRejectedBeforeColumnArraysAreAllocated(bool before) {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1);
+            table.GridColumnWidth = new List<int>();
+            table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            if (before) {
+                table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_385 });
+            } else {
+                table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_385 });
+            }
+
+            Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));
+        }
+
+        [Fact]
+        public void CombinedRowGridOffsetsAreRejectedBeforeColumnArraysAreAllocated() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1);
+            table.GridColumnWidth = new List<int>();
+            table.Rows[0]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 16_384 });
+            table.Rows[0]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 16_384 });
+            table.Rows[0].Cells[0].HorizontalMerge = W.MergedCellValues.Continue;
+
+            Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(table));
+        }
+
         [Fact]
         public void NestedTableWidthsPropagateToParent() {
             using WordDocument document = WordDocument.Create();
@@ -106,6 +138,46 @@ namespace OfficeIMO.Tests.Pdf {
             TableLayout innerLayout = TableLayoutCache.GetLayout(inner);
             Assert.Equal(144f, innerLayout.ColumnWidths[0]);
         }
+
+        [Fact]
+        public void ExcessiveNestedTableDepthIsRejectedBeforeRecursiveLayoutCanOverflow() {
+            using WordDocument document = WordDocument.Create();
+            WordTable root = document.AddTable(1, 1);
+            WordTable current = root;
+            for (int depth = 0; depth < 128; depth++) {
+                current = current.Rows[0].Cells[0].AddTable(1, 1);
+            }
+
+            Assert.Throws<InvalidDataException>(() => TableLayoutCache.GetLayout(root));
+        }
+
+        [Fact]
+        public void StyleTabStopInspectionIsBoundedEvenWhenEntriesAreInvalid() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Bounded tabs");
+            const string styleId = "HostileTabStops";
+            var tabs = new W.Tabs();
+            for (int index = 0; index < 1_024; index++) {
+                tabs.Append(new W.TabStop { Position = 0, Val = W.TabStopValues.Left });
+            }
+
+            tabs.Append(new W.TabStop { Position = 1_440, Val = W.TabStopValues.Left });
+            W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new W.Style(
+                new W.StyleName { Val = styleId },
+                new W.StyleParagraphProperties(tabs)) {
+                Type = W.StyleValues.Paragraph,
+                StyleId = styleId
+            });
+            paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
+                "GetNativeParagraphEffectiveTabStops",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            var effectiveTabStops = Assert.IsAssignableFrom<IReadOnlyList<WordTabStop>>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Empty(effectiveTabStops);
+        }
     }
 }
-

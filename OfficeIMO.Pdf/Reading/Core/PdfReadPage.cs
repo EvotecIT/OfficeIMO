@@ -339,7 +339,7 @@ public sealed partial class PdfReadPage {
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks = false) {
         var images = resources == null
             ? new List<PdfExtractedImage>()
-            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks));
+            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks, _limits));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];

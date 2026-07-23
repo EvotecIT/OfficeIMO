@@ -7,6 +7,7 @@ namespace OfficeIMO.Rtf.Markdown;
 internal static class RtfMarkdownBridgeMarkers {
     private const string ListContinuationBookmarkPrefix = "_OfficeIMO_MLC_";
     private const string CodeBlockBookmarkPrefix = "_OfficeIMO_MCB_";
+    private const int MaxCodeBlockInfoStringCharacters = 1_024;
 
     internal static string CreateListContinuationBookmarkName(int ordinal) =>
         ListContinuationBookmarkPrefix + Math.Max(0, ordinal).ToString(CultureInfo.InvariantCulture);
@@ -44,7 +45,10 @@ internal static class RtfMarkdownBridgeMarkers {
             return string.Empty;
         }
 
-        byte[] bytes = Encoding.UTF8.GetBytes(value!);
+        string boundedValue = value!.Length <= MaxCodeBlockInfoStringCharacters
+            ? value
+            : value.Substring(0, MaxCodeBlockInfoStringCharacters);
+        byte[] bytes = Encoding.UTF8.GetBytes(boundedValue);
         var builder = new StringBuilder(bytes.Length * 2);
         for (int i = 0; i < bytes.Length; i++) {
             builder.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));

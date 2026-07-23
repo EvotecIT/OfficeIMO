@@ -114,42 +114,54 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
-    private static double GetPercentStackedCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, bool positive) {
-        double total = 0D;
-        for (int s = 0; s < series.Count; s++) {
-            if (!TryGetSeriesValue(series[s], categoryIndex, out double value)) {
-                continue;
-            }
+    private readonly struct PercentStackedTotals {
+        internal PercentStackedTotals(double[] positive, double[] negative) {
+            Positive = positive;
+            Negative = negative;
+        }
 
-            if (positive && value > 0D) {
-                total += value;
-            } else if (!positive && value < 0D) {
-                total += Math.Abs(value);
+        internal double[] Positive { get; }
+        internal double[] Negative { get; }
+    }
+
+    private static PercentStackedTotals BuildPercentStackedTotals(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
+        var positive = new double[categoryCount];
+        var negative = new double[categoryCount];
+        for (int s = 0; s < series.Count; s++) {
+            for (int categoryIndex = 0; categoryIndex < categoryCount; categoryIndex++) {
+                if (!TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+                    continue;
+                }
+
+                if (value > 0D) {
+                    positive[categoryIndex] += value;
+                } else if (value < 0D) {
+                    negative[categoryIndex] += Math.Abs(value);
+                }
             }
         }
 
-        return total;
+        return new PercentStackedTotals(positive, negative);
     }
 
-    private static double NormalizePercentStackedValue(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, double value) {
+    private static double NormalizePercentStackedValue(PercentStackedTotals totals, int categoryIndex, double value) {
         if (value == 0D) {
             return 0D;
         }
 
-        double total = GetPercentStackedCategoryTotal(series, categoryIndex, value > 0D);
+        double total = value > 0D ? totals.Positive[categoryIndex] : totals.Negative[categoryIndex];
         return total <= 0D ? 0D : value / total;
     }
 
     private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
-        bool hasNegative = false;
+        PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
         for (int category = 0; category < categoryCount; category++) {
-            if (GetPercentStackedCategoryTotal(series, category, positive: false) > 0D) {
-                hasNegative = true;
-                break;
+            if (totals.Negative[category] > 0D) {
+                return new ValueRange(-1D, 1D);
             }
         }
 
-        return hasNegative ? new ValueRange(-1D, 1D) : new ValueRange(0D, 1D);
+        return new ValueRange(0D, 1D);
     }
 
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {

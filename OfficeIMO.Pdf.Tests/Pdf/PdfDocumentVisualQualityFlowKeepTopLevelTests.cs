@@ -503,12 +503,16 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = 10
         };
 
-        byte[] bytes = PdfDocument.Create(options)
+        PdfDocument document = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 45
             })
-            .H2("BookmarkChainTopHeading")
-            .Bookmark("bookmark-chain-subheading")
+            .H2("BookmarkChainTopHeading");
+        for (int index = 0; index < 300; index++) {
+            document.Bookmark("bookmark-chain-marker-" + index.ToString(CultureInfo.InvariantCulture));
+        }
+
+        byte[] bytes = document
             .H3("BookmarkChainSubHeading")
             .Paragraph(p => p.Text("BookmarkChainBody"))
             .ToBytes();

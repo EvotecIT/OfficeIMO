@@ -264,17 +264,13 @@ namespace OfficeIMO.Word.Pdf {
                 yield break;
             }
 
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                        foreach (string familyName in EnumerateNativeParagraphFontFamilies(cellParagraph)) {
-                            yield return familyName;
-                        }
-                    }
-
-                    foreach (WordTable nestedTable in cell.NestedTables) {
-                        foreach (string familyName in EnumerateNativeHeaderFooterElementFontFamilies(nestedTable)) {
-                            yield return familyName;
+            foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                foreach (WordTableRow row in currentTable.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                            foreach (string familyName in EnumerateNativeParagraphFontFamilies(cellParagraph)) {
+                                yield return familyName;
+                            }
                         }
                     }
                 }
@@ -294,17 +290,13 @@ namespace OfficeIMO.Word.Pdf {
                 yield break;
             }
 
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                        foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
-                            yield return style;
-                        }
-                    }
-
-                    foreach (WordTable nestedTable in cell.NestedTables) {
-                        foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterElementTextStyles(nestedTable)) {
-                            yield return style;
+            foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                foreach (WordTableRow row in currentTable.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
+                                yield return style;
+                            }
                         }
                     }
                 }
@@ -326,19 +318,15 @@ namespace OfficeIMO.Word.Pdf {
                 yield break;
             }
 
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                        foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
-                            if (style.FontSize.HasValue && style.FontSize.Value > 0D) {
-                                yield return style.FontSize.Value;
+            foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                foreach (WordTableRow row in currentTable.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
+                                if (style.FontSize.HasValue && style.FontSize.Value > 0D) {
+                                    yield return style.FontSize.Value;
+                                }
                             }
-                        }
-                    }
-
-                    foreach (WordTable nestedTable in cell.NestedTables) {
-                        foreach (double fontSize in EnumerateNativeHeaderFooterElementFontSizes(nestedTable)) {
-                            yield return fontSize;
                         }
                     }
                 }
@@ -358,17 +346,13 @@ namespace OfficeIMO.Word.Pdf {
                 yield break;
             }
 
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                        foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(cellParagraph)) {
-                            yield return color;
-                        }
-                    }
-
-                    foreach (WordTable nestedTable in cell.NestedTables) {
-                        foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterElementColors(nestedTable)) {
-                            yield return color;
+            foreach (WordTable currentTable in EnumerateNativeTableTree(table)) {
+                foreach (WordTableRow row in currentTable.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                            foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(cellParagraph)) {
+                                yield return color;
+                            }
                         }
                     }
                 }
