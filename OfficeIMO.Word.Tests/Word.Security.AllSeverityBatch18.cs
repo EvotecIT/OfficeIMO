@@ -34,6 +34,30 @@ public class WordAllSeverityBatch18SecurityTests {
     }
 
     [Fact]
+    public void VerticalTextAlignmentFormatsTheHyperlinkRunInPlace() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Before ");
+        paragraph.AddHyperLink("linked", new Uri("https://example.test"));
+        WordParagraph hyperlinkParagraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.IsHyperLink);
+        int directRunCount = paragraph._paragraph.Elements<Run>().Count();
+
+        hyperlinkParagraph.VerticalTextAlignment = VerticalPositionValues.Superscript;
+
+        Assert.Equal(VerticalPositionValues.Superscript, hyperlinkParagraph.VerticalTextAlignment);
+        Assert.Equal(
+            VerticalPositionValues.Superscript,
+            hyperlinkParagraph.Hyperlink!._runProperties.VerticalTextAlignment?.Val?.Value);
+        Assert.Equal(directRunCount, paragraph._paragraph.Elements<Run>().Count());
+
+        hyperlinkParagraph.VerticalTextAlignment = null;
+
+        Assert.Null(hyperlinkParagraph.VerticalTextAlignment);
+        Assert.Null(hyperlinkParagraph.Hyperlink!._runProperties.VerticalTextAlignment);
+    }
+
+    [Fact]
     public void EmptyTableHeaderAndRowApisRemainUsable() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(0, 3);
