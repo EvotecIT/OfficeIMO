@@ -29,14 +29,11 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     }
 
     [Fact]
-    public void InsertObjectsDoesNotTrustReadOnlyListCount() {
+    public void InsertObjectsCapturesReadOnlyListCountBeforeIndexedTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Data");
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(new MisreportedReadOnlyList(), includeHeaders: false, startRow: 1_048_576));
-
-        Assert.Contains("1-row worksheet limit", exception.Message, StringComparison.Ordinal);
+        sheet.InsertObjects(new EscalatingCountReadOnlyList(), includeHeaders: false, startRow: 1_048_576);
     }
 
     [Fact]
@@ -68,16 +65,15 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
         yield return new { Value = 2 };
     }
 
-    private sealed class MisreportedReadOnlyList : IReadOnlyList<object> {
+    private sealed class EscalatingCountReadOnlyList : IReadOnlyList<object> {
+        private int _countReads;
+
         public object this[int index] => new { Value = index };
 
-        public int Count => 1;
+        public int Count => _countReads++ == 0 ? 1 : int.MaxValue;
 
-        public IEnumerator<object> GetEnumerator() {
-            while (true) {
-                yield return new { Value = 1 };
-            }
-        }
+        public IEnumerator<object> GetEnumerator() =>
+            throw new InvalidOperationException("Indexed read-only lists must not be snapshot-enumerated.");
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }

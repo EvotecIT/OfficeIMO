@@ -506,10 +506,10 @@ namespace OfficeIMO.Excel {
 
         [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
-            FlattenObject(value, prefix, result, new HashSet<object>(ObjectReferenceComparer.Instance), depth: 0);
+            FlattenObjectRecursive(value, prefix, result, new HashSet<object>(ObjectReferenceComparer.Instance), depth: 0);
         }
 
-        private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth) {
+        private static void FlattenObjectRecursive(object? value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth) {
             if (value == null) {
                 if (!string.IsNullOrEmpty(prefix)) {
                     SetFlattenedObjectValue(result, prefix!, null);
@@ -554,7 +554,7 @@ namespace OfficeIMO.Excel {
                     }
                     string key = entry.Key?.ToString() ?? string.Empty;
                     string childPrefix = string.IsNullOrEmpty(prefix) ? key : prefix + "." + key;
-                    FlattenObject(entry.Value, childPrefix, result, activeObjects, depth + 1);
+                    FlattenObjectRecursive(entry.Value, childPrefix, result, activeObjects, depth + 1);
                 }
                 return;
             }
@@ -578,7 +578,7 @@ namespace OfficeIMO.Excel {
             foreach (var prop in props) {
                 hasAny = true;
                 string childPrefix = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                FlattenObject(prop.GetValue(value, null), childPrefix, result, activeObjects, depth + 1);
+                FlattenObjectRecursive(prop.GetValue(value, null), childPrefix, result, activeObjects, depth + 1);
             }
 
             if (!hasAny && !string.IsNullOrEmpty(prefix)) {

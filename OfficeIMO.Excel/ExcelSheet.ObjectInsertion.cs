@@ -210,6 +210,17 @@ namespace OfficeIMO.Excel {
             }
 
             int maximumRows = A1.MaxRows - startRow + 1 - (includeHeaders ? 1 : 0);
+            if (items is IReadOnlyList<T> readOnlyList) {
+                int capturedCount = readOnlyList.Count;
+                if (capturedCount > maximumRows) {
+                    throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
+                }
+
+                return capturedCount == 0
+                    ? Array.Empty<T>()
+                    : new FixedCountReadOnlyList<T>(readOnlyList, capturedCount);
+            }
+
             int capacity = items is IReadOnlyCollection<T> collection ? collection.Count : 0;
             if (capacity > maximumRows) {
                 throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
@@ -223,6 +234,35 @@ namespace OfficeIMO.Excel {
                 rows.Add(item);
             }
             return rows;
+        }
+
+        private sealed class FixedCountReadOnlyList<T> : IReadOnlyList<T> {
+            private readonly IReadOnlyList<T> _source;
+
+            internal FixedCountReadOnlyList(IReadOnlyList<T> source, int count) {
+                _source = source;
+                Count = count;
+            }
+
+            public int Count { get; }
+
+            public T this[int index] {
+                get {
+                    if ((uint)index >= (uint)Count) {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+
+                    return _source[index];
+                }
+            }
+
+            public IEnumerator<T> GetEnumerator() {
+                for (int index = 0; index < Count; index++) {
+                    yield return _source[index];
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         private static void EnsureObjectExportColumnAvailable(int existingColumnCount) {
