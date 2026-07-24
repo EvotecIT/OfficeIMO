@@ -33,21 +33,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             try {
                 LegacyPptRecord blob = blobs[0];
-                foreach (LegacyPptRecord record in LegacyPptRecordReader
-                             .ReadSequence(blob.CopyRecordBytes(), 8,
-                                 blob.PayloadLength, options, _recordBudget)
-                             .Where(record => record.Type
-                                 == RecordTextMasterStyle9Atom)) {
-                    if (result.ContainsKey(record.Instance)) {
+                foreach (KeyValuePair<ushort, LegacyPptRecord> item in
+                         CollectUniqueMasterTextStyle9Records(
+                             LegacyPptRecordReader
+                                 .ReadSequence(blob.CopyRecordBytes(), 8,
+                                     blob.PayloadLength, options, _recordBudget)
+                                 .Where(record => record.Type
+                                     == RecordTextMasterStyle9Atom),
+                             record => {
                         AddDiagnostic(
                             "PPT-TEXT-MASTER-STYLE9-TYPE-DUPLICATE",
                             LegacyPptDiagnosticSeverity.Warning,
                             $"A master has multiple TextMasterStyle9Atom records for instance {record.Instance}; that extended style remains preserve-only.",
                             record.Offset);
-                        result.Remove(record.Instance);
-                    } else {
-                        result.Add(record.Instance, record);
-                    }
+                             })) {
+                    result.Add(item.Key, item.Value);
                 }
             } catch (Exception exception) when (exception
                 is InvalidDataException or OverflowException
@@ -57,6 +57,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "A master PPT9 tag is malformed or truncated; its extended text defaults remain preserve-only.",
                     blobs[0].Offset);
                 result.Clear();
+            }
+            return result;
+        }
+
+        internal static IReadOnlyDictionary<ushort, LegacyPptRecord>
+            CollectUniqueMasterTextStyle9Records(
+                IEnumerable<LegacyPptRecord> records,
+                Action<LegacyPptRecord>? duplicate = null) {
+            var result = new Dictionary<ushort, LegacyPptRecord>();
+            var ambiguousInstances = new HashSet<ushort>();
+            foreach (LegacyPptRecord record in records) {
+                if (ambiguousInstances.Contains(record.Instance)) {
+                    continue;
+                }
+                if (result.ContainsKey(record.Instance)) {
+                    duplicate?.Invoke(record);
+                    result.Remove(record.Instance);
+                    ambiguousInstances.Add(record.Instance);
+                } else {
+                    result.Add(record.Instance, record);
+                }
             }
             return result;
         }

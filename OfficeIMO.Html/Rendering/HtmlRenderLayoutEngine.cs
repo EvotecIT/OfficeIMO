@@ -83,6 +83,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (string.Equals(computedDirection, "ltr", StringComparison.OrdinalIgnoreCase)) {
                 return HtmlRenderTextDirection.LeftToRight;
             }
+            // A computed root style is authoritative even when CSS reset the
+            // presentational dir hint to its initial (LTR) value.
+            return HtmlRenderTextDirection.LeftToRight;
         }
 
         string? attributeDirection = root?.GetAttribute("dir");

@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
         public string? LeftColorHex {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
+                return Helpers.NormalizeOpenXmlColor(color);
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Color = value?.Replace("#", "").ToUpperInvariant();
+                leftBorder.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word {
         public string? RightColorHex {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
+                return Helpers.NormalizeOpenXmlColor(color);
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Color = value?.Replace("#", "").ToUpperInvariant();
+                rightBorder.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -328,7 +328,7 @@ namespace OfficeIMO.Word {
         public string? TopColorHex {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
+                return Helpers.NormalizeOpenXmlColor(color);
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Color = value?.Replace("#", "").ToUpperInvariant();
+                topBorder.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -465,7 +465,7 @@ namespace OfficeIMO.Word {
         public string? BottomColorHex {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
+                return Helpers.NormalizeOpenXmlColor(color);
             }
             set {
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
@@ -475,7 +475,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Color = value?.Replace("#", "").ToUpperInvariant();
+                bottomBorder.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 

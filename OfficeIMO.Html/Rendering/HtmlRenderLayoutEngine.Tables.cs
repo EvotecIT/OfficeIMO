@@ -105,7 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
 
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
-                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, style);
+                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, rowStyle);
                 if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
                     cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
                 }

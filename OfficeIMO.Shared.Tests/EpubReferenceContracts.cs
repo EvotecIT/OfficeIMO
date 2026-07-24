@@ -157,4 +157,15 @@ public sealed class EpubReferenceContractTests {
         Assert.Equal("EPUB/shared/?edition=2#notes", directory.ResolvedValue);
         Assert.Equal("EPUB/text/appendix.xhtml?edition=3#notes", document.ResolvedValue);
     }
+
+    [Fact]
+    public void Resolve_BindsFragmentOnlyReferenceToContainerRoot() {
+        EpubReference reference = EpubReference.Resolve(
+            "chapter.xhtml",
+            "/",
+            "#notes");
+
+        Assert.Equal("/", reference.ContainerPath);
+        Assert.Equal("/#notes", reference.ResolvedValue);
+    }
 }

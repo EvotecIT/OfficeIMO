@@ -68,11 +68,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? LeftColorHex {
             get {
-                return BordersOrNull?.LeftBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.LeftBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var lb = EnsureLeft();
-                lb.Color = value?.Replace("#", "").ToUpperInvariant();
+                lb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -132,11 +132,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? RightColorHex {
             get {
-                return BordersOrNull?.RightBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.RightBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var rb = EnsureRight();
-                rb.Color = value?.Replace("#", "").ToUpperInvariant();
+                rb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -198,11 +198,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopColorHex {
             get {
-                return BordersOrNull?.TopBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.TopBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var tb = EnsureTop();
-                tb.Color = value?.Replace("#", "").ToUpperInvariant();
+                tb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -267,11 +267,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? BottomColorHex {
             get {
-                return BordersOrNull?.BottomBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.BottomBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var bb = EnsureBottom();
-                bb.Color = value?.Replace("#", "").ToUpperInvariant();
+                bb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -338,11 +338,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideHorizontalColorHex {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var hb = EnsureInsideHorizontal();
-                hb.Color = value?.Replace("#", "").ToUpperInvariant();
+                hb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -409,11 +409,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideVerticalColorHex {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.InsideVerticalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var vb = EnsureInsideVertical();
-                vb.Color = value?.Replace("#", "").ToUpperInvariant();
+                vb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -477,11 +477,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StartColorHex {
             get {
-                return BordersOrNull?.StartBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.StartBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var sb = EnsureStart();
-                sb.Color = value?.Replace("#", "").ToUpperInvariant();
+                sb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -545,11 +545,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? EndColorHex {
             get {
-                return BordersOrNull?.EndBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.EndBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var eb = EnsureEnd();
-                eb.Color = value?.Replace("#", "").ToUpperInvariant();
+                eb.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -620,11 +620,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopLeftToBottomRightColorHex {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var d = EnsureTLBR();
-                d.Color = value?.Replace("#", "").ToUpperInvariant();
+                d.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 
@@ -686,11 +686,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopRightToBottomLeftColorHex {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
             set {
                 var d = EnsureTRBL();
-                d.Color = value?.Replace("#", "").ToUpperInvariant();
+                d.Color = Helpers.NormalizeOpenXmlColor(value);
             }
         }
 

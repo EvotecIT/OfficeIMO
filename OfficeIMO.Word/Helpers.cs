@@ -57,6 +57,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal static string? NormalizeOpenXmlColor(string? color) {
+            if (color == null) {
+                return null;
+            }
+
+            string normalized = color.Replace("#", string.Empty);
+            return string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)
+                ? "auto"
+                : normalized.ToUpperInvariant();
+        }
+
         internal static TResult UseSeekableImageStream<TResult>(Stream imageStream, Func<Stream, TResult> action) {
             if (imageStream == null) {
                 throw new ArgumentNullException(nameof(imageStream));
