@@ -22,6 +22,10 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
             allowSystemFontEmbedding: true);
 
         Assert.True(options.HasEmbeddedStandardFontFamily(PdfStandardFont.Courier));
+        string? familyName = options.GetEmbeddedFontFamilyName(PdfStandardFont.Courier);
+        Assert.Contains(
+            candidates,
+            candidate => string.Equals(candidate, familyName, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -44,9 +48,12 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
 
         PdfEmbeddedFontFallbackSet? fallbacks = options.EmbeddedFontFallbacks;
         Assert.NotNull(fallbacks);
-        Assert.Contains(
+        Assert.DoesNotContain(
             PdfStandardFont.Courier,
             fallbacks!.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
+        Assert.Contains(
+            PdfStandardFont.TimesRoman,
+            fallbacks.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
     }
 
     [Fact]

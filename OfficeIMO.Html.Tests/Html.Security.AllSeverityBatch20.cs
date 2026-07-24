@@ -119,12 +119,12 @@ public sealed class HtmlAllSeverityBatch20SecurityTests {
             .ToArray();
 
         Assert.True(rendered.Pages.Count > 1);
-        Assert.Equal(captionPage - 1, footerPages[^1]);
+        Assert.Equal(captionPage - 1, footerPages[footerPages.Length - 1]);
         Assert.Equal(rendered.Pages.Count - 1, captionPage);
     }
 
     private static byte[] DecodeDataUri(string value) {
         int separator = value.IndexOf(',');
-        return Convert.FromBase64String(value[(separator + 1)..]);
+        return Convert.FromBase64String(value.Substring(separator + 1));
     }
 }
