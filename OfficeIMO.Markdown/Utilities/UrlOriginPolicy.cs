@@ -53,13 +53,20 @@ internal static class UrlOriginPolicy {
 
         // Host allowlist (absolute HTTP(S) only).
         var allowHosts = forImages ? o.AllowedHttpImageHosts : o.AllowedHttpLinkHosts;
+        bool restrict = forImages ? o.RestrictHttpImagesToBaseOrigin : o.RestrictHttpLinksToBaseOrigin;
+        if ((restrict || allowHosts != null && allowHosts.Count > 0)
+            && TryGetScheme(u, out string? explicitScheme)
+            && (explicitScheme == "http" || explicitScheme == "https")
+            && !IsWellFormedAbsoluteHttpUrl(u, explicitScheme)) {
+            return false;
+        }
+
         if (allowHosts != null && allowHosts.Count > 0) {
             if (TryGetAbsoluteHttpUri(u, o.BaseUri, out var absForHost) && absForHost != null && IsHttpScheme(absForHost.Scheme)) {
                 if (!HostAllowList.IsAllowed(absForHost.Host, allowHosts)) return false;
             }
         }
 
-        bool restrict = forImages ? o.RestrictHttpImagesToBaseOrigin : o.RestrictHttpLinksToBaseOrigin;
         if (!restrict) return true;
 
         var baseUri = o.BaseUri;
@@ -79,12 +86,10 @@ internal static class UrlOriginPolicy {
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
 
-        if (scheme == "http" || scheme == "https") {
-            return IsWellFormedAbsoluteHttpUrl(value, scheme);
-        }
-
-        return scheme == "mailto"
-            || scheme == "tel";
+        return scheme != "javascript"
+            && scheme != "vbscript"
+            && scheme != "data"
+            && scheme != "file";
     }
 
     private static bool IsSafeImageUrl(string? url) {

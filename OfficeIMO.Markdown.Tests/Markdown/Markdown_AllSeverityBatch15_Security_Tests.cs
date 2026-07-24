@@ -74,6 +74,21 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
+    public void LinkPolicyKeepsNonExecutableProtocolsButRejectsMalformedPolicyTargets() {
+        var document = MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Link("archive", "ftp://files.example/archive")
+                .Link("blocked", "https:/tracker.example/pixel")));
+        var options = new HtmlOptions();
+        options.AllowedHttpLinkHosts.Add("safe.example");
+
+        string html = document.ToHtmlFragment(options);
+
+        Assert.Contains("href=\"ftp://files.example/archive\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InvalidThemeColorsCannotEscapeTheStyleElement() {
         string payload = "red;}</style><script>alert(1)</script>";
         string html = MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
