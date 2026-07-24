@@ -6,7 +6,13 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int MaximumHeaderFooterFontFamilyCharacters = 256;
 
-        private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextSection normalized) {
+        private bool TryResolveHeaderFooterText(
+            string? text,
+            int pageNumber,
+            int pageCount,
+            DateTime headerFooterDateTime,
+            bool includeWorkbookPath,
+            out HeaderFooterTextSection normalized) {
             normalized = HeaderFooterTextSection.Empty;
             if (string.IsNullOrWhiteSpace(text)) {
                 return true;
@@ -117,6 +123,10 @@ namespace OfficeIMO.Excel {
                 } else if (token == 'G') {
                     FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                 } else if (token == 'Z') {
+                    if (!includeWorkbookPath) {
+                        continue;
+                    }
+
                     if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
                         return false;
                     }
@@ -129,7 +139,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     string fieldName = text.Substring(i + 1, end - i - 1);
-                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount, headerFooterDateTime)) {
+                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath)) {
                         return false;
                     }
 
@@ -249,7 +259,13 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount, DateTime headerFooterDateTime) {
+        private bool TryAppendHeaderFooterField(
+            StringBuilder builder,
+            string fieldName,
+            int pageNumber,
+            int pageCount,
+            DateTime headerFooterDateTime,
+            bool includeWorkbookPath) {
             if (string.Equals(fieldName, "Page", StringComparison.OrdinalIgnoreCase)) {
                 builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
                 return true;
@@ -285,6 +301,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (string.Equals(fieldName, "Path", StringComparison.OrdinalIgnoreCase)) {
+                if (!includeWorkbookPath) {
+                    return true;
+                }
+
                 if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
                     return false;
                 }

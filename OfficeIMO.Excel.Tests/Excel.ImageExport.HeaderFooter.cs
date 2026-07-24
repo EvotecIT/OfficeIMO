@@ -98,7 +98,8 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
                 Range = "A1:AZ4",
                 SplitByManualPageBreaks = true,
-                ShowGridlines = false
+                ShowGridlines = false,
+                IncludeWorkbookPathInHeaderFooter = true
             });
 
             string svg = Encoding.UTF8.GetString(results[1].Bytes);

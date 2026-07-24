@@ -78,6 +78,29 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_DoesNotHashQuerySecretsIntoSourceIdentity() {
+        int responseIndex = 0;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            int current = Interlocked.Increment(ref responseIndex);
+            HttpResponseMessage response = TextResponse("same body", "text/plain");
+            response.RequestMessage = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://cdn.example/report.txt?token=secret-" + current.ToString(CultureInfo.InvariantCulture));
+            return Task.FromResult(response);
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult first = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
+        OfficeDocumentReadResult second = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
+
+        Assert.Equal(first.Source.SourceId, second.Source.SourceId);
+        Assert.DoesNotContain("secret", first.Source.SourceId, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(first.Metadata, item => item.Value.Contains("secret", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(second.Metadata, item => item.Value.Contains("secret", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task WebReader_UsesTheRichPipelineForMarkdownConvenience() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("# Remote note\n\nBody", "text/markdown")));

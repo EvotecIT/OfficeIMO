@@ -66,6 +66,13 @@ namespace OfficeIMO.Excel {
         public bool ShowCommentBodies { get; set; }
 
         /// <summary>
+        /// Whether workbook directory paths referenced by header/footer <c>&amp;Z</c> and <c>&amp;[Path]</c>
+        /// fields may be included in rendered images. The default is <see langword="false"/> to avoid
+        /// exposing local or server filesystem paths in exported artifacts.
+        /// </summary>
+        public bool IncludeWorkbookPathInHeaderFooter { get; set; }
+
+        /// <summary>
         /// Default column width in pixels when a column has no explicit width.
         /// </summary>
         public double DefaultColumnWidthPixels { get; set; } = 64D;
@@ -108,6 +115,7 @@ namespace OfficeIMO.Excel {
             target.ConditionalFormattingDate = ConditionalFormattingDate;
             target.ShowHyperlinkHints = ShowHyperlinkHints;
             target.ShowCommentBodies = ShowCommentBodies;
+            target.IncludeWorkbookPathInHeaderFooter = IncludeWorkbookPathInHeaderFooter;
             target.DefaultColumnWidthPixels = DefaultColumnWidthPixels;
             target.DefaultRowHeightPixels = DefaultRowHeightPixels;
             target.MaximumRenderedCells = MaximumRenderedCells;

@@ -22,7 +22,13 @@ namespace OfficeIMO.Excel {
             ref ExcelRasterRenderState rasterState) {
             DateTime headerFooterDateTime = options.HeaderFooterDateTime ?? DateTime.Now;
             if (headerFooterSnapshot == null ||
-                !TryCreateHeaderFooterTextChrome(headerFooterSnapshot, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextChrome chrome)) {
+                !TryCreateHeaderFooterTextChrome(
+                    headerFooterSnapshot,
+                    pageNumber,
+                    pageCount,
+                    headerFooterDateTime,
+                    options.IncludeWorkbookPathInHeaderFooter,
+                    out HeaderFooterTextChrome chrome)) {
                 return content;
             }
 
@@ -170,7 +176,7 @@ namespace OfficeIMO.Excel {
             return canvasHeight - headerHeight - footerHeight;
         }
 
-        private bool CanRenderHeaderFooterTextChrome(DateTime headerFooterDateTime) {
+        private bool CanRenderHeaderFooterTextChrome(DateTime headerFooterDateTime, bool includeWorkbookPath) {
             if (!HasHeaderFooterContent()) {
                 return true;
             }
@@ -187,6 +193,7 @@ namespace OfficeIMO.Excel {
                 3,
                 3,
                 headerFooterDateTime,
+                includeWorkbookPath,
                 out _)) {
                 return false;
             }
@@ -202,6 +209,7 @@ namespace OfficeIMO.Excel {
                     1,
                     3,
                     headerFooterDateTime,
+                    includeWorkbookPath,
                     out _)) {
                 return false;
             }
@@ -217,6 +225,7 @@ namespace OfficeIMO.Excel {
                     2,
                     3,
                     headerFooterDateTime,
+                    includeWorkbookPath,
                     out _)) {
                 return false;
             }
@@ -261,7 +270,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryCreateHeaderFooterTextChrome(HeaderFooterSnapshot snapshot, int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {
+        private bool TryCreateHeaderFooterTextChrome(
+            HeaderFooterSnapshot snapshot,
+            int pageNumber,
+            int pageCount,
+            DateTime headerFooterDateTime,
+            bool includeWorkbookPath,
+            out HeaderFooterTextChrome chrome) {
             chrome = default;
 
             HeaderFooterVariantText selected = SelectHeaderFooterVariantText(snapshot, pageNumber);
@@ -275,6 +290,7 @@ namespace OfficeIMO.Excel {
                 pageNumber,
                 pageCount,
                 headerFooterDateTime,
+                includeWorkbookPath,
                 out HeaderFooterTextChrome textChrome)) {
                 return false;
             }
@@ -299,14 +315,15 @@ namespace OfficeIMO.Excel {
             int pageNumber,
             int pageCount,
             DateTime headerFooterDateTime,
+            bool includeWorkbookPath,
             out HeaderFooterTextChrome chrome) {
             chrome = default;
-            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerLeft) ||
-                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerCenter) ||
-                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerRight) ||
-                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerLeft) ||
-                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerCenter) ||
-                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerRight)) {
+            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection headerLeft) ||
+                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection headerCenter) ||
+                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection headerRight) ||
+                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection footerLeft) ||
+                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection footerCenter) ||
+                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, headerFooterDateTime, includeWorkbookPath, out HeaderFooterTextSection footerRight)) {
                 return false;
             }
 

@@ -181,6 +181,10 @@ namespace OfficeIMO.Visio {
 
         private static VisioShowcaseArtifact CreateArtifact(string root, string filePath, VisioShowcaseArtifactKind kind) {
             string fullPath = Path.GetFullPath(filePath);
+            if (!IsPathInsideRoot(root, fullPath) || ContainsReparsePoint(root, fullPath)) {
+                throw new ArgumentException("Showcase artifact paths must resolve inside the showcase root.", nameof(filePath));
+            }
+
             string relativePath = GetRelativePath(root, fullPath);
             string extension = Path.GetExtension(fullPath);
             string format = string.IsNullOrEmpty(extension)
@@ -189,6 +193,38 @@ namespace OfficeIMO.Visio {
             long sizeBytes = File.Exists(fullPath) ? new FileInfo(fullPath).Length : 0;
             string sha256 = File.Exists(fullPath) ? ComputeSha256(fullPath) : string.Empty;
             return new VisioShowcaseArtifact(kind, relativePath, format, sizeBytes, sha256);
+        }
+
+        private static bool IsPathInsideRoot(string root, string filePath) {
+            string normalizedRoot = EnsureTrailingSeparator(Path.GetFullPath(root));
+            string normalizedFile = Path.GetFullPath(filePath);
+            StringComparison comparison = Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            return normalizedFile.StartsWith(normalizedRoot, comparison);
+        }
+
+        private static bool ContainsReparsePoint(string root, string filePath) {
+            string normalizedRoot = Path.GetFullPath(root);
+            if ((File.Exists(normalizedRoot) || Directory.Exists(normalizedRoot)) &&
+                (File.GetAttributes(normalizedRoot) & FileAttributes.ReparsePoint) != 0) {
+                return true;
+            }
+
+            string rootPrefix = EnsureTrailingSeparator(normalizedRoot);
+            string relative = Path.GetFullPath(filePath).Substring(rootPrefix.Length);
+            string current = normalizedRoot;
+            string[] segments = relative.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries);
+            foreach (string segment in segments) {
+                current = Path.Combine(current, segment);
+                if (!File.Exists(current) && !Directory.Exists(current)) break;
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static VisioShowcaseArtifactKind ClassifyPreviewKind(string root, string filePath) {

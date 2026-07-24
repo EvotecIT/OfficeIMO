@@ -43,7 +43,7 @@ internal static class HtmlGenericDocumentProjector {
         List<HtmlGenericSectionProjection> result) {
         var pending = new List<IElement>();
         foreach (IElement child in GetChildBlocks(container)) {
-            if (IgnoredElements.Contains(child.LocalName)) continue;
+            if (IsIgnoredElement(child)) continue;
             if (Is(child, "section") || Is(child, "article")) {
                 AppendImplicitSections(document, pending, result);
                 pending.Clear();
@@ -177,7 +177,7 @@ internal static class HtmlGenericDocumentProjector {
         || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote");
 
     private static IEnumerable<IElement> EnumerateBlocks(IElement element) {
-        if (IgnoredElements.Contains(element.LocalName)) yield break;
+        if (IsIgnoredElement(element)) yield break;
         if (IsTextBlock(element) || IsTable(element) || IsImage(element)
             || IsMedia(element) || IsForm(element) || IsNote(element)) {
             yield return element;
@@ -197,7 +197,7 @@ internal static class HtmlGenericDocumentProjector {
                 continue;
             }
 
-            if (node is not IElement element || IgnoredElements.Contains(element.LocalName)) continue;
+            if (node is not IElement element || IsIgnoredElement(element)) continue;
             FlushTextBlock(container, text, result);
             result.Add(element);
         }
@@ -215,7 +215,7 @@ internal static class HtmlGenericDocumentProjector {
     }
 
     private static bool IsInlineTextContainer(IElement element) {
-        if (IgnoredElements.Contains(element.LocalName)
+        if (IsIgnoredElement(element)
             || IsSemanticBlockBoundary(element) || IsImage(element)
             || Normalize(element.TextContent).Length == 0) {
             return false;
@@ -235,10 +235,12 @@ internal static class HtmlGenericDocumentProjector {
         || IsNote(element) || IsExplicitGroupingElement(element);
 
     private static bool IsContainerBoundary(IElement element) =>
-        IsSemanticBlockBoundary(element)
+        IsIgnoredElement(element) || IsSemanticBlockBoundary(element)
         || Is(element, "div") || Is(element, "header") || Is(element, "footer")
         || Is(element, "aside") || Is(element, "figure") || Is(element, "figcaption")
         || Is(element, "hr") || Is(element, "li") || Is(element, "dt") || Is(element, "dd");
+
+    internal static bool IsIgnoredElement(IElement element) => IgnoredElements.Contains(element.LocalName);
 
     private static string GetSectionTitle(IHtmlDocument document, IElement section, int index) {
         string title = Normalize(section.GetAttribute("aria-label"));

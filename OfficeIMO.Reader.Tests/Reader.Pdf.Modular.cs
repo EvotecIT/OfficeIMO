@@ -956,6 +956,23 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_NormalizesNonFiniteLinkCoordinatesBeforeJsonSerialization() {
+        string source = Encoding.ASCII.GetString(BuildInternalDestinationLinkPdf());
+        byte[] malformed = Encoding.ASCII.GetBytes(source.Replace(
+            "/XYZ 24 144 1",
+            "/XYZ 1e309 144 1"));
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            new MemoryStream(malformed, writable: false),
+            sourceName: "non-finite-link.pdf");
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Null(link.DestinationLeft);
+        using JsonDocument json = JsonDocument.Parse(result.ToJson());
+        Assert.False(json.RootElement.GetProperty("links")[0].TryGetProperty("destinationLeft", out _));
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesAttachmentMetadata() {
         byte[] invoiceXml = Encoding.UTF8.GetBytes("<invoice>42</invoice>");
         byte[] sourceBytes = Encoding.UTF8.GetBytes("Source payload");

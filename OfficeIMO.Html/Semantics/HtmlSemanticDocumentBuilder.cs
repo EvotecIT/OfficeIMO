@@ -212,6 +212,7 @@ internal static class HtmlSemanticDocumentBuilder {
             return;
         }
         if (!(node is IElement element)) return;
+        if (!isRoot && HtmlGenericDocumentProjector.IsIgnoredElement(element)) return;
         if (!isRoot && skipNestedLists && (Is(element, "ul") || Is(element, "ol") || Is(element, "dl"))) return;
         if (Is(element, "br")) {
             runs.Add(new HtmlSemanticRun("\n", state.Hyperlink, state.Bold, state.Italic,

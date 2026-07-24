@@ -678,6 +678,17 @@ namespace OfficeIMO.Word.Pdf {
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
 
+            double baseTop = (section.Margins.Top ?? 0) / 20D;
+            double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
+            double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height - baseTop - baseBottom);
+            double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);
+            double maximumExpansion = Math.Max(0D, availableBodyHeight - minimumBodyHeight);
+            double totalExpansion = headerExpansion + footerExpansion;
+            if (totalExpansion > maximumExpansion && totalExpansion > 0D) {
+                headerExpansion = maximumExpansion * (headerExpansion / totalExpansion);
+                footerExpansion = maximumExpansion - headerExpansion;
+            }
+
             return (headerExpansion, footerExpansion);
         }
 

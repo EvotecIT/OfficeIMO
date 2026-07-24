@@ -310,6 +310,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedSlideThemeEdit_WithMalformedSlideAtom_IsLossBlocked() {
+            byte[] sourceBytes = CreateSlideThemeOverrideBytes(
+                accent5: "ABCDEF", accent1: "123456");
+            using var input = new MemoryStream(sourceBytes,
+                writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation
+                .Load(input);
+            PowerPointSlide slide = imported.Slides[0];
+            Assert.True(imported.LegacyPptProjectionMap!.TryGetSlide(slide,
+                out LegacyPptSlideProjection? projection));
+            LegacyPptPersistObject persistObject = imported.LegacyPptPackage!
+                .PersistObjects[projection!.PersistId];
+            LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(
+                persistObject.RecordBytes, 0, new LegacyPptImportOptions());
+            LegacyPptRecord slideAtom = Assert.Single(record.Children,
+                child => child.Type == 0x03EF && child.PayloadLength >= 22);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
+                persistObject.RecordBytes.AsSpan(slideAtom.Offset + 2, 2),
+                0x03EE);
+            A.ThemeOverride theme = Assert.IsType<A.ThemeOverride>(slide
+                .SlidePart.ThemeOverridePart?.ThemeOverride);
+            SetThemeOverrideColor<A.Accent5Color>(theme, "5A6B7C");
+            SetThemeOverrideColor<A.Accent1Color>(theme, "102938");
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
         public void ImportedLayoutThemeEdit_MaterializesIntoAffectedSlides() {
             byte[] sourceBytes;
             using (PowerPointPresentation created =

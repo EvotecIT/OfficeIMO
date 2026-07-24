@@ -265,7 +265,7 @@ internal sealed class ReaderWebDownload : IDisposable {
         ReaderWebOptions options,
         bool computeHashes) {
         string sourceId = DocumentReaderEngine.BuildPortableSourceId(
-            "web:" + FormatUri(ResponseUri, includeQuery: true));
+            "web:" + FormatUri(ResponseUri, includeQuery: false));
         DocumentReaderEngine.ApplyExternalSourceMetadata(
             result,
             sourceId,

@@ -112,7 +112,7 @@ public sealed class EmailMimeMetadataTests {
     }
 
     [Fact]
-    public void RetainsMetadataHeadersThatCannotBeProjected() {
+    public void DoesNotRetainRawMetadataHeadersThatCannotBeProjected() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Importance: critical\r\nPriority: immediate\r\nX-Unsent: maybe\r\n" +
             "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
@@ -122,8 +122,29 @@ public sealed class EmailMimeMetadataTests {
         using var stream = new MemoryStream(output);
         MimeMessage message = MimeMessage.Load(stream);
 
-        Assert.Equal("critical", message.Headers["Importance"]);
-        Assert.Equal("immediate", message.Headers["Priority"]);
-        Assert.Equal("maybe", message.Headers["X-Unsent"]);
+        Assert.Null(message.Headers["Importance"]);
+        Assert.Null(message.Headers["Priority"]);
+        Assert.Null(message.Headers["X-Unsent"]);
+    }
+
+    [Fact]
+    public void ClearingTypedMetadataDoesNotResurrectRetainedRawHeaders() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Importance: high\r\nPriority: urgent\r\nX-Unsent: 1\r\n" +
+            "Keywords: Secret Project\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        document.MessageMetadata.Importance = null;
+        document.MessageMetadata.Priority = null;
+        document.MessageMetadata.IsDraft = false;
+        document.MessageMetadata.Categories.Clear();
+
+        using var stream = new MemoryStream(new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+        MimeMessage message = MimeMessage.Load(stream);
+
+        Assert.Null(message.Headers["Importance"]);
+        Assert.Null(message.Headers["X-Priority"]);
+        Assert.Null(message.Headers["Priority"]);
+        Assert.Null(message.Headers["X-Unsent"]);
+        Assert.Null(message.Headers["Keywords"]);
     }
 }

@@ -585,6 +585,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedOrdinaryLayoutUnsupportedPicture_IsLossBlocked() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(sourceBytes,
+                writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation
+                .Load(input);
+            SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
+                .SlideLayoutPart!;
+            ImagePart imagePart = layoutPart.AddImagePart(
+                DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+            using (var image = new MemoryStream(
+                       OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(
+                           30, 60, 90), writable: false)) {
+                imagePart.FeedData(image);
+            }
+            layoutPart.SlideLayout!.CommonSlideData!.ShapeTree!.Append(
+                new P.Picture(
+                    new P.NonVisualPictureProperties(
+                        new P.NonVisualDrawingProperties {
+                            Id = 700U,
+                            Name = "Unsupported materialized picture"
+                        },
+                        new P.NonVisualPictureDrawingProperties(),
+                        new P.ApplicationNonVisualDrawingProperties()),
+                    new P.BlipFill(
+                        new A.Blip {
+                            Embed = layoutPart.GetIdOfPart(imagePart)
+                        },
+                        new A.Stretch(new A.FillRectangle())),
+                    new P.ShapeProperties(
+                        new A.Transform2D(
+                            new A.Offset { X = 300000L, Y = 400000L },
+                            new A.Extents {
+                                Cx = 1200000L,
+                                Cy = 900000L
+                            }),
+                        new A.PresetGeometry(new A.AdjustValueList()) {
+                            Preset = A.ShapeTypeValues.Rectangle
+                        })));
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
         public void ImportedOrdinaryLayoutBaselineShapeMutation_IsLossBlocked() {
             byte[] sourceBytes;
             using (PowerPointPresentation source =

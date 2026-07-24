@@ -680,7 +680,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException
                                                 || exception is OverflowException
-                                                || exception is ArgumentException) {
+                                                || exception is ArgumentException
+                                                || exception is InvalidOperationException
+                                                || exception is NotSupportedException) {
                 rewritten.Clear();
                 return false;
             }

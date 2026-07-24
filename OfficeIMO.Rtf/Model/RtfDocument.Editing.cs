@@ -6,10 +6,11 @@ public sealed partial class RtfDocument {
     public RtfDocument Clone() {
         HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(this);
         int detachedNoteCount = _notes.Count(note => !referencedNotes.Contains(note));
+        int headerFooterReferenceCount = RtfNoteReferenceCollector.CountHeaderFooterReferences(this);
         RtfDocument clone = Read(ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         if (detachedNoteCount == 0) return clone;
 
-        var detachedClones = new HashSet<RtfNote>(clone.Notes.Take(detachedNoteCount));
+        var detachedClones = new HashSet<RtfNote>(clone.Notes.Skip(headerFooterReferenceCount).Take(detachedNoteCount));
         var paragraphs = new List<RtfParagraph>();
         CollectParagraphsInOrder(clone.Blocks, paragraphs);
         foreach (RtfParagraph paragraph in paragraphs) paragraph.RemoveGeneratedNoteReferences(detachedClones);
