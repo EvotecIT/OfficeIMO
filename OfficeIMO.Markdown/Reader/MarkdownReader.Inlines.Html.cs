@@ -93,6 +93,11 @@ public static partial class MarkdownReader {
         }
 
         int openLength = tagName.Length + 2;
+        int closingLength = tagName.Length + 3;
+        if (closingStart < start + openLength || closingStart > text.Length - closingLength) {
+            return false;
+        }
+
         string inner = text.Substring(start + openLength, closingStart - (start + openLength));
         var inlines = ParseInlinesInternal(
             inner,
@@ -123,6 +128,12 @@ public static partial class MarkdownReader {
 
         matches ??= BuildInlineHtmlWrapperMatchIndex(text);
         if (!matches.TryGet(start, out string tagName, out int closingStart)) {
+            return false;
+        }
+
+        int openLength = tagName.Length + 2;
+        int closingLength = tagName.Length + 3;
+        if (closingStart < start + openLength || closingStart > text.Length - closingLength) {
             return false;
         }
 

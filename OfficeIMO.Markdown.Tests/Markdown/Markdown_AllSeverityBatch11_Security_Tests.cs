@@ -44,6 +44,16 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         Assert.Contains("safe", document.ToMarkdown(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("<u><sup>x</u></sup>")]
+    [InlineData("<q><ins>x</q></ins>")]
+    public void MarkdownReader_CrossedInlineHtmlWrappers_StayWithinTheCurrentSlice(string markdown) {
+        MarkdownDoc document = MarkdownReader.Parse(markdown);
+
+        Assert.Single(document.Blocks);
+        Assert.Contains("x", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void MarkdownReader_ManyUnmatchedInlineHtmlOpeners_AreHandledWithoutRepeatedSuffixScans() {
         string markdown = string.Join(" ", Enumerable.Repeat("<u>", 4_000));
