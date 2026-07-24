@@ -377,6 +377,9 @@ namespace OfficeIMO.Visio {
             var pagesRels = LoadZipXml(zip, "visio/pages/_rels/pages.xml.rels");
             if (pagesRels?.Root == null) { _errors.Add("Missing /visio/pages/_rels/pages.xml.rels"); return; }
             var relElems = pagesRels.Root.Elements(nsPkgRel + "Relationship").ToList();
+            if (relElems.Any(element => string.IsNullOrWhiteSpace((string?)element.Attribute("Id")))) {
+                _errors.Add("pages.xml.rels contains a relationship with missing or empty Id");
+            }
             // r:id uniqueness in pages.xml.rels
             var idGroups = relElems.Select(e => (string?)e.Attribute("Id") ?? string.Empty)
                 .GroupBy(id => id, StringComparer.Ordinal)
@@ -384,7 +387,11 @@ namespace OfficeIMO.Visio {
                 .ToList();
             foreach (var g in idGroups) _errors.Add($"Duplicate relationship Id in pages.xml.rels: '{g.Key}'");
 
-            var relsById = relElems.ToDictionary(e => (string?)e.Attribute("Id") ?? string.Empty, e => e);
+            var relsById = relElems
+                .Select(e => new { Id = (string?)e.Attribute("Id"), Element = e })
+                .Where(item => !string.IsNullOrEmpty(item.Id))
+                .GroupBy(item => item.Id!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First().Element, StringComparer.Ordinal);
 
             // Page ID uniqueness in pages.xml
             var idAttrGroups = pages.Select(p => (string?)p.Attribute("ID") ?? string.Empty)

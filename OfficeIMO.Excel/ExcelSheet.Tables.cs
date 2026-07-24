@@ -117,7 +117,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetTableTotalsCore(string tableOrRange, System.Collections.Generic.IDictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader, bool throwIfMissing) {
-            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader, System.StringComparer.OrdinalIgnoreCase);
+            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in byHeader) {
+                totalsByHeader[entry.Key] = entry.Value;
+            }
             WriteLock(() => {
                 var table = FindTableByRangeNameOrDisplayName(tableOrRange);
                 if (table == null) {

@@ -14,7 +14,7 @@ meta.raw_html: true
       <span>Equivalent work</span>
       <span>Validated output</span>
       <span>Committed artifacts</span>
-      <span>Machine context retained</span>
+      <span>Runtime class retained</span>
     </div>
   </section>
 

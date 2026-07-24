@@ -26,7 +26,9 @@ internal static class SrcSetParser {
             }
 
             int urlStart = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index])) {
+            while (index < value.Length &&
+                   !char.IsWhiteSpace(value[index]) &&
+                   (value[index] != ',' || !StartsNewCandidate(value, index + 1))) {
                 index++;
             }
 
@@ -47,6 +49,12 @@ internal static class SrcSetParser {
                 continue;
             }
 
+            if (index < value.Length && value[index] == ',') {
+                index++;
+                candidates.Add(new SrcSetCandidate(url, string.Empty));
+                continue;
+            }
+
             SkipWhitespace(value, ref index);
 
             int descriptorStart = index;
@@ -63,6 +71,24 @@ internal static class SrcSetParser {
         }
 
         return candidates;
+    }
+
+    private static bool StartsNewCandidate(string value, int index) {
+        if (index >= value.Length || char.IsWhiteSpace(value[index])) return true;
+        if (value[index] == '/' || value[index] == '#' || value[index] == '.') return true;
+        if (!char.IsLetter(value[index])) return false;
+
+        index++;
+        while (index < value.Length) {
+            char current = value[index];
+            if (current == ':') return true;
+            if (!char.IsLetterOrDigit(current) && current != '+' && current != '-' && current != '.') {
+                return false;
+            }
+            index++;
+        }
+
+        return false;
     }
 
     private static void SkipWhitespaceAndCommas(string value, ref int index) {

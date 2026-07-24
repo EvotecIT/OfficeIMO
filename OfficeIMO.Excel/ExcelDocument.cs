@@ -263,7 +263,6 @@ namespace OfficeIMO.Excel {
         private List<ExcelSheet> BuildSheetsWithoutCaching()
         {
             var elements = ReadSheetElements();
-            UpdateSheetIdCache(elements);
             return MaterializeSheets(elements);
         }
 

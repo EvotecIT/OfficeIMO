@@ -3,7 +3,7 @@
   "generatedUtc": "2026-05-31T18:44:43.8878299+00:00",
   "runMode": "quick",
   "publish": false,
-  "framework": ".NET 8.0.27",
+  "framework": ".NET 8",
   "configuration": "Release",
   "source": {
     "summaryPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json",
@@ -14,15 +14,7 @@
     ]
   },
   "meta": {
-    "commit": null,
-    "branch": null,
-    "dotnetSdk": null,
-    "runtime": ".NET 8.0.27",
-    "osDescription": null,
-    "osArchitecture": null,
-    "processArchitecture": null,
-    "machineName": "EVOMAGIC",
-    "processorCount": null
+    "runtime": ".NET 8"
   },
   "howToRead": [
     "Mean: average elapsed time for the measured operation. Lower is better.",
@@ -40,8 +32,6 @@
   ],
   "manifest": {
     "GeneratedAtUtc": "2026-05-31T18:44:43.8878299Z",
-    "Framework": ".NET 8.0.27",
-    "MachineName": "EVOMAGIC",
     "RowCounts": [
       2500,
       25000
@@ -103,7 +93,8 @@
         "RowCount": 0,
         "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json"
       }
-    ]
+    ],
+    "Framework": ".NET 8"
   },
   "metrics": {
     "scenarioGroups": 274,

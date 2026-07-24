@@ -133,13 +133,18 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         sb.Append("<picture>");
         for (int i = 0; i < PictureSources.Count; i++) {
             var source = PictureSources[i];
-            if (source == null || string.IsNullOrWhiteSpace(source.Path) || !UrlOriginPolicy.IsAllowedHttpImage(options, source.Path)) {
+            if (source == null || string.IsNullOrWhiteSpace(source.Path)) {
                 continue;
             }
 
             string srcSet = NormalizeAttributeValue(source.SrcSet) ?? source.Path;
+            string allowedSrcSet = UrlOriginPolicy.FilterAllowedImageSrcSet(options, srcSet);
+            if (allowedSrcSet.Length == 0) {
+                continue;
+            }
+
             sb.Append("<source srcset=\"")
-                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet, options))
+                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(allowedSrcSet, options))
                 .Append('"');
             AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media), options);
             AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type), options);

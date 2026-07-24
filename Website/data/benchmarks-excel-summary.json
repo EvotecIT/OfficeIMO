@@ -3,17 +3,9 @@
   "generatedUtc": "2026-05-31T18:44:43.8878299+00:00",
   "runMode": "quick",
   "publish": false,
-  "framework": ".NET 8.0.27",
+  "framework": ".NET 8",
   "meta": {
-    "commit": null,
-    "branch": null,
-    "dotnetSdk": null,
-    "runtime": ".NET 8.0.27",
-    "osDescription": null,
-    "osArchitecture": null,
-    "processArchitecture": null,
-    "machineName": "EVOMAGIC",
-    "processorCount": null
+    "runtime": ".NET 8"
   },
   "source": {
     "summaryPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json",

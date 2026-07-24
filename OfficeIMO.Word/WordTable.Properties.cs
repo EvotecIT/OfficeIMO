@@ -133,11 +133,12 @@ namespace OfficeIMO.Word {
             TableWidthUnitValues? candidateType = null;
 
             foreach (var row in Rows) {
+                var rowCells = row.Cells;
                 var w = new List<int>();
                 TableWidthUnitValues? typeForRow = null;
                 bool allPresent = true;
-                for (int i = 0; i < System.Math.Min(cols, row.Cells.Count); i++) {
-                    var cell = row.Cells[i];
+                for (int i = 0; i < System.Math.Min(cols, rowCells.Count); i++) {
+                    var cell = rowCells[i];
                     var wv = cell.Width;
                     if (wv == null) { allPresent = false; w.Add(0); continue; }
                     w.Add(wv.Value);
