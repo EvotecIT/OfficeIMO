@@ -148,6 +148,9 @@ public static class OfficeRemoteImageLoader {
                            || exception is IOException) {
                     lastFailure = exception;
                     socket.Dispose();
+                } catch {
+                    socket.Dispose();
+                    throw;
                 }
             }
 

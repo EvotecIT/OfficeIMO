@@ -38,6 +38,22 @@ public sealed class PowerPointAllSeverityBatch13SecurityTests {
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void AddTableHonorsPerCollectionLimitDuringNestedExpansion() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        var rows = new[] { new NestedRow { Name = "item", Values = InfiniteValues() } };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            slide.AddTable(rows, options => {
+                options.MaxRows = 100;
+                options.MaxCollectionItems = 2;
+                options.CollectionMode = CollectionMode.ExpandRows;
+            }));
+
+        Assert.Contains("2-item", exception.Message, StringComparison.Ordinal);
+    }
+
     private static IEnumerable<SimpleRow> InfiniteRows() {
         int value = 0;
         while (true) yield return new SimpleRow { Value = value++ };

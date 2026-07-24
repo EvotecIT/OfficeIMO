@@ -169,8 +169,14 @@ namespace OfficeIMO.Drawing {
                 throw new InvalidDataException(
                     $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
             }
-
             var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
+            if (source is IReadOnlyList<T> readOnlyList) {
+                for (int index = 0; index < readOnlyList.Count; index++) {
+                    rows.Add(readOnlyList[index]);
+                }
+                return rows;
+            }
+
             foreach (T item in source) {
                 if (rows.Count >= options.MaxRows) {
                     throw new InvalidDataException(

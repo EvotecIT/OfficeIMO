@@ -198,7 +198,12 @@ namespace OfficeIMO.PowerPoint {
                         dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);
                     if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
                         bool expanded = false;
+                        int collectionItems = 0;
                         foreach (object? element in coll) {
+                            if (collectionItems >= options.MaxCollectionItems) {
+                                throw new InvalidDataException(
+                                    $"PowerPoint AddTable nested collection exceeds the {options.MaxCollectionItems}-item flattening limit.");
+                            }
                             if (rowsData.Count >= options.MaxRows) {
                                 throw new InvalidDataException(
                                     $"PowerPoint AddTable nested expansion exceeds the {options.MaxRows}-row materialization limit.");
@@ -208,6 +213,7 @@ namespace OfficeIMO.PowerPoint {
                                 dict.TryGetValue(p, out var v) ? v :
                                 (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
                             rowsData.Add(rowValues);
+                            collectionItems++;
                         }
                         if (!expanded) {
                             if (rowsData.Count >= options.MaxRows) {

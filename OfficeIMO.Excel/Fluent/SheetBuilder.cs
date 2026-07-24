@@ -90,7 +90,8 @@ namespace OfficeIMO.Excel.Fluent {
                             options.DefaultValues,
                             collectionPath,
                             coll,
-                            maximumDataRows - dataRows);
+                            maximumDataRows - dataRows,
+                            options.MaxCollectionItems);
                         continue;
                     }
                 }
@@ -147,9 +148,13 @@ namespace OfficeIMO.Excel.Fluent {
             IReadOnlyDictionary<string, object?> defaultValues,
             string collectionPath,
             IEnumerable collection,
-            int maximumRows) {
+            int maximumRows,
+            int maximumCollectionItems) {
             int added = 0;
             foreach (object? element in collection) {
+                if (added >= maximumCollectionItems) {
+                    throw new InvalidDataException($"RowsFrom nested collection exceeds the {maximumCollectionItems}-item flattening limit.");
+                }
                 if (added >= maximumRows) {
                     throw new InvalidDataException($"RowsFrom nested expansion exceeds the configured row materialization limit.");
                 }

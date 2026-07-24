@@ -124,6 +124,23 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void RowsFromHonorsPerCollectionLimitDuringNestedExpansion() {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+        var rows = new[] { new NestedEnumerableRow { Values = InfiniteValues() } };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(rows, options => {
+                    options.MaxRows = 100;
+                    options.MaxCollectionItems = 2;
+                    options.CollectionMode = CollectionMode.ExpandRows;
+                })));
+
+        Assert.Contains("2-item", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ObjectFlattenerStopsUnboundedNestedCollectionEnumeration() {
         var flattener = new ObjectFlattener();
         var options = new ObjectFlattenerOptions { MaxCollectionItems = 2 };
