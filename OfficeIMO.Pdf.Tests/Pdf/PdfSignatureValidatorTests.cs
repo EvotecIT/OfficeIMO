@@ -22,6 +22,41 @@ public class PdfSignatureValidatorTests {
     }
 
     [Fact]
+    public void Validate_RejectsSignatureMarkersWithoutReadableSignatureDictionary() {
+        byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Fields [5 0 R] /SigFlags 1 >>",
+            "endobj",
+            "5 0 obj",
+            "<< /FT /Sig /T (Malformed) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        }));
+
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(pdf);
+
+        Assert.True(report.HasSignatures);
+        Assert.Equal(0, report.SignatureCount);
+        Assert.True(report.HasErrors);
+        Assert.False(report.IsStructurallyValid);
+        Assert.Contains(report.Findings, finding => finding.Code == "UnreadableSignature");
+    }
+
+    [Fact]
     public void Validate_ReportsSignatureStructureAndPreservationMarkers() {
         PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildSignedIncrementalPdf());
 

@@ -14,8 +14,10 @@ namespace OfficeIMO.Word.Pdf {
         private const double NativeEmusPerPoint = 12700D;
         private const int MaxNativeWordChartSeries = 256;
         private const int MaxNativeWordChartPoints = 4096;
-        private const double MaxNativeWordChartWidthPoints = 1440D;
-        private const double MaxNativeWordChartHeightPoints = 1080D;
+        private const double MinNativeWordChartWidthPoints = 240D;
+        private const double MaxNativeWordChartWidthPoints = 420D;
+        private const double MinNativeWordChartHeightPoints = 150D;
+        private const double MaxNativeWordChartHeightPoints = 260D;
         private const double NativeWordChartTitleTopPadding = 31D;
         private const double NativeWordChartSpacingAfter = NativeDefaultParagraphSpacingAfter;
 
@@ -72,6 +74,11 @@ namespace OfficeIMO.Word.Pdf {
             List<OpenXmlElement> allChartElements = plotArea.ChildElements
                 .Where(IsNativeWordChartElement)
                 .ToList();
+            if (allChartElements.Count > 1) {
+                warning = "Word combo charts are not partially exported because omitting a plot can misrepresent the source data.";
+                return false;
+            }
+
             List<OpenXmlElement> chartElements = allChartElements
                 .Where(IsNativeSupportedWordChartElement)
                 .ToList();
@@ -81,12 +88,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             OpenXmlElement chartElement = chartElements[0];
-            if (allChartElements.Count > 1) {
-                warning = "Word combo chart contains " + allChartElements.Count.ToString(CultureInfo.InvariantCulture) +
-                    " plot types; exported the first supported '" + chartElement.LocalName +
-                    "' plot and omitted the additional plot types.";
-            }
-
             if (!TryMapNativeWordChartKind(chartElement, out OfficeChartKind chartKind)) {
                 warning = "Word chart type '" + chartElement.LocalName + "' is not supported by the shared OfficeIMO chart renderer.";
                 return false;
@@ -515,8 +516,8 @@ namespace OfficeIMO.Word.Pdf {
             long? cy = chart.Drawing?.Inline?.Extent?.Cy?.Value ?? chart.Drawing?.Anchor?.Extent?.Cy?.Value;
             double width = cx.HasValue && cx.Value > 0 ? cx.Value / NativeEmusPerPoint : 360D;
             double height = cy.HasValue && cy.Value > 0 ? cy.Value / NativeEmusPerPoint : 216D;
-            width = Math.Min(MaxNativeWordChartWidthPoints, width);
-            height = Math.Min(MaxNativeWordChartHeightPoints, height);
+            width = Math.Min(MaxNativeWordChartWidthPoints, Math.Max(MinNativeWordChartWidthPoints, width));
+            height = Math.Min(MaxNativeWordChartHeightPoints, Math.Max(MinNativeWordChartHeightPoints, height));
             return (width, height);
         }
 

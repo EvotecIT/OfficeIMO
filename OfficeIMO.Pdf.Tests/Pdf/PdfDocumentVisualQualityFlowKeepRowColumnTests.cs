@@ -255,6 +255,38 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void RowColumnParagraph_LongKeepWithNextChainRendersWithBoundedMeasurement() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 300,
+                PageHeight = 400,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 8
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column => {
+                                for (int i = 0; i < 768; i++) {
+                                    column.Paragraph(
+                                        paragraph => paragraph.Text("Keep" + i.ToString(CultureInfo.InvariantCulture)),
+                                        style: new PdfParagraphStyle { KeepWithNext = true });
+                                }
+
+                                column.Paragraph(paragraph => paragraph.Text("KeepChainTail"));
+                            })))))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages > 1);
+        Assert.Contains("KeepChainTail", pdf.GetPage(pdf.NumberOfPages).Text);
+    }
+
+    [Fact]
     public void RowColumnHeading_KeepsWithFollowingParagraph() {
         var options = new PdfOptions {
             PageWidth = 260,

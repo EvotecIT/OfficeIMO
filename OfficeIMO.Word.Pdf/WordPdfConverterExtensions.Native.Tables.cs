@@ -309,13 +309,14 @@ namespace OfficeIMO.Word.Pdf {
                 style,
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
-            ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
+            ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount, layout);
             ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalBorders(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
+            SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
             return style;
         }
 
@@ -351,9 +352,9 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount) {
+        private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount, TableLayout layout) {
             ApplyNativeFirstRowConditionalStyle(table, style, tableStyleDefaults);
-            ApplyNativeLastRowConditionalStyle(table, style, tableStyleDefaults, rowCount);
+            ApplyNativeLastRowConditionalStyle(table, style, tableStyleDefaults, rowCount, layout);
         }
 
         private static void ApplyNativeFirstRowConditionalStyle(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
@@ -364,13 +365,40 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeHeaderConditionalStyle(style, tableStyleDefaults.FirstRowStyle);
         }
 
-        private static void ApplyNativeLastRowConditionalStyle(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount) {
+        private static void ApplyNativeLastRowConditionalStyle(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount, TableLayout layout) {
             if (table.ConditionalFormattingLastRow != true || rowCount <= style.HeaderRowCount) {
                 return;
             }
 
-            style.FooterRowCount = 1;
+            if (!HasNativeCellSpanningRowBoundary(layout, rowCount - 1)) {
+                style.FooterRowCount = 1;
+            }
             ApplyNativeFooterConditionalStyle(style, tableStyleDefaults.LastRowStyle);
+        }
+
+        private static void SuppressNativeTableRoleBoundariesCrossedByRowSpans(PdfCore.PdfTableStyle style, TableLayout layout) {
+            if (style.HeaderRowCount > 0 && HasNativeCellSpanningRowBoundary(layout, style.HeaderRowCount)) {
+                // A repeated or semantic header cannot contain only part of a vertically merged Word cell.
+                // Conditional formatting has already been projected into the per-cell style maps above.
+                style.HeaderRowCount = 0;
+                style.RepeatHeaderRowCount = 0;
+            }
+        }
+
+        private static bool HasNativeCellSpanningRowBoundary(TableLayout layout, int boundaryRowIndex) {
+            for (int rowIndex = 0; rowIndex < boundaryRowIndex && rowIndex < layout.Rows.Count; rowIndex++) {
+                foreach (WordTableCell cell in layout.Rows[rowIndex]) {
+                    if (IsNativeHorizontalMergeContinuation(cell) || IsNativeVerticalMergeContinuation(cell)) {
+                        continue;
+                    }
+
+                    if (rowIndex + GetNativeCellRowSpan(cell) > boundaryRowIndex) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static void ApplyNativeHeaderConditionalStyle(PdfCore.PdfTableStyle style, NativeTableConditionalStyleDefaults conditionalStyle) {

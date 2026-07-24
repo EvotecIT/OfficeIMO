@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -316,7 +317,8 @@ namespace OfficeIMO.PowerPoint {
             var tableMetadataDetails = DescribeTableMetadata();
             var chartDetails = DescribePartsByType<ChartPart>(allParts);
             var diagramDetails = DescribeDiagramParts(allParts);
-            var chartWorkbookDetails = DescribeChartWorkbookParts(allParts);
+            var safeChartWorkbookParts = GetSafeChartWorkbookParts(allParts);
+            var chartWorkbookDetails = DescribeChartWorkbookParts(safeChartWorkbookParts);
             var chartCompanionDetails = DescribePartsByUriOrContentType(allParts, "chartStyle")
                 .Concat(DescribePartsByUriOrContentType(allParts, "chartColorStyle"))
                 .Concat(chartWorkbookDetails)
@@ -398,7 +400,7 @@ namespace OfficeIMO.PowerPoint {
                 editableOleObjects.Select(ole =>
                     (OpenXmlPart)ole.EmbeddedPart));
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(
-                allParts, editableOleParts);
+                allParts, editableOleParts, safeChartWorkbookParts);
             var linkedOleDetails = LegacyPptLinkedOleDetails.ToList();
             var activeXControlDetails = DescribeActiveXControlParts(allParts)
                 .Concat(LegacyPptActiveXDetails)
@@ -602,22 +604,28 @@ namespace OfficeIMO.PowerPoint {
             Background? slideBackground = slide.SlidePart.Slide?.CommonSlideData?.Background;
             if (slideBackground != null) {
                 BackgroundProperties? slideProperties = slideBackground.BackgroundProperties;
-                if (slideProperties != null) {
+                if (slideProperties?.HasChildren == true) {
                     yield return slideProperties;
+                    yield break;
                 }
 
-                yield break;
+                if (slideBackground.BackgroundStyleReference != null) {
+                    yield break;
+                }
             }
 
             SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
             Background? layoutBackground = layoutPart?.SlideLayout?.CommonSlideData?.Background;
             if (layoutBackground != null) {
                 BackgroundProperties? layoutProperties = layoutBackground.BackgroundProperties;
-                if (layoutProperties != null) {
+                if (layoutProperties?.HasChildren == true) {
                     yield return layoutProperties;
+                    yield break;
                 }
 
-                yield break;
+                if (layoutBackground.BackgroundStyleReference != null) {
+                    yield break;
+                }
             }
 
             BackgroundProperties? masterProperties = layoutPart?.SlideMasterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundProperties;
@@ -1107,10 +1115,8 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeChartWorkbookParts(IEnumerable<OpenXmlPart> parts) {
-            return parts
-                .OfType<ChartPart>()
-                .SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>())
+        private static List<string> DescribeChartWorkbookParts(ISet<OpenXmlPart> safeChartWorkbookParts) {
+            return safeChartWorkbookParts
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
@@ -1119,19 +1125,146 @@ namespace OfficeIMO.PowerPoint {
 
         private static List<string> DescribeNonChartEmbeddedPackageParts(
             IEnumerable<OpenXmlPart> parts,
-            ISet<OpenXmlPart> editableOleParts) {
-            var chartWorkbooks = new HashSet<OpenXmlPart>(
-                parts.OfType<ChartPart>().SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>()));
-
+            ISet<OpenXmlPart> editableOleParts,
+            ISet<OpenXmlPart> safeChartWorkbookParts) {
             return parts
                 .Where(part => part is EmbeddedPackagePart || part is EmbeddedObjectPart)
-                .Where(part => !chartWorkbooks.Contains(part))
+                .Where(part => !safeChartWorkbookParts.Contains(part))
                 .Where(part => !editableOleParts.Contains(part))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+
+        private static HashSet<OpenXmlPart> GetSafeChartWorkbookParts(IEnumerable<OpenXmlPart> parts) {
+            var result = new HashSet<OpenXmlPart>();
+            foreach (ChartPart chartPart in parts.OfType<ChartPart>()) {
+                foreach (EmbeddedPackagePart packagePart in chartPart.GetPartsOfType<EmbeddedPackagePart>()) {
+                    if (IsSafeChartWorkbookPart(chartPart, packagePart)) {
+                        result.Add(packagePart);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static bool IsSafeChartWorkbookPart(ChartPart chartPart, EmbeddedPackagePart part) {
+            if (!string.Equals(
+                    part.ContentType,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            string relationshipId = chartPart.GetIdOfPart(part);
+            bool isReferenced = chartPart.ChartSpace?
+                .Descendants<C.ExternalData>()
+                .Any(externalData => string.Equals(externalData.Id?.Value, relationshipId, StringComparison.Ordinal)) == true;
+            if (!isReferenced) {
+                return false;
+            }
+
+            try {
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                byte[] workbookBytes = ReadChartWorkbookBytes(stream);
+                OfficePackageSecurityInspector.Validate(workbookBytes, CreateChartWorkbookSecurityOptions());
+                using var workbookStream = new MemoryStream(workbookBytes, writable: false);
+                using SpreadsheetDocument workbook = SpreadsheetDocument.Open(workbookStream, false);
+                return IsSafeGeneratedChartWorkbook(workbook);
+            } catch (FileFormatException) {
+                return false;
+            } catch (OpenXmlPackageException) {
+                return false;
+            } catch (InvalidDataException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            }
+        }
+
+        private static OfficePackageSecurityOptions CreateChartWorkbookSecurityOptions() =>
+            new OfficePackageSecurityOptions {
+                MaxPackageBytes = 8L * 1024L * 1024L,
+                MaxPartCount = 64,
+                MaxPartUncompressedBytes = 2L * 1024L * 1024L,
+                MaxTotalUncompressedBytes = 8L * 1024L * 1024L,
+                MaxCompressionRatio = 100D,
+                Macros = OfficePackageContentPolicy.Reject,
+                EmbeddedPayloads = OfficePackageContentPolicy.Reject,
+                ActiveX = OfficePackageContentPolicy.Reject,
+                ExternalRelationships = OfficePackageContentPolicy.Reject
+            };
+
+        private static byte[] ReadChartWorkbookBytes(Stream stream) {
+            const int maximumBytes = 8 * 1024 * 1024;
+            using var buffer = new MemoryStream();
+            var chunk = new byte[81920];
+            int totalBytes = 0;
+            while (true) {
+                int read = stream.Read(chunk, 0, Math.Min(chunk.Length, maximumBytes + 1 - totalBytes));
+                if (read == 0) {
+                    return buffer.ToArray();
+                }
+
+                totalBytes = checked(totalBytes + read);
+                if (totalBytes > maximumBytes) {
+                    throw new InvalidDataException(
+                        $"Embedded chart workbook exceeds the configured maximum of {maximumBytes} bytes.");
+                }
+
+                buffer.Write(chunk, 0, read);
+            }
+        }
+
+        private static bool IsSafeGeneratedChartWorkbook(SpreadsheetDocument workbook) {
+            WorkbookPart? workbookPart = workbook.WorkbookPart;
+            if (workbook.DocumentType != SpreadsheetDocumentType.Workbook
+                || workbookPart?.Workbook == null
+                || workbookPart.VbaProjectPart != null
+                || workbook.Parts.Count() != 1
+                || workbook.Parts.Any(pair => pair.OpenXmlPart is not WorkbookPart)
+                || workbook.ExternalRelationships.Any()) {
+                return false;
+            }
+
+            WorksheetPart[] worksheets = workbookPart.GetPartsOfType<WorksheetPart>().ToArray();
+            SharedStringTablePart[] sharedStrings = workbookPart.GetPartsOfType<SharedStringTablePart>().ToArray();
+            if (worksheets.Length != 1
+                || sharedStrings.Length != 1
+                || workbookPart.Parts.Count() != 2
+                || workbookPart.Parts.Any(pair => pair.OpenXmlPart is not WorksheetPart && pair.OpenXmlPart is not SharedStringTablePart)
+                || HasUnsupportedChartWorkbookRelationships(workbookPart)) {
+                return false;
+            }
+
+            WorksheetPart worksheetPart = worksheets[0];
+            S.Worksheet? worksheet = worksheetPart.Worksheet;
+            if (worksheet == null
+                || worksheetPart.Parts.Any()
+                || sharedStrings[0].Parts.Any()
+                || HasUnsupportedChartWorkbookRelationships(worksheetPart)
+                || HasUnsupportedChartWorkbookRelationships(sharedStrings[0])
+                || worksheet.Descendants<S.CellFormula>().Any()
+                || worksheet.Descendants<S.Hyperlinks>().Any()
+                || worksheet.Descendants<S.OleObjects>().Any()
+                || worksheet.Descendants<S.Controls>().Any()) {
+                return false;
+            }
+
+            S.Sheets? sheets = workbookPart.Workbook.Sheets;
+            S.Sheet? sheet = sheets?.Elements<S.Sheet>().SingleOrDefault();
+            return sheet?.Id?.Value != null
+                && string.Equals(sheet.Id.Value, workbookPart.GetIdOfPart(worksheetPart), StringComparison.Ordinal)
+                && workbookPart.Workbook.DefinedNames == null
+                && workbookPart.Workbook.ExternalReferences == null;
+        }
+
+        private static bool HasUnsupportedChartWorkbookRelationships(OpenXmlPart part) =>
+            part.ExternalRelationships.Any()
+            || part.HyperlinkRelationships.Any()
+            || part.DataPartReferenceRelationships.Any();
 
         private static List<string> DescribeDiagramParts(IEnumerable<OpenXmlPart> parts) {
             return DescribePartsByType<DiagramDataPart>(parts)

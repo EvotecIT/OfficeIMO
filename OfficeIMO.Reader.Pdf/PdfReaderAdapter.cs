@@ -96,7 +96,7 @@ internal static partial class PdfReaderAdapter {
             var documentTables = BuildTables(documentTableExtractions);
             var documentVisuals = BuildVisuals(pages);
             var documentFormFields = BuildFormFields(document, pages, page: null);
-            var documentActions = BuildActions(document, pages, page: null);
+            var documentActions = BuildActions(document, pages, page: null, includeDocumentActions: true);
             ReaderChunkDiagnostics documentDiagnostics = BuildChunkDiagnostics(document, pages, page: null, documentTableExtractions, documentActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
@@ -133,7 +133,7 @@ internal static partial class PdfReaderAdapter {
             var pageTables = BuildTables(pageTableExtractions, pageIndex);
             var pageVisuals = BuildVisuals(new[] { page }, pageIndex);
             var pageFormFields = BuildFormFields(document, pages, page);
-            var pageActions = BuildActions(document, pages, page);
+            var pageActions = BuildActions(document, pages, page, includeDocumentActions: pageIndex == 0);
             ReaderChunkDiagnostics pageDiagnostics = BuildChunkDiagnostics(document, pages, page, pageTableExtractions, pageActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
@@ -258,7 +258,7 @@ internal static partial class PdfReaderAdapter {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
         bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
-        int selectedCatalogActionCount = GetScopedCatalogActions(document, selectedPages, page: null).Count;
+        int selectedCatalogActionCount = GetScopedCatalogActions(document).Count;
         int selectedPageActionCount = CountPageActions(scope);
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         int imageCount = CountImages(scope);
@@ -267,7 +267,7 @@ internal static partial class PdfReaderAdapter {
         int selectedFormWidgetCount = CountFormWidgets(scope);
         int selectedFormWidgetAppearanceStateCount = CountFormWidgetAppearanceStates(scope);
         TableDiagnosticSummary tableSummary = SummarizeTables(tableExtractions);
-        ActionDiagnosticSummary actionSummary = SummarizeActions(actions);
+        ActionDiagnosticSummary actionSummary = SummarizeActions(actions, document.CatalogActions);
         PdfTaggedContentInfo? taggedContent = document.TaggedContent;
         PdfOptionalContentProperties? optionalContent = document.OptionalContent;
         return new ReaderChunkDiagnostics {
@@ -379,8 +379,8 @@ internal static partial class PdfReaderAdapter {
         public int ImportDataCount { get; }
     }
 
-    private static ActionDiagnosticSummary SummarizeActions(IReadOnlyList<ReaderActionSummary>? actions) {
-        if (actions == null || actions.Count == 0) {
+    private static ActionDiagnosticSummary SummarizeActions(IReadOnlyList<ReaderActionSummary>? actions, IReadOnlyList<PdfCatalogAction> catalogActions) {
+        if ((actions == null || actions.Count == 0) && catalogActions.Count == 0) {
             return new ActionDiagnosticSummary(0, 0, 0, 0, 0);
         }
 
@@ -389,24 +389,39 @@ internal static partial class PdfReaderAdapter {
         int launchCount = 0;
         int submitFormCount = 0;
         int importDataCount = 0;
-        for (int i = 0; i < actions.Count; i++) {
-            ReaderActionSummary action = actions[i];
-            if (action.IsPotentiallyUnsafe) {
-                potentiallyUnsafeCount++;
-            }
+        if (actions != null) {
+            for (int i = 0; i < actions.Count; i++) {
+                ReaderActionSummary action = actions[i];
+                if (action.Scope == ReaderActionScope.Catalog) {
+                    continue;
+                }
 
-            if (string.Equals(action.ActionType, "JavaScript", StringComparison.Ordinal)) {
-                javaScriptCount++;
-            } else if (string.Equals(action.ActionType, "Launch", StringComparison.Ordinal)) {
-                launchCount++;
-            } else if (string.Equals(action.ActionType, "SubmitForm", StringComparison.Ordinal)) {
-                submitFormCount++;
-            } else if (string.Equals(action.ActionType, "ImportData", StringComparison.Ordinal)) {
-                importDataCount++;
+                CountActionType(action.ActionType, action.IsPotentiallyUnsafe);
             }
         }
 
+        for (int i = 0; i < catalogActions.Count; i++) {
+            PdfCatalogAction action = catalogActions[i];
+            CountActionType(action.ActionType, IsPotentiallyUnsafeActionType(action.ActionType));
+        }
+
         return new ActionDiagnosticSummary(potentiallyUnsafeCount, javaScriptCount, launchCount, submitFormCount, importDataCount);
+
+        void CountActionType(string actionType, bool isPotentiallyUnsafe) {
+            if (isPotentiallyUnsafe) {
+                potentiallyUnsafeCount++;
+            }
+
+            if (string.Equals(actionType, "JavaScript", StringComparison.Ordinal)) {
+                javaScriptCount++;
+            } else if (string.Equals(actionType, "Launch", StringComparison.Ordinal)) {
+                launchCount++;
+            } else if (string.Equals(actionType, "SubmitForm", StringComparison.Ordinal)) {
+                submitFormCount++;
+            } else if (string.Equals(actionType, "ImportData", StringComparison.Ordinal)) {
+                importDataCount++;
+            }
+        }
     }
 
     private readonly struct TableDiagnosticSummary {

@@ -10,12 +10,12 @@ public sealed class YamlReadOptions {
     public int ChunkRows { get; set; } = 200;
 
     /// <summary>
-    /// Maximum node traversal depth.
+    /// Maximum node depth accepted by the streaming preflight before the representation model is loaded.
     /// </summary>
     public int MaxDepth { get; set; } = 32;
 
     /// <summary>
-    /// Maximum number of YAML nodes visited before traversal emits a node-limit row and stops.
+    /// Maximum number of YAML nodes accepted by the streaming preflight before the representation model is loaded.
     /// </summary>
     public int MaxNodes { get; set; } = 20_000;
 

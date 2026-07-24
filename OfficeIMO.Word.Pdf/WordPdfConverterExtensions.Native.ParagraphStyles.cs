@@ -11,6 +11,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const double MaxNativeParagraphBorderSpacingPoints = 31D;
+
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
 
@@ -386,7 +388,9 @@ namespace OfficeIMO.Word.Pdf {
                 return defaultPadding;
             }
 
-            return Math.Max(left.GetValueOrDefault(), right.GetValueOrDefault());
+            return Math.Min(
+                Math.Max(left.GetValueOrDefault(), right.GetValueOrDefault()),
+                MaxNativeParagraphBorderSpacingPoints);
         }
 
         private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
@@ -396,7 +400,9 @@ namespace OfficeIMO.Word.Pdf {
                 return defaultPadding;
             }
 
-            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
+            return Math.Min(
+                Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault()),
+                MaxNativeParagraphBorderSpacingPoints);
         }
 
         private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>

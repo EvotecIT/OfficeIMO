@@ -117,7 +117,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? ConvertNativeLineHundredthsToPoints(Int32Value? value, double fontSize, double lineHeight) {
             if (value == null ||
-                value.Value < 0 ||
+                !int.TryParse(value.InnerText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lineHundredths) ||
+                lineHundredths < 0 ||
                 fontSize <= 0D ||
                 lineHeight <= 0D ||
                 double.IsNaN(fontSize) ||
@@ -127,7 +128,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return (value.Value / 100D) * fontSize * lineHeight;
+            return (lineHundredths / 100D) * fontSize * lineHeight;
         }
 
         private static bool IsNativeOnOffTrue(OnOffValue? value) =>

@@ -1242,6 +1242,29 @@ public partial class Word {
         Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(1L, 1L)]
+    [InlineData(long.MaxValue, long.MaxValue)]
+    public void SaveAsPdf_OfficeIMOEngine_NormalizesUntrustedWordChartExtents(long cx, long cy) {
+        string suffix = cx == 1L ? "Tiny" : "Huge";
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart" + suffix + "Extent.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart" + suffix + "Extent.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Untrusted Word chart extent", false, 360, 220);
+            chart.AddPie("Passed", 3);
+            chart.AddPie("Failed", 1);
+            DW.Extent extent = chart.Drawing!.Inline?.Extent ?? chart.Drawing.Anchor!.Extent!;
+            extent.Cx = cx;
+            extent.Cy = cy;
+            document.AddParagraph("After normalized chart extent");
+
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { IncludePageNumbers = false });
+        }
+
+        Assert.Contains("After normalized chart extent", PdfTextExtractor.ExtractAllText(pdfPath));
+    }
+
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Inline_Word_Charts_After_Text_Run() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.docx");
@@ -1495,7 +1518,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Renders_Primary_Word_Chart_From_Mixed_Combo() {
+    public void SaveAsPdf_OfficeIMOEngine_Rejects_Partial_Word_Combo_Chart_Export() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.pdf");
         var options = new PdfSaveOptions {
@@ -1511,34 +1534,30 @@ public partial class Word {
             ChartPart chartPart = (ChartPart)typeof(WordChart)
                 .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(chart)!;
-            chartPart.ChartSpace!.Descendants<PlotArea>().First().Append(new BubbleChart());
+            PlotArea plotArea = chartPart.ChartSpace!.Descendants<PlotArea>().First();
+            plotArea.InsertBefore(new BubbleChart(), plotArea.GetFirstChild<BarChart>()!);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
             object?[] arguments = { chart, null, null };
             bool result = (bool)method.Invoke(null, arguments)!;
 
-            Assert.True(result, (string?)arguments[2]);
-            object snapshot = arguments[1]!;
-            Assert.Equal(OfficeChartKind.BarClustered, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
-            Assert.Contains("omitted the additional plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
+            Assert.False(result);
+            Assert.Null(arguments[1]);
+            Assert.Contains("not partially exported", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
 
             document.Save();
             PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
             conversion.Save(pdfPath);
 
-            Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
-            PdfConversionWarning simplified = Assert.Single(conversion.Warnings, warning => warning.Code == "NativeBodyChartSimplified");
-            Assert.Contains("omitted the additional plot types", simplified.Message, StringComparison.OrdinalIgnoreCase);
+            PdfConversionWarning unsupported = Assert.Single(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            Assert.Contains("not partially exported", unsupported.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After mixed chart", text);
-        Assert.Contains("Word PDF Mixed Chart", text);
-        Assert.Contains("Q1", text);
-        Assert.Contains("Q2", text);
-
-        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains("0.267 0.447 0.769 rg", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("Word PDF Mixed Chart", text);
+        Assert.DoesNotContain("Q1", text);
+        Assert.DoesNotContain("Q2", text);
     }
 
     [Fact]
