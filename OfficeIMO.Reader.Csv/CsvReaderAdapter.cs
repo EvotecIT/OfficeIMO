@@ -82,6 +82,9 @@ internal static class CsvReaderAdapter {
 
         foreach (var record in records) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (record.Count > options.MaxColumns) {
+                throw new InvalidDataException($"CSV record contains {record.Count} columns, exceeding the configured limit of {options.MaxColumns}.");
+            }
 
             var values = record.Select(static value => value ?? string.Empty).ToArray();
             if (headers == null && options.HeadersInFirstRow) {
@@ -286,6 +289,7 @@ internal static class CsvReaderAdapter {
         var source = options ?? new CsvReadOptions();
 
         var normalized = new CsvReadOptions {
+            MaxColumns = source.MaxColumns,
             ChunkRows = source.ChunkRows,
             HeadersInFirstRow = source.HeadersInFirstRow,
             IncludeMarkdown = source.IncludeMarkdown
@@ -293,6 +297,10 @@ internal static class CsvReaderAdapter {
 
         if (normalized.ChunkRows < 1) {
             normalized.ChunkRows = 1;
+        }
+
+        if (normalized.MaxColumns < 1) {
+            throw new ArgumentOutOfRangeException(nameof(CsvReadOptions.MaxColumns), normalized.MaxColumns, "CSV column limit must be greater than zero.");
         }
 
         return normalized;

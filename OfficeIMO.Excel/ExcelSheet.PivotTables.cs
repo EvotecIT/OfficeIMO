@@ -340,6 +340,7 @@ namespace OfficeIMO.Excel {
                     pivotFilterList,
                     headerIndex,
                     fieldOptionMap);
+                ValidatePivotFieldScanBudget(r1 + 1, r2, sourceSharedItemRequirements, generatedGroupingFields.Count);
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();

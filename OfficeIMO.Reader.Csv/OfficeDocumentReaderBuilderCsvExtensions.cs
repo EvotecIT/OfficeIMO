@@ -48,6 +48,7 @@ public static class OfficeDocumentReaderBuilderCsvExtensions {
         if (options == null) return null;
 
         return new CsvReadOptions {
+            MaxColumns = options.MaxColumns,
             ChunkRows = options.ChunkRows,
             HeadersInFirstRow = options.HeadersInFirstRow,
             IncludeMarkdown = options.IncludeMarkdown

@@ -16,7 +16,9 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         public HtmlToMarkdownOptions Options { get; }
         public int SavedBase64ImageCount { get; set; }
+        public int DefinitionListEntryExpansionCount { get; set; }
         public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
+        internal Dictionary<IElement, bool> BlockDescendantCache { get; } = new();
         internal HtmlFootnoteConversionState Footnotes { get; set; } = HtmlFootnoteConversionState.Empty;
     }
 

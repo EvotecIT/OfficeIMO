@@ -935,11 +935,24 @@ public static partial class MarkdownReader {
         int maxPrefixLength = firstBlank >= 0 ? firstBlank : lines.Count;
         if (maxPrefixLength < 2) return false;
 
-        for (int prefixLength = 2; prefixLength <= maxPrefixLength; prefixLength++) {
-            var candidate = lines.GetRange(0, prefixLength);
-            if (!TryParseSetextHeadingParagraphLines(candidate, options, out level, out headingText)) continue;
+        for (int underlineIndex = 1; underlineIndex < maxPrefixLength; underlineIndex++) {
+            if (!TryGetSetextHeadingUnderlineLevel(lines[underlineIndex] ?? string.Empty, out level)) {
+                continue;
+            }
 
-            headingLineCount = prefixLength;
+            var contentLines = lines.GetRange(0, underlineIndex);
+            if (contentLines.TrueForAll(string.IsNullOrWhiteSpace)) {
+                level = 0;
+                return false;
+            }
+
+            headingText = JoinParagraphLines(contentLines, options).Trim();
+            if (headingText.Length == 0) {
+                level = 0;
+                return false;
+            }
+
+            headingLineCount = underlineIndex + 1;
             return true;
         }
 

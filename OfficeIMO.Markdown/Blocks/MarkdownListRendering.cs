@@ -40,24 +40,32 @@ internal static class MarkdownListRendering {
         var sb = new System.Text.StringBuilder();
         renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
-        bool ContainsTasksInScope(int startIndex, int level) {
-            for (int i = startIndex; i < items.Count; i++) {
-                var it = items[i];
-                if (it.Level < level) break;
-                if (it.Level == level && it.IsTask) return true;
+        var scopeStarts = new List<int>();
+        var taskScopes = new HashSet<(int StartIndex, int Level)>();
+        var looseScopes = new HashSet<(int StartIndex, int Level)>();
+        for (int index = 0; index < items.Count; index++) {
+            int level = Math.Max(0, items[index].Level);
+            if (scopeStarts.Count > level + 1) {
+                scopeStarts.RemoveRange(level + 1, scopeStarts.Count - level - 1);
             }
-            return false;
+
+            while (scopeStarts.Count <= level) {
+                scopeStarts.Add(index);
+            }
+
+            var scopeKey = (scopeStarts[level], level);
+            if (items[index].IsTask) {
+                taskScopes.Add(scopeKey);
+            }
+
+            if (items[index].RequiresLooseListRendering()) {
+                looseScopes.Add(scopeKey);
+            }
         }
 
-        bool IsLooseInScope(int startIndex, int level) {
-            for (int i = startIndex; i < items.Count; i++) {
-                var it = items[i];
-                if (it.Level < level) break;
-                if (it.Level != level) continue;
-                if (it.RequiresLooseListRendering()) return true;
-            }
-            return false;
-        }
+        bool ContainsTasksInScope(int startIndex, int level) => taskScopes.Contains((startIndex, level));
+
+        bool IsLooseInScope(int startIndex, int level) => looseScopes.Contains((startIndex, level));
 
         void AppendOpenList(int startIndex, int level, bool isTopLevel) {
             var options = HtmlRenderContext.Options;

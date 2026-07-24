@@ -6,6 +6,9 @@ namespace OfficeIMO.Markdown;
 /// Neutral metadata contract for renderer-produced visual host elements such as charts, networks, and data views.
 /// </summary>
 public static class MarkdownVisualElementContract {
+    /// <summary>Maximum decoded visual payload accepted from an HTML contract host. Default: 4 MiB.</summary>
+    public const int MaxDecodedPayloadBytes = 4 * 1024 * 1024;
+
     /// <summary>Current shared visual contract version.</summary>
     public const string ContractVersion = "v1";
 
@@ -96,12 +99,23 @@ public static class MarkdownVisualElementContract {
             return null;
         }
 
-        if (!string.Equals(element.ConfigEncoding, ConfigEncodingBase64Utf8, StringComparison.OrdinalIgnoreCase)) {
+        if (!string.Equals(element.ContractVersion, ContractVersion, StringComparison.Ordinal)
+            || !string.Equals(element.ConfigFormat, ConfigFormatJson, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(element.ConfigEncoding, ConfigEncodingBase64Utf8, StringComparison.OrdinalIgnoreCase)) {
+            return null;
+        }
+
+        int maximumEncodedCharacters = ((MaxDecodedPayloadBytes + 2) / 3) * 4;
+        if (element.ConfigBase64.Length > maximumEncodedCharacters) {
             return null;
         }
 
         try {
             var bytes = Convert.FromBase64String(element.ConfigBase64);
+            if (bytes.Length > MaxDecodedPayloadBytes) {
+                return null;
+            }
+
             return Encoding.UTF8.GetString(bytes);
         } catch (FormatException) {
             return null;

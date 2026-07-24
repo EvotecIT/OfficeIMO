@@ -18,10 +18,12 @@ namespace OfficeIMO.Excel {
                 rowOrdinal++;
                 if (!row.HasChildren) continue;
 
-                int rowIndex = checked((int)(row.RowIndex?.Value ?? (uint)rowOrdinal));
-                if (rowIndex <= 0) {
-                    rowIndex = rowOrdinal;
-                }
+                uint? declaredRowIndex = row.RowIndex?.Value;
+                int rowIndex = declaredRowIndex.HasValue
+                    ? declaredRowIndex.Value >= 1U && declaredRowIndex.Value <= A1.MaxRows
+                        ? (int)declaredRowIndex.Value
+                        : 0
+                    : rowOrdinal <= A1.MaxRows ? rowOrdinal : 0;
 
                 int cellOrdinal = 0;
                 foreach (var cell in row.Elements<Cell>()) {
@@ -42,7 +44,7 @@ namespace OfficeIMO.Excel {
                         resolvedCol = cellOrdinal;
                     }
 
-                    if (resolvedRow <= 0 || resolvedCol <= 0) continue;
+                    if (resolvedRow <= 0 || resolvedRow > A1.MaxRows || resolvedCol <= 0 || resolvedCol > A1.MaxColumns) continue;
 
                     if (resolvedRow < minRow) minRow = resolvedRow;
                     if (resolvedRow > maxRow) maxRow = resolvedRow;

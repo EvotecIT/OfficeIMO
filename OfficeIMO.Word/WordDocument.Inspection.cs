@@ -5,7 +5,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        private const int MaximumInspectionNoteDepth = 32;
+
+        private sealed class InspectionExpansionContext {
+            internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
+        }
+
         public WordDocumentSnapshot CreateInspectionSnapshot() {
+            var expansionContext = new InspectionExpansionContext();
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
@@ -36,12 +43,12 @@ namespace OfficeIMO.Word {
                     FooterCount = CountFooterParts(section.Footer),
                     DifferentFirstPage = section.DifferentFirstPage,
                     DifferentOddAndEvenPages = section.DifferentOddAndEvenPages,
-                    DefaultHeader = BuildHeaderFooterSnapshot(section.Header?.Default, "header", "default"),
-                    DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default"),
-                    FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first"),
-                    FirstFooter = BuildHeaderFooterSnapshot(section.Footer?.First, "footer", "first"),
-                    EvenHeader = BuildHeaderFooterSnapshot(section.Header?.Even, "header", "even"),
-                    EvenFooter = BuildHeaderFooterSnapshot(section.Footer?.Even, "footer", "even"),
+                    DefaultHeader = BuildHeaderFooterSnapshot(section.Header?.Default, "header", "default", expansionContext),
+                    DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default", expansionContext),
+                    FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first", expansionContext),
+                    FirstFooter = BuildHeaderFooterSnapshot(section.Footer?.First, "footer", "first", expansionContext),
+                    EvenHeader = BuildHeaderFooterSnapshot(section.Header?.Even, "header", "even", expansionContext),
+                    EvenFooter = BuildHeaderFooterSnapshot(section.Footer?.Even, "footer", "even", expansionContext),
                 };
 
                 int order = 0;
@@ -55,11 +62,11 @@ namespace OfficeIMO.Word {
                             elementIndex++;
                         }
 
-                        var paragraphSnapshot = BuildParagraphSnapshot(new WordParagraph(this, paragraphPart._paragraph));
+                        var paragraphSnapshot = BuildParagraphSnapshot(new WordParagraph(this, paragraphPart._paragraph), expansionContext);
                         paragraphSnapshot.Order = order++;
                         sectionSnapshot.AddElement(paragraphSnapshot);
                     } else if (element is WordTable table) {
-                        var tableSnapshot = BuildTableSnapshot(table);
+                        var tableSnapshot = BuildTableSnapshot(table, expansionContext);
                         tableSnapshot.Order = order++;
                         sectionSnapshot.AddElement(tableSnapshot);
                     }
@@ -108,7 +115,8 @@ namespace OfficeIMO.Word {
         private WordHeaderFooterSnapshot? BuildHeaderFooterSnapshot(
             WordHeaderFooter? headerFooter,
             string kind,
-            string variant) {
+            string variant,
+            InspectionExpansionContext expansionContext) {
             if (headerFooter == null) {
                 return null;
             }
@@ -123,12 +131,12 @@ namespace OfficeIMO.Word {
             foreach (var child in EnumerateHeaderFooterBlocks(headerFooter)) {
                 switch (child) {
                     case Paragraph paragraph:
-                        var paragraphSnapshot = BuildParagraphSnapshot(new WordParagraph(this, paragraph));
+                        var paragraphSnapshot = BuildParagraphSnapshot(new WordParagraph(this, paragraph), expansionContext);
                         paragraphSnapshot.Order = order++;
                         snapshot.AddElement(paragraphSnapshot);
                         break;
                     case Table table:
-                        var tableSnapshot = BuildTableSnapshot(new WordTable(this, table));
+                        var tableSnapshot = BuildTableSnapshot(new WordTable(this, table), expansionContext);
                         tableSnapshot.Order = order++;
                         snapshot.AddElement(tableSnapshot);
                         break;
@@ -138,7 +146,7 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph) {
+        private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph, InspectionExpansionContext expansionContext) {
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             var snapshot = new WordParagraphSnapshot {
@@ -208,8 +216,8 @@ namespace OfficeIMO.Word {
                     IsHyperlink = hyperlink != null,
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,
-                    Footnote = BuildFootnoteSnapshot(run.FootNote),
-                    Endnote = BuildEndnoteSnapshot(run.EndNote),
+                    Footnote = BuildFootnoteSnapshot(run.FootNote, expansionContext),
+                    Endnote = BuildEndnoteSnapshot(run.EndNote, expansionContext),
                     InlineImage = image == null ? null : new WordInlineImageSnapshot {
                         FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
                         FileName = image.FileName,
@@ -236,7 +244,7 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private WordTableSnapshot BuildTableSnapshot(WordTable table) {
+        private WordTableSnapshot BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {
             var snapshot = new WordTableSnapshot {
                 RowCount = table.Rows.Count,
                 ColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.CellsCount),
@@ -294,7 +302,7 @@ namespace OfficeIMO.Word {
                     snapshot.HasVerticalMerges |= cell.HasVerticalMerge;
 
                     foreach (var paragraphGroup in GroupParagraphs(cell.Paragraphs)) {
-                        cellSnapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
+                        cellSnapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));
                     }
 
                     rowSnapshot.AddCell(cellSnapshot);
@@ -306,46 +314,66 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private WordFootnoteSnapshot? BuildFootnoteSnapshot(WordFootNote? footNote) {
+        private WordFootnoteSnapshot? BuildFootnoteSnapshot(WordFootNote? footNote, InspectionExpansionContext expansionContext) {
             if (footNote == null) {
                 return null;
             }
 
-            var paragraphs = footNote.Paragraphs;
-            if (paragraphs == null || paragraphs.Count == 0) {
+            string noteKey = "F:" + (footNote.ReferenceId?.ToString() ?? "unknown");
+            if (expansionContext.ActiveNoteKeys.Count >= MaximumInspectionNoteDepth
+                || !expansionContext.ActiveNoteKeys.Add(noteKey)) {
                 return null;
             }
 
-            var snapshot = new WordFootnoteSnapshot {
-                ReferenceId = footNote.ReferenceId,
-            };
+            try {
+                var paragraphs = footNote.Paragraphs;
+                if (paragraphs == null || paragraphs.Count == 0) {
+                    return null;
+                }
 
-            foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.FootNote == null))) {
-                snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
+                var snapshot = new WordFootnoteSnapshot {
+                    ReferenceId = footNote.ReferenceId,
+                };
+
+                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.FootNote == null))) {
+                    snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));
+                }
+
+                return snapshot.Paragraphs.Count > 0 ? snapshot : null;
+            } finally {
+                expansionContext.ActiveNoteKeys.Remove(noteKey);
             }
-
-            return snapshot.Paragraphs.Count > 0 ? snapshot : null;
         }
 
-        private WordEndnoteSnapshot? BuildEndnoteSnapshot(WordEndNote? endnote) {
+        private WordEndnoteSnapshot? BuildEndnoteSnapshot(WordEndNote? endnote, InspectionExpansionContext expansionContext) {
             if (endnote == null) {
                 return null;
             }
 
-            var paragraphs = endnote.Paragraphs;
-            if (paragraphs == null || paragraphs.Count == 0) {
+            string noteKey = "E:" + (endnote.ReferenceId?.ToString() ?? "unknown");
+            if (expansionContext.ActiveNoteKeys.Count >= MaximumInspectionNoteDepth
+                || !expansionContext.ActiveNoteKeys.Add(noteKey)) {
                 return null;
             }
 
-            var snapshot = new WordEndnoteSnapshot {
-                ReferenceId = endnote.ReferenceId,
-            };
+            try {
+                var paragraphs = endnote.Paragraphs;
+                if (paragraphs == null || paragraphs.Count == 0) {
+                    return null;
+                }
 
-            foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.EndNote == null))) {
-                snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
+                var snapshot = new WordEndnoteSnapshot {
+                    ReferenceId = endnote.ReferenceId,
+                };
+
+                foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.EndNote == null))) {
+                    snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));
+                }
+
+                return snapshot.Paragraphs.Count > 0 ? snapshot : null;
+            } finally {
+                expansionContext.ActiveNoteKeys.Remove(noteKey);
             }
-
-            return snapshot.Paragraphs.Count > 0 ? snapshot : null;
         }
 
         private static double? ResolveIndentFirstLinePoints(WordParagraph paragraph) {

@@ -11,10 +11,14 @@ namespace OfficeIMO.Excel {
         private const int BufferSize = 81920;
         private const int MaxRedirects = 10;
 
-        internal static async Task<byte[]> DownloadAsync(Uri uri, ExcelHttpLoadOptions? options, CancellationToken cancellationToken = default) {
+        internal static async Task<byte[]> DownloadAsync(
+            Uri uri,
+            ExcelHttpLoadOptions? options,
+            CancellationToken cancellationToken = default,
+            long? maximumBytes = null) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
 
-            var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options);
+            var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options, maximumBytes);
             ValidateScheme(uri, snapshot.SchemePolicy);
             ValidateHost(uri, snapshot);
             ValidateLimits(snapshot);
@@ -305,12 +309,15 @@ namespace OfficeIMO.Excel {
             internal IProgress<ExcelHttpLoadProgress>? Progress { get; }
             internal HttpMessageHandler? HttpMessageHandler { get; }
 
-            internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options) {
+            internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options, long? maximumBytes) {
                 options ??= new ExcelHttpLoadOptions();
+                long maxBytes = maximumBytes.HasValue
+                    ? Math.Min(options.MaxBytes, maximumBytes.Value)
+                    : options.MaxBytes;
 
                 return new ExcelHttpLoadOptionsSnapshot(
                     options.SchemePolicy,
-                    options.MaxBytes,
+                    maxBytes,
                     options.Timeout,
                     options.UserAgent,
                     new Dictionary<string, string>(options.Headers, StringComparer.OrdinalIgnoreCase),
