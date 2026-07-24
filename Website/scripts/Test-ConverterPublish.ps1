@@ -22,6 +22,13 @@ foreach ($path in @($indexPath, $modulePath, $appAssemblyPath, $runtimeWasmPath)
     }
 }
 
+$runtimeWasm = [System.Text.Encoding]::ASCII.GetString(
+    [System.IO.File]::ReadAllBytes($runtimeWasmPath)
+)
+if ($runtimeWasm -notmatch 'hb_blob_create') {
+    throw "Converter runtime '$runtimeWasmPath' does not contain the HarfBuzz native symbols required by the faithful PDF profile. Install the wasm-tools workload and publish with WasmBuildNative enabled."
+}
+
 $index = Get-Content -LiteralPath $indexPath -Raw
 if ($index -notmatch '<base href="/apps/officeimo-converter/"') {
     throw 'Converter index does not use the production base path.'
