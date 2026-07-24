@@ -309,11 +309,11 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across rows.</param>
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
-            _excelDocument.MaterializeDeferredDataSetImport();
             // CalculateRowHeight reads shared Open XML nodes. Keep the read-and-apply pass
             // serialized even when callers request parallel execution; parallelizing the DOM
             // traversal is not safe and the public mode remains a scheduling hint.
             WriteLock(() => {
+                _excelDocument.MaterializeDeferredDataSetImport();
                 var worksheet = WorksheetRoot;
                 SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
