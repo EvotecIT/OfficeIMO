@@ -290,7 +290,8 @@ public static partial class ReaderHierarchicalChunker {
             OfficeDocumentPage page = pages[pageIndex];
             if (page?.Blocks == null) continue;
             IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
-            for (int blockIndex = 0;
+            int blockIndex = 0;
+            for (;
                  blockIndex < pageBlocks.Count && inspections < maximumInspections;
                  blockIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -310,7 +311,7 @@ public static partial class ReaderHierarchicalChunker {
             }
             if (inspections >= maximumInspections) {
                 limitReached = pageIndex + 1 < pages.Count
-                    || pageBlocks.Count > 0;
+                    || blockIndex < pageBlocks.Count;
                 return new PageBlockIndex(byReference, byId);
             }
         }

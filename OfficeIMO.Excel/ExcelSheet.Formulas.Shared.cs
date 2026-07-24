@@ -167,22 +167,40 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsParenthesizedReferenceOperand(string formula, int openingParenthesis) {
-            int operandStart = openingParenthesis + 1;
-            while (operandStart < formula.Length && char.IsWhiteSpace(formula[operandStart])) {
-                operandStart++;
+            int cursor = openingParenthesis + 1;
+            int depth = 1;
+            bool sawReference = false;
+            while (cursor < formula.Length) {
+                if (char.IsWhiteSpace(formula[cursor]) || formula[cursor] == ',') {
+                    cursor++;
+                    continue;
+                }
+
+                if (formula[cursor] == '(') {
+                    depth++;
+                    cursor++;
+                    continue;
+                }
+
+                if (formula[cursor] == ')') {
+                    depth--;
+                    cursor++;
+                    if (depth == 0) {
+                        return sawReference;
+                    }
+                    continue;
+                }
+
+                Match reference = SharedFormulaReferenceRegex.Match(formula, cursor);
+                if (!reference.Success || reference.Index != cursor) {
+                    return false;
+                }
+
+                sawReference = true;
+                cursor += reference.Length;
             }
 
-            Match operand = SharedFormulaReferenceRegex.Match(formula, operandStart);
-            if (!operand.Success || operand.Index != operandStart) {
-                return false;
-            }
-
-            int closingParenthesis = operand.Index + operand.Length;
-            while (closingParenthesis < formula.Length && char.IsWhiteSpace(formula[closingParenthesis])) {
-                closingParenthesis++;
-            }
-
-            return closingParenthesis < formula.Length && formula[closingParenthesis] == ')';
+            return false;
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

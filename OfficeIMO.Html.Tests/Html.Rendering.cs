@@ -1573,6 +1573,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_TableCellMatchParentUsesRowAlignment() {
+        const string html =
+            "<table style='width:200px;text-align:left'><tr style='text-align:center'><td style='text-align:match-parent'>MatchedCell</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions {
+                ViewportWidth = 200D,
+                Margins = HtmlRenderMargins.All(0D)
+            });
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text == "MatchedCell");
+        Assert.True(text.X > 40D);
+    }
+
+    [Fact]
     public void HtmlRenderer_RootDirectionMetadataHonorsCssInitialReset() {
         const string html =
             "<!doctype html><html dir='rtl' style='direction:initial'><body><p>LTR metadata</p></body></html>";

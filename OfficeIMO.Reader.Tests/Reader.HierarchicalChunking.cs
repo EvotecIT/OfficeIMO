@@ -604,6 +604,32 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_DoesNotReportPageInspectionLimitAtExactFinalBlock() {
+        var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
+        OfficeDocumentBlock[] pageBlocks = Enumerable.Repeat(retained, 15).ToArray();
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { retained },
+            Pages = new[] { new OfficeDocumentPage { Number = 7, Blocks = pageBlocks } }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal(7, chunk.Location.Page);
+        Assert.DoesNotContain(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
     public void Chunk_BoundsPageIndexInspectionWhenRetainedBlocksAreMissing() {
         var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
         var unrelated = new OfficeDocumentBlock { Id = "unrelated", Text = "other" };

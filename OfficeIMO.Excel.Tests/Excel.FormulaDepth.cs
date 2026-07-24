@@ -1083,7 +1083,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_ExpandsSharedWholeRowColumnSpillAndThreeDimensionalReferences() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedReferenceKinds.xlsx");
-            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+LOG10 (A1)+FOO1 (A1)+SUM(A1 (A1))+SUM(A1 (A1:A2))+Q1:Q4!A1";
+            const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+LOG10 (A1)+FOO1 (A1)+SUM(A1 (A1))+SUM(A1 (A1:A2))+SUM(A1 (A1,B2))+SUM(A1 ((A1,B2),C3))+Q1:Q4!A1";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorksheet("Q1");
@@ -1124,7 +1124,7 @@ namespace OfficeIMO.Tests {
             // Built-in functions remain stable while cell-like tokens followed by
             // parenthesized references participate in whitespace intersections.
             Assert.Equal(
-                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+LOG10 (B2)+FOP2 (B2)+SUM(B2 (B2))+SUM(B2 (B2:B3))+Q1:Q4!B2",
+                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+LOG10 (B2)+FOP2 (B2)+SUM(B2 (B2))+SUM(B2 (B2:B3))+SUM(B2 (B2,C3))+SUM(B2 ((B2,C3),D4))+Q1:Q4!B2",
                 shared.GetFormulaText(2, 6));
         }
 
