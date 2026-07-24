@@ -310,20 +310,18 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
             _excelDocument.MaterializeDeferredDataSetImport();
-            var worksheet = WorksheetRoot;
-            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return;
-
-            var rowIndexes = sheetData.Elements<Row>()
-                .Select(r => (int)r.RowIndex!.Value)
-                .ToList();
-
-            if (rowIndexes.Count == 0) return;
-
             // CalculateRowHeight reads shared Open XML nodes. Keep the read-and-apply pass
             // serialized even when callers request parallel execution; parallelizing the DOM
             // traversal is not safe and the public mode remains a scheduling hint.
             WriteLock(() => {
+                var worksheet = WorksheetRoot;
+                SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData == null) return;
+                var rowIndexes = sheetData.Elements<Row>()
+                    .Select(r => (int)r.RowIndex!.Value)
+                    .ToList();
+                if (rowIndexes.Count == 0) return;
+
                 for (int i = 0; i < rowIndexes.Count; i++) {
                     ct.ThrowIfCancellationRequested();
                     double height = CalculateRowHeight(rowIndexes[i]);

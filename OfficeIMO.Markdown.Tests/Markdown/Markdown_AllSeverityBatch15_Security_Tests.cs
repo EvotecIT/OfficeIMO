@@ -69,6 +69,10 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
             MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
                 CssScopeSelector = ".tenant-" + index
             });
+            MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
+                Style = (HtmlStyle)(10_000 + index),
+                Theme = new MarkdownVisualTheme { HtmlStyle = (HtmlStyle)(20_000 + index) }
+            });
         }
 
         FieldInfo field = typeof(HtmlRenderer).GetField("_unscopedBaseCssCache", BindingFlags.NonPublic | BindingFlags.Static)!;

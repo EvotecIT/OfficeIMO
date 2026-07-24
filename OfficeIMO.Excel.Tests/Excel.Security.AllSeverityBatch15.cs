@@ -33,6 +33,11 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
                     new XElement(extension + "sheet",
                         new XAttribute("name", "ExtensionBogus"),
                         new XAttribute(relationships + "id", realRelationshipId))));
+                workbook.Root.AddFirst(new XElement(extension + "wrapper",
+                    new XElement(spreadsheet + "sheets",
+                        new XElement(spreadsheet + "sheet",
+                            new XAttribute("name", "SameNamespaceBogus"),
+                            new XAttribute(relationships + "id", realRelationshipId)))));
                 sheets.AddFirst(new XElement(spreadsheet + "sheet",
                     new XAttribute("name", "WrongNamespaceBogus"),
                     new XAttribute(XNamespace.Xmlns + "r", "urn:attacker-relationships"),
@@ -47,6 +52,8 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
             using ExcelDocumentReader reader = ExcelDocumentReader.Open(path);
             Assert.Equal(new[] { "Data" }, reader.GetSheetNames());
             Assert.Equal(1, reader.SheetCount);
+            Assert.NotNull(reader.GetSheet("Data"));
+            Assert.Throws<KeyNotFoundException>(() => reader.GetSheet("SameNamespaceBogus"));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -105,17 +112,24 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
-    public void ParallelRowAutoFitRequestsSerializeOpenXmlTraversal() {
+    public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Data");
         for (int row = 1; row <= 100; row++) sheet.CellValue(row, 1, "row " + row);
 
         Parallel.Invoke(
-            () => sheet.AutoFitRows(ExecutionMode.Parallel),
-            () => sheet.AutoFitRows(ExecutionMode.Parallel),
-            () => sheet.AutoFitRows(ExecutionMode.Parallel));
+            () => {
+                for (int row = 101; row <= 600; row++) sheet.CellValue(row, 1, "row " + row);
+            },
+            () => {
+                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExecutionMode.Parallel);
+            },
+            () => {
+                for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExecutionMode.Parallel);
+            });
 
         Assert.NotNull(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First().Height);
+        Assert.Equal(600, sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Count());
     }
 
     private sealed record WideRow(string Name, int Score, int Total);

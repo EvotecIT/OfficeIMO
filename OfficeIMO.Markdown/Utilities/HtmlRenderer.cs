@@ -310,7 +310,7 @@ internal static class HtmlRenderer {
         // Only cache the finite built-in style set. Caller-controlled scope selectors are
         // deliberately rendered on demand so unique request values cannot grow static state.
         MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
-        HtmlStyle effectiveStyle = GetEffectiveStyle(options, effectiveVisualTheme);
+        HtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
         string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
             static style => HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
         string baseCss = string.IsNullOrWhiteSpace(options.CssScopeSelector)
@@ -394,6 +394,19 @@ internal static class HtmlRenderer {
 
         return options.Style;
     }
+
+    private static HtmlStyle NormalizeHtmlStyle(HtmlStyle style) => style switch {
+        HtmlStyle.Plain => style,
+        HtmlStyle.Clean => style,
+        HtmlStyle.GithubLight => style,
+        HtmlStyle.GithubDark => style,
+        HtmlStyle.GithubAuto => style,
+        HtmlStyle.ChatLight => style,
+        HtmlStyle.ChatDark => style,
+        HtmlStyle.ChatAuto => style,
+        HtmlStyle.Word => style,
+        _ => HtmlStyle.Clean
+    };
 
     private static string BuildThemeOverrides(HtmlOptions options, MarkdownVisualTheme? theme) {
         MarkdownHtmlColorOverrides t = BuildEffectiveThemeColors(options, theme);

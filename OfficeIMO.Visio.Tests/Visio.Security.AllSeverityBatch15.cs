@@ -47,6 +47,27 @@ public sealed class VisioAllSeverityBatch15SecurityTests {
         }
     }
 
+    [Fact]
+    public void StreamingValidatorRejectsAdditionalRelationshipWithoutId() {
+        string path = CreateSample();
+        try {
+            UpdateXml(path, "visio/pages/_rels/pages.xml.rels", document => {
+                XElement relationship = document.Root!.Elements().First();
+                document.Root.Add(new XElement(relationship.Name,
+                    relationship.Attributes().Where(attribute => attribute.Name.LocalName != "Id")));
+            });
+            var validator = new VsdxPackageValidator();
+
+            bool valid = validator.ValidateFileStreaming(path);
+
+            Assert.False(valid);
+            Assert.Contains(validator.Errors, error =>
+                error.Contains("missing or empty Id", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static string CreateSample() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-visio-b15-" + Guid.NewGuid().ToString("N") + ".vsdx");
         VisioDocument document = VisioDocument.Create(path);

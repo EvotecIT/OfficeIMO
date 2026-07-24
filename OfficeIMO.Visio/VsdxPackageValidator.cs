@@ -377,6 +377,9 @@ namespace OfficeIMO.Visio {
             var pagesRels = LoadZipXml(zip, "visio/pages/_rels/pages.xml.rels");
             if (pagesRels?.Root == null) { _errors.Add("Missing /visio/pages/_rels/pages.xml.rels"); return; }
             var relElems = pagesRels.Root.Elements(nsPkgRel + "Relationship").ToList();
+            if (relElems.Any(element => string.IsNullOrWhiteSpace((string?)element.Attribute("Id")))) {
+                _errors.Add("pages.xml.rels contains a relationship with missing or empty Id");
+            }
             // r:id uniqueness in pages.xml.rels
             var idGroups = relElems.Select(e => (string?)e.Attribute("Id") ?? string.Empty)
                 .GroupBy(id => id, StringComparer.Ordinal)

@@ -183,9 +183,11 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
-                int sheetsDepth = -1;
+                var state = new WorkbookSheetXmlState();
+                string? resolvedName = null;
+                WorksheetPart? resolvedWorksheetPart = null;
                 while (reader.Read()) {
-                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
+                    if (!IsWorkbookSheetElement(reader, state)) {
                         continue;
                     }
 
@@ -203,12 +205,16 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    sheetName = candidateName!;
-                    worksheetPart = resolvedPart;
-                    return true;
+                    resolvedName ??= candidateName;
+                    resolvedWorksheetPart ??= resolvedPart;
                 }
 
-                return false;
+                if (state.IsInvalid || resolvedName == null || resolvedWorksheetPart == null) {
+                    return false;
+                }
+                sheetName = resolvedName;
+                worksheetPart = resolvedWorksheetPart;
+                return true;
             } catch (XmlException) {
                 return false;
             } catch (IOException) {
@@ -262,9 +268,11 @@ namespace OfficeIMO.Excel {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
                 int currentIndex = 0;
-                int sheetsDepth = -1;
+                var state = new WorkbookSheetXmlState();
+                string? resolvedName = null;
+                WorksheetPart? resolvedWorksheetPart = null;
                 while (reader.Read()) {
-                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
+                    if (!IsWorkbookSheetElement(reader, state)) {
                         continue;
                     }
 
@@ -283,12 +291,16 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    sheetName = candidateName!;
-                    worksheetPart = resolvedPart;
-                    return true;
+                    resolvedName ??= candidateName;
+                    resolvedWorksheetPart ??= resolvedPart;
                 }
 
-                return false;
+                if (state.IsInvalid || resolvedName == null || resolvedWorksheetPart == null) {
+                    return false;
+                }
+                sheetName = resolvedName;
+                worksheetPart = resolvedWorksheetPart;
+                return true;
             } catch (XmlException) {
                 return false;
             } catch (IOException) {
@@ -314,9 +326,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
-                int sheetsDepth = -1;
+                var state = new WorkbookSheetXmlState();
                 while (reader.Read()) {
-                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
+                    if (!IsWorkbookSheetElement(reader, state)) {
                         continue;
                     }
 
@@ -334,7 +346,7 @@ namespace OfficeIMO.Excel {
                     names.Add(sheetName!);
                 }
 
-                return names.Count > 0;
+                return !state.IsInvalid && names.Count > 0;
             } catch (XmlException) {
                 names = [];
                 return false;
@@ -366,9 +378,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
-                int sheetsDepth = -1;
+                var state = new WorkbookSheetXmlState();
                 while (reader.Read()) {
-                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
+                    if (!IsWorkbookSheetElement(reader, state)) {
                         continue;
                     }
 
@@ -379,7 +391,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                return count > 0;
+                return !state.IsInvalid && count > 0;
             } catch (XmlException) {
                 count = 0;
                 return false;
@@ -401,30 +413,57 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool IsWorkbookSheetElement(XmlReader reader, ref int sheetsDepth) {
+        private static bool IsWorkbookSheetElement(XmlReader reader, WorkbookSheetXmlState state) {
             bool isSpreadsheetNamespace = reader.NamespaceURI == SpreadsheetNamespace
                 || reader.NamespaceURI == StrictSpreadsheetNamespace;
 
+            if (reader.NodeType == XmlNodeType.Element && reader.Depth == 0) {
+                if (!isSpreadsheetNamespace || reader.LocalName != "workbook") {
+                    state.IsInvalid = true;
+                } else {
+                    state.WorkbookDepth = reader.Depth;
+                    state.WorkbookNamespace = reader.NamespaceURI;
+                }
+                return false;
+            }
+
             if (reader.NodeType == XmlNodeType.EndElement
-                && sheetsDepth == reader.Depth
+                && state.SheetsDepth == reader.Depth
                 && reader.LocalName == "sheets"
-                && isSpreadsheetNamespace) {
-                sheetsDepth = -1;
+                && reader.NamespaceURI == state.WorkbookNamespace) {
+                state.SheetsDepth = -1;
                 return false;
             }
 
-            if (reader.NodeType != XmlNodeType.Element || !isSpreadsheetNamespace) {
+            if (reader.NodeType != XmlNodeType.Element) {
                 return false;
             }
 
-            if (reader.LocalName == "sheets") {
-                sheetsDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+            if (isSpreadsheetNamespace && reader.LocalName == "sheets") {
+                if (state.WorkbookDepth < 0
+                    || state.SheetsContainerSeen
+                    || reader.Depth != state.WorkbookDepth + 1
+                    || reader.NamespaceURI != state.WorkbookNamespace) {
+                    state.IsInvalid = true;
+                    return false;
+                }
+                state.SheetsContainerSeen = true;
+                state.SheetsDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                 return false;
             }
 
-            return sheetsDepth >= 0
-                && reader.Depth == sheetsDepth + 1
-                && reader.LocalName == "sheet";
+            return state.SheetsDepth >= 0
+                && reader.Depth == state.SheetsDepth + 1
+                && reader.LocalName == "sheet"
+                && reader.NamespaceURI == state.WorkbookNamespace;
+        }
+
+        private sealed class WorkbookSheetXmlState {
+            internal int WorkbookDepth { get; set; } = -1;
+            internal int SheetsDepth { get; set; } = -1;
+            internal string? WorkbookNamespace { get; set; }
+            internal bool SheetsContainerSeen { get; set; }
+            internal bool IsInvalid { get; set; }
         }
 
         private static XmlReaderSettings CreateWorkbookXmlReaderSettings() {
