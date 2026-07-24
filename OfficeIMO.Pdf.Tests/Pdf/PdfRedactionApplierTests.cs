@@ -27,6 +27,28 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_AreaRedactionPreservesTextObjectsWithoutKnownGeometry() {
+        const string content =
+            "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET\n" +
+            "BT\n% unlocatable-outside-target\nET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(content))
+        };
+        byte[] source = BuildPdf(objects, rootObjectNumber: 1);
+        var area = new PdfRedactionArea(1, 45, 40, 80, 35, "unmatched-text");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string rewritten = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
+        Assert.Contains("unlocatable-outside-target", rewritten, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RemovesMatchedTextAndKeepsUnmatchedTextExtractable() {
         byte[] source = BuildRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");

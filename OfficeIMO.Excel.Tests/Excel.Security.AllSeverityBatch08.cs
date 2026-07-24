@@ -153,6 +153,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_PackageWorkbookMergeDoesNotCopyUnrelatedLocalDefinedNames() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "SecurityBatch08.LocalNamesSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.LocalNamesTarget.xlsx");
+
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                source.AddWorksheet("First").CellFormula(1, 1, "Rate");
+                source.AddWorksheet("Second").CellValue(1, 1, 2);
+                source.Save();
+            }
+
+            AddDefinedName(sourcePath, "Rate", "1");
+            AddDefinedName(sourcePath, "Rate", "2", localSheetId: 1U);
+
+            using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            using var targetDocument = ExcelDocument.Create(targetPath);
+            ExcelWorkbookMergeResult result = targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
+                CopyMode = ExcelWorksheetCopyMode.Package,
+                MaxDefinedNames = 1
+            });
+
+            Assert.Equal(2, result.SheetCount);
+            Assert.Single(targetDocument.WorkbookRoot.DefinedNames!.Elements<DefinedName>());
+        }
+
+        [Fact]
+        public void Test_PackageWorkbookMergeCopiesExplicitlyQualifiedLocalDefinedName() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "SecurityBatch08.QualifiedLocalNameSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.QualifiedLocalNameTarget.xlsx");
+
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                source.AddWorksheet("First").CellFormula(1, 1, "Second!Rate");
+                source.AddWorksheet("Second").CellValue(1, 1, 2);
+                source.Save();
+            }
+
+            AddDefinedName(sourcePath, "Rate", "1");
+            AddDefinedName(sourcePath, "Rate", "2", localSheetId: 1U);
+
+            using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            using var targetDocument = ExcelDocument.Create(targetPath);
+            targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
+                CopyMode = ExcelWorksheetCopyMode.Package,
+                MaxDefinedNames = 1
+            });
+
+            DefinedName copied = Assert.Single(targetDocument.WorkbookRoot.DefinedNames!.Elements<DefinedName>());
+            Assert.Equal("Rate", copied.Name?.Value);
+            Assert.Equal(1U, copied.LocalSheetId?.Value);
+        }
+
+        [Fact]
         public void Test_PackageWorksheetCopyIgnoresMalformedStyledRows() {
             string sourcePath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MalformedRowSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MalformedRowTarget.xlsx");

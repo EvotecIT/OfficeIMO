@@ -594,7 +594,10 @@ internal static partial class PdfRedactionApplier {
 
     private static bool IntersectsTarget(RedactionTextBounds? bounds, RedactionTextTarget target) {
         if (bounds is null) {
-            return true;
+            // An area target may only remove text whose geometry proves an intersection.
+            // Treating an unknown location as a match lets one unlocatable object remove
+            // every other unlocatable BT/ET block on the page.
+            return false;
         }
 
         return Intersects(

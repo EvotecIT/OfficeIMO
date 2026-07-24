@@ -1612,11 +1612,14 @@ namespace OfficeIMO.Tests {
             workbookPart.Workbook.Save();
         }
 
-        private static void AddDefinedName(string path, string name, string formula) {
+        private static void AddDefinedName(string path, string name, string formula, uint? localSheetId = null) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
             Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
             workbook.DefinedNames ??= new DefinedNames();
-            workbook.DefinedNames.Append(new DefinedName(formula) { Name = name });
+            workbook.DefinedNames.Append(new DefinedName(formula) {
+                Name = name,
+                LocalSheetId = localSheetId
+            });
             workbook.Save();
         }
 
