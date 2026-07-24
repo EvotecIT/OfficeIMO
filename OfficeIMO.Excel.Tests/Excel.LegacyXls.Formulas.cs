@@ -138,6 +138,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_DropsExternalWorkbookFormulasByDefaultButKeepsCachedValues() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions {
+                LossPolicy = ExcelConversionLossPolicy.Allow
+            });
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Assert.Empty(workbookPart.GetPartsOfType<ExternalWorkbookPart>());
+            Cell[] cells = workbookPart.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                .OrderBy(cell => cell.CellReference!.Value, StringComparer.Ordinal)
+                .ToArray();
+            Assert.Equal(2, cells.Length);
+            Assert.All(cells, cell => Assert.Null(cell.CellFormula));
+            Assert.Equal("15", cells[0].CellValue!.Text);
+            Assert.Equal("42", cells[1].CellValue!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaExternalDefinedNames() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalDefinedNameWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -178,6 +201,25 @@ namespace OfficeIMO.Tests {
             WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
             Assert.Equal("'Budget.xls'!TaxRate", projectedFormula.CellFormula!.Text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_DropsExternalDefinedNameFormulasByDefaultButKeepsCachedValue() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalDefinedNameWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions {
+                LossPolicy = ExcelConversionLossPolicy.Allow
+            });
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Assert.Empty(workbookPart.GetPartsOfType<ExternalWorkbookPart>());
+            Cell cell = Assert.Single(workbookPart.WorksheetParts.Single().Worksheet.Descendants<Cell>());
+            Assert.Null(cell.CellFormula);
+            Assert.Equal("0.25", cell.CellValue!.Text);
         }
 
         [Fact]

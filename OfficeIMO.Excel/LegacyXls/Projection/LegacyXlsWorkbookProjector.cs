@@ -674,7 +674,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         currentSheet.CellValue(cell.Row, cell.Column, value);
                     }
 
-                    if (cell.IsFormula && !string.IsNullOrWhiteSpace(cell.FormulaText)) {
+                    if (cell.IsFormula &&
+                        !string.IsNullOrWhiteSpace(cell.FormulaText) &&
+                        ShouldProjectFormula(workbook, cell.FormulaText!)) {
                         currentSheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
                     }
 
@@ -686,7 +688,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         cell.Row == arrayFormula.FirstRow
                         && cell.Column == arrayFormula.FirstColumn
                         && cell.IsFormula
-                        && !string.IsNullOrWhiteSpace(cell.FormulaText));
+                        && !string.IsNullOrWhiteSpace(cell.FormulaText)
+                        && ShouldProjectFormula(workbook, cell.FormulaText!));
                     if (formulaCell != null) {
                         currentSheet.SetLegacyArrayFormula(arrayFormula.Range, formulaCell.FormulaText!);
                     }
@@ -902,8 +905,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     AllowSort = permissions?.AllowSort ?? false,
                     AllowAutoFilter = permissions?.AllowAutoFilter ?? false,
                     AllowPivotTables = permissions?.AllowPivotTables ?? false
-                });
-            }
+            });
+        }
 
             ProjectProtectedRanges(legacySheet, sheet);
             ProjectPageSetup(legacySheet, sheet);
@@ -924,6 +927,30 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             } else if (legacySheet.Visibility != 0) {
                 sheet.SetHidden(true);
             }
+        }
+
+        private static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
+            workbook.PreserveExternalWorkbookLinks || !ReferencesExternalWorkbook(workbook, formulaText);
+
+        private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) {
+            foreach (LegacyXlsExternalReference reference in workbook.ExternalReferences) {
+                if (reference.Kind != LegacyXlsExternalReferenceKind.ExternalWorkbook ||
+                    string.IsNullOrWhiteSpace(reference.Target)) {
+                    continue;
+                }
+
+                string normalizedTarget = reference.Target!.Replace('\\', '/');
+                int separator = normalizedTarget.LastIndexOf('/');
+                string fileName = separator >= 0 ? normalizedTarget.Substring(separator + 1) : normalizedTarget;
+                if (fileName.Length == 0) continue;
+                if (formulaText.IndexOf("[" + fileName + "]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    formulaText.IndexOf("'" + fileName + "'!", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    formulaText.IndexOf(fileName + "!", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ProjectTableDefinitions(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
@@ -1564,6 +1591,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
             IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
+                if (!workbook.PreserveExternalWorkbookLinks && ReferencesExternalWorkbook(workbook, definedName.Reference)) {
+                    continue;
+                }
                 ExcelSheet? scope = definedName.LocalSheetIndex.HasValue
                     && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int worksheetIndex)
                     && worksheetIndex < document.Sheets.Count
