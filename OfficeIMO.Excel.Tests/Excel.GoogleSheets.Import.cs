@@ -87,6 +87,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleSheetsImporter_NativeCountsDimensionMetadataAgainstCellBudget() {
+            const string nativeJson = "{\"spreadsheetId\":\"sheet-metadata\",\"sheets\":[{\"properties\":{\"title\":\"Sheet1\"},\"data\":[{\"rowMetadata\":[{\"pixelSize\":20},{\"hiddenByUser\":true}],\"columnMetadata\":[{}]}]}]}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"sheet-metadata\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+                new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                session.ImportGoogleSheetAsync("sheet-metadata", new GoogleSheetsImportOptions {
+                    Mode = GoogleSheetsImportMode.Native,
+                    MaxCells = 2,
+                }));
+        }
+
+        [Fact]
         public async Task Test_GoogleSheetsImporter_NativeBoundsZeroCellDimensionGroupExpansion() {
             const string nativeJson = "{\"spreadsheetId\":\"sheet-groups\",\"sheets\":[{\"properties\":{\"sheetId\":42,\"title\":\"Sheet1\"},\"rowGroups\":[{\"range\":{\"sheetId\":42,\"dimension\":\"ROWS\",\"startIndex\":0,\"endIndex\":1048576},\"depth\":1}]}]}";
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>

@@ -425,6 +425,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsImporter_NativeBoundsSparseTableRows() {
+            const string nativeJson = "{\"documentId\":\"doc-sparse-table\",\"body\":{\"content\":[{\"table\":{\"tableRows\":[{\"tableCells\":[]},{\"tableCells\":[]}]}}]}}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-sparse-table\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+                new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                new GoogleDocsImporter().ImportAsync("doc-sparse-table", session, new GoogleDocsImportOptions {
+                    Mode = GoogleDocsImportMode.Native,
+                    MaxTableCells = 1,
+                }));
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsImporter_NativeChargesRectangularTableProjection() {
+            const string nativeJson = "{\"documentId\":\"doc-ragged-table\",\"body\":{\"content\":[{\"table\":{\"tableRows\":[{\"tableCells\":[{}]},{\"tableCells\":[{},{},{}]}]}}]}}";
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+                request.RequestUri!.Host == "www.googleapis.com"
+                    ? Task.FromResult(CreateJsonResponse("{\"id\":\"doc-ragged-table\",\"mimeType\":\"application/vnd.google-apps.document\",\"capabilities\":{\"canDownload\":true}}"))
+                    : Task.FromResult(CreateJsonResponse(nativeJson))));
+            var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(),
+                new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                new GoogleDocsImporter().ImportAsync("doc-ragged-table", session, new GoogleDocsImportOptions {
+                    Mode = GoogleDocsImportMode.Native,
+                    MaxTableCells = 4,
+                }));
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsDiffPlanner_ReportsDriveVersionChanges() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDriveVersionDiff.docx");
             try {

@@ -32,6 +32,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         public long MaxResponseBytes { get; set; } = DefaultMaxResponseBytes;
         public int MaxTabs { get; set; } = 100;
         public int MaxStructuralElements { get; set; } = 100_000;
+        /// <summary>
+        /// Maximum aggregate rectangular table-cell projection. The same ceiling is also applied
+        /// independently to aggregate table rows so sparse tables cannot allocate unbounded
+        /// document rows.
+        /// </summary>
         public int MaxTableCells { get; set; } = 1_000_000;
         public long MaxTextCharacters { get; set; } = 10_000_000L;
     }

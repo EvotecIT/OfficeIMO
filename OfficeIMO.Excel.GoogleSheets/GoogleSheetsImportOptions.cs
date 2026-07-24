@@ -25,6 +25,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public IProgress<OfficeIMO.GoogleWorkspace.Drive.GoogleDriveTransferProgress>? Progress { get; set; }
         public long MaxResponseBytes { get; set; } = DefaultMaxResponseBytes;
         public int MaxSheets { get; set; } = 256;
+        /// <summary>
+        /// Maximum number of native cell values and row/column metadata entries that may be
+        /// projected. Dimension metadata shares this budget because it can materialize row and
+        /// column state even when the response contains no cell values.
+        /// </summary>
         public long MaxCells { get; set; } = 1_000_000L;
         public long MaxDimensionGroupMembers { get; set; } = 1_000_000L;
     }

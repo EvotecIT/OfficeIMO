@@ -497,15 +497,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 throw new InvalidDataException($"Google Sheets native import exceeded the configured {options.MaxSheets} sheet limit.");
             }
 
-            long cells = 0;
+            long projectedEntries = 0;
             long dimensionGroupMembers = 0;
             foreach (GoogleSheetsNativeSheet sheet in spreadsheet.Sheets) {
                 foreach (GoogleSheetsNativeGridData block in sheet.Data) {
+                    long dimensionMetadataEntries = (long)block.RowMetadata.Count + block.ColumnMetadata.Count;
+                    if (dimensionMetadataEntries > options.MaxCells - projectedEntries) {
+                        throw new InvalidDataException(
+                            $"Google Sheets native import exceeded the configured {options.MaxCells} cell and dimension-metadata limit.");
+                    }
+                    projectedEntries += dimensionMetadataEntries;
+
                     foreach (GoogleSheetsNativeRowData row in block.RowData) {
-                        if (row.Values.Count > options.MaxCells - cells) {
+                        if (row.Values.Count > options.MaxCells - projectedEntries) {
                             throw new InvalidDataException($"Google Sheets native import exceeded the configured {options.MaxCells} cell limit.");
                         }
-                        cells += row.Values.Count;
+                        projectedEntries += row.Values.Count;
                     }
                 }
                 CountDimensionGroupMembers(sheet.RowGroups, sheet.Properties.SheetId, "ROWS", 1048576,

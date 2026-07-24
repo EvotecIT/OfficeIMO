@@ -242,17 +242,18 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             int structuralElements = 0;
+            int tableRows = 0;
             int tableCells = 0;
             long textCharacters = 0;
             if (tabs.Count == 0) {
                 CountNativeContent(response.Body?.Content, options,
-                    ref structuralElements, ref tableCells, ref textCharacters);
+                    ref structuralElements, ref tableRows, ref tableCells, ref textCharacters);
                 return;
             }
 
             foreach (GoogleDocsApiTabResponse tab in tabs) {
                 CountNativeContent(tab.DocumentTab?.Body?.Content, options,
-                    ref structuralElements, ref tableCells, ref textCharacters);
+                    ref structuralElements, ref tableRows, ref tableCells, ref textCharacters);
             }
         }
 
@@ -260,6 +261,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyList<GoogleDocsApiStructuralElementResponse>? content,
             GoogleDocsImportOptions options,
             ref int structuralElements,
+            ref int tableRows,
             ref int tableCells,
             ref long textCharacters) {
             if (content == null) return;
@@ -278,14 +280,27 @@ namespace OfficeIMO.Word.GoogleDocs {
                     }
                 }
                 if (element.Table == null) continue;
+                if (element.Table.Rows.Count > options.MaxTableCells - tableRows) {
+                    throw new InvalidDataException(
+                        $"Google Docs native import exceeded the configured {options.MaxTableCells} table-row limit.");
+                }
+                tableRows += element.Table.Rows.Count;
+
+                int maximumColumns = element.Table.Rows
+                    .Select(static row => row.Cells.Count)
+                    .DefaultIfEmpty(0)
+                    .Max();
+                long projectedCells = (long)element.Table.Rows.Count * maximumColumns;
+                if (projectedCells > options.MaxTableCells - tableCells) {
+                    throw new InvalidDataException(
+                        $"Google Docs native import exceeded the configured {options.MaxTableCells} table-cell limit.");
+                }
+                tableCells += (int)projectedCells;
+
                 foreach (GoogleDocsApiTableRowResponse row in element.Table.Rows) {
                     foreach (GoogleDocsApiTableCellResponse cell in row.Cells) {
-                        if (tableCells >= options.MaxTableCells) {
-                            throw new InvalidDataException($"Google Docs native import exceeded the configured {options.MaxTableCells} table-cell limit.");
-                        }
-                        tableCells++;
                         CountNativeContent(cell.Content, options,
-                            ref structuralElements, ref tableCells, ref textCharacters);
+                            ref structuralElements, ref tableRows, ref tableCells, ref textCharacters);
                     }
                 }
             }
