@@ -960,8 +960,7 @@ public sealed class ReaderPdfModularTests {
         string source = Encoding.ASCII.GetString(BuildInternalDestinationLinkPdf());
         byte[] malformed = Encoding.ASCII.GetBytes(source.Replace(
             "/XYZ 24 144 1",
-            "/XYZ 1e309 144 1",
-            StringComparison.Ordinal));
+            "/XYZ 1e309 144 1"));
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(malformed, writable: false),
