@@ -2,6 +2,8 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontFilesToInspect = 8192;
+    internal const int MaxSystemFontDirectoriesToInspect = 512;
+    internal const int MaxSystemFontDirectoryDepth = 16;
     internal const long MaxSystemFontFileBytes = 128L * 1024L * 1024L;
     internal const int MaxSystemFontFamilyCacheEntries = 32;
     private static readonly System.Collections.Generic.Dictionary<string, System.Lazy<SystemFontFamilyCacheEntry>> SystemFontFamilyCache =
@@ -130,7 +132,9 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         try {
             var fileInfo = new System.IO.FileInfo(path);
-            if (!fileInfo.Exists || fileInfo.Length > MaxSystemFontFileBytes) {
+            if (!fileInfo.Exists ||
+                (fileInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
+                fileInfo.Length > MaxSystemFontFileBytes) {
                 return false;
             }
 
@@ -396,51 +400,93 @@ public sealed partial class PdfEmbeddedFontFamily {
         yield return "/System/Library/Fonts";
     }
 
-    private static System.Collections.Generic.IEnumerable<string> EnumerateTrueTypeFontFiles(string root) {
-        var directories = new System.Collections.Generic.Stack<string>();
-        directories.Push(root);
+    internal static System.Collections.Generic.IEnumerable<string> EnumerateTrueTypeFontFiles(string root) {
+        var directories = new System.Collections.Generic.Stack<(string Path, int Depth)>();
+        var seenDirectories = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        directories.Push((root, 0));
+        int inspectedDirectories = 0;
 
-        while (directories.Count > 0) {
-            string current = directories.Pop();
-            string[] files;
+        while (directories.Count > 0 && inspectedDirectories < MaxSystemFontDirectoriesToInspect) {
+            (string current, int depth) = directories.Pop();
+            string canonicalPath;
             try {
-                files = GetTrueTypeFontFiles(current);
+                canonicalPath = System.IO.Path.GetFullPath(current);
+                var directoryInfo = new System.IO.DirectoryInfo(canonicalPath);
+                if (!directoryInfo.Exists ||
+                    (directoryInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
+                    !seenDirectories.Add(canonicalPath)) {
+                    continue;
+                }
+            } catch (System.Exception exception) when (
+                exception is System.IO.IOException ||
+                exception is System.UnauthorizedAccessException ||
+                exception is System.NotSupportedException ||
+                exception is System.ArgumentException) {
+                continue;
+            }
+
+            inspectedDirectories++;
+            System.Collections.Generic.IEnumerable<string> files;
+            try {
+                files = System.IO.Directory.EnumerateFiles(canonicalPath);
+            } catch (System.Exception exception) when (
+                exception is System.IO.IOException ||
+                exception is System.UnauthorizedAccessException) {
+                files = System.Array.Empty<string>();
+            }
+
+            using (System.Collections.Generic.IEnumerator<string> enumerator = files.GetEnumerator()) {
+                while (true) {
+                    string file;
+                    try {
+                        if (!enumerator.MoveNext()) {
+                            break;
+                        }
+
+                        file = enumerator.Current;
+                    } catch (System.Exception exception) when (
+                        exception is System.IO.IOException ||
+                        exception is System.UnauthorizedAccessException) {
+                        break;
+                    }
+
+                    string extension = System.IO.Path.GetExtension(file);
+                    if (string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".ttc", System.StringComparison.OrdinalIgnoreCase)) {
+                        yield return file;
+                    }
+                }
+            }
+
+            if (depth >= MaxSystemFontDirectoryDepth) {
+                continue;
+            }
+
+            System.Collections.Generic.IEnumerable<string> children;
+            try {
+                children = System.IO.Directory.EnumerateDirectories(canonicalPath);
             } catch (System.Exception exception) when (
                 exception is System.IO.IOException ||
                 exception is System.UnauthorizedAccessException) {
                 continue;
             }
 
-            for (int i = 0; i < files.Length; i++) {
-                yield return files[i];
-            }
+            using (System.Collections.Generic.IEnumerator<string> enumerator = children.GetEnumerator()) {
+                while (directories.Count + inspectedDirectories < MaxSystemFontDirectoriesToInspect) {
+                    try {
+                        if (!enumerator.MoveNext()) {
+                            break;
+                        }
 
-            string[] children;
-            try {
-                children = System.IO.Directory.GetDirectories(current);
-            } catch (System.Exception exception) when (
-                exception is System.IO.IOException ||
-                exception is System.UnauthorizedAccessException) {
-                continue;
-            }
-
-            for (int i = 0; i < children.Length; i++) {
-                directories.Push(children[i]);
+                        directories.Push((enumerator.Current, depth + 1));
+                    } catch (System.Exception exception) when (
+                        exception is System.IO.IOException ||
+                        exception is System.UnauthorizedAccessException) {
+                        break;
+                    }
+                }
             }
         }
-    }
-
-    private static string[] GetTrueTypeFontFiles(string root) {
-        string[] trueTypeFiles = System.IO.Directory.GetFiles(root, "*.ttf");
-        string[] collectionFiles = System.IO.Directory.GetFiles(root, "*.ttc");
-        if (collectionFiles.Length == 0) {
-            return trueTypeFiles;
-        }
-
-        string[] files = new string[trueTypeFiles.Length + collectionFiles.Length];
-        System.Array.Copy(trueTypeFiles, 0, files, 0, trueTypeFiles.Length);
-        System.Array.Copy(collectionFiles, 0, files, trueTypeFiles.Length, collectionFiles.Length);
-        return files;
     }
 
     private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata) {

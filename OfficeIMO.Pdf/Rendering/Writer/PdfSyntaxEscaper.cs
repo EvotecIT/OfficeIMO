@@ -19,6 +19,13 @@ internal static class PdfSyntaxEscaper {
     }
 
     internal static string LiteralString(string value) {
+        Guard.NotNull(value, nameof(value));
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] > byte.MaxValue) {
+                return TextString(value);
+            }
+        }
+
         return "(" + EscapeLiteralContent(value) + ")";
     }
 

@@ -182,6 +182,7 @@ public static class PdfOpenTypeFontInspector {
         int idDeltaOffset = startCodeOffset + segCount * 2;
         int idRangeOffsetOffset = idDeltaOffset + segCount * 2;
         var map = new Dictionary<int, int>();
+        int processedMappings = 0;
 
         for (int segment = 0; segment < segCount; segment++) {
             int endCode = ReadUInt16(data, endCodeOffset + segment * 2);
@@ -192,6 +193,17 @@ public static class PdfOpenTypeFontInspector {
             if (startCode == 0xFFFF && endCode == 0xFFFF) {
                 continue;
             }
+
+            int mappingCount = endCode >= startCode ? endCode - startCode + 1 : 0;
+            if (mappingCount == 0) {
+                continue;
+            }
+
+            if (mappingCount > MaxUnicodeCMapMappings || processedMappings > MaxUnicodeCMapMappings - mappingCount) {
+                throw new NotSupportedException("OpenType Unicode cmap mapping count exceeds supported limits.");
+            }
+
+            processedMappings += mappingCount;
 
             for (int code = startCode; code <= endCode && code <= 0xFFFF; code++) {
                 int glyphId;
@@ -232,6 +244,7 @@ public static class PdfOpenTypeFontInspector {
         }
 
         var map = new Dictionary<int, int>();
+        int processedMappings = 0;
         int groupOffset = offset + 16;
         for (uint group = 0; group < groupCount; group++) {
             uint startCharCode = ReadUInt32(data, groupOffset);
@@ -243,9 +256,11 @@ public static class PdfOpenTypeFontInspector {
             }
 
             uint mappingCount = endCharCode - startCharCode + 1U;
-            if (mappingCount > MaxUnicodeCMapMappings || map.Count > MaxUnicodeCMapMappings - (int)mappingCount) {
+            if (mappingCount > MaxUnicodeCMapMappings || processedMappings > MaxUnicodeCMapMappings - (int)mappingCount) {
                 throw new NotSupportedException("OpenType Unicode cmap mapping count exceeds supported limits.");
             }
+
+            processedMappings += (int)mappingCount;
 
             for (uint code = startCharCode; code <= endCharCode; code++) {
                 uint glyph = startGlyphId + (code - startCharCode);

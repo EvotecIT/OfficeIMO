@@ -9,6 +9,33 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class VisioTimelineDiagramBuilderTests {
         [Fact]
+        public void TimelineDiagramBuilderTracksLargeUniqueIdSetsWithoutRescanningItems() {
+            var builder = new VisioTimelineDiagramBuilder(VisioDocument.Create(), "Security Timeline");
+            DateTime date = new DateTime(2026, 1, 1);
+
+            for (int index = 0; index < 4096; index++) {
+                builder.Milestone("milestone-" + index, date, "Milestone " + index);
+            }
+
+            Assert.Throws<ArgumentException>(() => builder.Span(
+                "milestone-2048",
+                date,
+                date.AddDays(1),
+                "Duplicate"));
+        }
+
+        [Fact]
+        public void TimelineDiagramBuilderReleasesReplacedTitleId() {
+            var builder = new VisioTimelineDiagramBuilder(VisioDocument.Create(), "Security Timeline");
+            DateTime date = new DateTime(2026, 1, 1);
+
+            builder
+                .Title("Initial", id: "old-title")
+                .Title("Replacement", id: "new-title")
+                .Milestone("old-title", date, "Reused id");
+        }
+
+        [Fact]
         public void TimelineDiagramBuilderCreatesStyledRoadmapPage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

@@ -45,6 +45,7 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.False(options.IncludeImages);
         Assert.True(options.ResourcePolicy.AllowDataUris);
         Assert.True(options.ResourcePolicy.AllowLocalFileAccess);
+        Assert.True(options.ResourcePolicy.AllowDocumentFontEmbedding);
         Assert.False(options.ApplyDefaultTheme);
         Assert.Equal(MarkdownPdfFrontMatterRenderMode.Hidden, options.FrontMatterRenderMode);
     }
@@ -159,6 +160,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     private static void AssertPortable(PdfResourcePolicy policy) {
         Assert.False(policy.AllowSystemFontEmbedding);
+        Assert.False(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);
@@ -167,6 +169,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     private static void AssertBalancedDefault(PdfResourcePolicy policy) {
         Assert.True(policy.AllowSystemFontEmbedding);
+        Assert.False(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);

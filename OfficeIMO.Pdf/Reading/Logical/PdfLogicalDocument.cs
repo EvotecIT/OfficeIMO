@@ -272,15 +272,17 @@ public sealed partial class PdfLogicalDocument {
             }
 
             var grouped = new Dictionary<int, List<PdfFormField>>();
+            var memberships = new Dictionary<int, HashSet<PdfFormField>>();
             IReadOnlyList<PdfLogicalFormWidget> widgets = FormWidgets;
             for (int i = 0; i < widgets.Count; i++) {
                 PdfLogicalFormWidget widget = widgets[i];
                 if (!grouped.TryGetValue(widget.PageNumber, out List<PdfFormField>? pageFields)) {
                     pageFields = new List<PdfFormField>();
                     grouped.Add(widget.PageNumber, pageFields);
+                    memberships.Add(widget.PageNumber, new HashSet<PdfFormField>());
                 }
 
-                if (!pageFields.Contains(widget.Field)) {
+                if (memberships[widget.PageNumber].Add(widget.Field)) {
                     pageFields.Add(widget.Field);
                 }
             }
@@ -978,11 +980,14 @@ public sealed partial class PdfLogicalDocument {
         PdfDocumentOpenAction? openAction = useDocumentWideObjects
             ? document.OpenAction
             : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
+        IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> formWidgetsByPageNumber =
+            IndexFormWidgetsByPageNumber(formFields);
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
-            pages.Add(PdfLogicalPage.From(document, document.Pages[pageNumber - 1], pageNumber, options, formFields));
+            formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets);
+            pages.Add(PdfLogicalPage.From(document, document.Pages[pageNumber - 1], pageNumber, options, pageFormWidgets));
         }
 
         return new PdfLogicalDocument(
@@ -1010,6 +1015,35 @@ public sealed partial class PdfLogicalDocument {
             document.CatalogPageLayout,
             document.CatalogVersion,
             document.CatalogLanguage);
+    }
+
+    internal static IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> IndexFormWidgetsByPageNumber(
+        IReadOnlyList<PdfFormField> formFields) {
+        var grouped = new Dictionary<int, List<PdfLogicalFormWidget>>();
+        for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
+            PdfFormField field = formFields[fieldIndex];
+            for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
+                PdfFormWidget widget = field.Widgets[widgetIndex];
+                if (!widget.PageNumber.HasValue) {
+                    continue;
+                }
+
+                int pageNumber = widget.PageNumber.Value;
+                if (!grouped.TryGetValue(pageNumber, out List<PdfLogicalFormWidget>? pageWidgets)) {
+                    pageWidgets = new List<PdfLogicalFormWidget>();
+                    grouped.Add(pageNumber, pageWidgets);
+                }
+
+                pageWidgets.Add(new PdfLogicalFormWidget(pageNumber, field, widget));
+            }
+        }
+
+        var result = new Dictionary<int, IReadOnlyList<PdfLogicalFormWidget>>();
+        foreach (var item in grouped) {
+            result.Add(item.Key, item.Value.AsReadOnly());
+        }
+
+        return new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>>(result);
     }
 
     private static PdfFormFieldTextAlignment ToTextAlignment(int? quadding) {

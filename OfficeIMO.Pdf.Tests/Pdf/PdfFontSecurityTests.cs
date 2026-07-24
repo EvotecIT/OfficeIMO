@@ -73,6 +73,39 @@ endbfrange
     }
 
     [Fact]
+    public void ToUnicodeCMap_ExcludesOversizedReverseMappings() {
+        string repeatedDestination = string.Concat(Enumerable.Repeat("0041", 65));
+        byte[] cmapBytes = Encoding.ASCII.GetBytes($"""
+beginbfchar
+<01> <{repeatedDestination}>
+<02> <0041>
+endbfchar
+""");
+
+        Assert.True(ToUnicodeCMap.TryParse(cmapBytes, out ToUnicodeCMap? cmap));
+        Assert.NotNull(cmap);
+
+        Assert.True(cmap!.TryEncodeText(new string('A', 65), out string encoded));
+        Assert.Equal(string.Concat(Enumerable.Repeat("02", 65)), encoded);
+    }
+
+    [Fact]
+    public void ToUnicodeCMap_CapsCumulativeReverseIndexNodes() {
+        var cmap = new ToUnicodeCMap();
+        MethodInfo addMap = typeof(ToUnicodeCMap).GetMethod("AddMap", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        FieldInfo nodeCount = typeof(ToUnicodeCMap).GetField("_reverseMapNodeCount", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        FieldInfo budgetExhausted = typeof(ToUnicodeCMap).GetField("_reverseMapBudgetExhausted", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        for (int index = 1; index <= 2048; index++) {
+            string destination = string.Concat(Enumerable.Repeat(index.ToString("X4"), 64));
+            addMap.Invoke(cmap, new object[] { index.ToString("X4"), destination });
+        }
+
+        Assert.True((bool)budgetExhausted.GetValue(cmap)!);
+        Assert.InRange((int)nodeCount.GetValue(cmap)!, 1, 65536);
+    }
+
+    [Fact]
     public void ResourceResolver_CapsCidWidthRangeExpansion() {
         var page = new PdfDictionary();
         var resources = new PdfDictionary();
@@ -120,6 +153,24 @@ endbfrange
         Assert.Contains("cmap mapping count exceeds supported limits", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OpenTypeInspectorRejectsCumulativeOverlappingFormat12CmapExpansion() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateOverlappingFormat12Cmap());
+
+        Assert.False(PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out string? error, "OfficeIMO Security Font"));
+        Assert.Null(info);
+        Assert.Contains("cmap mapping count exceeds supported limits", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OpenTypeInspectorRejectsCumulativeOverlappingFormat4CmapExpansion() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateOverlappingFormat4Cmap());
+
+        Assert.False(PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out string? error, "OfficeIMO Security Font"));
+        Assert.Null(info);
+        Assert.Contains("cmap mapping count exceeds supported limits", error, StringComparison.Ordinal);
+    }
+
     private static byte[] CreateLargeRangeFormat12Cmap() {
         var data = new byte[40];
         WriteUInt16(data, 2, 1);
@@ -132,6 +183,56 @@ endbfrange
         WriteUInt32(data, 28, 0);
         WriteUInt32(data, 32, 0x10FFFF);
         WriteUInt32(data, 36, 1);
+        return data;
+    }
+
+    private static byte[] CreateOverlappingFormat12Cmap() {
+        const int groupCount = 3;
+        var data = new byte[12 + 16 + groupCount * 12];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, (uint)(16 + groupCount * 12));
+        WriteUInt32(data, 24, groupCount);
+        for (int group = 0; group < groupCount; group++) {
+            int offset = 28 + group * 12;
+            WriteUInt32(data, offset, 0);
+            WriteUInt32(data, offset + 4, 0xFFFF);
+            WriteUInt32(data, offset + 8, 1);
+        }
+
+        return data;
+    }
+
+    private static byte[] CreateOverlappingFormat4Cmap() {
+        const int segmentCount = 4;
+        const int subtableLength = 16 + segmentCount * 8;
+        var data = new byte[12 + subtableLength];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 1);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 4);
+        WriteUInt16(data, 14, subtableLength);
+        WriteUInt16(data, 18, segmentCount * 2);
+
+        int endCodeOffset = 26;
+        int startCodeOffset = endCodeOffset + segmentCount * 2 + 2;
+        int idDeltaOffset = startCodeOffset + segmentCount * 2;
+        int idRangeOffsetOffset = idDeltaOffset + segmentCount * 2;
+        for (int segment = 0; segment < segmentCount - 1; segment++) {
+            WriteUInt16(data, endCodeOffset + segment * 2, 0xFFFE);
+            WriteUInt16(data, startCodeOffset + segment * 2, 0);
+            WriteUInt16(data, idDeltaOffset + segment * 2, 1);
+            WriteUInt16(data, idRangeOffsetOffset + segment * 2, 0);
+        }
+
+        WriteUInt16(data, endCodeOffset + (segmentCount - 1) * 2, 0xFFFF);
+        WriteUInt16(data, startCodeOffset + (segmentCount - 1) * 2, 0xFFFF);
+        WriteUInt16(data, idDeltaOffset + (segmentCount - 1) * 2, 1);
+        WriteUInt16(data, idRangeOffsetOffset + (segmentCount - 1) * 2, 0);
         return data;
     }
 

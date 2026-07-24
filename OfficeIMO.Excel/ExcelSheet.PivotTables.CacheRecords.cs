@@ -106,25 +106,6 @@ namespace OfficeIMO.Excel {
         private static bool ShouldCollectPivotSharedItems(int fieldIndex, IReadOnlyList<bool>? collectFieldValues)
             => collectFieldValues == null || fieldIndex < 0 || fieldIndex >= collectFieldValues.Count || collectFieldValues[fieldIndex];
 
-        private static bool ShouldEmbedPivotCacheRecords(
-            int sourceRecordCount,
-            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
-            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
-            IReadOnlyList<ExcelPivotCalculatedField> calculatedFields,
-            IReadOnlyList<ExcelPivotFilter> pivotFilters,
-            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap)
-        {
-            if (sourceRecordCount <= 0 || sourceRecordCount > EmbeddedPivotCacheRecordRowLimit) {
-                return false;
-            }
-
-            // Simple source-range pivots can refresh from the worksheet. Embed cache
-            // records only for bounded scenarios that introduce cache-only fields.
-            return groupingMap.Count != 0
-                || generatedFields.Count != 0
-                || calculatedFields.Count != 0;
-        }
-
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
             int firstDataRow,

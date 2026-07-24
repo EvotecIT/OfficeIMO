@@ -1029,7 +1029,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PackageStencilPreviewGalleryLinksSvgPreviewsWithoutInliningThem() {
+        public void PackageStencilPreviewGalleryStoresSvgPreviewsAsDownloadOnlyText() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect width=\"10\" height=\"10\"/></svg>");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "svg", svg);
@@ -1052,14 +1052,15 @@ namespace OfficeIMO.Tests {
             Assert.False(entry.HasThumbnail);
             Assert.Equal(0, gallery.BrowserRenderableCount);
             Assert.Equal(0, gallery.ThumbnailCount);
-            Assert.Equal("assets/42-FancyCloud.svg", entry.RelativePath);
+            Assert.Equal("assets/42-FancyCloud.svg.txt", entry.RelativePath);
             Assert.True(File.Exists(entry.FilePath));
             Assert.Equal(svg, File.ReadAllBytes(entry.FilePath));
 
             string html = File.ReadAllText(gallery.IndexPath!);
-            Assert.Contains("assets/42-FancyCloud.svg", html);
+            Assert.Contains("<a download href=\"assets/42-FancyCloud.svg.txt\">", html);
             Assert.Contains("<div class=\"fallback\">svg</div>", html);
-            Assert.DoesNotContain("<img src=\"assets/42-FancyCloud.svg\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("href=\"assets/42-FancyCloud.svg\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<img src=\"assets/42-FancyCloud.svg.txt\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(".thumbnail.svg", html, StringComparison.OrdinalIgnoreCase);
         }
 

@@ -566,6 +566,7 @@ public sealed partial class PdfDocumentInfo {
             }
 
             var grouped = new Dictionary<int, List<PdfFormField>>();
+            var memberships = new Dictionary<int, HashSet<PdfFormField>>();
             for (int i = 0; i < FormFields.Count; i++) {
                 PdfFormField formField = FormFields[i];
                 for (int j = 0; j < formField.Widgets.Count; j++) {
@@ -577,9 +578,10 @@ public sealed partial class PdfDocumentInfo {
                     if (!grouped.TryGetValue(pageNumber.Value, out List<PdfFormField>? fields)) {
                         fields = new List<PdfFormField>();
                         grouped.Add(pageNumber.Value, fields);
+                        memberships.Add(pageNumber.Value, new HashSet<PdfFormField>());
                     }
 
-                    if (!fields.Contains(formField)) {
+                    if (memberships[pageNumber.Value].Add(formField)) {
                         fields.Add(formField);
                     }
                 }

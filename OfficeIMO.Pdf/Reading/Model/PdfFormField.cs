@@ -308,9 +308,10 @@ public sealed class PdfFormField {
             }
 
             var pages = new List<int>();
+            var seenPages = new HashSet<int>();
             for (int i = 0; i < Widgets.Count; i++) {
                 int? pageNumber = Widgets[i].PageNumber;
-                if (!pageNumber.HasValue || pages.Contains(pageNumber.Value)) {
+                if (!pageNumber.HasValue || !seenPages.Add(pageNumber.Value)) {
                     continue;
                 }
 
@@ -381,13 +382,11 @@ public sealed class PdfFormField {
         }
 
         var selected = new List<PdfFormFieldOption>();
+        var selectedValues = new HashSet<string>(values, StringComparer.Ordinal);
         for (int i = 0; i < options.Count; i++) {
             PdfFormFieldOption option = options[i];
-            for (int j = 0; j < values.Count; j++) {
-                if (string.Equals(option.ExportValue, values[j], StringComparison.Ordinal)) {
-                    selected.Add(option);
-                    break;
-                }
+            if (selectedValues.Contains(option.ExportValue)) {
+                selected.Add(option);
             }
         }
 

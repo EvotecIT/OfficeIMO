@@ -800,7 +800,8 @@ internal static partial class ResourceResolver {
             (glyphName.Length - 3) % 4 == 0) {
             var builder = new System.Text.StringBuilder((glyphName.Length - 3) / 4);
             for (int i = 3; i < glyphName.Length; i += 4) {
-                if (!TryParseHexCodePoint(glyphName.Substring(i, 4), out int codePoint)) {
+                if (!TryParseHexCodePoint(glyphName.Substring(i, 4), out int codePoint) ||
+                    !IsValidUnicodeScalar(codePoint)) {
                     return false;
                 }
 
@@ -815,7 +816,7 @@ internal static partial class ResourceResolver {
             glyphName.Length <= 7 &&
             glyphName[0] == 'u' &&
             TryParseHexCodePoint(glyphName.Substring(1), out int scalar) &&
-            scalar <= 0x10FFFF) {
+            IsValidUnicodeScalar(scalar)) {
 #if NET5_0_OR_GREATER
             value = char.ConvertFromUtf32(scalar);
 #else
@@ -826,6 +827,9 @@ internal static partial class ResourceResolver {
 
         return false;
     }
+
+    private static bool IsValidUnicodeScalar(int value) =>
+        value >= 0 && value <= 0x10FFFF && (value < 0xD800 || value > 0xDFFF);
 
     private static bool TryParseHexCodePoint(string text, out int value) {
         value = 0;

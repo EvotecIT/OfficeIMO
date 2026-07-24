@@ -49,8 +49,10 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildPdfWithFontEncodingDifferences() {
-        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n<4142434445> Tj\nET\n";
+    private static byte[] BuildPdfWithFontEncodingDifferences(
+        string differences = "65 /Z /space /Euro /uni0104 /A.alt",
+        string encodedText = "4142434445") {
+        string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n<" + encodedText + "> Tj\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
 
         string pdf = string.Join("\n", new[] {
@@ -65,7 +67,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "endobj",
             "4 0 obj",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [65 /Z /space /Euro /uni0104 /A.alt] >> >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [" + differences + "] >> >>",
             "endobj",
             "5 0 obj",
             $"<< /Length {streamLength} >>",

@@ -18,21 +18,23 @@ namespace OfficeIMO.PowerPoint {
             SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
             List<PowerPointShape> layoutShapes = CreateInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart);
             IReadOnlyList<PowerPointShape> slideShapes = Shapes;
+            var layoutOverrides = new PlaceholderOverrideIndex(layoutShapes);
+            var slideOverrides = new PlaceholderOverrideIndex(slideShapes);
 
             if (ShowsMasterShapes(layoutPart?.SlideLayout)) {
                 // Master placeholders define geometry and styles for concrete slide/layout
                 // placeholders. Their editing prompts are not inherited slide content.
                 foreach (PowerPointShape masterShape in CreateInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart)) {
                     if (!IsStructuralPlaceholder(masterShape) &&
-                        !IsPlaceholderOverridden(masterShape, layoutShapes) &&
-                        !IsPlaceholderOverridden(masterShape, slideShapes)) {
+                        !layoutOverrides.ContainsMatch(masterShape) &&
+                        !slideOverrides.ContainsMatch(masterShape)) {
                         shapes.Add(masterShape);
                     }
                 }
             }
 
             foreach (PowerPointShape layoutShape in layoutShapes) {
-                if (!IsPlaceholderOverridden(layoutShape, slideShapes)) {
+                if (!slideOverrides.ContainsMatch(layoutShape)) {
                     shapes.Add(layoutShape);
                 }
             }
@@ -65,36 +67,68 @@ namespace OfficeIMO.PowerPoint {
         private static bool IsStructuralPlaceholder(PowerPointShape shape) =>
             TryGetPlaceholderSignature(shape, out _, out _);
 
-        private static bool IsPlaceholderOverridden(PowerPointShape inheritedShape, IReadOnlyList<PowerPointShape> overridingShapes) {
-            if (!TryGetPlaceholderSignature(inheritedShape, out PlaceholderValues? inheritedType, out uint? inheritedIndex)) {
-                return false;
-            }
-
-            foreach (PowerPointShape overridingShape in overridingShapes) {
-                if (TryGetPlaceholderSignature(overridingShape, out PlaceholderValues? overridingType, out uint? overridingIndex) &&
-                    PlaceholderSignaturesMatch(inheritedType, inheritedIndex, overridingType, overridingIndex)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static bool TryGetPlaceholderSignature(PowerPointShape shape, out PlaceholderValues? type, out uint? index) {
             type = shape.ShapePlaceholderType;
             index = shape.ShapePlaceholderIndex;
             return type.HasValue || index.HasValue;
         }
 
-        private static bool PlaceholderSignaturesMatch(PlaceholderValues? inheritedType, uint? inheritedIndex, PlaceholderValues? overridingType, uint? overridingIndex) {
-            if (inheritedIndex.HasValue && overridingIndex.HasValue) {
-                return inheritedIndex.Value == overridingIndex.Value &&
-                    (!inheritedType.HasValue || !overridingType.HasValue || inheritedType.Value == overridingType.Value);
+        private sealed class PlaceholderOverrideIndex {
+            private readonly HashSet<uint> _indices = new();
+            private readonly HashSet<uint> _untypedIndices = new();
+            private readonly Dictionary<uint, HashSet<PlaceholderValues>> _typesByIndex = new();
+            private readonly HashSet<PlaceholderValues> _allTypes = new();
+            private readonly HashSet<PlaceholderValues> _typesWithoutIndex = new();
+
+            internal PlaceholderOverrideIndex(IReadOnlyList<PowerPointShape> shapes) {
+                for (int index = 0; index < shapes.Count; index++) {
+                    if (!TryGetPlaceholderSignature(shapes[index], out PlaceholderValues? type, out uint? placeholderIndex)) {
+                        continue;
+                    }
+
+                    if (type.HasValue) {
+                        _allTypes.Add(type.Value);
+                    }
+
+                    if (!placeholderIndex.HasValue) {
+                        if (type.HasValue) {
+                            _typesWithoutIndex.Add(type.Value);
+                        }
+
+                        continue;
+                    }
+
+                    _indices.Add(placeholderIndex.Value);
+                    if (!type.HasValue) {
+                        _untypedIndices.Add(placeholderIndex.Value);
+                    } else {
+                        if (!_typesByIndex.TryGetValue(placeholderIndex.Value, out HashSet<PlaceholderValues>? types)) {
+                            types = new HashSet<PlaceholderValues>();
+                            _typesByIndex.Add(placeholderIndex.Value, types);
+                        }
+
+                        types.Add(type.Value);
+                    }
+                }
             }
 
-            return inheritedType.HasValue &&
-                overridingType.HasValue &&
-                inheritedType.Value == overridingType.Value;
+            internal bool ContainsMatch(PowerPointShape inheritedShape) {
+                if (!TryGetPlaceholderSignature(inheritedShape, out PlaceholderValues? type, out uint? index)) {
+                    return false;
+                }
+
+                if (!index.HasValue) {
+                    return type.HasValue && _allTypes.Contains(type.Value);
+                }
+
+                if (!type.HasValue) {
+                    return _indices.Contains(index.Value);
+                }
+
+                return _typesWithoutIndex.Contains(type.Value) ||
+                    _untypedIndices.Contains(index.Value) ||
+                    (_typesByIndex.TryGetValue(index.Value, out HashSet<PlaceholderValues>? types) && types.Contains(type.Value));
+            }
         }
     }
 }
