@@ -325,6 +325,28 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarDepthBeforeModelLoad() {
+        const string yaml =
+            "root:\n" +
+            "  child:\n" +
+            "    value: one\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
+            stream,
+            sourceName: "scalar-depth-limited.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxDepth = 1,
+                MaxNodes = 100,
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum depth reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderYaml_ReadYamlStream_BoundsComplexMappingKeysWithNodeLimit() {
         const string yaml =
             "? [one, two, three, four]\n" +

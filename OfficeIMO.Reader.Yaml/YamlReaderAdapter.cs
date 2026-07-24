@@ -142,6 +142,10 @@ internal static class YamlReaderAdapter {
                 case Scalar:
                 case AnchorAlias:
                     nodes++;
+                    if (containerDepth > options.MaxDepth) {
+                        limitError = "YAML parse limit exceeded: maximum depth reached.";
+                        return false;
+                    }
                     break;
             }
 

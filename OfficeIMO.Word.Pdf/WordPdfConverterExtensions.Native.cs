@@ -204,6 +204,9 @@ namespace OfficeIMO.Word.Pdf {
                 sectionIndex = sectionGroupEnd;
             }
 
+            // The lookup cache is conversion-scoped. Releasing it here preserves the pre-existing
+            // post-conversion behavior and prevents disposed document state from being reused.
+            ResetNativeStyleLookupCache(document);
             return pdf;
         }
 
