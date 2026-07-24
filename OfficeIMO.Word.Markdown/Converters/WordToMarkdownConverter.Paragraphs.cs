@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Markdown {
             var sb = new StringBuilder();
 
             if (paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
-                int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
                 if (depth > 0) {
                     sb.Append(string.Join(" ", Enumerable.Repeat(">", depth))).Append(' ');
                 }
@@ -35,8 +35,8 @@ namespace OfficeIMO.Word.Markdown {
 
             var listInfo = DocumentTraversal.GetListInfo(paragraph);
             if (listInfo != null) {
-                int level = listInfo.Value.Level;
-                sb.Append(new string(' ', level * 2));
+                int level = ValidateListLevel(listInfo.Value.Level, options.MaxListNestingDepth);
+                sb.Append(new string(' ', checked(level * 2)));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
                 // Task list (checkbox) mapping — look across all runs in the underlying paragraph
                 bool hasCheckbox = hasCheckboxOverride ?? paragraph.IsCheckBox;
@@ -218,24 +218,14 @@ namespace OfficeIMO.Word.Markdown {
                 if (string.IsNullOrEmpty(extension)) {
                     extension = ".png";
                 }
-                string fileName = string.IsNullOrEmpty(image.FileName)
-                    ? Guid.NewGuid().ToString("N") + extension
-                    : image.FileName!;
-                if (string.IsNullOrEmpty(Path.GetExtension(fileName))) {
-                    fileName += extension;
-                }
+                string fileName = BuildSafeImageFileName(image.FileName, extension);
 
                 string targetPath = Path.Combine(directory, fileName);
-
-                if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
-                    File.Copy(image.FilePath, targetPath, true);
-                } else {
-                    OfficeFileCommit.WriteAllBytes(targetPath, image.ToBytes());
-                }
+                WriteImageFile(image, targetPath);
 
                 return $"![{alt}]({fileName})";
             } else {
-                byte[] bytes = image.ToBytes();
+                byte[] bytes = ReadEmbeddedImageBytes(image, options);
                 string extension = Path.GetExtension(image.FilePath);
                 string mime = extension switch {
                     ".jpg" => "image/jpeg",
@@ -247,6 +237,92 @@ namespace OfficeIMO.Word.Markdown {
                 string base64 = System.Convert.ToBase64String(bytes);
                 return $"![{alt}](data:{mime};base64,{base64})";
             }
+        }
+
+        private const int MaximumBlockquoteDepth = 64;
+
+        private static int GetBoundedBlockquoteDepth(double indentationBefore) {
+            double computed = Math.Round(indentationBefore / 720d);
+            if (double.IsNaN(computed) || computed <= 0) {
+                return 0;
+            }
+
+            return computed >= MaximumBlockquoteDepth
+                ? MaximumBlockquoteDepth
+                : (int)computed;
+        }
+
+        private string BuildSafeImageFileName(string? suppliedName, string extension) {
+            string normalized = (suppliedName ?? string.Empty).Replace('\\', '/');
+            int separator = normalized.LastIndexOf('/');
+            if (separator >= 0) {
+                normalized = normalized.Substring(separator + 1);
+            }
+
+            normalized = Path.GetFileName(normalized);
+            var invalid = Path.GetInvalidFileNameChars();
+            var safe = new StringBuilder(normalized.Length);
+            foreach (char character in normalized) {
+                safe.Append(character < ' ' || invalid.Contains(character) ? '_' : character);
+            }
+
+            string fileName = safe.ToString().Trim();
+            if (string.IsNullOrEmpty(fileName) || fileName == "." || fileName == "..") {
+                fileName = Guid.NewGuid().ToString("N");
+            }
+
+            if (string.IsNullOrEmpty(Path.GetExtension(fileName))) {
+                fileName += extension;
+            }
+
+            if (_exportedImageFileNames.Add(fileName)) {
+                return fileName;
+            }
+
+            string baseName = Path.GetFileNameWithoutExtension(fileName);
+            string fileExtension = Path.GetExtension(fileName);
+            for (int suffix = 2; ; suffix++) {
+                string candidate = baseName + "-" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + fileExtension;
+                if (_exportedImageFileNames.Add(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+
+        private static byte[] ReadEmbeddedImageBytes(WordImage image, WordToMarkdownOptions options) {
+            long maximumBytes = options.MaxEmbeddedImageBytes;
+            if (maximumBytes <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes), "MaxEmbeddedImageBytes must be greater than zero.");
+            }
+
+            using Stream input = image.OpenRead();
+            if (input.CanSeek && input.Length > maximumBytes) {
+                throw new InvalidDataException($"The embedded image exceeds the {maximumBytes}-byte Markdown limit.");
+            }
+
+            using var output = new MemoryStream();
+            var buffer = new byte[81920];
+            long total = 0;
+            while (true) {
+                int read = input.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                total += read;
+                if (total > maximumBytes) {
+                    throw new InvalidDataException($"The embedded image exceeds the {maximumBytes}-byte Markdown limit.");
+                }
+                output.Write(buffer, 0, read);
+            }
+
+            return output.ToArray();
+        }
+
+        private static void WriteImageFile(WordImage image, string targetPath) {
+            OfficeFileCommit.Write(targetPath, output => {
+                using Stream input = !string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)
+                    ? File.OpenRead(image.FilePath)
+                    : image.OpenRead();
+                input.CopyTo(output);
+            });
         }
     }
 }

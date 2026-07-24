@@ -4,6 +4,16 @@ namespace OfficeIMO.Word.Html {
     /// </summary>
     public class WordToHtmlOptions {
         /// <summary>
+        /// Maximum nested table depth exported from a Word document. The default is 128.
+        /// </summary>
+        public int MaxTableNestingDepth { get; set; } = 128;
+
+        /// <summary>
+        /// Maximum list nesting depth exported from a Word document. The default is 128.
+        /// </summary>
+        public int MaxListNestingDepth { get; set; } = 128;
+
+        /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
         public string? FontFamily { get; set; }

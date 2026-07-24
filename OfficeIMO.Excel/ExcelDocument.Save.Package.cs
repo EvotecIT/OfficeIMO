@@ -116,11 +116,16 @@ namespace OfficeIMO.Excel {
 
             PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
 
-            using var snapshot = new MemoryStream();
+            using FileStream snapshot = OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-Save-",
+                ".tmp",
+                FileOptions.SequentialScan,
+                out _);
             using (_spreadSheetDocument.Clone(snapshot)) { }
+            snapshot.Flush();
+            ThrowIfPackageMaterializationExceedsLimit(snapshot.Length, options);
             snapshot.Position = 0;
-
-            var packageBytes = snapshot.ToArray();
+            byte[] packageBytes = ReadPackageBytes(snapshot, options);
 
             if (closeDocument) {
                 try { _spreadSheetDocument.Dispose(); } catch { }
@@ -138,11 +143,41 @@ namespace OfficeIMO.Excel {
             destination.SetLength(0);
         }
 
+        private static FileStream? CreateBoundedPackageStagingStream(
+            Stream destination,
+            ExcelSaveOptions? options,
+            bool forceStaging = false) {
+            long? maximumBytes = GetPackageMaterializationLimit(options);
+            if (!forceStaging && (!(destination is MemoryStream) || !maximumBytes.HasValue)) {
+                return null;
+            }
+
+            return OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-FastSave-",
+                ".tmp",
+                FileOptions.SequentialScan,
+                out _);
+        }
+
+        private static void CommitStagedPackageToStream(
+            FileStream stagedPackage,
+            Stream destination,
+            ExcelSaveOptions? options) {
+            stagedPackage.Flush();
+            ThrowIfPackageMaterializationExceedsLimit(stagedPackage.Length, options);
+            stagedPackage.Position = 0;
+            PrepareDestinationStreamForWrite(destination);
+            stagedPackage.CopyTo(destination);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+            if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+        }
+
         private bool TryWriteUnchangedPackageToStream(Stream destination, ExcelSaveOptions? options) {
             if (!CanUseUnchangedPackageFastPath(options) || _unchangedPackageBytes == null) {
                 return false;
             }
 
+            ThrowIfPackageMaterializationExceedsLimit(_unchangedPackageBytes.LongLength, options);
             PrepareDestinationStreamForWrite(destination);
             destination.Write(_unchangedPackageBytes, 0, _unchangedPackageBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
@@ -154,6 +189,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            ThrowIfPackageMaterializationExceedsLimit(_unchangedPackageBytes.LongLength, options);
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(_unchangedPackageBytes, 0, _unchangedPackageBytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
@@ -208,6 +244,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ct.ThrowIfCancellationRequested();
+                ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
                 try { _spreadSheetDocument.Dispose(); } catch { }
@@ -219,6 +256,8 @@ namespace OfficeIMO.Excel {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.SimplePackage();
                 return true;
             } catch (OperationCanceledException) {
+                throw;
+            } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
                 skipReason = "Simple package writer failed: " + ex.Message;
@@ -245,6 +284,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ct.ThrowIfCancellationRequested();
+                ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
                 try { _spreadSheetDocument.Dispose(); } catch { }
@@ -256,6 +296,8 @@ namespace OfficeIMO.Excel {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
                 return true;
             } catch (OperationCanceledException) {
+                throw;
+            } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
                 skipReason = "Extended package writer failed: " + ex.Message;
@@ -348,7 +390,7 @@ namespace OfficeIMO.Excel {
             ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }
 
-        private static byte[] NormalizePackageBytes(byte[] packageBytes) {
+        private static byte[] NormalizePackageBytes(byte[] packageBytes, ExcelSaveOptions? options) {
             using (var probe = new MemoryStream(packageBytes, writable: false)) {
                 try {
                     if (!ExcelPackageUtilities.NeedsContentTypeNormalization(probe)) {
@@ -358,29 +400,82 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
+            using FileStream working = OfficeTemporaryFile.Create(
+                "OfficeIMO.Excel-Normalize-",
+                ".tmp",
+                FileOptions.None,
+                out _);
             working.Write(packageBytes, 0, packageBytes.Length);
             working.Position = 0;
 
             try {
                 ExcelPackageUtilities.NormalizeContentTypes(working, leaveOpen: true);
+            } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
+                throw;
             } catch {
             }
 
-            if (working.CanSeek) {
-                working.Position = 0;
-            }
-
-            return working.ToArray();
+            ThrowIfPackageMaterializationExceedsLimit(working.Length, options);
+            working.Position = 0;
+            return ReadPackageBytes(working, options);
         }
 
-        private static byte[] FinalizePackageBytes(SavePayload payload) {
+        private static byte[] FinalizePackageBytes(SavePayload payload, ExcelSaveOptions? options) {
+            ThrowIfPackageMaterializationExceedsLimit(payload.PackageBytes.LongLength, options);
             var withProperties = payload.ApplyPackageProperties
-                ? payload.Properties.ApplyTo(payload.PackageBytes)
+                ? payload.Properties.ApplyTo(payload.PackageBytes, options)
                 : payload.PackageBytes;
-            return payload.NormalizeContentTypes
-                ? NormalizePackageBytes(withProperties)
+            ThrowIfPackageMaterializationExceedsLimit(withProperties.LongLength, options);
+            byte[] finalized = payload.NormalizeContentTypes
+                ? NormalizePackageBytes(withProperties, options)
                 : withProperties;
+            ThrowIfPackageMaterializationExceedsLimit(finalized.LongLength, options);
+            return finalized;
+        }
+
+        private static void ThrowIfPackageMaterializationExceedsLimit(long byteCount, ExcelSaveOptions? options) {
+            long? maximumBytes = GetPackageMaterializationLimit(options);
+            if (maximumBytes.HasValue && byteCount > maximumBytes.Value) {
+                throw CreatePackageMaterializationLimitException($"The Excel package exceeds the {maximumBytes.Value}-byte in-memory save limit.");
+            }
+        }
+
+        private static long? GetPackageMaterializationLimit(ExcelSaveOptions? options) {
+            long? maximumBytes = options == null
+                ? ExcelSaveOptions.DefaultMaxInMemoryPackageBytes
+                : options.MaxInMemoryPackageBytes;
+            if (maximumBytes.HasValue && maximumBytes.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxInMemoryPackageBytes));
+            }
+            return maximumBytes;
+        }
+
+        private static byte[] ReadPackageBytes(Stream stream, ExcelSaveOptions? options) {
+            ThrowIfPackageMaterializationExceedsLimit(stream.Length, options);
+            if (stream.Length > int.MaxValue) {
+                throw CreatePackageMaterializationLimitException("The Excel package is too large to materialize as one byte array.");
+            }
+
+            var bytes = new byte[(int)stream.Length];
+            int offset = 0;
+            while (offset < bytes.Length) {
+                int read = stream.Read(bytes, offset, bytes.Length - offset);
+                if (read == 0) throw new EndOfStreamException("The staged Excel package ended unexpectedly.");
+                offset += read;
+            }
+            return bytes;
+        }
+
+        private const string PackageMaterializationLimitMarker = "OfficeIMO.Excel.PackageMaterializationLimit";
+
+        private static InvalidDataException CreatePackageMaterializationLimitException(string message) {
+            var exception = new InvalidDataException(message);
+            exception.Data[PackageMaterializationLimitMarker] = true;
+            return exception;
+        }
+
+        private static bool IsPackageMaterializationLimitException(InvalidDataException exception) {
+            return exception.Data[PackageMaterializationLimitMarker] is bool marked && marked;
         }
 
         private static void ThrowIfOpenXmlValidationFails(byte[] finalizedBytes, ExcelSaveOptions? options) {

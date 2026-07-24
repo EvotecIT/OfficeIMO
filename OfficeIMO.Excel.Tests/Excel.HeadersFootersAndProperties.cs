@@ -199,7 +199,10 @@ namespace OfficeIMO.Tests {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
                     var sheet = doc.AddWorksheet("Sheet1");
-                    await sheet.SetHeaderImageFromUrlAsync(HeaderFooterPosition.Center, url);
+                    await sheet.SetHeaderImageFromUrlAsync(
+                        HeaderFooterPosition.Center,
+                        url,
+                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                     doc.Save();
                 }
             } finally {
@@ -236,7 +239,10 @@ namespace OfficeIMO.Tests {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
                     var sheet = doc.AddWorksheet("Sheet1");
-                    await sheet.SetFooterImageFromUrlAsync(HeaderFooterPosition.Center, url);
+                    await sheet.SetFooterImageFromUrlAsync(
+                        HeaderFooterPosition.Center,
+                        url,
+                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                     doc.Save();
                 }
             } finally {

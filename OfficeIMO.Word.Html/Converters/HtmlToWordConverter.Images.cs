@@ -762,7 +762,16 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (!string.IsNullOrEmpty(options.BasePath)) {
-                return Path.Combine(options.BasePath, source);
+                string root = Path.GetFullPath(options.BasePath);
+                string relative = source.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+                string candidate = Path.GetFullPath(Path.Combine(root, relative));
+                string rootPrefix = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    ? root
+                    : root + Path.DirectorySeparatorChar;
+                if (!candidate.StartsWith(rootPrefix, StringComparison.Ordinal)) {
+                    return string.Empty;
+                }
+                return candidate;
             }
 
             if (TryGetUsableDocumentBaseUri(img.BaseUrl?.Href, out var baseUri)) {

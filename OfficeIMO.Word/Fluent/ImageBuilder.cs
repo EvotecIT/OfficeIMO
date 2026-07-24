@@ -69,6 +69,18 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Asynchronously downloads and adds an image using an explicit remote-network policy.
+        /// </summary>
+        public async Task<ImageBuilder> AddFromUrlAsync(
+            string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions,
+            CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
+            return Add(image.ToBytes(), image.FileName);
+        }
+
+        /// <summary>
         /// Sets the size of the image in pixels.
         /// </summary>
         /// <param name="width">Image width in pixels.</param>

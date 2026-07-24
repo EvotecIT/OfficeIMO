@@ -154,7 +154,29 @@ namespace OfficeIMO.Word {
             double? width = null,
             double? height = null,
             CancellationToken cancellationToken = default) {
-            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return await AddImageFromUrlCoreAsync(url, width, height, null, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Downloads an image with explicit remote-network policy and inserts it into the document.
+        /// </summary>
+        public Task<WordImage> AddImageFromUrlAsync(
+            string url,
+            double? width,
+            double? height,
+            OfficeRemoteImageLoadOptions remoteImageOptions,
+            CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return AddImageFromUrlCoreAsync(url, width, height, remoteImageOptions, cancellationToken);
+        }
+
+        private async Task<WordImage> AddImageFromUrlCoreAsync(
+            string url,
+            double? width,
+            double? height,
+            OfficeRemoteImageLoadOptions? remoteImageOptions,
+            CancellationToken cancellationToken) {
+            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
             using var ms = image.ToStream();
             var paragraph = AddParagraph();
             paragraph.AddImage(ms, image.FileName, width, height);

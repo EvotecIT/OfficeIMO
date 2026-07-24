@@ -471,7 +471,7 @@ namespace OfficeIMO.Word.Html {
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = htmlDoc.CreateElement("span");
-                        spanClass.SetAttribute("class", run.CharacterStyleId);
+                        spanClass.SetAttribute("class", GetSafeStyleClassName(run.CharacterStyleId));
                         spanClass.AppendChild(node);
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
@@ -548,7 +548,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 ApplyBookmarkId(element, para);
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
-                    element.SetAttribute("class", para.StyleId);
+                    element.SetAttribute("class", GetSafeStyleClassName(para.StyleId));
                     paragraphStyles.Add(para.StyleId!);
                 }
                 if (para.BiDi) {
@@ -627,14 +627,20 @@ namespace OfficeIMO.Word.Html {
                     caption.SetAttribute("dir", "rtl");
                 }
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionParagraph.StyleId)) {
-                    caption.SetAttribute("class", captionParagraph.StyleId);
+                    caption.SetAttribute("class", GetSafeStyleClassName(captionParagraph.StyleId));
                     paragraphStyles.Add(captionParagraph.StyleId!);
                 }
                 AppendRuns(caption, captionParagraph);
                 tableElement.AppendChild(caption);
             }
 
-            void AppendTable(IElement parent, WordTable table, WordParagraph? captionParagraph = null) {
+            void AppendTable(IElement parent, WordTable table, WordParagraph? captionParagraph = null, int nestingDepth = 0) {
+                if (options.MaxTableNestingDepth <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(options.MaxTableNestingDepth));
+                }
+                if (nestingDepth >= options.MaxTableNestingDepth) {
+                    throw new InvalidDataException($"The Word table nesting exceeds the {options.MaxTableNestingDepth}-level HTML conversion limit.");
+                }
                 var tableEl = htmlDoc.CreateElement("table");
                 var tableStyles = new List<string>();
                 var tableWidth = GetWidthCss(table.WidthType, table.Width);
@@ -802,9 +808,9 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         if (cell.HasNestedTables) {
-                            foreach (var nested in cell.NestedTables) {
+                            foreach (var nested in cell.DirectNestedTables) {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                AppendTable(cellElement, nested);
+                                AppendTable(cellElement, nested, nestingDepth: nestingDepth + 1);
                             }
                         }
 
@@ -918,6 +924,12 @@ namespace OfficeIMO.Word.Html {
                 Stack<IElement> items,
                 Stack<int> numberIds) {
                 int level = listInfo.Level;
+                if (options.MaxListNestingDepth <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(options.MaxListNestingDepth));
+                }
+                if (level < 0 || level >= options.MaxListNestingDepth) {
+                    throw new InvalidDataException($"The Word list level {level} exceeds the {options.MaxListNestingDepth}-level HTML conversion limit.");
+                }
                 int desiredListDepth = level + 1;
 
                 while (lists.Count > desiredListDepth) {
@@ -1042,7 +1054,7 @@ namespace OfficeIMO.Word.Html {
                                 AppendRuns(figure, paragraph);
                                 var figCap = htmlDoc.CreateElement("figcaption");
                                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionPara.StyleId)) {
-                                    figCap.SetAttribute("class", captionPara.StyleId);
+                                    figCap.SetAttribute("class", GetSafeStyleClassName(captionPara.StyleId));
                                     paragraphStyles.Add(captionPara.StyleId!);
                                 }
                                 AppendRuns(figCap, captionPara);
@@ -1055,7 +1067,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplyBookmarkId(figure, imagePara);
                                 var figCap = htmlDoc.CreateElement("figcaption");
                                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(paragraph.StyleId)) {
-                                    figCap.SetAttribute("class", paragraph.StyleId);
+                                    figCap.SetAttribute("class", GetSafeStyleClassName(paragraph.StyleId));
                                     paragraphStyles.Add(paragraph.StyleId!);
                                 }
                                 AppendRuns(figCap, paragraph);

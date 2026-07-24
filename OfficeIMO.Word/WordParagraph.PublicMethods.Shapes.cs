@@ -20,13 +20,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraph AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var run = this.VerifyRun();
-            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart!;
-
-            var imagePart = mainPart.AddImagePart(ImagePartType.Png);
-            using (var fs = File.OpenRead(filePathImage)) {
-                imagePart.FeedData(fs);
-            }
-            var relId = mainPart.GetIdOfPart(imagePart);
+            using var fs = File.OpenRead(filePathImage);
+            WordImageLocation imageLocation = WordImage.AddImageToLocation(
+                _document,
+                this,
+                fs,
+                Path.GetFileName(filePathImage),
+                width,
+                height);
+            string relId = imageLocation.RelationshipId;
 
             string style = "mso-wrap-style:square";
             if (width.HasValue) style = $"width:{width}pt;" + style;

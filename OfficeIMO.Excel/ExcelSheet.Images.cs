@@ -159,14 +159,69 @@ namespace OfficeIMO.Excel {
                 cancellationToken: cancellationToken);
 
         /// <summary>
+        /// Asynchronously downloads an image with an explicit remote-network policy and anchors it to a cell.
+        /// </summary>
+        public Task<ExcelImage> AddImageFromUrlAtAsync(
+            int row,
+            int column,
+            string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions,
+            int widthPixels = 96,
+            int heightPixels = 32,
+            int offsetXPixels = 0,
+            int offsetYPixels = 0,
+            CancellationToken cancellationToken = default) =>
+            AddImageFromUrlWithOptionsAsync(row, column, url, remoteImageOptions, widthPixels, heightPixels,
+                offsetXPixels, offsetYPixels, cancellationToken: cancellationToken);
+
+        /// <summary>
         /// Asynchronously downloads an image from a URL and returns a wrapper for setting metadata and sizing.
         /// </summary>
         public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32,
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true,
             CancellationToken cancellationToken = default) {
+            return await AddImageFromUrlCoreAsync(row, column, url, null, widthPixels, heightPixels, offsetXPixels,
+                offsetYPixels, name, altText, lockAspectRatio, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Asynchronously downloads an image with an explicit remote-network policy and returns its wrapper.
+        /// </summary>
+        public Task<ExcelImage> AddImageFromUrlWithOptionsAsync(
+            int row,
+            int column,
+            string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions,
+            int widthPixels = 96,
+            int heightPixels = 32,
+            int offsetXPixels = 0,
+            int offsetYPixels = 0,
+            string? name = null,
+            string? altText = null,
+            bool lockAspectRatio = true,
+            CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return AddImageFromUrlCoreAsync(row, column, url, remoteImageOptions, widthPixels, heightPixels,
+                offsetXPixels, offsetYPixels, name, altText, lockAspectRatio, cancellationToken);
+        }
+
+        private async Task<ExcelImage> AddImageFromUrlCoreAsync(
+            int row,
+            int column,
+            string url,
+            OfficeRemoteImageLoadOptions? remoteImageOptions,
+            int widthPixels,
+            int heightPixels,
+            int offsetXPixels,
+            int offsetYPixels,
+            string? name,
+            string? altText,
+            bool lockAspectRatio,
+            CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
                 url,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+                remoteImageOptions,
+                cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
             OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
             return AddImage(row, column, bytes, contentType: ResolveImageContentType(remote.ContentType, info), widthPixels: widthPixels,

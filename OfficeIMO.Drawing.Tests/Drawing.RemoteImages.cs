@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -19,7 +20,9 @@ public sealed class DrawingRemoteImageTests {
             $"HTTP/1.1 200 OK\r\nContent-Type: image/jpg; charset=binary\r\nContent-Length: {payload.Length}\r\nConnection: close\r\n\r\n",
             payload);
 
-        OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(server.Url("logo.jpg"));
+        OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(
+            server.Url("logo.jpg"),
+            new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
 
         Assert.Equal("image/jpeg", image.ContentType);
         Assert.Equal("logo.jpg", image.FileName);
@@ -39,7 +42,9 @@ public sealed class DrawingRemoteImageTests {
             $"HTTP/1.1 302 Found\r\nLocation: {target.Url("private.png")}\r\nConnection: close\r\n\r\n");
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
-            OfficeRemoteImageLoader.LoadAsync(redirect.Url("redirect.png")));
+            OfficeRemoteImageLoader.LoadAsync(
+                redirect.Url("redirect.png"),
+                new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true }));
         await redirect.Completion;
         await Task.Delay(100);
         Assert.Equal(0, target.RequestCount);
@@ -53,7 +58,7 @@ public sealed class DrawingRemoteImageTests {
         using var server = new SingleResponseServer(
             "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: close\r\n\r\n",
             payload);
-        var options = new OfficeRemoteImageLoadOptions { MaximumBytes = 16 };
+        var options = new OfficeRemoteImageLoadOptions { MaximumBytes = 16, AllowPrivateNetworkAddresses = true };
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             OfficeRemoteImageLoader.LoadAsync(server.Url("large.png"), options));
@@ -67,6 +72,23 @@ public sealed class DrawingRemoteImageTests {
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             OfficeRemoteImageLoader.LoadAsync("http://127.0.0.1:1/image.png", cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task LoadAsyncRejectsLoopbackBeforeOpeningConnectionByDefault() {
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            OfficeRemoteImageLoader.LoadAsync("http://127.0.0.1:6553/private.png"));
+    }
+
+    [Fact]
+    public void LegacyPinnedRequestUsesValidatedAddressAndPreservesHostHeader() {
+        using HttpRequestMessage request = OfficeRemoteImageLoader.CreatePinnedRequest(
+            new Uri("https://images.example.test:8443/assets/logo.png?size=2"),
+            IPAddress.Parse("203.0.113.8"));
+
+        Assert.Equal("203.0.113.8", request.RequestUri!.Host);
+        Assert.Equal("/assets/logo.png?size=2", request.RequestUri.PathAndQuery);
+        Assert.Equal("images.example.test:8443", request.Headers.Host);
     }
 
     private sealed class SingleResponseServer : IDisposable {

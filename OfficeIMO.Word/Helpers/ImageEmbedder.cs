@@ -32,9 +32,29 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart,
             string src,
             CancellationToken cancellationToken = default) {
+            return await CreateImageRunCoreAsync(mainPart, src, null, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Creates an image run using an explicit policy for HTTP and HTTPS sources.
+        /// </summary>
+        public static Task<Run> CreateImageRunAsync(
+            MainDocumentPart mainPart,
+            string src,
+            OfficeRemoteImageLoadOptions remoteImageOptions,
+            CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return CreateImageRunCoreAsync(mainPart, src, remoteImageOptions, cancellationToken);
+        }
+
+        private static async Task<Run> CreateImageRunCoreAsync(
+            MainDocumentPart mainPart,
+            string src,
+            OfficeRemoteImageLoadOptions? remoteImageOptions,
+            CancellationToken cancellationToken) {
             if (Uri.TryCreate(src, UriKind.Absolute, out Uri? uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
-                OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(src, cancellationToken: cancellationToken).ConfigureAwait(false);
+                OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(src, remoteImageOptions, cancellationToken).ConfigureAwait(false);
                 return CreateImageRun(mainPart, image.ToBytes());
             }
 

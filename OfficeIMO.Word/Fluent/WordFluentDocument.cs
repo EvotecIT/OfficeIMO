@@ -320,6 +320,19 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Finds runs matching the specified regular expression pattern using a caller-supplied match timeout.
+        /// </summary>
+        /// <param name="pattern">Regular expression pattern.</param>
+        /// <param name="matchTimeout">Maximum time allowed for one regex match.</param>
+        /// <param name="action">Action executed for each matching run.</param>
+        public WordFluentDocument FindRegex(string pattern, TimeSpan matchTimeout, Action<ParagraphBuilder> action) {
+            foreach (var run in Document.FindRunsRegex(pattern, matchTimeout)) {
+                action(new ParagraphBuilder(this, run));
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Selects paragraphs that match the specified predicate.
         /// </summary>
         /// <param name="predicate">Filter predicate.</param>

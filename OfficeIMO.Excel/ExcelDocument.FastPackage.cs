@@ -60,11 +60,17 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            PrepareDestinationStreamForWrite(destination);
-            FastWorkbookPackageWriter.Write(destination, model, ct);
+            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(destination, options);
+            Stream writeTarget = stagedPackage ?? destination;
+            PrepareDestinationStreamForWrite(writeTarget);
+            FastWorkbookPackageWriter.Write(writeTarget, model, ct);
 
-            destination.Flush();
-            destination.Seek(0, SeekOrigin.Begin);
+            writeTarget.Flush();
+            if (stagedPackage != null) {
+                CommitStagedPackageToStream(stagedPackage, destination, options);
+            } else {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
             if (updateDocumentState) {
                 _packageDirty = false;
                 _packagePropertiesDirty = false;
@@ -152,9 +158,10 @@ namespace OfficeIMO.Excel {
 
             ct.ThrowIfCancellationRequested();
             bool destinationBacksOpenPackage = ReferenceEquals(destination, _packageStream);
-            using MemoryStream? stagedPackage = !destination.CanSeek || destinationBacksOpenPackage
-                ? new MemoryStream()
-                : null;
+            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(
+                destination,
+                options,
+                forceStaging: !destination.CanSeek || destinationBacksOpenPackage);
             Stream writeTarget = stagedPackage ?? destination;
 
             PrepareDestinationStreamForWrite(writeTarget);
@@ -164,15 +171,12 @@ namespace OfficeIMO.Excel {
 
             writeTarget.Flush();
             if (destinationBacksOpenPackage) {
-                ReloadFromBytes(stagedPackage!.ToArray(), simplePackageContentKnown: true, reusablePackageStream: destination);
+                stagedPackage!.Position = 0;
+                byte[] packageBytes = ReadPackageBytes(stagedPackage, options);
+                ReloadFromBytes(packageBytes, simplePackageContentKnown: true, reusablePackageStream: destination);
                 destination.Seek(0, SeekOrigin.Begin);
             } else if (stagedPackage != null) {
-                stagedPackage.Position = 0;
-                stagedPackage.CopyTo(destination);
-                destination.Flush();
-                if (destination.CanSeek) {
-                    destination.Seek(0, SeekOrigin.Begin);
-                }
+                CommitStagedPackageToStream(stagedPackage, destination, options);
             } else {
                 destination.Seek(0, SeekOrigin.Begin);
             }

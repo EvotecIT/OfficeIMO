@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, options);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 CommitPreparedPackageToFile(path, finalizedBytes);
                 ReloadFromBytes(finalizedBytes);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(saveOptions);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, saveOptions);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
                 var encryptedBytes = OfficeEncryption.EncryptPackage(finalizedBytes, password);
                 CommitPreparedPackageToFile(path, encryptedBytes);
@@ -307,7 +307,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, options);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 await CommitPreparedPackageToFileAsync(target, finalizedBytes, cancellationToken).ConfigureAwait(false);
                 ReloadFromBytes(finalizedBytes);
@@ -422,7 +422,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options, closeDocument: false);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, options);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 destination.Write(finalizedBytes, 0, finalizedBytes.Length);
@@ -449,6 +449,7 @@ namespace OfficeIMO.Excel {
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
 
             if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
+                ThrowIfPackageMaterializationExceedsLimit(_unchangedPackageBytes.LongLength, saveOptions);
                 OfficeEncryption.EncryptPackageToStream(_unchangedPackageBytes, password, destination);
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
                 return;
@@ -456,7 +457,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(saveOptions, closeDocument: false);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, saveOptions);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
                 OfficeEncryption.EncryptPackageToStream(finalizedBytes, password, destination);
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
@@ -561,7 +562,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options, closeDocument: false);
             try {
-                var finalizedBytes = FinalizePackageBytes(payload);
+                var finalizedBytes = FinalizePackageBytes(payload, options);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);

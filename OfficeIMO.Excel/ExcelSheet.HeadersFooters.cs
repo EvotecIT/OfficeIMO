@@ -560,9 +560,24 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public async Task SetHeaderImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
+            await SetHeaderImageFromUrlCoreAsync(position, url, null, widthPoints, heightPoints, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Downloads a header image using an explicit remote-network policy.</summary>
+        public Task SetHeaderImageFromUrlAsync(HeaderFooterPosition position, string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null,
+            double? heightPoints = null, CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return SetHeaderImageFromUrlCoreAsync(position, url, remoteImageOptions, widthPoints, heightPoints, cancellationToken);
+        }
+
+        private async Task SetHeaderImageFromUrlCoreAsync(HeaderFooterPosition position, string url,
+            OfficeRemoteImageLoadOptions? remoteImageOptions, double? widthPoints, double? heightPoints,
+            CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
                 url,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+                remoteImageOptions,
+                cancellationToken).ConfigureAwait(false);
             SetHeaderImage(position, remote.ToBytes(), remote.ContentType, widthPoints, heightPoints);
         }
 
@@ -584,9 +599,24 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public async Task SetFooterImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
             double? heightPoints = null, CancellationToken cancellationToken = default) {
+            await SetFooterImageFromUrlCoreAsync(position, url, null, widthPoints, heightPoints, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Downloads a footer image using an explicit remote-network policy.</summary>
+        public Task SetFooterImageFromUrlAsync(HeaderFooterPosition position, string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null,
+            double? heightPoints = null, CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return SetFooterImageFromUrlCoreAsync(position, url, remoteImageOptions, widthPoints, heightPoints, cancellationToken);
+        }
+
+        private async Task SetFooterImageFromUrlCoreAsync(HeaderFooterPosition position, string url,
+            OfficeRemoteImageLoadOptions? remoteImageOptions, double? widthPoints, double? heightPoints,
+            CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
                 url,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+                remoteImageOptions,
+                cancellationToken).ConfigureAwait(false);
             SetFooterImage(position, remote.ToBytes(), remote.ContentType, widthPoints, heightPoints);
         }
 

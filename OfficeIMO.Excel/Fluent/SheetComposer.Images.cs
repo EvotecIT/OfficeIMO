@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
@@ -38,6 +39,16 @@ namespace OfficeIMO.Excel.Fluent {
             CancellationToken cancellationToken = default) {
             await Sheet.AddImageFromUrlAtAsync(row, column, url, widthPixels, heightPixels, offsetXPixels,
                 offsetYPixels, cancellationToken).ConfigureAwait(false);
+            return this;
+        }
+
+        /// <summary>Downloads an image with an explicit remote-network policy and inserts it at a cell.</summary>
+        public async Task<SheetComposer> ImageFromUrlAtAsync(int row, int column, string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32,
+            int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            await Sheet.AddImageFromUrlAtAsync(row, column, url, remoteImageOptions, widthPixels, heightPixels,
+                offsetXPixels, offsetYPixels, cancellationToken).ConfigureAwait(false);
             return this;
         }
     }

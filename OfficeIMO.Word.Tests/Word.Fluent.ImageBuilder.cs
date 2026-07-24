@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 using Xunit;
@@ -39,7 +40,9 @@ namespace OfficeIMO.Tests {
                     })
                     .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left));
                 await fluent.ImageAsync(async i => {
-                    await i.AddFromUrlAsync($"http://localhost:{port}/");
+                    await i.AddFromUrlAsync(
+                        $"http://localhost:{port}/",
+                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                     i.Size(80, 80).Align(HorizontalAlignment.Center);
                 });
                 fluent.End();
@@ -108,7 +111,9 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<InvalidDataException>(async () => {
                 await document.AsFluent().ImageAsync(async i => {
-                    await i.AddFromUrlAsync($"http://localhost:{port}/");
+                    await i.AddFromUrlAsync(
+                        $"http://localhost:{port}/",
+                        new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                 });
             });
 

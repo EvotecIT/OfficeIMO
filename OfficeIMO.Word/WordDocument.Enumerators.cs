@@ -5,6 +5,7 @@ namespace OfficeIMO.Word {
     /// Provides enumerators for traversing document content.
     /// </summary>
     public partial class WordDocument {
+        private static readonly TimeSpan DefaultRegexMatchTimeout = TimeSpan.FromSeconds(2);
         internal IEnumerable<WordParagraph> EnumerateBodyParagraphs() {
             foreach (var paragraph in this.Paragraphs) {
                 yield return paragraph;
@@ -59,7 +60,15 @@ namespace OfficeIMO.Word {
         }
 
         internal IEnumerable<WordParagraph> FindRunsRegex(string pattern) {
-            var regex = new Regex(pattern);
+            return FindRunsRegex(pattern, DefaultRegexMatchTimeout);
+        }
+
+        internal IEnumerable<WordParagraph> FindRunsRegex(string pattern, TimeSpan matchTimeout) {
+            var regex = new Regex(pattern, RegexOptions.None, matchTimeout);
+            return FindRunsRegex(regex);
+        }
+
+        private IEnumerable<WordParagraph> FindRunsRegex(Regex regex) {
             foreach (var paragraph in EnumerateAllParagraphs()) {
                 foreach (var run in paragraph.GetRuns()) {
                     if (run.Text != null && regex.IsMatch(run.Text)) {
