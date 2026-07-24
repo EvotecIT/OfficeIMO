@@ -25,7 +25,7 @@ if ([string]::IsNullOrWhiteSpace($RuntimeIdentifier)) {
 }
 
 $scenarios = @(
-    [ordered]@{ id = 'production-libraries'; title = 'Production library coverage: 85 fully rooted plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'production-libraries'; title = 'Production library coverage: 86 fully rooted plus bounded Google adapter'; project = 'OfficeIMO.All.AotSmoke/OfficeIMO.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'word'; title = 'Word create, save, and reload'; project = 'OfficeIMO.Word.AotSmoke/OfficeIMO.Word.AotSmoke.csproj' },
     [ordered]@{ id = 'excel'; title = 'Excel typed table create, save, and reload'; project = 'OfficeIMO.Excel.AotSmoke/OfficeIMO.Excel.AotSmoke.csproj' },
     [ordered]@{ id = 'powerpoint'; title = 'PowerPoint chart create, duplicate, save, and reload'; project = 'OfficeIMO.PowerPoint.AotSmoke/OfficeIMO.PowerPoint.AotSmoke.csproj' },

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 146,
-    "productionComponentCount": 89,
-    "testProjectCount": 29,
+    "projectCount": 148,
+    "productionComponentCount": 90,
+    "testProjectCount": 30,
     "benchmarkProjectCount": 12,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 89,
-    "conceptualWordCount": 35508
+    "conceptualWordCount": 35536
   },
   "categories": [
     {
@@ -22,7 +22,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 11
+      "componentCount": 12
     },
     {
       "name": "Google Workspace",
@@ -127,7 +127,7 @@
       "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 309,
+      "sourceFileCount": 310,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -147,13 +147,26 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.CodeGlyphX"
     },
     {
+      "name": "OfficeIMO.Drawing.HarfBuzz",
+      "packageId": "OfficeIMO.Drawing.HarfBuzz",
+      "category": "Foundations and integrations",
+      "description": "Optional HarfBuzz text-shaping provider for OfficeIMO.Drawing and OfficeIMO.Pdf.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
+    },
+    {
       "name": "OfficeIMO.Email",
       "packageId": "OfficeIMO.Email",
       "category": "Formats and interoperability",
       "description": "Managed email and Outlook data engine for EML, MSG/OFT, TNEF, ICS, vCard, Mbox, PST/OST, OLM, EMLX, Maildir, and Offline Address Book artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "sourceFileCount": 397,
+      "sourceFileCount": 398,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
@@ -595,7 +608,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 918,
+      "sourceFileCount": 924,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -608,7 +621,7 @@
       "description": "An Open Source cross-platform .NET library for creating, reading, editing,\n            and writing Microsoft PowerPoint PPTX/PPTM and PPT/POT/PPS presentations.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 433,
+      "sourceFileCount": 434,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -673,7 +686,7 @@
       "description": "Composition-only preset for registering OfficeIMO.Reader's local format adapters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1102,7 +1115,7 @@
       "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Word (DocX) documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 610,
+      "sourceFileCount": 612,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1167,7 +1180,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 35,
+      "sourceFileCount": 36,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
