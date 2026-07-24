@@ -190,6 +190,38 @@ internal static class HtmlRenderCssValues {
 
     internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) => SplitTopLevel(value, ',');
 
+    internal static bool TrySplitTopLevelCommas(string? value, int maximumParts, out IReadOnlyList<string> parts) {
+        parts = Array.Empty<string>();
+        if (maximumParts <= 0 || string.IsNullOrWhiteSpace(value)) return false;
+
+        var resolved = new List<string>(Math.Min(maximumParts, 16));
+        int start = 0;
+        int depth = 0;
+        char quote = '\0';
+        string text = value!;
+        for (int index = 0; index < text.Length; index++) {
+            char current = text[index];
+            if (quote != '\0') {
+                if (current == quote && (index == 0 || text[index - 1] != '\\')) quote = '\0';
+                continue;
+            }
+
+            if (current == '\'' || current == '"') quote = current;
+            else if (current == '(') depth++;
+            else if (current == ')' && depth > 0) depth--;
+            else if (current == ',' && depth == 0) {
+                if (resolved.Count >= maximumParts) return false;
+                resolved.Add(text.Substring(start, index - start).Trim());
+                start = index + 1;
+            }
+        }
+
+        if (resolved.Count >= maximumParts) return false;
+        resolved.Add(text.Substring(start).Trim());
+        parts = resolved.AsReadOnly();
+        return true;
+    }
+
     internal static IReadOnlyList<string> SplitTopLevel(string? value, char separator) {
         if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
 

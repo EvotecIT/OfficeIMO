@@ -54,7 +54,8 @@ public readonly struct OfficeTransform : IEquatable<OfficeTransform> {
     public static OfficeTransform RotateDegrees(double degrees) {
         ValidateFinite(degrees, nameof(degrees));
 
-        double radians = degrees * Math.PI / 180D;
+        double normalizedDegrees = Math.IEEERemainder(degrees, 360D);
+        double radians = normalizedDegrees * Math.PI / 180D;
         double cos = NormalizeZero(Math.Cos(radians));
         double sin = NormalizeZero(Math.Sin(radians));
         return new OfficeTransform(cos, sin, -sin, cos, 0, 0);

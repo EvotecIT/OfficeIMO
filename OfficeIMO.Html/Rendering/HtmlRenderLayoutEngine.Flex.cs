@@ -195,13 +195,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double frozenTotal = items.Where(item => !unfrozen.Contains(item)).Sum(item => item.MainSize);
             double unfrozenBasisTotal = unfrozen.Sum(item => item.Basis);
             double remaining = availableForItems - frozenTotal - unfrozenBasisTotal;
-            double factorTotal = unfrozen.Sum(item => growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis);
+            double maximumFactor = unfrozen.Max(item => growing ? item.Style.FlexGrow : item.Style.FlexShrink);
+            if (maximumFactor <= 0D || double.IsNaN(maximumFactor) || double.IsInfinity(maximumFactor)) break;
+            double factorTotal = unfrozen.Sum(item => {
+                double normalized = (growing ? item.Style.FlexGrow : item.Style.FlexShrink) / maximumFactor;
+                return growing ? normalized : normalized * item.Basis;
+            });
             if (factorTotal <= 0D) break;
 
             var newlyFrozen = new List<FlexItem>();
             foreach (FlexItem item in unfrozen) {
-                double factor = growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis;
+                double normalized = (growing ? item.Style.FlexGrow : item.Style.FlexShrink) / maximumFactor;
+                double factor = growing ? normalized : normalized * item.Basis;
                 double proposed = item.Basis + remaining * factor / factorTotal;
+                if (double.IsNaN(proposed) || double.IsInfinity(proposed)) proposed = item.Basis;
                 double clamped = ClampFlexMainSize(item, proposed, vertical);
                 item.MainSize = clamped;
                 if (Math.Abs(clamped - proposed) > 0.0001D) newlyFrozen.Add(item);

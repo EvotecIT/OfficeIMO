@@ -38,9 +38,11 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double rootFontSize,
         out OfficeRadialGradient? gradient) {
         gradient = null;
-        if (width <= 0D || height <= 0D
+        if (!IsFinitePositive(width) || !IsFinitePositive(height)
             || !HtmlRenderCssValues.TryLength(CenterX, width, fontSize, rootFontSize, out double centerXPixels)
-            || !HtmlRenderCssValues.TryLength(CenterY, height, fontSize, rootFontSize, out double centerYPixels)) {
+            || !HtmlRenderCssValues.TryLength(CenterY, height, fontSize, rootFontSize, out double centerYPixels)
+            || !IsFinite(centerXPixels)
+            || !IsFinite(centerYPixels)) {
             return false;
         }
 
@@ -61,20 +63,21 @@ internal sealed class HtmlCssRadialGradientDefinition {
                 return false;
             }
         } else {
-            ResolveExtent(width, height, centerXPixels, centerYPixels, out radiusXPixels, out radiusYPixels);
+            if (!TryResolveExtent(width, height, centerXPixels, centerYPixels, out radiusXPixels, out radiusYPixels)) return false;
         }
 
         double centerX = centerXPixels / width;
         double centerY = centerYPixels / height;
         double radiusX = Math.Max(MinimumRadius, radiusXPixels) / width;
         double radiusY = Math.Max(MinimumRadius, radiusYPixels) / height;
-        if (!Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops)
+        if (!IsFinite(centerX) || !IsFinite(centerY) || !IsFinitePositive(radiusX) || !IsFinitePositive(radiusY)
+            || !Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops)
             || stops == null) return false;
         gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, stops);
         return true;
     }
 
-    private void ResolveExtent(
+    private bool TryResolveExtent(
         double width,
         double height,
         double centerX,
@@ -91,16 +94,29 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double vertical = closest ? Math.Min(top, bottom) : Math.Max(top, bottom);
         if (Shape == HtmlCssRadialGradientShape.Circle) {
             double circleRadius = corner
-                ? Math.Sqrt((horizontal * horizontal) + (vertical * vertical))
+                ? StableHypot(horizontal, vertical)
                 : closest ? Math.Min(horizontal, vertical) : Math.Max(horizontal, vertical);
             radiusX = circleRadius;
             radiusY = circleRadius;
-            return;
+            return IsFiniteNonNegative(radiusX);
         }
 
         radiusX = corner ? horizontal * CornerScale : horizontal;
         radiusY = corner ? vertical * CornerScale : vertical;
+        return IsFiniteNonNegative(radiusX) && IsFiniteNonNegative(radiusY);
     }
+
+    private static double StableHypot(double x, double y) {
+        double maximum = Math.Max(Math.Abs(x), Math.Abs(y));
+        if (maximum == 0D) return 0D;
+        double normalizedX = x / maximum;
+        double normalizedY = y / maximum;
+        return maximum * Math.Sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
+    }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+    private static bool IsFinitePositive(double value) => value > 0D && IsFinite(value);
+    private static bool IsFiniteNonNegative(double value) => value >= 0D && IsFinite(value);
 }
 
 internal enum HtmlCssRadialGradientShape {

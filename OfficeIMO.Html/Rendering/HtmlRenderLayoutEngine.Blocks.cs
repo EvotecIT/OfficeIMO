@@ -279,7 +279,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
         double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, style);
-        double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
+        double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
+        double outerHeight = unclampedOuterHeight;
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
@@ -350,7 +351,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedLineBreakGroups,
             adjustedContinuationGroups,
             adjustedTrailingGroups,
-            pageName: pageName);
+            pageName: pageName,
+            unclampedHeight: unclampedOuterHeight);
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
