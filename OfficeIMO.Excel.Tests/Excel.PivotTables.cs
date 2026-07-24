@@ -224,6 +224,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_PivotTableCalculatedFields_DoNotPersistSourceRowsWithoutOptIn() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableNoSourceCacheByDefault.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(2, 1, "Confidential East");
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(3, 1, "Confidential West");
+                sheet.CellValue(3, 2, 12);
+                sheet.AddPivotTable(
+                    sourceRange: "A1:B3",
+                    destinationCell: "E2",
+                    name: "SalesPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleSales", "'Sales' * 2") });
+                document.Save();
+            }
+
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cachePart = spreadsheet.WorkbookPart!.PivotTableCacheDefinitionParts.Single();
+            Assert.False(cachePart.PivotCacheDefinition!.SaveData!.Value);
+            Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
+            var recordsPart = Assert.Single(cachePart.GetPartsOfType<PivotTableCacheRecordsPart>());
+            Assert.Equal(0U, recordsPart.PivotCacheRecords!.Count!.Value);
+        }
+
+        [Fact]
         public void Test_FluentPivotBuilder_AppliesItemAndPageFilterHelpers() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFluentItemFilters.xlsx");
 

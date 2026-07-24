@@ -283,7 +283,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
-            bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding;
+            bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding &&
+                options.ResourcePolicy.AllowDocumentFontEmbedding;
             if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {
                 return;
             }

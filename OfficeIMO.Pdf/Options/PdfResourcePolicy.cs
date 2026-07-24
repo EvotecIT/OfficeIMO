@@ -30,6 +30,7 @@ public sealed class PdfResourcePolicy {
     /// </summary>
     public static PdfResourcePolicy CreateTrustedHost() => new PdfResourcePolicy {
         AllowSystemFontEmbedding = true,
+        AllowDocumentFontEmbedding = true,
         AllowLocalFileAccess = true,
         AllowRemoteResourceResolution = true,
         AllowDataUris = true,
@@ -38,6 +39,12 @@ public sealed class PdfResourcePolicy {
 
     /// <summary>When true, converters may load and embed installed system fonts. Enabled by the balanced default.</summary>
     public bool AllowSystemFontEmbedding { get; set; }
+
+    /// <summary>
+    /// When true, Office converters may use font family names from the source document to locate and embed installed
+    /// system fonts. Disabled by default because document-controlled names must not trigger host font disclosure.
+    /// </summary>
+    public bool AllowDocumentFontEmbedding { get; set; }
 
     /// <summary>When true, format-specific local-resource options may read files from explicitly allowed locations.</summary>
     public bool AllowLocalFileAccess { get; set; }
@@ -54,6 +61,7 @@ public sealed class PdfResourcePolicy {
     /// <summary>Creates an independent policy snapshot.</summary>
     public PdfResourcePolicy Clone() => new PdfResourcePolicy {
         AllowSystemFontEmbedding = AllowSystemFontEmbedding,
+        AllowDocumentFontEmbedding = AllowDocumentFontEmbedding,
         AllowLocalFileAccess = AllowLocalFileAccess,
         AllowRemoteResourceResolution = AllowRemoteResourceResolution,
         AllowDataUris = AllowDataUris,

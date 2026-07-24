@@ -184,7 +184,7 @@ public sealed class PdfLogicalPage {
     /// <summary>True when the source page dictionary has page-level additional actions.</summary>
     public bool HasPageActions => PageActionCount > 0;
 
-    internal static PdfLogicalPage From(PdfReadDocument document, PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options, IReadOnlyList<PdfFormField>? formFields = null) {
+    internal static PdfLogicalPage From(PdfReadDocument document, PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options, IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets = null) {
         var size = page.GetPageSize();
         PdfPageGeometry geometry = page.GetGeometry();
         var structured = page.ExtractStructured(options);
@@ -250,17 +250,11 @@ public sealed class PdfLogicalPage {
             annotations.Add(readAnnotations[i].WithPageNumber(pageNumber));
         }
 
-        if (formFields is not null) {
-            for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
-                PdfFormField field = formFields[fieldIndex];
-                for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
-                    PdfFormWidget widget = field.Widgets[widgetIndex];
-                    if (widget.PageNumber == pageNumber) {
-                        var logicalWidget = new PdfLogicalFormWidget(pageNumber, field, widget);
-                        formWidgets.Add(logicalWidget);
-                        elements.Add(logicalWidget);
-                    }
-                }
+        if (pageFormWidgets is not null) {
+            for (int widgetIndex = 0; widgetIndex < pageFormWidgets.Count; widgetIndex++) {
+                PdfLogicalFormWidget logicalWidget = pageFormWidgets[widgetIndex];
+                formWidgets.Add(logicalWidget);
+                elements.Add(logicalWidget);
             }
         }
 

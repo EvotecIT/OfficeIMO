@@ -9,7 +9,8 @@ namespace OfficeIMO.Excel {
         public bool? RefreshOnOpen { get; set; }
 
         /// <summary>
-        /// Gets or sets whether source cache records should be saved in the workbook package.
+        /// Gets or sets whether source cache records should be saved in the workbook package. Defaults to false so
+        /// source rows are not duplicated into the pivot cache unless the caller explicitly opts in.
         /// </summary>
         public bool? SaveSourceData { get; set; }
 

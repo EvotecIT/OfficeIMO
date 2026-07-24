@@ -147,7 +147,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             List<VisioStencilPreviewGalleryEntry> entries = new();
             foreach (VisioStencilPreviewImageData image in images.OrderBy(image => image.MasterNameU, StringComparer.OrdinalIgnoreCase)) {
-                string filePath = image.SaveToDirectory(previewDirectory);
+                string filePath = SaveGalleryPreviewPayload(previewDirectory, image);
                 string relativePath = Path.Combine(options.PreviewDirectoryName, Path.GetFileName(filePath))
                     .Replace(Path.DirectorySeparatorChar, '/')
                     .Replace(Path.AltDirectorySeparatorChar, '/');
@@ -171,6 +171,19 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             return new VisioStencilPreviewGallery(fullPackagePath, fullOutputDirectory, previewDirectory, thumbnailDirectory, indexPath, entries.AsReadOnly());
+        }
+
+        private static string SaveGalleryPreviewPayload(string previewDirectory, VisioStencilPreviewImageData image) {
+            string extension = image.PreviewImage.Extension?.TrimStart('.') ?? string.Empty;
+            if (!string.Equals(extension, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return image.SaveToDirectory(previewDirectory);
+            }
+
+            // Preserve the source bytes for review, but use a text extension so a gallery host cannot serve an
+            // attacker-controlled SVG as an executable top-level image document by extension alone.
+            string path = Path.Combine(previewDirectory, image.SuggestedFileName + ".txt");
+            image.Save(path);
+            return path;
         }
 
         internal static void ValidateOptions(VisioStencilPreviewGalleryOptions options) {
@@ -286,7 +299,7 @@ namespace OfficeIMO.Visio.Stencils {
             AppendDefinition(builder, "Type", entry.Image.PreviewImage.ContentType ?? string.Empty);
             AppendDefinition(builder, "Bytes", entry.Image.ByteLength.ToString(CultureInfo.InvariantCulture));
             AppendDefinition(builder, "Target", entry.Image.PreviewImage.Target);
-            builder.AppendLine("            <dt>File</dt><dd><a href=\"" + Escape(entry.RelativePath) + "\">" + Escape(Path.GetFileName(entry.FilePath)) + "</a></dd>");
+            builder.AppendLine("            <dt>File</dt><dd><a download href=\"" + Escape(entry.RelativePath) + "\">" + Escape(Path.GetFileName(entry.FilePath)) + "</a></dd>");
             if (!string.IsNullOrWhiteSpace(entry.ThumbnailRelativePath)) {
                 builder.AppendLine("            <dt>Thumb</dt><dd><a href=\"" + Escape(entry.ThumbnailRelativePath!) + "\">" + Escape(Path.GetFileName(entry.ThumbnailFilePath!)) + "</a></dd>");
             }

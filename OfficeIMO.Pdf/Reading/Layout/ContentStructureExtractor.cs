@@ -16,6 +16,7 @@ namespace OfficeIMO.Pdf;
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
 public sealed class StructuredPage {
+    private readonly HashSet<(string Label, string Value)> _leaderRowKeys = new();
     /// <summary>Plain text lines in natural reading order.</summary>
     public List<string> Lines { get; } = new();
     /// <summary>TOC entries: title + page number.</summary>
@@ -24,6 +25,15 @@ public sealed class StructuredPage {
     public List<string> ListItems { get; } = new();
     /// <summary>Leader rows split into label and trailing value.</summary>
     public List<string[]> LeaderRows { get; } = new();
+
+    internal bool TryAddLeaderRow(string label, string value) {
+        if (!_leaderRowKeys.Add((label, value))) {
+            return false;
+        }
+
+        LeaderRows.Add(new[] { label, value });
+        return true;
+    }
     /// <summary>Detected list nodes with hierarchical level.</summary>
     public List<StructuredListItem> ListNodes { get; } = new();
     /// <summary>Per-line geometry details (Y, XStart, XEnd, Text, Spans).</summary>
@@ -554,15 +564,7 @@ internal static class ContentStructureExtractor {
             return;
         }
 
-        foreach (var row in page.LeaderRows) {
-            if (row.Length >= 2 &&
-                string.Equals(row[0], label, StringComparison.Ordinal) &&
-                string.Equals(row[1], value, StringComparison.Ordinal)) {
-                return;
-            }
-        }
-
-        page.LeaderRows.Add(new[] { label, value });
+        page.TryAddLeaderRow(label, value);
     }
 
     private static bool TryParseTocRow(string text, out string label, out int pageNumber) {

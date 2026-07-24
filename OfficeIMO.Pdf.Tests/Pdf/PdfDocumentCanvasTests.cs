@@ -974,6 +974,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasTable_RejectsUnboundedLogicalGridBeforeRendering() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { PdfTableCell.Span("Oversized", 262145) }
+            }, 30, 30, 120, 60));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
+        Assert.Contains("exceeding the supported limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasTable_RowSpanSkipsContinuationRowStripeFill() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

@@ -5626,7 +5626,8 @@ namespace OfficeIMO.Tests {
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
                     dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") },
-                    calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") });
+                    calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") },
+                    options: new ExcelPivotTableOptions { SaveSourceData = true });
 
                 document.Save(memory);
             }

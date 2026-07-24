@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private const long MaximumCanvasTableGridCells = 262144;
+
         private void RenderCanvasTable(PdfCanvasTableItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas table");
             TableBlock table = item.Block;
@@ -11,6 +13,11 @@ internal static partial class PdfWriter {
             int rows = table.Cells.Count;
             if (columns == 0 || rows == 0) {
                 return;
+            }
+
+            long gridCells = (long)columns * rows;
+            if (gridCells > MaximumCanvasTableGridCells) {
+                throw new InvalidOperationException($"Canvas table grid contains {gridCells} logical cells, exceeding the supported limit of {MaximumCanvasTableGridCells}.");
             }
 
             PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
@@ -23,6 +30,7 @@ internal static partial class PdfWriter {
             int footerStart = rows - style.FooterRowCount;
             double[] columnWidths = ResolveCanvasTableColumnWidths(style, columns, item.Width, columnGap);
             double[] rowHeights = ResolveCanvasTableRowHeights(style, rows, item.Height, rowGap);
+            System.Collections.Generic.List<TableCellLayout>[] cellLayoutsByRow = GetTableCellLayoutsByRow(table, columns);
             var rowFontSizes = new double[rows];
             var rowFontSizeScales = new double[rows];
             var rowLeadings = new double[rows];
@@ -57,7 +65,7 @@ internal static partial class PdfWriter {
                 bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(table, rowIndex, columns);
                 DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
 
-                var cells = GetTableCellLayouts(table, rowIndex, columns);
+                var cells = cellLayoutsByRow[rowIndex];
                 for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                     TableCellLayout cell = cells[cellIndex];
                     double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
@@ -118,7 +126,7 @@ internal static partial class PdfWriter {
             }
 
             if (style.BorderColor is not null && style.BorderWidth > 0D) {
-                DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, columnWidths, rowHeights, columnGap, rowGap);
+                DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, columnWidths, rowHeights, columnGap, rowGap, cellLayoutsByRow);
             }
 
             if (rotated) {
@@ -378,17 +386,18 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap) {
+        private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap, System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow) {
             PdfColor color = style.BorderColor!.Value;
             double width = style.BorderWidth;
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             DrawRowRect(sb, color, width, x, topY - height, tableWidth, height, true);
+            bool[][] verticalBoundarySkips = GetCanvasTableVerticalBoundarySkips(cellLayoutsByRow, rows, columns);
 
             double lineX = x;
             for (int column = 0; column < columns - 1; column++) {
                 lineX += columnWidths[column];
                 for (int row = 0; row < rows; row++) {
-                    if (IsTableBoundaryInsideSpannedCell(table, row, column, columns)) {
+                    if (verticalBoundarySkips[column][row]) {
                         continue;
                     }
 
@@ -407,6 +416,38 @@ internal static partial class PdfWriter {
                 DrawTableHorizontalLine(sb, color, width, x, columnWidths, columnGap, lineY, skips, true);
                 lineY -= rowGap;
             }
+        }
+
+        private static bool[][] GetCanvasTableVerticalBoundarySkips(System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow, int rows, int columns) {
+            var deltas = new int[Math.Max(0, columns - 1)][];
+            for (int boundary = 0; boundary < deltas.Length; boundary++) {
+                deltas[boundary] = new int[rows + 1];
+            }
+
+            for (int row = 0; row < rows; row++) {
+                System.Collections.Generic.IReadOnlyList<TableCellLayout> cells = cellLayoutsByRow[row];
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                    TableCellLayout cell = cells[cellIndex];
+                    int endRow = Math.Min(rows, row + cell.RowSpan);
+                    int endBoundary = Math.Min(columns - 1, cell.Column + cell.ColumnSpan - 1);
+                    for (int boundary = cell.Column; boundary < endBoundary; boundary++) {
+                        deltas[boundary][row]++;
+                        deltas[boundary][endRow]--;
+                    }
+                }
+            }
+
+            var skips = new bool[deltas.Length][];
+            for (int boundary = 0; boundary < deltas.Length; boundary++) {
+                skips[boundary] = new bool[rows];
+                int active = 0;
+                for (int row = 0; row < rows; row++) {
+                    active += deltas[boundary][row];
+                    skips[boundary][row] = active > 0;
+                }
+            }
+
+            return skips;
         }
 
         private static double GetCanvasTableColumnsOffset(double[] columnWidths, int column, double columnGap) {
