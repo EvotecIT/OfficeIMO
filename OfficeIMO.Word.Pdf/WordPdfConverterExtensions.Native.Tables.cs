@@ -224,9 +224,24 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            style.ColumnMinWidthPoints = layout.ColumnWidths
+            List<double?> derivedMinimums = layout.ColumnWidths
                 .Select(width => (double?)(tableWidth * width / gridWidth * NativeAutoFitGridMinimumScale))
                 .ToList();
+            if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
+                style.ColumnMinWidthPoints = derivedMinimums;
+                return;
+            }
+
+            var mergedMinimums = new List<double?>(style.ColumnMinWidthPoints);
+            while (mergedMinimums.Count < derivedMinimums.Count) {
+                mergedMinimums.Add(null);
+            }
+
+            for (int columnIndex = 0; columnIndex < derivedMinimums.Count; columnIndex++) {
+                mergedMinimums[columnIndex] ??= derivedMinimums[columnIndex];
+            }
+
+            style.ColumnMinWidthPoints = mergedMinimums;
         }
 
         private static List<double>? CreateNativeColumnWidthWeights(TableLayout layout) {

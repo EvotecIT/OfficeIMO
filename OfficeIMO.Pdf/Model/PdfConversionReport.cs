@@ -194,6 +194,7 @@ public sealed class PdfConversionReport {
     private static bool IsDeclaredSubstitutionWarning(PdfConversionWarning warning) =>
         warning.Code.EndsWith("FontFamilySubstituted", StringComparison.OrdinalIgnoreCase) ||
         warning.Code.EndsWith("FontSubstitution", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(warning.Code, "NativeFontFamilySlotExhausted", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "font-family-substitution", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(warning.Code, "unsupported-font-ligature-substitution", StringComparison.OrdinalIgnoreCase);
 }

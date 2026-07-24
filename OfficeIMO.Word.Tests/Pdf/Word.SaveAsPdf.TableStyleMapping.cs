@@ -66,6 +66,47 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Autofit_Column_Minimums() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeConfiguredAutofitMinimums.docx"));
+
+        WordTable table = document.AddTable(1, 3);
+        table._tableProperties!.TableStyle?.Remove();
+        table.WidthType = TableWidthUnitValues.Pct;
+        table.Width = 5000;
+        table.LayoutType = TableLayoutValues.Autofit;
+        table.Rows[0].Cells[0].Width = 1200;
+        table.Rows[0].Cells[1].Width = 2400;
+        table.Rows[0].Cells[2].Width = 1200;
+        foreach (WordTableCell cell in table.Rows[0].Cells) {
+            cell.WidthType = TableWidthUnitValues.Dxa;
+        }
+
+        var configuredMinimums = new double?[] { 72D, null, 96D };
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new PdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultTableStyle = new PdfCore.PdfTableStyle {
+                    AutoFitColumns = true,
+                    ColumnMinWidthPoints = configuredMinimums.ToList()
+                }
+            }
+        }, 468D);
+
+        OfficeIMO.Word.Pdf.TableLayout layout = TableLayoutCache.GetLayout(table);
+        MethodInfo applyColumnWidths = typeof(WordPdfConverterExtensions).GetMethod(
+            "ApplyNativeColumnWidths",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            new[] { typeof(WordTable), typeof(OfficeIMO.Word.Pdf.TableLayout), typeof(PdfCore.PdfTableStyle), typeof(double?) },
+            modifiers: null)!;
+        applyColumnWidths.Invoke(null, new object?[] { table, layout, style, 468D });
+
+        Assert.Equal(72D, style.ColumnMinWidthPoints![0]);
+        Assert.NotNull(style.ColumnMinWidthPoints[1]);
+        Assert.Equal(96D, style.ColumnMinWidthPoints[2]);
+        Assert.Equal(configuredMinimums, new double?[] { 72D, null, 96D });
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Description_To_Tagged_Pdf_Alt_Text() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableAltText.docx"));
 

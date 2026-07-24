@@ -73,6 +73,13 @@ public sealed class PdfConversionReportTests {
         Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
 
         report.Add(new PdfConversionWarning(
+            "OfficeIMO.Word.Pdf",
+            "NativeFontFamilySlotExhausted",
+            "word:font[FourthFamily]",
+            "The standard font slots were exhausted and another mapped family was used."));
+        Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
             "OfficeIMO.PowerPoint.Pdf",
             "font-family-substitution",
             "powerpoint:slide[2]/shape[1]",
