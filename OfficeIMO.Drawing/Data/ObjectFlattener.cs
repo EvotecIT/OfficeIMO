@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.IO;
 using System.Reflection;
 using System.Text;
 
@@ -18,6 +19,13 @@ namespace OfficeIMO.Drawing {
         public bool IncludeFullObjects { get; set; }
         /// <summary>Maximum recursion depth when expanding nested objects.</summary>
         public int MaxDepth { get; set; } = int.MaxValue;
+        /// <summary>
+        /// Maximum number of source or expanded rows a tabular consumer may materialize.
+        /// The default matches the maximum Excel data rows available below one header row.
+        /// </summary>
+        public int MaxRows { get; set; } = 1_048_575;
+        /// <summary>Maximum number of items enumerated from one nested collection.</summary>
+        public int MaxCollectionItems { get; set; } = 1_048_575;
         /// <summary>Header casing strategy for generated column names.</summary>
         public HeaderCase HeaderCase { get; set; } = HeaderCase.Raw;
         /// <summary>Optional prefixes to trim from generated headers.</summary>
@@ -146,6 +154,7 @@ namespace OfficeIMO.Drawing {
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
             if (opts == null) throw new ArgumentNullException(nameof(opts));
+            ValidateCollectionLimit(opts);
             if (item == null) {
                 return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             }
@@ -310,7 +319,11 @@ namespace OfficeIMO.Drawing {
         private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts) {
             Type? lastType = null;
             CollectionMapAccessors? lastAccessors = null;
+            int itemCount = 0;
             foreach (var item in enumerable) {
+                if (itemCount++ >= opts.MaxCollectionItems) {
+                    throw new InvalidDataException($"The collection at '{basePath}' exceeds the {opts.MaxCollectionItems}-item flattening limit.");
+                }
                 if (item == null) continue;
                 Type itemType = item.GetType();
                 var accessors = itemType == lastType
@@ -440,14 +453,14 @@ namespace OfficeIMO.Drawing {
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {
             if (opts.CollectionMode == CollectionMode.JoinWith) {
-                var joined = JoinCollectionValues(enumerable, opts.CollectionJoinWith);
+                var joined = JoinCollectionValues(path, enumerable, opts.CollectionJoinWith, opts.MaxCollectionItems);
                 return ApplyFormatting(path, joined, opts);
             }
             // ExpandRows handled in SheetBuilder
             return enumerable;
         }
 
-        private static string JoinCollectionValues(IEnumerable enumerable, string separator) {
+        private static string JoinCollectionValues(string path, IEnumerable enumerable, string separator, int maximumItems) {
             var enumerator = enumerable.GetEnumerator();
             try {
                 if (!enumerator.MoveNext()) {
@@ -455,12 +468,16 @@ namespace OfficeIMO.Drawing {
                 }
 
                 string first = enumerator.Current?.ToString() ?? string.Empty;
+                int itemCount = 1;
                 if (!enumerator.MoveNext()) {
                     return first;
                 }
 
                 var joined = new StringBuilder(first);
                 do {
+                    if (itemCount++ >= maximumItems) {
+                        throw new InvalidDataException($"The collection at '{path}' exceeds the {maximumItems}-item flattening limit.");
+                    }
                     joined.Append(separator);
                     joined.Append(enumerator.Current?.ToString() ?? string.Empty);
                 } while (enumerator.MoveNext());
@@ -468,6 +485,12 @@ namespace OfficeIMO.Drawing {
                 return joined.ToString();
             } finally {
                 (enumerator as IDisposable)?.Dispose();
+            }
+        }
+
+        private static void ValidateCollectionLimit(ObjectFlattenerOptions options) {
+            if (options.MaxCollectionItems <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxCollectionItems));
             }
         }
 

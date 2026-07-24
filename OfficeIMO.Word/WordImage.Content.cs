@@ -281,11 +281,10 @@ namespace OfficeIMO.Word {
                 // if widht/height are not set we check ourselves
                 // but probably will need better way
                 var imageCharacteristics = Helpers.GetImageCharacteristics(preparedImageStream, fileName);
+                if (imageCharacteristics.Width <= 0 || imageCharacteristics.Height <= 0) {
+                    throw new InvalidDataException("The stream does not contain a supported image payload.");
+                }
                 if (width == null || height == null) {
-                    if (imageCharacteristics.Width == 0 || imageCharacteristics.Height == 0) {
-                        throw new ArgumentException("Width and height must be provided for this image type.");
-                    }
-
                     if (width != null) {
                         height = imageCharacteristics.Height * width.Value / imageCharacteristics.Width;
                     } else if (height != null) {

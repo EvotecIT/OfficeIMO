@@ -109,6 +109,8 @@ namespace OfficeIMO.Word.Markdown {
                 EnableHighlight = source.EnableHighlight,
                 ImageExportMode = source.ImageExportMode,
                 ImageDirectory = source.ImageDirectory,
+                MaxEmbeddedImageBytes = source.MaxEmbeddedImageBytes,
+                MaxListNestingDepth = source.MaxListNestingDepth,
                 FallbackExternalImagesToLinks = source.FallbackExternalImagesToLinks,
                 PageBreakMode = source.PageBreakMode,
                 UnsupportedContentMode = source.UnsupportedContentMode,

@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.Html {
             }
             if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                 var span = htmlDocument.CreateElement("span");
-                span.SetAttribute("class", run.CharacterStyleId);
+                span.SetAttribute("class", GetSafeStyleClassName(run.CharacterStyleId));
                 span.AppendChild(node);
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);

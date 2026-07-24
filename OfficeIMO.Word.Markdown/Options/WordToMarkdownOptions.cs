@@ -32,6 +32,18 @@ namespace OfficeIMO.Word.Markdown {
         public string? ImageDirectory { get; set; }
 
         /// <summary>
+        /// Maximum number of image bytes that may be materialized for one base64 data URI.
+        /// The default is 32 MiB. Set a different positive value for trusted documents that
+        /// intentionally contain larger embedded images.
+        /// </summary>
+        public long MaxEmbeddedImageBytes { get; set; } = 32L * 1024L * 1024L;
+
+        /// <summary>
+        /// Maximum Word list nesting level materialized during conversion. The default is 128.
+        /// </summary>
+        public int MaxListNestingDepth { get; set; } = 128;
+
+        /// <summary>
         /// Emits externally linked images as Markdown image references instead of failing extraction.
         /// This keeps existing documents with linked or cid-based images convertible even when the
         /// binary image payload is not stored in the package.

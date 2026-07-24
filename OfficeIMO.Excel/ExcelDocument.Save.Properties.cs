@@ -96,12 +96,16 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            public byte[] ApplyTo(byte[] packageBytes) {
+            public byte[] ApplyTo(byte[] packageBytes, ExcelSaveOptions? options) {
                 if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
                 if (packageBytes.Length == 0) return packageBytes;
 
                 try {
-                    using var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
+                    using FileStream working = OfficeTemporaryFile.Create(
+                        "OfficeIMO.Excel-Properties-",
+                        ".tmp",
+                        FileOptions.None,
+                        out _);
                     working.Write(packageBytes, 0, packageBytes.Length);
                     working.Position = 0;
 
@@ -120,11 +124,11 @@ namespace OfficeIMO.Excel {
                         dst.LastPrinted = _lastPrinted;
                     }
 
-                    if (working.CanSeek) {
-                        working.Position = 0;
-                    }
-
-                    return working.ToArray();
+                    ThrowIfPackageMaterializationExceedsLimit(working.Length, options);
+                    working.Position = 0;
+                    return ReadPackageBytes(working, options);
+                } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
+                    throw;
                 } catch {
                     return packageBytes;
                 }

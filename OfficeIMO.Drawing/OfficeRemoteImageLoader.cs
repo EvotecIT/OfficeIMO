@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +14,6 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static class OfficeRemoteImageLoader {
     private const int BufferSize = 81920;
-    private static readonly HttpClient Client = CreateClient();
 
     /// <summary>
     /// Asynchronously retrieves an image from an HTTP or HTTPS URL.
@@ -51,8 +52,11 @@ public static class OfficeRemoteImageLoader {
 
         Uri current = uri;
         for (int redirectCount = 0; ; redirectCount++) {
-            using HttpResponseMessage response = await Client.GetAsync(
-                current,
+            IPAddress[] addresses = await ResolveDestinationAsync(current, snapshot, timeout.Token).ConfigureAwait(false);
+            using HttpClient client = CreateClient();
+            using HttpRequestMessage request = CreatePinnedRequest(current, addresses[0]);
+            using HttpResponseMessage response = await client.SendAsync(
+                request,
                 HttpCompletionOption.ResponseHeadersRead,
                 timeout.Token).ConfigureAwait(false);
 
@@ -140,6 +144,98 @@ public static class OfficeRemoteImageLoader {
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) {
             throw new ArgumentException("Image URI must use HTTP or HTTPS.", parameterName);
         }
+        if (!string.IsNullOrEmpty(uri.UserInfo)) {
+            throw new ArgumentException("Image URI cannot contain embedded credentials.", parameterName);
+        }
+    }
+
+    private static async Task<IPAddress[]> ResolveDestinationAsync(
+        Uri uri,
+        OfficeRemoteImageLoadOptions.Snapshot options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string host = uri.IdnHost.TrimEnd('.');
+        if (options.AllowedHosts.Count > 0 && !options.AllowedHosts.Contains(host)) {
+            throw new InvalidDataException("The remote image host is outside the configured allowlist.");
+        }
+        if (!options.AllowPrivateNetworkAddresses
+            && (uri.IsLoopback
+            || string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))) {
+            throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
+        }
+
+        IPAddress[] addresses;
+        if (IPAddress.TryParse(host, out IPAddress? literal)) {
+            addresses = new[] { literal };
+        } else {
+            Task<IPAddress[]> resolution = Dns.GetHostAddressesAsync(host);
+            Task completed = await Task.WhenAny(
+                resolution,
+                Task.Delay(System.Threading.Timeout.Infinite, cancellationToken)).ConfigureAwait(false);
+            if (completed != resolution) {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            addresses = await resolution.ConfigureAwait(false);
+        }
+
+        if (addresses.Length == 0
+            || (!options.AllowPrivateNetworkAddresses && addresses.Any(IsNonPublicAddress))) {
+            throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
+        }
+
+        return addresses;
+    }
+
+    internal static HttpRequestMessage CreatePinnedRequest(Uri originalUri, IPAddress address) {
+        if (originalUri == null) throw new ArgumentNullException(nameof(originalUri));
+        if (address == null) throw new ArgumentNullException(nameof(address));
+
+        var pinned = new UriBuilder(originalUri) { Host = address.ToString() }.Uri;
+        var request = new HttpRequestMessage(HttpMethod.Get, pinned);
+        string host = originalUri.IdnHost;
+        if (host.IndexOf(':') >= 0 && host[0] != '[') {
+            host = "[" + host + "]";
+        }
+        request.Headers.Host = originalUri.IsDefaultPort ? host : host + ":" + originalUri.Port;
+        return request;
+    }
+
+    private static bool IsNonPublicAddress(IPAddress address) {
+        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
+        if (IPAddress.IsLoopback(address)
+            || address.Equals(IPAddress.Any)
+            || address.Equals(IPAddress.IPv6Any)
+            || address.Equals(IPAddress.None)
+            || address.Equals(IPAddress.IPv6None)) {
+            return true;
+        }
+
+        byte[] bytes = address.GetAddressBytes();
+        if (address.AddressFamily == AddressFamily.InterNetwork) {
+            byte first = bytes[0];
+            byte second = bytes[1];
+            byte third = bytes[2];
+            if (first == 0 || first == 10 || first == 127 || first >= 224) return true;
+            if (first == 100 && second >= 64 && second <= 127) return true;
+            if (first == 169 && second == 254) return true;
+            if (first == 172 && second >= 16 && second <= 31) return true;
+            if (first == 192 && second == 168) return true;
+            if (first == 192 && second == 0 && third == 0) return true;
+            if (first == 192 && second == 0 && third == 2) return true;
+            if (first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100))) return true;
+            if (first == 203 && second == 0 && third == 113) return true;
+            return false;
+        }
+
+        if (address.AddressFamily == AddressFamily.InterNetworkV6) {
+            return address.IsIPv6LinkLocal
+                || address.IsIPv6SiteLocal
+                || address.IsIPv6Multicast
+                || (bytes[0] & 0xFE) == 0xFC
+                || (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8);
+        }
+        return true;
     }
 
     private static bool IsSameOrigin(Uri left, Uri right) =>

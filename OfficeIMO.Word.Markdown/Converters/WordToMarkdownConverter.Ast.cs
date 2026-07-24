@@ -19,6 +19,7 @@ using OmdTableCell = OfficeIMO.Markdown.TableCell;
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
         private int _visualFallbackResourceIndex;
+        private readonly HashSet<string> _exportedImageFileNames = new(StringComparer.OrdinalIgnoreCase);
 
         private sealed class PendingListFrame {
             public PendingListFrame(int level, bool ordered, IMarkdownListBlock block) {
@@ -47,6 +48,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
             _visualFallbackResourceIndex = 0;
+            _exportedImageFileNames.Clear();
             var listIndices = DocumentTraversal.BuildListIndices(document);
             int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
@@ -177,7 +179,7 @@ namespace OfficeIMO.Word.Markdown {
                 paragraphBlocks = extendedBlocks;
             }
 
-            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices));
+            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices), options.MaxListNestingDepth);
             var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
         }
@@ -237,8 +239,10 @@ namespace OfficeIMO.Word.Markdown {
             return block is HorizontalRuleBlock;
         }
 
-        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo, int start) {
-            int targetDepth = Math.Max(0, listInfo.Level) + 1;
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo, int start, int maximumDepth) {
+            int boundedLevel = ValidateListLevel(listInfo.Level, maximumDepth);
+
+            int targetDepth = boundedLevel + 1;
 
             while (listStack.Count > targetDepth) {
                 listStack.RemoveAt(listStack.Count - 1);
@@ -270,6 +274,16 @@ namespace OfficeIMO.Word.Markdown {
 
                 listStack.Add(new PendingListFrame(listStack.Count, ordered, block));
             }
+        }
+
+        private static int ValidateListLevel(int level, int maximumDepth) {
+            if (maximumDepth <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(WordToMarkdownOptions.MaxListNestingDepth), "MaxListNestingDepth must be greater than zero.");
+            }
+            if (level < 0 || level >= maximumDepth) {
+                throw new InvalidDataException($"The Word list level exceeds the {maximumDepth}-level Markdown nesting limit.");
+            }
+            return level;
         }
 
         private static OmdListItem CreateListItem(
@@ -343,16 +357,14 @@ namespace OfficeIMO.Word.Markdown {
                         hasRuns = false;
                     }
 
-                    ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
-                    int backscan = i - 1;
-                    while (backscan >= 0 && elements[backscan] is WordParagraph previous && previous.Equals(paragraph)) {
-                        ResolveParagraphCheckboxState(previous, out bool previousHasCheckbox, out bool previousCheckboxChecked);
-                        if (previousHasCheckbox) {
-                            hasCheckbox = true;
-                            checkboxChecked = previousCheckboxChecked;
-                        }
-                        backscan--;
+                    // A paragraph with runs is represented once per run. Only its first run needs
+                    // conversion; skipping the remaining wrappers before grouping avoids repeatedly
+                    // rescanning an attacker-controlled run group.
+                    if (hasRuns && !paragraph.IsFirstRun) {
+                        continue;
                     }
+
+                    ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
 
                     int scan = i + 1;
                     while (scan < elements.Count && elements[scan] is WordParagraph sibling && sibling.Equals(paragraph)) {
@@ -362,10 +374,6 @@ namespace OfficeIMO.Word.Markdown {
                             checkboxChecked = siblingCheckboxChecked;
                         }
                         scan++;
-                    }
-
-                    if (hasRuns && !paragraph.IsFirstRun) {
-                        continue;
                     }
 
                     var listInfo = DocumentTraversal.GetListInfo(paragraph);
@@ -505,7 +513,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (allowQuoteHeuristic &&
                     paragraph.IndentationBefore.HasValue &&
                     paragraph.IndentationBefore.Value > 0) {
-                    int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                    int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
                     if (depth > 0) {
                         block = WrapQuotedBlock(block, depth);
                     }
@@ -877,7 +885,7 @@ namespace OfficeIMO.Word.Markdown {
                 : new ParagraphBlock(inlines);
 
             if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
-                int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
                 if (depth > 0) {
                     block = WrapQuotedBlock(block, depth);
                 }
@@ -1664,25 +1672,15 @@ namespace OfficeIMO.Word.Markdown {
                     fileExtension = ".png";
                 }
 
-                string fileName = string.IsNullOrEmpty(image.FileName)
-                    ? Guid.NewGuid().ToString("N") + fileExtension
-                    : image.FileName!;
-                if (string.IsNullOrEmpty(Path.GetExtension(fileName))) {
-                    fileName += fileExtension;
-                }
+                string fileName = BuildSafeImageFileName(image.FileName, fileExtension);
 
                 string targetPath = Path.Combine(directory, fileName);
-
-                if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
-                    File.Copy(image.FilePath, targetPath, true);
-                } else {
-                    OfficeFileCommit.WriteAllBytes(targetPath, image.ToBytes());
-                }
+                WriteImageFile(image, targetPath);
 
                 return fileName;
             }
 
-            byte[] bytes = image.ToBytes();
+            byte[] bytes = ReadEmbeddedImageBytes(image, options);
             string imageExtension = Path.GetExtension(image.FilePath);
             string mime = imageExtension switch {
                 ".jpg" => "image/jpeg",

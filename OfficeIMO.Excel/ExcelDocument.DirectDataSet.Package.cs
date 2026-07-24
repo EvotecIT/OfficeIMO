@@ -130,10 +130,14 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested();
             }
 
-            PrepareDestinationStreamForWrite(destination);
-            DirectDataSetWorkbookWriter.Write(destination, packageModel, ct);
-            try { destination.Flush(); } catch (NotSupportedException) { }
-            if (destination.CanSeek) {
+            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(destination, options);
+            Stream writeTarget = stagedPackage ?? destination;
+            PrepareDestinationStreamForWrite(writeTarget);
+            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct);
+            try { writeTarget.Flush(); } catch (NotSupportedException) { }
+            if (stagedPackage != null) {
+                CommitStagedPackageToStream(stagedPackage, destination, options);
+            } else if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
             }
 
@@ -668,6 +672,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                ThrowIfPackageMaterializationExceedsLimit(new FileInfo(temporaryPath).Length, options);
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
                 try { _spreadSheetDocument.Dispose(); } catch { }
@@ -680,6 +685,8 @@ namespace OfficeIMO.Excel {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.DirectDataSetPackage();
                 return true;
             } catch (OperationCanceledException) {
+                throw;
+            } catch (InvalidDataException ex) when (IsPackageMaterializationLimitException(ex)) {
                 throw;
             } catch (Exception ex) {
                 skipReason = "Direct DataSet package writer failed: " + ex.Message;

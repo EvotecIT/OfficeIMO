@@ -131,9 +131,28 @@ namespace OfficeIMO.Excel {
         public static async Task<ExcelTemplateImage> FromUrlAsync(string url, int widthPixels = 96, int heightPixels = 32,
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
             bool lockAspectRatio = true, CancellationToken cancellationToken = default) {
+            return await FromUrlCoreAsync(url, null, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
+                name, altText, lockAspectRatio, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Creates a template image using an explicit remote-network policy.</summary>
+        public static Task<ExcelTemplateImage> FromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions,
+            int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0,
+            string? name = null, string? altText = null, bool lockAspectRatio = true,
+            CancellationToken cancellationToken = default) {
+            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            return FromUrlCoreAsync(url, remoteImageOptions, widthPixels, heightPixels, offsetXPixels,
+                offsetYPixels, name, altText, lockAspectRatio, cancellationToken);
+        }
+
+        private static async Task<ExcelTemplateImage> FromUrlCoreAsync(string url,
+            OfficeRemoteImageLoadOptions? remoteImageOptions, int widthPixels, int heightPixels,
+            int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio,
+            CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
                 url,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+                remoteImageOptions,
+                cancellationToken).ConfigureAwait(false);
             return FromBytes(remote.ToBytes(), remote.ContentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
                 name, altText, lockAspectRatio);
         }

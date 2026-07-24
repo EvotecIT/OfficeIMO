@@ -61,6 +61,9 @@ namespace OfficeIMO.Word {
     /// Provides utilities to traverse list structures within a document.
     /// </summary>
     public static class WordListTraversal {
+        /// <summary>Default maximum number of nested Word list levels.</summary>
+        public const int DefaultMaximumNestingDepth = 128;
+
         /// <summary>
         /// Traverses the body of the provided document emitting events for list structures
         /// and standalone paragraphs. This helper enables converters to reuse list handling
@@ -69,8 +72,22 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document to traverse.</param>
         /// <returns>Sequence of events describing lists and paragraphs.</returns>
         public static IEnumerable<WordListEvent> Traverse(WordprocessingDocument document) {
+            return Traverse(document, DefaultMaximumNestingDepth);
+        }
+
+        /// <summary>
+        /// Traverses document lists while rejecting numbering levels that would require an
+        /// excessive amount of synthetic stack work.
+        /// </summary>
+        /// <param name="document">Document to traverse.</param>
+        /// <param name="maximumNestingDepth">Maximum allowed list nesting depth.</param>
+        /// <returns>Sequence of events describing lists and paragraphs.</returns>
+        public static IEnumerable<WordListEvent> Traverse(WordprocessingDocument document, int maximumNestingDepth) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
+            }
+            if (maximumNestingDepth <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
             }
 
             Dictionary<int, bool> listTypes = GetListTypes(document);
@@ -90,6 +107,9 @@ namespace OfficeIMO.Word {
                 NumberingProperties? numProps = paragraph.ParagraphProperties?.NumberingProperties;
                 if (numProps != null) {
                     int level = numProps.NumberingLevelReference?.Val ?? 0;
+                    if (level < 0 || level >= maximumNestingDepth) {
+                        throw new InvalidDataException($"The Word list level {level} exceeds the {maximumNestingDepth}-level traversal limit.");
+                    }
                     int numId = numProps.NumberingId?.Val ?? 0;
                     bool ordered = listTypes.ContainsKey(numId) && listTypes[numId];
 

@@ -56,13 +56,12 @@ namespace OfficeIMO.Excel.Fluent {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (data == null) throw new ArgumentNullException(nameof(data));
 
-            ObjectFlattenerOptions? options = null;
-            if (configure != null) {
-                options = new ObjectFlattenerOptions();
-                configure(options);
-            }
+            var options = new ObjectFlattenerOptions();
+            configure?.Invoke(options);
+            if (options.MaxRows <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRows));
+            int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, A1.MaxRows - _currentRow));
 
-            var rows = data as IReadOnlyList<T> ?? data.ToList();
+            var rows = MaterializeRowsBounded(data, maximumDataRows);
             if (rows.Count == 0) return this;
 
             int startRow = _currentRow;
@@ -70,7 +69,6 @@ namespace OfficeIMO.Excel.Fluent {
                 return this;
             }
 
-            options ??= new ObjectFlattenerOptions();
             var flattener = new ObjectFlattener();
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
             if (options.Columns != null) {
@@ -85,11 +83,21 @@ namespace OfficeIMO.Excel.Fluent {
                 if (options.CollectionMode == CollectionMode.ExpandRows) {
                     var collectionPath = paths.FirstOrDefault(p => dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);
                     if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
-                        dataRows += AddExpandedRowsFromCollection(rowValues, paths, dict, options.DefaultValues, collectionPath, coll);
+                        dataRows += AddExpandedRowsFromCollection(
+                            rowValues,
+                            paths,
+                            dict,
+                            options.DefaultValues,
+                            collectionPath,
+                            coll,
+                            maximumDataRows - dataRows);
                         continue;
                     }
                 }
 
+                if (dataRows >= maximumDataRows) {
+                    throw new InvalidDataException($"RowsFrom exceeds the {maximumDataRows}-row materialization limit.");
+                }
                 rowValues.Add(ProjectRowsFromValues(paths, dict, options.DefaultValues));
                 dataRows++;
             }
@@ -114,20 +122,45 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        private static IReadOnlyList<T> MaterializeRowsBounded<T>(IEnumerable<T> data, int maximumRows) {
+            if (data is IReadOnlyList<T> rows) {
+                if (rows.Count > maximumRows) {
+                    throw new InvalidDataException($"RowsFrom exceeds the {maximumRows}-row materialization limit.");
+                }
+                return rows;
+            }
+
+            var materialized = new List<T>(Math.Min(maximumRows, 4096));
+            foreach (T item in data) {
+                if (materialized.Count >= maximumRows) {
+                    throw new InvalidDataException($"RowsFrom exceeds the {maximumRows}-row materialization limit.");
+                }
+                materialized.Add(item);
+            }
+            return materialized;
+        }
+
         private static int AddExpandedRowsFromCollection(
             List<object?[]> rowValues,
             IReadOnlyList<string> paths,
             Dictionary<string, object?> values,
             IReadOnlyDictionary<string, object?> defaultValues,
             string collectionPath,
-            IEnumerable collection) {
+            IEnumerable collection,
+            int maximumRows) {
             int added = 0;
             foreach (object? element in collection) {
+                if (added >= maximumRows) {
+                    throw new InvalidDataException($"RowsFrom nested expansion exceeds the configured row materialization limit.");
+                }
                 rowValues.Add(ProjectRowsFromValues(paths, values, defaultValues, collectionPath, element));
                 added++;
             }
 
             if (added == 0) {
+                if (maximumRows <= 0) {
+                    throw new InvalidDataException("RowsFrom nested expansion exceeds the configured row materialization limit.");
+                }
                 rowValues.Add(ProjectRowsFromValues(paths, values, defaultValues: null));
                 return 1;
             }

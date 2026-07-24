@@ -7,7 +7,6 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -38,7 +37,9 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
+        // A converter instance is scoped to one conversion. Keeping parsed sheets here avoids
+        // retaining attacker-controlled stylesheet identities for the lifetime of the process.
+        private readonly Dictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
         private int _suppressAutoLinksDepth;
         private bool _pendingTopBookmark;
@@ -88,6 +89,7 @@ namespace OfficeIMO.Word.Html {
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
+            _stylesheetCache.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
             _remoteImageBytesFetched = 0;
@@ -146,6 +148,7 @@ namespace OfficeIMO.Word.Html {
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
+            _stylesheetCache.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
             _remoteImageBytesFetched = 0;
@@ -201,6 +204,7 @@ namespace OfficeIMO.Word.Html {
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
+            _stylesheetCache.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
             _remoteImageBytesFetched = 0;

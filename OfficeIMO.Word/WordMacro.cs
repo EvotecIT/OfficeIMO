@@ -245,16 +245,19 @@ namespace OfficeIMO.Word {
                 if (BitConverter.ToUInt64(header, 0) != Signature) return modules;
 
                 ushort sectorShift = BitConverter.ToUInt16(header, 0x1E);
+                if (!stream.CanSeek || (sectorShift != 9 && sectorShift != 12)) return modules;
                 int sectorSize = 1 << sectorShift;
+                int maximumSectorCount = GetMaximumSectorCount(stream, sectorSize);
+                if (maximumSectorCount <= 0) return modules;
                 int dirStart = BitConverter.ToInt32(header, 0x30);
 
                 var fatSectors = new List<int>();
                 for (int i = 0; i < 109; i++) {
                     int s = BitConverter.ToInt32(header, 0x4C + i * 4);
-                    if (s >= 0) fatSectors.Add(s);
+                    if (s >= 0 && s < maximumSectorCount) fatSectors.Add(s);
                 }
-                var fat = ReadFat(stream, reader, fatSectors, sectorSize);
-                byte[] dirData = ReadChain(stream, reader, dirStart, sectorSize, fat);
+                var fat = ReadFat(stream, reader, fatSectors, sectorSize, maximumSectorCount);
+                byte[] dirData = ReadChain(stream, reader, dirStart, sectorSize, fat, maximumSectorCount);
                 if (dirData.Length == 0) return modules;
 
                 var entries = ParseDirectory(dirData);
@@ -299,19 +302,28 @@ namespace OfficeIMO.Word {
                 if (BitConverter.ToUInt64(header, 0) != Signature) return false;
 
                 ushort sectorShift = BitConverter.ToUInt16(header, 0x1E);
+                if (!stream.CanSeek || (sectorShift != 9 && sectorShift != 12)) return false;
                 int sectorSize = 1 << sectorShift;
+                int maximumSectorCount = GetMaximumSectorCount(stream, sectorSize);
+                if (maximumSectorCount <= 0) return false;
                 int dirStart = BitConverter.ToInt32(header, 0x30);
 
                 var fatSectors = new List<int>();
                 for (int i = 0; i < 109; i++) {
                     int s = BitConverter.ToInt32(header, 0x4C + i * 4);
-                    if (s >= 0) fatSectors.Add(s);
+                    if (s >= 0 && s < maximumSectorCount) fatSectors.Add(s);
                 }
-                var fat = ReadFat(stream, reader, fatSectors, sectorSize);
+                var fat = ReadFat(stream, reader, fatSectors, sectorSize, maximumSectorCount);
                 int perSector = sectorSize / 128;
                 int sector = dirStart;
-                while (sector != EndOfChain && sector >= 0 && sector < fat.Count) {
+                var visitedSectors = new HashSet<int>();
+                while (sector != EndOfChain
+                    && sector >= 0
+                    && sector < fat.Count
+                    && sector < maximumSectorCount
+                    && visitedSectors.Add(sector)) {
                     long sectorPos = (long)(sector + 1) * sectorSize;
+                    if (sectorPos < 0 || sectorPos > stream.Length - sectorSize) return false;
                     stream.Position = sectorPos;
                     byte[] buffer = reader.ReadBytes(sectorSize);
                     bool modified = false;
@@ -319,7 +331,7 @@ namespace OfficeIMO.Word {
                         int offset = i * 128;
                         if (offset + 128 > buffer.Length) break;
                         ushort nameLen = BitConverter.ToUInt16(buffer, offset + 64);
-                        if (nameLen <= 2) continue;
+                        if (nameLen <= 2 || nameLen > 64 || (nameLen & 1) != 0) continue;
                         string name = Encoding.Unicode.GetString(buffer, offset, nameLen - 2);
                         byte type = buffer[offset + 66];
                         if (type == 2 && !IsReserved(name) && string.Equals(name, moduleName, StringComparison.OrdinalIgnoreCase)) {
@@ -345,12 +357,14 @@ namespace OfficeIMO.Word {
             /// <summary>
             /// Reads the File Allocation Table sectors.
             /// </summary>
-            private static List<int> ReadFat(Stream stream, BinaryReader reader, List<int> fatSectors, int sectorSize) {
+            private static List<int> ReadFat(Stream stream, BinaryReader reader, List<int> fatSectors, int sectorSize, int maximumSectorCount) {
                 var fat = new List<int>();
                 int perSector = sectorSize / 4;
                 foreach (int sec in fatSectors) {
-                    if (sec < 0) continue;
-                    stream.Position = (long)(sec + 1) * sectorSize;
+                    if (sec < 0 || sec >= maximumSectorCount) continue;
+                    long sectorPosition = (long)(sec + 1) * sectorSize;
+                    if (sectorPosition < 0 || sectorPosition > stream.Length - sectorSize) continue;
+                    stream.Position = sectorPosition;
                     for (int i = 0; i < perSector; i++) fat.Add(reader.ReadInt32());
                 }
                 return fat;
@@ -359,17 +373,32 @@ namespace OfficeIMO.Word {
             /// <summary>
             /// Reads a chain of sectors from the compound file.
             /// </summary>
-            private static byte[] ReadChain(Stream stream, BinaryReader reader, int start, int sectorSize, List<int> fat) {
+            private static byte[] ReadChain(Stream stream, BinaryReader reader, int start, int sectorSize, List<int> fat, int maximumSectorCount) {
                 if (start < 0) return Array.Empty<byte>();
                 using var ms = new MemoryStream();
                 int sector = start;
-                while (sector != EndOfChain && sector >= 0 && sector < fat.Count) {
-                    stream.Position = (long)(sector + 1) * sectorSize;
+                var visited = new HashSet<int>();
+                while (sector != EndOfChain
+                    && sector >= 0
+                    && sector < fat.Count
+                    && sector < maximumSectorCount
+                    && visited.Add(sector)) {
+                    long sectorPosition = (long)(sector + 1) * sectorSize;
+                    if (sectorPosition < 0 || sectorPosition > stream.Length - sectorSize) break;
+                    stream.Position = sectorPosition;
                     byte[] buffer = reader.ReadBytes(sectorSize);
+                    if (buffer.Length != sectorSize) break;
                     ms.Write(buffer, 0, buffer.Length);
                     sector = fat[sector];
                 }
                 return ms.ToArray();
+            }
+
+            private static int GetMaximumSectorCount(Stream stream, int sectorSize) {
+                long dataBytes = stream.Length - 512L;
+                if (dataBytes < sectorSize) return 0;
+                long sectors = dataBytes / sectorSize;
+                return sectors > int.MaxValue ? int.MaxValue : (int)sectors;
             }
 
             /// <summary>
@@ -379,7 +408,9 @@ namespace OfficeIMO.Word {
                 var list = new List<DirEntry>(data.Length / 128);
                 for (int offset = 0; offset + 128 <= data.Length; offset += 128) {
                     ushort nameLen = BitConverter.ToUInt16(data, offset + 64);
-                    string name = nameLen > 0 ? Encoding.Unicode.GetString(data, offset, nameLen - 2) : string.Empty;
+                    string name = nameLen >= 2 && nameLen <= 64 && (nameLen & 1) == 0
+                        ? Encoding.Unicode.GetString(data, offset, nameLen - 2)
+                        : string.Empty;
                     byte type = data[offset + 66];
                     int left = BitConverter.ToInt32(data, offset + 68);
                     int right = BitConverter.ToInt32(data, offset + 72);

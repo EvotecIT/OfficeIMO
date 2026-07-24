@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace OfficeIMO.Word.Html {
@@ -66,7 +67,8 @@ namespace OfficeIMO.Word.Html {
                         }
                         var colorVal = rPr.Color?.Val?.Value;
                         if (!string.IsNullOrEmpty(colorVal) &&
-                            !string.Equals(colorVal, "auto", StringComparison.OrdinalIgnoreCase)) {
+                            !string.Equals(colorVal, "auto", StringComparison.OrdinalIgnoreCase) &&
+                            IsSixDigitHexColor(colorVal!)) {
                             var cv = colorVal!;
                             props["color"] = "#" + cv.ToLowerInvariant();
                         }
@@ -76,8 +78,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         var font = rPr.RunFonts?.Ascii?.Value;
                         if (!string.IsNullOrEmpty(font)) {
-                            var value = font!;
-                            props["font-family"] = value.Contains(' ') ? $"\"{value}\"" : value;
+                            props["font-family"] = QuoteCssString(font!);
                         }
                     }
                 }
@@ -93,15 +94,75 @@ namespace OfficeIMO.Word.Html {
             foreach (var s in paragraphStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var css = BuildCss(s);
-                sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
+                sb.Append('.').Append(GetSafeStyleClassName(s)).Append(" { ").Append(css).Append(" }\n");
             }
             foreach (var s in runStyles) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var css = BuildCss(s);
-                sb.Append('.').Append(s).Append(" { ").Append(css).Append(" }\n");
+                sb.Append('.').Append(GetSafeStyleClassName(s)).Append(" { ").Append(css).Append(" }\n");
             }
             styleElement.TextContent = sb.ToString();
             head.AppendChild(styleElement);
         }
+
+        private static bool IsSixDigitHexColor(string value) {
+            if (value.Length != 6) return false;
+            for (int i = 0; i < value.Length; i++) {
+                char character = value[i];
+                if (!((character >= '0' && character <= '9')
+                    || (character >= 'A' && character <= 'F')
+                    || (character >= 'a' && character <= 'f'))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static string QuoteCssString(string value) {
+            var escaped = new StringBuilder(value.Length + 2);
+            escaped.Append('"');
+            foreach (char character in value) {
+                if ((character >= 'A' && character <= 'Z')
+                    || (character >= 'a' && character <= 'z')
+                    || (character >= '0' && character <= '9')
+                    || character == ' '
+                    || character == '-'
+                    || character == '_') {
+                    escaped.Append(character);
+                } else {
+                    escaped.Append('\\')
+                        .Append(((int)character).ToString("x", System.Globalization.CultureInfo.InvariantCulture))
+                        .Append(' ');
+                }
+            }
+            return escaped.Append('"').ToString();
+        }
+
+        private static string GetSafeStyleClassName(string? styleId) {
+            if (styleId != null
+                && styleId.Length > 0
+                && IsSafeStyleClassStart(styleId[0])
+                && styleId.All(IsSafeStyleClassCharacter)) {
+                return styleId;
+            }
+
+            using SHA256 sha256 = SHA256.Create();
+            byte[] digest = sha256.ComputeHash(Encoding.UTF8.GetBytes(styleId ?? string.Empty));
+            var suffix = new StringBuilder(24);
+            for (int i = 0; i < 12; i++) {
+                suffix.Append(digest[i].ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            return "word-style-" + suffix;
+        }
+
+        private static bool IsSafeStyleClassStart(char character) =>
+            (character >= 'A' && character <= 'Z')
+            || (character >= 'a' && character <= 'z')
+            || character == '_';
+
+        private static bool IsSafeStyleClassCharacter(char character) =>
+            IsSafeStyleClassStart(character)
+            || (character >= '0' && character <= '9')
+            || character == '-';
     }
 }

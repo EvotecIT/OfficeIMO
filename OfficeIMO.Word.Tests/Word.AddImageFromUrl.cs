@@ -2,6 +2,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -28,7 +29,11 @@ namespace OfficeIMO.Tests {
             });
 
             using (var document = WordDocument.Create(filePath)) {
-                var img = await document.AddImageFromUrlAsync($"http://localhost:{port}/", 40, 40);
+                var img = await document.AddImageFromUrlAsync(
+                    $"http://localhost:{port}/",
+                    40,
+                    40,
+                    new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true });
                 Assert.NotNull(img);
                 document.Save();
             }
