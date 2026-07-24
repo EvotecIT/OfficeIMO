@@ -25,6 +25,13 @@ namespace OfficeIMO.Excel {
             if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
             var definedNameBudget = new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
+            if (options.CopyMode == ExcelWorksheetCopyMode.Package
+                && !ReferenceEquals(sourceDocument, this)) {
+                PreflightReferencedDefinedNamesFromSource(
+                    sourceDocument,
+                    sourceSheets,
+                    definedNameBudget);
+            }
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
             var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -50,8 +57,7 @@ namespace OfficeIMO.Excel {
                         options.SheetNameValidationMode,
                         rewriteCopiedReferences: false,
                         copyReferencedDefinedNames: false,
-                        options.CopyExternalWorkbookReferences,
-                        definedNameBudget);
+                        options.CopyExternalWorkbookReferences);
                     targetSheet = copyResult.Sheet;
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;
@@ -76,8 +82,7 @@ namespace OfficeIMO.Excel {
                     targetSheet,
                     sheetNameMap,
                     tableNameMap,
-                    externalReferenceMap,
-                    definedNameBudget);
+                    externalReferenceMap);
             }
 
             MarkPackageDirty();

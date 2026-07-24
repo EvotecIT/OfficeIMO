@@ -42,6 +42,11 @@ namespace OfficeIMO.Excel {
             SheetNameValidationMode validationMode,
             ExcelWorksheetCopyOptions options,
             DefinedNameCopyBudget definedNameBudget) {
+            ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
+            PreflightReferencedDefinedNamesFromSource(
+                sourceDocument,
+                new[] { sourceSheet },
+                definedNameBudget);
             return CopyWorksheetFromPackage(
                 sourceDocument,
                 sourceSheetName,
@@ -49,8 +54,7 @@ namespace OfficeIMO.Excel {
                 validationMode,
                 rewriteCopiedReferences: true,
                 copyReferencedDefinedNames: true,
-                options.CopyExternalWorkbookReferences,
-                definedNameBudget).Sheet;
+                options.CopyExternalWorkbookReferences).Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetFromPackage(
@@ -60,8 +64,7 @@ namespace OfficeIMO.Excel {
             SheetNameValidationMode validationMode,
             bool rewriteCopiedReferences,
             bool copyReferencedDefinedNames,
-            bool copyExternalWorkbookReferences,
-            DefinedNameCopyBudget definedNameBudget) {
+            bool copyExternalWorkbookReferences) {
             MaterializeDeferredDataSetImport();
             sourceDocument.MaterializeDeferredDataSetImport();
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
@@ -121,8 +124,7 @@ namespace OfficeIMO.Excel {
                         targetSheet,
                         sheetNameMap,
                         tableNameMap,
-                        externalReferenceMap,
-                        definedNameBudget);
+                        externalReferenceMap);
                 }
 
                 copiedPart.Worksheet.Save();

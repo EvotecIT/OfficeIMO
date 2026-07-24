@@ -114,12 +114,14 @@ namespace OfficeIMO.Tests {
 
             using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             using var targetDocument = ExcelDocument.Create(targetPath);
+            int originalSheetCount = targetDocument.Sheets.Count;
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Names", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package,
                     MaxDefinedNames = 2
                 }));
             Assert.Contains("defined-name limit", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(originalSheetCount, targetDocument.Sheets.Count);
         }
 
         [Fact]
@@ -140,12 +142,14 @@ namespace OfficeIMO.Tests {
 
             using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             using var targetDocument = ExcelDocument.Create(targetPath);
+            int originalSheetCount = targetDocument.Sheets.Count;
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package,
                     MaxDefinedNames = 3
                 }));
             Assert.Contains("defined-name limit", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(originalSheetCount, targetDocument.Sheets.Count);
         }
 
         [Fact]
