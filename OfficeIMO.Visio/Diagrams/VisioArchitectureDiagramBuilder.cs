@@ -363,6 +363,10 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            page.ReserveAutomaticObjectId(_titleId);
+            foreach (CalloutItem callout in _callouts) {
+                page.ReserveAutomaticObjectId(callout.Id);
+            }
             page.Grid(visible: false, snap: true);
             AddRegions(page);
             AddComponents(page);

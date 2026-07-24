@@ -53,9 +53,13 @@ public sealed class TextRun {
     /// <param name="baseline">Baseline placement for this run.</param>
     /// <param name="linkDestinationName">Optional named destination for an internal document link annotation.</param>
     /// <param name="tabLeader">Leader fill to render when the run text is a tab character.</param>
-    /// <param name="tabAlignment">Alignment to use when the run text is a tab character.</param>
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="fontFamily">Optional registered embedded family name. <paramref name="font"/> is used as its fallback.</param>
+    public TextRun(string text, bool bold, bool underline, PdfColor? color, bool italic, bool strike, double? fontSize, PdfStandardFont? font, string? linkUri, string? linkContents, PdfTextBaseline baseline, string? linkDestinationName, PdfTabLeaderStyle tabLeader, PdfColor? backgroundColor, string? fontFamily)
+        : this(text, bold, underline, color, italic, strike, fontSize, font, linkUri, linkContents, baseline, linkDestinationName, tabLeader, PdfTabAlignment.Left, backgroundColor, fontFamily) {
+    }
+
+    /// <summary>Create a new run with the specified styles and tab alignment.</summary>
     public TextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None, PdfTabAlignment tabAlignment = PdfTabAlignment.Left, PdfColor? backgroundColor = null, string? fontFamily = null) {
         Guard.NotNull(text, nameof(text));
         Guard.TextBaseline(baseline, nameof(baseline));
@@ -126,6 +130,8 @@ public sealed class TextRun {
     /// <summary>Create an explicit line-break run.</summary>
     public static TextRun LineBreak() => new TextRun("\n", bold: false, underline: false, color: null, italic: false, strike: false);
     /// <summary>Create an explicit paragraph tab run.</summary>
+    public static TextRun Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
+    /// <summary>Create an explicit paragraph tab run with alignment.</summary>
     public static TextRun Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) => new TextRun("\t", tabLeader: leader, tabAlignment: alignment);
     /// <summary>Create a fixed-size inline visual run.</summary>
     public static TextRun Inline(PdfInlineElement element) => new TextRun(element);

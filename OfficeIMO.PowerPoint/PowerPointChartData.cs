@@ -46,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
 
             int expected = Categories.Count;
             foreach (PowerPointChartSeries item in Series) {
-                if (item.XValues == null && item.Values.Count != expected) {
+                if (item.Values.Count != expected) {
                     throw new System.ArgumentException(
                         "Each series must have the same number of values as there are categories.",
                         nameof(series));

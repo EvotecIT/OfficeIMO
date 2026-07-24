@@ -219,6 +219,10 @@ public sealed class PdfPageCanvas {
     }
 
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
+    public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText, double rotationAngle) =>
+        Image(imageBytes, x, y, width, height, style, linkUri, linkContents, alternativeText, rotationAngle, horizontalFlip: false, verticalFlip: false);
+
+    /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
         return ImageShared(

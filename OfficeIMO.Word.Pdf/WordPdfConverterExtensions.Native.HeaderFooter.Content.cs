@@ -71,12 +71,12 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(PdfCore.PdfStandardFont baseFont, NativeFontMap? nativeFontMap, params WordHeaderFooter?[] headerFooters) {
             PdfCore.PdfStandardFont? resolvedFont = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
-                foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
-                    if (!TryResolveNativeMappedFont(familyName, nativeFontMap, out PdfCore.PdfStandardFont mappedFont)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterTextStyles(headerFooter, nativeFontMap)) {
+                    if (!style.Font.HasValue) {
                         continue;
                     }
 
-                    PdfCore.PdfStandardFont fontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
+                    PdfCore.PdfStandardFont fontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(style.Font.Value);
                     if (resolvedFont.HasValue && resolvedFont.Value != fontFamily) {
                         return null;
                     }
@@ -99,9 +99,9 @@ namespace OfficeIMO.Word.Pdf {
         private static string? ResolveNativeHeaderFooterFontFamily(NativeFontMap nativeFontMap, params WordHeaderFooter?[] headerFooters) {
             string? resolvedFamily = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
-                foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
-                    if (!nativeFontMap.TryGetNamedFontFamily(familyName, out string? namedFamily) ||
-                        string.IsNullOrWhiteSpace(namedFamily)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterTextStyles(headerFooter, nativeFontMap)) {
+                    string? namedFamily = style.FontFamily;
+                    if (string.IsNullOrWhiteSpace(namedFamily)) {
                         continue;
                     }
 
@@ -120,7 +120,12 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
             PdfCore.PdfColor? resolvedColor = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
-                foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterColors(headerFooter)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterTextStyles(headerFooter)) {
+                    if (!style.Color.HasValue) {
+                        return null;
+                    }
+
+                    PdfCore.PdfColor color = style.Color.Value;
                     if (resolvedColor.HasValue && !resolvedColor.Value.Equals(color)) {
                         return null;
                     }
@@ -239,13 +244,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterTextStyles(WordHeaderFooter? headerFooter) {
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterTextStyles(WordHeaderFooter? headerFooter, NativeFontMap? nativeFontMap = null) {
             if (headerFooter == null) {
                 yield break;
             }
 
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
-                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterElementTextStyles(element)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterElementTextStyles(element, nativeFontMap)) {
                     yield return style;
                 }
             }
@@ -277,9 +282,9 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterElementTextStyles(WordElement element) {
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterElementTextStyles(WordElement element, NativeFontMap? nativeFontMap) {
             if (element is WordParagraph paragraph) {
-                foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(paragraph)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(paragraph, nativeFontMap)) {
                     yield return style;
                 }
 
@@ -294,7 +299,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordTableRow row in currentTable.Rows) {
                     foreach (WordTableCell cell in row.Cells) {
                         foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
+                            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph, nativeFontMap)) {
                                 yield return style;
                             }
                         }
@@ -359,7 +364,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeParagraphTextStyles(WordParagraph paragraph) {
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeParagraphTextStyles(WordParagraph paragraph, NativeFontMap? nativeFontMap = null) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             bool emittedRun = false;
             foreach (WordParagraph run in runs) {
@@ -368,11 +373,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 emittedRun = true;
-                yield return ResolveNativeTextRunStyle(run, paragraph);
+                yield return ResolveNativeTextRunStyle(run, paragraph, nativeFontMap: nativeFontMap);
             }
 
             if (!emittedRun && !string.IsNullOrWhiteSpace(paragraph.Text)) {
-                yield return ResolveNativeTextRunStyle(paragraph);
+                yield return ResolveNativeTextRunStyle(paragraph, nativeFontMap: nativeFontMap);
             }
         }
 

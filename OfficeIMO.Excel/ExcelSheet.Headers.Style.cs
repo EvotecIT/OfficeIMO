@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
             out int columnIndex,
             ExcelReadOptions? options = null,
             bool preferDirectTabularMetadata = true) {
-            if (preferDirectTabularMetadata &&
+            if (preferDirectTabularMetadata && options == null &&
                 _excelDocument.TryGetDirectTabularSaveCandidateColumnByHeader(this, header, includeHeader, options, out int directColumnIndex, out int directStartRow, out int directEndRow)) {
                 columnIndex = directColumnIndex;
                 builder = new ColumnStyleByHeaderBuilder(this, directColumnIndex, directStartRow, directEndRow);
