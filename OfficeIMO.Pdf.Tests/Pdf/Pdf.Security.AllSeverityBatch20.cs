@@ -25,6 +25,31 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
     }
 
     [Fact]
+    public void UnbackedReservedMonospaceSlotKeepsMultilingualFallbackPriority() {
+        string[] candidates = (
+                PdfOptions.DefaultDocumentMultilingualFontFamilyFallback + "," +
+                PdfOptions.DefaultDocumentSymbolAndEmojiFontFamilyFallback)
+            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(candidate => candidate.Trim())
+            .ToArray();
+        if (!candidates.Any(candidate => PdfEmbeddedFontFamily.TryFromSystem(candidate, out _))) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.UseTextFallbacks(
+            PdfTextFallbackFeatures.Default,
+            new[] { PdfStandardFont.Courier },
+            allowSystemFontEmbedding: true);
+
+        PdfEmbeddedFontFallbackSet? fallbacks = options.EmbeddedFontFallbacks;
+        Assert.NotNull(fallbacks);
+        Assert.Contains(
+            PdfStandardFont.Courier,
+            fallbacks!.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
+    }
+
+    [Fact]
     public void ExplicitConfiguredMonospaceSlotRemainsReserved() {
         var options = new PdfOptions {
             DefaultFont = PdfStandardFont.Courier,

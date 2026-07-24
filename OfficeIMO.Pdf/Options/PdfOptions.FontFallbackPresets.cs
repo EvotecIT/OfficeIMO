@@ -52,13 +52,6 @@ public sealed partial class PdfOptions {
                 PdfStandardFont.Helvetica);
         }
 
-        if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
-            requestedSlots.Contains(PdfStandardFont.Courier) &&
-            !configuredSlots.Contains(PdfStandardFont.Courier) &&
-            !HasEmbeddedStandardFontFamily(PdfStandardFont.Courier)) {
-            TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
-        }
-
         var reservedSlots = new HashSet<PdfStandardFont>(requestedSlots);
         reservedSlots.UnionWith(configuredSlots);
 
@@ -69,13 +62,13 @@ public sealed partial class PdfOptions {
             }
         }
 
-        if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0) {
-            if (!reservedSlots.Contains(PdfStandardFont.Courier)) {
-                TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
-                if (HasEmbeddedStandardFontFamily(PdfStandardFont.Courier)) {
-                    AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.Courier);
-                }
-            }
+        bool mayBackRequestedMonospaceSlot =
+            (features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
+            requestedSlots.Contains(PdfStandardFont.Courier) &&
+            !configuredSlots.Contains(PdfStandardFont.Courier) &&
+            !HasEmbeddedStandardFontFamily(PdfStandardFont.Courier);
+        if (mayBackRequestedMonospaceSlot) {
+            reservedSlots.Remove(PdfStandardFont.Courier);
         }
 
         PdfTextFallbackFeatures runFallbacks = features &
@@ -87,6 +80,12 @@ public sealed partial class PdfOptions {
                 reservedFontSlots: reservedSlots);
         } else if (runFallbacks != PdfTextFallbackFeatures.None) {
             TryRegisterRunFallbacksFromSystem(runFallbacks, reservedSlots);
+        }
+
+        if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
+            !configuredSlots.Contains(PdfStandardFont.Courier) &&
+            !HasEmbeddedStandardFontFamily(PdfStandardFont.Courier)) {
+            TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
         }
 
         return this;
