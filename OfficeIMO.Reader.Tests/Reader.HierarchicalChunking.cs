@@ -466,21 +466,27 @@ public sealed class ReaderHierarchicalChunkingTests {
         var pageOneBody = new OfficeDocumentBlock {
             Id = "p1-body",
             Kind = "paragraph",
-            Text = "First body",
-            Location = new ReaderLocation { Page = 1, SourceBlockIndex = 1 }
+            Text = "First body"
         };
         var pageTwoBody = new OfficeDocumentBlock {
             Id = "p2-body",
             Kind = "paragraph",
-            Text = "Second body",
-            Location = new ReaderLocation { Page = 2, SourceBlockIndex = 1 }
+            Text = "Second body"
         };
         var document = new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Text,
             Blocks = new[] { pageOneHeading, pageTwoHeading },
             Pages = new[] {
-                new OfficeDocumentPage { Number = 1, Blocks = new[] { pageOneBody } },
-                new OfficeDocumentPage { Number = 2, Blocks = new[] { pageTwoBody } }
+                new OfficeDocumentPage {
+                    Number = 1,
+                    Location = new ReaderLocation { Page = 1 },
+                    Blocks = new[] { pageOneBody }
+                },
+                new OfficeDocumentPage {
+                    Number = 2,
+                    Location = new ReaderLocation { Page = 2 },
+                    Blocks = new[] { pageTwoBody }
+                }
             }
         };
 
@@ -545,7 +551,7 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
-    public void Chunk_InheritsPageLocationPastUnrelatedPageBlocks() {
+    public void Chunk_OrdersEarlierPageBlocksAndInheritsLaterAggregatePageLocation() {
         var retained = new OfficeDocumentBlock { Id = "retained", Text = "body" };
         var unrelated = new OfficeDocumentBlock { Id = "unrelated", Text = "other" };
         var document = new OfficeDocumentReadResult {
@@ -561,13 +567,14 @@ public sealed class ReaderHierarchicalChunkingTests {
             new ReaderHierarchicalChunkingOptions {
                 MaxTokens = 10,
                 OverlapTokens = 0,
-                MaxInputChunks = 1,
+                MaxInputChunks = 2,
                 IncludeContextInText = false,
                 TokenCounter = WordCounter
             });
 
-        ReaderChunk chunk = Assert.Single(result.Chunks);
-        Assert.Equal(2, chunk.Location.Page);
+        Assert.Equal(new[] { "other", "body" }, result.Chunks.Select(chunk => chunk.Text));
+        Assert.Equal(1, result.Chunks[0].Location.Page);
+        Assert.Equal(2, result.Chunks[1].Location.Page);
     }
 
     [Fact]

@@ -360,7 +360,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return cells;
             }
 
-            var cellIndexes = new Dictionary<(ushort Row, ushort Column), int>();
+            var cellsByCoordinate = new Dictionary<(ushort Row, ushort Column), LegacyXlsCell>();
             LegacyXlsSharedFormulaTable sharedFormulaTable = LegacyXlsSharedFormulaTable.Create(sheet, sheetIndex, formulaNameIndex);
             LegacyXlsArrayFormulaTable arrayFormulaTable = LegacyXlsArrayFormulaTable.Create(sheet, sheetIndex, formulaNameIndex);
             foreach (Row row in sheetData.Elements<Row>()) {
@@ -382,25 +382,23 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         throw new NotSupportedException("Native XLS saving supports the BIFF8 worksheet limit of 65,536 rows and 256 columns.");
                     }
 
-                    LegacyXlsCell? legacyCell = ConvertCell(sheet, workbookPart, sheetIndex, cell, checked((ushort)(effectiveRow - 1U)), checked((ushort)(effectiveColumn - 1)), styleTable, dateSystem, formulaNameIndex, sharedFormulaTable, arrayFormulaTable, fontTable);
+                    ushort legacyRow = checked((ushort)(effectiveRow - 1U));
+                    ushort legacyColumn = checked((ushort)(effectiveColumn - 1));
+                    var coordinate = (legacyRow, legacyColumn);
+                    LegacyXlsCell? legacyCell = ConvertCell(sheet, workbookPart, sheetIndex, cell, legacyRow, legacyColumn, styleTable, dateSystem, formulaNameIndex, sharedFormulaTable, arrayFormulaTable, fontTable);
                     if (legacyCell.HasValue) {
-                        LegacyXlsCell value = legacyCell.Value;
-                        var coordinate = (value.Row, value.Column);
-                        if (cellIndexes.TryGetValue(coordinate, out int existingIndex)) {
-                            // Malformed Open XML can contain duplicate cell coordinates. BIFF8
-                            // cannot represent those deterministically, so preserve the last
-                            // authored cell just as ordinary worksheet lookup does.
-                            cells[existingIndex] = value;
-                        } else {
-                            cellIndexes.Add(coordinate, cells.Count);
-                            cells.Add(value);
-                        }
+                        cellsByCoordinate[coordinate] = legacyCell.Value;
+                    } else {
+                        // A later empty, unstyled duplicate is still the last authored value.
+                        // Remove any earlier cell instead of resurrecting stale content.
+                        cellsByCoordinate.Remove(coordinate);
                     }
 
                     sequentialColumn = effectiveColumn + 1;
                 }
             }
 
+            cells.AddRange(cellsByCoordinate.Values);
             cells.Sort(static (left, right) => {
                 int rowComparison = left.Row.CompareTo(right.Row);
                 return rowComparison != 0 ? rowComparison : left.Column.CompareTo(right.Column);

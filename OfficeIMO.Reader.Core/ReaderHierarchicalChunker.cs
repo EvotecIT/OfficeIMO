@@ -227,18 +227,35 @@ public static partial class ReaderHierarchicalChunker {
             out bool pageInspectionLimitReached);
         limitReached |= pageInspectionLimitReached;
 
-        IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(candidates);
+        IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(
+            candidates,
+            block => {
+                OfficeDocumentPage? page = ResolveFallbackPage(block, pageIndex);
+                ReaderLocation location = CloneLocation(block.Location);
+                InheritPageLocation(location, page);
+                return location;
+            });
         if (ordered.Count > maximumInputChunks) limitReached = true;
         int selectedCount = Math.Min(ordered.Count, maximumInputChunks);
         for (int blockIndex = 0; blockIndex < selectedCount; blockIndex++) {
             OfficeDocumentBlock block = ordered[blockIndex];
-            if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page)
-                && !string.IsNullOrWhiteSpace(block.Id)) {
-                pageIndex.ById.TryGetValue(block.Id!, out page);
-            }
+            OfficeDocumentPage? page = ResolveFallbackPage(block, pageIndex);
             yield return new FallbackBlock(block, page);
         }
         if (limitReached) yield return FallbackBlock.LimitMarker;
+    }
+
+    private static OfficeDocumentPage? ResolveFallbackPage(
+        OfficeDocumentBlock block,
+        PageBlockIndex pageIndex) {
+        if (pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page)) {
+            return page;
+        }
+        if (!string.IsNullOrWhiteSpace(block.Id) &&
+            pageIndex.ById.TryGetValue(block.Id!, out page)) {
+            return page;
+        }
+        return null;
     }
 
     private static bool TryRegisterFallbackBlock(

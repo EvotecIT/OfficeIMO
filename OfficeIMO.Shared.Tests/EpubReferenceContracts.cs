@@ -159,13 +159,13 @@ public sealed class EpubReferenceContractTests {
     }
 
     [Fact]
-    public void Resolve_BindsFragmentOnlyReferenceToContainerRootWithoutSlashPath() {
+    public void Resolve_BindsFragmentOnlyReferenceToContainerRoot() {
         EpubReference reference = EpubReference.Resolve(
             "chapter.xhtml",
             "/",
             "#notes");
 
-        Assert.Equal(string.Empty, reference.ContainerPath);
-        Assert.Equal("#notes", reference.ResolvedValue);
+        Assert.Equal("/", reference.ContainerPath);
+        Assert.Equal("/#notes", reference.ResolvedValue);
     }
 }

@@ -266,7 +266,7 @@ public sealed class EpubReference {
         SplitReference(original, out string referencePathPart, out string? query, out string? encodedFragment);
         if (referencePathPart.Length == 0) {
             string containerPath = basePathPart.EndsWith("/", StringComparison.Ordinal)
-                ? effectiveBase.Length == 0 ? string.Empty : effectiveBase.TrimEnd('/') + "/"
+                ? effectiveBase.TrimEnd('/') + "/"
                 : effectiveBase;
             return Valid(
                 original,

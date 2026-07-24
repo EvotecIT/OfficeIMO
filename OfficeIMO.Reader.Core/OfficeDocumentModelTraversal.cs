@@ -17,12 +17,20 @@ internal static class OfficeDocumentModelTraversal {
     }
 
     internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
-        IEnumerable<OfficeDocumentBlock> candidates) {
+        IEnumerable<OfficeDocumentBlock> candidates) =>
+        OrderBlocks(candidates, static block => block.Location);
+
+    internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
+        IEnumerable<OfficeDocumentBlock> candidates,
+        Func<OfficeDocumentBlock, ReaderLocation?> locationSelector) {
+        if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var ordered = new List<OrderedBlock>();
         int insertionIndex = 0;
         foreach (OfficeDocumentBlock block in candidates) {
-            if (block != null && seen.Add(block)) ordered.Add(new OrderedBlock(block, insertionIndex++));
+            if (block != null && seen.Add(block)) {
+                ordered.Add(new OrderedBlock(block, locationSelector(block), insertionIndex++));
+            }
         }
         ordered.Sort(CompareBlocks);
         return ordered.Select(item => item.Block).ToArray();
@@ -245,9 +253,9 @@ internal static class OfficeDocumentModelTraversal {
     }
 
     private static int CompareBlocks(OrderedBlock left, OrderedBlock right) {
-        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Block.Location), BuildContainerOrderKey(right.Block.Location));
+        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location), BuildContainerOrderKey(right.Location));
         if (comparison != 0) return comparison;
-        comparison = BuildBlockPosition(left.Block.Location).CompareTo(BuildBlockPosition(right.Block.Location));
+        comparison = BuildBlockPosition(left.Location).CompareTo(BuildBlockPosition(right.Location));
         return comparison != 0 ? comparison : left.InsertionIndex.CompareTo(right.InsertionIndex);
     }
 
@@ -458,12 +466,14 @@ internal static class OfficeDocumentModelTraversal {
     }
 
     private readonly struct OrderedBlock {
-        internal OrderedBlock(OfficeDocumentBlock block, int insertionIndex) {
+        internal OrderedBlock(OfficeDocumentBlock block, ReaderLocation? location, int insertionIndex) {
             Block = block;
+            Location = location;
             InsertionIndex = insertionIndex;
         }
 
         internal OfficeDocumentBlock Block { get; }
+        internal ReaderLocation? Location { get; }
         internal int InsertionIndex { get; }
     }
 }

@@ -46,6 +46,24 @@ public partial class Excel {
     }
 
     [Fact]
+    public void Batch19_LegacyXlsSaveRemovesEarlierDuplicateWhenLastCellIsBlank() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Duplicates");
+        SheetData data = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+        data.RemoveAllChildren();
+        data.Append(new Row(
+            new Cell { CellReference = "A1", DataType = CellValues.String, CellValue = new CellValue("stale") },
+            new Cell { CellReference = "A1" }) {
+            RowIndex = 1U
+        });
+
+        byte[] payload = document.ToBytes(ExcelFileFormat.Xls);
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(payload, writable: false));
+
+        Assert.False(loaded["Duplicates"].TryGetCellText(1, 1, out _));
+    }
+
+    [Fact]
     public void Batch19_XlsbRewriteEnforcesActualUnreferencedPartSize() {
         byte[] source = AddZipEntry(
             CreateMinimalXlsbPackage(),
