@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             sheet.AddImage(
                 1,
                 1,
-                CreateSolidPng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
+                CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
                 "image/png",
                 widthPixels: 120,
                 heightPixels: 32,

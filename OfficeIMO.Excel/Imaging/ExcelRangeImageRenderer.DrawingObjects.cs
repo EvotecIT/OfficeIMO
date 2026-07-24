@@ -89,12 +89,12 @@ namespace OfficeIMO.Excel {
             drawing.AddShape(shape, offsetX, offsetY);
 
             if (!string.IsNullOrWhiteSpace(drawingObject.Text)) {
-                double insetLeft = Math.Max(0D, drawingObject.TextInsetLeft * scale);
-                double insetTop = Math.Max(0D, drawingObject.TextInsetTop * scale);
-                double insetRight = Math.Max(0D, drawingObject.TextInsetRight * scale);
-                double insetBottom = Math.Max(0D, drawingObject.TextInsetBottom * scale);
-                double textWidth = Math.Max(1D, width - insetLeft - insetRight);
-                double textHeight = Math.Max(1D, height - insetTop - insetBottom);
+                double insetLeft = ClampTextInset(drawingObject.TextInsetLeft * scale, Math.Max(0D, width - 1D));
+                double insetTop = ClampTextInset(drawingObject.TextInsetTop * scale, Math.Max(0D, height - 1D));
+                double insetRight = ClampTextInset(drawingObject.TextInsetRight * scale, Math.Max(0D, width - insetLeft - 1D));
+                double insetBottom = ClampTextInset(drawingObject.TextInsetBottom * scale, Math.Max(0D, height - insetTop - 1D));
+                double textWidth = width - insetLeft - insetRight;
+                double textHeight = height - insetTop - insetBottom;
                 OfficeFontInfo font = ResolveDrawingTextFont(drawingObject, scale, textHeight);
                 double textRotationDegrees = ResolveDrawingTextRotationDegrees(drawingObject);
                 drawing.AddText(
@@ -116,6 +116,14 @@ namespace OfficeIMO.Excel {
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);
+        }
+
+        private static double ClampTextInset(double value, double maximum) {
+            if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
+                return 0D;
+            }
+
+            return Math.Min(value, maximum);
         }
 
         private static OfficeFontInfo ResolveDrawingTextFont(ExcelVisualDrawingObject drawingObject, double scale, double textHeight) {

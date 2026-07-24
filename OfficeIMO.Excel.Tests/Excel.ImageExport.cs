@@ -84,7 +84,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
-            Assert.Contains("Friendly Excel image export", svg, StringComparison.Ordinal);
+            Assert.Contains("<text", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Friendly Excel image export", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -359,13 +360,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportClipsOverflowingPlainTextWithoutInventingEllipsis() {
+        public void ExcelRange_SvgExportDoesNotEmbedClippedCellTextSuffix() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Clip");
             sheet.SetColumnWidth(1, 8);
             sheet.SetRowHeight(1, 22);
-            sheet.CellValue(1, 1, "Overflowing cell text should clip");
+            sheet.CellValue(1, 1, "Visible prefix SECRET-SUFFIX-MUST-NOT-LEAK");
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -375,8 +376,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Clip!A1");
             Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "Clip!A1");
-            Assert.Contains("Overflowing cell text should clip", svg, StringComparison.Ordinal);
-            Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+            Assert.Contains("...", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("SECRET-SUFFIX-MUST-NOT-LEAK", svg, StringComparison.Ordinal);
             Assert.Contains("clip-path=\"url(#xl-text-1-1)\"", svg, StringComparison.Ordinal);
         }
 
@@ -450,7 +451,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(3, 12);
             sheet.SetRowHeight(1, 28);
             sheet.CellValue(1, 1, "Plain text stops before image overlay");
-            sheet.AddImage(1, 2, CreateSolidPng(24, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 24, heightPixels: 18, name: "Overlay");
+            sheet.AddImage(1, 2, CreateSolidOpaquePng(24, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 24, heightPixels: 18, name: "Overlay");
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -468,7 +469,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportDoesNotSpillThroughBlankCellsCoveredByCharts() {
+        public void ExcelRange_ImageExportAllowsSpillBehindPotentiallyTransparentCharts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("ChartSpill");
@@ -495,9 +496,9 @@ namespace OfficeIMO.Tests {
 
             ExcelVisualCell first = snapshot.Cells.Single(cell => cell.Column == 1 && cell.Row == 1);
             Assert.Single(snapshot.Charts);
-            Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
-            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "ChartSpill!A1");
-            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "ChartSpill!A1");
+            Assert.True(ExtractSvgClipWidth(svg, "xl-text-1-1") > first.Width);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && diagnostic.Source == "ChartSpill!A1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && diagnostic.Source == "ChartSpill!A1");
             Assert.Contains("Overlay", svg, StringComparison.Ordinal);
         }
 
@@ -510,7 +511,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, 16);
             sheet.SetRowHeight(1, 28);
             sheet.CellValue(1, 1, "Text hidden by image should not spill");
-            sheet.AddImage(1, 1, CreateSolidPng(48, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 48, heightPixels: 18, name: "SourceOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(48, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 48, heightPixels: 18, name: "SourceOverlay");
 
             ExcelRange range = sheet.Range("A1:B1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -534,7 +535,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 24);
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
-            sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 32, name: "AnchorOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 32, name: "AnchorOverlay");
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -547,6 +548,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && diagnostic.Source == "AnchorOverlay!A1");
             Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "AnchorOverlay!A1");
             Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "AnchorOverlay!A1");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportKeepsTextUnderTransparentImageOverlays() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("TransparentOverlay");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 1, "Visible through transparency");
+            sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.Transparent), "image/png", widthPixels: 120, heightPixels: 32, name: "TransparentOverlay");
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            Assert.False(Assert.Single(snapshot.Images).IsFullyOpaque);
+            Assert.Contains("Visible through", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing);
         }
 
         [Fact]
@@ -569,7 +591,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelVisualCellValueKind.Number, first.ValueKind);
             Assert.Equal(first.Width, ExtractSvgClipWidth(svg, "xl-text-1-1"), precision: 2);
             Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "NoNumberSpill!A1");
-            Assert.Contains("text-anchor=\"end\">123456789</text>", svg, StringComparison.Ordinal);
+            Assert.Contains("text-anchor=\"end\">", svg, StringComparison.Ordinal);
+            Assert.Contains("...</text>", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(">123456789</text>", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -4524,6 +4548,21 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage image = new OfficeRasterImage(width, height, OfficeColor.Transparent);
             image.Fill(color);
             return OfficePngWriter.Encode(image);
+        }
+
+        private static byte[] CreateSolidOpaquePng(int width, int height, OfficeColor color) {
+            byte[] scanlines = new byte[checked(height * (1 + width * 3))];
+            int offset = 0;
+            for (int row = 0; row < height; row++) {
+                scanlines[offset++] = 0;
+                for (int column = 0; column < width; column++) {
+                    scanlines[offset++] = color.R;
+                    scanlines[offset++] = color.G;
+                    scanlines[offset++] = color.B;
+                }
+            }
+
+            return OfficePngWriter.EncodeScanlines(width, height, bitDepth: 8, colorType: 2, scanlines, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateSinglePixelGif() =>

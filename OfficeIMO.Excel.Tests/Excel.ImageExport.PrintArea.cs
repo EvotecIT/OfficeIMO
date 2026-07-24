@@ -135,6 +135,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ManualPageBreakBudgetAlsoBoundsUnsplitPrintAreas() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Report");
+                sheet.CellValue(2, 2, "First");
+                sheet.CellValue(2, 4, "Second");
+                document.Save();
+            }
+
+            AddMultiAreaPrintArea(filePath);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loaded.Sheets[0];
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                loadedSheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                    UsePrintArea = true,
+                    SplitByManualPageBreaks = true,
+                    MaximumPageBreakImages = 1
+                }));
+
+            Assert.Contains("aggregate result limit", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PrintAreaResultBudgetWinsBeforeUnboundedNormalization() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("Report").CellValue(1, 1, "safe");
+                document.Save();
+            }
+
+            string printArea = string.Join(",", Enumerable.Range(1, 1_000)
+                .Select(row => "'Report'!$A$" + row + ":$A$" + row)) + ",not-a-range";
+            SetPrintAreaDefinition(filePath, printArea);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                loaded.Sheets[0].ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                    UsePrintArea = true,
+                    SplitByManualPageBreaks = true,
+                    MaximumPageBreakImages = 2
+                }));
+
+            Assert.Contains("aggregate result limit of 2", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelWorkbook_ImageExportCanUseWorksheetPrintAreas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -618,6 +665,10 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddMultiAreaPrintArea(string filePath) {
+            SetPrintAreaDefinition(filePath, "'Report'!$B$2:$B$2,'Report'!$D$2:$D$2");
+        }
+
+        private static void SetPrintAreaDefinition(string filePath, string definition) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorkbookPart? workbookPart = spreadsheet.WorkbookPart;
             Assert.NotNull(workbookPart);
@@ -631,7 +682,7 @@ namespace OfficeIMO.Tests {
             workbook.DefinedNames.Append(new X.DefinedName {
                 Name = "_xlnm.Print_Area",
                 LocalSheetId = 0U,
-                Text = "'Report'!$B$2:$B$2,'Report'!$D$2:$D$2"
+                Text = definition
             });
             workbook.Save();
         }

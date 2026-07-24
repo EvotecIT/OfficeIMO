@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportClipsOverflowingRichTextWithoutInventingEllipsis() {
+        public void ExcelRange_SvgExportDoesNotEmbedClippedRichTextSuffix() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("RichClip");
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, 24);
             sheet.CellAt(1, 1).SetRichText(
                 new ExcelRichTextRun("Overflowing") { Bold = true, FontColor = "DC2626", FontSize = 12D },
-                new ExcelRichTextRun(" rich text should clip") { Italic = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun(" rich text SECRET-RICH-SUFFIX-MUST-NOT-LEAK") { Italic = true, FontColor = "2563EB", FontSize = 12D });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -139,9 +139,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "RichClip!A1");
             Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
             Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
-            Assert.Contains("Overflowing", svg, StringComparison.Ordinal);
-            Assert.Contains(" rich text should clip", svg, StringComparison.Ordinal);
-            Assert.DoesNotContain("...", svg, StringComparison.Ordinal);
+            Assert.Contains("...", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("SECRET-RICH-SUFFIX-MUST-NOT-LEAK", svg, StringComparison.Ordinal);
             Assert.Contains("clip-path=\"url(#xl-text-1-1)\"", svg, StringComparison.Ordinal);
         }
 

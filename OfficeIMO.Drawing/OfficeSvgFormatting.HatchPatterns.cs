@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Drawing;
@@ -88,18 +89,32 @@ public static partial class OfficeSvgFormatting {
     private static void AppendSvgStipplePattern(StringBuilder builder, double x, double y, double width, double height, OfficeColor color, double step, double dotSize, OfficeStipplePattern pattern) {
         double size = Math.Max(1D, dotSize);
         double tileSize = Math.Max(step, size * pattern.Size);
+        string patternId = "office-stipple-" + builder.Length.ToString("x", CultureInfo.InvariantCulture);
         string attributes = new StringBuilder().AppendPaintAttribute("fill", color).ToString();
-        for (double tileY = y; tileY < y + height; tileY += tileSize) {
-            for (double tileX = x; tileX < x + width; tileX += tileSize) {
-                for (int cellY = 0; cellY < pattern.Size; cellY++) {
-                    for (int cellX = 0; cellX < pattern.Size; cellX++) {
-                        if (pattern.IsFilled(cellX, cellY)) {
-                            builder.AppendRectElement(tileX + cellX * size, tileY + cellY * size, size, size, attributes);
-                        }
-                    }
+        builder.Append("<defs><pattern")
+            .AppendAttribute("id", patternId)
+            .AppendAttribute("patternUnits", "userSpaceOnUse")
+            .AppendNumberAttribute("x", x)
+            .AppendNumberAttribute("y", y)
+            .AppendNumberAttribute("width", tileSize)
+            .AppendNumberAttribute("height", tileSize)
+            .AppendAttribute("viewBox", "0 0 " + FormatNumber(tileSize) + " " + FormatNumber(tileSize))
+            .Append(">");
+        for (int cellY = 0; cellY < pattern.Size; cellY++) {
+            for (int cellX = 0; cellX < pattern.Size; cellX++) {
+                if (pattern.IsFilled(cellX, cellY)) {
+                    builder.AppendRectElement(cellX * size, cellY * size, size, size, attributes);
                 }
             }
         }
+
+        builder.Append("</pattern></defs><rect")
+            .AppendNumberAttribute("x", x)
+            .AppendNumberAttribute("y", y)
+            .AppendNumberAttribute("width", width)
+            .AppendNumberAttribute("height", height)
+            .AppendAttribute("fill", "url(#" + patternId + ")")
+            .Append("/>");
     }
 
     private static void AppendSvgHatchDot(StringBuilder builder, double x, double y, double size, OfficeColor color) {

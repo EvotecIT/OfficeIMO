@@ -879,7 +879,8 @@ namespace OfficeIMO.Tests {
 
                 document.MergeWorkbookFrom(document, new ExcelWorkbookMergeOptions {
                     SheetNames = new[] { "Source", "Summary" },
-                    SheetNamePrefix = "Copy_"
+                    SheetNamePrefix = "Copy_",
+                    CopyMode = ExcelWorksheetCopyMode.Package
                 });
 
                 document.Save();
@@ -1073,7 +1074,8 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Load(targetPath)) {
                 targetDocument.CopyWorksheetFrom(sourceDocument, "External", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
-                    CopyMode = ExcelWorksheetCopyMode.Package
+                    CopyMode = ExcelWorksheetCopyMode.Package,
+                    CopyExternalWorkbookReferences = true
                 });
                 targetDocument.Save();
             }
@@ -1112,7 +1114,8 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Load(targetPath)) {
                 targetDocument.CopyWorksheetFrom(sourceDocument, "External", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
-                    CopyMode = ExcelWorksheetCopyMode.Package
+                    CopyMode = ExcelWorksheetCopyMode.Package,
+                    CopyExternalWorkbookReferences = true
                 });
                 targetDocument.Save();
             }
@@ -1156,7 +1159,8 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Load(targetPath)) {
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Structured", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
-                    CopyMode = ExcelWorksheetCopyMode.Package
+                    CopyMode = ExcelWorksheetCopyMode.Package,
+                    CopyExternalWorkbookReferences = true
                 });
                 targetDocument.Save();
             }
@@ -1236,7 +1240,8 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Load(targetPath)) {
                 targetDocument.CopyWorksheetFrom(sourceDocument, "TableFormula", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
-                    CopyMode = ExcelWorksheetCopyMode.Package
+                    CopyMode = ExcelWorksheetCopyMode.Package,
+                    CopyExternalWorkbookReferences = true
                 });
                 targetDocument.Save();
             }
@@ -1607,11 +1612,14 @@ namespace OfficeIMO.Tests {
             workbookPart.Workbook.Save();
         }
 
-        private static void AddDefinedName(string path, string name, string formula) {
+        private static void AddDefinedName(string path, string name, string formula, uint? localSheetId = null) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
             Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
             workbook.DefinedNames ??= new DefinedNames();
-            workbook.DefinedNames.Append(new DefinedName(formula) { Name = name });
+            workbook.DefinedNames.Append(new DefinedName(formula) {
+                Name = name,
+                LocalSheetId = localSheetId
+            });
             workbook.Save();
         }
 

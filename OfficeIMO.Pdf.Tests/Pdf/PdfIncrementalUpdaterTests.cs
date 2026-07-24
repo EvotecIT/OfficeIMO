@@ -142,6 +142,30 @@ public class PdfIncrementalUpdaterTests {
         Assert.Equal("Updated title", PdfInspector.Inspect(updated).Metadata.Title);
     }
 
+    [Fact]
+    public void UpdateMetadata_UsesTheActiveTrailerRootInsteadOfThePreviousRevisionRoot() {
+        byte[] original = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Active catalog body"))
+            .ToBytes();
+        PdfDocumentSecurityInfo originalSecurity = PdfSyntax.ReadDocumentSecurityInfo(original);
+        int originalRoot = originalSecurity.RootObjectNumber!.Value;
+        var (objects, _) = PdfSyntax.ParseObjects(original);
+        var originalCatalog = Assert.IsType<PdfDictionary>(objects[originalRoot].Value);
+        var pagesReference = Assert.IsType<PdfReference>(originalCatalog.Items["Pages"]);
+        int activeRoot = objects.Keys.Max() + 1;
+        byte[] crafted = AppendCatalogRevision(original, activeRoot, pagesReference, originalSecurity.LastStartXrefOffset!.Value);
+
+        PdfDocumentSecurityInfo craftedSecurity = PdfSyntax.ReadDocumentSecurityInfo(crafted);
+        Assert.Equal(activeRoot, craftedSecurity.RootObjectNumber);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(crafted, title: "Active root retained");
+        string appended = PdfEncoding.Latin1GetString(updated, crafted.Length, updated.Length - crafted.Length);
+
+        Assert.Contains("/Root " + activeRoot.ToString(CultureInfo.InvariantCulture) + " 0 R", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Root " + originalRoot.ToString(CultureInfo.InvariantCulture) + " 0 R", appended, StringComparison.Ordinal);
+        Assert.Equal("Active root retained", PdfInspector.Inspect(updated).Metadata.Title);
+    }
+
     private static byte[] BuildMetadataPdfWithCatalogGeneration() {
         var entries = new List<(int ObjectNumber, int Generation, string Body)> {
             (1, 2, "<< /Type /Catalog /Pages 2 0 R >>"),
@@ -164,6 +188,32 @@ public class PdfIncrementalUpdaterTests {
         builder.AppendLine("<< /Root 1 2 R /Size 6 >>");
         builder.AppendLine("startxref");
         builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] AppendCatalogRevision(byte[] source, int activeRoot, PdfReference pagesReference, int previousXrefOffset) {
+        var builder = new StringBuilder(Encoding.ASCII.GetString(source));
+        if (builder.Length > 0 && builder[builder.Length - 1] != '\n') {
+            builder.AppendLine();
+        }
+
+        int objectOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append(activeRoot.ToString(CultureInfo.InvariantCulture)).AppendLine(" 0 obj");
+        builder.Append("<< /Type /Catalog /Pages ")
+            .Append(pagesReference.ObjectNumber.ToString(CultureInfo.InvariantCulture)).Append(' ')
+            .Append(pagesReference.Generation.ToString(CultureInfo.InvariantCulture)).AppendLine(" R >>");
+        builder.AppendLine("endobj");
+        int xrefOffset = Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.AppendLine("xref");
+        builder.Append(activeRoot.ToString(CultureInfo.InvariantCulture)).AppendLine(" 1");
+        builder.Append(objectOffset.ToString("D10", CultureInfo.InvariantCulture)).AppendLine(" 00000 n ");
+        builder.AppendLine("trailer");
+        builder.Append("<< /Size ").Append((activeRoot + 1).ToString(CultureInfo.InvariantCulture))
+            .Append(" /Root ").Append(activeRoot.ToString(CultureInfo.InvariantCulture)).Append(" 0 R /Prev ")
+            .Append(previousXrefOffset.ToString(CultureInfo.InvariantCulture)).AppendLine(" >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
         builder.AppendLine("%%EOF");
         return Encoding.ASCII.GetBytes(builder.ToString());
     }

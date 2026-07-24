@@ -12,6 +12,8 @@ namespace OfficeIMO.Visio {
     /// Load core and parse helpers for <see cref="VisioDocument"/>.
     /// </summary>
     public partial class VisioDocument {
+        private const int MaximumLoadedFontFamilyCharacters = 256;
+
         /// <summary>
         /// Loads an existing <c>.vsdx</c> file into a <see cref="VisioDocument"/>.
         /// </summary>
@@ -86,7 +88,10 @@ namespace OfficeIMO.Visio {
                             int.TryParse(element.Attribute("ID")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int faceId)) {
                             string? name = element.Attribute("Name")?.Value;
                             if (!string.IsNullOrWhiteSpace(name) && !faceNamesById.ContainsKey(faceId)) {
-                                faceNamesById[faceId] = name!;
+                                string normalizedName = name!.Trim();
+                                faceNamesById[faceId] = normalizedName.Length <= MaximumLoadedFontFamilyCharacters
+                                    ? normalizedName
+                                    : normalizedName.Substring(0, MaximumLoadedFontFamilyCharacters);
                             }
                         }
                     }

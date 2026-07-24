@@ -2077,15 +2077,30 @@ public partial class DrawingTests {
     public void OfficeSvgFormattingAppendsSharedPercentStipplePatternRectangle() {
         var builder = new StringBuilder();
 
-        builder.AppendHatchPatternRectangle(0, 0, 8, 8, OfficeColor.FromRgb(10, 160, 30), 4, 1, OfficeHatchPatternKind.Percent12_5);
+        builder.AppendHatchPatternRectangle(12, 18, 8, 8, OfficeColor.FromRgb(10, 160, 30), 4, 1, OfficeHatchPatternKind.Percent12_5);
 
         string svg = builder.ToString();
         Assert.DoesNotContain("<line", svg, StringComparison.Ordinal);
         Assert.DoesNotContain("<circle", svg, StringComparison.Ordinal);
-        Assert.Equal(8, CountOccurrences(svg, "<rect"));
+        Assert.Equal(3, CountOccurrences(svg, "<rect"));
+        Assert.Contains("<pattern", svg, StringComparison.Ordinal);
+        Assert.Contains("patternUnits=\"userSpaceOnUse\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"12\" y=\"18\" width=\"4\" height=\"4\" viewBox=\"0 0 4 4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"url(#office-stipple-", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0AA01E\"", svg, StringComparison.Ordinal);
         Assert.Contains("x=\"0\" y=\"0\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
         Assert.Contains("x=\"2\" y=\"2\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgFormattingBoundsHugeStippleRectanglesToOnePatternTile() {
+        var builder = new StringBuilder();
+
+        builder.AppendHatchPatternRectangle(0, 0, 1_000_000_000, 1_000_000_000, OfficeColor.Green, 4, 1, OfficeHatchPatternKind.Percent75);
+
+        string svg = builder.ToString();
+        Assert.Equal(13, CountOccurrences(svg, "<rect"));
+        Assert.True(svg.Length < 2_000, $"Expected bounded SVG output but got {svg.Length} characters.");
     }
 
     [Fact]
