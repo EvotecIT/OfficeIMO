@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
                         : TranslateSharedFormulaReference(match, rowOffset, columnOffset)));
         }
 
-        private static bool IsSharedFormulaFunctionToken(string formula, Match match) {
+        private bool IsSharedFormulaFunctionToken(string formula, Match match) {
             if (match.Groups["qualifier"].Success
                 || match.Groups["cellEndColumn"].Success
                 || match.Groups["cellSpill"].Success
@@ -154,10 +154,37 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            // Formula preservation must not depend on whether OfficeIMO knows how to
-            // evaluate a UDF. Excel permits unregistered function names that resemble
-            // cell references, and translating those names corrupts the stored formula.
-            return true;
+            string token = match.Groups["cellStartColumn"].Value + match.Groups["cellStartRow"].Value;
+            if (ExcelFormulaCapabilities.IsBuiltInFunction(token)
+                || _excelDocument.Calculation.TryGetCustomFunction(token, out _)) {
+                return true;
+            }
+
+            // A cell-like unregistered UDF is ambiguous with Excel's whitespace
+            // intersection operator. Preserve the UDF spelling unless the following
+            // parenthesized operand is visibly a range, in which case the leading
+            // cell is the left side of the intersection and must be translated too.
+            return !IsParenthesizedRangeOperand(formula, cursor);
+        }
+
+        private static bool IsParenthesizedRangeOperand(string formula, int openingParenthesis) {
+            int depth = 0;
+            bool hasRangeSeparator = false;
+            for (int index = openingParenthesis; index < formula.Length; index++) {
+                char value = formula[index];
+                if (value == '(') {
+                    depth++;
+                } else if (value == ')') {
+                    depth--;
+                    if (depth == 0) {
+                        return hasRangeSeparator;
+                    }
+                } else if (value == ':' && depth == 1) {
+                    hasRangeSeparator = true;
+                }
+            }
+
+            return false;
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

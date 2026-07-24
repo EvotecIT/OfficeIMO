@@ -1121,11 +1121,10 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(filePath);
             ExcelSheet shared = loaded["Shared"];
             Assert.Equal(masterFormula, shared.GetFormulaText(1, 5));
-            // A cell-like token separated from an opening parenthesis is
-            // ambiguous without Excel's external UDF registry. Preserve it
-            // instead of corrupting a potentially valid unregistered UDF.
+            // Preserve the ambiguous unregistered UDF, but translate the cell
+            // reference that participates in a whitespace intersection.
             Assert.Equal(
-                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+LOG10 (B2)+FOO1 (B2)+SUM(A1 (B2:B3))+Q1:Q4!B2",
+                "SUM(B:B,$A:$A,2:2,$1:$1,B2#,$A2#,B$1#,$A$1#,B2%)+LOG10(B2)+LOG10 (B2)+FOO1 (B2)+SUM(B2 (B2:B3))+Q1:Q4!B2",
                 shared.GetFormulaText(2, 6));
         }
 
