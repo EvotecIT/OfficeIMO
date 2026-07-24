@@ -661,6 +661,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_HiddenHeadersRejectMissingNamedColumn() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeadersMissingColumn.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "HiddenHeaderSales");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.HeaderRowCount = 0U;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Revenue", typeof(int));
+                append.Columns.Add("Foo", typeof(string));
+                append.Rows.Add(150, "misrouted");
+
+                var exception = Assert.Throws<ArgumentException>(() =>
+                    document.Sheets[0].AppendDataTableToTable(append, "HiddenHeaderSales"));
+                Assert.Contains("Region", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ColumnLikeHeadersUseHeaderMapping() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnLikeHeaders.xlsx");
 

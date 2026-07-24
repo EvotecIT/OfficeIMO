@@ -334,21 +334,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            return SourceContainsTableColumns(source, tableColumnNames);
-        }
-
-        private static bool SourceContainsTableColumns(DataTable source, IReadOnlyList<string> tableColumnNames) {
-            var sourceColumnNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (DataColumn column in source.Columns) {
-                sourceColumnNames.Add(column.ColumnName);
-            }
-
-            foreach (string tableColumnName in tableColumnNames) {
-                if (!sourceColumnNames.Contains(tableColumnName)) {
-                    return false;
-                }
-            }
-
             return true;
         }
 
