@@ -17,4 +17,11 @@ public partial class Excel {
         Assert.Equal(8, (int)ExcelConditionalIconKind.RedCircle);
         Assert.Equal(9, (int)ExcelConditionalIconKind.YellowUpArrow);
     }
+
+    [Theory]
+    [InlineData("[m]")]
+    [InlineData("[mm]")]
+    public void Batch20_ElapsedMinuteFormatsDoNotRequireDateSystemShifts(string formatCode) {
+        Assert.False(ExcelNumberFormatClassifier.LooksLikeDateSystemFormat(formatCode));
+    }
 }

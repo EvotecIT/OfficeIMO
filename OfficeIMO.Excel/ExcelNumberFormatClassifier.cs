@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string normalized = StripLiteralsAndEscapes(code!, includeElapsedBracketTokens: true);
+            string normalized = StripLiteralsAndEscapes(code!, includeElapsedBracketTokens: false);
             if (string.IsNullOrWhiteSpace(normalized)) {
                 return false;
             }

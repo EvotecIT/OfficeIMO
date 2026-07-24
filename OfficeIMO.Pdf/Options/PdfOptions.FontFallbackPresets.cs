@@ -36,7 +36,16 @@ public sealed partial class PdfOptions {
             AddRegisteredFontFamilySlot(requestedSlots, slot);
         }
 
-        if (requestedSlots.Contains(PdfStandardFont.Helvetica) &&
+        var configuredSlots = new HashSet<PdfStandardFont>();
+        if (preserveConfiguredFontSlots) {
+            AddRegisteredFontFamilySlot(configuredSlots, DefaultFont);
+            AddRegisteredFontFamilySlot(configuredSlots, HeaderFont);
+            AddRegisteredFontFamilySlot(configuredSlots, FooterFont);
+        }
+
+        if ((features & PdfTextFallbackFeatures.DocumentFont) != 0 &&
+            requestedSlots.Contains(PdfStandardFont.Helvetica) &&
+            !configuredSlots.Contains(PdfStandardFont.Helvetica) &&
             !HasEmbeddedStandardFontFamily(PdfStandardFont.Helvetica)) {
             RegisterOfficeFontFamily(
                 DefaultDocumentFontFamilyFallback,
@@ -45,16 +54,13 @@ public sealed partial class PdfOptions {
 
         if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
             requestedSlots.Contains(PdfStandardFont.Courier) &&
+            !configuredSlots.Contains(PdfStandardFont.Courier) &&
             !HasEmbeddedStandardFontFamily(PdfStandardFont.Courier)) {
             TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
         }
 
         var reservedSlots = new HashSet<PdfStandardFont>(requestedSlots);
-        if (preserveConfiguredFontSlots) {
-            AddRegisteredFontFamilySlot(reservedSlots, DefaultFont);
-            AddRegisteredFontFamilySlot(reservedSlots, HeaderFont);
-            AddRegisteredFontFamilySlot(reservedSlots, FooterFont);
-        }
+        reservedSlots.UnionWith(configuredSlots);
 
         if ((features & PdfTextFallbackFeatures.DocumentFont) != 0) {
             PdfStandardFont documentSlot = PdfStandardFontMapper.GetFontFamily(DefaultFont);
