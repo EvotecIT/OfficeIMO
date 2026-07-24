@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 internal static class UrlOriginPolicy {
     internal static bool IsAllowedHttpLink(HtmlOptions? o, string? url) {
-        if (!IsSafeLinkUrl(url)) return false;
+        if (!IsSafeLinkUrl(o, url)) return false;
         return IsAllowedHttpUrl(o, url, forImages: false);
     }
 
@@ -81,15 +81,23 @@ internal static class UrlOriginPolicy {
         return IsSameOrigin(baseUri, abs);
     }
 
-    private static bool IsSafeLinkUrl(string? url) {
+    private static bool IsSafeLinkUrl(HtmlOptions? options, string? url) {
         string value = (url ?? string.Empty).Trim();
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
+        if (string.IsNullOrEmpty(scheme)) return true;
 
-        return scheme == "http"
+        if (scheme == "http"
             || scheme == "https"
             || scheme == "mailto"
-            || scheme == "tel";
+            || scheme == "tel"
+            || scheme == "ftp"
+            || scheme == "urn") {
+            return true;
+        }
+
+        return options?.AdditionalAllowedLinkSchemes.Any(candidate =>
+            string.Equals(candidate?.Trim(), scheme, StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private static bool IsSafeImageUrl(string? url) {

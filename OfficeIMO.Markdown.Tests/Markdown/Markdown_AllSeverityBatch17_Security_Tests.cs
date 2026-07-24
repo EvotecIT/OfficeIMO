@@ -39,4 +39,40 @@ public sealed class MarkdownAllSeverityBatch17SecurityTests {
         Assert.Contains("<a ", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(target, html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void HtmlRendererAllowsAdditionalSchemesOnlyWhenExplicitlyConfigured() {
+        MarkdownDoc document = MarkdownReader.Parse("[open](acme-safe:resource)");
+        var defaultOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+
+        string defaultHtml = document.ToHtmlFragment(defaultOptions);
+        Assert.DoesNotContain("href=", defaultHtml, StringComparison.OrdinalIgnoreCase);
+
+        var configuredOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+        configuredOptions.AdditionalAllowedLinkSchemes.Add("acme-safe");
+
+        string configuredHtml = document.ToHtmlFragment(configuredOptions);
+        Assert.Contains("href=\"acme-safe:resource\"", configuredHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendererKeepsColonContainingRelativeTargetsThatCannotNameAProtocol() {
+        MarkdownDoc document = MarkdownReader.Parse("[link](foo\\)\\:)");
+
+        string html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("href=\"foo):\"", html, StringComparison.Ordinal);
+    }
 }

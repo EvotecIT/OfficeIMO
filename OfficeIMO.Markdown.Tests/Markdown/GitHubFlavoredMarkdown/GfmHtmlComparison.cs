@@ -5,7 +5,9 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class GfmHtmlComparison {
     public static HtmlOptions CreatePlainHtmlOptions() {
-        return HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+        HtmlOptions options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AdditionalAllowedLinkSchemes.Add("xmpp");
+        return options;
     }
 
     public static string Normalize(string html) {

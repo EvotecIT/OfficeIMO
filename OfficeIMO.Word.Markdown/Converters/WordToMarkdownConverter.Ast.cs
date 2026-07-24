@@ -1145,7 +1145,14 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            if (paragraph.IsShape || paragraph._paragraph.Descendants<Wps.WordprocessingShape>().Any() || paragraph._paragraph.Descendants<V.Shape>().Any()) {
+            if (paragraph.IsShape ||
+                paragraph._paragraph.Descendants<Wps.WordprocessingShape>().Any() ||
+                paragraph._paragraph.Descendants<V.Shape>().Any() ||
+                paragraph._paragraph.Descendants<V.Rectangle>().Any() ||
+                paragraph._paragraph.Descendants<V.RoundRectangle>().Any() ||
+                paragraph._paragraph.Descendants<V.Oval>().Any() ||
+                paragraph._paragraph.Descendants<V.Line>().Any() ||
+                paragraph._paragraph.Descendants<V.PolyLine>().Any()) {
                 kind = "shape";
                 return true;
             }
