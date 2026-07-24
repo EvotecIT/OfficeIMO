@@ -803,7 +803,7 @@ namespace OfficeIMO.Word {
             };
             NormalizeTableCellPropertiesOrder();
             var tableRow = _tableCell.Parent as TableRow;
-            var indexOfCell = tableRow?.ChildElements.ToList().IndexOf(_tableCell) ?? -1;
+            var indexOfCell = tableRow?.Elements<TableCell>().ToList().IndexOf(_tableCell) ?? -1;
 
             for (int i = 0; i < cellsCount; i++) {
                 if (tableRow != null) {
@@ -849,7 +849,7 @@ namespace OfficeIMO.Word {
             _tableCellProperties!.VerticalMerge?.Remove();
 
             var tableRow = _tableCell.Parent as TableRow;
-            var indexOfCell = tableRow?.ChildElements.ToList().IndexOf(_tableCell) ?? -1;
+            var indexOfCell = tableRow?.Elements<TableCell>().ToList().IndexOf(_tableCell) ?? -1;
 
             for (int i = 0; i < cellsCount; i++) {
                 if (tableRow != null) {

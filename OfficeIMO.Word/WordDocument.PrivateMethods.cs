@@ -48,11 +48,10 @@ public partial class WordDocument {
         List<Run> runsToRemove = new List<Run>();
         List<Run> runs = paragraph.Elements<Run>().ToList();
         for (int i = runs.Count - 2; i >= 0; i--) {
-            Text? text1 = runs[i].GetFirstChild<Text>();
-            Text? text2 = runs[i + 1].GetFirstChild<Text>();
-            if (text1 != null && text2 != null) {
+            if (TryGetMergeableRunText(runs[i], out Text? text1) &&
+                TryGetMergeableRunText(runs[i + 1], out Text? text2)) {
                 if (AreRunPropertiesEqual(runs[i].RunProperties, runs[i + 1].RunProperties)) {
-                    text1.Text += text2.Text;
+                    text1!.Text += text2!.Text;
 
                     // if the text doesn't have space preservation, during merge potential double spaces
                     // or start/ending spaces could be removed which will mean the view won't be so pretty
@@ -70,6 +69,14 @@ public partial class WordDocument {
             count++;
         }
         return count;
+    }
+
+    private static bool TryGetMergeableRunText(Run run, out Text? text) {
+        var content = run.ChildElements
+            .Where(static element => element is not RunProperties)
+            .ToArray();
+        text = content.Length == 1 ? content[0] as Text : null;
+        return text != null;
     }
 
     private static int CleanupParagraph(Paragraph paragraph, DocumentCleanupOptions options) {

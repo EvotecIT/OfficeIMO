@@ -477,14 +477,13 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                _runProperties ??= new RunProperties();
                 if (value == null) {
-                    if (_runProperties.VerticalTextAlignment == null) {
+                    if (_runProperties?.VerticalTextAlignment == null) {
                         return;
                     }
-                    _runProperties.VerticalTextAlignment = null;
+                    _runProperties!.VerticalTextAlignment = null;
                 } else {
-                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                    VerifyRunProperties().VerticalTextAlignment = new VerticalTextAlignment { Val = value };
                 }
             }
         }

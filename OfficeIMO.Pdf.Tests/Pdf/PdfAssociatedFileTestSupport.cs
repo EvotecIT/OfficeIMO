@@ -47,6 +47,24 @@ internal static class PdfAssociatedFileTestSupport {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    internal static byte[] BuildAliasedFileAttachmentAnnotationPdf() {
+        const string payload = "ALIASED-ATTACHMENT-PAYLOAD";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 8 0 R >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Filespec /F (canonical.txt) /UF (canonical.txt) /EF << /F 6 0 R /UF 6 0 R >> >>", "endobj",
+            "6 0 obj", "<< /Type /EmbeddedFile /Subtype /text#2Fplain /Length " + payload.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "stream", payload, "endstream", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /FileAttachment /Rect [10 10 30 30] /FS 9 0 R >>", "endobj",
+            "8 0 obj", "<< /Names [(canonical.txt) 5 0 R] >>", "endobj",
+            "9 0 obj", "<< /Type /Filespec /F (alias.txt) /UF (alias.txt) /EF << /F 6 0 R /UF 6 0 R >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildFileAttachmentAnnotationPdf(bool includePageAssociatedFile) {
         string associatedFiles = includePageAssociatedFile ? " /AF [5 0 R]" : string.Empty;
         string pdf = string.Join("\n", new[] {
