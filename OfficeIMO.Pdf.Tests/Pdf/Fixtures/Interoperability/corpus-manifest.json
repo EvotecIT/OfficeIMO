@@ -70,8 +70,8 @@
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
       "expectedRenderDiagnosticCodes": [],
-      "expectedMutationMode": "AppendOnly",
-      "features": [ "word-2003", "acrobat-9", "embedded-file", "name-tree", "tagged" ]
+      "expectedMutationMode": "Blocked",
+      "features": [ "word-2003", "acrobat-9", "embedded-file", "name-tree", "tagged", "document-javascript" ]
     },
     {
       "id": "producer-external-link",
@@ -89,7 +89,7 @@
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
       "expectedRenderDiagnosticCodes": [ "render.resource.annotation-appearance-missing" ],
-      "expectedMutationMode": "AppendOnly",
+      "expectedMutationMode": "Blocked",
       "features": [ "word-2003", "acrobat-9", "external-document", "launch-action", "link-annotation", "tagged" ]
     },
     {

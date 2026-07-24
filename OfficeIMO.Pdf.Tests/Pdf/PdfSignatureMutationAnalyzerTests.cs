@@ -137,11 +137,10 @@ public class PdfSignatureMutationAnalyzerTests {
     [Fact]
     public void Analyze_DoesNotTraversePageContentThroughSignatureWidgetBacklink() {
         string sourceText = Encoding.ASCII.GetString(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
-            .Replace("/Subtype /Widget /Rect", "/Subtype /Widget /P 3 0 R /Rect", StringComparison.Ordinal)
+            .Replace("/Subtype /Widget /Rect", "/Subtype /Widget /P 3 0 R /Rect")
             .Replace(
                 "<< /Length 0 >>\nstream\n\nendstream",
-                "<< /Length 1048577 >>\nstream\n" + new string('q', 1_048_577) + "\nendstream",
-                StringComparison.Ordinal);
+                "<< /Length 1048577 >>\nstream\n" + new string('q', 1_048_577) + "\nendstream");
         byte[] source = Encoding.ASCII.GetBytes(sourceText);
         byte[] updated = AppendMetadataWithoutPolicy(source, "Later metadata");
 

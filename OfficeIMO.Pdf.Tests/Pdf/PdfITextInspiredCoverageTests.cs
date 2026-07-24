@@ -77,7 +77,7 @@ public class PdfITextInspiredCoverageTests {
 
     [Fact]
     public void IncrementalUpdater_AppendsSimpleFormFieldRevision() {
-        byte[] pdf = BuildCoveragePdf();
+        byte[] pdf = BuildDefaultAppearanceFormPdf("/Helv 12 Tf 0 g");
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
@@ -93,7 +93,7 @@ public class PdfITextInspiredCoverageTests {
 
     [Fact]
     public void IncrementalUpdater_AppendsFormAppearanceStreams() {
-        byte[] pdf = BuildCoveragePdf();
+        byte[] pdf = BuildDefaultAppearanceFormPdf("/Helv 12 Tf 0 g");
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"

@@ -92,11 +92,12 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
             Assert.Equal(
                 ReadStringArray(item, "expectedRenderDiagnosticCodes"),
                 render.CapabilityDiagnostics.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal).ToArray());
-            Assert.Equal(
-                (PdfMutationExecutionMode)Enum.Parse(
-                    typeof(PdfMutationExecutionMode),
-                    RequireString(item, "expectedMutationMode")),
-                plan.ExecutionMode);
+            var expectedMutationMode = (PdfMutationExecutionMode)Enum.Parse(
+                typeof(PdfMutationExecutionMode),
+                RequireString(item, "expectedMutationMode"));
+            Assert.True(
+                expectedMutationMode == plan.ExecutionMode,
+                id + " expected mutation mode " + expectedMutationMode + " but received " + plan.ExecutionMode + ".");
         }
     }
 
