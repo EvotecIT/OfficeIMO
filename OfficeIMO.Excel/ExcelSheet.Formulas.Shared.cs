@@ -160,31 +160,29 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            // A cell-like unregistered UDF is ambiguous with Excel's whitespace
-            // intersection operator. Preserve the UDF spelling unless the following
-            // parenthesized operand is visibly a range, in which case the leading
-            // cell is the left side of the intersection and must be translated too.
-            return !IsParenthesizedRangeOperand(formula, cursor);
+            // An unregistered cell-like token followed by a parenthesized reference
+            // is Excel's whitespace intersection form. Named functions remain
+            // protected above, while both single-cell and range operands translate.
+            return !IsParenthesizedReferenceOperand(formula, cursor);
         }
 
-        private static bool IsParenthesizedRangeOperand(string formula, int openingParenthesis) {
-            int depth = 0;
-            bool hasRangeSeparator = false;
-            for (int index = openingParenthesis; index < formula.Length; index++) {
-                char value = formula[index];
-                if (value == '(') {
-                    depth++;
-                } else if (value == ')') {
-                    depth--;
-                    if (depth == 0) {
-                        return hasRangeSeparator;
-                    }
-                } else if (value == ':' && depth == 1) {
-                    hasRangeSeparator = true;
-                }
+        private static bool IsParenthesizedReferenceOperand(string formula, int openingParenthesis) {
+            int operandStart = openingParenthesis + 1;
+            while (operandStart < formula.Length && char.IsWhiteSpace(formula[operandStart])) {
+                operandStart++;
             }
 
-            return false;
+            Match operand = SharedFormulaReferenceRegex.Match(formula, operandStart);
+            if (!operand.Success || operand.Index != operandStart) {
+                return false;
+            }
+
+            int closingParenthesis = operand.Index + operand.Length;
+            while (closingParenthesis < formula.Length && char.IsWhiteSpace(formula[closingParenthesis])) {
+                closingParenthesis++;
+            }
+
+            return closingParenthesis < formula.Length && formula[closingParenthesis] == ')';
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

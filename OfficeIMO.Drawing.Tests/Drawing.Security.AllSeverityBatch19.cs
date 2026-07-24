@@ -22,4 +22,20 @@ public partial class DrawingTests {
             nameof(OfficeDrawing.AddPositionedText),
             legacyParameters));
     }
+
+    [Fact]
+    public void AddPositionedTextRetainsNamedAdvanceSourceContract() {
+        OfficeDrawing drawing = new OfficeDrawing(100D, 40D)
+            .AddPositionedText(
+                "positioned",
+                0D,
+                0D,
+                80D,
+                20D,
+                textAdvanceWidth: 60D);
+
+        Assert.Equal(
+            60D,
+            Assert.IsType<OfficeDrawingText>(Assert.Single(drawing.Elements)).TextAdvanceWidth);
+    }
 }

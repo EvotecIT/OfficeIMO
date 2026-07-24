@@ -499,6 +499,23 @@ public sealed class ReaderHierarchicalChunkingTests {
             result.Chunks.Select(chunk => chunk.Text));
         Assert.Equal("Page one", result.Chunks[1].Location.HeadingPath);
         Assert.Equal("Page two", result.Chunks[3].Location.HeadingPath);
+
+        ReaderChunkHierarchyResult bounded = ReaderHierarchicalChunker.Chunk(
+            document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 20,
+                OverlapTokens = 0,
+                MaxInputChunks = 2,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Equal(
+            new[] { "Page one", "First body" },
+            bounded.Chunks.Select(chunk => chunk.Text));
+        Assert.Contains(
+            bounded.Diagnostics,
+            diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
     }
 
     [Fact]
@@ -658,7 +675,7 @@ public sealed class ReaderHierarchicalChunkingTests {
             });
 
         Assert.Single(result.Chunks);
-        Assert.Equal(20, pages.ReadCount);
+        Assert.Equal(16, pages.ReadCount);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
     }
 

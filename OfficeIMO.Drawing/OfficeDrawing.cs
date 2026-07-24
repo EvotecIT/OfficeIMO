@@ -105,7 +105,7 @@ public sealed partial class OfficeDrawing {
     /// <param name="alignment">Horizontal alignment inside the frame.</param>
     /// <param name="lineHeight">Optional resolved line height.</param>
     /// <returns>The current drawing.</returns>
-    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null) =>
+    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight) =>
         AddPositionedText(text, x, y, width, height, font, color, alignment, lineHeight, null);
 
     /// <summary>
@@ -122,7 +122,7 @@ public sealed partial class OfficeDrawing {
     /// <param name="lineHeight">Optional resolved line height.</param>
     /// <param name="textAdvanceWidth">Resolved horizontal glyph advance, or <see langword="null"/> to use <paramref name="width"/>.</param>
     /// <returns>The current drawing.</returns>
-    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, double? textAdvanceWidth) =>
+    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, double? textAdvanceWidth = null) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip, textAdvanceWidth ?? width, allowOverflow: false);
 
     private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, bool allowOverflow) {

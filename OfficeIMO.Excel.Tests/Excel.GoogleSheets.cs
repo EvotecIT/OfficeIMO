@@ -1141,6 +1141,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatchCompiler_RejectsAggregateGridExpansionBeyondServiceLimits() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet first = document.AddWorksheet("First");
+            ExcelSheet second = document.AddWorksheet("Second");
+            first.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+            second.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => document.BuildGoogleSheetsBatch());
+
+            Assert.Contains("across all sheets", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("exceeds Google Sheets limits", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_EmitWorksheetListValidationsOutsideTables() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsWorksheetListValidationOutsideTables.xlsx");
 
