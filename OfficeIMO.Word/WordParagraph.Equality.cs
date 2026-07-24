@@ -36,10 +36,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>A hash code for the current object.</returns>
         public override int GetHashCode() {
-            if (_paragraph != null) return _paragraph.GetHashCode();
             unchecked {
                 int hash = 17;
-                hash = hash * 31 + (Text != null ? Text.GetHashCode() : 0);
+                hash = hash * 31 + StringComparer.Ordinal.GetHashCode(Text ?? string.Empty);
                 foreach (var tab in TabStops) {
                     hash = hash * 31 + tab.GetHashCode();
                 }

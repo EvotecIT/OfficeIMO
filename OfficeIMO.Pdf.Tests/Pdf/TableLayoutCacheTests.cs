@@ -8,18 +8,21 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf {
     public class TableLayoutCacheTests {
         [Fact]
-        public void ColumnWidthsAreCachedPerTable() {
+        public void ColumnWidthsAreRecomputedAfterTableChanges() {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(2, 2);
             table.Rows[0].Cells[0].Width = 1440;
             table.Rows[1].Cells[0].Width = 1440;
 
             TableLayout first = TableLayoutCache.GetLayout(table);
+            table.Rows[0].Cells[0].Width = 2880;
+            table.Rows[1].Cells[0].Width = 2880;
             TableLayout second = TableLayoutCache.GetLayout(table);
 
-            Assert.Same(first, second);
+            Assert.NotSame(first, second);
             Assert.Equal(2, first.ColumnWidths.Length);
             Assert.Equal(72f, first.ColumnWidths[0]);
+            Assert.Equal(144f, second.ColumnWidths[0]);
         }
 
         [Fact]
@@ -116,8 +119,9 @@ namespace OfficeIMO.Tests.Pdf {
 
             TableLayout innerLayout = TableLayoutCache.GetLayout(inner);
             TableLayout innerLayoutSecond = TableLayoutCache.GetLayout(inner);
-            Assert.Same(innerLayout, innerLayoutSecond);
+            Assert.NotSame(innerLayout, innerLayoutSecond);
             Assert.Equal(144f, innerLayout.ColumnWidths[0]);
+            Assert.Equal(144f, innerLayoutSecond.ColumnWidths[0]);
         }
 
         [Fact]

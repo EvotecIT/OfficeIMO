@@ -53,8 +53,8 @@ namespace OfficeIMO.Word {
             }
 
             var switchesList = " ";
-            if (parameters != null) {
-                switchesList += parameters.Select(s => s.Trim()).Aggregate((s1, s2) => s1 + ' ' + s2);
+            if (parameters != null && parameters.Count > 0) {
+                switchesList += string.Join(" ", parameters.Select(s => s.Trim()));
             }
 
             return fieldType + switchesList + fieldFormat + @"\* MERGEFORMAT ";

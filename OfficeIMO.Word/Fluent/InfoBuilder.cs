@@ -106,8 +106,9 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="name">Property name.</param>
         /// <param name="value">Property value.</param>
-        public InfoBuilder Custom(string name, object value) {
+        public InfoBuilder Custom(string name, object? value) {
             var property = value switch {
+                null => new WordCustomProperty(string.Empty),
                 bool b => new WordCustomProperty(b),
                 DateTime dt => new WordCustomProperty(dt),
                 double d => new WordCustomProperty(d),
