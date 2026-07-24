@@ -25,9 +25,7 @@ internal static partial class PdfSyntax {
 
             // Decode object stream bytes (flate only for now)
             var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, map, limits.MaxDecodedStreamBytes);
-            int n = (int)(s.Dictionary.Get<PdfNumber>("N")?.Value ?? 0);
-            int first = (int)(s.Dictionary.Get<PdfNumber>("First")?.Value ?? 0);
-            if (n <= 0 || first <= 0 || first > data.Length) continue;
+            if (!TryReadObjectStreamLayout(s.Dictionary, data.Length, limits, out int n, out int first)) continue;
             // Header: pairs of objectNumber and offset (ASCII)
             var headerBytes = new byte[first];
             Buffer.BlockCopy(data, 0, headerBytes, 0, first);
@@ -62,6 +60,38 @@ internal static partial class PdfSyntax {
         }
 
         int GetSourceOffset(int objectNumber) => parsedOffsets.TryGetValue(objectNumber, out int offset) ? offset : int.MaxValue;
+    }
+
+    private static bool TryReadObjectStreamLayout(
+        PdfDictionary dictionary,
+        int decodedLength,
+        PdfReadLimits limits,
+        out int objectCount,
+        out int firstObjectOffset) {
+        objectCount = 0;
+        firstObjectOffset = 0;
+
+        double rawObjectCount = dictionary.Get<PdfNumber>("N")?.Value ?? 0D;
+        double rawFirstOffset = dictionary.Get<PdfNumber>("First")?.Value ?? 0D;
+        if (double.IsNaN(rawObjectCount) || double.IsInfinity(rawObjectCount)
+            || rawObjectCount < 1D || rawObjectCount != Math.Truncate(rawObjectCount)) {
+            return false;
+        }
+        if (rawObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.IndirectObjects,
+                limits.MaxIndirectObjects,
+                rawObjectCount > long.MaxValue ? long.MaxValue : (long)rawObjectCount);
+        }
+        if (double.IsNaN(rawFirstOffset) || double.IsInfinity(rawFirstOffset)
+            || rawFirstOffset < 1D || rawFirstOffset > decodedLength
+            || rawFirstOffset != Math.Truncate(rawFirstOffset)) {
+            return false;
+        }
+
+        objectCount = (int)rawObjectCount;
+        firstObjectOffset = (int)rawFirstOffset;
+        return true;
     }
 
     private static List<(int Obj, int Off)> ParsePairs(string header, int n) {

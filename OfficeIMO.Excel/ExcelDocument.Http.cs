@@ -16,7 +16,11 @@ namespace OfficeIMO.Excel {
         public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             ValidateRemoteLoadLifecycle(resolved);
-            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(uri, httpOptions, cancellationToken).ConfigureAwait(false);
+            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
+                uri,
+                httpOptions,
+                cancellationToken,
+                ResolveInputLimit(resolved)).ConfigureAwait(false);
             return LoadFromByteArray(bytes, resolved, filePath: null);
         }
 

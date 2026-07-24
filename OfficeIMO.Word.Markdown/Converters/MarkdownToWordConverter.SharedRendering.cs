@@ -9,6 +9,27 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
+        private int _activeBlockRenderDepth;
+
+        private void EnterBlockRender(MarkdownToWordOptions options) {
+            if (options.MaxNestingDepth < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options.MaxNestingDepth),
+                    options.MaxNestingDepth,
+                    "MaxNestingDepth must be greater than zero.");
+            }
+            if (_activeBlockRenderDepth >= options.MaxNestingDepth) {
+                throw new System.IO.InvalidDataException(
+                    $"Markdown-to-Word block nesting exceeds MaxNestingDepth ({options.MaxNestingDepth}).");
+            }
+
+            _activeBlockRenderDepth++;
+        }
+
+        private void ExitBlockRender() {
+            _activeBlockRenderDepth--;
+        }
+
         private void RenderSharedBlockOmd(
             Omd.IMarkdownBlock block,
             IWordBlockRenderHost host,

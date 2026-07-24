@@ -16,13 +16,15 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
         private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct,
-            OfficePackageSecurityOptions? securityOptions = null) {
+            ExcelLoadOptions options) {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete, 8192, FileOptions.Asynchronous)) {
-                return securityOptions == null
-                    ? await OfficeStreamReader.ReadAllBytesAsync(fs, ct).ConfigureAwait(false)
-                    : await OfficePackageSecurityInspector.ReadBoundedAsync(fs, securityOptions, ct)
-                        .ConfigureAwait(false);
+                long? inputLimit = ResolveInputLimit(options);
+                return options.PackageSecurity != null
+                    && inputLimit == options.PackageSecurity.MaxPackageBytes
+                    ? await OfficePackageSecurityInspector.ReadBoundedAsync(fs, options.PackageSecurity, ct)
+                        .ConfigureAwait(false)
+                    : await OfficeStreamReader.ReadAllBytesAsync(fs, ct, inputLimit).ConfigureAwait(false);
             }
         }
 

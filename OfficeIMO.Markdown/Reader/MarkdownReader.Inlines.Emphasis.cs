@@ -37,6 +37,8 @@ public static partial class MarkdownReader {
         private readonly ClosingRunLengthIndex _asteriskEvenRuns;
         private readonly ClosingRunLengthIndex _underscoreOddRuns;
         private readonly ClosingRunLengthIndex _underscoreEvenRuns;
+        private readonly ClosingRunPositionIndex _asteriskPositions;
+        private readonly ClosingRunPositionIndex _underscorePositions;
 
         private EmphasisClosingRunIndex(
             byte[] asteriskSuffixSummaries,
@@ -44,13 +46,17 @@ public static partial class MarkdownReader {
             ClosingRunLengthIndex asteriskOddRuns,
             ClosingRunLengthIndex asteriskEvenRuns,
             ClosingRunLengthIndex underscoreOddRuns,
-            ClosingRunLengthIndex underscoreEvenRuns) {
+            ClosingRunLengthIndex underscoreEvenRuns,
+            ClosingRunPositionIndex asteriskPositions,
+            ClosingRunPositionIndex underscorePositions) {
             _asteriskSuffixSummaries = asteriskSuffixSummaries;
             _underscoreSuffixSummaries = underscoreSuffixSummaries;
             _asteriskOddRuns = asteriskOddRuns;
             _asteriskEvenRuns = asteriskEvenRuns;
             _underscoreOddRuns = underscoreOddRuns;
             _underscoreEvenRuns = underscoreEvenRuns;
+            _asteriskPositions = asteriskPositions;
+            _underscorePositions = underscorePositions;
         }
 
         internal static EmphasisClosingRunIndex Build(string text, bool cjkFriendlyEmphasis) {
@@ -60,6 +66,8 @@ public static partial class MarkdownReader {
             var asteriskEvenRuns = new Dictionary<int, int>();
             var underscoreOddRuns = new Dictionary<int, int>();
             var underscoreEvenRuns = new Dictionary<int, int>();
+            var asteriskPositions = new List<(int Start, int Length)>();
+            var underscorePositions = new List<(int Start, int Length)>();
 
             for (int index = text.Length - 1; index >= 0; index--) {
                 asteriskSummaries[index] = asteriskSummaries[index + 1];
@@ -79,6 +87,9 @@ public static partial class MarkdownReader {
                 if (!canClose) {
                     continue;
                 }
+
+                (marker == '*' ? asteriskPositions : underscorePositions)
+                    .Add((index, runLength));
 
                 Dictionary<int, int> runStarts;
                 if (marker == '*') {
@@ -105,7 +116,9 @@ public static partial class MarkdownReader {
                 ClosingRunLengthIndex.Create(asteriskOddRuns),
                 ClosingRunLengthIndex.Create(asteriskEvenRuns),
                 ClosingRunLengthIndex.Create(underscoreOddRuns),
-                ClosingRunLengthIndex.Create(underscoreEvenRuns));
+                ClosingRunLengthIndex.Create(underscoreEvenRuns),
+                ClosingRunPositionIndex.Create(asteriskPositions),
+                ClosingRunPositionIndex.Create(underscorePositions));
         }
 
         internal bool HasRunAtLeastTwo(int start, char marker) {
@@ -124,6 +137,20 @@ public static partial class MarkdownReader {
             }
 
             return index.GetLargestRunAtMost(maximumRunLength, start);
+        }
+
+        internal int FindFirstRun(int start, char marker, int exactRunLength) {
+            ClosingRunPositionIndex index = marker == '*'
+                ? _asteriskPositions
+                : _underscorePositions;
+            return index.FindFirst(start, exactRunLength);
+        }
+
+        internal int FindFirstRun(int start, char marker) {
+            ClosingRunPositionIndex index = marker == '*'
+                ? _asteriskPositions
+                : _underscorePositions;
+            return index.FindFirst(start, exactRunLength: 0);
         }
 
         private byte GetSummary(int start, char marker) {
@@ -203,6 +230,48 @@ public static partial class MarkdownReader {
                 return right >= 0
                     ? right
                     : FindRightmostIndex(node * 2, segmentStart, middle, queryEnd, minimumStart);
+            }
+        }
+
+        private sealed class ClosingRunPositionIndex {
+            private readonly int[] _allStarts;
+            private readonly int[] _singleStarts;
+            private readonly int[] _doubleStarts;
+
+            private ClosingRunPositionIndex(
+                int[] allStarts,
+                int[] singleStarts,
+                int[] doubleStarts) {
+                _allStarts = allStarts;
+                _singleStarts = singleStarts;
+                _doubleStarts = doubleStarts;
+            }
+
+            internal static ClosingRunPositionIndex Create(
+                List<(int Start, int Length)> descendingRuns) {
+                descendingRuns.Reverse();
+                int[] all = descendingRuns.Select(static run => run.Start).ToArray();
+                int[] singles = descendingRuns
+                    .Where(static run => run.Length == 1)
+                    .Select(static run => run.Start)
+                    .ToArray();
+                int[] doubles = descendingRuns
+                    .Where(static run => run.Length == 2)
+                    .Select(static run => run.Start)
+                    .ToArray();
+                return new ClosingRunPositionIndex(all, singles, doubles);
+            }
+
+            internal int FindFirst(int minimumStart, int exactRunLength) {
+                int[] starts = exactRunLength switch {
+                    0 => _allStarts,
+                    1 => _singleStarts,
+                    2 => _doubleStarts,
+                    _ => Array.Empty<int>()
+                };
+                int index = Array.BinarySearch(starts, minimumStart);
+                if (index < 0) index = ~index;
+                return index < starts.Length ? starts[index] : -1;
             }
         }
     }
@@ -540,7 +609,15 @@ public static partial class MarkdownReader {
         return count;
     }
 
-    private static bool ShouldTreatMixedSingleMarkerAsLiteral(string text, int start, char marker, int runLen, bool canOpen, bool canClose, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis) {
+    private static bool ShouldTreatMixedSingleMarkerAsLiteral(
+        string text,
+        int start,
+        char marker,
+        int runLen,
+        bool canOpen,
+        bool canClose,
+        Stack<InlineFrame> stack,
+        EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return false;
         if (runLen != 1) return false;
         if (marker != '*' && marker != '_') return false;
@@ -550,11 +627,12 @@ public static partial class MarkdownReader {
         var top = stack.Peek();
         if ((top.Kind != FrameKind.Italic && top.Kind != FrameKind.Bold) || (top.OpenLen != 1 && top.OpenLen != 2)) return false;
         if (top.Marker == marker) return false;
+        if (closingRuns == null) return false;
 
-        int outerClose = FindNextClosingDelimiterRunIndex(text, start + 1, top.Marker, requiredRunLength: top.OpenLen, cjkFriendlyEmphasis);
+        int outerClose = closingRuns.FindFirstRun(start + 1, top.Marker, top.OpenLen);
         if (outerClose < 0) return false;
 
-        int innerClose = FindNextClosingDelimiterIndex(text, start + 1, marker, minimumRunLength: 1, cjkFriendlyEmphasis);
+        int innerClose = closingRuns.FindFirstRun(start + 1, marker);
         return innerClose < 0 || outerClose < innerClose;
     }
 

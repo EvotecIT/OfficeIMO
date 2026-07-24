@@ -13,6 +13,8 @@ using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
+        private const int MaxPartCloneDepth = 128;
+
         private void InitializeDefaultParts() {
             // IMPORTANT: PowerPoint requires a very specific initialization pattern to avoid the repair dialog.
             // We must create an initial blank slide with relationship ID "rId2" and then create
@@ -323,45 +325,89 @@ namespace OfficeIMO.PowerPoint {
             ICollection<ImportedPartRoot>? importedPartRoots = null,
             Func<OpenXmlPart, string, bool>?
                 shouldSkipPartRelationship = null) {
-            if (sourcePart is SlidePart sourceSlide
-                && slideResolver != null) {
-                SlidePart? targetSlide = slideResolver(sourceSlide);
-                if (targetSlide == null) {
-                    if (skipUnresolvedSlideTargets) {
-                        RemoveInternalSlideLinkMarkup(targetContainer,
-                            relationshipId);
-                        return;
+            ClonePartRecursive(sourcePart, targetContainer, relationshipId,
+                shouldShare, includeDataParts, dataPartMap, slideResolver,
+                skipUnresolvedSlideTargets, importedPartRoots,
+                shouldSkipPartRelationship, new HashSet<OpenXmlPart>(), 0);
+        }
+
+        private static void ClonePartRecursive(
+            OpenXmlPart sourcePart,
+            OpenXmlPartContainer targetContainer,
+            string relationshipId,
+            Func<OpenXmlPart, bool> shouldShare,
+            bool includeDataParts,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap,
+            Func<SlidePart, SlidePart?>? slideResolver,
+            bool skipUnresolvedSlideTargets,
+            ICollection<ImportedPartRoot>? importedPartRoots,
+            Func<OpenXmlPart, string, bool>?
+                shouldSkipPartRelationship,
+            HashSet<OpenXmlPart> activeParts,
+            int depth) {
+            if (depth >= MaxPartCloneDepth) {
+                throw new InvalidDataException(
+                    $"PowerPoint part relationships exceed the supported clone depth of {MaxPartCloneDepth}.");
+            }
+            if (!activeParts.Add(sourcePart)) {
+                throw new InvalidDataException(
+                    "PowerPoint part relationships contain a cycle and cannot be cloned safely.");
+            }
+
+            OpenXmlPart? clonedPart = null;
+            try {
+                if (sourcePart is SlidePart sourceSlide
+                    && slideResolver != null) {
+                    SlidePart? targetSlide = slideResolver(sourceSlide);
+                    if (targetSlide == null) {
+                        if (skipUnresolvedSlideTargets) {
+                            RemoveInternalSlideLinkMarkup(targetContainer,
+                                relationshipId);
+                            return;
+                        }
+                        throw new InvalidDataException(
+                            "An imported internal slide target is not present in the import closure.");
                     }
-                    throw new InvalidDataException(
-                        "An imported internal slide target is not present in the import closure.");
+                    AddExistingPart(targetContainer, targetSlide, relationshipId);
+                    return;
                 }
-                AddExistingPart(targetContainer, targetSlide, relationshipId);
-                return;
-            }
-            if (shouldShare(sourcePart)) {
-                AddExistingPart(targetContainer, sourcePart, relationshipId);
-                return;
-            }
-
-            OpenXmlPart newPart = sourcePart is ExtendedPart extendedPart
-                ? targetContainer.AddExtendedPart(extendedPart.RelationshipType, extendedPart.ContentType, relationshipId)
-                : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
-
-            CopyPartData(sourcePart, newPart);
-            importedPartRoots?.Add(new ImportedPartRoot(sourcePart,
-                newPart));
-            CloneReferenceRelationships(sourcePart, newPart, includeDataParts, dataPartMap);
-
-            foreach (var childPair in sourcePart.Parts) {
-                if (shouldSkipPartRelationship?.Invoke(sourcePart,
-                        childPair.RelationshipId) == true) {
-                    continue;
+                if (shouldShare(sourcePart)) {
+                    AddExistingPart(targetContainer, sourcePart, relationshipId);
+                    return;
                 }
-                ClonePartRecursive(childPair.OpenXmlPart, newPart,
-                    childPair.RelationshipId, shouldShare,
-                    includeDataParts, dataPartMap, slideResolver,
-                    skipUnresolvedSlideTargets, importedPartRoots,
-                    shouldSkipPartRelationship);
+
+                clonedPart = sourcePart is ExtendedPart extendedPart
+                    ? targetContainer.AddExtendedPart(extendedPart.RelationshipType, extendedPart.ContentType, relationshipId)
+                    : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
+
+                CopyPartData(sourcePart, clonedPart);
+                importedPartRoots?.Add(new ImportedPartRoot(sourcePart,
+                    clonedPart));
+                CloneReferenceRelationships(sourcePart, clonedPart, includeDataParts, dataPartMap);
+
+                foreach (var childPair in sourcePart.Parts) {
+                    if (shouldSkipPartRelationship?.Invoke(sourcePart,
+                            childPair.RelationshipId) == true) {
+                        continue;
+                    }
+                    ClonePartRecursive(childPair.OpenXmlPart, clonedPart,
+                        childPair.RelationshipId, shouldShare,
+                        includeDataParts, dataPartMap, slideResolver,
+                        skipUnresolvedSlideTargets, importedPartRoots,
+                        shouldSkipPartRelationship, activeParts, depth + 1);
+                }
+            } catch {
+                if (clonedPart != null) {
+                    try {
+                        targetContainer.DeletePart(clonedPart);
+                    } catch {
+                        // Preserve the original clone failure; the owning
+                        // operation performs its own top-level rollback too.
+                    }
+                }
+                throw;
+            } finally {
+                activeParts.Remove(sourcePart);
             }
         }
 

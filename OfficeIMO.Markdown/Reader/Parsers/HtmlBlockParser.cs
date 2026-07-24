@@ -677,14 +677,22 @@ public static partial class MarkdownReader {
             return count;
         }
 
-        private static bool TryParseTag(string line, out string tagName, out bool isClosing, out int endIndex) {
+        private static bool TryParseTag(string line, out string tagName, out bool isClosing, out int endIndex) =>
+            TryParseTagCore(line, 0, out tagName, out isClosing, out endIndex);
+
+        private static bool TryParseTagCore(
+            string line,
+            int startIndex,
+            out string tagName,
+            out bool isClosing,
+            out int endIndex) {
             tagName = string.Empty;
             isClosing = false;
             endIndex = -1;
 
-            if (line.Length < 2 || line[0] != '<') return false;
+            if (startIndex < 0 || startIndex + 1 >= line.Length || line[startIndex] != '<') return false;
 
-            int idx = 1;
+            int idx = startIndex + 1;
             if (idx < line.Length && line[idx] == '/') {
                 isClosing = true;
                 idx++;
@@ -856,12 +864,10 @@ public static partial class MarkdownReader {
 
             if (startIndex < 0 || startIndex >= line.Length || line[startIndex] != '<') return false;
 
-            string segment = line.Substring(startIndex);
-            if (!TryParseTag(segment, out tagName, out isClosing, out var localEndIndex)) {
+            if (!TryParseTagCore(line, startIndex, out tagName, out isClosing, out endIndex)) {
                 return false;
             }
 
-            endIndex = startIndex + localEndIndex;
             nextIndex = endIndex + 1;
             return true;
         }

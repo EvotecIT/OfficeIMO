@@ -326,8 +326,14 @@ namespace OfficeIMO.PowerPoint {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
 
-            CloneSlidePartRelationships(sourcePart, slidePart, ShouldSharePart, includeDataParts: true);
-            RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
+            try {
+                CloneSlidePartRelationships(sourcePart, slidePart,
+                    ShouldSharePart, includeDataParts: true);
+                RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
+            } catch {
+                _presentationPart.DeletePart(slidePart);
+                throw;
+            }
 
             SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
             SlideId slideId = new() { Id = GetNextSlideId() };

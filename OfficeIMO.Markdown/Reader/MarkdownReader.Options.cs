@@ -80,6 +80,7 @@ public static partial class MarkdownReader {
             AllowedUrlSchemes = source.AllowedUrlSchemes,
             PreserveTrivia = source.PreserveTrivia,
             MaxInputCharacters = source.MaxInputCharacters,
+            MaxNestingDepth = source.MaxNestingDepth,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = source.InputNormalization?.NormalizeZeroWidthSpacingArtifacts ?? false,
                 NormalizeEmojiWordJoins = source.InputNormalization?.NormalizeEmojiWordJoins ?? false,
@@ -212,6 +213,7 @@ public static partial class MarkdownReader {
         clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;
         clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
+        clone.NestedBlockDepth = state.NestedBlockDepth;
         foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
         foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);

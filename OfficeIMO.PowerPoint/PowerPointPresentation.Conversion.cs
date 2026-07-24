@@ -405,6 +405,9 @@ public sealed partial class PowerPointPresentation {
             PersistenceMode = DocumentPersistenceMode.Explicit,
             PackageSecurity = source?.PackageSecurity,
             OpenSettings = source?.OpenSettings,
+            MaxInputBytes = source == null
+                ? 512L * 1024L * 1024L
+                : source.MaxInputBytes,
             LegacyPptImportOptions = legacy == null
                 ? new LegacyPptImportOptions { ReportUnsupportedContent = true }
                 : new LegacyPptImportOptions {

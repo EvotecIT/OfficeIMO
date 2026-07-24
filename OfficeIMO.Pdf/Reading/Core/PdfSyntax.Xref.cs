@@ -737,9 +737,8 @@ internal static partial class PdfSyntax {
         }
 
         byte[] data = Filters.StreamDecoder.Decode(objectStream.Dictionary, objectStream.Data, map, limits.MaxDecodedStreamBytes);
-        int n = (int)(objectStream.Dictionary.Get<PdfNumber>("N")?.Value ?? 0);
-        int first = (int)(objectStream.Dictionary.Get<PdfNumber>("First")?.Value ?? 0);
-        if (objectStreamIndex < 0 || objectStreamIndex >= n || n <= 0 || first <= 0 || first > data.Length) {
+        if (!TryReadObjectStreamLayout(objectStream.Dictionary, data.Length, limits, out int n, out int first)
+            || objectStreamIndex < 0 || objectStreamIndex >= n) {
             return false;
         }
 

@@ -43,10 +43,15 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 }
 
-                if (block is Omd.MarkdownObject markdownObject) {
-                    Visit(markdownObject);
-                } else {
-                    RenderFallback(block);
+                _converter.EnterBlockRender(_options);
+                try {
+                    if (block is Omd.MarkdownObject markdownObject) {
+                        Visit(markdownObject);
+                    } else {
+                        RenderFallback(block);
+                    }
+                } finally {
+                    _converter.ExitBlockRender();
                 }
             }
 

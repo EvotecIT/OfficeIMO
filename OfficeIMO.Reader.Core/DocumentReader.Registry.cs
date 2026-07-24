@@ -92,6 +92,7 @@ internal static partial class DocumentReaderEngine {
         var clone = new ReaderFolderOptions {
             Recurse = options?.Recurse ?? true,
             MaxFiles = Math.Max(1, options?.MaxFiles ?? 500),
+            MaxTraversalEntries = Math.Max(1, options?.MaxTraversalEntries ?? 10_000),
             MaxTotalBytes = options?.MaxTotalBytes,
             Extensions = options?.Extensions == null ? null : options.Extensions.ToArray(),
             SkipReparsePoints = options?.SkipReparsePoints ?? true,

@@ -267,6 +267,12 @@ public static partial class MarkdownReader {
 
     private static string PrepareMarkdownForParsing(string markdown, MarkdownReaderOptions options) {
         markdown ??= string.Empty;
+        if (options.MaxNestingDepth < 1) {
+            throw new ArgumentOutOfRangeException(
+                nameof(options.MaxNestingDepth),
+                options.MaxNestingDepth,
+                "MaxNestingDepth must be greater than zero.");
+        }
         if (markdown.Length == 0) {
             return string.Empty;
         }

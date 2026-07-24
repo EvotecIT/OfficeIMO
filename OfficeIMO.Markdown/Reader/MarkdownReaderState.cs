@@ -120,6 +120,7 @@ public sealed class MarkdownReaderState {
     internal bool SuppressBlockGenericAttributes { get; set; }
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }
+    internal int NestedBlockDepth { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
     internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
     internal HashSet<int> QuoteContainerLines { get; } = new HashSet<int>();

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -23,6 +25,7 @@ namespace OfficeIMO.Visio {
         public const long MaxTotalMasterRelationshipBytes = 64_000_000;
         /// <summary>Maximum number of master relationships copied from one Visio package import.</summary>
         public const int MaxMasterRelationships = 4096;
+        private const int MaxExtractedFileNameComponentLength = 64;
 
         private static readonly XmlReaderSettings PackageXmlReaderSettings = new() {
             DtdProcessing = DtdProcessing.Prohibit,
@@ -193,13 +196,66 @@ namespace OfficeIMO.Visio {
         /// Extracts masters from a VSDX file to a folder as standalone XML files (one per master).
         /// </summary>
         public static void ExtractMasters(string vsdxPath, string outputFolder, IEnumerable<string>? filterNames = null) {
-            Directory.CreateDirectory(outputFolder);
+            string outputRoot = Path.GetFullPath(outputFolder);
+            Directory.CreateDirectory(outputRoot);
+            string outputRootPrefix = outputRoot.TrimEnd(
+                Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
             foreach (var m in LoadMasterContents(vsdxPath, filterNames)) {
-                string safeName = string.Concat(m.NameU.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_'));
-                string filePath = Path.Combine(outputFolder, $"{m.Id}-{safeName}.xml");
-                using var fs = File.Create(filePath);
+                string safeId = CreateSafeFileNameComponent(m.Id, "master");
+                string safeName = CreateSafeFileNameComponent(m.NameU, "unnamed");
+                string filePath = Path.GetFullPath(Path.Combine(outputRoot,
+                    $"{safeId}-{safeName}.xml"));
+                if (!filePath.StartsWith(outputRootPrefix,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    throw new InvalidDataException(
+                        "The generated Visio master filename escapes the requested output directory.");
+                }
+                using var fs = new FileStream(filePath, FileMode.CreateNew,
+                    FileAccess.Write, FileShare.None);
                 m.MasterXml.Save(fs, SaveOptions.DisableFormatting);
             }
+        }
+
+        private static string CreateSafeFileNameComponent(
+            string value,
+            string fallback) {
+            StringBuilder builder = new(MaxExtractedFileNameComponentLength);
+            bool modified = string.IsNullOrEmpty(value);
+            foreach (char character in value ?? string.Empty) {
+                char safeCharacter = char.IsLetterOrDigit(character)
+                    || character == '-'
+                    || character == '_'
+                    ? character
+                    : '_';
+                if (safeCharacter != character) modified = true;
+                if (builder.Length < MaxExtractedFileNameComponentLength) {
+                    builder.Append(safeCharacter);
+                } else {
+                    modified = true;
+                }
+            }
+
+            string safeValue = builder.Length == 0
+                ? fallback
+                : builder.ToString();
+            if (!modified) return safeValue;
+
+            string suffix = "-" + ComputeStableFileNameSuffix(value ?? string.Empty);
+            int prefixLength = Math.Min(safeValue.Length,
+                MaxExtractedFileNameComponentLength - suffix.Length);
+            return safeValue.Substring(0, prefixLength) + suffix;
+        }
+
+        private static string ComputeStableFileNameSuffix(string value) {
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
+            byte[] digest;
+            using (SHA256 sha256 = SHA256.Create()) {
+                digest = sha256.ComputeHash(bytes);
+            }
+            return BitConverter.ToString(digest, 0, 6)
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
         }
 
         private static IEnumerable<MasterRelationshipContent> LoadMasterRelationships(ZipArchive zip, string masterPartPath, ref long totalRelationshipBytes, ref int totalRelationships) {
