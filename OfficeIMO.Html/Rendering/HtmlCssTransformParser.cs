@@ -216,18 +216,23 @@ internal static class HtmlCssTransformParser {
         degrees = 0D;
         string normalized = value.Trim().ToLowerInvariant();
         double factor;
+        double period;
         string number;
         if (normalized.EndsWith("deg", StringComparison.Ordinal)) {
             factor = 1D;
+            period = 360D;
             number = normalized.Substring(0, normalized.Length - 3);
         } else if (normalized.EndsWith("grad", StringComparison.Ordinal)) {
             factor = 0.9D;
+            period = 400D;
             number = normalized.Substring(0, normalized.Length - 4);
         } else if (normalized.EndsWith("rad", StringComparison.Ordinal)) {
             factor = 180D / Math.PI;
+            period = Math.PI * 2D;
             number = normalized.Substring(0, normalized.Length - 3);
         } else if (normalized.EndsWith("turn", StringComparison.Ordinal)) {
             factor = 360D;
+            period = 1D;
             number = normalized.Substring(0, normalized.Length - 4);
         } else if (normalized == "0") {
             return true;
@@ -235,7 +240,7 @@ internal static class HtmlCssTransformParser {
             return false;
         }
         if (!TryNumber(number, out double parsed)) return false;
-        degrees = parsed * factor;
+        degrees = Math.IEEERemainder(parsed, period) * factor;
         return !double.IsNaN(degrees) && !double.IsInfinity(degrees);
     }
 

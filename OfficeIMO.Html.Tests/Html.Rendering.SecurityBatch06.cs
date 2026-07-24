@@ -103,6 +103,9 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("rotate(1e308deg)")]
+    [InlineData("rotate(1e308grad)")]
+    [InlineData("rotate(1e308rad)")]
+    [InlineData("rotate(1e308turn)")]
     [InlineData("skew(1e308deg,-1e308deg)")]
     public void HtmlTransforms_NormalizeHugeFiniteAnglesBeforeMatrixConstruction(string transformValue) {
         string html = "<div id='large-angle' style='width:10px;height:10px;margin:0;background:red;transform-origin:0 0;transform:"
@@ -123,6 +126,9 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("rotate(1e308deg)")]
+    [InlineData("rotate(1e308grad)")]
+    [InlineData("rotate(1e308rad)")]
+    [InlineData("rotate(1e308turn)")]
     [InlineData("skew(1e308deg,-1e308deg)")]
     public void HtmlSupports_AcceptsHugeFiniteTransformAnglesWithoutThrowing(string transformValue) {
         string html = "<style>@supports (transform:" + transformValue + "){#supported{display:none}}</style>"
