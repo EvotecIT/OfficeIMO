@@ -178,6 +178,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_DropsExternalFormulaWhenSupBookTargetContainsControlCharacters() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream("\u0001Budget.xls");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+
+            Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                .OrderBy(cell => cell.CellReference!.Value, StringComparer.Ordinal)
+                .ToArray();
+            Assert.All(cells, cell => Assert.Null(cell.CellFormula));
+            Assert.Empty(spreadsheet.WorkbookPart.GetPartsOfType<ExternalWorkbookPart>());
+        }
+
+        [Fact]
         public void LegacyXls_Load_PreservesLocalFormulaWhoseStringLiteralMentionsExternalWorkbook() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaStringLiteralMatchingExternalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

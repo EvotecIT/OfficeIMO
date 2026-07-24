@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        private static string NormalizeExternalWorkbookTarget(string? target) {
+        internal static string NormalizeExternalWorkbookTarget(string? target) {
             if (string.IsNullOrWhiteSpace(target)) {
                 return "ExternalWorkbook";
             }

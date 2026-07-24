@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
 
@@ -939,9 +940,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     continue;
                 }
 
-                string normalizedTarget = reference.Target!.Replace('\\', '/');
-                int separator = normalizedTarget.LastIndexOf('/');
-                string fileName = separator >= 0 ? normalizedTarget.Substring(separator + 1) : normalizedTarget;
+                string fileName = BiffFormulaReferenceFormatter.NormalizeExternalWorkbookTarget(reference.Target);
                 if (fileName.Length == 0) continue;
                 string escapedFileName = fileName.Replace("'", "''");
                 if (ContainsFormulaTokenOutsideStringLiteral(formulaText, "[" + escapedFileName + "]") ||
