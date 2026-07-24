@@ -587,6 +587,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_HeaderlessDefaultColumnsRemainPositional() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHeaderlessDefaultColumns.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales");
+
+                var append = new DataTable();
+                append.Columns.Add("Column2", typeof(string));
+                append.Columns.Add("Column1", typeof(string));
+                append.Rows.Add("first-position", "second-position");
+
+                Assert.Equal("A1:B2", sheet.AppendDataTableToTable(append, "HeaderlessSales"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("first-position", GetCellText(spreadsheet, worksheetPart, "A2"));
+                Assert.Equal("second-position", GetCellText(spreadsheet, worksheetPart, "B2"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_HiddenHeadersUseMatchingColumnNames() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeaders.xlsx");
 

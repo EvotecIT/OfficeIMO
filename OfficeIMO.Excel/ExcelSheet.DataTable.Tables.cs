@@ -330,11 +330,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (SourceContainsTableColumns(source, tableColumnNames)) {
-                return true;
+            if (HasDefaultHeaderlessColumnNames(tableColumnNames)) {
+                return false;
             }
 
-            return !HasDefaultHeaderlessColumnNames(tableColumnNames);
+            return SourceContainsTableColumns(source, tableColumnNames);
         }
 
         private static bool SourceContainsTableColumns(DataTable source, IReadOnlyList<string> tableColumnNames) {
