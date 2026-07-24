@@ -117,7 +117,15 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, rows.Count, options, contentWidth, nativeDefaults, tableStyleDefaults, layout);
+            PdfCore.PdfTableStyle style = CreateNativeTableStyle(
+                table,
+                rows.Count,
+                options,
+                contentWidth,
+                nativeDefaults,
+                tableStyleDefaults,
+                layout,
+                nativeFontMap);
             if (cellFills.Count > 0) {
                 if (style.CellFills == null) {
                     style.CellFills = cellFills;
@@ -302,7 +310,15 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeTableStyle(table, rowCount, options, contentWidth, nativeDefaults, tableStyleDefaults, TableLayoutCache.GetLayout(table));
         }
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, TableLayout layout) {
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(
+            WordTable table,
+            int rowCount,
+            PdfSaveOptions? options,
+            double? contentWidth,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            TableLayout layout,
+            NativeFontMap? nativeFontMap = null) {
             bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
             PdfCore.PdfTableStyle? wordStyle = ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle);
             bool usesConfiguredDefaultStyle = wordStyle == null && hasExplicitDefaultTableStyle;
@@ -310,7 +326,11 @@ namespace OfficeIMO.Word.Pdf {
             if (!usesConfiguredDefaultStyle) {
                 style.FontSize ??= nativeDefaults.FontSize;
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
-                    ? ResolveNativeTableStyleParagraphLineHeight(tableStyleDefaults, style.FontSize ?? nativeDefaults.FontSize)
+                    ? ResolveNativeTableStyleParagraphLineHeight(
+                        tableStyleDefaults,
+                        style.FontSize ?? nativeDefaults.FontSize,
+                        nativeDefaults.FontFamily,
+                        nativeFontMap)
                     : null;
                 style.LineHeight ??= tableParagraphLineHeight ?? nativeDefaults.ParagraphLineHeight;
             }
@@ -351,13 +371,20 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static double? ResolveNativeTableStyleParagraphLineHeight(NativeTableStyleDefaults tableStyleDefaults, double fontSize) {
+        private static double? ResolveNativeTableStyleParagraphLineHeight(
+            NativeTableStyleDefaults tableStyleDefaults,
+            double fontSize,
+            string? documentFontFamily,
+            NativeFontMap? nativeFontMap = null) {
             if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
                 return ResolveNativeLineSpacingHeight(
                     tableStyleDefaults.ParagraphLineSpacingPoints.Value,
                     tableStyleDefaults.ParagraphLineSpacingRule,
                     fontSize,
-                    NativeWordTableSingleLineHeight);
+                    ResolveNativeWordSingleLineHeight(
+                        nativeFontMap,
+                        tableStyleDefaults.RunStyle.FontFamily,
+                        documentFontFamily));
             }
 
             return tableStyleDefaults.ParagraphLineHeight;

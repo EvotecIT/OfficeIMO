@@ -44,16 +44,41 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private ConversionResult? Output { get; set; }
     private string? OutputUrl { get; set; }
     private string? OutputReportUrl { get; set; }
+    private string? OutputOverlayUrl { get; set; }
+    private string? OutputSupportUrl { get; set; }
     private string OutputFileName { get; set; } = "officeimo-output";
     private string? OutputReportFileName { get; set; }
+    private string? OutputOverlayFileName { get; set; }
+    private string? OutputSupportFileName { get; set; }
     private string TextInput { get; set; } = DefaultMarkdown;
     private bool LimitExcelRows { get; set; }
+    private bool GenerateDebugOverlay { get; set; }
+    private bool IncludeDocumentContentInSupportBundle { get; set; }
+    private string SelectedProfileId { get; set; } = BrowserPdfProfileCatalog.Faithful.Id;
     private bool PreviewOutput { get; set; } = true;
     private bool IsBusy { get; set; }
     private long ElapsedMilliseconds { get; set; }
     private List<ConversionDiagnostic> Diagnostics { get; } = [ReadyDiagnostic()];
 
     private static IReadOnlyList<ConversionRoute> Routes => ConversionRouteCatalog.All;
+    private static IReadOnlyList<BrowserPdfProfile> PdfProfiles => BrowserPdfProfileCatalog.All;
+    private BrowserPdfProfile SelectedProfile => BrowserPdfProfileCatalog.Find(SelectedProfileId);
+    private bool IsPdfRoute => string.Equals(ActiveRoute.Target, "PDF", StringComparison.OrdinalIgnoreCase);
+    private IEnumerable<IGrouping<string, ConversionWarningView>> WarningGroups {
+        get {
+            if (Output is null) {
+                return Enumerable.Empty<IGrouping<string, ConversionWarningView>>();
+            }
+
+            return Output.StructuredWarnings
+                .GroupBy(
+                    static warning => warning.PageNumber.HasValue
+                        ? $"Page {warning.PageNumber.Value} · {warning.Construct}"
+                        : $"Document · {warning.Construct}",
+                    StringComparer.Ordinal)
+                .OrderBy(static group => group.Key, StringComparer.Ordinal);
+        }
+    }
     private bool CanConvert => !IsBusy && (ActiveRoute.InputKind == ConversionInputKind.File ? SelectedFile is not null : !string.IsNullOrWhiteSpace(TextInput));
     private string OutputHeading => Output?.FileName ?? $"{ActiveRoute.Target} output";
     private string ElapsedLabel => ElapsedMilliseconds < 1000 ? $"{ElapsedMilliseconds} ms" : $"{ElapsedMilliseconds / 1000d:0.0} s";
@@ -72,6 +97,8 @@ This **Markdown** becomes a browser preview or an editable Word document.
         ActiveRoute = route;
         SelectedFile = null;
         TextInput = route.Id == "html-markdown" ? DefaultHtml : DefaultMarkdown;
+        GenerateDebugOverlay = false;
+        IncludeDocumentContentInSupportBundle = false;
         Diagnostics.Clear();
         Diagnostics.Add(ReadyDiagnostic());
         Navigation.NavigateTo($"?route={Uri.EscapeDataString(route.Id)}", replace: true);
@@ -141,7 +168,12 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
         try {
             Output = ActiveRoute.InputKind == ConversionInputKind.File
-                ? ConversionService.ConvertFile(ActiveRoute, SelectedFile!, LimitExcelRows)
+                ? ConversionService.ConvertFile(
+                    ActiveRoute,
+                    SelectedFile!,
+                    LimitExcelRows,
+                    SelectedProfile,
+                    GenerateDebugOverlay)
                 : ConversionService.ConvertText(ActiveRoute, TextInput);
             stopwatch.Stop();
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
@@ -153,12 +185,15 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     Output.CompanionReport.Bytes,
                     Output.CompanionReport.ContentType);
             }
+            if (Output.DebugOverlay is not null) {
+                OutputOverlayFileName = Output.DebugOverlay.FileName;
+                OutputOverlayUrl = await _interop.CreateObjectUrlAsync(
+                    Output.DebugOverlay.Bytes,
+                    Output.DebugOverlay.ContentType);
+            }
             string fidelity = Output.FidelityStatus ?? "Complete";
             string tone = string.Equals(fidelity, "Degraded", StringComparison.Ordinal) ? "ocx-dot--warn" : "ocx-dot--good";
             Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
-            foreach (string warning in Output.Warnings.Take(8)) {
-                Diagnostics.Add(new("Review this result", warning, "ocx-dot--warn"));
-            }
         } catch (Exception ex) {
             stopwatch.Stop();
             Output = null;
@@ -168,6 +203,38 @@ This **Markdown** becomes a browser preview or an editable Word document.
         }
     }
 
+    private async Task PrepareSupportBundleAsync() {
+        if (_interop is null || SelectedFile is null || Output is null) {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(OutputSupportUrl)) {
+            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
+        }
+        BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(
+            SelectedFile,
+            Output,
+            IncludeDocumentContentInSupportBundle);
+        OutputSupportFileName = supportBundle.FileName;
+        OutputSupportUrl = await _interop.CreateObjectUrlAsync(
+            supportBundle.Bytes,
+            supportBundle.ContentType);
+        Diagnostics.Add(new(
+            "Support bundle ready",
+            IncludeDocumentContentInSupportBundle
+                ? "The bundle includes source and PDF bytes because you opted in."
+                : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
+            "ocx-dot--good"));
+    }
+
+    private async Task InvalidateSupportBundleAsync() {
+        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
+            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
+        }
+        OutputSupportUrl = null;
+        OutputSupportFileName = null;
+    }
+
     private async Task ResetOutputAsync() {
         if (_interop is not null && !string.IsNullOrWhiteSpace(OutputUrl)) {
             await _interop.RevokeObjectUrlAsync(OutputUrl);
@@ -175,9 +242,19 @@ This **Markdown** becomes a browser preview or an editable Word document.
         if (_interop is not null && !string.IsNullOrWhiteSpace(OutputReportUrl)) {
             await _interop.RevokeObjectUrlAsync(OutputReportUrl);
         }
+        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputOverlayUrl)) {
+            await _interop.RevokeObjectUrlAsync(OutputOverlayUrl);
+        }
+        if (_interop is not null && !string.IsNullOrWhiteSpace(OutputSupportUrl)) {
+            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
+        }
         OutputUrl = null;
         OutputReportUrl = null;
+        OutputOverlayUrl = null;
+        OutputSupportUrl = null;
         OutputReportFileName = null;
+        OutputOverlayFileName = null;
+        OutputSupportFileName = null;
         Output = null;
         ElapsedMilliseconds = 0;
     }
@@ -216,6 +293,8 @@ This **Markdown** becomes a browser preview or an editable Word document.
         if (_interop is not null) {
             await _interop.RevokeObjectUrlAsync(OutputUrl);
             await _interop.RevokeObjectUrlAsync(OutputReportUrl);
+            await _interop.RevokeObjectUrlAsync(OutputOverlayUrl);
+            await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
             await _interop.DisposeAsync();
         }
     }

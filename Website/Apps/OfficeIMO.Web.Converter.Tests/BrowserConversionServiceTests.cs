@@ -80,7 +80,7 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
-    public void WordConversion_PreservesWarningsAddedDuringPdfSerialization() {
+    public void WordConversion_UsesFullBrowserShapingWithoutFalseDegradationWarnings() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("مرحبا");
         byte[] bytes = source.ToBytes();
@@ -91,11 +91,11 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        Assert.Contains(result.Warnings, warning =>
+        Assert.DoesNotContain(result.Warnings, warning =>
             warning.Contains("unsupported-bidirectional-text-layout", StringComparison.Ordinal));
-        Assert.Contains(result.Warnings, warning =>
+        Assert.DoesNotContain(result.Warnings, warning =>
             warning.Contains("unsupported-complex-script-shaping", StringComparison.Ordinal));
-        Assert.Equal("Degraded", result.FidelityStatus);
+        Assert.Equal("Faithful", result.FidelityStatus);
         Assert.NotNull(result.CompanionReport);
         Assert.Contains("NotoSansArabic", Encoding.ASCII.GetString(result.Bytes), StringComparison.Ordinal);
     }
@@ -171,7 +171,6 @@ public sealed class BrowserConversionServiceTests {
         ConversionResult renamed = _service.ConvertFile(route, renamedDocument, limitExcelRows: false);
 
         Assert.Equal(first.Bytes, second.Bytes);
-        Assert.Equal(first.CompanionReport!.Bytes, second.CompanionReport!.Bytes);
         Assert.Equal(first.FidelityStatus, second.FidelityStatus);
         Assert.Equal(first.Warnings, second.Warnings);
         using JsonDocument firstReport = JsonDocument.Parse(first.CompanionReport!.Bytes);
@@ -187,6 +186,84 @@ public sealed class BrowserConversionServiceTests {
         Assert.NotEqual(
             firstReport.RootElement.GetProperty("conversionId").GetString(),
             renamedReport.RootElement.GetProperty("conversionId").GetString());
+    }
+
+    [Fact]
+    public void PdfProfiles_ExposeAccessibleAndDiagnosticContracts() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Profile contract");
+        byte[] bytes = source.ToBytes();
+        var document = new SelectedDocument("profile.docx", ".docx", "DOCX", bytes.LongLength, bytes);
+        ConversionRoute route = ConversionRouteCatalog.Find("docx-pdf");
+
+        ConversionResult accessible = _service.ConvertFile(
+            route,
+            document,
+            limitExcelRows: false,
+            BrowserPdfProfileCatalog.Accessible);
+        ConversionResult diagnostic = _service.ConvertFile(
+            route,
+            document,
+            limitExcelRows: false,
+            BrowserPdfProfileCatalog.Diagnostic);
+
+        Assert.Equal("accessible", accessible.Profile?.Id);
+        Assert.Contains("pdfuaid:part", Encoding.UTF8.GetString(accessible.Bytes), StringComparison.Ordinal);
+        BrowserConversionArtifact overlay = Assert.IsType<BrowserConversionArtifact>(diagnostic.DebugOverlay);
+        Assert.Equal("profile.page-1.layout.svg", overlay.FileName);
+        Assert.Contains("<svg", Encoding.UTF8.GetString(overlay.Bytes), StringComparison.Ordinal);
+        using JsonDocument manifest = JsonDocument.Parse(diagnostic.CompanionReport!.Bytes);
+        Assert.Equal(
+            "diagnostic",
+            manifest.RootElement.GetProperty("engine").GetProperty("profile").GetProperty("id").GetString());
+        Assert.True(manifest.RootElement.GetProperty("performance").GetProperty("peakRetainedCompletedPayloadBytes").GetInt64() > 0);
+        Assert.True(manifest.RootElement.GetProperty("performance").GetProperty("isForwardOnlyObjectSerialization").GetBoolean());
+        Assert.False(manifest.RootElement.GetProperty("performance").GetProperty("isForwardOnlyLayout").GetBoolean());
+    }
+
+    [Fact]
+    public void AccessiblePdfProfile_PreservesTheWordSourceLanguage() {
+        using WordDocument source = WordDocument.Create();
+        source.Settings.Language = "pl-PL";
+        source.AddParagraph("Dokument dostępny");
+        byte[] bytes = source.ToBytes();
+        var document = new SelectedDocument("dostepny.docx", ".docx", "DOCX", bytes.LongLength, bytes);
+
+        ConversionResult accessible = _service.ConvertFile(
+            ConversionRouteCatalog.Find("docx-pdf"),
+            document,
+            limitExcelRows: false,
+            BrowserPdfProfileCatalog.Accessible);
+
+        Assert.Equal("pl-PL", PdfReadDocument.Open(accessible.Bytes).CatalogLanguage);
+    }
+
+    [Fact]
+    public void SupportBundle_ExcludesDocumentContentUnlessExplicitlyIncluded() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Private customer content marker");
+        byte[] bytes = source.ToBytes();
+        var document = new SelectedDocument("private-name.docx", ".docx", "DOCX", bytes.LongLength, bytes);
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("docx-pdf"),
+            document,
+            limitExcelRows: false);
+
+        BrowserConversionArtifact safe = _service.CreateSupportBundle(document, result);
+        using var safeStream = new MemoryStream(safe.Bytes);
+        using var safeArchive = new ZipArchive(safeStream, ZipArchiveMode.Read);
+        Assert.Equal(["README.txt", "support-summary.json"], safeArchive.Entries.Select(static entry => entry.FullName).ToArray());
+        Assert.DoesNotContain("private-name", Encoding.UTF8.GetString(safe.Bytes), StringComparison.Ordinal);
+        Assert.DoesNotContain("Private customer content marker", Encoding.UTF8.GetString(safe.Bytes), StringComparison.Ordinal);
+
+        BrowserConversionArtifact explicitContent = _service.CreateSupportBundle(
+            document,
+            result,
+            includeDocumentContent: true);
+        using var contentStream = new MemoryStream(explicitContent.Bytes);
+        using var contentArchive = new ZipArchive(contentStream, ZipArchiveMode.Read);
+        Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/source.docx");
+        Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/result.pdf");
     }
 
     [Fact]

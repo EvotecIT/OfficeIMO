@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
+using OfficeIMO.Web.Converter.Models;
 
 namespace OfficeIMO.Web.Converter.Services;
 
@@ -17,15 +19,24 @@ internal static class BrowserPortablePdfProfile {
 
     internal static string FontPackFingerprint => Data.Value.Fingerprint;
 
-    internal static PdfOptions CreateOptions() {
+    internal static PdfOptions CreateOptions(BrowserPdfProfile profile) {
+        ArgumentNullException.ThrowIfNull(profile);
         FontPackData data = Data.Value;
         var options = new PdfOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             HeaderFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.Helvetica,
+            FileVersion = PdfFileVersion.Pdf17,
+            ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             TextShapingMode = PdfTextShapingMode.LatinLigatures
-        };
+        }.SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
+        if (profile.Kind == BrowserPdfProfileKind.Accessible) {
+            // The browser profile does not know the source language yet. Keep
+            // the catalog explicitly undefined so source adapters can replace
+            // it instead of mis-tagging every accessible document as English.
+            options.UsePdfUa(PdfComplianceProfile.PdfUa1, "und");
+        }
 
         options.RegisterFontFamily(
             PdfStandardFont.Helvetica,

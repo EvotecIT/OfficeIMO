@@ -22,6 +22,28 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("input.epub");
 ```
 
+## Convert Email, EPUB, or Visio directly to PDF
+
+The all-adapters package also exposes thin direct façades. They normalize through
+the owning Reader adapter, then project through `OfficeIMO.Reader.Pdf`; they do
+not introduce a second renderer.
+
+```csharp
+using OfficeIMO.Reader.All;
+
+PdfDocumentConversionResult email = OfficeDocumentPdfConverter.EmailToPdf("message.eml");
+PdfDocumentConversionResult book = OfficeDocumentPdfConverter.EpubToPdf("book.epub");
+PdfDocumentConversionResult diagram = OfficeDocumentPdfConverter.VisioToPdf("diagram.vsdx");
+
+email.Save("message.pdf");
+book.Save("book.pdf");
+diagram.Save("diagram.pdf");
+```
+
+Email attachments, EPUB resources and chapter pagination, and Visio
+preview-versus-semantic fallback behavior follow `ReaderPdfProjectionOptions`
+and are reported as structured conversion evidence.
+
 The preset adds Word, Excel, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CSV/TSV, EPUB, HTML/MHTML, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, PDF, RTF, subtitles, Visio, XML, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser.
 
 Configure a format through one options object:

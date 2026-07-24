@@ -51,11 +51,35 @@
                     <div class="ocx-editor-shell"><div class="ocx-editor-shell__bar"><span>@ActiveRoute.Source source</span><button type="button" @onclick="LoadTextSampleAsync">Reset sample</button></div><textarea class="ocx-textarea" aria-label="@ActiveRoute.Source input" maxlength="@BrowserConversionService.MaxTextInputChars" @bind="TextInput" @bind:event="oninput"></textarea></div>
                 }
 
+                @if (IsPdfRoute) {
+                    <div class="ocx-profile-panel">
+                        <label for="pdf-profile"><span>PDF profile</span><select id="pdf-profile" @bind="SelectedProfileId">@foreach (BrowserPdfProfile profile in PdfProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
+                        <p>@SelectedProfile.Description</p>
+                        <label class="ocx-toggle"><input type="checkbox" @bind="GenerateDebugOverlay" /><span>Generate first-page layout overlay</span></label>
+                    </div>
+                }
+
                 <button type="button" class="ocx-convert-button" disabled="@(!CanConvert)" @onclick="ConvertAsync"><span>@(IsBusy ? "Converting locally…" : $"Convert to {ActiveRoute.Target}")</span><b aria-hidden="true">→</b></button>
             </section>
 
             <section class="ocx-output-panel" aria-labelledby="output-title">
-                <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div><div class="ocx-output-actions">@if (!string.IsNullOrWhiteSpace(OutputReportUrl)) { <a class="ocx-button ocx-button--secondary" href="@OutputReportUrl" download="@OutputReportFileName">Conversion report</a> }@if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary" href="@OutputUrl" download="@OutputFileName">Download result</a> }</div></div>
+                <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div></div>
+                @if (Output?.StructuredWarnings.Count > 0) {
+                    <div class="ocx-warning-summary" role="status">
+                        <strong>Review @Output.StructuredWarnings.Count conversion warning@(Output.StructuredWarnings.Count == 1 ? null : "s") before download</strong>
+                        <span>@(Output.StructuredWarnings.Any(static warning => warning.CanChangePagination) ? "At least one warning can change text fit or pagination." : "The output is usable, but one or more constructs were substituted or approximated.")</span>
+                    </div>
+                }
+                <div class="ocx-output-actions">
+                    @if (!string.IsNullOrWhiteSpace(OutputOverlayUrl)) { <a class="ocx-button ocx-button--secondary" href="@OutputOverlayUrl" download="@OutputOverlayFileName">Layout overlay</a> }
+                    @if (!string.IsNullOrWhiteSpace(OutputReportUrl)) { <a class="ocx-button ocx-button--secondary" href="@OutputReportUrl" download="@OutputReportFileName">Conversion report</a> }
+                    @if (Output is not null && IsPdfRoute) { <button type="button" class="ocx-button ocx-button--secondary" @onclick="PrepareSupportBundleAsync">Prepare support bundle</button> }
+                    @if (!string.IsNullOrWhiteSpace(OutputSupportUrl)) { <a class="ocx-button ocx-button--secondary" href="@OutputSupportUrl" download="@OutputSupportFileName">Download support bundle</a> }
+                    @if (!string.IsNullOrWhiteSpace(OutputUrl)) { <a class="ocx-button ocx-button--primary" href="@OutputUrl" download="@OutputFileName">Download result</a> }
+                </div>
+                @if (Output is not null && IsPdfRoute) {
+                    <label class="ocx-toggle ocx-support-content"><input type="checkbox" @bind="IncludeDocumentContentInSupportBundle" @bind:after="InvalidateSupportBundleAsync" /><span>Include source and PDF in support bundle (off by default)</span></label>
+                }
                 <div class="ocx-preview-stage">
                     @if (IsBusy) {
                         <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Converting in your browser</strong><p>The OfficeIMO engine is preparing the result.</p></div>
@@ -73,6 +97,14 @@
                     <div class="ocx-output-summary"><span><small>FILE</small><strong>@Output.FileName</strong></span><span><small>SIZE</small><strong>@FormatBytes(Output.Bytes.Length)</strong></span><span><small>TIME</small><strong>@ElapsedLabel</strong></span></div>
                 }
                 <div class="ocx-diagnostics" aria-live="polite">
+                    @foreach (IGrouping<string, ConversionWarningView> group in WarningGroups) {
+                        <div class="ocx-diagnostic-group">
+                            <strong>@group.Key</strong>
+                            @foreach (ConversionWarningView warning in group) {
+                                <div class="ocx-diagnostic ocx-diagnostic--warning"><span class="ocx-dot ocx-dot--warn"></span><div><strong>@warning.Construct · @warning.Code</strong><span>@warning.Message@(warning.CanChangePagination ? " May affect text fit or pagination." : null)</span></div></div>
+                            }
+                        </div>
+                    }
                     @foreach (ConversionDiagnostic diagnostic in Diagnostics) {
                         <div @key="diagnostic" class="ocx-diagnostic"><span class="ocx-dot @diagnostic.ToneClass"></span><div><strong>@diagnostic.Title</strong><span>@diagnostic.Message</span></div></div>
                     }

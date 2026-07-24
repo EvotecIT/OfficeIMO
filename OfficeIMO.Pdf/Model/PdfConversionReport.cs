@@ -64,6 +64,9 @@ public sealed class PdfConversionReport {
             if (lossWarnings.Length == 0) {
                 return PdfConversionFidelityStatus.Faithful;
             }
+            if (lossWarnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error)) {
+                return PdfConversionFidelityStatus.Degraded;
+            }
 
             return lossWarnings.All(IsDeclaredSubstitutionWarning)
                 ? PdfConversionFidelityStatus.FaithfulWithSubstitutions

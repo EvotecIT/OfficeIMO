@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
@@ -713,7 +714,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(72D, tabStop.Position);
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
             Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
-            Assert.Equal(1.15D * (259D / 240D), style.LineHeight);
+            Assert.Equal(1.220703125D * (259D / 240D), style.LineHeight);
             Assert.Equal(8D, style.SpacingAfter);
             Assert.True(style.KeepTogether);
             Assert.True(style.KeepWithNext);
@@ -1342,7 +1343,74 @@ namespace OfficeIMO.Tests {
             PdfParagraphStyle autoStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { autoParagraph }));
 
             Assert.Equal(2D, exactStyle.LineHeight);
-            Assert.Equal(1.15D * (276D / 240D), autoStyle.LineHeight);
+            Assert.Equal(1.220703125D * (276D / 240D), autoStyle.LineHeight);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Resolved_Pdf_Font_Metrics_For_Auto_Line_Spacing() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeFontMetricLineSpacing.docx"));
+            WordParagraph paragraph = document.AddParagraph("Serif line spacing");
+            paragraph.FontFamily = "Times New Roman";
+            paragraph.LineSpacing = 240;
+            paragraph.LineSpacingRule = LineSpacingRuleValues.Auto;
+
+            Type converterType = typeof(WordPdfConverterExtensions);
+            Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
+            Type nativeDefaultsType = converterType.GetNestedType("NativeDocumentDefaults", BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
+            byte[] portableFont = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+            var configured = new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica
+            };
+            configured.EmbedStandardFont(
+                PdfStandardFont.Helvetica,
+                portableFont,
+                "OfficeIMO-Portable-Regular");
+            var saveOptions = new PdfSaveOptions {
+                PdfOptions = configured
+            };
+
+            MethodInfo createOptions = converterType.GetMethod(
+                "CreateNativeOptions",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            _ = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
+                document,
+                saveOptions,
+                nativeFontMap
+            }));
+            MethodInfo getDefaults = converterType.GetMethod(
+                "GetNativeDocumentDefaults",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] { typeof(WordDocument), nativeFontMapType },
+                modifiers: null)!;
+            object nativeDefaults = getDefaults.Invoke(null, new[] { document, nativeFontMap })!;
+            MethodInfo createStyle = converterType.GetMethod(
+                "CreateNativeParagraphStyle",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] { typeof(WordParagraph), nativeDefaultsType, nativeFontMapType },
+                modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(
+                createStyle.Invoke(null, new[] { paragraph, nativeDefaults, nativeFontMap }));
+
+            Assert.NotNull(style.LineHeight);
+            Assert.Equal(1.15D, style.LineHeight.Value, 6);
+            Assert.True(Math.Abs(style.LineHeight.Value - 1.220703125D) > 0.01D);
+
+            MethodInfo resolveSingleLine = converterType.GetMethod(
+                "ResolveNativeWordSingleLineHeight",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] { nativeFontMapType, typeof(string[]) },
+                modifiers: null)!;
+            double fallbackRatio = Assert.IsType<double>(resolveSingleLine.Invoke(
+                null,
+                new object?[] {
+                    nativeFontMap,
+                    new[] { "OfficeIMO Missing Host Font 57D54D43" }
+                }));
+            Assert.Equal(1D, fallbackRatio, 6);
         }
 
         [Fact]
@@ -1377,8 +1445,8 @@ namespace OfficeIMO.Tests {
 
             Assert.NotNull(directStyle.LineHeight);
             Assert.NotNull(inheritedStyle.LineHeight);
-            Assert.InRange(directStyle.LineHeight.Value, 1.2D, 1.3D);
-            Assert.InRange(inheritedStyle.LineHeight.Value, 1.2D, 1.3D);
+            Assert.Equal(1.220703125D, directStyle.LineHeight.Value);
+            Assert.Equal(1.220703125D, inheritedStyle.LineHeight.Value);
         }
 
         [Fact]
@@ -1621,7 +1689,7 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(1.15D, style.LineHeight);
+            Assert.Equal(1.220703125D, style.LineHeight);
         }
 
         [Fact]

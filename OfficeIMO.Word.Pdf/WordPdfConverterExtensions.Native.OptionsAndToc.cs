@@ -22,7 +22,8 @@ namespace OfficeIMO.Word.Pdf {
             if (options?.PdfOptions == null) {
                 pdfOptions.DefaultFontSize = defaults.FontSize;
             }
-            if (string.IsNullOrWhiteSpace(pdfOptions.Language) &&
+            if ((string.IsNullOrWhiteSpace(pdfOptions.Language) ||
+                 string.Equals(pdfOptions.Language, "und", StringComparison.OrdinalIgnoreCase)) &&
                 !string.IsNullOrWhiteSpace(defaults.Language)) {
                 pdfOptions.Language = defaults.Language;
             }
@@ -45,6 +46,7 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
+            nativeFontMap.AttachResolvedOptions(pdfOptions);
             return pdfOptions;
         }
 

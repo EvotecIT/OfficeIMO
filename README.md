@@ -93,6 +93,14 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 
 _Dependency footprint:_ zero third-party runtime dependencies.
 
+#### [OfficeIMO.Drawing.HarfBuzz](OfficeIMO.Drawing.HarfBuzz/README.md)
+
+- [x] Optional full OpenType GSUB/GPOS shaping through the shared `IOfficeTextShapingProvider` contract
+- [x] Stable logical cluster mappings and positioned glyph advances for TrueType and OpenType/CFF fonts
+- [x] Windows, Linux, macOS, and WebAssembly native assets kept out of the dependency-light Drawing and PDF cores
+
+_Dependency footprint:_ `OfficeIMO.Drawing`, HarfBuzzSharp, and its platform-native runtime assets.
+
 #### [OfficeIMO.Drawing.CodeGlyphX](OfficeIMO.Drawing.CodeGlyphX/README.md)
 
 - [x] Optional typed bridge from CodeGlyphX QR, matrix, and linear barcode symbols to reusable `OfficeDrawing` scenes

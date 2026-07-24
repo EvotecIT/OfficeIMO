@@ -2,19 +2,38 @@
   "workloads": {
     "analysis-cold": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 805306368
+      "maxAllocatedBytes": 805306368,
+      "maxPeakManagedHeapBytes": 536870912
     },
     "analysis-cached": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 536870912
+      "maxAllocatedBytes": 536870912,
+      "maxPeakManagedHeapBytes": 402653184
     },
     "render-svg-12": {
       "maxElapsedMilliseconds": 5000,
-      "maxAllocatedBytes": 805306368
+      "maxAllocatedBytes": 805306368,
+      "maxPeakManagedHeapBytes": 536870912
     },
     "render-png-4": {
       "maxElapsedMilliseconds": 10000,
-      "maxAllocatedBytes": 1073741824
+      "maxAllocatedBytes": 1073741824,
+      "maxPeakManagedHeapBytes": 805306368
+    },
+    "serialize-buffered-60": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 1073741824,
+      "maxPeakManagedHeapBytes": 536870912
+    },
+    "serialize-forward-60": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 1073741824,
+      "maxPeakManagedHeapBytes": 536870912
+    },
+    "serialize-harfbuzz-60": {
+      "maxElapsedMilliseconds": 10000,
+      "maxAllocatedBytes": 1073741824,
+      "maxPeakManagedHeapBytes": 536870912
     }
   },
   "minimumCachedSpeedup": 1.2,

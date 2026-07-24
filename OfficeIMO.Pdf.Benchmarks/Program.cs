@@ -17,7 +17,16 @@ foreach (PdfPerformanceMeasurement measurement in measurements) {
     Console.WriteLine(
         $"{measurement.Name,-18} {measurement.ElapsedMilliseconds,8:F1} ms " +
         $"{measurement.AllocatedBytes / 1048576D,8:F1} MiB allocated " +
+        $"{measurement.PeakManagedHeapBytes / 1048576D,8:F1} MiB managed-peak " +
         $"{measurement.Output,12:N0} output");
+    if (measurement.LargestSerializedObjectBytes > 0L) {
+        Console.WriteLine(
+            $"  writer={(measurement.IsForwardOnlyObjectSerialization ? "forward" : "buffered"),-8} " +
+            $"page-peak={measurement.PeakRetainedPageContentBytes,12:N0} " +
+            $"object-peak={measurement.PeakRetainedObjectBytes,12:N0} " +
+            $"largest-object={measurement.LargestSerializedObjectBytes,12:N0} " +
+            $"largest-transient={measurement.LargestTransientBufferBytes,12:N0}");
+    }
 }
 Console.WriteLine($"Cached speedup: {speedup:F2}x");
 Console.WriteLine($"Cached allocation reduction: {allocationReduction:F2}x");
@@ -43,6 +52,12 @@ foreach (PdfPerformanceMeasurement measurement in measurements) {
         failures.Add(
             $"{measurement.Name}: {measurement.AllocatedBytes:N0} allocated bytes exceeded " +
             $"{workloadBudget.MaxAllocatedBytes:N0}.");
+    }
+
+    if (measurement.PeakManagedHeapBytes > workloadBudget.MaxPeakManagedHeapBytes) {
+        failures.Add(
+            $"{measurement.Name}: {measurement.PeakManagedHeapBytes:N0} peak managed heap bytes exceeded " +
+            $"{workloadBudget.MaxPeakManagedHeapBytes:N0}.");
     }
 }
 

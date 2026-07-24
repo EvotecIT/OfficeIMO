@@ -1,1 +1,2 @@
+Warning|IMAGE_FONT_SUBSTITUTED|Premium!Chart 2|Font family 'Aptos' could not be resolved with glyph coverage for this text; the dependency-free managed stroke fallback was used.
 Warning|ExcelCellCommentBodyApproximation|Premium!D7|Excel cell comment/note body is rendered as a dependency-free callout approximation, not an Excel-exact popover.

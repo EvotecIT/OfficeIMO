@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
@@ -10,6 +11,7 @@ namespace OfficeIMO.Word.Pdf {
             private readonly Dictionary<string, string> _namedFontFamilies = new(StringComparer.OrdinalIgnoreCase);
             private readonly HashSet<string> _reportedFontSubstitution = new(StringComparer.OrdinalIgnoreCase);
             private readonly PdfCore.PdfConversionReport? _report;
+            private PdfCore.PdfOptions? _resolvedOptions;
 
             public NativeFontMap() : this(null) { }
 
@@ -21,6 +23,9 @@ namespace OfficeIMO.Word.Pdf {
 
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
+
+            public void AttachResolvedOptions(PdfCore.PdfOptions options) =>
+                _resolvedOptions = options ?? throw new ArgumentNullException(nameof(options));
 
             public void Register(string familyName, PdfCore.PdfStandardFont fontSlot) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
@@ -48,6 +53,65 @@ namespace OfficeIMO.Word.Pdf {
                 registeredFamilyName = null;
                 return !string.IsNullOrWhiteSpace(familyName) &&
                        _namedFontFamilies.TryGetValue(NormalizeNativeFontFamily(familyName!), out registeredFamilyName);
+            }
+
+            public bool TryResolveLineSpacingRatio(string? familyName, out double ratio) {
+                ratio = 0D;
+                if (_resolvedOptions == null || string.IsNullOrWhiteSpace(familyName)) {
+                    return false;
+                }
+
+                if (TryGetNamedFontFamily(familyName, out string? registeredFamilyName) &&
+                    TryResolveNamedLineSpacingRatio(_resolvedOptions, registeredFamilyName, out ratio)) {
+                    return true;
+                }
+
+                if (TryGetFontSlot(familyName, out PdfCore.PdfStandardFont fontSlot) ||
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out fontSlot)) {
+                    return TryResolveSlotLineSpacingRatio(_resolvedOptions, fontSlot, out ratio);
+                }
+
+                return false;
+            }
+
+            public bool TryResolveDefaultLineSpacingRatio(out double ratio) {
+                ratio = 0D;
+                return _resolvedOptions != null &&
+                       TryResolveSlotLineSpacingRatio(_resolvedOptions, _resolvedOptions.DefaultFont, out ratio);
+            }
+
+            private static bool TryResolveNamedLineSpacingRatio(
+                PdfCore.PdfOptions options,
+                string? registeredFamilyName,
+                out double ratio) {
+                ratio = 0D;
+                if (string.IsNullOrWhiteSpace(registeredFamilyName) ||
+                    !options.NamedFontFamilies.TryGetValue(registeredFamilyName!, out PdfCore.PdfEmbeddedFontFamily? family)) {
+                    return false;
+                }
+
+                return TryResolveEmbeddedLineSpacingRatio(family.RegularSnapshot, out ratio);
+            }
+
+            private static bool TryResolveSlotLineSpacingRatio(
+                PdfCore.PdfOptions options,
+                PdfCore.PdfStandardFont slot,
+                out double ratio) {
+                PdfCore.PdfStandardFont normalized = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
+                if (options.EmbeddedFonts.TryGetValue(normalized, out PdfCore.PdfEmbeddedFont? embedded) &&
+                    TryResolveEmbeddedLineSpacingRatio(embedded.DataSnapshot, out ratio)) {
+                    return true;
+                }
+
+                // Standard PDF fonts expose no portable font program to inspect.
+                ratio = NativeDefaultParagraphLineHeight;
+                return true;
+            }
+
+            private static bool TryResolveEmbeddedLineSpacingRatio(byte[] fontData, out double ratio) {
+                OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
+                ratio = font?.LineSpacingRatio ?? 0D;
+                return ratio >= 0.8D && ratio <= 2D;
             }
 
             public void ReportSlotExhaustion(string familyName, PdfCore.PdfStandardFont fallbackSlot, string? occupyingFontFamily) {

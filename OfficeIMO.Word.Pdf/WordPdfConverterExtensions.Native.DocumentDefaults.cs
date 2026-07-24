@@ -8,7 +8,9 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
         }
 
-        private static NativeDocumentDefaults GetNativeDocumentDefaults(WordDocument? document) {
+        private static NativeDocumentDefaults GetNativeDocumentDefaults(
+            WordDocument? document,
+            NativeFontMap? nativeFontMap = null) {
             W.DocDefaults? defaults = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
             double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(document);
             if (defaults == null) {
@@ -36,7 +38,10 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<W.SpacingBetweenLines>();
 
-            double lineHeight = GetNativeDefaultParagraphLineHeight(spacing) ?? NativeDocumentDefaults.WordDefault.ParagraphLineHeight;
+            double lineHeight = GetNativeDefaultParagraphLineHeight(
+                spacing,
+                fontFamily,
+                nativeFontMap) ?? NativeDocumentDefaults.WordDefault.ParagraphLineHeight;
             bool spacingBeforeDeclared = IsNativeSpacingBeforeDeclared(spacing);
             bool spacingAfterDeclared = IsNativeSpacingAfterDeclared(spacing);
             double spacingBefore = GetNativeSpacingBeforePoints(spacing, fontSize, lineHeight) ?? NativeDocumentDefaults.WordDefault.ParagraphSpacingBefore;
@@ -94,7 +99,10 @@ namespace OfficeIMO.Word.Pdf {
             return halfPoints / 2D;
         }
 
-        private static double? GetNativeDefaultParagraphLineHeight(W.SpacingBetweenLines? spacing) {
+        private static double? GetNativeDefaultParagraphLineHeight(
+            W.SpacingBetweenLines? spacing,
+            string? fontFamily,
+            NativeFontMap? nativeFontMap = null) {
             if (spacing?.Line == null) {
                 return null;
             }
@@ -107,7 +115,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (spacing.LineRule?.Value == W.LineSpacingRuleValues.Auto) {
-                return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (line / 240D));
+                return Math.Max(
+                    0.01D,
+                    ResolveNativeWordSingleLineHeight(nativeFontMap, fontFamily) * (line / 240D));
             }
 
             return null;

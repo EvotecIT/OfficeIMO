@@ -390,6 +390,10 @@
 .ocx-text-action { padding: 0; border: 0; background: transparent; color: var(--ocx-blue); font-size: 0.78rem; font-weight: 730; cursor: pointer; }
 .ocx-toggle { display: flex; align-items: center; gap: 0.45rem; color: var(--ocx-muted); font-size: 0.76rem; }
 .ocx-toggle input { accent-color: var(--ocx-blue); }
+.ocx-profile-panel { display: grid; gap: 0.45rem; margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--ocx-border); border-radius: 9px; background: var(--ocx-panel); }
+.ocx-profile-panel > label:first-child { display: grid; grid-template-columns: auto minmax(150px, 1fr); align-items: center; gap: 0.75rem; color: var(--ocx-text); font-size: 0.78rem; font-weight: 760; }
+.ocx-profile-panel select { width: 100%; padding: 0.45rem 0.55rem; border: 1px solid var(--ocx-border-strong); border-radius: 7px; background: var(--ocx-bg); color: var(--ocx-text); font: inherit; }
+.ocx-profile-panel p { margin: 0; color: var(--ocx-muted); font-size: 0.72rem; line-height: 1.45; }
 
 .ocx-editor-shell { overflow: hidden; border: 1px solid var(--ocx-code-border); border-radius: 10px; background: var(--ocx-code-bg); }
 .ocx-editor-shell__bar { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--ocx-code-border); color: var(--ocx-code-muted); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -453,7 +457,18 @@
 .ocx-output-summary small { color: var(--ocx-muted); font-size: 0.68rem; font-weight: 850; letter-spacing: 0.08em; }
 .ocx-output-summary strong { overflow: hidden; color: var(--ocx-text); font-size: 0.76rem; text-overflow: ellipsis; white-space: nowrap; }
 
+.ocx-warning-summary { display: grid; gap: 0.15rem; margin: 0 0 0.6rem; padding: 0.62rem 0.7rem; border: 1px solid #f0c36a; border-radius: 8px; background: #fff8e6; color: #714b00; }
+.ocx-warning-summary strong { font-size: 0.78rem; }
+.ocx-warning-summary span { font-size: 0.72rem; line-height: 1.45; }
+[data-theme="dark"] .ocx-warning-summary { border-color: #735b28; background: #2a2416; color: #f7d787; }
+.ocx-output-actions { margin-bottom: 0.6rem; }
+.ocx-support-content { justify-content: flex-end; margin: -0.15rem 0 0.55rem; }
 .ocx-diagnostics { display: grid; gap: 0.4rem; margin-top: 0.6rem; }
+.ocx-diagnostic-group { display: grid; gap: 0.3rem; padding: 0.5rem; border: 1px solid #f0c36a; border-radius: 8px; background: color-mix(in srgb, #fff8e6 62%, var(--ocx-panel)); }
+.ocx-diagnostic-group > strong { color: #714b00; font-size: 0.73rem; }
+[data-theme="dark"] .ocx-diagnostic-group { border-color: #735b28; background: #211e17; }
+[data-theme="dark"] .ocx-diagnostic-group > strong { color: #f7d787; }
+.ocx-diagnostic--warning { margin: 0; }
 .ocx-diagnostic { display: flex; gap: 0.6rem; padding: 0.5rem 0.58rem; border: 1px solid var(--ocx-border); border-radius: 7px; background: var(--ocx-panel); }
 .ocx-diagnostic > div { display: grid; gap: 0.1rem; }
 .ocx-diagnostic strong { font-size: 0.75rem; }

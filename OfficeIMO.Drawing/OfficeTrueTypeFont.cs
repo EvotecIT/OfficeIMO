@@ -36,6 +36,7 @@ public sealed partial class OfficeTrueTypeFont {
     private readonly int _unitsPerEm;
     private readonly short _ascender;
     private readonly short _descender;
+    private readonly short _lineGap;
     private readonly ushort _numGlyphs;
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
@@ -58,6 +59,7 @@ public sealed partial class OfficeTrueTypeFont {
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         _ascender = ReadInt16(_data, _hhea + 4);
         _descender = ReadInt16(_data, _hhea + 6);
+        _lineGap = ReadInt16(_data, _hhea + 8);
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
     }
@@ -233,6 +235,9 @@ public sealed partial class OfficeTrueTypeFont {
     public double LineHeight(double fontSize) {
         return Math.Max(1, _ascender - _descender) * ScaleFor(fontSize);
     }
+
+    internal double LineSpacingRatio =>
+        Math.Max(1, _ascender - _descender + _lineGap) / (double)_unitsPerEm;
 
     /// <summary>
     /// Reads flattened fill contours for the supplied text at a top-left baseline box.

@@ -69,7 +69,9 @@ $standaloneReviewFileNames = @(
     'showcase-dashboard.pdf',
     'conversion-scenarios.json',
     'conversion-proof-summary.json',
+    'reference-corpus.json',
     'pdf-conversion-support-matrix.md',
+    'index.html',
     'index.md'
 )
 
@@ -84,6 +86,8 @@ foreach ($fileName in $generatedReviewFileNames) {
         Remove-Item -LiteralPath $path -Force
     }
 }
+Get-ChildItem -LiteralPath $resolvedOutputPath -Filter 'external-reference-*' -File |
+    Remove-Item -Force
 
 $indexPath = Join-Path $resolvedOutputPath 'index.md'
 $supportMatrixPath = Join-Path $resolvedOutputPath 'pdf-conversion-support-matrix.md'
@@ -161,16 +165,7 @@ $statusLines = @(& git -C $repoRoot status --short)
 $status = ($statusLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [Environment]::NewLine
 $generatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
 Copy-Item -LiteralPath $scenarioManifestPath -Destination (Join-Path $resolvedOutputPath 'conversion-scenarios.json') -Force
-$pdfFiles = @(
-    foreach ($fileName in $generatedReviewFileNames) {
-        if ($fileName -like '*.pdf') {
-            $path = Join-Path $resolvedOutputPath $fileName
-            if (Test-Path -LiteralPath $path) {
-                Get-Item -LiteralPath $path
-            }
-        }
-    }
-) | Sort-Object Name
+$pdfFiles = @(Get-ChildItem -LiteralPath $resolvedOutputPath -Filter '*.pdf' -File | Sort-Object Name)
 if ($pdfFiles.Count -eq 0) {
     throw "No PDF files were generated in $resolvedOutputPath. Check the dotnet test filter and OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT wiring."
 }
@@ -244,6 +239,11 @@ $scenarioProof = @(
 )
 
 $qualityContract = $scenarioManifest.qualityContract
+$externalReferenceComparisons = @(
+    foreach ($comparisonFile in Get-ChildItem -LiteralPath $resolvedOutputPath -Filter 'external-reference-*.comparison.json' -File | Sort-Object Name) {
+        Get-Content -LiteralPath $comparisonFile.FullName -Raw | ConvertFrom-Json
+    }
+)
 
 $proofSummary = [pscustomobject]@{
     version = $scenarioManifest.version
@@ -254,11 +254,14 @@ $proofSummary = [pscustomobject]@{
     converterCatalog = @($scenarioManifest.converterCatalog)
     compositionRoutes = @($scenarioManifest.compositionRoutes)
     qualityContract = $qualityContract
+    externalReferenceComparisons = $externalReferenceComparisons
     scenarios = $scenarioProof
 }
 
 $proofSummaryPath = Join-Path $resolvedOutputPath 'conversion-proof-summary.json'
 $proofSummary | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $proofSummaryPath -Encoding UTF8
+Copy-Item -LiteralPath (Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/Pdf/ReferenceBaselines/reference-corpus.json') `
+    -Destination (Join-Path $resolvedOutputPath 'reference-corpus.json') -Force
 
 & (Join-Path $PSScriptRoot 'Export-PdfConversionSupportMatrix.ps1') `
     -ManifestPath $scenarioManifestPath `
@@ -375,5 +378,9 @@ if (-not [string]::IsNullOrWhiteSpace($status)) {
 }
 
 [System.IO.File]::WriteAllLines($indexPath, $lines, [System.Text.Encoding]::UTF8)
+& (Join-Path $PSScriptRoot 'Export-PdfVisualReviewHtml.ps1') `
+    -OutputDirectory $resolvedOutputPath `
+    -ProofSummaryPath $proofSummaryPath
 Write-Host "PDF visual review gallery written to $resolvedOutputPath"
 Write-Host "Index: $indexPath"
+Write-Host "HTML: $(Join-Path $resolvedOutputPath 'index.html')"

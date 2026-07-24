@@ -5,6 +5,18 @@ public sealed partial class PdfOptions {
     public bool CompressContentStreams { get; set; }
     private long _objectBufferMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes;
     private long _pageContentMemoryLimitBytes = PdfPageContentStore.DefaultMemoryLimitBytes;
+    private PdfObjectSerializationMode _objectSerializationMode;
+    /// <summary>Controls whether completed indirect objects are buffered or emitted once in forward-only order.</summary>
+    public PdfObjectSerializationMode ObjectSerializationMode {
+        get => _objectSerializationMode;
+        set {
+            if (value != PdfObjectSerializationMode.Buffered &&
+                value != PdfObjectSerializationMode.ForwardOnly) {
+                throw new System.ArgumentOutOfRangeException(nameof(ObjectSerializationMode), value, "PDF object serialization mode must be Buffered or ForwardOnly.");
+            }
+            _objectSerializationMode = value;
+        }
+    }
     /// <summary>Maximum serialized-object bytes retained in memory while saving. Zero spills every completed object to temporary storage.</summary>
     public long ObjectBufferMemoryLimitBytes {
         get => _objectBufferMemoryLimitBytes;

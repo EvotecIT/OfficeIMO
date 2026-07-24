@@ -316,18 +316,30 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 runs.AddRange(paragraphRuns);
-                double spacingBefore = GetNativeCellParagraphSpacingBefore(paragraph, nativeDefaults, tableStyleDefaults);
+                double spacingBefore = GetNativeCellParagraphSpacingBefore(
+                    paragraph,
+                    nativeDefaults,
+                    tableStyleDefaults,
+                    nativeFontMap);
                 if (pendingSpacingAfter.HasValue) {
                     spacingBefore = Math.Max(0D, spacingBefore - pendingSpacingAfter.Value);
                 }
 
-                double spacingAfter = GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults);
+                double spacingAfter = GetNativeCellParagraphSpacingAfter(
+                    paragraph,
+                    nativeDefaults,
+                    tableStyleDefaults,
+                    nativeFontMap);
                 if (ShouldSuppressNativeContextualSpacingAfter(paragraph, GetNextNativeRenderableCellParagraph(cellParagraphs, i, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap))) {
                     spacingAfter = 0D;
                 }
 
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults);
-                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(paragraph, nativeDefaults, tableStyleDefaults);
+                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(
+                    paragraph,
+                    nativeDefaults,
+                    tableStyleDefaults,
+                    nativeFontMap);
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -386,19 +398,29 @@ namespace OfficeIMO.Word.Pdf {
         private static double NormalizeNativeTableCellIndent(double value) =>
             value < 0D || double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
 
-        private static double? ResolveNativeTableCellParagraphLineHeight(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+        private static double? ResolveNativeTableCellParagraphLineHeight(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeFontMap? nativeFontMap = null) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
+            double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(
+                paragraph,
+                nativeDefaults,
+                styleDefaults,
+                tableStyleDefaults.RunStyle,
+                nativeFontMap);
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
-                return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
+                return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
             }
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, naturalLineHeight);
             }
 
             if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, naturalLineHeight);
             }
 
             if (styleDefaults.LineHeight.HasValue) {
@@ -410,7 +432,11 @@ namespace OfficeIMO.Word.Pdf {
                     tableStyleDefaults.ParagraphLineSpacingPoints.Value,
                     tableStyleDefaults.ParagraphLineSpacingRule,
                     fontSize,
-                    NativeWordTableSingleLineHeight);
+                    ResolveNativeWordSingleLineHeight(
+                        nativeFontMap,
+                        tableStyleDefaults.RunStyle.FontFamily,
+                        styleDefaults.FontFamily,
+                        nativeDefaults.FontFamily));
             }
 
             return tableStyleDefaults.ParagraphLineHeight;
@@ -451,10 +477,19 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+        private static double GetNativeCellParagraphSpacingBefore(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeFontMap? nativeFontMap = null) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double spacingBefore = paragraph.LineSpacingBeforePoints ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
@@ -468,10 +503,19 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+        private static double GetNativeCellParagraphSpacingAfter(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            NativeFontMap? nativeFontMap = null) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double spacingAfter = paragraph.LineSpacingAfterPoints ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??

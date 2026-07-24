@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -24,12 +25,30 @@ public sealed class BrowserConversionService {
     internal const long MaxTotalUncompressedBytes = 128L * 1024L * 1024L;
     internal const double MaxCompressionRatio = 200D;
 
-    public ConversionResult ConvertFile(ConversionRoute route, SelectedDocument file, bool limitExcelRows) => route.Id switch {
-        "docx-pdf" => ConvertWordToPdf(file),
-        "xlsx-pdf" => ConvertExcelToPdf(file, limitExcelRows),
-        "pptx-pdf" => ConvertPowerPointToPdf(file),
-        _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
-    };
+    public ConversionResult ConvertFile(
+        ConversionRoute route,
+        SelectedDocument file,
+        bool limitExcelRows,
+        BrowserPdfProfile? profile = null,
+        bool generateDebugOverlay = false) {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentNullException.ThrowIfNull(file);
+        BrowserPdfProfile effectiveProfile = profile ?? BrowserPdfProfileCatalog.Faithful;
+        var stopwatch = Stopwatch.StartNew();
+        PdfConversionPayload payload = route.Id switch {
+            "docx-pdf" => ConvertWordToPdf(file, effectiveProfile),
+            "xlsx-pdf" => ConvertExcelToPdf(file, limitExcelRows, effectiveProfile),
+            "pptx-pdf" => ConvertPowerPointToPdf(file, effectiveProfile),
+            _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
+        };
+        stopwatch.Stop();
+        return PdfResult(
+            file,
+            payload,
+            effectiveProfile,
+            stopwatch.ElapsedMilliseconds,
+            generateDebugOverlay || effectiveProfile.Kind == BrowserPdfProfileKind.Diagnostic);
+    }
 
     public ConversionResult ConvertText(ConversionRoute route, string input) {
         ArgumentNullException.ThrowIfNull(input);
@@ -46,7 +65,13 @@ public sealed class BrowserConversionService {
         };
     }
 
-    private static ConversionResult ConvertWordToPdf(SelectedDocument file) {
+    public BrowserConversionArtifact CreateSupportBundle(
+        SelectedDocument source,
+        ConversionResult result,
+        bool includeDocumentContent = false) =>
+        BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
+
+    private static PdfConversionPayload ConvertWordToPdf(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using WordDocument document = WordDocument.Load(stream,
             new WordLoadOptions {
@@ -57,20 +82,23 @@ public sealed class BrowserConversionService {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = false,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         var conversion = document.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.ToBytes();
-        return PdfResult(
-            file,
+        (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
+        return new PdfConversionPayload(
             bytes,
             conversion.Report,
+            serialization,
             "OfficeIMO.Word.Pdf",
             "includePageNumbers=false");
     }
 
-    private static ConversionResult ConvertExcelToPdf(SelectedDocument file, bool limitRowsPerSheet) {
+    private static PdfConversionPayload ConvertExcelToPdf(
+        SelectedDocument file,
+        bool limitRowsPerSheet,
+        BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using ExcelDocument document = ExcelDocument.Load(stream,
             new ExcelLoadOptions {
@@ -80,20 +108,20 @@ public sealed class BrowserConversionService {
         var options = new ExcelPdfSaveOptions {
             MaxRowsPerSheet = limitRowsPerSheet ? 250 : null,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         var conversion = document.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.ToBytes();
-        return PdfResult(
-            file,
+        (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
+        return new PdfConversionPayload(
             bytes,
             conversion.Report,
+            serialization,
             "OfficeIMO.Excel.Pdf",
             limitRowsPerSheet ? "maxRowsPerSheet=250" : "maxRowsPerSheet=unlimited");
     }
 
-    private static ConversionResult ConvertPowerPointToPdf(SelectedDocument file) {
+    private static PdfConversionPayload ConvertPowerPointToPdf(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
             new PowerPointLoadOptions {
@@ -103,25 +131,27 @@ public sealed class BrowserConversionService {
         var options = new PowerPointPdfSaveOptions {
             WarnOnPictureAspectRatioDistortion = true,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-            PdfOptions = BrowserPortablePdfProfile.CreateOptions(),
+            PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         var conversion = presentation.ToPdfDocumentResult(options);
-        byte[] bytes = conversion.ToBytes();
-        return PdfResult(
-            file,
+        (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
+        return new PdfConversionPayload(
             bytes,
             conversion.Report,
+            serialization,
             "OfficeIMO.PowerPoint.Pdf",
             "warnOnPictureAspectRatioDistortion=true");
     }
 
     private static ConversionResult PdfResult(
         SelectedDocument file,
-        byte[] bytes,
-        PdfConversionReport report,
-        string converter,
-        string optionProfile) {
+        PdfConversionPayload payload,
+        BrowserPdfProfile profile,
+        long conversionMilliseconds,
+        bool generateDebugOverlay) {
+        byte[] bytes = payload.Bytes;
+        PdfConversionReport report = payload.Report;
         EnsurePdf(bytes);
         string fileName = Path.GetFileNameWithoutExtension(file.Name) + ".pdf";
         BrowserConversionArtifact companionReport = BrowserPdfConversionManifest.Create(
@@ -129,8 +159,14 @@ public sealed class BrowserConversionService {
             fileName,
             bytes,
             report,
-            converter,
-            optionProfile);
+            payload.Converter,
+            payload.OptionProfile,
+            profile,
+            conversionMilliseconds,
+            payload.Serialization);
+        BrowserConversionArtifact? debugOverlay = generateDebugOverlay
+            ? CreateDebugOverlay(file, bytes)
+            : null;
         return new ConversionResult(
             bytes,
             fileName,
@@ -140,9 +176,99 @@ public sealed class BrowserConversionService {
             report.Warnings.Select(static warning => warning.ToString()).ToArray()) {
             FidelityStatus = report.FidelityStatus.ToString(),
             ProvenanceSummary = $"{BrowserPortablePdfProfile.FontPackId} · {BrowserPortablePdfProfile.FontPackFingerprint[..12]}",
-            CompanionReport = companionReport
+            CompanionReport = companionReport,
+            DebugOverlay = debugOverlay,
+            StructuredWarnings = report.Warnings.Select(CreateWarningView).ToArray(),
+            PeakRetainedMemoryBytes = AddWithoutOverflow(
+                payload.Serialization.PeakRetainedPageContentBytes,
+                payload.Serialization.PeakRetainedObjectBytes),
+            PageCount = payload.Serialization.PageCount,
+            ConversionMilliseconds = conversionMilliseconds,
+            Profile = profile
         };
     }
+
+    private static (byte[] Bytes, PdfSerializationReport Serialization) SaveWithEvidence(
+        PdfDocumentConversionResult conversion) {
+        using var buffer = new MemoryStream();
+        PdfSaveResult save = conversion.Save(buffer);
+        PdfSerializationReport serialization = save.Serialization
+            ?? throw new InvalidOperationException("The PDF writer did not return serialization evidence.");
+        return (buffer.ToArray(), serialization);
+    }
+
+    private static BrowserConversionArtifact CreateDebugOverlay(SelectedDocument source, byte[] pdf) {
+        OfficeDrawing drawing = PdfDocument.Open(pdf).Read.LayoutDebugOverlay(
+            1,
+            new PdfLayoutDebugOverlayOptions {
+                MaxElements = 12_000,
+                MaxRasterPixels = 16_000_000
+            });
+        byte[] bytes = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
+        return new BrowserConversionArtifact(
+            bytes,
+            Path.GetFileNameWithoutExtension(source.Name) + ".page-1.layout.svg",
+            "image/svg+xml");
+    }
+
+    private static ConversionWarningView CreateWarningView(PdfConversionWarning warning) {
+        int? pageNumber = TryReadPositiveInt(warning.Details, "pageNumber")
+            ?? TryReadPositiveInt(warning.Details, "page")
+            ?? TryReadPageFromSource(warning.Source);
+        string construct = warning.Details.TryGetValue("construct", out string? declaredConstruct)
+            ? declaredConstruct
+            : warning.LayoutDiagnostic?.Kind.ToString()
+                ?? (warning.Details.TryGetValue("feature", out string? feature)
+                    ? feature
+                    : warning.Code);
+        bool canChangePagination =
+            warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
+            warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
+            warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
+            warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
+                or PdfLayoutDiagnosticKind.ClippedContent
+                or PdfLayoutDiagnosticKind.Overflow;
+        return new ConversionWarningView(
+            warning.Code,
+            warning.Source,
+            warning.Message,
+            warning.Severity.ToString(),
+            construct,
+            pageNumber,
+            canChangePagination);
+    }
+
+    private static int? TryReadPositiveInt(IReadOnlyDictionary<string, string> values, string key) =>
+        values.TryGetValue(key, out string? value) &&
+        int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed) &&
+        parsed > 0
+            ? parsed
+            : null;
+
+    private static int? TryReadPageFromSource(string source) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return null;
+        }
+
+        int marker = source.IndexOf("page ", StringComparison.OrdinalIgnoreCase);
+        if (marker < 0) {
+            return null;
+        }
+
+        marker += 5;
+        int end = marker;
+        while (end < source.Length && char.IsDigit(source[end])) {
+            end++;
+        }
+
+        return end > marker &&
+            int.TryParse(source[marker..end], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int page)
+                ? page
+                : null;
+    }
+
+    private static long AddWithoutOverflow(long first, long second) =>
+        first > long.MaxValue - second ? long.MaxValue : first + second;
 
     private static ConversionResult ConvertMarkdownToHtml(string input) {
         var options = MarkdownRendererPresets.CreateStrictMinimalPortable();
@@ -201,4 +327,11 @@ public sealed class BrowserConversionService {
         }
         return unit == 0 ? $"{bytes} B" : $"{value:0.##} {units[unit]}";
     }
+
+    private sealed record PdfConversionPayload(
+        byte[] Bytes,
+        PdfConversionReport Report,
+        PdfSerializationReport Serialization,
+        string Converter,
+        string OptionProfile);
 }

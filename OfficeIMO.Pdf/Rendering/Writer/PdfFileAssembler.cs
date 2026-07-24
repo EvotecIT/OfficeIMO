@@ -90,7 +90,11 @@ internal static class PdfFileAssembler {
             ? sourcePeakRetainedBytes
             : AddWithoutOverflow(sourceRetainedBytes, GetPeakRetainedMemoryBytes(objects));
         bool assemblySpilled = sourceSpilled || objects is PdfObjectStore assemblyStore && assemblyStore.IsSpilled;
-        bufferEvidence = new PdfFileAssemblyBufferEvidence(assemblyPeakRetainedBytes, assemblySpilled);
+        bufferEvidence = new PdfFileAssemblyBufferEvidence(
+            assemblyPeakRetainedBytes,
+            assemblySpilled,
+            isForwardOnlyObjectSerialization: false,
+            largestSerializedObjectBytes: GetLargestObjectBytes(objects));
 
         byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
         using HashAlgorithm? fileIdHash = encryptionAssembly == null ? SHA256.Create() : null;
@@ -143,6 +147,16 @@ internal static class PdfFileAssembler {
 
     private static long GetPeakRetainedMemoryBytes(IReadOnlyList<byte[]> objects) =>
         objects is PdfObjectStore store ? store.PeakRetainedMemoryBytes : GetRetainedMemoryBytes(objects);
+
+    private static long GetLargestObjectBytes(IReadOnlyList<byte[]> objects) {
+        long largest = 0L;
+        if (objects is PdfObjectStore store) {
+            for (int index = 0; index < store.Count; index++) largest = Math.Max(largest, store.GetLength(index));
+            return largest;
+        }
+        for (int index = 0; index < objects.Count; index++) largest = Math.Max(largest, objects[index].LongLength);
+        return largest;
+    }
 
     private static long AddWithoutOverflow(long left, long right) =>
         left > long.MaxValue - right ? long.MaxValue : left + right;
@@ -221,11 +235,19 @@ internal static class PdfFileAssembler {
 }
 
 internal readonly struct PdfFileAssemblyBufferEvidence {
-    internal PdfFileAssemblyBufferEvidence(long peakRetainedObjectBytes, bool objectBufferSpilled) {
+    internal PdfFileAssemblyBufferEvidence(
+        long peakRetainedObjectBytes,
+        bool objectBufferSpilled,
+        bool isForwardOnlyObjectSerialization,
+        long largestSerializedObjectBytes) {
         PeakRetainedObjectBytes = peakRetainedObjectBytes;
         ObjectBufferSpilled = objectBufferSpilled;
+        IsForwardOnlyObjectSerialization = isForwardOnlyObjectSerialization;
+        LargestSerializedObjectBytes = largestSerializedObjectBytes;
     }
 
     internal long PeakRetainedObjectBytes { get; }
     internal bool ObjectBufferSpilled { get; }
+    internal bool IsForwardOnlyObjectSerialization { get; }
+    internal long LargestSerializedObjectBytes { get; }
 }

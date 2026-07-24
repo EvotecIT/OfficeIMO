@@ -44,6 +44,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             WriteReviewPdfArtifact("external-reference-" + scenario.Id + ".officeimo", actualPdf);
 
             if (!TryFindPdftoppm(out string rasterizerPath)) {
+                WriteExternalReferenceSummary(
+                    scenario,
+                    rasterizerAvailable: false,
+                    Array.Empty<ExternalReferencePageResult>());
                 if (IsRequired()) {
                     throw new InvalidOperationException("A PDF rasterizer is required for the external Microsoft Office reference gate.");
                 }
@@ -52,6 +56,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             }
 
             var failures = new List<string>();
+            var pageResults = new List<ExternalReferencePageResult>();
             foreach (ReferencePage page in scenario.Pages) {
                 string referencePrefix = Path.Combine(workDirectory, scenario.Id + ".reference.page" + page.Number.ToString(CultureInfo.InvariantCulture));
                 string actualPrefix = Path.Combine(workDirectory, scenario.Id + ".actual.page" + page.Number.ToString(CultureInfo.InvariantCulture));
@@ -86,7 +91,29 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 string artifactStem = "external-reference-" + scenario.Id + ".page" + page.Number.ToString(CultureInfo.InvariantCulture);
                 WriteReviewArtifact(artifactStem + ".microsoft-office.png", referenceRaster);
                 WriteReviewArtifact(artifactStem + ".officeimo.png", actualRaster);
+                WriteReviewArtifact(artifactStem + ".overlay.png", CreateReviewOverlay(normalizedReference, normalizedActual));
                 WriteReviewArtifact(artifactStem + ".diff.png", comparison.DiffPng);
+
+                double differentPixelRatio = comparison.TotalPixels == 0
+                    ? 0D
+                    : comparison.DifferentPixels / (double)comparison.TotalPixels;
+                pageResults.Add(new ExternalReferencePageResult(
+                    page.Number,
+                    referenceImage.Width,
+                    referenceImage.Height,
+                    actualImage.Width,
+                    actualImage.Height,
+                    comparison.DifferentPixels,
+                    comparison.TotalPixels,
+                    differentPixelRatio,
+                    comparison.MeanAbsoluteError,
+                    comparison.RootMeanSquareError,
+                    comparison.MeanLuminanceError,
+                    page.MeasuredDifferentPixelRatio,
+                    page.MeasuredMeanAbsoluteError,
+                    page.MeasuredRootMeanSquareError,
+                    page.MeasuredMeanLuminanceError,
+                    comparison.Passed));
 
                 if (!comparison.Passed) {
                     failures.Add(
@@ -95,13 +122,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                         " vs " + actualImage.Width.ToString(CultureInfo.InvariantCulture) + "x" + actualImage.Height.ToString(CultureInfo.InvariantCulture) + ")" +
                         ": different=" + comparison.DifferentPixels.ToString(CultureInfo.InvariantCulture) +
                         "/" + comparison.TotalPixels.ToString(CultureInfo.InvariantCulture) +
-                        " (" + (comparison.TotalPixels == 0 ? 0D : comparison.DifferentPixels / (double)comparison.TotalPixels).ToString("0.0000", CultureInfo.InvariantCulture) +
+                        " (" + differentPixelRatio.ToString("0.0000", CultureInfo.InvariantCulture) +
                         "), MAE=" + comparison.MeanAbsoluteError.ToString("0.###", CultureInfo.InvariantCulture) +
                         ", RMSE=" + comparison.RootMeanSquareError.ToString("0.###", CultureInfo.InvariantCulture) +
                         ", luminance MAE=" + comparison.MeanLuminanceError.ToString("0.###", CultureInfo.InvariantCulture));
                 }
             }
 
+            WriteExternalReferenceSummary(scenario, rasterizerAvailable: true, pageResults);
             Assert.True(
                 failures.Count == 0,
                 scenario.Producer + " " + (scenario.ProducerVersion ?? corpus.ProducerEnvironment.ShortVersion) +
@@ -110,6 +138,87 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         } finally {
             TryDeleteDirectory(workDirectory);
         }
+    }
+
+    private static byte[] CreateReviewOverlay(OfficeRasterImage reference, OfficeRasterImage actual) {
+        var overlay = new OfficeRasterImage(reference.Width, reference.Height, OfficeColor.White);
+        for (int y = 0; y < reference.Height; y++) {
+            for (int x = 0; x < reference.Width; x++) {
+                OfficeColor referenceColor = reference.GetPixel(x, y);
+                OfficeColor actualColor = actual.GetPixel(x, y);
+                int referenceInk = 255 - Luminance(referenceColor);
+                int actualInk = 255 - Luminance(actualColor);
+                overlay.SetPixel(
+                    x,
+                    y,
+                    OfficeColor.FromRgb(
+                        (byte)(255 - actualInk),
+                        (byte)(255 - Math.Max(referenceInk, actualInk)),
+                        (byte)(255 - referenceInk)));
+            }
+        }
+
+        return OfficePngWriter.Encode(overlay, OfficePngCompression.Optimal);
+    }
+
+    private static int Luminance(OfficeColor color) =>
+        (int)Math.Round(
+            0.299D * color.R + 0.587D * color.G + 0.114D * color.B,
+            MidpointRounding.AwayFromZero);
+
+    private static void WriteExternalReferenceSummary(
+        ReferenceScenario scenario,
+        bool rasterizerAvailable,
+        IReadOnlyList<ExternalReferencePageResult> pages) {
+        var summary = new {
+            scenarioId = scenario.Id,
+            converterId = scenario.ConverterId,
+            producer = scenario.Producer,
+            producerVersion = scenario.ProducerVersion,
+            rasterizerAvailable,
+            passed = rasterizerAvailable && pages.All(page => page.Passed),
+            thresholds = new {
+                maximumDifferentPixelRatio = scenario.MaximumDifferentPixelRatio,
+                maximumMeanAbsoluteError = scenario.MaximumMeanAbsoluteError,
+                maximumRootMeanSquareError = scenario.MaximumRootMeanSquareError,
+                maximumMeanLuminanceError = scenario.MaximumMeanLuminanceError
+            },
+            overlayLegend = new {
+                referenceOnly = "red",
+                officeImoOnly = "blue",
+                overlap = "black",
+                background = "white"
+            },
+            pages = pages.Select(page => new {
+                page = page.PageNumber,
+                referenceSize = new { width = page.ReferenceWidth, height = page.ReferenceHeight },
+                officeImoSize = new { width = page.OfficeImoWidth, height = page.OfficeImoHeight },
+                differentPixels = page.DifferentPixels,
+                totalPixels = page.TotalPixels,
+                current = new {
+                    differentPixelRatio = page.DifferentPixelRatio,
+                    meanAbsoluteError = page.MeanAbsoluteError,
+                    rootMeanSquareError = page.RootMeanSquareError,
+                    meanLuminanceError = page.MeanLuminanceError
+                },
+                pinnedBaseline = new {
+                    differentPixelRatio = page.PinnedDifferentPixelRatio,
+                    meanAbsoluteError = page.PinnedMeanAbsoluteError,
+                    rootMeanSquareError = page.PinnedRootMeanSquareError,
+                    meanLuminanceError = page.PinnedMeanLuminanceError
+                },
+                delta = new {
+                    differentPixelRatio = page.DifferentPixelRatio - page.PinnedDifferentPixelRatio,
+                    meanAbsoluteError = page.MeanAbsoluteError - page.PinnedMeanAbsoluteError,
+                    rootMeanSquareError = page.RootMeanSquareError - page.PinnedRootMeanSquareError,
+                    meanLuminanceError = page.MeanLuminanceError - page.PinnedMeanLuminanceError
+                },
+                page.Passed
+            })
+        };
+        WriteReviewArtifact(
+            "external-reference-" + scenario.Id + ".comparison.json",
+            JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     [Fact]
@@ -141,6 +250,26 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             Assert.Contains("Planning Workbook", pageOne.Text, StringComparison.Ordinal);
             Assert.DoesNotContain("WorksheetPurpose", pageOne.Text, StringComparison.Ordinal);
             Assert.Contains("WorksheetPurpose", pageTwo.Text, StringComparison.Ordinal);
+            List<UglyToad.PdfPig.Content.Word> pageTwoWords = pageTwo.GetWords().ToList();
+            UglyToad.PdfPig.Content.Word firstRecommendation = pageTwoWords
+                .Where(word => string.Equals(word.Text, "Recommendation:", StringComparison.Ordinal))
+                .OrderByDescending(word => word.BoundingBox.Bottom)
+                .First();
+            UglyToad.PdfPig.Content.Word technicalStatus = pageTwoWords
+                .Where(word => string.Equals(word.Text, "Technical", StringComparison.Ordinal))
+                .OrderByDescending(word => word.BoundingBox.Bottom)
+                .First();
+            UglyToad.PdfPig.Content.Word deliveryWorksheet = pageTwoWords
+                .Where(word => string.Equals(word.Text, "Delivery", StringComparison.Ordinal))
+                .OrderByDescending(word => word.BoundingBox.Bottom)
+                .First();
+            Assert.InRange(
+                firstRecommendation.BoundingBox.Bottom - technicalStatus.BoundingBox.Bottom,
+                128D,
+                136D);
+            Assert.True(
+                firstRecommendation.BoundingBox.Bottom - deliveryWorksheet.BoundingBox.Bottom >= 224D,
+                "Expected Word's document-default auto line spacing and the list boundary spacing to preserve the authored page-two vertical rhythm.");
             Assert.True(
                 pageTwo.Letters.Where(letter => letter.Value == "W").Max(letter => letter.StartBaseLine.Y) <= 720.5D,
                 "Expected the planning table to start inside the one-inch top margin.");
@@ -334,5 +463,31 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         public int RasterWidth { get; set; }
 
         public int RasterHeight { get; set; }
+
+        public double MeasuredDifferentPixelRatio { get; set; }
+
+        public double MeasuredMeanAbsoluteError { get; set; }
+
+        public double MeasuredRootMeanSquareError { get; set; }
+
+        public double MeasuredMeanLuminanceError { get; set; }
     }
+
+    private sealed record ExternalReferencePageResult(
+        int PageNumber,
+        int ReferenceWidth,
+        int ReferenceHeight,
+        int OfficeImoWidth,
+        int OfficeImoHeight,
+        int DifferentPixels,
+        int TotalPixels,
+        double DifferentPixelRatio,
+        double MeanAbsoluteError,
+        double RootMeanSquareError,
+        double MeanLuminanceError,
+        double PinnedDifferentPixelRatio,
+        double PinnedMeanAbsoluteError,
+        double PinnedRootMeanSquareError,
+        double PinnedMeanLuminanceError,
+        bool Passed);
 }

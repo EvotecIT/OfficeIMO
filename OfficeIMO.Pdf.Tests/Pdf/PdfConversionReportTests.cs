@@ -73,6 +73,19 @@ public sealed class PdfConversionReportTests {
         Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
 
         report.Add(new PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            "font-family-substitution",
+            "powerpoint:slide[2]/shape[1]",
+            "A required presentation font substitution failed.",
+            PdfConversionWarningSeverity.Error));
+        Assert.True(report.HasErrors);
+        Assert.Equal(PdfConversionFidelityStatus.Degraded, report.FidelityStatus);
+    }
+
+    [Fact]
+    public void PdfConversionReport_ClassifiesNonSubstitutionLossAsDegraded() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
             "OfficeIMO.Word.Pdf",
             "UnsupportedComplexScriptShaping",
             "word:paragraph[1]",
