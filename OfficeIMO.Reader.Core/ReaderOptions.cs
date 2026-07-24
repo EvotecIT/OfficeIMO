@@ -107,6 +107,11 @@ public sealed class ReaderFolderOptions {
     public int MaxFiles { get; set; } = 500;
 
     /// <summary>
+    /// Maximum raw file-system entries inspected before filtering and deterministic sorting. Default: 10,000.
+    /// </summary>
+    public int MaxTraversalEntries { get; set; } = 10_000;
+
+    /// <summary>
     /// Optional maximum total bytes accepted for parsing across the folder operation.
     /// Files whose known size exceeds the remaining budget are skipped before their format handler runs.
     /// When source size metadata is unavailable, the cap is enforced after parsing as a best-effort fallback.
@@ -122,7 +127,7 @@ public sealed class ReaderFolderOptions {
     public IReadOnlyList<string>? Extensions { get; set; }
 
     /// <summary>
-    /// When true, directory traversal skips reparse points (junctions/symlinks). Default: true.
+    /// When true, directory traversal skips file and directory reparse points (junctions/symlinks). Default: true.
     /// </summary>
     public bool SkipReparsePoints { get; set; } = true;
 

@@ -10,6 +10,8 @@ using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private const int MaxPartCloneDepth = 128;
+
         /// <summary>
         ///     Creates a duplicate of the provided shape and optionally offsets its position (EMUs).
         /// </summary>
@@ -368,32 +370,76 @@ namespace OfficeIMO.PowerPoint {
         private string CloneChartPart(ChartPart sourceChartPart) {
             string relationshipId = GetNextRelationshipId(_slidePart);
             ChartPart targetChartPart = (ChartPart)AddNewPartWithContentType(_slidePart, sourceChartPart, relationshipId);
-            C.ChartSpace? sourceChartSpace = sourceChartPart.ChartSpace;
-            if (sourceChartSpace != null) {
-                targetChartPart.ChartSpace = (C.ChartSpace)sourceChartSpace.CloneNode(true);
-                targetChartPart.ChartSpace.Save();
-            } else {
-                CopyPartData(sourceChartPart, targetChartPart);
-            }
-            CloneReferenceRelationships(sourceChartPart, targetChartPart);
+            try {
+                C.ChartSpace? sourceChartSpace = sourceChartPart.ChartSpace;
+                if (sourceChartSpace != null) {
+                    targetChartPart.ChartSpace = (C.ChartSpace)sourceChartSpace.CloneNode(true);
+                    targetChartPart.ChartSpace.Save();
+                } else {
+                    CopyPartData(sourceChartPart, targetChartPart);
+                }
+                CloneReferenceRelationships(sourceChartPart, targetChartPart);
 
-            foreach (IdPartPair childPair in sourceChartPart.Parts) {
-                ClonePartRecursive(childPair.OpenXmlPart, targetChartPart, childPair.RelationshipId);
-            }
+                foreach (IdPartPair childPair in sourceChartPart.Parts) {
+                    ClonePartRecursive(childPair.OpenXmlPart, targetChartPart, childPair.RelationshipId);
+                }
 
-            return relationshipId;
+                return relationshipId;
+            } catch {
+                try {
+                    _slidePart.DeletePart(targetChartPart);
+                } catch {
+                    // Preserve the original clone failure when best-effort cleanup fails.
+                }
+                throw;
+            }
         }
 
         private static void ClonePartRecursive(OpenXmlPart sourcePart, OpenXmlPartContainer targetContainer, string relationshipId) {
-            OpenXmlPart newPart = sourcePart is ExtendedPart extendedPart
-                ? targetContainer.AddExtendedPart(extendedPart.RelationshipType, extendedPart.ContentType, relationshipId)
-                : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
+            ClonePartRecursive(sourcePart, targetContainer, relationshipId,
+                new HashSet<OpenXmlPart>(), 0);
+        }
 
-            CopyPartData(sourcePart, newPart);
-            CloneReferenceRelationships(sourcePart, newPart);
+        private static void ClonePartRecursive(
+            OpenXmlPart sourcePart,
+            OpenXmlPartContainer targetContainer,
+            string relationshipId,
+            HashSet<OpenXmlPart> activeParts,
+            int depth) {
+            if (depth >= MaxPartCloneDepth) {
+                throw new InvalidDataException(
+                    $"PowerPoint part relationships exceed the supported clone depth of {MaxPartCloneDepth}.");
+            }
+            if (!activeParts.Add(sourcePart)) {
+                throw new InvalidDataException(
+                    "PowerPoint part relationships contain a cycle and cannot be cloned safely.");
+            }
 
-            foreach (IdPartPair childPair in sourcePart.Parts) {
-                ClonePartRecursive(childPair.OpenXmlPart, newPart, childPair.RelationshipId);
+            OpenXmlPart? clonedPart = null;
+            try {
+                clonedPart = sourcePart is ExtendedPart extendedPart
+                    ? targetContainer.AddExtendedPart(extendedPart.RelationshipType, extendedPart.ContentType, relationshipId)
+                    : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
+
+                CopyPartData(sourcePart, clonedPart);
+                CloneReferenceRelationships(sourcePart, clonedPart);
+
+                foreach (IdPartPair childPair in sourcePart.Parts) {
+                    ClonePartRecursive(childPair.OpenXmlPart, clonedPart,
+                        childPair.RelationshipId, activeParts, depth + 1);
+                }
+            } catch {
+                if (clonedPart != null) {
+                    try {
+                        targetContainer.DeletePart(clonedPart);
+                    } catch {
+                        // Preserve the original clone failure; CloneChartPart
+                        // removes the top-level chart relationship as well.
+                    }
+                }
+                throw;
+            } finally {
+                activeParts.Remove(sourcePart);
             }
         }
 

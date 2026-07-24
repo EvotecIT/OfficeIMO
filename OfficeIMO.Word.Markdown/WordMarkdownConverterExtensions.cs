@@ -237,6 +237,7 @@ namespace OfficeIMO.Word.Markdown {
                 FontFamily = source.FontFamily,
                 BaseUri = source.BaseUri,
                 OnWarning = source.OnWarning,
+                MaxNestingDepth = source.MaxNestingDepth,
                 DefaultPageSize = source.DefaultPageSize,
                 DefaultOrientation = source.DefaultOrientation,
                 AllowLocalImages = source.AllowLocalImages,

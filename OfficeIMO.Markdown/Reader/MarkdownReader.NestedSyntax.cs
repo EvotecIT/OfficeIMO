@@ -13,7 +13,7 @@ public static partial class MarkdownReader {
         int lineOffset) {
 
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
-        var nestedState = CloneState(state);
+        var nestedState = CreateNestedState(state, options);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: lineOffset, applyDocumentTransforms: false);
         return (nestedDoc.Blocks, syntaxChildren);
@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
 
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
-        var nestedState = CloneState(state);
+        var nestedState = CreateNestedState(state, options);
         nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
         nestedState.LazyQuoteContinuationLines.Clear();
         nestedState.QuoteContainerLines.Clear();
@@ -63,6 +63,25 @@ public static partial class MarkdownReader {
         SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);
         MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
         return (nestedDoc.Blocks, remappedSyntaxChildren);
+    }
+
+    private static MarkdownReaderState CreateNestedState(
+        MarkdownReaderState state,
+        MarkdownReaderOptions options) {
+        if (options.MaxNestingDepth < 1) {
+            throw new ArgumentOutOfRangeException(
+                nameof(options.MaxNestingDepth),
+                options.MaxNestingDepth,
+                "MaxNestingDepth must be greater than zero.");
+        }
+        if (state.NestedBlockDepth >= options.MaxNestingDepth) {
+            throw new InvalidDataException(
+                $"Markdown block nesting exceeds MaxNestingDepth ({options.MaxNestingDepth}).");
+        }
+
+        MarkdownReaderState nested = CloneState(state);
+        nested.NestedBlockDepth = state.NestedBlockDepth + 1;
+        return nested;
     }
 
     private static bool ShouldSuppressNestedLazySetextHeadingUnderline(

@@ -78,13 +78,20 @@ namespace OfficeIMO.Word.Markdown {
             Omd.InlineSequence? inlines,
             WordDocument document,
             InlineFormatState fmt,
-            string? defaultFont) {
+            string? defaultFont,
+            int maxNestingDepth,
+            int nestingDepth) {
             var runs = new List<WordParagraph>();
             if (inlines == null) {
                 return runs;
             }
 
-            new DetachedInlineRunBuilder(document, runs, fmt, defaultFont).Visit(inlines);
+            EnsureInlineNestingWithinLimit(maxNestingDepth, nestingDepth);
+
+            new DetachedInlineRunBuilder(
+                document, runs, fmt, defaultFont, maxNestingDepth,
+                nestingDepth + 1)
+                .Visit(inlines);
             return runs;
         }
 
@@ -105,24 +112,39 @@ namespace OfficeIMO.Word.Markdown {
             private readonly List<WordParagraph> _runs;
             private readonly InlineFormatState _fmt;
             private readonly string? _defaultFont;
+            private readonly int _maxNestingDepth;
+            private readonly int _nestingDepth;
 
             public DetachedInlineRunBuilder(
                 WordDocument document,
                 List<WordParagraph> runs,
                 InlineFormatState fmt,
-                string? defaultFont) {
+                string? defaultFont,
+                int maxNestingDepth,
+                int nestingDepth) {
                 _document = document;
                 _runs = runs;
                 _fmt = fmt;
                 _defaultFont = defaultFont;
+                _maxNestingDepth = maxNestingDepth;
+                _nestingDepth = nestingDepth;
             }
 
             private void VisitNested(Omd.MarkdownObject? node, InlineFormatState format) {
                 if (node == null) {
                     return;
                 }
+                EnsureInlineNestingWithinLimit(
+                    _maxNestingDepth, _nestingDepth);
 
-                new DetachedInlineRunBuilder(_document, _runs, format, _defaultFont).Visit(node);
+                new DetachedInlineRunBuilder(
+                    _document,
+                    _runs,
+                    format,
+                    _defaultFont,
+                    _maxNestingDepth,
+                    _nestingDepth + 1)
+                    .Visit(node);
             }
 
             protected override void VisitTextRun(Omd.TextRun inline) =>
@@ -278,7 +300,8 @@ namespace OfficeIMO.Word.Markdown {
                 defaultTextColorHex,
                 pageContentWidthPixels,
                 listLevel,
-                quoteDepth)
+                quoteDepth,
+                nestingDepth: 0)
                 .Visit(inlines);
         }
 
@@ -293,6 +316,7 @@ namespace OfficeIMO.Word.Markdown {
             private readonly double _pageContentWidthPixels;
             private readonly int _listLevel;
             private readonly int _quoteDepth;
+            private readonly int _nestingDepth;
 
             public ParagraphInlineWriter(
                 WordParagraph paragraph,
@@ -304,7 +328,8 @@ namespace OfficeIMO.Word.Markdown {
                 string? defaultTextColorHex,
                 double pageContentWidthPixels,
                 int listLevel,
-                int quoteDepth) {
+                int quoteDepth,
+                int nestingDepth) {
                 _paragraph = paragraph;
                 _options = options;
                 _document = document;
@@ -315,14 +340,29 @@ namespace OfficeIMO.Word.Markdown {
                 _pageContentWidthPixels = pageContentWidthPixels;
                 _listLevel = listLevel;
                 _quoteDepth = quoteDepth;
+                _nestingDepth = nestingDepth;
             }
 
             private void VisitNested(Omd.MarkdownObject? node, InlineFormatState format) {
                 if (node == null) {
                     return;
                 }
+                EnsureInlineNestingWithinLimit(
+                    _options.MaxNestingDepth, _nestingDepth);
 
-                new ParagraphInlineWriter(_paragraph, _options, _document, _footnoteDefs, format, _defaultFont, _defaultTextColorHex, _pageContentWidthPixels, _listLevel, _quoteDepth).Visit(node);
+                new ParagraphInlineWriter(
+                    _paragraph,
+                    _options,
+                    _document,
+                    _footnoteDefs,
+                    format,
+                    _defaultFont,
+                    _defaultTextColorHex,
+                    _pageContentWidthPixels,
+                    _listLevel,
+                    _quoteDepth,
+                    _nestingDepth + 1)
+                    .Visit(node);
             }
 
             protected override void VisitTextRun(Omd.TextRun inline) =>
@@ -344,7 +384,13 @@ namespace OfficeIMO.Word.Markdown {
                 try {
                     var uri = new Uri(inline.Url, UriKind.RelativeOrAbsolute);
                     if (inline.LabelInlines != null && inline.LabelInlines.Nodes.Count > 0) {
-                        var labelRuns = BuildLinkLabelRunsOmd(inline.LabelInlines, _document, _fmt, _defaultFont);
+                        var labelRuns = BuildLinkLabelRunsOmd(
+                            inline.LabelInlines,
+                            _document,
+                            _fmt,
+                            _defaultFont,
+                            _options.MaxNestingDepth,
+                            _nestingDepth);
                         if (labelRuns.Count > 0) {
                             ApplyHyperlinkRunFormattingOmd(labelRuns, _options);
                             WordHyperLink.AddHyperLink(_paragraph, labelRuns, uri);
@@ -494,6 +540,21 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 base.VisitInline(inline);
+            }
+        }
+
+        private static void EnsureInlineNestingWithinLimit(
+            int maxNestingDepth,
+            int currentDepth) {
+            if (maxNestingDepth < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(MarkdownToWordOptions.MaxNestingDepth),
+                    maxNestingDepth,
+                    "MaxNestingDepth must be greater than zero.");
+            }
+            if (currentDepth >= maxNestingDepth) {
+                throw new System.IO.InvalidDataException(
+                    $"Markdown-to-Word inline nesting exceeds MaxNestingDepth ({maxNestingDepth}).");
             }
         }
 

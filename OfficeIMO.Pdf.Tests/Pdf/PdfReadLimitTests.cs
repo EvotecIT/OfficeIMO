@@ -433,6 +433,23 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void ObjectStreamDeclaredCountIsBoundedBeforePairAllocation() {
+        byte[] pdf = BuildObjectPdf(
+            "<< /Type /ObjStm /N 4294967296 /First 1 /Length 1 >>\n"
+            + "stream\n0\nendstream");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxIndirectObjects = 32 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => PdfReadDocument.Open(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
+        Assert.Equal(32, exception.Limit);
+        Assert.Equal(4_294_967_296L, exception.Actual);
+    }
+
+    [Fact]
     public void RawStreamBudgetStopsAllocation() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {

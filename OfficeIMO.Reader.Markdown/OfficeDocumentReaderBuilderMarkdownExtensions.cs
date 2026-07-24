@@ -5,6 +5,9 @@ public static class OfficeDocumentReaderBuilderMarkdownExtensions {
     /// <summary>Stable Markdown handler identifier.</summary>
     public const string HandlerId = "officeimo.reader.markdown";
 
+    /// <summary>Default maximum Markdown input size. Default: 64 MiB.</summary>
+    public const long DefaultMaxInputBytes = 64L * 1024L * 1024L;
+
     /// <summary>Adds Markdown and MDX text ingestion.</summary>
     public static OfficeDocumentReaderBuilder AddMarkdownHandler(
         this OfficeDocumentReaderBuilder builder,
@@ -19,6 +22,7 @@ public static class OfficeDocumentReaderBuilderMarkdownExtensions {
             Description = "OfficeIMO.Markdown AST projection with headings, tables, visuals, and source spans.",
             Kind = ReaderInputKind.Markdown,
             Extensions = new[] { ".md", ".markdown", ".mdown", ".mkd", ".mdx" },
+            DefaultMaxInputBytes = DefaultMaxInputBytes,
             ReadDocumentPath = (path, readerOptions, token) => MarkdownReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => MarkdownReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,

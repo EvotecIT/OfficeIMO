@@ -5,21 +5,34 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Reader.Markdown;
 
 internal static class MarkdownReaderAdapter {
+    private const int MaximumDataViewColumns = 4_096;
+
     internal static ReaderMarkdownOptions Clone(ReaderMarkdownOptions? source) => new ReaderMarkdownOptions {
         ChunkByHeadings = source?.ChunkByHeadings ?? true,
         ParserOptions = (source?.ParserOptions ?? new MarkdownReaderOptions()).Clone()
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
-        string text = File.ReadAllText(path);
-        return Project(text, path, readerOptions, options, cancellationToken);
+        long maxInputBytes = readerOptions.MaxInputBytes ?? OfficeDocumentReaderBuilderMarkdownExtensions.DefaultMaxInputBytes;
+        ReaderInputLimits.EnforceFileSize(path, maxInputBytes);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return ReadDocument(stream, path, readerOptions, options, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
-        if (stream.CanSeek) stream.Position = 0;
-        using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
-        string text = reader.ReadToEnd();
-        return Project(text, string.IsNullOrWhiteSpace(sourceName) ? "document.md" : sourceName!, readerOptions, options, cancellationToken);
+        long maxInputBytes = readerOptions.MaxInputBytes ?? OfficeDocumentReaderBuilderMarkdownExtensions.DefaultMaxInputBytes;
+        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
+            stream,
+            maxInputBytes,
+            cancellationToken,
+            out bool ownsParseStream);
+        try {
+            using var reader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
+            string text = reader.ReadToEnd();
+            return Project(text, string.IsNullOrWhiteSpace(sourceName) ? "document.md" : sourceName!, readerOptions, options, cancellationToken);
+        } finally {
+            if (ownsParseStream) parseStream.Dispose();
+        }
     }
 
     private static OfficeDocumentReadResult Project(string text, string sourceName, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {
@@ -176,39 +189,54 @@ internal static class MarkdownReaderAdapter {
             if (root.ValueKind != JsonValueKind.Object) return false;
 
             var columns = new List<string>();
-            var rows = new List<IReadOnlyList<string>>();
+            int rowLimit = Math.Max(1, maxRows);
+            var rows = new List<IReadOnlyList<string>>(Math.Min(rowLimit, 256));
+            int totalRowCount = 0;
             if (root.TryGetProperty("columns", out JsonElement columnsElement) && columnsElement.ValueKind == JsonValueKind.Array) {
-                foreach (JsonElement value in columnsElement.EnumerateArray()) columns.Add(ReadJsonScalar(value));
+                if (!TryReadColumns(columnsElement, columns)) return false;
             }
 
             if (root.TryGetProperty("rows", out JsonElement rowsElement) && rowsElement.ValueKind == JsonValueKind.Array) {
-                JsonElement[] sourceRows = rowsElement.EnumerateArray().ToArray();
-                if (sourceRows.Length > 0 && sourceRows[0].ValueKind == JsonValueKind.Array) {
+                int sourceRowCount = rowsElement.GetArrayLength();
+                if (sourceRowCount > 0 && rowsElement[0].ValueKind == JsonValueKind.Array) {
                     bool columnsWereProvided = columns.Count > 0;
-                    IReadOnlyList<string> first = sourceRows[0].EnumerateArray().Select(ReadJsonScalar).ToArray();
-                    if (columns.Count == 0) columns.AddRange(first);
-                    for (int index = columnsWereProvided ? 0 : 1; index < sourceRows.Length; index++) {
-                        if (sourceRows[index].ValueKind == JsonValueKind.Array) rows.Add(NormalizeRow(sourceRows[index].EnumerateArray().Select(ReadJsonScalar).ToArray(), columns.Count));
+                    if (!columnsWereProvided && !TryReadColumns(rowsElement[0], columns)) return false;
+                    int firstDataRow = columnsWereProvided ? 0 : 1;
+                    for (int index = firstDataRow; index < sourceRowCount; index++) {
+                        if (rowsElement[index].ValueKind != JsonValueKind.Array) continue;
+                        totalRowCount++;
+                        if (rows.Count < rowLimit) {
+                            rows.Add(ReadBoundedRow(rowsElement[index], columns.Count));
+                        }
                     }
                 }
             } else if (root.TryGetProperty("records", out JsonElement recordsElement) && recordsElement.ValueKind == JsonValueKind.Array) {
-                JsonElement[] records = recordsElement.EnumerateArray().ToArray();
-                if (columns.Count == 0 && records.Length > 0 && records[0].ValueKind == JsonValueKind.Object) {
-                    columns.AddRange(records[0].EnumerateObject().Select(static property => property.Name));
+                int recordCount = recordsElement.GetArrayLength();
+                if (columns.Count == 0 && recordCount > 0 && recordsElement[0].ValueKind == JsonValueKind.Object) {
+                    foreach (JsonProperty property in recordsElement[0].EnumerateObject()) {
+                        if (columns.Count >= MaximumDataViewColumns) return false;
+                        columns.Add(property.Name);
+                    }
                 }
-                foreach (JsonElement record in records) {
+                for (int index = 0; index < recordCount; index++) {
+                    JsonElement record = recordsElement[index];
                     if (record.ValueKind == JsonValueKind.Object) {
-                        rows.Add(columns.Select(column => record.TryGetProperty(column, out JsonElement value) ? ReadJsonScalar(value) : string.Empty).ToArray());
+                        totalRowCount++;
+                        if (rows.Count < rowLimit) {
+                            rows.Add(columns.Select(column => record.TryGetProperty(column, out JsonElement value) ? ReadJsonScalar(value) : string.Empty).ToArray());
+                        }
                     } else if (record.ValueKind == JsonValueKind.Array) {
-                        rows.Add(NormalizeRow(record.EnumerateArray().Select(ReadJsonScalar).ToArray(), columns.Count));
+                        totalRowCount++;
+                        if (rows.Count < rowLimit) {
+                            rows.Add(ReadBoundedRow(record, columns.Count));
+                        }
                     }
                 }
             }
 
             if (columns.Count == 0) return false;
             string kind = ReadJsonString(root, "kind") ?? "ix-dataview";
-            int rowLimit = Math.Max(1, maxRows);
-            IReadOnlyList<IReadOnlyList<string>> boundedRows = rows.Take(rowLimit).ToArray();
+            IReadOnlyList<IReadOnlyList<string>> boundedRows = rows;
             table = new ReaderTable {
                 Title = ReadJsonString(root, "title") ?? kind,
                 Kind = kind,
@@ -217,8 +245,8 @@ internal static class MarkdownReaderAdapter {
                 PayloadHash = Hash(payload),
                 Columns = columns,
                 Rows = boundedRows,
-                TotalRowCount = rows.Count,
-                Truncated = rows.Count > boundedRows.Count,
+                TotalRowCount = totalRowCount,
+                Truncated = totalRowCount > boundedRows.Count,
                 ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, boundedRows),
                 Location = new ReaderLocation {
                     Path = sourceName,
@@ -238,6 +266,21 @@ internal static class MarkdownReaderAdapter {
         } catch (JsonException) {
             return false;
         }
+    }
+
+    private static bool TryReadColumns(JsonElement values, List<string> columns) {
+        if (values.GetArrayLength() > MaximumDataViewColumns) return false;
+        foreach (JsonElement value in values.EnumerateArray()) columns.Add(ReadJsonScalar(value));
+        return true;
+    }
+
+    private static IReadOnlyList<string> ReadBoundedRow(JsonElement row, int columnCount) {
+        var values = new List<string>(columnCount);
+        foreach (JsonElement value in row.EnumerateArray()) {
+            if (values.Count >= columnCount) break;
+            values.Add(ReadJsonScalar(value));
+        }
+        return NormalizeRow(values, columnCount);
     }
 
     private static IReadOnlyList<string> NormalizeRow(IReadOnlyList<string> row, int columnCount) =>

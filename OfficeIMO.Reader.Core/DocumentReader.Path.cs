@@ -250,18 +250,36 @@ internal static partial class DocumentReaderEngine {
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
         var directories = new Queue<string>();
+        int entriesInspected = 0;
         directories.Enqueue(folderPath);
         while (directories.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             string directory = directories.Dequeue();
-            string[] entries;
-            try { entries = Directory.GetFileSystemEntries(directory); } catch { continue; }
-            if (options.DeterministicOrder) Array.Sort(entries, StringComparer.Ordinal);
+            var entries = new List<string>();
+            try {
+                foreach (string entry in Directory.EnumerateFileSystemEntries(directory)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    entriesInspected++;
+                    if (entriesInspected > options.MaxTraversalEntries) {
+                        throw new InvalidDataException(
+                            $"Folder traversal exceeds MaxTraversalEntries ({options.MaxTraversalEntries}).");
+                    }
+                    entries.Add(entry);
+                }
+            } catch (InvalidDataException) {
+                throw;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch {
+                continue;
+            }
+            if (options.DeterministicOrder) entries.Sort(StringComparer.Ordinal);
             foreach (string entry in entries) {
                 FileAttributes attributes;
                 try { attributes = File.GetAttributes(entry); } catch { continue; }
+                if (options.SkipReparsePoints && (attributes & FileAttributes.ReparsePoint) != 0) continue;
                 if ((attributes & FileAttributes.Directory) != 0) {
-                    if (options.Recurse && (!options.SkipReparsePoints || (attributes & FileAttributes.ReparsePoint) == 0)) directories.Enqueue(entry);
+                    if (options.Recurse) directories.Enqueue(entry);
                 } else {
                     yield return entry;
                 }

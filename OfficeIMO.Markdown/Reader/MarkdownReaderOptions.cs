@@ -135,7 +135,8 @@ public sealed class MarkdownReaderOptions {
                 : (string[])AllowedUrlSchemes.Clone(),
             InputNormalization = CloneInputNormalizationOptions(InputNormalization),
             PreserveTrivia = PreserveTrivia,
-            MaxInputCharacters = MaxInputCharacters
+            MaxInputCharacters = MaxInputCharacters,
+            MaxNestingDepth = MaxNestingDepth
         };
 
         CopyList(FencedBlockExtensions, clone.FencedBlockExtensions);
@@ -641,6 +642,12 @@ public sealed class MarkdownReaderOptions {
     /// When set and exceeded, parsing fails fast with an <see cref="ArgumentOutOfRangeException"/>.
     /// </summary>
     public int? MaxInputCharacters { get; set; }
+
+    /// <summary>
+    /// Maximum recursive block-container depth accepted while parsing nested lists, quotes,
+    /// details, callouts, footnotes, and similar constructs. Default: 64.
+    /// </summary>
+    public int MaxNestingDepth { get; set; } = 64;
 
     /// <summary>
     /// Optional language-based fenced block factories that can produce specialized AST nodes

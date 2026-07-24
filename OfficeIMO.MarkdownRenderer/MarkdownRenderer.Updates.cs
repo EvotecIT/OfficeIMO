@@ -149,7 +149,12 @@ async function updateContent(newBodyHtml) {
 
   function omdCellText(cell) {
     const t = (cell && (cell.innerText || cell.textContent)) ? String(cell.innerText || cell.textContent) : '';
-    return t.replace(/\r?\n/g, ' ').trim();
+    return t.replace(/[\t\r\n]+/g, ' ').trim();
+  }
+
+  function omdSpreadsheetSafeCell(value) {
+    const s = String(value ?? '');
+    return /^[=+\-@]/.test(s) ? "'" + s : s;
   }
 
   function omdTableToTsv(table) {
@@ -159,7 +164,7 @@ async function updateContent(newBodyHtml) {
       const cells = tr.querySelectorAll('th,td');
       if (!cells || cells.length === 0) return;
       const vals = [];
-      cells.forEach(c => vals.push(omdCellText(c)));
+      cells.forEach(c => vals.push(omdSpreadsheetSafeCell(omdCellText(c))));
       rows.push(vals.join('\\t'));
     });
     return rows.join('\\n');
@@ -180,7 +185,7 @@ async function updateContent(newBodyHtml) {
       const cells = tr.querySelectorAll('th,td');
       if (!cells || cells.length === 0) return;
       const vals = [];
-      cells.forEach(c => vals.push(omdCsvEscape(omdCellText(c))));
+      cells.forEach(c => vals.push(omdCsvEscape(omdSpreadsheetSafeCell(omdCellText(c)))));
       rows.push(vals.join(','));
     });
     return rows.join('\\n');

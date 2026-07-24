@@ -39,6 +39,11 @@ namespace OfficeIMO.Word.Markdown {
         public Action<string>? OnWarning { get; set; }
 
         /// <summary>
+        /// Maximum nested block-rendering depth accepted by the Word converter. Default: 64.
+        /// </summary>
+        public int MaxNestingDepth { get; set; } = 64;
+
+        /// <summary>
         /// Optional default page size applied when creating new documents.
         /// </summary>
         public WordPageSize? DefaultPageSize { get; set; }

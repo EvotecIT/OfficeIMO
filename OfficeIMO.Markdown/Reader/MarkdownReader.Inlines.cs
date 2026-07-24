@@ -794,7 +794,7 @@ public static partial class MarkdownReader {
 
                 GetDelimiterFlags(text, pos, marker, runLen, options.CjkFriendlyEmphasis, out bool canOpen, out bool canClose);
 
-                if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, options.CjkFriendlyEmphasis)) {
+                if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, emphasisClosingRuns)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;

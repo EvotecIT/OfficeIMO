@@ -239,13 +239,20 @@ namespace OfficeIMO.PowerPoint {
 
         private static long? ResolvePackageInputLimit(
             PowerPointLoadOptions options) {
-            if (options.PackageSecurity == null) return null;
-            long configured = options.PackageSecurity.MaxPackageBytes;
-            if (configured < 1) {
+            long? configured = options.MaxInputBytes;
+            if (configured.HasValue && configured.Value < 1) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options.MaxInputBytes));
+            }
+            if (options.PackageSecurity == null) return configured;
+            long packageLimit = options.PackageSecurity.MaxPackageBytes;
+            if (packageLimit < 1) {
                 throw new ArgumentOutOfRangeException(
                     nameof(OfficePackageSecurityOptions.MaxPackageBytes));
             }
-            return configured;
+            return configured.HasValue
+                ? Math.Min(configured.Value, packageLimit)
+                : packageLimit;
         }
 
         private static int ResolveLegacyInputLimit(
