@@ -14,6 +14,8 @@ namespace OfficeIMO.Excel {
     public sealed partial class ExcelDocumentReader : IDisposable {
         private const string OfficeDocumentRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private const string StrictOfficeDocumentRelationshipNamespace = "http://purl.oclc.org/ooxml/officeDocument/relationships";
+        private const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private const string StrictSpreadsheetNamespace = "http://purl.oclc.org/ooxml/spreadsheetml/main";
         private static readonly XmlReaderSettings WorkbookXmlReaderSettings = CreateWorkbookXmlReaderSettings();
 
         private readonly SpreadsheetDocument _doc;
@@ -181,8 +183,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
+                int sheetsDepth = -1;
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "sheet") {
+                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
                         continue;
                     }
 
@@ -223,8 +226,7 @@ namespace OfficeIMO.Excel {
 
         private static string? GetRelationshipIdAttribute(XmlReader reader) {
             string? relationshipId = reader.GetAttribute("id", OfficeDocumentRelationshipNamespace)
-                ?? reader.GetAttribute("id", StrictOfficeDocumentRelationshipNamespace)
-                ?? reader.GetAttribute("r:id");
+                ?? reader.GetAttribute("id", StrictOfficeDocumentRelationshipNamespace);
             if (!string.IsNullOrEmpty(relationshipId)) {
                 return relationshipId;
             }
@@ -237,8 +239,7 @@ namespace OfficeIMO.Excel {
                 do {
                     if (reader.LocalName == "id"
                         && (reader.NamespaceURI == OfficeDocumentRelationshipNamespace
-                            || reader.NamespaceURI == StrictOfficeDocumentRelationshipNamespace
-                            || reader.Prefix == "r")) {
+                            || reader.NamespaceURI == StrictOfficeDocumentRelationshipNamespace)) {
                         return reader.Value;
                     }
                 } while (reader.MoveToNextAttribute());
@@ -261,8 +262,9 @@ namespace OfficeIMO.Excel {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
                 int currentIndex = 0;
+                int sheetsDepth = -1;
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "sheet") {
+                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
                         continue;
                     }
 
@@ -312,8 +314,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
+                int sheetsDepth = -1;
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "sheet") {
+                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
                         continue;
                     }
 
@@ -363,8 +366,9 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
+                int sheetsDepth = -1;
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "sheet") {
+                    if (!IsWorkbookSheetElement(reader, ref sheetsDepth)) {
                         continue;
                     }
 
@@ -395,6 +399,32 @@ namespace OfficeIMO.Excel {
                 count = 0;
                 return false;
             }
+        }
+
+        private static bool IsWorkbookSheetElement(XmlReader reader, ref int sheetsDepth) {
+            bool isSpreadsheetNamespace = reader.NamespaceURI == SpreadsheetNamespace
+                || reader.NamespaceURI == StrictSpreadsheetNamespace;
+
+            if (reader.NodeType == XmlNodeType.EndElement
+                && sheetsDepth == reader.Depth
+                && reader.LocalName == "sheets"
+                && isSpreadsheetNamespace) {
+                sheetsDepth = -1;
+                return false;
+            }
+
+            if (reader.NodeType != XmlNodeType.Element || !isSpreadsheetNamespace) {
+                return false;
+            }
+
+            if (reader.LocalName == "sheets") {
+                sheetsDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                return false;
+            }
+
+            return sheetsDepth >= 0
+                && reader.Depth == sheetsDepth + 1
+                && reader.LocalName == "sheet";
         }
 
         private static XmlReaderSettings CreateWorkbookXmlReaderSettings() {

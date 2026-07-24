@@ -885,8 +885,7 @@ namespace OfficeIMO.Word {
             // Remove preceding empty paragraph by default (safe), or when explicitly requested.
             var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
             if (paragraph != null) {
-                bool hasText = paragraph.Descendants<Text>().Any(t => !string.IsNullOrWhiteSpace(t.Text));
-                if (removePrecedingParagraph || !hasText) {
+                if (removePrecedingParagraph || !HasMeaningfulParagraphContent(paragraph)) {
                     paragraph.Remove();
                 }
             }
@@ -902,6 +901,25 @@ namespace OfficeIMO.Word {
             };
             _tableCell.Append(trailing);
             return wordTable;
+        }
+
+        private static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+            foreach (var element in paragraph.Descendants()) {
+                if (element is Text text) {
+                    if (!string.IsNullOrWhiteSpace(text.Text)) return true;
+                    continue;
+                }
+
+                if (element is ParagraphProperties || element is Run || element is RunProperties) {
+                    continue;
+                }
+
+                // Drawings, fields, bookmarks, hyperlinks, and other non-text content are data,
+                // even when the paragraph has no w:t descendants.
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

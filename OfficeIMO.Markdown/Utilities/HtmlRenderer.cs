@@ -303,18 +303,19 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _scopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<string, string>(System.StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<HtmlStyle, string> _unscopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<HtmlStyle, string>();
 
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
-        // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
+        // Only cache the finite built-in style set. Caller-controlled scope selectors are
+        // deliberately rendered on demand so unique request values cannot grow static state.
         MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
         HtmlStyle effectiveStyle = GetEffectiveStyle(options, effectiveVisualTheme);
-        string cacheKey = ((int)effectiveStyle).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
-        if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
-            baseCss = ScopeCss(HtmlResources.GetStyleCss(effectiveStyle) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
-            _scopedBaseCssCache[cacheKey] = baseCss;
-        }
+        string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
+            static style => HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
+        string baseCss = string.IsNullOrWhiteSpace(options.CssScopeSelector)
+            ? rawBaseCss
+            : ScopeCss(rawBaseCss, options.CssScopeSelector);
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();
@@ -495,20 +496,23 @@ internal static class HtmlRenderer {
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(overrides.AccentLight)) target.AccentLight = NormalizeCssColor(overrides.AccentLight!);
-        if (!string.IsNullOrWhiteSpace(overrides.AccentDark)) target.AccentDark = NormalizeCssColor(overrides.AccentDark!);
-        if (!string.IsNullOrWhiteSpace(overrides.HeadingLight)) target.HeadingLight = NormalizeCssColor(overrides.HeadingLight!);
-        if (!string.IsNullOrWhiteSpace(overrides.HeadingDark)) target.HeadingDark = NormalizeCssColor(overrides.HeadingDark!);
-        if (!string.IsNullOrWhiteSpace(overrides.TocBgLight)) target.TocBgLight = NormalizeCssColor(overrides.TocBgLight!);
-        if (!string.IsNullOrWhiteSpace(overrides.TocBgDark)) target.TocBgDark = NormalizeCssColor(overrides.TocBgDark!);
-        if (!string.IsNullOrWhiteSpace(overrides.TocBorderLight)) target.TocBorderLight = NormalizeCssColor(overrides.TocBorderLight!);
-        if (!string.IsNullOrWhiteSpace(overrides.TocBorderDark)) target.TocBorderDark = NormalizeCssColor(overrides.TocBorderDark!);
-        if (!string.IsNullOrWhiteSpace(overrides.ActiveLinkLight)) target.ActiveLinkLight = NormalizeCssColor(overrides.ActiveLinkLight!);
-        if (!string.IsNullOrWhiteSpace(overrides.ActiveLinkDark)) target.ActiveLinkDark = NormalizeCssColor(overrides.ActiveLinkDark!);
+        TryApplyCssColor(overrides.AccentLight, value => target.AccentLight = value);
+        TryApplyCssColor(overrides.AccentDark, value => target.AccentDark = value);
+        TryApplyCssColor(overrides.HeadingLight, value => target.HeadingLight = value);
+        TryApplyCssColor(overrides.HeadingDark, value => target.HeadingDark = value);
+        TryApplyCssColor(overrides.TocBgLight, value => target.TocBgLight = value);
+        TryApplyCssColor(overrides.TocBgDark, value => target.TocBgDark = value);
+        TryApplyCssColor(overrides.TocBorderLight, value => target.TocBorderLight = value);
+        TryApplyCssColor(overrides.TocBorderDark, value => target.TocBorderDark = value);
+        TryApplyCssColor(overrides.ActiveLinkLight, value => target.ActiveLinkLight = value);
+        TryApplyCssColor(overrides.ActiveLinkDark, value => target.ActiveLinkDark = value);
     }
 
-    private static string NormalizeCssColor(string value) =>
-        OfficeColor.TryParse(value, out OfficeColor color) ? color.ToCssColor() : value;
+    private static void TryApplyCssColor(string? value, Action<string> apply) {
+        if (!string.IsNullOrWhiteSpace(value) && OfficeColor.TryParse(value, out OfficeColor color)) {
+            apply(color.ToCssColor());
+        }
+    }
 
     internal static string ResolveExternalText(string? url, MarkdownExternalTextResolver? resolver) {
         if (string.IsNullOrWhiteSpace(url)

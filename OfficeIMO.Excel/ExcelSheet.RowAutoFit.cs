@@ -320,62 +320,21 @@ namespace OfficeIMO.Excel {
 
             if (rowIndexes.Count == 0) return;
 
-            double[] computed = new double[rowIndexes.Count];
+            // CalculateRowHeight reads shared Open XML nodes. Keep the read-and-apply pass
+            // serialized even when callers request parallel execution; parallelizing the DOM
+            // traversal is not safe and the public mode remains a scheduling hint.
+            WriteLock(() => {
+                for (int i = 0; i < rowIndexes.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
+                    double height = CalculateRowHeight(rowIndexes[i]);
+                    SetRowHeightCore(rowIndexes[i], height, normalizeForExcelVisibleHeight: true);
+                }
 
-            ExecuteWithPolicy(
-                opName: "AutoFitRows",
-                itemCount: rowIndexes.Count,
-                overrideMode: mode,
-                sequentialCore: () => {
-                    // Sequential path with NoLock
-                    for (int i = 0; i < rowIndexes.Count; i++) {
-                        computed[i] = CalculateRowHeight(rowIndexes[i]);
-                    }
-
-                    for (int i = 0; i < rowIndexes.Count; i++) {
-                        // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
-                        // pixel-equivalent height so the visible Excel row height matches the measured value.
-                        SetRowHeightCore(rowIndexes[i], computed[i], normalizeForExcelVisibleHeight: true);
-                    }
-
-                    UpdateSheetFormat();
-                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
-                        worksheet.Save();
-                    }
-                },
-                computeParallel: () => {
-                    // Parallel compute phase - calculate heights without DOM mutation
-                    var failures = new System.Collections.Concurrent.ConcurrentBag<int>();
-                    Parallel.For(0, rowIndexes.Count, new ParallelOptions {
-                        CancellationToken = ct,
-                        MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
-                    }, i => {
-                        try {
-                            computed[i] = CalculateRowHeight(rowIndexes[i]);
-                        } catch {
-                            failures.Add(i);
-                        }
-                    });
-                    if (!failures.IsEmpty) {
-                        foreach (var idx in failures) {
-                            try { computed[idx] = CalculateRowHeight(rowIndexes[idx]); } catch { computed[idx] = 0; }
-                        }
-                    }
-                },
-                applySequential: () => {
-                    // Apply phase - write all row heights to DOM
-                    for (int i = 0; i < rowIndexes.Count; i++) {
-                        // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
-                        // pixel-equivalent height so the visible Excel row height matches the measured value.
-                        SetRowHeightCore(rowIndexes[i], computed[i], normalizeForExcelVisibleHeight: true);
-                    }
-                    UpdateSheetFormat();
-                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
-                        worksheet.Save();
-                    }
-                },
-                ct: ct
-            );
+                UpdateSheetFormat();
+                if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                    worksheet.Save();
+                }
+            });
         }
 
 

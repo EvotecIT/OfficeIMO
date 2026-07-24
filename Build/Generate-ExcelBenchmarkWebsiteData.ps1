@@ -119,21 +119,36 @@ function Get-ScenarioCategory([string] $Scenario, [string] $ArtifactKind) {
     return "Other"
 }
 
+function Get-PublicRuntimeLabel([object] $Value) {
+    $text = [string] $Value
+    if ($text -match '(?i)(?:\.NET|net)\s*(?<major>\d+)') {
+        return ".NET $($Matches['major'])"
+    }
+
+    return $null
+}
+
+function Get-PublicManifest([object] $Manifest) {
+    if (-not $Manifest) { return $null }
+
+    $public = [ordered]@{}
+    foreach ($name in @(
+        'GeneratedAtUtc', 'RowCounts', 'WarmupIterations', 'MeasuredIterations',
+        'IncludeLegacyEpPlus', 'IncludePackageProfile', 'IncludeDenseHelloWorld',
+        'ScenarioFilters', 'PackageScenarioFilters', 'DenseHelloWorldScenarios', 'Artifacts')) {
+        $property = $Manifest.PSObject.Properties[$name]
+        if ($property) { $public[$name] = $property.Value }
+    }
+    $public['Framework'] = Get-PublicRuntimeLabel $Manifest.Framework
+    return $public
+}
+
 function Get-EvidenceMeta([object] $Manifest, [object] $Summary, [object[]] $Profiles) {
     $profile = @($Profiles) | Select-Object -First 1
-    $machineName = if ($Manifest -and $Manifest.MachineName) { $Manifest.MachineName } elseif ($profile -and $profile.MachineName) { $profile.MachineName } else { $null }
     $runtime = if ($Manifest -and $Manifest.Framework) { $Manifest.Framework } elseif ($Summary -and $Summary.Framework) { $Summary.Framework } elseif ($profile -and $profile.Framework) { $profile.Framework } else { $null }
 
     return [ordered]@{
-        commit = $null
-        branch = $null
-        dotnetSdk = $null
-        runtime = $runtime
-        osDescription = $null
-        osArchitecture = $null
-        processArchitecture = $null
-        machineName = $machineName
-        processorCount = $null
+        runtime = Get-PublicRuntimeLabel $runtime
     }
 }
 
@@ -384,7 +399,7 @@ function Write-MarkdownReport([object] $Document, [string] $Path) {
     $lines.Add("Generated: $($Document.generatedUtc)")
     $lines.Add("Run mode: $($Document.runMode)")
     $lines.Add("Publish: $($Document.publish)")
-    $lines.Add("Machine: $($Document.meta.machineName) ($($Document.meta.processorCount) processors)")
+    $lines.Add("Runtime family: $($Document.meta.runtime)")
     $lines.Add("")
     $lines.Add("## How to Read")
     foreach ($note in $Document.howToRead) {
@@ -598,7 +613,7 @@ $document = [ordered]@{
     generatedUtc = Get-LatestEvidenceTimestamp -Manifest $manifest -Summary $summaryInput -Profiles $allPackageProfiles
     runMode = $RunMode
     publish = $publishValue
-    framework = if ($manifest) { $manifest.Framework } else { $summaryInput.Framework }
+    framework = Get-PublicRuntimeLabel $(if ($manifest) { $manifest.Framework } else { $summaryInput.Framework })
     configuration = if ($manifest) { "Release" } else { $null }
     source = [ordered]@{
         summaryPath = $SummaryPath
@@ -620,7 +635,7 @@ $document = [ordered]@{
         "Generated provenance comes from the committed benchmark evidence, not the website build environment.",
         "Website consumers should read this generated JSON instead of hand-maintained benchmark rows."
     )
-    manifest = $manifest
+    manifest = Get-PublicManifest $manifest
     metrics = $metrics
     matrix = $matrix
     summary = Build-Summary -Rows $allRows

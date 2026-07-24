@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.CustomXmlDataProperties;
 using DocumentFormat.OpenXml.Packaging;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
@@ -184,7 +185,12 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                return XDocument.Load(stream, LoadOptions.PreserveWhitespace);
+                var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null
+                };
+                using var reader = XmlReader.Create(stream, settings);
+                return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             } catch {
                 // If the part is malformed, fall back to a minimal valid structure.
                 return new XDocument(new XElement(CoverPagePropsNs + "CoverPageProperties"));

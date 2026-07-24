@@ -384,7 +384,11 @@ namespace OfficeIMO.Visio {
                 .ToList();
             foreach (var g in idGroups) _errors.Add($"Duplicate relationship Id in pages.xml.rels: '{g.Key}'");
 
-            var relsById = relElems.ToDictionary(e => (string?)e.Attribute("Id") ?? string.Empty, e => e);
+            var relsById = relElems
+                .Select(e => new { Id = (string?)e.Attribute("Id"), Element = e })
+                .Where(item => !string.IsNullOrEmpty(item.Id))
+                .GroupBy(item => item.Id!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First().Element, StringComparer.Ordinal);
 
             // Page ID uniqueness in pages.xml
             var idAttrGroups = pages.Select(p => (string?)p.Attribute("ID") ?? string.Empty)

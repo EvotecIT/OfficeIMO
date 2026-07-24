@@ -126,5 +126,28 @@ namespace OfficeIMO.Shared.Tests {
                 if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
             }
         }
+
+#if NET6_0_OR_GREATER
+        [Fact]
+        public void CommitTemporaryFile_PreservesRestrictiveUnixMode() {
+            if (OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "private.xlsx");
+            string temporary = Path.Combine(root, "private.staged.xlsx");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, new byte[] { 1 });
+            File.SetUnixFileMode(destination, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            File.WriteAllBytes(temporary, new byte[] { 2 });
+
+            try {
+                OfficeFileCommit.CommitTemporaryFile(temporary, destination);
+
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(destination));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+#endif
     }
 }
