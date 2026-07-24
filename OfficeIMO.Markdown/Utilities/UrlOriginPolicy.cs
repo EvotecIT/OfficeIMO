@@ -86,10 +86,10 @@ internal static class UrlOriginPolicy {
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
 
-        return scheme != "javascript"
-            && scheme != "vbscript"
-            && scheme != "data"
-            && scheme != "file";
+        return scheme == "http"
+            || scheme == "https"
+            || scheme == "mailto"
+            || scheme == "tel";
     }
 
     private static bool IsSafeImageUrl(string? url) {

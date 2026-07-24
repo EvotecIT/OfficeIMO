@@ -591,7 +591,7 @@ namespace OfficeIMO.Word {
             _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
 
             // Set fixed column widths proportionally
-            if (Rows.Count > 0) {
+            if (Rows.Count > 0 && Rows[0].Cells.Count > 0) {
                 int columnCount = Rows[0].Cells.Count;
                 int columnWidth = percentage * 50 / columnCount;
 

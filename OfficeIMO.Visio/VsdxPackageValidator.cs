@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -12,6 +13,10 @@ namespace OfficeIMO.Visio {
     /// Validates and optionally fixes Visio VSDX packages for common structural issues.
     /// </summary>
     public partial class VsdxPackageValidator {
+#if !NET8_0_OR_GREATER
+        private static readonly PropertyInfo? ExternalAttributesProperty =
+            typeof(ZipArchiveEntry).GetProperty("ExternalAttributes", BindingFlags.Instance | BindingFlags.Public);
+#endif
         private static readonly XNamespace nsCore = "http://schemas.microsoft.com/office/visio/2012/main";
         private static readonly XNamespace nsPkgRel = "http://schemas.openxmlformats.org/package/2006/relationships";
         private static readonly XNamespace nsDocRel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -219,15 +224,18 @@ namespace OfficeIMO.Visio {
 
         private static bool IsLinkEntry(ZipArchiveEntry entry) {
             // ExternalAttributes is unavailable in the netstandard2.0 reference surface.
-            // Older targets still copy bytes into newly created regular files; modern targets
-            // can reject link metadata before extraction without reflection or trim warnings.
+            // Modern targets use it directly; older runtimes are inspected through the cached
+            // runtime property and fail closed if that metadata cannot be read.
 #if NET8_0_OR_GREATER
             int attributes = entry.ExternalAttributes;
+#else
+            object? rawAttributes = ExternalAttributesProperty?.GetValue(entry, null);
+            // If this runtime cannot expose the metadata, extraction cannot prove the entry
+            // is a regular file. Reject it instead of silently disabling link protection.
+            if (!(rawAttributes is int attributes)) return true;
+#endif
             int unixType = (attributes >> 16) & 0xF000;
             return unixType == 0xA000 || (attributes & (int)FileAttributes.ReparsePoint) != 0;
-#else
-            return false;
-#endif
         }
 
         private void ValidateArchiveLimits(ZipArchive archive) {

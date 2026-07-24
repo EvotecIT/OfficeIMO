@@ -285,8 +285,13 @@ public partial class WordList : WordElement {
             if (numberingProps?.NumberingId != null) {
                 numberingProps.NumberingId.Val = newNumberId;
             }
-            currentRef = after ? currentRef.InsertAfterSelf(clonedParagraph) : currentRef.InsertBeforeSelf(clonedParagraph);
-            var paragraphElement = currentRef as Paragraph;
+            OpenXmlElement inserted = after
+                ? currentRef.InsertAfterSelf(clonedParagraph)
+                : currentRef.InsertBeforeSelf(clonedParagraph);
+            if (after) {
+                currentRef = inserted;
+            }
+            var paragraphElement = inserted as Paragraph;
             if (paragraphElement == null) {
                 continue;
             }

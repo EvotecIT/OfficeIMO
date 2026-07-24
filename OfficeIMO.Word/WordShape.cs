@@ -105,6 +105,12 @@ namespace OfficeIMO.Word {
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
+        private static Run AppendDedicatedShapeRun(WordParagraph paragraph, OpenXmlElement content) {
+            var run = new Run(content);
+            paragraph._paragraph!.Append(run);
+            return run;
+        }
+
         private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType) {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
@@ -189,8 +195,7 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(_rectangle);
 
-            _run = paragraph.VerifyRun();
-            _run.Append(pict);
+            _run = AppendDedicatedShapeRun(paragraph, pict);
         }
 
         /// <summary>
@@ -228,8 +233,7 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(ellipse);
 
-            var run = paragraph.VerifyRun();
-            run.Append(pict);
+            Run run = AppendDedicatedShapeRun(paragraph, pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -260,8 +264,7 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(roundRect);
 
-            var run = paragraph.VerifyRun();
-            run.Append(pict);
+            Run run = AppendDedicatedShapeRun(paragraph, pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -283,8 +286,7 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(line);
 
-            var run = paragraph.VerifyRun();
-            run.Append(pict);
+            Run run = AppendDedicatedShapeRun(paragraph, pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -313,8 +315,7 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(poly);
 
-            var run = paragraph.VerifyRun();
-            run.Append(pict);
+            Run run = AppendDedicatedShapeRun(paragraph, pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -337,8 +338,6 @@ namespace OfficeIMO.Word {
             ValidateDimensions(widthPt, heightPt);
             long cx = ToEmuChecked(widthPt, nameof(widthPt));
             long cy = ToEmuChecked(heightPt, nameof(heightPt));
-
-            var run = paragraph.VerifyRun();
 
             var inline = new DW.Inline() {
                 DistanceFromTop = 0U,
@@ -396,7 +395,7 @@ namespace OfficeIMO.Word {
             inline.Append(graphic);
 
             var WordDrawing = new WordDrawing(inline);
-            run.Append(WordDrawing);
+            Run run = AppendDedicatedShapeRun(paragraph, WordDrawing);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
@@ -418,12 +417,11 @@ namespace OfficeIMO.Word {
             long offX = ToEmuChecked(leftPt, nameof(leftPt));
             long offY = ToEmuChecked(topPt, nameof(topPt));
 
-            var run = paragraph.VerifyRun();
             var wsp = BuildWpsShape(cx, cy, shapeType);
             var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
             var anchor = BuildAnchor(cx, cy, offX, offY, graphic);
             var WordDrawing = new WordDrawing(anchor);
-            run.Append(WordDrawing);
+            Run run = AppendDedicatedShapeRun(paragraph, WordDrawing);
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
 
@@ -901,7 +899,22 @@ namespace OfficeIMO.Word {
         /// Removes the shape from the paragraph.
         /// </summary>
         public void Remove() {
-            _run?.Remove();
+            OpenXmlElement? shape = _drawing;
+            shape ??= _rectangle;
+            shape ??= _roundRectangle;
+            shape ??= _ellipse;
+            shape ??= _line;
+            shape ??= _polygon;
+            shape ??= _shape;
+            if (shape?.Parent is Picture picture && picture.ChildElements.Count == 1) {
+                picture.Remove();
+            } else {
+                shape?.Remove();
+            }
+
+            if (_run != null && !_run.ChildElements.Any(child => !(child is RunProperties))) {
+                _run.Remove();
+            }
         }
     }
 }

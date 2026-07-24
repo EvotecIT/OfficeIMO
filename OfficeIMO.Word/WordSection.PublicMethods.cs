@@ -519,10 +519,6 @@ namespace OfficeIMO.Word {
         /// cleaning up numbering and any unreferenced header and footer parts.
         /// </summary>
         public void RemoveSection() {
-            foreach (var list in this.Lists.ToList()) {
-                list.Remove();
-            }
-
             foreach (var element in this.ElementsByType.ToList()) {
                 switch (element) {
                     case WordParagraph paragraph:
@@ -551,7 +547,9 @@ namespace OfficeIMO.Word {
                         .Any(s => s._sectionProperties.Elements<HeaderReference>().Any(hr => hr.Id == id));
                     if (!usedElsewhere) {
                         var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
-                        var part = mainDocumentPart?.GetPartById(id) as HeaderPart;
+                        var part = mainDocumentPart?.Parts
+                            .FirstOrDefault(candidate => candidate.RelationshipId == id)
+                            .OpenXmlPart as HeaderPart;
                         if (part != null) {
                             mainDocumentPart!.DeletePart(part);
                         }
@@ -568,7 +566,9 @@ namespace OfficeIMO.Word {
                         .Any(s => s._sectionProperties.Elements<FooterReference>().Any(fr => fr.Id == id));
                     if (!usedElsewhere) {
                         var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
-                        var part = mainDocumentPart?.GetPartById(id) as FooterPart;
+                        var part = mainDocumentPart?.Parts
+                            .FirstOrDefault(candidate => candidate.RelationshipId == id)
+                            .OpenXmlPart as FooterPart;
                         if (part != null) {
                             mainDocumentPart!.DeletePart(part);
                         }

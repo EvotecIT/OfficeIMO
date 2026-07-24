@@ -33,10 +33,12 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// PDF conversion enforces paged layout on its own conversion snapshot.
     /// </summary>
     /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
-    /// <remarks>The supplied URL policy is preserved. The parameterless constructor provides the PDF hyperlink default.</remarks>
+    /// <remarks>Generic rendering settings are intersected with the PDF hyperlink policy so caller restrictions are preserved. PDF-specific snapshots preserve their explicitly configured URL policy.</remarks>
     public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
         if (renderOptions is HtmlPdfSaveOptions pdfOptions) {
             CopyPdfSettingsFrom(pdfOptions);
+        } else {
+            UrlPolicy = HtmlUrlPolicy.Intersect(UrlPolicy, HtmlUrlPolicy.CreateHyperlinkProfile());
         }
     }
 
