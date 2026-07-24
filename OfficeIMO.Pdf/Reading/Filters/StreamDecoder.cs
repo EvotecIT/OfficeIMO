@@ -137,13 +137,11 @@ internal static class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.Lzw:
-                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
-                            return false;
-                        }
-
                         if (!LzwDecoder.TryDecode(current, maxOutputBytes, out current, GetEarlyChange(dict, filterIndex, objects))) {
                             return false;
                         }
+
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
 
                         break;
                     default:

@@ -503,7 +503,8 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (!TryReadIndirectObjectNumber(pdf, objectStart, objectEnd, out objectNumber) ||
-            CountPdfName(pdf, "/Contents", objectStart, objectEnd) != 1) {
+            !TryFindSolePdfNameOffset(pdf, "/Contents", objectStart, objectEnd, out int contentsNameOffset) ||
+            contentsNameOffset != contentsMarkerOffset) {
             return false;
         }
 
@@ -532,18 +533,68 @@ internal static partial class PdfIncrementalUpdater {
         return index > digitStart && objectNumber > 0 && index < objectEnd && IsPdfWhitespace(pdf[index]);
     }
 
-    private static int CountPdfName(byte[] pdf, string name, int start, int endExclusive) {
+    private static bool TryFindSolePdfNameOffset(
+        byte[] pdf,
+        string name,
+        int start,
+        int endExclusive,
+        out int nameOffset) {
         byte[] marker = PdfEncoding.Latin1GetBytes(name);
-        int count = 0;
-        int searchOffset = start;
-        while (searchOffset < endExclusive) {
-            int found = IndexOf(pdf, marker, searchOffset, endExclusive);
-            if (found < 0) return count;
-            int after = found + marker.Length;
-            if (after >= endExclusive || IsPdfWhitespace(pdf[after]) || IsPdfDelimiter(pdf[after])) count++;
-            searchOffset = after;
+        nameOffset = -1;
+        int index = start;
+        while (index < endExclusive) {
+            byte value = pdf[index];
+            if (value == (byte)'%') {
+                while (index < endExclusive && pdf[index] != (byte)'\r' && pdf[index] != (byte)'\n') index++;
+                continue;
+            }
+            if (value == (byte)'(') {
+                SkipPdfLiteralString(pdf, ref index, endExclusive);
+                continue;
+            }
+            if (value == (byte)'<' && index + 1 < endExclusive && pdf[index + 1] == (byte)'<') {
+                index += 2;
+                continue;
+            }
+            if (value == (byte)'<') {
+                index++;
+                while (index < endExclusive && pdf[index] != (byte)'>') index++;
+                if (index < endExclusive) index++;
+                continue;
+            }
+            if (value == (byte)'/' && MatchesAt(pdf, marker, index, endExclusive)) {
+                int after = index + marker.Length;
+                if (after >= endExclusive || IsPdfWhitespace(pdf[after]) || IsPdfDelimiter(pdf[after])) {
+                    if (nameOffset >= 0) return false;
+                    nameOffset = index;
+                }
+            }
+            index++;
         }
-        return count;
+        return nameOffset >= 0;
+    }
+
+    private static void SkipPdfLiteralString(byte[] pdf, ref int index, int endExclusive) {
+        int depth = 1;
+        index++;
+        while (index < endExclusive && depth > 0) {
+            byte value = pdf[index++];
+            if (value == (byte)'\\') {
+                if (index < endExclusive) index++;
+            } else if (value == (byte)'(') {
+                depth++;
+            } else if (value == (byte)')') {
+                depth--;
+            }
+        }
+    }
+
+    private static bool MatchesAt(byte[] value, byte[] expected, int offset, int endExclusive) {
+        if (offset < 0 || offset > endExclusive - expected.Length) return false;
+        for (int index = 0; index < expected.Length; index++) {
+            if (value[offset + index] != expected[index]) return false;
+        }
+        return true;
     }
 
     private static bool IsPdfWhitespace(byte value) =>

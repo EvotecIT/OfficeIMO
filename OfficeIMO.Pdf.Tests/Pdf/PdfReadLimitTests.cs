@@ -484,7 +484,7 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
-    public void TryDecodeRejectsLzwPredictorStreamsInsteadOfScanningIntermediateBytes() {
+    public void TryDecodeAppliesLzwPredictorWithinTheOutputBudget() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("LZWDecode");
         var decodeParameters = new PdfDictionary();
@@ -495,8 +495,8 @@ public class PdfReadLimitTests {
 
         bool decoded = StreamDecoder.TryDecode(dictionary, encoded, 1024, out byte[] output);
 
-        Assert.False(decoded);
-        Assert.Empty(output);
+        Assert.True(decoded);
+        Assert.Equal(new byte[] { 65, 66, 67, 68 }, output);
     }
 
     [Fact]

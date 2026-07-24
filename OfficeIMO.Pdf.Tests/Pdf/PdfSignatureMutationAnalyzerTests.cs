@@ -134,6 +134,42 @@ public class PdfSignatureMutationAnalyzerTests {
         Assert.False(report.AllExistingSignaturesArePreserved);
     }
 
+    [Fact]
+    public void Analyze_DoesNotTraversePageContentThroughSignatureWidgetBacklink() {
+        string sourceText = Encoding.ASCII.GetString(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
+            .Replace("/Subtype /Widget /Rect", "/Subtype /Widget /P 3 0 R /Rect", StringComparison.Ordinal)
+            .Replace(
+                "<< /Length 0 >>\nstream\n\nendstream",
+                "<< /Length 1048577 >>\nstream\n" + new string('q', 1_048_577) + "\nendstream",
+                StringComparison.Ordinal);
+        byte[] source = Encoding.ASCII.GetBytes(sourceText);
+        byte[] updated = AppendMetadataWithoutPolicy(source, "Later metadata");
+
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(
+            source,
+            updated,
+            PdfMutationOperation.UpdateMetadata);
+
+        PdfSignatureMutationResult result = Assert.Single(report.Signatures);
+        Assert.True(result.ActiveDefinitionPreserved);
+        Assert.True(result.IsStructurallyPreserved);
+    }
+
+    [Fact]
+    public void Analyze_StillComparesNestedDocMdpPermissionValues() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+        byte[] changed = ReplaceFirst(source, "/MDP << /P 2", "/MDP << /P 3");
+
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(
+            source,
+            changed,
+            PdfMutationOperation.UpdateMetadata);
+
+        PdfSignatureMutationResult result = Assert.Single(report.Signatures);
+        Assert.False(result.ActiveDefinitionPreserved);
+        Assert.False(result.IsStructurallyPreserved);
+    }
+
     private static byte[] ReplaceFirst(byte[] source, string oldValue, string newValue) {
         byte[] oldBytes = Encoding.ASCII.GetBytes(oldValue);
         byte[] newBytes = Encoding.ASCII.GetBytes(newValue);

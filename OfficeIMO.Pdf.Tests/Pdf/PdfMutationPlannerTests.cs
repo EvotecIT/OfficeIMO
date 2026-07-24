@@ -431,6 +431,30 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void ExternalSignatureFinalizationIgnoresContentsTextInsideMetadataStrings() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Signature contents lexical parsing"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                Reason = "Review /Contents <00000000> marker as ordinary text",
+                ReservedSignatureContentsBytes = 256
+            });
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+            preparation.PreparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
+        Assert.True(plan.CanExecute);
+
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(
+            preparation,
+            new byte[] { 0x30, 0x01, 0x00 });
+
+        Assert.NotEmpty(signed);
+    }
+
+    [Fact]
     public void DocumentMutationPlanningRetainsBytesForSignatureReservationValidation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Document signature planning source"))
