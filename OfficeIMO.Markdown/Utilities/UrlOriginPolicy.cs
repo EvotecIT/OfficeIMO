@@ -79,9 +79,11 @@ internal static class UrlOriginPolicy {
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
 
-        return scheme == "http"
-            || scheme == "https"
-            || scheme == "mailto"
+        if (scheme == "http" || scheme == "https") {
+            return IsWellFormedAbsoluteHttpUrl(value, scheme);
+        }
+
+        return scheme == "mailto"
             || scheme == "tel";
     }
 
@@ -90,8 +92,19 @@ internal static class UrlOriginPolicy {
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
 
-        if (scheme == "http" || scheme == "https" || scheme == "cid") return true;
+        if (scheme == "http" || scheme == "https") {
+            return IsWellFormedAbsoluteHttpUrl(value, scheme);
+        }
+
+        if (scheme == "cid") return true;
         return scheme == "data" && IsSafeRasterDataImage(value);
+    }
+
+    private static bool IsWellFormedAbsoluteHttpUrl(string value, string expectedScheme) {
+        return Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)
+            && uri != null
+            && string.Equals(uri.Scheme, expectedScheme, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(uri.Host);
     }
 
     private static bool TryGetScheme(string value, out string? scheme) {

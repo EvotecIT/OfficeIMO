@@ -313,9 +313,7 @@ internal static class HtmlRenderer {
         HtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
         string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
             static style => HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
-        string baseCss = string.IsNullOrWhiteSpace(options.CssScopeSelector)
-            ? rawBaseCss
-            : ScopeCss(rawBaseCss, options.CssScopeSelector);
+        string baseCss = ScopeCss(rawBaseCss, options.CssScopeSelector);
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();
