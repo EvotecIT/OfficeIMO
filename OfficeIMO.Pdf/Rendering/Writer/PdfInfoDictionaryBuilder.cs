@@ -35,7 +35,7 @@ internal static class PdfInfoDictionaryBuilder {
         sb.Append('/')
             .Append(PdfSyntaxEscaper.Name(key))
             .Append(' ')
-            .Append(PdfSyntaxEscaper.LiteralString(value!))
+            .Append(PdfSyntaxEscaper.TextString(value!))
             .Append(' ');
     }
 

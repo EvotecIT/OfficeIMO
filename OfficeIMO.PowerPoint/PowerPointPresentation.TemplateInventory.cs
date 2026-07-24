@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (GroupShape group in element.Ancestors<GroupShape>().Reverse()) {
                 mapping = mapping.Compose(CreateTemplateGroupMapping(group));
             }
-            return mapping.Map(localBounds.Value);
+            return mapping.TryMap(localBounds.Value, out PowerPointLayoutBox mapped) ? mapped : null;
         }
 
         private static TemplateBoundsMapping CreateTemplateGroupMapping(GroupShape group) {
@@ -268,21 +268,30 @@ namespace OfficeIMO.PowerPoint {
             private readonly double _offsetY;
             private readonly double _scaleX;
             private readonly double _scaleY;
+            private readonly bool _isValid;
 
             internal TemplateBoundsMapping(double offsetX, double offsetY, double scaleX, double scaleY) {
                 _offsetX = offsetX;
                 _offsetY = offsetY;
                 _scaleX = scaleX;
                 _scaleY = scaleY;
+                _isValid = IsFinite(offsetX) && IsFinite(offsetY) && IsFinite(scaleX) && IsFinite(scaleY);
             }
 
             internal static TemplateBoundsMapping Identity => new(0D, 0D, 1D, 1D);
 
-            internal PowerPointLayoutBox Map(PowerPointLayoutBox bounds) => new(
-                Round(_offsetX + (bounds.Left * _scaleX)),
-                Round(_offsetY + (bounds.Top * _scaleY)),
-                Round(bounds.Width * _scaleX),
-                Round(bounds.Height * _scaleY));
+            internal bool TryMap(PowerPointLayoutBox bounds, out PowerPointLayoutBox mapped) {
+                double left = _offsetX + (bounds.Left * _scaleX);
+                double top = _offsetY + (bounds.Top * _scaleY);
+                double width = bounds.Width * _scaleX;
+                double height = bounds.Height * _scaleY;
+                if (!_isValid || !CanRound(left) || !CanRound(top) || !CanRound(width) || !CanRound(height)) {
+                    mapped = default;
+                    return false;
+                }
+                mapped = new PowerPointLayoutBox(Round(left), Round(top), Round(width), Round(height));
+                return true;
+            }
 
             internal TemplateBoundsMapping Compose(TemplateBoundsMapping child) => new(
                 _offsetX + (child._offsetX * _scaleX),
@@ -290,8 +299,12 @@ namespace OfficeIMO.PowerPoint {
                 _scaleX * child._scaleX,
                 _scaleY * child._scaleY);
 
-            private static long Round(double value) =>
-                checked((long)Math.Round(value, MidpointRounding.AwayFromZero));
+            private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+            private static bool CanRound(double value) =>
+                IsFinite(value) &&
+                value >= -9223372036854775808D &&
+                value < 9223372036854775808D;
+            private static long Round(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
         }
     }
 }

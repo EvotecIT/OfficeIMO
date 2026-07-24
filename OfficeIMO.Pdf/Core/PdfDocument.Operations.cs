@@ -85,7 +85,12 @@ public sealed partial class PdfDocument {
         IEnumerable<string>? fieldNames = null,
         PdfReadOptions? options = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        return PdfMutationPlanner.Plan(Preflight(options), operation, fieldNames, executionPreference);
+        var snapshot = GetReadSnapshot(options);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(
+            snapshot.Bytes,
+            snapshot.Options,
+            () => snapshot.Document);
+        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference);
     }
 
     /// <summary>
@@ -111,10 +116,19 @@ public sealed partial class PdfDocument {
         }
         if (requested.Length == 0) throw new ArgumentException("At least one mutation operation is required.", nameof(operations));
         string[]? requestedFieldNames = fieldNames?.ToArray();
-        PdfDocumentPreflight preflight = Preflight(options);
+        var snapshot = GetReadSnapshot(options);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(
+            snapshot.Bytes,
+            snapshot.Options,
+            () => snapshot.Document);
         var plans = new PdfMutationPlan[requested.Length];
         for (int index = 0; index < requested.Length; index++) {
-            plans[index] = PdfMutationPlanner.Plan(preflight, requested[index], requestedFieldNames, executionPreference);
+            plans[index] = PdfMutationPlanner.Plan(
+                preflight,
+                snapshot.Bytes,
+                requested[index],
+                requestedFieldNames,
+                executionPreference);
         }
         return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
     }

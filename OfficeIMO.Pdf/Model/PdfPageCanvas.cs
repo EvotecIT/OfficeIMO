@@ -6,6 +6,9 @@ namespace OfficeIMO.Pdf;
 /// Builds foreground page content at absolute top-left page coordinates in the order items are added.
 /// </summary>
 public sealed class PdfPageCanvas {
+    /// <summary>Maximum supported outline hierarchy depth.</summary>
+    public const int MaximumOutlineLevel = 64;
+
     private readonly List<PdfCanvasItem> _items = new();
     private readonly bool _allowOutOfPageCoordinates;
 
@@ -36,8 +39,8 @@ public sealed class PdfPageCanvas {
             throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
         }
 
-        if (level <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(level), "Canvas outline levels must be positive.");
+        if (level <= 0 || level > MaximumOutlineLevel) {
+            throw new ArgumentOutOfRangeException(nameof(level), "Canvas outline levels must be between 1 and " + MaximumOutlineLevel + ".");
         }
 
         ValidateCanvasCoordinate(y, nameof(y));

@@ -256,7 +256,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "larger": return parentFontSize * 1.2D;
         }
 
-        return HtmlRenderCssValues.TryLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) && size > 0D
+        return HtmlRenderCssValues.TryLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) &&
+            !double.IsNaN(size) && !double.IsInfinity(size) && size > 0D
             ? size
             : parentFontSize;
     }

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.OpenDocument;
 
@@ -131,6 +132,12 @@ public abstract partial class OdfDocument {
             if (data.LongLength > options.MaxEntryUncompressedBytes) throw new InvalidDataException("Flat OpenDocument image exceeds MaxEntryUncompressedBytes.");
             string? mediaType = (string?)image.Attribute(OdfNamespaces.Draw + "mime-type");
             string extension = ImageExtension(mediaType, data);
+            if (extension == ".svg") {
+                if (!OfficeSvgDrawingReader.TryRead(data, out OfficeDrawing? drawing) || drawing == null) {
+                    throw new InvalidDataException("Flat OpenDocument SVG image is not a supported bounded vector image.");
+                }
+                data = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
+            }
             string path = "Pictures/flat-image" + index++.ToString(CultureInfo.InvariantCulture) + extension;
             package.AddOrReplaceEntry(path, data, ImageMediaType(extension));
             image.SetAttributeValue(OdfNamespaces.XLink + "href", path);

@@ -9,6 +9,15 @@ public sealed class PdfFormFillerOptions {
     private PdfConversionReport? _diagnosticsReport;
     private string _diagnosticsConverter = "OfficeIMO.Pdf";
 
+    /// <summary>Maximum XFDF source length accepted before XML materialization.</summary>
+    public int MaxXfdfDocumentCharacters { get; set; } = PdfFormDataSet.DefaultMaxXfdfDocumentCharacters;
+
+    /// <summary>Maximum number of fields accepted from one XFDF document.</summary>
+    public int MaxXfdfFields { get; set; } = PdfFormDataSet.DefaultMaxXfdfFields;
+
+    /// <summary>Maximum aggregate length of values accepted from one XFDF document.</summary>
+    public int MaxXfdfValueCharacters { get; set; } = PdfFormDataSet.DefaultMaxXfdfValueCharacters;
+
     /// <summary>
     /// When true, keeps the AcroForm /NeedAppearances flag set after filling fields for legacy viewers that ignore normal appearance streams.
     /// </summary>

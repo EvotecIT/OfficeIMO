@@ -782,6 +782,65 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderCachesRepeatedGradientTransformResolution() {
+        const int shapeCount = 256;
+        string transform = string.Join(" ", Enumerable.Repeat("translate(0 0)", 32));
+        var svg = new StringBuilder(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 1'><defs><linearGradient id='shared' gradientTransform='");
+        svg.Append(transform)
+            .Append("'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>");
+        for (int index = 0; index < shapeCount; index++) {
+            svg.Append("<rect x='").Append(index)
+                .Append("' width='1' height='1' fill='url(#shared)'/>");
+        }
+        svg.Append("</svg>");
+        var timer = Stopwatch.StartNew();
+
+        bool success = OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing,
+            out int unsupported);
+        timer.Stop();
+
+        Assert.True(success);
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(shapeCount, drawing!.Shapes.Count);
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Repeated gradient resolution exceeded the bounded parse time.");
+    }
+
+    [Fact]
+    public void SvgReaderCachesInvalidInheritedGradientDefinitions() {
+        const int childCount = 1024;
+        string transform = string.Join(" ", Enumerable.Repeat("translate(0 0)", 512));
+        var svg = new StringBuilder(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1'><defs><linearGradient id='invalid' gradientTransform='");
+        svg.Append(transform).Append("' x1='0' y1='0' x2='0' y2='0'><stop stop-color='red'/></linearGradient>");
+        for (int index = 0; index < childCount; index++) {
+            svg.Append("<linearGradient id='child-").Append(index).Append("' href='#invalid'/>");
+        }
+        svg.Append("</defs>");
+        for (int index = 0; index < childCount; index++) {
+            svg.Append("<rect x='").Append(index)
+                .Append("' width='1' height='1' fill='url(#child-").Append(index).Append(")'/>");
+        }
+        svg.Append("</svg>");
+        var timer = Stopwatch.StartNew();
+
+        bool success = OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing,
+            out int unsupported);
+        timer.Stop();
+
+        Assert.True(success);
+        Assert.NotNull(drawing);
+        Assert.Equal(childCount, unsupported);
+        Assert.Equal(childCount, drawing!.Shapes.Count);
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Invalid inherited gradients were reparsed instead of cached.");
+    }
+
+    [Fact]
     public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 

@@ -5,6 +5,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMetadataSynchronizationTests {
     [Fact]
+    public void GeneratedInfoDictionaryEncodesUnicodeWithoutPdfSyntaxInjection() {
+        const string title = "\u0129 /Author \u0128Injected";
+
+        byte[] pdf = PdfDocument.Create()
+            .Meta(title: title)
+            .Paragraph(paragraph => paragraph.Text("Metadata encoding"))
+            .ToBytes();
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        string raw = PdfEncoding.Latin1GetString(pdf);
+
+        Assert.Equal(title, info.Metadata.Title);
+        Assert.Null(info.Metadata.Author);
+        Assert.DoesNotContain(") /Author (Injected", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SynchronizeMetadata_UpdatesInfoAndXmpWhilePreservingCustomSchema() {
         var options = new PdfOptions { IncludeXmpMetadata = true }
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));

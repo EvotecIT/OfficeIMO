@@ -41,7 +41,8 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(pdf, nameof(pdf));
-        return Plan(PdfInspector.Preflight(pdf, options), operation, fieldNames, executionPreference);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        return Plan(preflight, pdf, operation, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation for a readable PDF stream.</summary>
@@ -98,6 +99,34 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(preflight, nameof(preflight));
+        return PlanCore(
+            preflight,
+            operation,
+            fieldNames,
+            executionPreference,
+            finalizationReservationValidated: operation != PdfMutationOperation.FinalizeExternalSignature);
+    }
+
+    /// <summary>Plans a mutation from a shared preflight while retaining source bytes for reservation validation.</summary>
+    internal static PdfMutationPlan Plan(
+        PdfDocumentPreflight preflight,
+        byte[] pdf,
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        Guard.NotNull(preflight, nameof(preflight));
+        Guard.NotNull(pdf, nameof(pdf));
+        bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
+            PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
+        return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated);
+    }
+
+    private static PdfMutationPlan PlanCore(
+        PdfDocumentPreflight preflight,
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames,
+        PdfMutationExecutionPreference executionPreference,
+        bool finalizationReservationValidated) {
         ValidateOperation(operation);
         ValidateExecutionPreference(executionPreference);
 
@@ -118,7 +147,9 @@ internal static class PdfMutationPlanner {
             (securityRewrite ||
                 (!requiresAppendOnly &&
                 (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedObjectGraphRewrite || authorizedEncryptedRewrite || CanExtractPagesViaNormalization(preflight, operation))));
-        bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
+        bool appendOnlyAvailable = appendOnlyImplemented &&
+            CanAppend(appendOnly, operation, finalizationReservationValidated) &&
+            !BlocksActiveContentPreservingMutation(preflight, operation);
 
         PdfMutationExecutionMode mode;
         if (executionPreference == PdfMutationExecutionPreference.RequireFullRewrite) {
@@ -141,6 +172,13 @@ internal static class PdfMutationPlanner {
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security)
             : Array.Empty<string>();
+        if (mode == PdfMutationExecutionMode.Blocked &&
+            operation == PdfMutationOperation.FinalizeExternalSignature &&
+            !finalizationReservationValidated) {
+            var reservationBlockers = blockers.ToList();
+            Add(reservationBlockers, "SignatureReservation.Invalid");
+            blockers = reservationBlockers.AsReadOnly();
+        }
         IReadOnlyList<PdfMutationCapabilityRecord> capabilityRecords = BuildCapabilityRecords(
             operation,
             structures,
@@ -211,7 +249,7 @@ internal static class PdfMutationPlanner {
         }
     }
 
-    private static bool CanAppend(PdfAppendOnlyMutationReport report, PdfMutationOperation operation) {
+    private static bool CanAppend(PdfAppendOnlyMutationReport report, PdfMutationOperation operation, bool finalizationReservationValidated) {
         switch (operation) {
             case PdfMutationOperation.UpdateMetadata:
                 return report.CanAppendMetadata;
@@ -220,7 +258,7 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.PrepareExternalSignature:
                 return report.CanPrepareExternalSignature;
             case PdfMutationOperation.FinalizeExternalSignature:
-                return report.Security.Signatures.Any(static signature => signature.HasUnsignedContentsPlaceholder);
+                return finalizationReservationValidated && report.Security.Signatures.Any(static signature => signature.HasUnsignedContentsPlaceholder);
             case PdfMutationOperation.EnrichLongTermValidation:
                 return report.CanAppendLongTermValidation;
             case PdfMutationOperation.ModifyAnnotations:
@@ -228,6 +266,13 @@ internal static class PdfMutationPlanner {
             default:
                 return false;
         }
+    }
+
+    private static bool BlocksActiveContentPreservingMutation(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
+        if (operation != PdfMutationOperation.UpdateMetadata && operation != PdfMutationOperation.FillFormFields) {
+            return false;
+        }
+        return preflight.Probe.HasActiveContent || preflight.UncheckedDocumentInfo?.HasActiveContent == true;
     }
 
     private static bool IsFullRewriteImplemented(PdfMutationOperation operation) {

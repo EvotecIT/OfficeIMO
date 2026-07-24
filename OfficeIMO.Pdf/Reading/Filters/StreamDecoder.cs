@@ -141,6 +141,8 @@ internal static class StreamDecoder {
                             return false;
                         }
 
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
+
                         break;
                     default:
                         return false;

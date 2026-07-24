@@ -512,6 +512,7 @@ internal static class HtmlPdfRenderedConverter {
             FlushShapes();
         }
 
+        if (source.Elements.Count == 0) return;
         if (string.IsNullOrWhiteSpace(visual.AlternativeText)) {
             AddElements(canvas, source.Elements);
         } else {

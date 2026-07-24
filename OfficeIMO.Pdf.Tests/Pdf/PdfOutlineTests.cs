@@ -38,6 +38,8 @@ public class PdfOutlineTests {
         Assert.Throws<ArgumentNullException>(() => canvas.Outline(null!, 1, 0D));
         Assert.Throws<ArgumentException>(() => canvas.Outline(" ", 1, 0D));
         Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 0, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            canvas.Outline("Too deep", PdfPageCanvas.MaximumOutlineLevel + 1, 0D));
         Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 1, double.NaN));
     }
 

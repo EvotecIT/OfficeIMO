@@ -57,6 +57,27 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_DefaultAttachmentPolicyReportsIncomingMetadataWithoutDecodingPayload() {
+        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("Primary without attachments")).ToBytes();
+        var incomingOptions = new PdfOptions().AddEmbeddedFile(
+            "oversized.bin",
+            Enumerable.Repeat((byte)0x41, 128).ToArray(),
+            "application/octet-stream");
+        byte[] second = PdfDocument.Create(incomingOptions).Paragraph(p => p.Text("Incoming attachment")).ToBytes();
+        var tightAttachmentLimit = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 16 }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(
+            new PdfMergeOptions(),
+            new[] { first, second },
+            new[] { new PdfReadOptions(), tightAttachmentLimit });
+
+        Assert.Equal(1, result.Report.Sources[1].AttachmentCount);
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(result.ToBytes()));
+    }
+
+    [Fact]
     public void MergeWithReport_RejectIncomingPolicyFailsBeforeReturningArtifact() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().ViewerPreferences(preferences => preferences.HideToolbar = true).Paragraph(p => p.Text("Second")).ToBytes();
@@ -316,16 +337,33 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
-    public void MergeWithReport_RebuildsIncomingOptionalContentAsVisibleLayers() {
+    public void MergeWithReport_RejectsOptionalContentCombineThatCouldExposeHiddenLayers() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
 
-        PdfDocumentInfo info = PdfInspector.Inspect(PdfMerger.MergeWithReport(options, first, second).ToBytes());
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfMerger.MergeWithReport(options, first, second));
 
-        Assert.Equal(new[] { "Print layer", "Hidden layer" }, info.OptionalContentGroupNames);
-        Assert.All(info.OptionalContentGroups, static group => Assert.True(group.IsInitiallyVisible));
-        Assert.Equal("Merged layers", info.OptionalContent!.DefaultConfigurationName);
+        Assert.Contains("intentionally hid", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(PdfMergeStructureMode.KeepPrimary)]
+    [InlineData(PdfMergeStructureMode.Drop)]
+    public void MergeWithReport_RejectsPoliciesThatDiscardIncomingHiddenLayerState(PdfMergeStructureMode mode) {
+        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
+        byte[] second = PdfDocument.Create()
+            .Layer("Hidden evidence", layer => layer.Paragraph(p => p.Text("Must stay hidden")), new PdfLayerOptions {
+                InitiallyVisible = false
+            })
+            .ToBytes();
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = mode } };
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfMerger.MergeWithReport(options, first, second));
+
+        Assert.Contains("hidden", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

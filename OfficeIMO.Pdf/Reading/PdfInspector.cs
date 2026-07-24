@@ -381,7 +381,7 @@ internal static class PdfInspector {
             Has("OutputIntents", "OutputIntent"),
             Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
             Has("OCProperties", "OCGs", "OCG", "OCMD"),
-            Has("JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia"),
+            Has(PdfActiveContentPolicy.MarkerNames),
             security);
     }
 

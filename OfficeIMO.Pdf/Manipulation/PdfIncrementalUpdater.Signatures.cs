@@ -146,11 +146,7 @@ internal static partial class PdfIncrementalUpdater {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
         _ = PdfReadDocument.Open(preparedPdf, readOptions);
-        _ = PdfMutationPlanner.RequireAppendOnly(
-            preparedPdf,
-            PdfMutationOperation.FinalizeExternalSignature,
-            readOptions);
-        int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength);
+        int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength, out _);
         if (placeholderCount == 0) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
         }
@@ -159,7 +155,60 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("PDF contains multiple zero-filled external signature placeholders. Complete the intended PdfExternalSignaturePreparation instead.", nameof(preparedPdf));
         }
 
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            preparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature,
+            readOptions);
         return ApplyExternalSignature(preparedPdf, signatureContents, contentsHexOffset, contentsHexLength);
+    }
+
+    internal static bool HasFinalizableExternalSignatureReservation(
+        byte[] preparedPdf,
+        PdfDocumentSecurityInfo security) {
+        int placeholderCount = FindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength, out int placeholderObjectNumber);
+        if (placeholderCount != 1 || contentsHexLength <= 0 || (contentsHexLength & 1) != 0) return false;
+
+        long contentsLiteralStart = contentsHexOffset - 1L;
+        long contentsLiteralEnd = contentsHexOffset + (long)contentsHexLength + 1L;
+        if (contentsLiteralStart < 0L || contentsLiteralEnd > preparedPdf.LongLength) return false;
+
+        PdfSignatureInfo[] candidates = security.Signatures.Where(signature =>
+            signature.ObjectNumber == placeholderObjectNumber &&
+            signature.HasUnsignedContentsPlaceholder &&
+            signature.ContentsSizeBytes == contentsHexLength / 2 &&
+            HasExactFinalizationByteRange(signature.ByteRangeValues, contentsLiteralStart, contentsLiteralEnd, preparedPdf.LongLength)).ToArray();
+        if (candidates.Length != 1) return false;
+
+        PdfSignatureInfo candidate = candidates[0];
+        for (int index = 0; index < security.Signatures.Count; index++) {
+            PdfSignatureInfo signature = security.Signatures[index];
+            if (ReferenceEquals(signature, candidate)) continue;
+            if (ByteRangesOverlap(signature.ByteRangeValues, contentsLiteralStart, contentsLiteralEnd)) return false;
+        }
+        return true;
+    }
+
+    private static bool HasExactFinalizationByteRange(
+        IReadOnlyList<long> values,
+        long contentsLiteralStart,
+        long contentsLiteralEnd,
+        long fileLength) =>
+        values.Count == 4 &&
+        values[0] == 0L &&
+        values[1] == contentsLiteralStart &&
+        values[2] == contentsLiteralEnd &&
+        values[3] == fileLength - contentsLiteralEnd;
+
+    private static bool ByteRangesOverlap(IReadOnlyList<long> values, long start, long end) {
+        if ((values.Count & 1) != 0) return true;
+        for (int index = 0; index < values.Count; index += 2) {
+            long rangeStart = values[index];
+            long rangeLength = values[index + 1];
+            if (rangeStart < 0L || rangeLength < 0L || rangeStart > long.MaxValue - rangeLength) return true;
+            long rangeEnd = rangeStart + rangeLength;
+            if (rangeStart < end && rangeEnd > start) return true;
+        }
+        return false;
     }
 
     /// <summary>Injects externally produced CMS/CAdES/TSA bytes into a prepared signature placeholder in a file.</summary>
@@ -391,9 +440,14 @@ internal static partial class PdfIncrementalUpdater {
         return builder.ToString();
     }
 
-    private static int FindZeroFilledSignatureContents(byte[] pdf, out int contentsHexOffset, out int contentsHexLength) {
+    private static int FindZeroFilledSignatureContents(
+        byte[] pdf,
+        out int contentsHexOffset,
+        out int contentsHexLength,
+        out int contentsObjectNumber) {
         contentsHexOffset = 0;
         contentsHexLength = 0;
+        contentsObjectNumber = 0;
         int placeholderCount = 0;
         byte[] marker = PdfEncoding.Latin1GetBytes("/Contents <");
         int searchOffset = 0;
@@ -418,10 +472,11 @@ internal static partial class PdfIncrementalUpdater {
                 pdf[end] == (byte)'>' &&
                 end > start &&
                 IsZeroFilled(pdf, start, end - start) &&
-                IsSignatureContentsPlaceholder(pdf, markerOffset, end + 1)) {
+                IsSignatureContentsPlaceholder(pdf, markerOffset, end + 1, out int objectNumber)) {
                 if (placeholderCount == 0) {
                     contentsHexOffset = start;
                     contentsHexLength = end - start;
+                    contentsObjectNumber = objectNumber;
                 }
 
                 placeholderCount++;
@@ -431,14 +486,25 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static bool IsSignatureContentsPlaceholder(byte[] pdf, int contentsMarkerOffset, int contentsLiteralEndExclusive) {
+    private static bool IsSignatureContentsPlaceholder(
+        byte[] pdf,
+        int contentsMarkerOffset,
+        int contentsLiteralEndExclusive,
+        out int objectNumber) {
+        objectNumber = 0;
         int objectStart = FindContainingObjectStart(pdf, contentsMarkerOffset);
         if (objectStart < 0) {
             return false;
         }
 
-        int objectEnd = IndexOf(pdf, PdfEncoding.Latin1GetBytes("endobj"), contentsMarkerOffset);
+        int objectEnd = FindContainingObjectEnd(pdf, objectStart, contentsMarkerOffset);
         if (objectEnd < 0 || objectEnd < contentsLiteralEndExclusive) {
+            return false;
+        }
+
+        if (!TryReadIndirectObjectNumber(pdf, objectStart, objectEnd, out objectNumber) ||
+            !TryFindSolePdfNameOffset(pdf, "/Contents", objectStart, objectEnd, out int contentsNameOffset) ||
+            contentsNameOffset != contentsMarkerOffset) {
             return false;
         }
 
@@ -449,27 +515,182 @@ internal static partial class PdfIncrementalUpdater {
             IndexOf(pdf, PdfEncoding.Latin1GetBytes("/ByteRange ["), objectStart, objectEnd) >= 0;
     }
 
-    private static int FindContainingObjectStart(byte[] pdf, int offset) {
-        int searchOffset = 0;
-        int objectStart = -1;
-        while (true) {
-            int candidate = IndexOf(pdf, PdfEncoding.Latin1GetBytes(" obj"), searchOffset, offset);
-            if (candidate < 0) {
-                return objectStart;
-            }
+    private static bool TryReadIndirectObjectNumber(
+        byte[] pdf,
+        int objectStart,
+        int objectEnd,
+        out int objectNumber) {
+        objectNumber = 0;
+        int index = objectStart;
+        while (index < objectEnd && IsPdfWhitespace(pdf[index])) index++;
+        int digitStart = index;
+        while (index < objectEnd && pdf[index] >= (byte)'0' && pdf[index] <= (byte)'9') {
+            int digit = pdf[index] - (byte)'0';
+            if (objectNumber > (int.MaxValue - digit) / 10) return false;
+            objectNumber = (objectNumber * 10) + digit;
+            index++;
+        }
+        return index > digitStart && objectNumber > 0 && index < objectEnd && IsPdfWhitespace(pdf[index]);
+    }
 
-            objectStart = FindLineStart(pdf, candidate);
-            searchOffset = candidate + 4;
+    private static bool TryFindSolePdfNameOffset(
+        byte[] pdf,
+        string name,
+        int start,
+        int endExclusive,
+        out int nameOffset) {
+        byte[] marker = PdfEncoding.Latin1GetBytes(name);
+        nameOffset = -1;
+        int index = start;
+        while (index < endExclusive) {
+            byte value = pdf[index];
+            if (value == (byte)'%') {
+                while (index < endExclusive && pdf[index] != (byte)'\r' && pdf[index] != (byte)'\n') index++;
+                continue;
+            }
+            if (value == (byte)'(') {
+                SkipPdfLiteralString(pdf, ref index, endExclusive);
+                continue;
+            }
+            if (value == (byte)'<' && index + 1 < endExclusive && pdf[index + 1] == (byte)'<') {
+                index += 2;
+                continue;
+            }
+            if (value == (byte)'<') {
+                index++;
+                while (index < endExclusive && pdf[index] != (byte)'>') index++;
+                if (index < endExclusive) index++;
+                continue;
+            }
+            if (value == (byte)'/' && MatchesAt(pdf, marker, index, endExclusive)) {
+                int after = index + marker.Length;
+                if (after >= endExclusive || IsPdfWhitespace(pdf[after]) || IsPdfDelimiter(pdf[after])) {
+                    if (nameOffset >= 0) return false;
+                    nameOffset = index;
+                }
+            }
+            index++;
+        }
+        return nameOffset >= 0;
+    }
+
+    private static void SkipPdfLiteralString(byte[] pdf, ref int index, int endExclusive) {
+        int depth = 1;
+        index++;
+        while (index < endExclusive && depth > 0) {
+            byte value = pdf[index++];
+            if (value == (byte)'\\') {
+                if (index < endExclusive) index++;
+            } else if (value == (byte)'(') {
+                depth++;
+            } else if (value == (byte)')') {
+                depth--;
+            }
         }
     }
 
-    private static int FindLineStart(byte[] bytes, int offset) {
-        int index = offset;
-        while (index > 0 && bytes[index - 1] != (byte)'\n' && bytes[index - 1] != (byte)'\r') {
-            index--;
+    private static bool MatchesAt(byte[] value, byte[] expected, int offset, int endExclusive) {
+        if (offset < 0 || offset > endExclusive - expected.Length) return false;
+        for (int index = 0; index < expected.Length; index++) {
+            if (value[offset + index] != expected[index]) return false;
+        }
+        return true;
+    }
+
+    private static bool IsPdfWhitespace(byte value) =>
+        value == 0 || value == (byte)'\t' || value == (byte)'\n' || value == (byte)'\f' || value == (byte)'\r' || value == (byte)' ';
+
+    private static bool IsPdfDelimiter(byte value) =>
+        value == (byte)'(' || value == (byte)')' || value == (byte)'<' || value == (byte)'>' ||
+        value == (byte)'[' || value == (byte)']' || value == (byte)'{' || value == (byte)'}' ||
+        value == (byte)'/' || value == (byte)'%';
+
+    private static int FindContainingObjectStart(byte[] pdf, int offset) {
+        int index = 0;
+        int objectStart = -1;
+        while (index < offset) {
+            if (SkipPdfLexicalValue(pdf, ref index, offset)) continue;
+            if (objectStart >= 0 && MatchesPdfKeyword(pdf, index, offset, "endobj")) {
+                objectStart = -1;
+                index += 6;
+                continue;
+            }
+            if (objectStart < 0 && TryMatchIndirectObjectHeader(pdf, index, offset)) {
+                objectStart = index;
+            }
+            index++;
         }
 
-        return index;
+        return objectStart;
+    }
+
+    private static int FindContainingObjectEnd(byte[] pdf, int objectStart, int minimumOffset) {
+        int index = objectStart;
+        while (index < pdf.Length) {
+            if (SkipPdfLexicalValue(pdf, ref index, pdf.Length)) continue;
+            if (index >= minimumOffset && MatchesPdfKeyword(pdf, index, pdf.Length, "endobj")) {
+                return index;
+            }
+            index++;
+        }
+
+        return -1;
+    }
+
+    private static bool SkipPdfLexicalValue(byte[] pdf, ref int index, int endExclusive) {
+        byte value = pdf[index];
+        if (value == (byte)'%') {
+            while (index < endExclusive && pdf[index] != (byte)'\r' && pdf[index] != (byte)'\n') index++;
+            return true;
+        }
+        if (value == (byte)'(') {
+            SkipPdfLiteralString(pdf, ref index, endExclusive);
+            return true;
+        }
+        if (value == (byte)'<' && (index + 1 >= endExclusive || pdf[index + 1] != (byte)'<')) {
+            index++;
+            while (index < endExclusive && pdf[index] != (byte)'>') index++;
+            if (index < endExclusive) index++;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryMatchIndirectObjectHeader(byte[] pdf, int offset, int endExclusive) {
+        if (offset > 0 && !IsPdfWhitespace(pdf[offset - 1])) return false;
+        int index = offset;
+        if (!TrySkipUnsignedInteger(pdf, ref index, endExclusive, requirePositive: true) ||
+            !SkipRequiredPdfWhitespace(pdf, ref index, endExclusive) ||
+            !TrySkipUnsignedInteger(pdf, ref index, endExclusive, requirePositive: false) ||
+            !SkipRequiredPdfWhitespace(pdf, ref index, endExclusive)) {
+            return false;
+        }
+        return MatchesPdfKeyword(pdf, index, endExclusive, "obj");
+    }
+
+    private static bool TrySkipUnsignedInteger(byte[] pdf, ref int index, int endExclusive, bool requirePositive) {
+        int start = index;
+        bool nonZero = false;
+        while (index < endExclusive && pdf[index] >= (byte)'0' && pdf[index] <= (byte)'9') {
+            nonZero |= pdf[index] != (byte)'0';
+            index++;
+        }
+        return index > start && (!requirePositive || nonZero);
+    }
+
+    private static bool SkipRequiredPdfWhitespace(byte[] pdf, ref int index, int endExclusive) {
+        int start = index;
+        while (index < endExclusive && IsPdfWhitespace(pdf[index])) index++;
+        return index > start;
+    }
+
+    private static bool MatchesPdfKeyword(byte[] pdf, int offset, int endExclusive, string keyword) {
+        if (offset > 0 && pdf[offset - 1] == (byte)'/') return false;
+        if (offset > 0 && !IsPdfWhitespace(pdf[offset - 1]) && !IsPdfDelimiter(pdf[offset - 1])) return false;
+        byte[] expected = PdfEncoding.Latin1GetBytes(keyword);
+        if (!MatchesAt(pdf, expected, offset, endExclusive)) return false;
+        int after = offset + expected.Length;
+        return after >= endExclusive || IsPdfWhitespace(pdf[after]) || IsPdfDelimiter(pdf[after]);
     }
 
     private static bool IsZeroFilled(byte[] bytes, int offset, int length) {

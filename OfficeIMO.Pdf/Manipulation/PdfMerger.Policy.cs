@@ -16,7 +16,7 @@ internal static partial class PdfMerger {
             source.Document.NamedDestinations.Count,
             source.Document.PageLabels.Count,
             source.Document.FormFields.Count,
-            PdfAttachmentExtractor.ExtractAttachments(source.Document).Count,
+            source.Document.Attachments.Count,
             source.SourceSecurity,
             source.SourcePermissionPolicy)).ToArray();
         var decisions = new List<PdfMergeDecision>();
@@ -121,11 +121,14 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions) {
-        IReadOnlyList<PdfExtractedAttachment>[] sourceAttachments = sources.Select(source => PdfAttachmentExtractor.ExtractAttachments(source.Document)).ToArray();
-        int incomingCount = sourceAttachments.Where((_, index) => index != primarySourceIndex).Sum(static items => items.Count);
+        int[] sourceAttachmentCounts = sources.Select(static source => source.Document.Attachments.Count).ToArray();
+        int incomingCount = sourceAttachmentCounts.Where((_, index) => index != primarySourceIndex).Sum();
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
-                if (incomingCount > 0) merged = ReplaceAttachments(merged, ConvertAttachments(sourceAttachments[primarySourceIndex]));
+                if (incomingCount > 0) {
+                    IReadOnlyList<PdfExtractedAttachment> primaryAttachments = PdfAttachmentExtractor.ExtractAttachments(sources[primarySourceIndex].Document);
+                    merged = ReplaceAttachments(merged, ConvertAttachments(primaryAttachments));
+                }
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Kept primary attachments.", droppedCount: incomingCount));
                 return merged;
             case PdfMergeStructureMode.RejectIncoming:
@@ -133,10 +136,11 @@ internal static partial class PdfMerger {
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "No incoming attachments were present."));
                 return merged;
             case PdfMergeStructureMode.Drop:
-                if (sourceAttachments.Sum(static items => items.Count) > 0) merged = ReplaceAttachments(merged, Array.Empty<PdfEmbeddedFile>());
+                if (sourceAttachmentCounts.Sum() > 0) merged = ReplaceAttachments(merged, Array.Empty<PdfEmbeddedFile>());
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Removed embedded and associated files."));
                 return merged;
             case PdfMergeStructureMode.Combine:
+                IReadOnlyList<PdfExtractedAttachment>[] sourceAttachments = sources.Select(source => PdfAttachmentExtractor.ExtractAttachments(source.Document)).ToArray();
                 var renamed = new List<string>();
                 int dropped = 0;
                 IReadOnlyList<PdfEmbeddedFile> combined = CombineAttachments(sourceAttachments, collisionMode, renamed, ref dropped);

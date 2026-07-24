@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentMetadataTests {
     [Fact]
-    public void Meta_EscapesLiteralStringsAndInspectorReadsOriginalValues() {
+    public void Meta_EncodesTextStringsAndInspectorReadsOriginalValues() {
         const string title = "Quarterly (Q1) \\ Roadmap";
         const string author = "OfficeIMO\nTeam";
         const string subject = "PDF metadata (escaped) \\ subject";
@@ -21,10 +21,10 @@ public class PdfDocumentMetadataTests {
 
         string pdfText = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/Title (Quarterly \\(Q1\\) \\\\ Roadmap)", pdfText, StringComparison.Ordinal);
-        Assert.Contains("/Author (OfficeIMO\\nTeam)", pdfText, StringComparison.Ordinal);
-        Assert.Contains("/Subject (PDF metadata \\(escaped\\) \\\\ subject)", pdfText, StringComparison.Ordinal);
-        Assert.Contains("/Keywords (alpha,beta\\r\\ngamma\\tomega)", pdfText, StringComparison.Ordinal);
+        Assert.Contains("/Title " + PdfSyntaxEscaper.TextString(title), pdfText, StringComparison.Ordinal);
+        Assert.Contains("/Author " + PdfSyntaxEscaper.TextString(author), pdfText, StringComparison.Ordinal);
+        Assert.Contains("/Subject " + PdfSyntaxEscaper.TextString(subject), pdfText, StringComparison.Ordinal);
+        Assert.Contains("/Keywords " + PdfSyntaxEscaper.TextString(keywords), pdfText, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
 
