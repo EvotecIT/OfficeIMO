@@ -78,8 +78,25 @@ internal static partial class PdfWriter {
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
 
-        // Build PDF objects as byte arrays, then assemble with xref.
-        using var objects = new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);
+        // Build indirect objects through either the bounded replay store or the opt-in one-pass object writer.
+        bool finalArtifactBuffered = outputStream == null;
+        MemoryStream? forwardBuffer = null;
+        PdfForwardOnlyObjectStore? forwardOnlyObjects = null;
+        if (opts.ObjectSerializationMode == PdfObjectSerializationMode.ForwardOnly) {
+            if (opts.FileVersion < PdfFileVersion.Pdf17) {
+                throw new InvalidOperationException("Forward-only PDF object serialization requires PdfOptions.FileVersion to be PDF 1.7 or newer.");
+            }
+            if (opts.EncryptionSnapshot != null) {
+                throw new InvalidOperationException("Forward-only PDF object serialization does not support Standard Security encryption.");
+            }
+            if (outputStream == null) {
+                forwardBuffer = new MemoryStream();
+                outputStream = forwardBuffer;
+            }
+            forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, opts.FileVersion);
+        }
+        using IPdfObjectStore objects = (IPdfObjectStore?)forwardOnlyObjects
+            ?? new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);
 
         // Reserve IDs (1-based). We'll assign as we add to `objects`.
         int infoId = 0, catalogId = 0;
@@ -900,6 +917,27 @@ internal static partial class PdfWriter {
         if (optionalContentPropertiesId > 0) {
             effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf15);
         }
+        if (forwardOnlyObjects != null) {
+            if (effectiveFileVersion > opts.FileVersion) {
+                throw new InvalidOperationException(
+                    "The generated PDF requires " + effectiveFileVersion +
+                    " but the forward-only header was already emitted as " + opts.FileVersion + ".");
+            }
+            bytesWritten = forwardOnlyObjects.Complete(catalogId, infoId);
+            var forwardEvidence = new PdfFileAssemblyBufferEvidence(
+                peakRetainedObjectBytes: 0L,
+                objectBufferSpilled: false,
+                isForwardOnlyObjectSerialization: true,
+                largestSerializedObjectBytes: forwardOnlyObjects.LargestSerializedObjectBytes);
+            serializationReport = CreateSerializationReport(
+                layout,
+                forwardEvidence,
+                opts,
+                pageCount,
+                bytesWritten,
+                finalArtifactBuffered);
+            return forwardBuffer?.ToArray();
+        }
         if (outputStream != null) {
             bytesWritten = PdfFileAssembler.AssembleWithEvidence(
                 outputStream,
@@ -945,7 +983,9 @@ internal static partial class PdfWriter {
             layout.PageContentSpilled,
             bufferEvidence.ObjectBufferSpilled,
             finalArtifactBuffered,
-            sourcePassthrough: false);
+            sourcePassthrough: false,
+            bufferEvidence.IsForwardOnlyObjectSerialization,
+            bufferEvidence.LargestSerializedObjectBytes);
 
     private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {
         if (string.IsNullOrEmpty(content) || images.Count == 0) {

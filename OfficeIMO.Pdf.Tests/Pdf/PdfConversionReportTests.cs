@@ -47,6 +47,60 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfConversionReport_ClassifiesFaithfulSubstitutedAndDegradedResults() {
+        var report = new PdfConversionReport();
+        Assert.Equal(PdfConversionFidelityStatus.Faithful, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Word.Pdf",
+            "NativeFontFamilySubstituted",
+            "word:font[Calibri]",
+            "Calibri was substituted."));
+        Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Pdf",
+            "unsupported-font-ligature-substitution",
+            "word:paragraph[1]",
+            "A requested OpenType ligature was simplified."));
+        Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            "font-family-substitution",
+            "powerpoint:slide[1]/shape[1]",
+            "A presentation font family was substituted."));
+        Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Word.Pdf",
+            "NativeFontFamilySlotExhausted",
+            "word:font[FourthFamily]",
+            "The standard font slots were exhausted and another mapped family was used."));
+        Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            "font-family-substitution",
+            "powerpoint:slide[2]/shape[1]",
+            "A required presentation font substitution failed.",
+            PdfConversionWarningSeverity.Error));
+        Assert.True(report.HasErrors);
+        Assert.Equal(PdfConversionFidelityStatus.Degraded, report.FidelityStatus);
+    }
+
+    [Fact]
+    public void PdfConversionReport_ClassifiesNonSubstitutionLossAsDegraded() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Word.Pdf",
+            "UnsupportedComplexScriptShaping",
+            "word:paragraph[1]",
+            "Complex-script shaping is unavailable."));
+        Assert.Equal(PdfConversionFidelityStatus.Degraded, report.FidelityStatus);
+    }
+
+    [Fact]
     public void PdfConversionReport_RequireNoWarningsReturnsReportWhenClean() {
         var report = new PdfConversionReport();
 

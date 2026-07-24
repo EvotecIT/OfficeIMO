@@ -1,14 +1,26 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
 
 internal static class PdfBenchmarkCorpus {
     internal const int PageCount = 60;
+    private static readonly Lazy<byte[]> CarlitoRegular = new(
+        static () => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf")),
+        isThreadSafe: true);
 
     internal static byte[] Create() {
+        return CreateDocument(PdfObjectSerializationMode.Buffered).ToBytes();
+    }
+
+    internal static PdfDocument CreateDocument(PdfObjectSerializationMode objectSerializationMode) {
         byte[] image = CreateImage();
         PdfDocument document = PdfDocument.Create(new PdfOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            FileVersion = objectSerializationMode == PdfObjectSerializationMode.ForwardOnly
+                ? PdfFileVersion.Pdf17
+                : PdfFileVersion.Pdf14,
+            ObjectSerializationMode = objectSerializationMode
         }).Meta(title: "OfficeIMO.Pdf mixed performance corpus");
 
         for (int page = 1; page <= PageCount; page++) {
@@ -35,13 +47,37 @@ internal static class PdfBenchmarkCorpus {
             }
         }
 
-        byte[] bytes = document.ToBytes();
-        int pages = PdfDocument.Open(bytes).Inspect().PageCount;
-        if (pages != PageCount) {
-            throw new InvalidOperationException($"Benchmark corpus produced {pages} pages instead of {PageCount}.");
+        return document;
+    }
+
+    internal static PdfDocument CreateHarfBuzzDocument() {
+        byte[] fontData = CarlitoRegular.Value;
+        var options = new PdfOptions {
+            CompressContentStreams = true,
+            DefaultFontSize = 10,
+            FileVersion = PdfFileVersion.Pdf17,
+            ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
+            TextShapingMode = PdfTextShapingMode.LatinLigatures
+        }.SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
+        options.RegisterFontFamily(
+            PdfStandardFont.Helvetica,
+            new PdfEmbeddedFontFamily("Carlito", fontData));
+        PdfDocument document = PdfDocument.Create(options)
+            .Meta(title: "OfficeIMO.Pdf HarfBuzz performance corpus");
+        const string shapedText =
+            "Office affinity efficient official workflow: AVATAR, ffi, fi, fl. " +
+            "Repeated shaping must reuse one parsed font face across measurement and drawing.";
+        for (int page = 1; page <= PageCount; page++) {
+            document.H1("Shaped report " + page);
+            for (int paragraph = 0; paragraph < 12; paragraph++) {
+                document.Paragraph(builder => builder.Text(shapedText));
+            }
+            if (page < PageCount) {
+                document.PageBreak();
+            }
         }
 
-        return bytes;
+        return document;
     }
 
     private static byte[] CreateImage() {

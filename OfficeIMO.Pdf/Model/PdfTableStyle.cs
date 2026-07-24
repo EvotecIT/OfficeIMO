@@ -30,6 +30,7 @@ public class PdfTableStyle {
     private int _headerRowCount = 1;
     private int _footerRowCount;
     private int? _repeatHeaderRowCount;
+    private int _minimumBodyRowsOnFirstPage = 2;
     private int _minimumBodyRowsOnLastPage = 2;
     private double _cellPaddingX = 4;
     private double _cellPaddingY = 2;
@@ -304,6 +305,17 @@ public class PdfTableStyle {
                 ValidateNonNegativeValue(value.Value, nameof(RepeatHeaderRowCount), "Table repeating header row count cannot be negative.");
             }
             _repeatHeaderRowCount = value;
+        }
+    }
+    /// <summary>
+    /// Minimum number of body rows kept with leading header rows when a table starts on a partially occupied page and the group fits on one page.
+    /// Set to zero to allow a header-only first segment. Defaults to two.
+    /// </summary>
+    public int MinimumBodyRowsOnFirstPage {
+        get => _minimumBodyRowsOnFirstPage;
+        set {
+            ValidateNonNegativeValue(value, nameof(MinimumBodyRowsOnFirstPage), "Table minimum first-page body row count cannot be negative.");
+            _minimumBodyRowsOnFirstPage = value;
         }
     }
     /// <summary>Number of trailing rows to render as table footers. Defaults to 0.</summary>
@@ -634,6 +646,7 @@ public class PdfTableStyle {
             HeaderBold = HeaderBold,
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
+            MinimumBodyRowsOnFirstPage = MinimumBodyRowsOnFirstPage,
             FooterRowCount = FooterRowCount,
             MinimumBodyRowsOnLastPage = MinimumBodyRowsOnLastPage,
             FooterTextColor = FooterTextColor,

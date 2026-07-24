@@ -12,7 +12,9 @@ public sealed class PdfSerializationReport {
         bool pageContentSpilled,
         bool objectBufferSpilled,
         bool finalArtifactBuffered,
-        bool sourcePassthrough) {
+        bool sourcePassthrough,
+        bool isForwardOnlyObjectSerialization = false,
+        long largestSerializedObjectBytes = 0L) {
         PageCount = pageCount;
         BytesWritten = bytesWritten;
         PageContentMemoryLimitBytes = pageContentMemoryLimitBytes;
@@ -23,6 +25,8 @@ public sealed class PdfSerializationReport {
         ObjectBufferSpilled = objectBufferSpilled;
         FinalArtifactBuffered = finalArtifactBuffered;
         SourcePassthrough = sourcePassthrough;
+        IsForwardOnlyObjectSerialization = isForwardOnlyObjectSerialization;
+        LargestSerializedObjectBytes = largestSerializedObjectBytes;
         IsForwardOnlyLayout = false;
     }
 
@@ -47,8 +51,14 @@ public sealed class PdfSerializationReport {
     /// <summary>True when an opened artifact was copied without generated layout or object assembly.</summary>
     public bool SourcePassthrough { get; }
 
+    /// <summary>True when each completed indirect object was emitted once without an object-body replay pass.</summary>
+    public bool IsForwardOnlyObjectSerialization { get; }
+
+    /// <summary>Largest completed indirect-object payload observed during serialization.</summary>
+    public long LargestSerializedObjectBytes { get; }
+
     /// <summary>
-    /// False until layout, replay, and deterministic object allocation support genuinely forward-only output.
+    /// False until layout itself can release completed pages without replay or total-page-dependent backtracking.
     /// </summary>
     public bool IsForwardOnlyLayout { get; }
 

@@ -11,6 +11,7 @@
     "OfficeIMO.Confluence": "3.0.X",
     "OfficeIMO.Drawing": "3.0.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.0.X",
+    "OfficeIMO.Drawing.HarfBuzz": "3.0.X",
     "OfficeIMO.Email": "3.0.X",
     "OfficeIMO.Epub": "3.0.X",
     "OfficeIMO.Epub.Image": "3.0.X",

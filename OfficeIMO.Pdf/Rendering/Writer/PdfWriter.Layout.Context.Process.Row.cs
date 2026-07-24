@@ -588,6 +588,23 @@ internal static partial class PdfWriter {
                                 }
                             }
 
+                            if (line == 0 && consumed > 0.001) {
+                                int minimumFirstPageBodyRows = Math.Min(
+                                    tableStyle.MinimumBodyRowsOnFirstPage,
+                                    Math.Max(0, table.FooterStartRowIndex - table.HeaderRowCount));
+                                if (minimumFirstPageBodyRows > 0) {
+                                    int firstPageRowCount = table.HeaderRowCount + minimumFirstPageBodyRows;
+                                    double firstPageGroupHeight =
+                                        tableSpacingBefore +
+                                        table.CaptionHeight +
+                                        GetTableRowsHeight(table.RowHeights, 0, firstPageRowCount, columnTableRowGap);
+                                    if (firstPageGroupHeight <= maxContentHeight + 0.001 &&
+                                        firstPageGroupHeight > remain + 0.001) {
+                                        break;
+                                    }
+                                }
+                            }
+
                             if (line == 0 && tableSpacingBefore > 0) {
                                 if (tableSpacingBefore > remain && consumed > 0) break;
                                 if (tableSpacingBefore > remain && consumed == 0) { remain = 0; break; }

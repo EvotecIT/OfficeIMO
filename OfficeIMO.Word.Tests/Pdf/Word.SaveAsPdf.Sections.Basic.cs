@@ -153,7 +153,8 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                IncludePageNumbers = false
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
         }
 
@@ -296,7 +297,8 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                IncludePageNumbers = false
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
         }
 
@@ -353,7 +355,8 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                IncludePageNumbers = false
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
         }
 
@@ -389,7 +392,8 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                IncludePageNumbers = false
+                IncludePageNumbers = false,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
         }
 

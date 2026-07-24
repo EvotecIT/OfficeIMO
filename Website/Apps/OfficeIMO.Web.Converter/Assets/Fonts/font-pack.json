@@ -1,0 +1,40 @@
+{
+  "id": "officeimo-browser-compact-2026.07",
+  "description": "Portable browser PDF font pack for ordinary Office documents, Arabic glyph fallback, and common symbols.",
+  "fonts": [
+    {
+      "family": "Carlito",
+      "purpose": "Default Latin Office document family and metric-compatible substitute for Calibri.",
+      "aliases": [ "Calibri", "Calibri Light", "Aptos", "Aptos Display" ],
+      "license": "SIL Open Font License 1.1",
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "9fab8b6cc7b2f20376914fd765d918c698c66d75",
+      "files": [
+        { "name": "Carlito-Regular.ttf", "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595" },
+        { "name": "Carlito-Bold.ttf", "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db" },
+        { "name": "Carlito-Italic.ttf", "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c" },
+        { "name": "Carlito-BoldItalic.ttf", "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517" }
+      ]
+    },
+    {
+      "family": "Noto Sans Arabic",
+      "purpose": "Portable Arabic glyph fallback. OfficeIMO reports shaping and bidirectional limitations separately.",
+      "license": "SIL Open Font License 1.1",
+      "sourceRepository": "https://github.com/notofonts/noto-fonts",
+      "sourceCommit": "ffebf8c1ee449e544955a7e813c54f9b73848eac",
+      "files": [
+        { "name": "NotoSansArabic-Regular.ttf", "sha256": "ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b" }
+      ]
+    },
+    {
+      "family": "Noto Sans Symbols 2",
+      "purpose": "Portable bullets, technical marks, and symbol fallback.",
+      "license": "SIL Open Font License 1.1",
+      "sourceRepository": "https://github.com/google/fonts",
+      "sourceCommit": "9fab8b6cc7b2f20376914fd765d918c698c66d75",
+      "files": [
+        { "name": "NotoSansSymbols2-Regular.ttf", "sha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21" }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Mutable serialized-object table that spills object bodies to a temporary file after a bounded memory budget.</summary>
-internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDisposable {
+internal sealed class PdfObjectStore : IPdfObjectStore {
     internal const long DefaultMemoryLimitBytes = 16L * 1024L * 1024L;
 
     private readonly List<Entry> _entries = new List<Entry>();

@@ -13,15 +13,45 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeDefaultParagraphLineHeight = 1.15D;
         private const double NativeDefaultParagraphSpacingAfter = 8D;
-        private const double NativeWordSingleLineHeight = 1.22D;
-        private const double NativeWordAutoLineSpacingHeight = NativeDefaultParagraphLineHeight;
-        private const double NativeWordTableSingleLineHeight = 1.22D;
+        private const double NativeCalibriSingleLineHeight = 1.220703125D;
         private const double NativeTablePageContinuationSpacingBefore = 24D;
         private const double NativeHeaderFooterFontSize = 9D;
         private const double NativeHeaderFooterLineHeight = NativeHeaderFooterFontSize * 1.2D;
         private const double NativeHeaderFooterBodyGap = 2D;
         private const double NativeHeaderFooterDefaultOffset = 18D;
         private const double NativeFooterDefaultOffset = 20D;
+
+        // OOXML auto line spacing is expressed in 240ths of Word's single-line
+        // box. Resolve that box from the effective font instead of applying the
+        // Calibri/Carlito metric to Arial, Times, or arbitrary embedded faces.
+        private static double ResolveNativeWordSingleLineHeight(params string?[] familyCandidates) =>
+            ResolveNativeWordSingleLineHeight(null, familyCandidates);
+
+        private static double ResolveNativeWordSingleLineHeight(
+            NativeFontMap? nativeFontMap,
+            params string?[] familyCandidates) {
+            foreach (string? candidate in familyCandidates) {
+                if (string.IsNullOrWhiteSpace(candidate)) {
+                    continue;
+                }
+
+                if (nativeFontMap?.TryResolveLineSpacingRatio(candidate, out double resolvedRatio) == true) {
+                    return resolvedRatio;
+                }
+
+                string normalized = NormalizeNativeFontFamily(candidate!);
+                if (normalized.StartsWith("calibri", StringComparison.OrdinalIgnoreCase) ||
+                    normalized.StartsWith("carlito", StringComparison.OrdinalIgnoreCase)) {
+                    return NativeCalibriSingleLineHeight;
+                }
+            }
+
+            if (nativeFontMap?.TryResolveDefaultLineSpacingRatio(out double defaultRatio) == true) {
+                return defaultRatio;
+            }
+
+            return NativeDefaultParagraphLineHeight;
+        }
 
         private interface INativePdfFlow {
             void PageBreak();
@@ -124,7 +154,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, int Index)> listIndices = DocumentTraversal.BuildListIndices(document);
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
-            NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document);
+            NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             var footnoteNumbersById = new Dictionary<long, int>();
             IReadOnlyList<WordSection> sections = document.Sections;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {

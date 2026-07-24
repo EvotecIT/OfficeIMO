@@ -59,6 +59,25 @@ public sealed class PdfTextFallbackPlan {
         }, styleTemplate);
     }
 
+    /// <summary>
+    /// Converts a fully covered fallback plan into rich text runs assigned to registered named font families.
+    /// </summary>
+    /// <param name="fontFamilyNames">Registered named font families ordered the same way as the fallback candidates.</param>
+    /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
+    /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
+    public IReadOnlyList<TextRun> ToNamedTextRuns(IReadOnlyList<string> fontFamilyNames, TextRun? styleTemplate = null) {
+        Guard.NotNull(fontFamilyNames, nameof(fontFamilyNames));
+        return ToNamedTextRuns(index => {
+            if (index < 0 || index >= fontFamilyNames.Count) {
+                throw new ArgumentException("Fallback named font mapping is missing an entry for candidate index " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(fontFamilyNames));
+            }
+
+            string fontFamilyName = fontFamilyNames[index];
+            Guard.NotNullOrWhiteSpace(fontFamilyName, nameof(fontFamilyNames));
+            return fontFamilyName.Trim();
+        }, styleTemplate);
+    }
+
     private System.Collections.ObjectModel.ReadOnlyCollection<TextRun> ToTextRuns(Func<int, PdfStandardFont> resolveFont, TextRun? styleTemplate) {
         if (!IsFullyCovered) {
             throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
@@ -72,6 +91,29 @@ public sealed class PdfTextFallbackPlan {
             }
 
             runs.Add(CreateStyledRun(segment.Text, resolveFont(segment.FontIndex), styleTemplate));
+            cursor = segment.StartIndex + segment.Length;
+        }
+
+        if (cursor < OriginalText.Length) {
+            AddLayoutControlRuns(runs, OriginalText.Substring(cursor));
+        }
+
+        return runs.AsReadOnly();
+    }
+
+    private System.Collections.ObjectModel.ReadOnlyCollection<TextRun> ToNamedTextRuns(Func<int, string> resolveFontFamily, TextRun? styleTemplate) {
+        if (!IsFullyCovered) {
+            throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
+        }
+
+        var runs = new List<TextRun>();
+        int cursor = 0;
+        foreach (PdfTextFallbackSegment segment in Segments) {
+            if (segment.StartIndex > cursor) {
+                AddLayoutControlRuns(runs, OriginalText.Substring(cursor, segment.StartIndex - cursor));
+            }
+
+            runs.Add(CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate));
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -104,6 +146,31 @@ public sealed class PdfTextFallbackPlan {
             styleTemplate.Baseline,
             keepLink ? styleTemplate.LinkDestinationName : null,
             backgroundColor: styleTemplate.BackgroundColor);
+    }
+
+    private static TextRun CreateStyledNamedRun(string text, string fontFamily, TextRun? styleTemplate) {
+        if (styleTemplate == null) {
+            return TextRun.Normal(text, fontFamily: fontFamily);
+        }
+
+        bool keepLink = !string.IsNullOrWhiteSpace(text) &&
+            (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
+
+        return new TextRun(
+            text,
+            styleTemplate.Bold,
+            styleTemplate.Underline,
+            styleTemplate.Color,
+            styleTemplate.Italic,
+            styleTemplate.Strike,
+            styleTemplate.FontSize,
+            styleTemplate.Font,
+            keepLink ? styleTemplate.LinkUri : null,
+            keepLink ? styleTemplate.LinkContents : null,
+            styleTemplate.Baseline,
+            keepLink ? styleTemplate.LinkDestinationName : null,
+            backgroundColor: styleTemplate.BackgroundColor,
+            fontFamily: fontFamily);
     }
 
     private static void AddLayoutControlRuns(List<TextRun> runs, string text) {

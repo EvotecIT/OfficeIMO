@@ -156,7 +156,12 @@ namespace OfficeIMO.Word.Pdf {
                 numberingHangingIndent;
             double markerIndent = Math.Max(0D, textIndent - hangingIndent);
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerFontSize = info.MarkerFontSize ?? fontSize;
             double markerTextWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);

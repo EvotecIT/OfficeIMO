@@ -68,7 +68,6 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     public int GlyphCount => _advanceWidths.Length;
 
-    internal byte[] FontDataSnapshot => _data.ToArray();
     internal byte[] FontDataForInspection => _data;
 
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>

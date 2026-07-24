@@ -54,9 +54,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 84 |
-| Documented package, tool, and example projects below | 92 |
-| Native format, foundation, and shared-service packages | 25 |
+| Coordinated `3.0.x` release packages | 85 |
+| Documented package, tool, and example projects below | 93 |
+| Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 28 |
 | Unified Reader packages and tool | 28 |
 | Markdown renderer and OfficeIMO Markup surfaces | 11 |
@@ -92,6 +92,14 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Single and batch image-export builders with dimensions, source metadata, and diagnostics
 
 _Dependency footprint:_ zero third-party runtime dependencies.
+
+#### [OfficeIMO.Drawing.HarfBuzz](OfficeIMO.Drawing.HarfBuzz/README.md)
+
+- [x] Optional full OpenType GSUB/GPOS shaping through the shared `IOfficeTextShapingProvider` contract
+- [x] Stable logical cluster mappings and positioned glyph advances for TrueType and OpenType/CFF fonts
+- [x] Windows, Linux, macOS, and WebAssembly native assets kept out of the dependency-light Drawing and PDF cores
+
+_Dependency footprint:_ `OfficeIMO.Drawing`, HarfBuzzSharp, and its platform-native runtime assets.
 
 #### [OfficeIMO.Drawing.CodeGlyphX](OfficeIMO.Drawing.CodeGlyphX/README.md)
 

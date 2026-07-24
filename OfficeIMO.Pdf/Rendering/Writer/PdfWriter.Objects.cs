@@ -12,6 +12,9 @@ internal static partial class PdfWriter {
     }
 
     private static int ReserveObject(System.Collections.Generic.IList<byte[]> list) {
+        if (list is PdfForwardOnlyObjectStore forwardOnlyStore) {
+            return forwardOnlyStore.Reserve();
+        }
         return AddObject(list, "<< >>\n");
     }
 
@@ -60,6 +63,8 @@ internal static partial class PdfWriter {
         int id = list.Count + 1;
         if (list is PdfObjectStore objectStore) {
             objectStore.AddSegments(PdfObjectBytes.CreateStreamObjectSegments(id, dictionary, content));
+        } else if (list is PdfForwardOnlyObjectStore forwardOnlyStore) {
+            forwardOnlyStore.AddSegments(PdfObjectBytes.CreateStreamObjectSegments(id, dictionary, content));
         } else {
             list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
         }

@@ -4,6 +4,9 @@ public sealed partial class PdfReadDocument {
     /// <summary>Tagged PDF structure metadata discovered from /MarkInfo and /StructTreeRoot.</summary>
     public PdfTaggedContentInfo? TaggedContent => ReadLogicalContent(_taggedContent);
 
+    /// <summary>True when a readable tagged-PDF structure tree was discovered.</summary>
+    public bool HasTaggedContent => TaggedContent is not null;
+
     private PdfTaggedContentInfo? ExtractTaggedContent() {
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {
@@ -13,7 +16,7 @@ public sealed partial class PdfReadDocument {
         PdfDictionary? markInfo = ResolveDict(catalog.Items.TryGetValue("MarkInfo", out PdfObject? markInfoObject) ? markInfoObject : null);
         PdfObject? structTreeRootObject = catalog.Items.TryGetValue("StructTreeRoot", out PdfObject? rootObject) ? rootObject : null;
         PdfDictionary? structTreeRoot = ResolveDict(structTreeRootObject);
-        if (markInfo is null && structTreeRoot is null) {
+        if (structTreeRoot is null) {
             return null;
         }
 

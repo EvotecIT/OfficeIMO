@@ -27,6 +27,7 @@ public sealed partial class PdfOptions {
             DefaultFont = DefaultFont,
             DefaultFontSize = DefaultFontSize,
             CompressContentStreams = CompressContentStreams,
+            ObjectSerializationMode = ObjectSerializationMode,
             ObjectBufferMemoryLimitBytes = ObjectBufferMemoryLimitBytes,
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
             IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,

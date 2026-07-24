@@ -16,11 +16,19 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
 
-        private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+        private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap? nativeFontMap = null) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             var style = new PdfCore.PdfParagraphStyle();
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
@@ -174,17 +182,27 @@ namespace OfficeIMO.Word.Pdf {
             return fontSize;
         }
 
-        private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) {
+        private static double ResolveNativeParagraphLineHeight(
+            WordParagraph paragraph,
+            double fontSize,
+            NativeDocumentDefaults nativeDefaults,
+            NativeParagraphStyleDefaults styleDefaults,
+            NativeFontMap? nativeFontMap = null) {
+            double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(
+                paragraph,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap: nativeFontMap);
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
-                return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
+                return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
             }
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, naturalLineHeight);
             }
 
             if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, naturalLineHeight);
             }
 
             if (styleDefaults.LineHeight.HasValue) {
@@ -192,6 +210,45 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return nativeDefaults.ParagraphLineHeight;
+        }
+
+        private static double ResolveNativeParagraphSingleLineHeight(
+            WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults,
+            NativeParagraphStyleDefaults styleDefaults,
+            NativeTableRunStyleDefaults tableRunStyleDefaults = default,
+            NativeFontMap? nativeFontMap = null) {
+            double lineHeight = ResolveNativeWordSingleLineHeight(
+                nativeFontMap,
+                paragraph.FontFamily,
+                paragraph.FontFamilyHighAnsi,
+                paragraph.FontFamilyEastAsia,
+                paragraph.FontFamilyComplexScript,
+                styleDefaults.FontFamily,
+                tableRunStyleDefaults.FontFamily,
+                nativeDefaults.FontFamily);
+            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                    continue;
+                }
+
+                NativeCharacterStyleDefaults characterStyle =
+                    GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run));
+                lineHeight = Math.Max(
+                    lineHeight,
+                    ResolveNativeWordSingleLineHeight(
+                        nativeFontMap,
+                        run.FontFamily,
+                        run.FontFamilyHighAnsi,
+                        run.FontFamilyEastAsia,
+                        run.FontFamilyComplexScript,
+                        characterStyle.FontFamily,
+                        styleDefaults.FontFamily,
+                        tableRunStyleDefaults.FontFamily,
+                        nativeDefaults.FontFamily));
+            }
+
+            return lineHeight;
         }
 
         private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {

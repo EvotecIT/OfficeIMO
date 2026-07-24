@@ -12,6 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const int NativeOfficeImoScaffoldCellWidthTwips = 2400;
+        private const double NativeAutoFitGridMinimumScale = 0.8D;
 
         private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
@@ -116,7 +117,15 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, rows.Count, options, contentWidth, nativeDefaults, tableStyleDefaults, layout);
+            PdfCore.PdfTableStyle style = CreateNativeTableStyle(
+                table,
+                rows.Count,
+                options,
+                contentWidth,
+                nativeDefaults,
+                tableStyleDefaults,
+                layout,
+                nativeFontMap);
             if (cellFills.Count > 0) {
                 if (style.CellFills == null) {
                     style.CellFills = cellFills;
@@ -183,10 +192,6 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
-            if (style.AutoFitColumns) {
-                return;
-            }
-
             List<double>? columnWidthWeights = CreateNativeColumnWidthWeights(layout);
             if (columnWidthWeights != null) {
                 style.ColumnWidthPoints = null;
@@ -194,7 +199,49 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (style.AutoFitColumns) {
+                if (layout.ColumnWidths.Length > 0 && layout.ColumnWidths.All(width => width > 0)) {
+                    ApplyNativeAutoFitGridMinimums(layout, style, contentWidth);
+                }
+                if (layout.ColumnWidths.Length > 0 &&
+                    layout.ColumnWidths.All(width => width > 0) &&
+                    layout.ColumnWidths.Skip(1).Any(width => Math.Abs(width - layout.ColumnWidths[0]) > 0.01F)) {
+                    style.ColumnWidthWeights = layout.ColumnWidths.Select(width => (double)width).ToList();
+                }
+                return;
+            }
+
             style.ColumnWidthPoints = CreateNativeColumnWidthPoints(layout, style);
+        }
+
+        private static void ApplyNativeAutoFitGridMinimums(TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
+            double tableWidth = style.MaxWidth ?? style.PreferredWidth ?? contentWidth ?? 0D;
+            double gridWidth = layout.ColumnWidths.Sum(width => (double)width);
+            if (tableWidth <= 0D ||
+                gridWidth <= 0D ||
+                double.IsNaN(tableWidth) ||
+                double.IsInfinity(tableWidth)) {
+                return;
+            }
+
+            List<double?> derivedMinimums = layout.ColumnWidths
+                .Select(width => (double?)(tableWidth * width / gridWidth * NativeAutoFitGridMinimumScale))
+                .ToList();
+            if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
+                style.ColumnMinWidthPoints = derivedMinimums;
+                return;
+            }
+
+            var mergedMinimums = new List<double?>(style.ColumnMinWidthPoints);
+            while (mergedMinimums.Count < derivedMinimums.Count) {
+                mergedMinimums.Add(null);
+            }
+
+            for (int columnIndex = 0; columnIndex < derivedMinimums.Count; columnIndex++) {
+                mergedMinimums[columnIndex] ??= derivedMinimums[columnIndex];
+            }
+
+            style.ColumnMinWidthPoints = mergedMinimums;
         }
 
         private static List<double>? CreateNativeColumnWidthWeights(TableLayout layout) {
@@ -278,7 +325,15 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeTableStyle(table, rowCount, options, contentWidth, nativeDefaults, tableStyleDefaults, TableLayoutCache.GetLayout(table));
         }
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, TableLayout layout) {
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(
+            WordTable table,
+            int rowCount,
+            PdfSaveOptions? options,
+            double? contentWidth,
+            NativeDocumentDefaults nativeDefaults,
+            NativeTableStyleDefaults tableStyleDefaults,
+            TableLayout layout,
+            NativeFontMap? nativeFontMap = null) {
             bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
             PdfCore.PdfTableStyle? wordStyle = ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle);
             bool usesConfiguredDefaultStyle = wordStyle == null && hasExplicitDefaultTableStyle;
@@ -286,7 +341,11 @@ namespace OfficeIMO.Word.Pdf {
             if (!usesConfiguredDefaultStyle) {
                 style.FontSize ??= nativeDefaults.FontSize;
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
-                    ? ResolveNativeTableStyleParagraphLineHeight(tableStyleDefaults, style.FontSize ?? nativeDefaults.FontSize)
+                    ? ResolveNativeTableStyleParagraphLineHeight(
+                        tableStyleDefaults,
+                        style.FontSize ?? nativeDefaults.FontSize,
+                        nativeDefaults.FontFamily,
+                        nativeFontMap)
                     : null;
                 style.LineHeight ??= tableParagraphLineHeight ?? nativeDefaults.ParagraphLineHeight;
             }
@@ -327,13 +386,20 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static double? ResolveNativeTableStyleParagraphLineHeight(NativeTableStyleDefaults tableStyleDefaults, double fontSize) {
+        private static double? ResolveNativeTableStyleParagraphLineHeight(
+            NativeTableStyleDefaults tableStyleDefaults,
+            double fontSize,
+            string? documentFontFamily,
+            NativeFontMap? nativeFontMap = null) {
             if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
                 return ResolveNativeLineSpacingHeight(
                     tableStyleDefaults.ParagraphLineSpacingPoints.Value,
                     tableStyleDefaults.ParagraphLineSpacingRule,
                     fontSize,
-                    NativeWordTableSingleLineHeight);
+                    ResolveNativeWordSingleLineHeight(
+                        nativeFontMap,
+                        tableStyleDefaults.RunStyle.FontFamily,
+                        documentFontFamily));
             }
 
             return tableStyleDefaults.ParagraphLineHeight;
@@ -725,7 +791,7 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
-            return IsNativeTableAutoFitLayout(properties) && !HasNativeTableAuthoredFixedCellWidths(table);
+            return !HasNativeTableAuthoredFixedCellWidths(table);
         }
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>

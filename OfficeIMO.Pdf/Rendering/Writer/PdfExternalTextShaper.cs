@@ -15,11 +15,14 @@ internal static class PdfExternalTextShaper {
         OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
-            font.FontDataSnapshot,
+            font.FontDataForInspection,
             isOpenTypeCff: false,
             font.UnitsPerEm,
             OfficeTextElements.ResolveBaseDirection(text),
-            options.Language));
+            options.Language,
+            default,
+            fontCollectionIndex: null,
+            cloneFontData: false));
 
         if (result == null) {
             glyphRun = null!;
@@ -43,11 +46,14 @@ internal static class PdfExternalTextShaper {
         OfficeTextShapingResult? result = options.ShapingProvider.ShapeText(new OfficeTextShapingRequest(
             text,
             font.FontName,
-            font.FontDataSnapshot,
+            font.FontDataForInspection,
             isOpenTypeCff: true,
             font.UnitsPerEm,
             OfficeTextElements.ResolveBaseDirection(text),
-            options.Language));
+            options.Language,
+            default,
+            fontCollectionIndex: null,
+            cloneFontData: false));
 
         if (result == null) {
             glyphRun = null!;

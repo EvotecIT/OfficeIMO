@@ -144,7 +144,10 @@ namespace OfficeIMO.Word.Pdf {
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
             List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, footnoteNumbers, footnoteNumbersById);
-            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults);
+            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(
+                paragraph,
+                nativeDefaults,
+                nativeFontMap);
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
@@ -158,7 +161,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (!hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
-                RenderNativeEmptyParagraph(pdf, paragraph, style, nativeDefaults, renderSpacingOnlyEmptyParagraphLineBox);
+                RenderNativeEmptyParagraph(
+                    pdf,
+                    paragraph,
+                    style,
+                    nativeDefaults,
+                    nativeFontMap,
+                    renderSpacingOnlyEmptyParagraphLineBox);
                 return;
             }
 
@@ -229,7 +238,13 @@ namespace OfficeIMO.Word.Pdf {
             RenderNativeRepeatingSections(pdf, repeatingSectionControls, align, defaultColor);
         }
 
-        private static void RenderNativeEmptyParagraph(INativePdfFlow pdf, WordParagraph paragraph, PdfCore.PdfParagraphStyle style, NativeDocumentDefaults nativeDefaults, bool renderSpacingOnlyLineBox) {
+        private static void RenderNativeEmptyParagraph(
+            INativePdfFlow pdf,
+            WordParagraph paragraph,
+            PdfCore.PdfParagraphStyle style,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap nativeFontMap,
+            bool renderSpacingOnlyLineBox) {
             if (!ShouldRenderNativeEmptyParagraphLineBox(paragraph, renderSpacingOnlyLineBox)) {
                 if (renderSpacingOnlyLineBox && paragraph.LineSpacingAfterPoints is { } spacingAfter && spacingAfter > 0D) {
                     pdf.Spacer(spacingAfter);
@@ -238,7 +253,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            double height = MeasureNativeEmptyParagraphHeight(paragraph, style, nativeDefaults);
+            double height = MeasureNativeEmptyParagraphHeight(
+                paragraph,
+                style,
+                nativeDefaults,
+                nativeFontMap);
             if (height > 0D) {
                 pdf.Spacer(height);
             }
@@ -261,10 +280,19 @@ namespace OfficeIMO.Word.Pdf {
             return paragraph._paragraph?.ParagraphProperties?.ParagraphMarkRunProperties != null;
         }
 
-        private static double MeasureNativeEmptyParagraphHeight(WordParagraph paragraph, PdfCore.PdfParagraphStyle style, NativeDocumentDefaults nativeDefaults) {
+        private static double MeasureNativeEmptyParagraphHeight(
+            WordParagraph paragraph,
+            PdfCore.PdfParagraphStyle style,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
-            double lineHeight = style.LineHeight ?? ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            double lineHeight = style.LineHeight ?? ResolveNativeParagraphLineHeight(
+                paragraph,
+                fontSize,
+                nativeDefaults,
+                styleDefaults,
+                nativeFontMap);
             double spacingAfter = style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter;
             double height = style.SpacingBefore + (fontSize * lineHeight) + spacingAfter;
             return double.IsNaN(height) || double.IsInfinity(height) ? 0D : Math.Max(0D, height);

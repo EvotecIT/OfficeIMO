@@ -144,6 +144,8 @@ public sealed class OfficeTextShapingRequest {
     /// <summary>Defensive snapshot of the complete font program.</summary>
     public byte[] FontData => (byte[])_fontData.Clone();
 
+    internal byte[] FontDataForShaping => _fontData;
+
     /// <summary>True for OpenType/CFF outlines; false for TrueType outlines.</summary>
     public bool IsOpenTypeCff { get; }
 

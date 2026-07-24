@@ -24,7 +24,7 @@ public partial class Word {
 
         Assert.Equal(144D, preferredStyle.MaxWidth);
         Assert.Equal(11D, preferredStyle.FontSize);
-        Assert.False(preferredStyle.AutoFitColumns);
+        Assert.True(preferredStyle.AutoFitColumns);
         Assert.True(preferredStyle.PreserveWidth);
 
         WordTable autoFit = document.AddTable(1, 2);
@@ -43,6 +43,67 @@ public partial class Word {
         PdfCore.PdfTableStyle spacedStyle = CreateNativeTableStyleForTest(spaced);
 
         Assert.Equal(12D, spacedStyle.CellSpacing);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Default_Autofit_For_Percentage_Table_When_Layout_Is_Omitted() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
+
+        WordTable table = document.AddTable(2, 2);
+        table.WidthType = TableWidthUnitValues.Pct;
+        table.Width = 5000;
+        table._tableProperties!.TableLayout?.Remove();
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Worksheet";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Purpose";
+        table.Rows[1].Cells[0].Paragraphs[0].Text = "Action plan";
+        table.Rows[1].Cells[1].Paragraphs[0].Text = "Sequence recommendations, review ownership, confirm acceptance criteria, and set the next planning step.";
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
+
+        Assert.True(style.AutoFitColumns);
+        Assert.Equal(468D, style.MaxWidth);
+        Assert.Null(style.ColumnWidthWeights);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Autofit_Column_Minimums() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeConfiguredAutofitMinimums.docx"));
+
+        WordTable table = document.AddTable(1, 3);
+        table._tableProperties!.TableStyle?.Remove();
+        table.WidthType = TableWidthUnitValues.Pct;
+        table.Width = 5000;
+        table.LayoutType = TableLayoutValues.Autofit;
+        table.Rows[0].Cells[0].Width = 1200;
+        table.Rows[0].Cells[1].Width = 2400;
+        table.Rows[0].Cells[2].Width = 1200;
+        foreach (WordTableCell cell in table.Rows[0].Cells) {
+            cell.WidthType = TableWidthUnitValues.Dxa;
+        }
+
+        var configuredMinimums = new double?[] { 72D, null, 96D };
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new PdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultTableStyle = new PdfCore.PdfTableStyle {
+                    AutoFitColumns = true,
+                    ColumnMinWidthPoints = configuredMinimums.ToList()
+                }
+            }
+        }, 468D);
+
+        OfficeIMO.Word.Pdf.TableLayout layout = TableLayoutCache.GetLayout(table);
+        MethodInfo applyColumnWidths = typeof(WordPdfConverterExtensions).GetMethod(
+            "ApplyNativeColumnWidths",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            binder: null,
+            new[] { typeof(WordTable), typeof(OfficeIMO.Word.Pdf.TableLayout), typeof(PdfCore.PdfTableStyle), typeof(double?) },
+            modifiers: null)!;
+        applyColumnWidths.Invoke(null, new object?[] { table, layout, style, 468D });
+
+        Assert.Equal(72D, style.ColumnMinWidthPoints![0]);
+        Assert.NotNull(style.ColumnMinWidthPoints[1]);
+        Assert.Equal(96D, style.ColumnMinWidthPoints[2]);
+        Assert.Equal(configuredMinimums, new double?[] { 72D, null, 96D });
     }
 
     [Fact]
@@ -660,7 +721,7 @@ public partial class Word {
         Assert.Null(style.HeaderFill);
         Assert.False(style.HeaderBold);
         Assert.Equal(11D, style.FontSize);
-        Assert.Equal(1.22D, style.LineHeight);
+        Assert.Equal(1.15D, style.LineHeight);
         Assert.Equal(0D, style.CellPaddingTop);
         Assert.Equal(0D, style.CellPaddingBottom);
     }
@@ -695,7 +756,7 @@ public partial class Word {
         Assert.Equal(4D, style.CellPaddingBottom);
         Assert.Equal(8D, style.CellPaddingLeft);
         Assert.Equal(10D, style.CellPaddingRight);
-        Assert.Equal(1.22D, style.LineHeight);
+        Assert.Equal(1.15D, style.LineHeight);
     }
 
     [Fact]
@@ -815,7 +876,7 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(11D, style.FontSize);
-        Assert.Equal(1.22D, style.LineHeight);
+        Assert.Equal(1.15D, style.LineHeight);
     }
 
     [Fact]
@@ -840,7 +901,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(1.22D, style.LineHeight);
+        Assert.Equal(1.15D, style.LineHeight);
     }
 
     [Fact]

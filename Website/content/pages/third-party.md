@@ -17,6 +17,7 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 
 | OfficeIMO package or family | Upstream components used in the repo today | Why they are there |
 |---|---|---|
+| `OfficeIMO.Drawing.HarfBuzz` | `HarfBuzzSharp` `14.2.1.1` plus matching Windows, Linux, macOS, and WebAssembly native assets | Optional full OpenType GSUB/GPOS shaping through the first-party Drawing provider contract; Drawing and PDF core remain independent of HarfBuzz |
 | `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on legacy targets | OOXML document model and compatibility helpers; colors and image metadata use first-party `OfficeIMO.Drawing` |
 | `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` and `System.Text.Json` `[10.0.7, 11.0.0)` on legacy targets | Workbook model, first-party image metadata, and compatibility helpers for older target frameworks |
 | `OfficeIMO.PowerPoint` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`; `Microsoft.Bcl.AsyncInterfaces` `10.0.9` on legacy targets | Presentation OOXML model, packaging, and compatibility helpers |
@@ -36,6 +37,7 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 
 | Upstream project | License or model | OfficeIMO packages that use it | What to know |
 |---|---|---|---|
+| [HarfBuzzSharp](https://www.nuget.org/packages/HarfBuzzSharp/14.2.1.1) | MIT | Drawing.HarfBuzz | Optional .NET bindings and platform-native HarfBuzz assets for full OpenType shaping; not referenced by Drawing or PDF core packages. |
 | [DocumentFormat.OpenXml](https://www.nuget.org/packages/DocumentFormat.OpenXml/3.5.1) | MIT | Word, Excel, PowerPoint, Word.Html | This is Microsoft's official Open XML SDK and the main OOXML building block in the Office document packages. |
 | [AngleSharp](https://www.nuget.org/packages/AngleSharp/1.5.2) | MIT | Html, Markdown.Html, Word.Html, Reader.Html | Used for shared HTML parsing and DOM work. |
 | [AngleSharp.Css](https://www.nuget.org/packages/AngleSharp.Css/1.0.0-beta.216) | MIT | Html, Markdown.Html, Word.Html, Reader.Html | Adds CSS parsing on top of the shared HTML engine. |

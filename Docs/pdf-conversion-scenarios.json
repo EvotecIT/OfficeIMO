@@ -238,24 +238,30 @@
     },
     {
       "id": "email-document",
-      "sourceFormats": [ "eml", "msg", "tnef" ],
-      "status": "not-yet-direct",
-      "stages": [ "OfficeIMO.Email", "preferred body projection", "OfficeIMO.Html.Pdf or OfficeIMO.Rtf.Pdf" ],
-      "diagnosticContract": "A premium route still needs deterministic body selection, inline-resource resolution, attachment policy, and combined source/PDF diagnostics."
+      "sourceFormats": [ "eml", "msg", "oft", "tnef" ],
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.Reader.Email", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#EmailFacade_ProducesSearchablePdfWithEmailPolicyEvidence",
+      "diagnosticContract": "The direct façade applies the Reader email body, inline-resource, and attachment policies, then preserves their evidence through the shared searchable PDF projection."
     },
     {
       "id": "epub-book",
       "sourceFormats": [ "epub" ],
-      "status": "not-yet-direct",
-      "stages": [ "OfficeIMO.Epub", "chapter HTML projection", "OfficeIMO.Html.Pdf" ],
-      "diagnosticContract": "A premium route still needs book-level chapter order, stylesheet/font/image resolution, navigation, pagination, and combined diagnostics."
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.Reader.Epub", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#EpubFacade_PreservesChapterOrderAndReportsEpubPolicy",
+      "diagnosticContract": "The direct façade preserves spine chapter order and applies explicit resource, navigation, and pagination policies through the shared searchable PDF projection."
     },
     {
       "id": "visio-diagram",
       "sourceFormats": [ "vsdx", "vssx", "vstx" ],
-      "status": "not-yet-direct",
-      "stages": [ "OfficeIMO.Visio", "OfficeIMO.Drawing SVG/PNG", "OfficeIMO.Pdf" ],
-      "diagnosticContract": "A premium route should preserve vector page output and hyperlinks; raster-only composition is not advertised as a direct Visio PDF converter."
+      "status": "direct-loss-aware-adapter",
+      "stages": [ "OfficeIMO.Reader.Visio", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#VisioFacade_ProducesSearchableSemanticFallbackWithEvidence",
+      "diagnosticContract": "The direct façade emits searchable diagram semantics and explicit preview-versus-semantic fallback evidence. It does not claim native vector-page equivalence when the Reader projection cannot preserve it."
     }
   ],
   "qualityContract": {
@@ -490,7 +496,7 @@
       }
     ],
     "knownLimits": [
-      "complex-script shaping beyond built-in scalar and Latin-ligature handling requires a caller-supplied IOfficeTextShapingProvider from OfficeIMO.Drawing",
+      "complex-script shaping beyond the bounded managed fallback requires an IOfficeTextShapingProvider; OfficeIMO.Drawing.HarfBuzz supplies the optional full GSUB/GPOS implementation used by the browser premium profile",
       "Office source fonts that are unavailable or cannot be embedded fall back to a mapped PDF font and retain an explicit conversion warning; available embeddable families are not limited to three compatibility slots",
       "OneNote PDF is an explicit semantic-document projection and reports free-form canvas flattening and unresolved binary assets",
       "formal PDF/A, PDF/UA, Factur-X, and ZUGFeRD claims require the external validator workflow for the exact artifact"
