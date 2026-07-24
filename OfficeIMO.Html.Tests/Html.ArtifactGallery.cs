@@ -119,4 +119,31 @@ public partial class Html {
         Assert.Contains("HtmlCommentSkipped", manifestJson, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WordOpenXmlPackageValid", manifestJson, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void HtmlArtifactGallery_DefaultImportBlocksLocalFileResources() {
+        string artifactDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlArtifactGallery.Security." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(artifactDirectory);
+        string localImagePath = Path.Combine(artifactDirectory, "local-secret.png");
+        File.WriteAllBytes(localImagePath, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII="));
+        string html = "<html><body><h1>Gallery</h1><img src=\"" + new Uri(localImagePath).AbsoluteUri + "\" alt=\"Local secret\"></body></html>";
+
+        try {
+            HtmlCapabilityGalleryManifest manifest = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.Document,
+                Trust = HtmlInputTrust.Trusted
+            }).SaveHtmlCapabilityGallery(artifactDirectory, new WordHtmlCapabilityGalleryOptions {
+                ScenarioId = "offline-default",
+                Title = "Offline Default"
+            });
+
+            Assert.Contains(manifest.Result.Diagnostics.Diagnostics,
+                diagnostic => diagnostic.Code == "ImageSkippedByPolicy");
+            Assert.Contains(manifest.ResourceManifest.Resources,
+                resource => resource.Source == new Uri(localImagePath).AbsoluteUri && !resource.IsAllowed);
+        } finally {
+            Directory.Delete(artifactDirectory, recursive: true);
+        }
+    }
 }

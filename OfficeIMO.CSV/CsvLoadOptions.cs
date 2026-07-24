@@ -16,6 +16,9 @@ public sealed class CsvLoadOptions
     /// <summary>Default maximum complete stream input size (256 MiB).</summary>
     public const long DefaultMaxInputBytes = 256L * 1024L * 1024L;
 
+    /// <summary>Default maximum physical lines inspected while deciding whether a quoted comment continues.</summary>
+    public const int DefaultMaxCommentContinuationLines = 64;
+
     /// <summary>
     /// Gets or sets whether the first record in the file represents the header row. Default is <c>true</c>.
     /// Ignored when <see cref="Header"/> is provided; in that case the first record is treated as data.
@@ -43,6 +46,13 @@ public sealed class CsvLoadOptions
     /// Comment rows are identified by <see cref="CommentCharacter"/>.
     /// </summary>
     public bool SkipCommentRows { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of physical continuation lines inspected for a quoted comment record.
+    /// Once the limit is reached, buffered lines are replayed as ordinary input instead of being retained while
+    /// searching for a closing quote. Defaults to <see cref="DefaultMaxCommentContinuationLines"/>.
+    /// </summary>
+    public int MaxCommentContinuationLines { get; set; } = DefaultMaxCommentContinuationLines;
 
     /// <summary>
     /// Gets or sets the character that identifies a comment row when it appears at the start of a record. Default is <c>#</c>.

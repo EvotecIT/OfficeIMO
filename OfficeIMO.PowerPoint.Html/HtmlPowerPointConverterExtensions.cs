@@ -181,9 +181,12 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         using (reservation) {
-            bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
-            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             string chartKind = ReadChartKind(item);
+            bool restoredFromSemanticData = TryReadChartData(
+                item,
+                chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase),
+                out PptCore.PowerPointChartData? semanticData);
+            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
@@ -259,7 +262,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         return new PptCore.PowerPointChartData(categories, series);
     }
 
-    private static bool TryReadChartData(IElement item, out PptCore.PowerPointChartData? data) {
+    private static bool TryReadChartData(IElement item, bool allowXValues, out PptCore.PowerPointChartData? data) {
         data = null;
         IElement? table = item.QuerySelector("table.officeimo-chart-data");
         if (table == null) {
@@ -285,6 +288,10 @@ public static partial class HtmlPowerPointConverterExtensions {
             var values = new double[valueCells.Count];
             var xValues = new double[valueCells.Count];
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
+            if (hasXValues && !allowXValues) {
+                return false;
+            }
+
             for (int i = 0; i < valueCells.Count; i++) {
                 IElement cell = valueCells[i];
                 string text = PreserveText(cell.TextContent);
@@ -393,9 +400,25 @@ public static partial class HtmlPowerPointConverterExtensions {
         top = NormalizeRange(top, 0D, 0D, 1D, budget, result, "picture crop top");
         right = NormalizeRange(right, 0D, 0D, 1D, budget, result, "picture crop right");
         bottom = NormalizeRange(bottom, 0D, 0D, 1D, budget, result, "picture crop bottom");
+        NormalizeCropPair(ref left, ref right, result, "horizontal");
+        NormalizeCropPair(ref top, ref bottom, result, "vertical");
         if (left > 0D || top > 0D || right > 0D || bottom > 0D) {
             picture.Crop(left * 100D, top * 100D, right * 100D, bottom * 100D);
         }
+    }
+
+    private static void NormalizeCropPair(
+        ref double first,
+        ref double second,
+        HtmlToPowerPointResult result,
+        string axis) {
+        if (first + second < 1D) return;
+        first = 0D;
+        second = 0D;
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+            "Invalid picture " + axis + " crop metadata used the zero fallback.",
+            lossKind: HtmlConversionLossKind.Approximation,
+            source: "picture crop " + axis);
     }
 
     private static void ApplyShapeTransforms(IElement item, PptCore.PowerPointShape shape, HtmlImportBudget budget, HtmlToPowerPointResult result) {

@@ -89,7 +89,8 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -110,7 +111,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("SUM('[Budget.xls]Jan'!A1:A2)", areaFormula.FormulaText);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
 
             using var output = new MemoryStream();
@@ -141,7 +143,8 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -158,7 +161,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("'Budget.xls'!TaxRate", formula.FormulaText);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
 
             using var output = new MemoryStream();

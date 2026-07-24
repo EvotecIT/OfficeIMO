@@ -1237,7 +1237,8 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);

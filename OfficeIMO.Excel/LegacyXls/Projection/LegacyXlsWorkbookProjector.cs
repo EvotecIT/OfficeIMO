@@ -1159,6 +1159,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         Reference = reference.CellRange,
                     };
                     if (reference.SourceKind == LegacyXlsDataConsolidationSourceKind.ExternalVirtualPath) {
+                        if (!workbook.PreserveExternalWorkbookLinks) {
+                            continue;
+                        }
+
                         string? relationshipId = AddExternalDataConsolidationRelationship(sheet, reference.Source);
                         if (relationshipId == null) {
                             continue;
@@ -1183,6 +1187,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         Name = name.Name
                     };
                     if (name.SourceKind == LegacyXlsDataConsolidationSourceKind.ExternalVirtualPath) {
+                        if (!workbook.PreserveExternalWorkbookLinks) {
+                            continue;
+                        }
+
                         string? relationshipId = AddExternalDataConsolidationRelationship(sheet, name.Source);
                         if (relationshipId == null) {
                             continue;
@@ -1667,6 +1675,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            if (!workbook.PreserveExternalWorkbookLinks) {
+                return;
+            }
+
             WorkbookPart workbookPart = document.WorkbookPartRoot;
             Workbook workbookRoot = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is null.");
 

@@ -136,6 +136,7 @@ namespace OfficeIMO.Word {
             AddBackgroundRectangle(drawing, options.BackgroundColor);
 
             if (options.IncludeDocumentContent) {
+                using var behindContentBatch = drawing.DeferBehindContentOrdering();
                 IReadOnlyDictionary<OpenXmlElement, WordImageSourceBlock> sourceBlocks =
                     BuildImageSourceBlocks(document, cancellationToken);
                 int totalPageCount = Math.Max(1, sectionPageCounts.Sum());
@@ -242,29 +243,31 @@ namespace OfficeIMO.Word {
                 sectionIndex,
                 cancellationToken);
             IReadOnlyList<OpenXmlElement> bodyChildren = bodyEntries.Select(entry => entry.Element).ToList();
-            for (int index = 0; index < bodyChildren.Count; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                WordSectionBodyElement entry = bodyEntries[index];
-                OpenXmlElement element = entry.Element;
-                if (entry.SectionIndex != sectionIndex) {
-                    int mergedSectionPageCount = ResolveSectionPageCountForFieldContext(sectionPageCounts, entry.SectionIndex, sectionPageCount);
-                    context.UpdateSectionContext(entry.SectionIndex + 1, mergedSectionPageCount);
-                }
+            using (drawing.DeferBehindContentOrdering()) {
+                for (int index = 0; index < bodyChildren.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WordSectionBodyElement entry = bodyEntries[index];
+                    OpenXmlElement element = entry.Element;
+                    if (entry.SectionIndex != sectionIndex) {
+                        int mergedSectionPageCount = ResolveSectionPageCountForFieldContext(sectionPageCounts, entry.SectionIndex, sectionPageCount);
+                        context.UpdateSectionContext(entry.SectionIndex + 1, mergedSectionPageCount);
+                    }
 
-                TryAdvanceForKeepWithNext(document, bodyChildren, index, context, listMarkers);
-                if (context.PastTargetPage || context.StoppedForPagination) {
-                    break;
-                }
+                    TryAdvanceForKeepWithNext(document, bodyChildren, index, context, listMarkers);
+                    if (context.PastTargetPage || context.StoppedForPagination) {
+                        break;
+                    }
 
-                bool added = AddBodyElementContent(document, element, context, diagnostics, listMarkers);
+                    bool added = AddBodyElementContent(document, element, context, diagnostics, listMarkers);
 
-                if (context.PastTargetPage || context.StoppedForPagination) {
-                    break;
-                }
+                    if (context.PastTargetPage || context.StoppedForPagination) {
+                        break;
+                    }
 
-                if (context.IsTargetPage && !added && element is Paragraph) {
-                    context.ClearParagraphSpacingState();
-                    context.Y += ParagraphGapPoints;
+                    if (context.IsTargetPage && !added && element is Paragraph) {
+                        context.ClearParagraphSpacingState();
+                        context.Y += ParagraphGapPoints;
+                    }
                 }
             }
 

@@ -296,6 +296,31 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_RejectsCropPairsThatConsumeTheWholeImage() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("Drawings");
+        sheet.CellValue(1, 1, "Seed");
+        sheet.AddImageAbsolute(10, 10, OnePixelPng, widthPixels: 40, heightPixels: 30)
+            .SetCropRatio(0.1D, 0D, 0.1D, 0D);
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, "data-officeimo-crop-left=\"[^\"]*\"", "data-officeimo-crop-left=\"0.75\"");
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, "data-officeimo-crop-right=\"[^\"]*\"", "data-officeimo-crop-right=\"0.75\"");
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument imported = result.Value;
+        ExcelImage image = Assert.Single(imported.Sheets.Single().Images);
+
+        Assert.Equal(0D, image.CropLeftRatio);
+        Assert.Equal(0D, image.CropRightRatio);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
+    }
+
+    [Fact]
     public void ExcelHtml_RoundTripsTwoCellImageAnchors() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddWorksheet("Anchors");
@@ -830,6 +855,33 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Actual", new[] { 10D, 20D })
+        });
+        slide.AddChartPoints(OfficeChartKind.ColumnClustered, data, 72, 96, 240, 140).SetTitle("Columns");
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+        html = html.Replace("<td>10</td>", "<td data-officeimo-x=\"1\">10</td>", StringComparison.Ordinal)
+            .Replace("<td>20</td>", string.Empty, StringComparison.Ordinal);
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(2, series.Values.Count);
+        Assert.Null(series.XValues);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
@@ -1231,6 +1283,32 @@ public class HtmlOfficeAdapters {
         Assert.Equal(0.2D, importedPicture.CropTopRatio, 3);
         Assert.Equal(0.05D, importedPicture.CropRightRatio, 3);
         Assert.Equal(0.15D, importedPicture.CropBottomRatio, 3);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RejectsCropPairsThatConsumeTheWholePicture() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        using (var image = new MemoryStream(OnePixelPng)) {
+            slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 40, 40, 80, 60)
+                .Crop(10D, 0D, 10D, 0D);
+        }
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, "data-officeimo-crop-left=\"[^\"]*\"", "data-officeimo-crop-left=\"0.75\"");
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, "data-officeimo-crop-right=\"[^\"]*\"", "data-officeimo-crop-right=\"0.75\"");
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+
+        Assert.Equal(0D, picture.CropLeftRatio);
+        Assert.Equal(0D, picture.CropRightRatio);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
     }
 
     [Fact]

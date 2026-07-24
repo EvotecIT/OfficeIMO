@@ -13,14 +13,15 @@ internal static class MarkdownHtmlAttributes {
             return string.Empty;
         }
 
+        var effectiveOptions = options ?? HtmlRenderContext.Options;
         var builder = new StringBuilder();
-        AppendId(builder, attributes?.ElementId ?? fallbackElementId, options);
+        AppendId(builder, attributes?.ElementId ?? fallbackElementId, effectiveOptions);
         if (attributes != null || additionalClasses != null) {
-            AppendClasses(builder, attributes?.Classes, additionalClasses, options, additionalClassesFirst);
+            AppendClasses(builder, attributes?.Classes, additionalClasses, effectiveOptions, additionalClassesFirst);
         }
 
         if (attributes != null) {
-            AppendAttributes(builder, attributes, options);
+            AppendAttributes(builder, attributes, effectiveOptions);
         }
 
         return builder.ToString();
@@ -86,7 +87,7 @@ internal static class MarkdownHtmlAttributes {
             if (string.IsNullOrWhiteSpace(attribute.Key)
                 || string.Equals(attribute.Key, "id", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(attribute.Key, "class", StringComparison.OrdinalIgnoreCase)
-                || !IsSafeAttributeName(attribute.Key)) {
+                || !IsSafeAttributeName(attribute.Key, options)) {
                 continue;
             }
 
@@ -99,7 +100,7 @@ internal static class MarkdownHtmlAttributes {
         }
     }
 
-    private static bool IsSafeAttributeName(string name) {
+    private static bool IsSafeAttributeName(string name, HtmlOptions? options) {
         var trimmed = name.Trim();
         if (trimmed.Length == 0) {
             return false;
@@ -116,6 +117,33 @@ internal static class MarkdownHtmlAttributes {
             }
 
             return false;
+        }
+
+        if ((options?.RawHtmlHandling ?? RawHtmlHandling.Allow) == RawHtmlHandling.Allow) {
+            return true;
+        }
+
+        if (trimmed.StartsWith("on", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("xmlns", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        switch (trimmed.ToLowerInvariant()) {
+            case "action":
+            case "background":
+            case "data":
+            case "formaction":
+            case "href":
+            case "imagesrcset":
+            case "manifest":
+            case "ping":
+            case "poster":
+            case "src":
+            case "srcdoc":
+            case "srcset":
+            case "style":
+            case "xlink:href":
+                return false;
         }
 
         return true;

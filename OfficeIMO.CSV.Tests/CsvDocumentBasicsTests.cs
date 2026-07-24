@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -648,6 +649,28 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Delimiterless_Comment_With_Unmatched_Quote_Does_Not_Force_Lookahead()
+    {
+        var lines = new List<string> { "# note \"unterminated" };
+        for (int index = 0; index < CsvLoadOptions.DefaultMaxCommentContinuationLines; index++)
+        {
+            lines.Add("continuation-" + index.ToString(CultureInfo.InvariantCulture));
+        }
+        lines.Add("must not be read");
+
+        using var reader = new ReadLimitedTextReader(
+            lines,
+            maximumReads: CsvLoadOptions.DefaultMaxCommentContinuationLines + 1);
+
+        string[] first = CsvDocument.ReadRecords(reader, new CsvLoadOptions {
+            SkipCommentRows = true
+        }).First();
+
+        Assert.Equal(new[] { "continuation-0" }, first);
+        Assert.Equal(CsvLoadOptions.DefaultMaxCommentContinuationLines + 1, reader.ReadCount);
+    }
+
+    [Fact]
     public void Can_Treat_Leading_Comment_As_Header_When_Requested()
     {
         var parsed = CsvDocument.Parse(
@@ -983,4 +1006,42 @@ public class CsvDocumentBasicsTests
         public override string ToString() => _value;
     }
 #endif
+
+    private sealed class ReadLimitedTextReader : TextReader
+    {
+        private readonly IReadOnlyList<string> _lines;
+        private readonly int _maximumReads;
+        private int _index;
+
+        internal ReadLimitedTextReader(IReadOnlyList<string> lines, int maximumReads)
+        {
+            _lines = lines;
+            _maximumReads = maximumReads;
+        }
+
+        internal int ReadCount { get; private set; }
+
+        public override int Read(char[] buffer, int index, int count)
+        {
+            ReadCount++;
+            if (ReadCount > _maximumReads)
+            {
+                throw new InvalidOperationException("Parser read past the bounded record prefix.");
+            }
+
+            if (_index >= _lines.Count)
+            {
+                return 0;
+            }
+
+            string line = _lines[_index++] + "\n";
+            if (line.Length > count)
+            {
+                throw new InvalidOperationException("Test line exceeds the supplied reader buffer.");
+            }
+
+            line.CopyTo(0, buffer, index, line.Length);
+            return line.Length;
+        }
+    }
 }

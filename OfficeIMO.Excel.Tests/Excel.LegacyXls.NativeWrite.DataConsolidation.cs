@@ -318,7 +318,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                    xlsOutputPath,
+                    new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
                 Assert.False(result.HasImportErrors);
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
 
@@ -376,7 +378,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                    xlsOutputPath,
+                    new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
                 Assert.False(result.HasImportErrors);
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
 

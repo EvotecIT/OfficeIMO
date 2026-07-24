@@ -500,8 +500,14 @@ namespace OfficeIMO.Excel {
                 AppendHeaderFooterSvgRichLine(builder, section, zone, baseline, fontSize, fontFamily, lineHeight, alignment, measure);
             } else {
                 if (!string.IsNullOrWhiteSpace(section.Text)) {
-                    builder.AppendSvgTextElement(
+                    string displayText = ResolveHeaderFooterZoneText(
                         section.Text,
+                        fontSize,
+                        zone.Width,
+                        (text, size) => measure(text, size, fontFamily),
+                        alignment);
+                    builder.AppendSvgTextElement(
+                        displayText,
                         zone.AnchorX,
                         baseline,
                         lineHeight,
@@ -534,7 +540,7 @@ namespace OfficeIMO.Excel {
                 wrap: false,
                 shrinkToFit: false,
                 minimumFontSize: 1D,
-                OfficeTextOverflowBehavior.Clip);
+                OfficeTextOverflowBehavior.Ellipsis);
             if (layout.Lines.Count == 0) {
                 return;
             }

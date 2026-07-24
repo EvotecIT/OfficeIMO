@@ -229,7 +229,9 @@ namespace OfficeIMO.Excel {
         private static LegacyXlsImportOptions CreateConversionImportOptions(LegacyXlsImportOptions options) {
             return new LegacyXlsImportOptions {
                 MaxInputBytes = options.MaxInputBytes,
+                MaxDecodedImageBytes = options.MaxDecodedImageBytes,
                 Password = options.Password,
+                PreserveExternalWorkbookLinks = options.PreserveExternalWorkbookLinks,
                 // Conversion loss policy depends on complete unsupported-content discovery.
                 ReportUnsupportedContent = true
             };

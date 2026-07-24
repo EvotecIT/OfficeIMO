@@ -1,4 +1,3 @@
-using System.Globalization;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -140,19 +139,19 @@ namespace OfficeIMO.Excel {
                 ExcelConditionalIconSetThreshold threshold = thresholds[index];
                 if (string.Equals(threshold.Type, "num", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(threshold.Type, "Number", StringComparison.OrdinalIgnoreCase)) {
-                    if (double.TryParse(threshold.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double numeric)) {
+                    if (ExcelConditionalFormatThresholds.TryParseThresholdNumber(threshold.Value, out double numeric)) {
                         return numeric;
                     }
                 }
 
                 if ((string.Equals(threshold.Type, "percent", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(threshold.Type, "Percent", StringComparison.OrdinalIgnoreCase)) &&
-                    double.TryParse(threshold.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double percent)) {
+                    ExcelConditionalFormatThresholds.TryParseThresholdNumber(threshold.Value, out double percent)) {
                     return min + ((max - min) * Math.Max(0D, Math.Min(100D, percent)) / 100D);
                 }
 
                 if (string.Equals(threshold.Type, "percentile", StringComparison.OrdinalIgnoreCase) &&
-                    double.TryParse(threshold.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double percentile)) {
+                    ExcelConditionalFormatThresholds.TryParseThresholdNumber(threshold.Value, out double percentile)) {
                     return ExcelConditionalFormatThresholds.CalculatePercentile(values, Math.Max(0D, Math.Min(100D, percentile)));
                 }
             }

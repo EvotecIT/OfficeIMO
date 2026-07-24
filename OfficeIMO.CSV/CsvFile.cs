@@ -178,8 +178,25 @@ public static class CsvFile
         }
     }
 
-    private static Stream CreateWriteStream(string path, CsvSaveOptions options, bool append, int bufferSize) =>
-        CreateWriteStream(path, ResolveCompression(options.CompressionType, path), options.CompressionLevel, append, bufferSize);
+    private static Stream CreateWriteStream(string path, CsvSaveOptions options, bool append, int bufferSize)
+    {
+        CsvCompressionType compressionType = ResolveCompression(options.CompressionType, path);
+        EnsureCompressionSupported(compressionType);
+        EnsureCompressionLevelSupported(compressionType, options.CompressionLevel);
+        if (append && compressionType != CsvCompressionType.None)
+        {
+            throw new NotSupportedException("Appending to compressed CSV files is not supported.");
+        }
+
+        if (!options.NoClobber)
+        {
+            return CreateWriteStream(path, compressionType, options.CompressionLevel, append, bufferSize);
+        }
+
+        var fileStream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read,
+            bufferSize, FileOptions.SequentialScan);
+        return WrapWriteStream(fileStream, compressionType, options.CompressionLevel);
+    }
 
     private static Stream CreateWriteStream(string path, CsvCompressionType compressionType, CompressionLevel compressionLevel, bool append, int bufferSize)
     {

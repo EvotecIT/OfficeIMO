@@ -878,7 +878,13 @@ internal static partial class CsvParser
         var continuations = new List<CsvLine>();
         var state = new QuotedRecordState();
         UpdateQuotedRecordState(firstLine, delimiter, options.TrimWhitespace, ref state);
-        while (true)
+        int continuationLimit = options.MaxCommentContinuationLines;
+        if (continuationLimit <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxCommentContinuationLines must be greater than zero.");
+        }
+
+        while (continuations.Count < continuationLimit)
         {
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
             if (next == null)
@@ -901,6 +907,9 @@ internal static partial class CsvParser
                 return true;
             }
         }
+
+        EnqueueContinuations(pendingLines, continuations);
+        return true;
     }
 
     private static void EnqueueContinuations(Queue<CsvLine> pendingLines, List<CsvLine> continuations)
