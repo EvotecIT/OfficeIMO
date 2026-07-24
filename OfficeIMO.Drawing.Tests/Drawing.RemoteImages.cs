@@ -81,7 +81,7 @@ public sealed class DrawingRemoteImageTests {
     }
 
     [Fact]
-    public void CreatePinnedRequestUsesValidatedAddressAndPreservesHostIdentity() {
+    public void LegacyPinnedRequestUsesValidatedAddressAndPreservesHostHeader() {
         using HttpRequestMessage request = OfficeRemoteImageLoader.CreatePinnedRequest(
             new Uri("https://images.example.test:8443/assets/logo.png?size=2"),
             IPAddress.Parse("203.0.113.8"));

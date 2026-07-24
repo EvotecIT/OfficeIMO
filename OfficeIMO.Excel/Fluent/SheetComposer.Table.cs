@@ -157,22 +157,11 @@ namespace OfficeIMO.Excel.Fluent {
                 return new List<System.Collections.Generic.Dictionary<string, object?>>();
             }
 
-            if (items is IReadOnlyList<T> indexedItems) {
-                var rows = new List<System.Collections.Generic.Dictionary<string, object?>>(indexedItems.Count);
-                for (int i = 0; i < indexedItems.Count; i++) {
-                    rows.Add(flattener.Flatten(indexedItems[i], options));
-                }
-
-                return rows;
-            }
-
-            int capacity = items is IReadOnlyCollection<T> readOnlyCollection
-                ? readOnlyCollection.Count
-                : items is ICollection<T> collection ? collection.Count : 0;
-            var materializedRows = capacity > 0
-                ? new List<System.Collections.Generic.Dictionary<string, object?>>(capacity)
-                : new List<System.Collections.Generic.Dictionary<string, object?>>();
-            foreach (var item in items) {
+            List<T> boundedItems = ObjectFlattener.MaterializeRowsBounded(
+                items, options, "TableFrom");
+            var materializedRows = new List<System.Collections.Generic.Dictionary<string, object?>>(
+                boundedItems.Count);
+            foreach (T item in boundedItems) {
                 materializedRows.Add(flattener.Flatten(item, options));
             }
 

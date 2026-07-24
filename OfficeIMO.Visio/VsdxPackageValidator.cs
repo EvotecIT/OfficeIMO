@@ -218,14 +218,16 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool IsLinkEntry(ZipArchiveEntry entry) {
-            // ExternalAttributes is unavailable in the netstandard2.0 reference surface,
-            // even though modern runtime implementations expose it. The extractor always
-            // copies entry bytes into a newly created regular file; use the metadata when
-            // available to reject link-marked entries as an additional defense.
-            object? value = entry.GetType().GetProperty("ExternalAttributes")?.GetValue(entry);
-            if (!(value is int attributes)) return false;
+            // ExternalAttributes is unavailable in the netstandard2.0 reference surface.
+            // Older targets still copy bytes into newly created regular files; modern targets
+            // can reject link metadata before extraction without reflection or trim warnings.
+#if NET8_0_OR_GREATER
+            int attributes = entry.ExternalAttributes;
             int unixType = (attributes >> 16) & 0xF000;
             return unixType == 0xA000 || (attributes & (int)FileAttributes.ReparsePoint) != 0;
+#else
+            return false;
+#endif
         }
 
         private void ValidateArchiveLimits(ZipArchive archive) {

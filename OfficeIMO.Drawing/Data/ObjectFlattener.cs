@@ -149,6 +149,38 @@ namespace OfficeIMO.Drawing {
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
 
+        internal static List<T> MaterializeRowsBounded<T>(
+            IEnumerable<T> source,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (options.MaxRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRows),
+                    "MaxRows must be greater than zero.");
+            }
+
+            int capacity = source is IReadOnlyCollection<T> readOnly
+                ? readOnly.Count
+                : source is ICollection<T> collection
+                    ? collection.Count
+                    : 0;
+            if (capacity > options.MaxRows) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
+            }
+
+            var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
+            foreach (T item in source) {
+                if (rows.Count >= options.MaxRows) {
+                    throw new InvalidDataException(
+                        $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
+                }
+                rows.Add(item);
+            }
+            return rows;
+        }
+
         /// <summary>
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>

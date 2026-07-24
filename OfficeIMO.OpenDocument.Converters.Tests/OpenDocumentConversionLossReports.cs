@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
@@ -261,7 +262,9 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Automatic color").ColorHex = "auto";
-        using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
+        byte[] tiffBytes = OfficeTiffCodec.Encode(new OfficeRasterImage(
+            1, 1, OfficeColor.FromRgb(12, 34, 56)));
+        using var tiff = new MemoryStream(tiffBytes, writable: false);
         source.AddParagraph().AddImage(tiff, "unsupported.tiff", 10, 10);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();

@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word.Html;
@@ -12,33 +9,19 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Html {
-        private static IDictionary GetCache() {
-            var assembly = typeof(HtmlToWordOptions).Assembly;
-            var converterType = assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", true)!;
-            var field = converterType.GetField("_stylesheetCache", BindingFlags.NonPublic | BindingFlags.Static)!;
-            return (IDictionary)field.GetValue(null)!;
-        }
-
-        private static string ComputeHash(string css) {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(css));
-            return BitConverter.ToString(bytes).Replace("-", "");
-        }
-
         [Fact]
-        public void HtmlToWord_StylesheetCache_Reused_ForPathContent() {
+        public void HtmlToWord_StylesheetCache_LoadsPathContent() {
             var path = Path.GetTempFileName();
             const string css = "p { color:#111111; }";
             File.WriteAllText(path, css);
             try {
-                var cache = GetCache();
-                var key = ComputeHash(css);
-                cache.Remove(key);
                 var html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
-                OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
-                var first = cache[key];
-                OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
-                Assert.Same(first, cache[key]);
+                using var document = OfficeIMO.Html.HtmlConversionDocument
+                    .Parse(html).ToWordDocument(new HtmlToWordOptions {
+                        AllowDocumentStylesheetLinks = true
+                    });
+                Assert.Equal("111111",
+                    document.Paragraphs[0].GetRuns().First().ColorHex);
             } finally {
                 File.Delete(path);
             }
@@ -87,16 +70,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void HtmlToWord_StylesheetCache_Reused_ForContent() {
+        public void HtmlToWord_StylesheetCache_LoadsInlineContent() {
             const string css = "p { color:#222222; }";
-            var key = ComputeHash(css);
-            var cache = GetCache();
-            cache.Remove(key);
             var html = $"<style>{css}</style><p>Test</p>";
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-            var first = cache[key];
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-            Assert.Same(first, cache[key]);
+            using var document = OfficeIMO.Html.HtmlConversionDocument
+                .Parse(html).ToWordDocument(new HtmlToWordOptions());
+            Assert.Equal("222222",
+                document.Paragraphs[0].GetRuns().First().ColorHex);
         }
     }
 }

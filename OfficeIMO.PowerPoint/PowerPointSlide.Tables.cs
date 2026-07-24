@@ -177,7 +177,8 @@ namespace OfficeIMO.PowerPoint {
             configure?.Invoke(options);
             var flattener = new ObjectFlattener();
 
-            var items = data.ToList();
+            List<T> items = ObjectFlattener.MaterializeRowsBounded(data,
+                options, "PowerPoint AddTable");
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
             if (options.Columns != null) {
                 paths = flattener.ResolvePaths(paths, options);
@@ -196,22 +197,34 @@ namespace OfficeIMO.PowerPoint {
                     var collectionPath = paths.FirstOrDefault(p =>
                         dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);
                     if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
-                        var list = coll.Cast<object?>().ToList();
-                        if (list.Count == 0) {
+                        bool expanded = false;
+                        foreach (object? element in coll) {
+                            if (rowsData.Count >= options.MaxRows) {
+                                throw new InvalidDataException(
+                                    $"PowerPoint AddTable nested expansion exceeds the {options.MaxRows}-row materialization limit.");
+                            }
+                            expanded = true;
+                            var rowValues = paths.Select(p => p == collectionPath ? element :
+                                dict.TryGetValue(p, out var v) ? v :
+                                (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
+                            rowsData.Add(rowValues);
+                        }
+                        if (!expanded) {
+                            if (rowsData.Count >= options.MaxRows) {
+                                throw new InvalidDataException(
+                                    $"PowerPoint AddTable exceeds the {options.MaxRows}-row materialization limit.");
+                            }
                             rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
                                 (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
-                        } else {
-                            foreach (var element in list) {
-                                var rowValues = paths.Select(p => p == collectionPath ? element :
-                                    dict.TryGetValue(p, out var v) ? v :
-                                    (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
-                                rowsData.Add(rowValues);
-                            }
                         }
                         continue;
                     }
                 }
 
+                if (rowsData.Count >= options.MaxRows) {
+                    throw new InvalidDataException(
+                        $"PowerPoint AddTable exceeds the {options.MaxRows}-row materialization limit.");
+                }
                 rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
                     (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
             }

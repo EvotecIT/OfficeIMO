@@ -96,6 +96,18 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void TableFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(
+            () => document.Compose("Data", sheet => sheet.TableFrom(
+                InfiniteRows(), configure: options => options.MaxRows = 3)));
+
+        Assert.Contains("3-row", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RowsFromStopsNestedExpansionAtConfiguredLimit() {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);

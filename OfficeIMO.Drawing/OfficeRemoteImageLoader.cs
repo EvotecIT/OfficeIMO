@@ -14,6 +14,14 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static class OfficeRemoteImageLoader {
     private const int BufferSize = 81920;
+#if NET8_0_OR_GREATER
+    private static readonly HttpClient PublicClient = CreatePinnedClient(
+        allowPrivateNetworkAddresses: false);
+    private static readonly HttpClient PrivateClient = CreatePinnedClient(
+        allowPrivateNetworkAddresses: true);
+#else
+    private static readonly HttpClient LegacyClient = CreateClient();
+#endif
 
     /// <summary>
     /// Asynchronously retrieves an image from an HTTP or HTTPS URL.
@@ -52,9 +60,22 @@ public static class OfficeRemoteImageLoader {
 
         Uri current = uri;
         for (int redirectCount = 0; ; redirectCount++) {
-            IPAddress[] addresses = await ResolveDestinationAsync(current, snapshot, timeout.Token).ConfigureAwait(false);
-            using HttpClient client = CreateClient();
-            using HttpRequestMessage request = CreatePinnedRequest(current, addresses[0]);
+            timeout.Token.ThrowIfCancellationRequested();
+            ValidateDestinationPolicy(current, snapshot);
+#if NET8_0_OR_GREATER
+            HttpClient client = snapshot.AllowPrivateNetworkAddresses
+                ? PrivateClient
+                : PublicClient;
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                current);
+#else
+            IPAddress[] addresses = await ResolveDestinationAsync(current,
+                snapshot.AllowPrivateNetworkAddresses, timeout.Token)
+                .ConfigureAwait(false);
+            HttpClient client = LegacyClient;
+            using HttpRequestMessage request = CreatePinnedRequest(current,
+                addresses[0]);
+#endif
             using HttpResponseMessage response = await client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
@@ -97,6 +118,48 @@ public static class OfficeRemoteImageLoader {
             Timeout = System.Threading.Timeout.InfiniteTimeSpan
         };
     }
+
+#if NET8_0_OR_GREATER
+    private static HttpClient CreatePinnedClient(
+        bool allowPrivateNetworkAddresses) {
+        var handler = new SocketsHttpHandler {
+            AllowAutoRedirect = false,
+            AutomaticDecompression = DecompressionMethods.GZip
+                | DecompressionMethods.Deflate,
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            UseProxy = false
+        };
+        handler.ConnectCallback = async (context, cancellationToken) => {
+            IPAddress[] addresses = await ResolveDestinationAsync(
+                context.DnsEndPoint.Host, allowPrivateNetworkAddresses,
+                cancellationToken).ConfigureAwait(false);
+            Exception? lastFailure = null;
+            foreach (IPAddress address in addresses) {
+                var socket = new Socket(address.AddressFamily,
+                    SocketType.Stream, ProtocolType.Tcp);
+                try {
+                    await socket.ConnectAsync(address,
+                        context.DnsEndPoint.Port, cancellationToken)
+                        .ConfigureAwait(false);
+                    return new NetworkStream(socket, ownsSocket: true);
+                } catch (Exception exception) when (exception
+                           is SocketException
+                           || exception is IOException) {
+                    lastFailure = exception;
+                    socket.Dispose();
+                }
+            }
+
+            throw new HttpRequestException(
+                "No validated remote image address accepted the connection.",
+                lastFailure);
+        };
+        return new HttpClient(handler, disposeHandler: true) {
+            Timeout = System.Threading.Timeout.InfiniteTimeSpan
+        };
+    }
+#endif
 
     private static async Task<byte[]> ReadBoundedAsync(Stream input, long maximumBytes, CancellationToken cancellationToken) {
         using var output = new MemoryStream();
@@ -149,11 +212,9 @@ public static class OfficeRemoteImageLoader {
         }
     }
 
-    private static async Task<IPAddress[]> ResolveDestinationAsync(
+    private static void ValidateDestinationPolicy(
         Uri uri,
-        OfficeRemoteImageLoadOptions.Snapshot options,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
+        OfficeRemoteImageLoadOptions.Snapshot options) {
         string host = uri.IdnHost.TrimEnd('.');
         if (options.AllowedHosts.Count > 0 && !options.AllowedHosts.Contains(host)) {
             throw new InvalidDataException("The remote image host is outside the configured allowlist.");
@@ -164,6 +225,20 @@ public static class OfficeRemoteImageLoader {
             || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))) {
             throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
         }
+    }
+
+    private static Task<IPAddress[]> ResolveDestinationAsync(
+        Uri uri,
+        bool allowPrivateNetworkAddresses,
+        CancellationToken cancellationToken) => ResolveDestinationAsync(
+            uri.IdnHost.TrimEnd('.'), allowPrivateNetworkAddresses,
+            cancellationToken);
+
+    private static async Task<IPAddress[]> ResolveDestinationAsync(
+        string host,
+        bool allowPrivateNetworkAddresses,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
 
         IPAddress[] addresses;
         if (IPAddress.TryParse(host, out IPAddress? literal)) {
@@ -180,7 +255,8 @@ public static class OfficeRemoteImageLoader {
         }
 
         if (addresses.Length == 0
-            || (!options.AllowPrivateNetworkAddresses && addresses.Any(IsNonPublicAddress))) {
+            || (!allowPrivateNetworkAddresses
+                && addresses.Any(IsNonPublicAddress))) {
             throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
         }
 

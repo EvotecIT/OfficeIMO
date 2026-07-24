@@ -366,16 +366,6 @@ namespace OfficeIMO.Word.Markdown {
 
                     ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
 
-                    int scan = i + 1;
-                    while (scan < elements.Count && elements[scan] is WordParagraph sibling && sibling.Equals(paragraph)) {
-                        ResolveParagraphCheckboxState(sibling, out bool siblingHasCheckbox, out bool siblingCheckboxChecked);
-                        if (siblingHasCheckbox) {
-                            hasCheckbox = true;
-                            checkboxChecked = siblingCheckboxChecked;
-                        }
-                        scan++;
-                    }
-
                     var listInfo = DocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
                         AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
