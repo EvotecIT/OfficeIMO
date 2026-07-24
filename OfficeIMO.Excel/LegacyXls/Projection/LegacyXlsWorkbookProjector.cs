@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
 
@@ -674,7 +675,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         currentSheet.CellValue(cell.Row, cell.Column, value);
                     }
 
-                    if (cell.IsFormula && !string.IsNullOrWhiteSpace(cell.FormulaText)) {
+                    if (cell.IsFormula &&
+                        !string.IsNullOrWhiteSpace(cell.FormulaText) &&
+                        ShouldProjectFormula(workbook, cell.FormulaText!)) {
                         currentSheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
                     }
 
@@ -686,7 +689,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         cell.Row == arrayFormula.FirstRow
                         && cell.Column == arrayFormula.FirstColumn
                         && cell.IsFormula
-                        && !string.IsNullOrWhiteSpace(cell.FormulaText));
+                        && !string.IsNullOrWhiteSpace(cell.FormulaText)
+                        && ShouldProjectFormula(workbook, cell.FormulaText!));
                     if (formulaCell != null) {
                         currentSheet.SetLegacyArrayFormula(arrayFormula.Range, formulaCell.FormulaText!);
                     }
@@ -902,8 +906,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     AllowSort = permissions?.AllowSort ?? false,
                     AllowAutoFilter = permissions?.AllowAutoFilter ?? false,
                     AllowPivotTables = permissions?.AllowPivotTables ?? false
-                });
-            }
+            });
+        }
 
             ProjectProtectedRanges(legacySheet, sheet);
             ProjectPageSetup(legacySheet, sheet);
@@ -924,6 +928,54 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             } else if (legacySheet.Visibility != 0) {
                 sheet.SetHidden(true);
             }
+        }
+
+        private static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
+            workbook.PreserveExternalWorkbookLinks || !ReferencesExternalWorkbook(workbook, formulaText);
+
+        private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) {
+            foreach (LegacyXlsExternalReference reference in workbook.ExternalReferences) {
+                if (reference.Kind != LegacyXlsExternalReferenceKind.ExternalWorkbook ||
+                    string.IsNullOrWhiteSpace(reference.Target)) {
+                    continue;
+                }
+
+                string fileName = BiffFormulaReferenceFormatter.NormalizeExternalWorkbookTarget(reference.Target);
+                if (fileName.Length == 0) continue;
+                string escapedFileName = fileName.Replace("'", "''");
+                if (ContainsFormulaTokenOutsideStringLiteral(formulaText, "[" + escapedFileName + "]") ||
+                    ContainsFormulaTokenOutsideStringLiteral(formulaText, "'" + escapedFileName + "'!") ||
+                    ContainsFormulaTokenOutsideStringLiteral(formulaText, escapedFileName + "!")) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsFormulaTokenOutsideStringLiteral(string formulaText, string token) {
+            bool inStringLiteral = false;
+            for (int index = 0; index < formulaText.Length;) {
+                if (formulaText[index] == '"') {
+                    if (inStringLiteral && index + 1 < formulaText.Length && formulaText[index + 1] == '"') {
+                        index += 2;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                    index++;
+                    continue;
+                }
+
+                if (!inStringLiteral && index <= formulaText.Length - token.Length &&
+                    string.Compare(formulaText, index, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    return true;
+                }
+
+                index++;
+            }
+
+            return false;
         }
 
         private static void ProjectTableDefinitions(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
@@ -1159,6 +1211,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         Reference = reference.CellRange,
                     };
                     if (reference.SourceKind == LegacyXlsDataConsolidationSourceKind.ExternalVirtualPath) {
+                        if (!workbook.PreserveExternalWorkbookLinks) {
+                            continue;
+                        }
+
                         string? relationshipId = AddExternalDataConsolidationRelationship(sheet, reference.Source);
                         if (relationshipId == null) {
                             continue;
@@ -1183,6 +1239,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         Name = name.Name
                     };
                     if (name.SourceKind == LegacyXlsDataConsolidationSourceKind.ExternalVirtualPath) {
+                        if (!workbook.PreserveExternalWorkbookLinks) {
+                            continue;
+                        }
+
                         string? relationshipId = AddExternalDataConsolidationRelationship(sheet, name.Source);
                         if (relationshipId == null) {
                             continue;
@@ -1556,6 +1616,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
             IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
+                if (!workbook.PreserveExternalWorkbookLinks && ReferencesExternalWorkbook(workbook, definedName.Reference)) {
+                    continue;
+                }
                 ExcelSheet? scope = definedName.LocalSheetIndex.HasValue
                     && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int worksheetIndex)
                     && worksheetIndex < document.Sheets.Count
@@ -1667,6 +1730,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            if (!workbook.PreserveExternalWorkbookLinks) {
+                return;
+            }
+
             WorkbookPart workbookPart = document.WorkbookPartRoot;
             Workbook workbookRoot = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is null.");
 

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Controls which source slides remain in a presentation created from a template.</summary>
@@ -64,23 +65,32 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointTemplateCreationOptions resolved = options ?? new PowerPointTemplateCreationOptions();
-            string? directory = Path.GetDirectoryName(destination);
-            if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
-            File.Copy(source, destination, resolved.Overwrite);
-
-            if (string.Equals(sourceExtension, ".potx", StringComparison.OrdinalIgnoreCase)) {
-                using PresentationDocument document = PresentationDocument.Open(destination, true);
-                document.ChangeDocumentType(PresentationDocumentType.Presentation);
-                document.Save();
-            }
-
-            PowerPointPresentation presentation = Load(destination);
+            OfficeFileCommit.EnsureTargetDirectory(destination);
+            string stagingPath = OfficeFileCommit.CreateStagingPath(destination);
             try {
-                presentation.ApplyTemplateSlideRetention(resolved);
-                return presentation;
-            } catch {
-                presentation.Dispose();
-                throw;
+                File.Copy(source, stagingPath, overwrite: false);
+
+                if (string.Equals(sourceExtension, ".potx", StringComparison.OrdinalIgnoreCase)) {
+                    using PresentationDocument document = PresentationDocument.Open(stagingPath, true);
+                    document.ChangeDocumentType(PresentationDocumentType.Presentation);
+                    document.Save();
+                }
+
+                using (PowerPointPresentation presentation = Load(stagingPath)) {
+                    presentation.ApplyTemplateSlideRetention(resolved);
+                    presentation.Save();
+                }
+
+                OfficeFileCommit.CommitTemporaryFile(
+                    stagingPath,
+                    destination,
+                    resolved.Overwrite
+                        ? OfficeFileCommit.ConflictPolicy.Replace
+                        : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                stagingPath = string.Empty;
+                return Load(destination);
+            } finally {
+                OfficeFileCommit.DeleteIfExists(stagingPath);
             }
         }
 

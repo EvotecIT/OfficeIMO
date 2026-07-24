@@ -73,7 +73,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             }
 
             PowerPointDeckPreflightOptions preflightOptions = options.PreflightOptions?.Clone()
-                ?? new PowerPointDeckPreflightOptions();
+                ?? new PowerPointDeckPreflightOptions {
+                    // Markup can expand into many peer shapes. Callers may opt into collision diagnostics,
+                    // but the default export path must not perform a quadratic pairwise scan.
+                    DetectShapeCollisions = false
+                };
             PowerPointDeckPreflightReport preflightReport = presentation.InspectPreflight(preflightOptions);
             if (options.FailOnPreflightFindings) {
                 preflightReport.ThrowIfFindings(preflightOptions.FailureSeverity);

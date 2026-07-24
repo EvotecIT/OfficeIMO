@@ -83,8 +83,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            sample = new DateTime(2099, 12, 31, 23, 59, 59).ToString(TranslateDateFormat(formatCode!), CultureInfo.InvariantCulture);
-            return true;
+            try {
+                sample = new DateTime(2099, 12, 31, 23, 59, 59).ToString(TranslateDateFormat(formatCode!), CultureInfo.InvariantCulture);
+                return true;
+            } catch (FormatException) {
+                return false;
+            }
         }
 
         private static string FormatDateValue(double value, uint numberFormatId, string formatCode, ExcelDateSystem dateSystem) {
@@ -99,20 +103,24 @@ namespace OfficeIMO.Excel {
                 return value.ToString(CultureInfo.InvariantCulture);
             }
 
-            switch (numberFormatId) {
-                case 14: return date.ToString("M/d/yyyy", CultureInfo.InvariantCulture);
-                case 15: return date.ToString("d-MMM-yy", CultureInfo.InvariantCulture);
-                case 16: return date.ToString("d-MMM", CultureInfo.InvariantCulture);
-                case 17: return date.ToString("MMM-yy", CultureInfo.InvariantCulture);
-                case 18: return date.ToString("h:mm tt", CultureInfo.InvariantCulture);
-                case 19: return date.ToString("h:mm:ss tt", CultureInfo.InvariantCulture);
-                case 20: return date.ToString("H:mm", CultureInfo.InvariantCulture);
-                case 21: return date.ToString("H:mm:ss", CultureInfo.InvariantCulture);
-                case 22: return date.ToString("M/d/yyyy H:mm", CultureInfo.InvariantCulture);
-                case 45: return date.ToString("mm:ss", CultureInfo.InvariantCulture);
-                case 47: return date.ToString("mm:ss.0", CultureInfo.InvariantCulture);
-                default:
-                    return date.ToString(TranslateDateFormat(formatCode), CultureInfo.InvariantCulture);
+            try {
+                switch (numberFormatId) {
+                    case 14: return date.ToString("M/d/yyyy", CultureInfo.InvariantCulture);
+                    case 15: return date.ToString("d-MMM-yy", CultureInfo.InvariantCulture);
+                    case 16: return date.ToString("d-MMM", CultureInfo.InvariantCulture);
+                    case 17: return date.ToString("MMM-yy", CultureInfo.InvariantCulture);
+                    case 18: return date.ToString("h:mm tt", CultureInfo.InvariantCulture);
+                    case 19: return date.ToString("h:mm:ss tt", CultureInfo.InvariantCulture);
+                    case 20: return date.ToString("H:mm", CultureInfo.InvariantCulture);
+                    case 21: return date.ToString("H:mm:ss", CultureInfo.InvariantCulture);
+                    case 22: return date.ToString("M/d/yyyy H:mm", CultureInfo.InvariantCulture);
+                    case 45: return date.ToString("mm:ss", CultureInfo.InvariantCulture);
+                    case 47: return date.ToString("mm:ss.0", CultureInfo.InvariantCulture);
+                    default:
+                        return date.ToString(TranslateDateFormat(formatCode), CultureInfo.InvariantCulture);
+                }
+            } catch (FormatException) {
+                return value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -320,9 +328,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            TimeSpan duration = TimeSpan.FromDays(value);
+            TimeSpan duration;
+            TimeSpan absolute;
+            try {
+                duration = TimeSpan.FromDays(value);
+                absolute = duration.Duration();
+            } catch (ArgumentException) {
+                return false;
+            } catch (OverflowException) {
+                return false;
+            }
+
             bool negative = duration.Ticks < 0;
-            TimeSpan absolute = duration.Duration();
             string sign = negative ? "-" : string.Empty;
 
             if (hasHours) {

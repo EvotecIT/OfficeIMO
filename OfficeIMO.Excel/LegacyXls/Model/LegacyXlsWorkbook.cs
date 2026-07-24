@@ -47,6 +47,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether the workbook stream was successfully decrypted from password-to-open protection.</summary>
         public bool WasEncryptedSource { get; internal set; }
 
+        /// <summary>Gets whether projection may recreate active external-workbook relationships.</summary>
+        internal bool PreserveExternalWorkbookLinks { get; set; }
+
         internal LegacyXlsWorkbook() {
         }
 

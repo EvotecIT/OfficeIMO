@@ -22,7 +22,10 @@ public sealed class MarkupToPowerPointOptions {
     public string? TemporaryDirectory { get; set; }
     /// <summary>Maximum Mermaid renderer execution time in milliseconds.</summary>
     public int MermaidRenderTimeoutMilliseconds { get; set; } = 30000;
-    /// <summary>Optional deck preflight rules applied after conversion.</summary>
+    /// <summary>
+    /// Optional deck preflight rules applied after conversion. When omitted, bounded preflight runs with
+    /// pairwise shape-collision detection disabled; trusted callers can opt into that diagnostic explicitly.
+    /// </summary>
     public PowerPointDeckPreflightOptions? PreflightOptions { get; set; }
     /// <summary>Whether preflight findings should fail the conversion.</summary>
     public bool FailOnPreflightFindings { get; set; }

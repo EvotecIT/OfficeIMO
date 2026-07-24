@@ -212,6 +212,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CreateFromTemplate_DoesNotExposeCopiedTemplateWhenRetentionValidationFails() {
+            string templatePath = CreateTemplatePresentation();
+            string outputPath = TempPath(".pptx");
+            try {
+                var options = new PowerPointTemplateCreationOptions {
+                    SlideRetention = PowerPointTemplateSlideRetention.Selected
+                };
+                options.SourceSlideIndexes.Add(99);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    PowerPointTemplate.CreatePresentation(templatePath, outputPath, options));
+
+                Assert.False(File.Exists(outputPath));
+                string directory = Path.GetDirectoryName(outputPath)!;
+                string prefix = "." + Path.GetFileNameWithoutExtension(outputPath) + ".";
+                Assert.DoesNotContain(Directory.EnumerateFiles(directory), path =>
+                    Path.GetFileName(path).StartsWith(prefix, StringComparison.Ordinal));
+            } finally {
+                Delete(templatePath, outputPath);
+            }
+        }
+
+        [Fact]
         public void CreateFromTemplate_ConvertsPotxToEditablePptx() {
             string sourcePptx = CreateTemplatePresentation();
             string sourcePotx = TempPath(".potx");

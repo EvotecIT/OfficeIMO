@@ -57,7 +57,10 @@ namespace OfficeIMO.Word.Html {
 
             HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source.SourceHtml, roundTripHtml);
             HtmlResourceManifest resourceManifest = HtmlResourcePipeline.BuildManifest(source.SourceHtml, new HtmlResourcePipelineOptions {
-                ResourceUrlPolicy = options.ResourceUrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()
+                ResourceUrlPolicy = options.ResourceUrlPolicy
+                    ?? (options.ImportOptions == null
+                        ? HtmlUrlPolicy.CreateEmbeddedResourceProfile()
+                        : importOptions.ResourceUrlPolicy)
             });
             var manifest = new HtmlCapabilityGalleryManifest(
                 result,
@@ -76,7 +79,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static HtmlToWordOptions CreateImportOptions(HtmlToWordOptions? options) {
-            HtmlToWordOptions importOptions = options?.Clone() ?? HtmlToWordOptions.CreateTrustedDocumentProfile();
+            HtmlToWordOptions importOptions = options?.Clone() ?? HtmlToWordOptions.CreateUntrustedHtmlProfile();
             importOptions.EnableAccessibilityDiagnostics = true;
             return importOptions;
         }

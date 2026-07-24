@@ -1,6 +1,8 @@
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -11,7 +13,8 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
+                ReportUnsupportedContent = true,
+                PreserveExternalWorkbookLinks = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -117,6 +120,29 @@ namespace OfficeIMO.Tests {
                 && diagnostic.DetailCode == "ExternalReference:ExternalWorkbook"
                 && diagnostic.RecordType == 0x01ae);
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0059 || feature.RecordType == 0x005a);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_DoesNotActivateExternalWorkbookLinksByDefault() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateExternalCellCacheWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound);
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+
+            Assert.Contains(workbook.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference
+                && feature.DetailCode == "ExternalReference:ExternalWorkbook");
+            Assert.DoesNotContain(document.WorkbookPartRoot.Parts,
+                pair => pair.OpenXmlPart is ExternalWorkbookPart);
+
+            byte[] consolidationStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ExternalReferencesWorkbookStream();
+            byte[] consolidationCompound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(consolidationStream);
+            using ExcelDocument consolidationDocument = ExcelDocument.LoadLegacyXls(new MemoryStream(consolidationCompound));
+            Assert.All(consolidationDocument.WorkbookPartRoot.WorksheetParts, worksheetPart =>
+                Assert.DoesNotContain(worksheetPart.ExternalRelationships,
+                    relationship => relationship.RelationshipType ==
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath"));
         }
 
         [Fact]

@@ -285,6 +285,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("01/05/26", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "mm/dd/yy", "46027"));
             Assert.Equal("January 5, 2026", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "mmmm d, yyyy", "46027"));
             Assert.Equal("Monday, January 5", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "dddd, mmmm d", "46027"));
+            Assert.Equal("46027", ExcelNumberFormatDisplay.FormatNumericText(46027D, 1U, "mmmm d \"%\"", "46027"));
             Assert.Equal("5%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0\"%\"", "5"));
             Assert.Equal("500%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0%", "5"));
             Assert.Equal("1234%%", ExcelNumberFormatDisplay.FormatNumericText(0.1234D, 1U, "0%%", "0.1234"));
@@ -299,6 +300,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("\u20AC1,234.50", ExcelNumberFormatDisplay.FormatNumericText(1234.5D, 1U, "[$\u20AC-407]#,##0.00", "1234.5"));
             Assert.Equal("90:00", ExcelNumberFormatDisplay.FormatNumericText(TimeSpan.FromMinutes(90).TotalDays, 1U, "[mm]:ss", "0.0625"));
             Assert.Equal("5400", ExcelNumberFormatDisplay.FormatNumericText(TimeSpan.FromMinutes(90).TotalDays, 1U, "[ss]", "0.0625"));
+            Assert.Equal("1E+20", ExcelNumberFormatDisplay.FormatNumericText(1E20D, 1U, "[ss]", "1E+20"));
             Assert.Equal(string.Empty, ExcelNumberFormatDisplay.FormatNumericText(0D, 1U, "0;-0;;@", "0"));
             Assert.Equal(string.Empty, ExcelNumberFormatDisplay.FormatNumericText(0D, 1U, "#", "0"));
             Assert.Equal(string.Empty, ExcelNumberFormatDisplay.FormatNumericText(0D, 1U, "#,###", "0"));
@@ -1263,6 +1265,39 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.RedCircle);
                 Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.YellowCircle);
                 Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRejectsNonFiniteIconSetPercentiles() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    ExcelSheet sheet = document.AddWorksheet("IconPercentiles");
+                    sheet.CellValue(1, 1, 1);
+                    sheet.CellValue(2, 1, 2);
+                    sheet.CellValue(3, 1, 3);
+                    sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1,
+                        showValue: true, reverseIconOrder: false);
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    IconSet iconSet = worksheet.Elements<ConditionalFormatting>()
+                        .First().Elements<ConditionalFormattingRule>().First().GetFirstChild<IconSet>()!;
+                    ConditionalFormatValueObject threshold = iconSet.Elements<ConditionalFormatValueObject>().ElementAt(1);
+                    threshold.Type = ConditionalFormatValueObjectValues.Percentile;
+                    threshold.Val = "NaN";
+                    worksheet.Save();
+                }
+
+                using ExcelDocument reopened = ExcelDocument.Load(filePath);
+                ExcelRangeVisualSnapshot snapshot = reopened.Sheets.Single().Range("A1:A3").CreateVisualSnapshot();
+
+                Assert.Equal(3, snapshot.ConditionalIcons.Count);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
 
