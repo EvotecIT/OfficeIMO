@@ -331,7 +331,11 @@ namespace OfficeIMO.PowerPoint {
                     ShouldSharePart, includeDataParts: true);
                 RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
             } catch {
-                _presentationPart.DeletePart(slidePart);
+                try {
+                    _presentationPart.DeletePart(slidePart);
+                } catch {
+                    // Preserve the original clone failure when best-effort cleanup fails.
+                }
                 throw;
             }
 

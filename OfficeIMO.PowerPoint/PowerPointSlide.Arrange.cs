@@ -386,7 +386,11 @@ namespace OfficeIMO.PowerPoint {
 
                 return relationshipId;
             } catch {
-                _slidePart.DeletePart(targetChartPart);
+                try {
+                    _slidePart.DeletePart(targetChartPart);
+                } catch {
+                    // Preserve the original clone failure when best-effort cleanup fails.
+                }
                 throw;
             }
         }
