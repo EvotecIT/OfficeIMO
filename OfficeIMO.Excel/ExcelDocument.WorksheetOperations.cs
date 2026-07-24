@@ -77,13 +77,21 @@ namespace OfficeIMO.Excel {
             if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             options ??= new ExcelWorksheetCopyOptions();
+            if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
+            if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
             if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
                 return CopyWorksheet(sourceSheetName, newSheetName, validationMode);
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values
                 ? CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
-                : CopyWorksheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode);
+                : CopyWorksheetFromPackage(
+                    sourceDocument,
+                    sourceSheetName,
+                    newSheetName,
+                    validationMode,
+                    options,
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
         }
 
         /// <summary>
@@ -357,7 +365,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private Dictionary<string, string> CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart, bool rewriteCopiedTableReferences = false) {
+        private Dictionary<string, string> CopyWorksheetTables(
+            WorksheetPart sourcePart,
+            WorksheetPart copiedPart,
+            bool rewriteCopiedTableReferences = false,
+            bool preserveTableFormulas = true) {
             TableParts? copiedTableParts = null;
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var copiedTables = new List<Table>();
@@ -372,6 +384,9 @@ namespace OfficeIMO.Excel {
                 var copiedTable = (Table)sourceTable.CloneNode(true);
                 copiedTable.Id = GetNextUniqueTableId();
                 StripCopiedTableQueryBindings(copiedTable);
+                if (!preserveTableFormulas) {
+                    StripCopiedTableFormulas(copiedTable);
+                }
                 string? sourceTableName = sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value;
                 string? sourceDisplayName = sourceTable.DisplayName?.Value;
                 string tableName = CreateUniqueCopiedTableName(sourceTableName);
@@ -422,6 +437,12 @@ namespace OfficeIMO.Excel {
             RemoveElementsByLocalName(table, "queryTableField");
             RemoveElementsByLocalName(table, "queryTableFields");
             RemoveExtensionsContainingLocalNames(table, "queryTable", "queryTableField", "queryTableFields");
+        }
+
+        private static void StripCopiedTableFormulas(Table table) {
+            RemoveExtensionsContainingLocalNames(table, "calculatedColumnFormula", "totalsRowFormula");
+            RemoveElementsByLocalName(table, "calculatedColumnFormula");
+            RemoveElementsByLocalName(table, "totalsRowFormula");
         }
 
         private uint GetNextUniqueTableId() {

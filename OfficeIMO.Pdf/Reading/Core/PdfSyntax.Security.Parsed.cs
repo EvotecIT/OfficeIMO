@@ -11,7 +11,7 @@ internal static partial class PdfSyntax {
         Guard.NotNull(fallback, nameof(fallback));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
+        int? encryptObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
@@ -21,7 +21,7 @@ internal static partial class PdfSyntax {
         int? encryptionPermissions = null;
         bool? encryptMetadata = null;
         if (encryptObjectNumber.HasValue &&
-            TryReadLastReference(trailerRaw, "Encrypt") is PdfReference encryptReference &&
+            TryReadFirstReference(trailerRaw, "Encrypt") is PdfReference encryptReference &&
             PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
             encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
             encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
@@ -123,8 +123,8 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int? rootObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Root") ?? fallback.RootObjectNumber;
-        int? infoObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Info") ?? fallback.InfoObjectNumber;
+        int? rootObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Root") ?? fallback.RootObjectNumber;
+        int? infoObjectNumber = TryReadFirstReferenceObjectNumber(trailerRaw, "Info") ?? fallback.InfoObjectNumber;
         bool hasByteRange = byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange");
 
         return new PdfDocumentSecurityInfo(

@@ -10,6 +10,23 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Tests {
     public class VisioTextStyleTests {
         [Fact]
+        public void VisioLoadBoundsUntrustedFontFamilyNamesBeforeRendering() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.AddPage("Fonts")
+                .AddRectangle(2, 4, 2.5, 1.1, "Bounded font")
+                .ApplyTextStyle(new VisioTextStyle { FontFamily = new string('F', 10_000), Size = 12 });
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape shape = Assert.Single(loaded.Pages[0].Shapes);
+
+            Assert.Equal(256, shape.TextStyle!.FontFamily!.Length);
+            string svg = loaded.Pages[0].ToSvg();
+            Assert.True(svg.Length < 100_000, $"Expected bounded SVG output but got {svg.Length} characters.");
+        }
+
+        [Fact]
         public void VisioTextStyleWritesCharacterParagraphAndTextBlockCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

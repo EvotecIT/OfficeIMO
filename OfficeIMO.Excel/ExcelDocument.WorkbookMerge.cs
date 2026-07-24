@@ -21,6 +21,9 @@ namespace OfficeIMO.Excel {
             }
 
             options ??= new ExcelWorkbookMergeOptions();
+            if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
+            if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
+            var definedNameBudget = new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
@@ -46,7 +49,9 @@ namespace OfficeIMO.Excel {
                         requestedName,
                         options.SheetNameValidationMode,
                         rewriteCopiedReferences: false,
-                        copyReferencedDefinedNames: false);
+                        copyReferencedDefinedNames: false,
+                        options.CopyExternalWorkbookReferences,
+                        definedNameBudget);
                     targetSheet = copyResult.Sheet;
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;
@@ -66,7 +71,13 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < importedSourceNames.Count; index++) {
                 ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
                 externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
-                CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap, externalReferenceMap);
+                CopyReferencedDefinedNamesFromSource(
+                    sourceDocument,
+                    targetSheet,
+                    sheetNameMap,
+                    tableNameMap,
+                    externalReferenceMap,
+                    definedNameBudget);
             }
 
             MarkPackageDirty();

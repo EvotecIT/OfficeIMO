@@ -144,8 +144,8 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("A preset or custom number format is required.", nameof(numberFormat));
             }
 
-            if (decimals < 0) {
-                throw new ArgumentOutOfRangeException(nameof(decimals), "Decimals must be zero or greater.");
+            if (decimals < 0 || decimals > ExcelNumberFormats.MaximumDecimalPlaces) {
+                throw new ArgumentOutOfRangeException(nameof(decimals), $"Decimals must be between 0 and {ExcelNumberFormats.MaximumDecimalPlaces}.");
             }
 
             Header = header;

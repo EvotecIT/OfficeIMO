@@ -26,13 +26,31 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CopyWorksheetTables(sourceSheet.WorksheetPart, targetSheet.WorksheetPart, rewriteCopiedTableReferences: true);
+            CopyWorksheetTables(
+                sourceSheet.WorksheetPart,
+                targetSheet.WorksheetPart,
+                rewriteCopiedTableReferences: true,
+                preserveTableFormulas: false);
             targetSheet.WorksheetPart.Worksheet!.Save();
             return targetSheet;
         }
 
-        private ExcelSheet CopyWorksheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
-            return CopyWorksheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
+        private ExcelSheet CopyWorksheetFromPackage(
+            ExcelDocument sourceDocument,
+            string sourceSheetName,
+            string newSheetName,
+            SheetNameValidationMode validationMode,
+            ExcelWorksheetCopyOptions options,
+            DefinedNameCopyBudget definedNameBudget) {
+            return CopyWorksheetFromPackage(
+                sourceDocument,
+                sourceSheetName,
+                newSheetName,
+                validationMode,
+                rewriteCopiedReferences: true,
+                copyReferencedDefinedNames: true,
+                options.CopyExternalWorkbookReferences,
+                definedNameBudget).Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetFromPackage(
@@ -41,10 +59,17 @@ namespace OfficeIMO.Excel {
             string newSheetName,
             SheetNameValidationMode validationMode,
             bool rewriteCopiedReferences,
-            bool copyReferencedDefinedNames) {
+            bool copyReferencedDefinedNames,
+            bool copyExternalWorkbookReferences,
+            DefinedNameCopyBudget definedNameBudget) {
             MaterializeDeferredDataSetImport();
             sourceDocument.MaterializeDeferredDataSetImport();
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
+            if (!copyExternalWorkbookReferences
+                && sourceDocument.WorkbookRoot.ExternalReferences?.Elements<ExternalReference>().Any() == true) {
+                throw new InvalidOperationException(
+                    "Package-mode worksheet copy refuses external-workbook references unless CopyExternalWorkbookReferences is enabled explicitly.");
+            }
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 string validatedName = ValidateOrSanitizeSheetName(newSheetName, validationMode, currentSheetName: null);
@@ -69,7 +94,9 @@ namespace OfficeIMO.Excel {
 
                 StripCopiedCellMetadataReferences(copiedPart.Worksheet);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
-                IReadOnlyDictionary<int, int> externalReferenceMap = CopyExternalWorkbookReferencesFromSource(sourceDocument);
+                IReadOnlyDictionary<int, int> externalReferenceMap = copyExternalWorkbookReferences
+                    ? CopyExternalWorkbookReferencesFromSource(sourceDocument)
+                    : new Dictionary<int, int>();
                 IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
                 bool copiedFormulas = copiedPart.Worksheet.Descendants<CellFormula>()
                     .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
@@ -89,7 +116,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (copyReferencedDefinedNames) {
-                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap, externalReferenceMap);
+                    CopyReferencedDefinedNamesFromSource(
+                        sourceDocument,
+                        targetSheet,
+                        sheetNameMap,
+                        tableNameMap,
+                        externalReferenceMap,
+                        definedNameBudget);
                 }
 
                 copiedPart.Worksheet.Save();
@@ -209,12 +242,33 @@ namespace OfficeIMO.Excel {
         }
 
         private static Dictionary<int, uint> BuildRowStyleIndexMap(Worksheet worksheet) {
-            return worksheet.Descendants<Row>()
-                .Where(row => row.RowIndex != null && row.StyleIndex != null)
-                .ToDictionary(
-                    row => (int)row.RowIndex!.Value,
-                    row => row.StyleIndex!.Value,
-                    EqualityComparer<int>.Default);
+            var rowStyles = new Dictionary<int, uint>();
+            foreach (Row row in worksheet.Descendants<Row>()) {
+                IList<OpenXmlAttribute> attributes = row.GetAttributes();
+                string rowIndexText = GetUnqualifiedAttributeValue(attributes, "r");
+                string styleIndexText = GetUnqualifiedAttributeValue(attributes, "s");
+                if (!int.TryParse(rowIndexText, NumberStyles.None, CultureInfo.InvariantCulture, out int rowIndex)
+                    || rowIndex < 1
+                    || !uint.TryParse(styleIndexText, NumberStyles.None, CultureInfo.InvariantCulture, out uint styleIndex)
+                    || rowStyles.ContainsKey(rowIndex)) {
+                    continue;
+                }
+
+                rowStyles.Add(rowIndex, styleIndex);
+            }
+
+            return rowStyles;
+        }
+
+        private static string GetUnqualifiedAttributeValue(IList<OpenXmlAttribute> attributes, string localName) {
+            for (int i = 0; i < attributes.Count; i++) {
+                OpenXmlAttribute attribute = attributes[i];
+                if (attribute.LocalName == localName && string.IsNullOrEmpty(attribute.NamespaceUri)) {
+                    return attribute.Value ?? string.Empty;
+                }
+            }
+
+            return string.Empty;
         }
 
         private static (int Min, int Max, uint StyleIndex)[] BuildColumnStyleIndexRanges(Worksheet worksheet) {

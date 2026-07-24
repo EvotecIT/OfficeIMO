@@ -54,7 +54,9 @@ namespace OfficeIMO.Excel {
             ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap,
             IReadOnlyDictionary<string, string>? tableNameMap = null,
-            IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null,
+            DefinedNameCopyBudget? budget = null) {
+            budget ??= new DefinedNameCopyBudget(4096, 1_000_000);
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return;
@@ -71,7 +73,6 @@ namespace OfficeIMO.Excel {
             string? currentSourceSheetName = sheetNameMap
                 .FirstOrDefault(mapping => string.Equals(mapping.Value, targetSheet.Name, StringComparison.OrdinalIgnoreCase))
                 .Key;
-            DefinedNames targetDefinedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
             var copiedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<DefinedName> sourceNames = sourceDefinedNames.Elements<DefinedName>()
                 .Where(name => !string.IsNullOrWhiteSpace(name.Name?.Value)
@@ -84,18 +85,26 @@ namespace OfficeIMO.Excel {
                     && string.Equals(owner, currentSourceSheetName, StringComparison.OrdinalIgnoreCase)
                     && !string.IsNullOrWhiteSpace(name.Name?.Value))
                 .Select(name => name.Name!.Value!), StringComparer.OrdinalIgnoreCase);
-            bool copied;
-            do {
-                copied = false;
-                foreach (DefinedName sourceName in sourceNames) {
-                    string? name = sourceName.Name?.Value;
-                    if (sourceName.LocalSheetId == null && localNamesForCurrentSourceSheet.Contains(name!)) {
+            var sourceNamesByName = sourceNames
+                .GroupBy(name => name.Name!.Value!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+            var pendingNames = new Queue<string>();
+            var queuedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string formulaText in formulaTexts) {
+                EnqueueReferencedDefinedNames(formulaText, sourceNamesByName, queuedNames, pendingNames);
+            }
+
+            var plannedCopies = new List<(DefinedName Clone, ushort DestinationSheetPosition, string Name)>();
+            while (pendingNames.Count > 0) {
+                string referencedName = pendingNames.Dequeue();
+                foreach (DefinedName sourceName in sourceNamesByName[referencedName]) {
+                    string name = sourceName.Name!.Value!;
+                    if (sourceName.LocalSheetId == null && localNamesForCurrentSourceSheet.Contains(name)) {
                         continue;
                     }
 
                     string copyKey = name + "|" + (sourceName.LocalSheetId?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
-                    if (copiedNames.Contains(copyKey)
-                        || !formulaTexts.Any(text => ContainsDefinedNameToken(text, name!))) {
+                    if (!copiedNames.Add(copyKey)) {
                         continue;
                     }
 
@@ -106,14 +115,6 @@ namespace OfficeIMO.Excel {
                             || !TryGetSheetPositionIndexByName(targetNameOwner, out destinationSheetPosition)) {
                             continue;
                         }
-                    }
-
-                    foreach (DefinedName existing in targetDefinedNames.Elements<DefinedName>()
-                        .Where(item => item.LocalSheetId != null
-                            && item.LocalSheetId.Value == destinationSheetPosition
-                            && string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
-                        .ToList()) {
-                        existing.Remove();
                     }
 
                     var clone = (DefinedName)sourceName.CloneNode(true);
@@ -129,17 +130,88 @@ namespace OfficeIMO.Excel {
                             clone.Text = RewriteExternalWorkbookReferenceIndexes(clone.Text!, externalReferenceMap);
                         }
 
-                        formulaTexts.Add(clone.Text!);
+                        EnqueueReferencedDefinedNames(clone.Text!, sourceNamesByName, queuedNames, pendingNames);
                     }
 
-                    targetDefinedNames.Append(clone);
-                    copiedNames.Add(copyKey);
-                    copied = true;
+                    budget.Consume(clone.Text?.Length ?? 0);
+                    plannedCopies.Add((clone, destinationSheetPosition, name));
                 }
             }
-            while (copied);
+
+            if (plannedCopies.Count == 0) {
+                return;
+            }
+
+            DefinedNames targetDefinedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
+            foreach (var plannedCopy in plannedCopies) {
+                foreach (DefinedName existing in targetDefinedNames.Elements<DefinedName>()
+                    .Where(item => item.LocalSheetId != null
+                        && item.LocalSheetId.Value == plannedCopy.DestinationSheetPosition
+                        && string.Equals(item.Name?.Value, plannedCopy.Name, StringComparison.OrdinalIgnoreCase))
+                    .ToList()) {
+                    existing.Remove();
+                }
+
+                targetDefinedNames.Append(plannedCopy.Clone);
+            }
 
             WorkbookRoot.Save();
+        }
+
+        private static void EnqueueReferencedDefinedNames(
+            string formula,
+            IReadOnlyDictionary<string, List<DefinedName>> sourceNamesByName,
+            ISet<string> queuedNames,
+            Queue<string> pendingNames) {
+            int tokenStart = -1;
+            for (int index = 0; index <= formula.Length; index++) {
+                bool isTokenCharacter = index < formula.Length && IsDefinedNameCharacter(formula[index]);
+                if (isTokenCharacter) {
+                    if (tokenStart < 0) {
+                        tokenStart = index;
+                    }
+
+                    continue;
+                }
+
+                if (tokenStart < 0) {
+                    continue;
+                }
+
+                string token = formula.Substring(tokenStart, index - tokenStart);
+                tokenStart = -1;
+                if (sourceNamesByName.ContainsKey(token) && queuedNames.Add(token)) {
+                    pendingNames.Enqueue(token);
+                }
+            }
+        }
+
+        private sealed class DefinedNameCopyBudget {
+            private readonly int _maximumNames;
+            private readonly int _maximumCharacters;
+            private int _copiedNames;
+            private long _copiedCharacters;
+
+            internal DefinedNameCopyBudget(int maximumNames, int maximumCharacters) {
+                _maximumNames = maximumNames;
+                _maximumCharacters = maximumCharacters;
+            }
+
+            internal void Consume(int characters) {
+                if (_copiedNames >= _maximumNames) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured defined-name limit of {_maximumNames}.");
+                }
+
+                long totalCharacters = _copiedCharacters + characters;
+                if (totalCharacters > _maximumCharacters) {
+                    throw new InvalidOperationException(
+                        $"Worksheet copy exceeds the configured defined-name character limit of {_maximumCharacters}.");
+                }
+
+                _copiedNames++;
+                _copiedCharacters = totalCharacters;
+            }
         }
 
         private Dictionary<ushort, string> GetSheetNamesByPosition() {

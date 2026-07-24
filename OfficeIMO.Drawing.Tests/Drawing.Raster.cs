@@ -1,8 +1,24 @@
 using OfficeIMO.Drawing;
+using System.Collections;
+using System.Collections.Generic;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class DrawingRasterTests {
+        [Fact]
+        public void OfficeRasterCanvas_TransparentTuplePathsDoNotMaterializePoints() {
+            OfficeRasterImage image = new OfficeRasterImage(2, 2, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var points = new ExplosiveTuplePointList();
+
+            canvas.DrawPolyline(points, OfficeColor.Transparent, 1D);
+            canvas.DrawStyledPolyline(points, OfficeColor.Transparent, 1D);
+            canvas.DrawPatternedPolyline(points, OfficeColor.Transparent, 1D, new[] { 1D, 1D });
+            canvas.DrawDashedPolyline(points, OfficeColor.Transparent, 1D);
+            canvas.DrawStyledPolygon(points, OfficeColor.Transparent, 1D);
+            canvas.FillPolygon(points, OfficeColor.Transparent);
+        }
+
         [Fact]
         public void OfficePngWriter_EncodesValidRgbaPng() {
             OfficeRasterImage image = new OfficeRasterImage(4, 3, OfficeColor.White);
@@ -2954,6 +2970,16 @@ namespace OfficeIMO.Tests {
                         $"Pixel mismatch at {x},{y}. Expected {expectedPixel.A},{expectedPixel.R},{expectedPixel.G},{expectedPixel.B}; actual {actualPixel.A},{actualPixel.R},{actualPixel.G},{actualPixel.B}.");
                 }
             }
+        }
+
+        private sealed class ExplosiveTuplePointList : IReadOnlyList<(double X, double Y)> {
+            public int Count => 1_000_000;
+
+            public (double X, double Y) this[int index] => throw new InvalidOperationException("Point materialization should have been skipped.");
+
+            public IEnumerator<(double X, double Y)> GetEnumerator() => throw new InvalidOperationException("Point enumeration should have been skipped.");
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
     }

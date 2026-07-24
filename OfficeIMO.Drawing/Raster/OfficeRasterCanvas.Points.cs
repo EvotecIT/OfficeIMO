@@ -7,7 +7,7 @@ public sealed partial class OfficeRasterCanvas {
     /// Draws connected line segments through tuple points in canvas coordinates.
     /// </summary>
     public void DrawPolyline(IReadOnlyList<(double X, double Y)> points, OfficeColor color, double thickness = 1D) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
@@ -23,7 +23,7 @@ public sealed partial class OfficeRasterCanvas {
         double thickness = 1D,
         OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
         bool resetDashPatternForEachSegment = false) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
@@ -39,7 +39,7 @@ public sealed partial class OfficeRasterCanvas {
         double thickness,
         IReadOnlyList<double>? dashPattern,
         bool resetDashPatternForEachSegment = false) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
@@ -56,7 +56,7 @@ public sealed partial class OfficeRasterCanvas {
         double dashLength = 6D,
         double gapLength = 4D,
         bool resetDashPatternForEachSegment = false) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
@@ -72,7 +72,7 @@ public sealed partial class OfficeRasterCanvas {
         double thickness = 1D,
         OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
         bool resetDashPatternForEachSegment = false) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 2 || thickness <= 0D) {
             return;
         }
 
@@ -105,7 +105,7 @@ public sealed partial class OfficeRasterCanvas {
     /// Fills a polygon described by tuple points.
     /// </summary>
     public void FillPolygon(IReadOnlyList<(double X, double Y)> points, OfficeColor color) {
-        if (points == null) {
+        if (color.A == 0 || points == null || points.Count < 3) {
             return;
         }
 
@@ -116,7 +116,7 @@ public sealed partial class OfficeRasterCanvas {
     /// Fills multiple tuple-point polygon contours using the even-odd fill rule.
     /// </summary>
     public void FillPolygonsEvenOdd(IReadOnlyList<IReadOnlyList<(double X, double Y)>> contours, OfficeColor color) {
-        if (contours == null) {
+        if (color.A == 0 || contours == null || contours.Count == 0) {
             return;
         }
 

@@ -393,6 +393,58 @@ namespace OfficeIMO.Excel {
             return parts;
         }
 
+        private static List<string> SplitDefinedNameParts(string text, int maximumParts, out bool exceeded) {
+            if (maximumParts <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumParts));
+            }
+
+            var parts = new List<string>(Math.Min(maximumParts, 16));
+            int start = 0;
+            bool inQuote = false;
+            for (int i = 0; i < text.Length; i++) {
+                char ch = text[i];
+                if (ch == '\'') {
+                    if (inQuote && i + 1 < text.Length && text[i + 1] == '\'') {
+                        i++;
+                    } else {
+                        inQuote = !inQuote;
+                    }
+                } else if (ch == ',' && !inQuote) {
+                    if (!TryAddBoundedDefinedNamePart(text, start, i - start, maximumParts, parts)) {
+                        exceeded = true;
+                        return parts;
+                    }
+
+                    start = i + 1;
+                }
+            }
+
+            exceeded = !TryAddBoundedDefinedNamePart(text, start, text.Length - start, maximumParts, parts);
+            return parts;
+        }
+
+        private static bool TryAddBoundedDefinedNamePart(string text, int start, int length, int maximumParts, List<string> parts) {
+            int end = start + length;
+            while (start < end && char.IsWhiteSpace(text[start])) {
+                start++;
+            }
+
+            while (end > start && char.IsWhiteSpace(text[end - 1])) {
+                end--;
+            }
+
+            if (start >= end) {
+                return true;
+            }
+
+            if (parts.Count >= maximumParts) {
+                return false;
+            }
+
+            parts.Add(text.Substring(start, end - start));
+            return true;
+        }
+
         private static void AddPart(string text, int start, int length, List<string> parts) {
             string part = text.Substring(start, length).Trim();
             if (part.Length > 0) {

@@ -952,6 +952,7 @@ namespace OfficeIMO.Excel {
             double rotationDegrees,
             bool flipHorizontal,
             bool flipVertical,
+            bool isFullyOpaque,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -968,6 +969,7 @@ namespace OfficeIMO.Excel {
             RotationDegrees = rotationDegrees;
             FlipHorizontal = flipHorizontal;
             FlipVertical = flipVertical;
+            IsFullyOpaque = isFullyOpaque;
             Source = source ?? string.Empty;
         }
 
@@ -1030,6 +1032,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether the image has an authored vertical flip transform.</summary>
         public bool FlipVertical { get; }
+
+        /// <summary>Whether the decoded source image contains no transparent pixels.</summary>
+        public bool IsFullyOpaque { get; }
 
         /// <summary>Whether the image has any authored rotation transform.</summary>
         public bool HasRotation => Math.Abs(RotationDegrees) > 0.0001D;

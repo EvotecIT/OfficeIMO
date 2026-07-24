@@ -7,6 +7,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionApplierTests {
     [Fact]
+    public void Apply_RemovesAreaIntersectingTextEvenWhenExtractionProducesNoMatch() {
+        const string whitespaceTextObject = "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(whitespaceTextObject))
+        };
+        byte[] source = BuildPdf(objects, rootObjectNumber: 1);
+        var area = new PdfRedactionArea(1, 45, 40, 80, 35, "unmatched-text");
+        Assert.Empty(PdfRedactionPlanner.Plan(source, new[] { area }).Matches);
+        Assert.Contains("(   ) Tj", PdfEncoding.Latin1GetString(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("(   ) Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RemovesMatchedTextAndKeepsUnmatchedTextExtractable() {
         byte[] source = BuildRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");

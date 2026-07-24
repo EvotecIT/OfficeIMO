@@ -646,6 +646,8 @@ namespace OfficeIMO.Excel {
                         source));
                 }
 
+                bool isFullyOpaque = IsProvenFullyOpaqueImage(bytes, detectedFormat);
+
                 images.Add(new ExcelVisualImage(
                     image.Name,
                     image.DrawingOrder,
@@ -665,11 +667,80 @@ namespace OfficeIMO.Excel {
                     image.RotationDegrees,
                     image.FlipHorizontal,
                     image.FlipVertical,
+                    isFullyOpaque,
                     source));
             }
 
             return images;
         }
+
+        private static bool IsProvenFullyOpaqueImage(byte[] bytes, OfficeImageFormat format) {
+            if (format == OfficeImageFormat.Jpeg) {
+                return true;
+            }
+
+            return format == OfficeImageFormat.Png && IsPngProvenFullyOpaque(bytes);
+        }
+
+        private static bool IsPngProvenFullyOpaque(byte[] bytes) {
+            ReadOnlySpan<byte> signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            if (bytes.Length < 33 || !bytes.AsSpan(0, signature.Length).SequenceEqual(signature)) {
+                return false;
+            }
+
+            bool sawHeader = false;
+            bool sawImageData = false;
+            bool hasTransparencyChunk = false;
+            byte colorType = byte.MaxValue;
+            int offset = signature.Length;
+            while (offset <= bytes.Length - 12) {
+                uint chunkLength = ReadUInt32BigEndian(bytes, offset);
+                long chunkEnd = (long)offset + 12L + chunkLength;
+                if (chunkEnd > bytes.Length) {
+                    return false;
+                }
+
+                int dataOffset = offset + 8;
+                bool isHeader = MatchesPngChunkType(bytes, offset + 4, 'I', 'H', 'D', 'R');
+                bool isImageData = MatchesPngChunkType(bytes, offset + 4, 'I', 'D', 'A', 'T');
+                bool isTransparency = MatchesPngChunkType(bytes, offset + 4, 't', 'R', 'N', 'S');
+                bool isEnd = MatchesPngChunkType(bytes, offset + 4, 'I', 'E', 'N', 'D');
+                if (isHeader) {
+                    if (sawHeader || chunkLength != 13U || dataOffset + 9 >= bytes.Length) {
+                        return false;
+                    }
+
+                    sawHeader = true;
+                    colorType = bytes[dataOffset + 9];
+                } else if (isImageData) {
+                    sawImageData = true;
+                } else if (isTransparency) {
+                    hasTransparencyChunk = true;
+                } else if (isEnd) {
+                    return chunkLength == 0U &&
+                        sawHeader &&
+                        sawImageData &&
+                        !hasTransparencyChunk &&
+                        colorType is 0 or 2 or 3;
+                }
+
+                offset = (int)chunkEnd;
+            }
+
+            return false;
+        }
+
+        private static uint ReadUInt32BigEndian(byte[] bytes, int offset) =>
+            ((uint)bytes[offset] << 24) |
+            ((uint)bytes[offset + 1] << 16) |
+            ((uint)bytes[offset + 2] << 8) |
+            bytes[offset + 3];
+
+        private static bool MatchesPngChunkType(byte[] bytes, int offset, char first, char second, char third, char fourth) =>
+            bytes[offset] == first &&
+            bytes[offset + 1] == second &&
+            bytes[offset + 2] == third &&
+            bytes[offset + 3] == fourth;
 
         private static List<ExcelVisualChart> BuildCharts(
             ExcelSheet sheet,

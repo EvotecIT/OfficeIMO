@@ -161,7 +161,12 @@ internal static partial class PdfRedactionApplier {
             foreach (PdfRedactionMatch removedImage in imageMutation.RemovedMatches) if (removedImage.ObjectNumber.HasValue) removedImageObjectNumbers.Add(removedImage.ObjectNumber.Value);
             ValidateImagePlacementMatches(currentMatches, imageMutation.RemovedMatches, options);
             bool pageChanged = imageMutation.HasChanges;
-            pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber) || pageChanged;
+            pageChanged = RemoveMatchedTextObjects(
+                objects,
+                pageDictionary,
+                currentMatches,
+                pageAreas ?? Array.Empty<PdfRedactionArea>(),
+                ref nextObjectNumber) || pageChanged;
             if (options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), maximumDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
             pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 

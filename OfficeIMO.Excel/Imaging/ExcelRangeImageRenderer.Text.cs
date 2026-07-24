@@ -69,6 +69,7 @@ namespace OfficeIMO.Excel {
                 minimumFontSize,
                 rotationDegrees,
                 stacked,
+                OfficeTextOverflowBehavior.Clip,
                 (text, size) => canvas.MeasureText(text, size, fontFamily));
             OfficeTextBlockLayout layout = plan.Layout;
             if (layout.Lines.Count == 0) {
@@ -210,6 +211,7 @@ namespace OfficeIMO.Excel {
                 minimumFontSize,
                 rotationDegrees,
                 stacked,
+                OfficeTextOverflowBehavior.Ellipsis,
                 (text, size) => MeasureSvgText(textMeasurer, text, size, fontFamily));
             OfficeTextBlockLayout layout = plan.Layout;
             if (layout.Lines.Count == 0) {
@@ -309,6 +311,7 @@ namespace OfficeIMO.Excel {
             double minimumFontSize,
             double rotationDegrees,
             bool stacked,
+            OfficeTextOverflowBehavior overflowBehavior,
             Func<string?, double, double> measure) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             OfficeTextVerticalAlignment verticalAlignment = rotated
@@ -353,7 +356,7 @@ namespace OfficeIMO.Excel {
                 wrap: cell.Style.WrapText,
                 forceSingleLine: rotated,
                 shrinkToFit: cell.Style.ShrinkToFit,
-                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                overflowBehavior: overflowBehavior);
         }
 
         private static CellTextInsets ResolveCellTextInsets(ExcelVisualCell cell, double fontSize, double basePadding, double viewportWidth, bool transformedText) {
@@ -391,7 +394,7 @@ namespace OfficeIMO.Excel {
             bool stacked,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => canvas.MeasureText(text, size, family), out layout)) {
+            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, stacked, OfficeTextOverflowBehavior.Clip, (text, size, family) => canvas.MeasureText(text, size, family), out layout)) {
                 return false;
             }
 
@@ -435,7 +438,7 @@ namespace OfficeIMO.Excel {
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            if (!TryBuildRichTextLayout(cell, options, options.Scale, availableWidth, availableHeight, rotationDegrees, stacked, measure, out layout)) {
+            if (!TryBuildRichTextLayout(cell, options, options.Scale, availableWidth, availableHeight, rotationDegrees, stacked, OfficeTextOverflowBehavior.Ellipsis, measure, out layout)) {
                 return false;
             }
 
@@ -475,6 +478,7 @@ namespace OfficeIMO.Excel {
             double availableHeight,
             double rotationDegrees,
             bool stacked,
+            OfficeTextOverflowBehavior overflowBehavior,
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             var runs = new List<OfficeRichTextRun>(cell.RichTextRuns.Count);
@@ -526,7 +530,7 @@ namespace OfficeIMO.Excel {
                 wrap: cell.Style.WrapText && !rotated,
                 shrinkToFit: cell.Style.ShrinkToFit || rotated,
                 minimumFontSize: Math.Max(1D, scale),
-                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                overflowBehavior: overflowBehavior);
             return layout.Lines.Count > 0;
         }
 
@@ -655,7 +659,9 @@ namespace OfficeIMO.Excel {
 
         private static bool IsCellCoveredByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
             for (int index = 0; index < snapshot.DrawingLayers.Count; index++) {
-                if (TryGetDrawingLayerBounds(snapshot.DrawingLayers[index], out double x, out double y, out double width, out double height) &&
+                ExcelVisualDrawingLayer layer = snapshot.DrawingLayers[index];
+                if (IsProvenOpaqueDrawingLayer(layer) &&
+                    TryGetDrawingLayerBounds(layer, out double x, out double y, out double width, out double height) &&
                     RectanglesIntersect(cell.X, cell.Y, cell.Width, cell.Height, x, y, width, height)) {
                     return true;
                 }
@@ -670,7 +676,12 @@ namespace OfficeIMO.Excel {
             }
 
             for (int index = 0; index < snapshot.DrawingLayers.Count; index++) {
-                if (TryGetDrawingLayerBounds(snapshot.DrawingLayers[index], out double layerX, out double layerY, out double layerWidth, out double layerHeight) &&
+                ExcelVisualDrawingLayer layer = snapshot.DrawingLayers[index];
+                if (!IsProvenOpaqueDrawingLayer(layer)) {
+                    continue;
+                }
+
+                if (TryGetDrawingLayerBounds(layer, out double layerX, out double layerY, out double layerWidth, out double layerHeight) &&
                     RectanglesIntersect(x, y, width, height, layerX, layerY, layerWidth, layerHeight)) {
                     return true;
                 }
@@ -678,6 +689,9 @@ namespace OfficeIMO.Excel {
 
             return false;
         }
+
+        private static bool IsProvenOpaqueDrawingLayer(ExcelVisualDrawingLayer layer) =>
+            layer.Kind == ExcelVisualDrawingLayerKind.Image && layer.Image?.IsFullyOpaque == true;
 
         private static bool TryGetCellTextAnchorProbe(ExcelVisualCell cell, CellTextViewport viewport, CellTextInsets insets, double scale, out double x, out double y, out double width, out double height) {
             if (cell.Width <= 0D || cell.Height <= 0D) {

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -161,7 +162,20 @@ namespace OfficeIMO.Excel {
                         "Worksheet image export requested the print area, but no worksheet print area is configured; exporting the worksheet used range instead.",
                         source));
                 } else {
-                    List<string> printAreaParts = SplitDefinedNameParts(printArea!).ToList();
+                    int maximumPrintAreaResults = allowMultipleResults
+                        ? options.MaximumPageBreakImages
+                        : 2;
+                    List<string> printAreaParts = SplitDefinedNameParts(
+                        printArea!,
+                        maximumPrintAreaResults,
+                        out bool printAreaLimitExceeded);
+                    if (allowMultipleResults && printAreaLimitExceeded) {
+                        throw new InvalidOperationException(
+                            "Multi-area worksheet print area exceeds the configured aggregate result limit of " +
+                            options.MaximumPageBreakImages.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                            " image results.");
+                    }
+
                     if (printAreaParts.Count > 1) {
                         if (allowMultipleResults && TryNormalizeWorksheetImageRanges(printAreaParts, out IReadOnlyList<string>? normalizedRanges)) {
                             return ApplyManualPageBreakSplits(
@@ -229,8 +243,10 @@ namespace OfficeIMO.Excel {
             }
 
             var splitRanges = new List<WorksheetImageRangeResolution>();
+            int remainingPageResults = options.MaximumPageBreakImages;
             foreach (WorksheetImageRangeResolution range in ranges) {
-                IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range);
+                IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range, remainingPageResults);
+                remainingPageResults -= pages.Count;
                 if (pages.Count <= 1) {
                     splitRanges.Add(range.WithDiagnostics(pageDiagnostics));
                     continue;
@@ -299,18 +315,38 @@ namespace OfficeIMO.Excel {
 
         private static bool HasText(string? text) => !string.IsNullOrWhiteSpace(text);
 
-        private IReadOnlyList<string> SplitRangeByManualPageBreaks(string range) {
+        private IReadOnlyList<string> SplitRangeByManualPageBreaks(string range, int maximumPageCount) {
+            if (maximumPageCount <= 0) {
+                throw new InvalidOperationException(
+                    "Manual page-break image output exceeds the configured aggregate result limit.");
+            }
+
             if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return new[] { range };
             }
 
-            IReadOnlyList<PageBreakSegment> rowSegments = BuildPageBreakSegments(firstRow, lastRow, GetManualRowPageBreaks());
-            IReadOnlyList<PageBreakSegment> columnSegments = BuildPageBreakSegments(firstColumn, lastColumn, GetManualColumnPageBreaks());
+            IReadOnlyList<PageBreakSegment> rowSegments = BuildBoundedPageBreakSegments(
+                firstRow,
+                lastRow,
+                WorksheetRoot.GetFirstChild<RowBreaks>(),
+                maximumPageCount);
+            IReadOnlyList<PageBreakSegment> columnSegments = BuildBoundedPageBreakSegments(
+                firstColumn,
+                lastColumn,
+                WorksheetRoot.GetFirstChild<ColumnBreaks>(),
+                maximumPageCount / rowSegments.Count);
             if (rowSegments.Count == 1 && columnSegments.Count == 1) {
                 return new[] { range };
             }
 
-            var ranges = new List<string>(rowSegments.Count * columnSegments.Count);
+            long pageCount = (long)rowSegments.Count * columnSegments.Count;
+            if (pageCount > maximumPageCount) {
+                throw new InvalidOperationException(
+                    "Manual page breaks would produce " + pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    " images, exceeding the configured maximum of " + maximumPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".");
+            }
+
+            var ranges = new List<string>((int)pageCount);
             ExcelPageOrder pageOrder = GetPageSetup().PageOrder ?? ExcelPageOrder.DownThenOver;
             if (pageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (PageBreakSegment row in rowSegments) {
@@ -329,16 +365,73 @@ namespace OfficeIMO.Excel {
             return ranges.AsReadOnly();
         }
 
-        private static IReadOnlyList<PageBreakSegment> BuildPageBreakSegments(int first, int last, IReadOnlyList<int> breakAfterIndexes) {
-            var segments = new List<PageBreakSegment>();
+        private static IReadOnlyList<PageBreakSegment> BuildBoundedPageBreakSegments(
+            int first,
+            int last,
+            OpenXmlCompositeElement? breaks,
+            int maximumSegments) {
+            if (maximumSegments <= 0) {
+                throw new InvalidOperationException(
+                    "Manual page-break image output exceeds the configured aggregate result limit.");
+            }
+
+            if (breaks == null) {
+                return new[] { new PageBreakSegment(first, last) };
+            }
+
+            int maximumBreaks = maximumSegments - 1;
+            long maximumRecords = Math.Max(64L, Math.Min(100_000L, (long)maximumSegments * 4L));
+            long inspectedRecords = 0L;
+            var distinctBreaks = new HashSet<int>();
+            foreach (OpenXmlElement element in breaks.ChildElements) {
+                inspectedRecords++;
+                if (inspectedRecords > maximumRecords) {
+                    throw new InvalidOperationException(
+                        "Manual page-break records exceed the bounded inspection budget for image export.");
+                }
+
+                if (!string.Equals(element.LocalName, "brk", StringComparison.Ordinal) ||
+                    !TryGetRawPageBreakAttribute(element, "man", out string? manualValue) ||
+                    !(string.Equals(manualValue, "1", StringComparison.Ordinal) ||
+                      string.Equals(manualValue, "true", StringComparison.OrdinalIgnoreCase)) ||
+                    !TryGetRawPageBreakAttribute(element, "id", out string? idValue) ||
+                    !uint.TryParse(idValue, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out uint rawId) ||
+                    rawId > int.MaxValue) {
+                    continue;
+                }
+
+                int breakAfter = (int)rawId;
+                if (breakAfter < first || breakAfter >= last || !distinctBreaks.Add(breakAfter)) {
+                    continue;
+                }
+
+                if (distinctBreaks.Count > maximumBreaks) {
+                    throw new InvalidOperationException(
+                        "Manual page breaks exceed the configured aggregate result limit.");
+                }
+            }
+
+            var segments = new List<PageBreakSegment>(distinctBreaks.Count + 1);
             int start = first;
-            foreach (int breakAfter in breakAfterIndexes.Where(value => value >= first && value < last).Distinct().OrderBy(value => value)) {
+            foreach (int breakAfter in distinctBreaks.OrderBy(value => value)) {
                 segments.Add(new PageBreakSegment(start, breakAfter));
                 start = breakAfter + 1;
             }
 
             segments.Add(new PageBreakSegment(start, last));
             return segments.AsReadOnly();
+        }
+
+        private static bool TryGetRawPageBreakAttribute(OpenXmlElement element, string localName, out string? value) {
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)) {
+                    value = attribute.Value;
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
         }
 
         private static string ToRange(int firstRow, int firstColumn, int lastRow, int lastColumn) =>

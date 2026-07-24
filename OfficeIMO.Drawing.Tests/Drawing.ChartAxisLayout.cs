@@ -6,6 +6,27 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
     [Fact]
+    public void OfficeChartDrawingRenderer_BoundsCategoryLabelMeasurementWork() {
+        const int categoryCount = 5_000;
+        string oversizedLabel = new string('W', 100_000);
+        string[] categories = Enumerable.Repeat(oversizedLabel, categoryCount).ToArray();
+        double[] values = Enumerable.Repeat(1D, categoryCount).ToArray();
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Bounded categories",
+            null,
+            OfficeChartKind.BarClustered,
+            new OfficeChartData(categories, new[] { new OfficeChartSeries("Series", values) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(maximumHorizontalCategoryAxisLabels: 8)));
+
+        Assert.NotEmpty(drawing.Elements);
+        Assert.True(drawing.Elements.OfType<OfficeDrawingText>().Count() < 100,
+            "A large category collection should still render a bounded number of labels.");
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_ReservesMeasuredVerticalValueAxisLabelBand() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Measured vertical axis",

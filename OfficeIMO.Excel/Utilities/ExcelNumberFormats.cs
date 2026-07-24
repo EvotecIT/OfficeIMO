@@ -5,6 +5,9 @@ namespace OfficeIMO.Excel {
     /// Maps number format presets to Excel format codes.
     /// </summary>
     public static class ExcelNumberFormats {
+        /// <summary>Maximum decimal places accepted by preset number formats.</summary>
+        public const int MaximumDecimalPlaces = 30;
+
         /// <summary>
         /// Returns the names of supported number format presets.
         /// </summary>
@@ -20,6 +23,10 @@ namespace OfficeIMO.Excel {
         /// <param name="decimals">Number of decimal places where applicable.</param>
         /// <param name="culture">Culture used for currency symbol; defaults to current culture.</param>
         public static string Get(ExcelNumberPreset preset, int decimals = 2, CultureInfo? culture = null) {
+            if (decimals < 0 || decimals > MaximumDecimalPlaces) {
+                throw new ArgumentOutOfRangeException(nameof(decimals), $"Decimals must be between 0 and {MaximumDecimalPlaces}.");
+            }
+
             culture ??= CultureInfo.CurrentCulture;
             switch (preset) {
                 case ExcelNumberPreset.General:
