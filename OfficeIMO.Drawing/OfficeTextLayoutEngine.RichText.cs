@@ -243,16 +243,19 @@ public static partial class OfficeTextLayoutEngine {
         var builder = new RichTextLineBuilder(measure);
         builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
         bool clipped = inputTruncated;
+        bool processingStopped = false;
 
         foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
                 clipped = true;
+                processingStopped = true;
                 break;
             }
             if (token.HardBreak) {
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
+                    processingStopped = true;
                     break;
                 }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: true));
@@ -268,6 +271,7 @@ public static partial class OfficeTextLayoutEngine {
             if (wrap && builder.Width + tokenWidth > availableWidth && !builder.IsEmpty) {
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
+                    processingStopped = true;
                     break;
                 }
                 builder.SetOffset(ResolveLineOffset(paragraphIndent, firstVisualLine: false));
@@ -288,6 +292,7 @@ public static partial class OfficeTextLayoutEngine {
                     paragraphIndent,
                     cancellationToken)) {
                     clipped = true;
+                    processingStopped = true;
                     break;
                 }
             } else {
@@ -295,7 +300,7 @@ public static partial class OfficeTextLayoutEngine {
             }
         }
 
-        if (!clipped && !AddRichTextLine(lines, builder)) {
+        if (!processingStopped && !AddRichTextLine(lines, builder)) {
             clipped = true;
         }
         if (lines.Count == 0) {

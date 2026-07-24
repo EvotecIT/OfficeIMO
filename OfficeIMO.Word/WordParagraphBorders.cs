@@ -48,7 +48,8 @@ namespace OfficeIMO.Word {
             var pageBorder = GetParagraphBorders();
             if (pageBorder == null) {
                 pageBorder = Custom;
-                _wordParagraph._paragraphProperties!.Append(pageBorder);
+                var paragraphProperties = _wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+                paragraphProperties.Append(pageBorder);
             }
 
             return pageBorder;

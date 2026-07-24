@@ -139,6 +139,9 @@ public class DrawingTextTypographyTests {
 
         Assert.True(horizontal.Clipped);
         Assert.True(stacked.Clipped);
+        Assert.Single(horizontal.Lines);
+        Assert.NotEmpty(horizontal.Lines[0].Segments);
+        Assert.StartsWith("A", horizontal.Lines[0].Segments[0].Text, StringComparison.Ordinal);
         Assert.Equal(4_096, stacked.Lines.Count);
     }
 

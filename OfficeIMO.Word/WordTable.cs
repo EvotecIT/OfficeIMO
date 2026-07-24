@@ -51,20 +51,30 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RepeatAsHeaderRowAtTheTopOfEachPage {
             get {
-                var tableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
+                WordTableRow? firstRow = Rows.FirstOrDefault();
+                if (firstRow == null) {
+                    return false;
+                }
+
+                var tableRowProperties = firstRow._tableRow.TableRowProperties;
                 var tableHeader = tableRowProperties?.OfType<TableHeader>().FirstOrDefault();
                 return tableHeader != null;
             }
             set {
+                WordTableRow? firstRow = Rows.FirstOrDefault();
+                if (firstRow == null) {
+                    return;
+                }
+
                 if (value) {
-                    this.Rows[0].AddTableRowProperties();
-                    var tableProperties = this.Rows[0]._tableRow.TableRowProperties;
+                    firstRow.AddTableRowProperties();
+                    var tableProperties = firstRow._tableRow.TableRowProperties;
                     var tableHeader = tableProperties?.OfType<TableHeader>().FirstOrDefault();
                     if (tableHeader == null) {
                         tableProperties?.InsertAt(new TableHeader(), 0);
                     }
                 } else {
-                    var tableRowTableRowProperties = this.Rows[0]._tableRow.TableRowProperties;
+                    var tableRowTableRowProperties = firstRow._tableRow.TableRowProperties;
                     var tableHeader = tableRowTableRowProperties?.OfType<TableHeader>().FirstOrDefault();
                     if (tableHeader != null) {
                         tableRowTableRowProperties!.RemoveChild(tableHeader);
@@ -252,8 +262,13 @@ namespace OfficeIMO.Word {
         /// Specifies that the first row shall be repeated at the top of each page on which the table is displayed.
         /// </summary>
         public bool RepeatHeaderRowAtTheTopOfEachPage {
-            get => Rows[0].RepeatHeaderRowAtTheTopOfEachPage;
-            set => Rows[0].RepeatHeaderRowAtTheTopOfEachPage = value;
+            get => Rows.FirstOrDefault()?.RepeatHeaderRowAtTheTopOfEachPage ?? false;
+            set {
+                WordTableRow? firstRow = Rows.FirstOrDefault();
+                if (firstRow != null) {
+                    firstRow.RepeatHeaderRowAtTheTopOfEachPage = value;
+                }
+            }
         }
 
         /// <summary>
@@ -516,8 +531,12 @@ namespace OfficeIMO.Word {
         /// <param name="cellsCount"></param>
         private void AddCells(WordTableRow row, int cellsCount = 0) {
             if (cellsCount == 0) {
-                // we try to get the last row and fill it with same number of cells
-                cellsCount = this.Rows[this.RowsCount - 2].CellsCount;
+                // Match the previous row when available; otherwise use the
+                // declared grid width retained by an initially empty table.
+                List<WordTableRow> rows = Rows;
+                cellsCount = rows.Count > 1
+                    ? rows[rows.Count - 2].CellsCount
+                    : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
                 WordTableCell cell = new WordTableCell(_document, this, row);

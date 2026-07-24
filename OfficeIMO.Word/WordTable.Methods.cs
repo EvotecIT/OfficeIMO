@@ -15,20 +15,45 @@ namespace OfficeIMO.Word {
         /// <param name="initials">Provide initials of an author</param>
         /// <param name="comment">Provide comment to insert</param>
         public void AddComment(string author, string initials, string comment) {
+            TableCell[] cells = _table.Elements<TableRow>()
+                .SelectMany(static row => row.Elements<TableCell>())
+                .ToArray();
+            TableCell? firstCell = cells.FirstOrDefault();
+            TableCell? lastCell = cells.LastOrDefault();
+            if (firstCell == null || lastCell == null) {
+                return;
+            }
+
+            Paragraph firstParagraph = firstCell.Elements<Paragraph>().FirstOrDefault()
+                ?? firstCell.AppendChild(new Paragraph());
+            Paragraph lastParagraph = lastCell.Elements<Paragraph>().LastOrDefault()
+                ?? lastCell.AppendChild(new Paragraph());
             WordComment wordComment = WordComment.Create(_document, author, initials, comment);
             InsertComment(wordComment,
-                this.FirstRow.FirstCell.Paragraphs[0]._paragraph,
-                this.LastRow.LastCell.Paragraphs[0]._paragraph,
-                this.LastRow.LastCell.Paragraphs[0]._paragraph);
+                firstParagraph,
+                lastParagraph,
+                lastParagraph);
         }
 
         internal void InsertComment(WordComment wordComment, OpenXmlElement rangeStart, OpenXmlElement rangeEnd, OpenXmlElement reference) {
             // Specify the text range for the Comment.
             // Insert the new CommentRangeStart before the first run of paragraph.
-            rangeStart.InsertBefore(new CommentRangeStart() { Id = wordComment.Id }, rangeStart.GetFirstChild<OpenXmlElement>());
+            var commentStart = new CommentRangeStart { Id = wordComment.Id };
+            OpenXmlElement? firstChild = rangeStart.GetFirstChild<OpenXmlElement>();
+            if (firstChild == null) {
+                rangeStart.Append(commentStart);
+            } else {
+                rangeStart.InsertBefore(commentStart, firstChild);
+            }
 
             // Insert the new CommentRangeEnd after last run of paragraph.
-            var cmtEnd = rangeEnd.InsertAfter(new CommentRangeEnd() { Id = wordComment.Id }, rangeEnd.Elements().Last());
+            var cmtEnd = new CommentRangeEnd { Id = wordComment.Id };
+            OpenXmlElement? lastChild = rangeEnd.Elements().LastOrDefault();
+            if (lastChild == null) {
+                rangeEnd.Append(cmtEnd);
+            } else {
+                rangeEnd.InsertAfter(cmtEnd, lastChild);
+            }
 
             // Compose a run with CommentReference and insert it.
             reference.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
