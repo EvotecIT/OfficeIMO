@@ -43,6 +43,7 @@ internal static partial class OneNoteReaderAdapter {
                     SourceLengthBytes = source.LengthBytes,
                     Text = part.Text,
                     Markdown = part.Markdown,
+                    ContinuesPreviousChunk = part.ContinuesPreviousChunk,
                     Tables = partIndex == 0 && tables.Length > 0 ? tables : null,
                     Warnings = chunkWarnings.Count > 0 ? chunkWarnings.ToArray() : null
                 };

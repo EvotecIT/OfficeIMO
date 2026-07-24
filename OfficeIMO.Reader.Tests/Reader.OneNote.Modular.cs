@@ -260,6 +260,10 @@ public sealed class ReaderOneNoteModularTests {
             string.Concat(result.Chunks.Select(chunk => chunk.Text)));
         Assert.Equal("# " + title + "![" + altText + "](onenote-page-0001-asset-0001)",
             string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+        Assert.Equal(
+            "# " + title + Environment.NewLine + Environment.NewLine +
+            "![" + altText + "](onenote-page-0001-asset-0001)",
+            result.Markdown);
     }
 
     [Theory]

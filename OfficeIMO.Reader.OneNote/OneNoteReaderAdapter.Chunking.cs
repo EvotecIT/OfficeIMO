@@ -202,11 +202,13 @@ internal static partial class OneNoteReaderAdapter {
         var result = new List<ProjectionPart>();
         var text = new StringBuilder();
         var markdown = new StringBuilder();
+        bool continuesPreviousChunk = false;
 
         foreach (ProjectionPart source in units) {
             if (!source.Fits(maxChars)) {
-                FlushProjectionPart(result, text, markdown);
+                FlushProjectionPart(result, text, markdown, continuesPreviousChunk);
                 SplitOversizedProjectionPart(source, maxChars, result);
+                continuesPreviousChunk = false;
                 continue;
             }
             string textSeparator = text.Length == 0 || source.Text.Length == 0 ? string.Empty : Environment.NewLine;
@@ -216,16 +218,22 @@ internal static partial class OneNoteReaderAdapter {
             bool fits = text.Length + textSeparator.Length + source.Text.Length <= maxChars &&
                         markdown.Length + markdownSeparator.Length + source.Markdown.Length <= maxChars;
             if (!fits && (text.Length > 0 || markdown.Length > 0)) {
-                FlushProjectionPart(result, text, markdown);
+                FlushProjectionPart(result, text, markdown, continuesPreviousChunk);
                 textSeparator = string.Empty;
                 markdownSeparator = string.Empty;
+            }
+            if (text.Length == 0 && markdown.Length == 0) {
+                continuesPreviousChunk = source.ContinuesPreviousChunk;
             }
             text.Append(textSeparator).Append(source.Text);
             markdown.Append(markdownSeparator).Append(source.Markdown);
         }
 
         if (text.Length > 0 || markdown.Length > 0 || result.Count == 0) {
-            result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
+            result.Add(new ProjectionPart(
+                text.ToString(),
+                markdown.ToString(),
+                continuesPreviousChunk));
         }
         return result;
     }
@@ -240,28 +248,38 @@ internal static partial class OneNoteReaderAdapter {
         for (int index = 0; index < partCount; index++) {
             result.Add(new ProjectionPart(
                 index < textParts.Count ? textParts[index] : string.Empty,
-                index < markdownParts.Count ? markdownParts[index] : string.Empty));
+                index < markdownParts.Count ? markdownParts[index] : string.Empty,
+                source.ContinuesPreviousChunk || index > 0));
         }
     }
 
     private static void FlushProjectionPart(
         ICollection<ProjectionPart> result,
         StringBuilder text,
-        StringBuilder markdown) {
+        StringBuilder markdown,
+        bool continuesPreviousChunk) {
         if (text.Length == 0 && markdown.Length == 0) return;
-        result.Add(new ProjectionPart(text.ToString(), markdown.ToString()));
+        result.Add(new ProjectionPart(
+            text.ToString(),
+            markdown.ToString(),
+            continuesPreviousChunk));
         text.Clear();
         markdown.Clear();
     }
 
     private readonly struct ProjectionPart {
-        internal ProjectionPart(string text, string markdown) {
+        internal ProjectionPart(
+            string text,
+            string markdown,
+            bool continuesPreviousChunk = false) {
             Text = text;
             Markdown = markdown;
+            ContinuesPreviousChunk = continuesPreviousChunk;
         }
 
         internal string Text { get; }
         internal string Markdown { get; }
+        internal bool ContinuesPreviousChunk { get; }
         internal bool Fits(int maxChars) => Text.Length <= maxChars && Markdown.Length <= maxChars;
     }
 }
