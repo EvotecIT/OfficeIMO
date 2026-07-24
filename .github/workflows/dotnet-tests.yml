@@ -953,6 +953,7 @@ jobs:
               "OfficeIMO.Tests.MarkdownStreamingPreviewTests",
               "OfficeIMO.Tests.Markdown_Renderer",
               "OfficeIMO.Tests.Markdown_IntelligenceX",
+              "OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests",
           )
 
           unassigned = [name for name in discovered if not any(partition in name for partition in markdown_partitions)]
@@ -978,7 +979,7 @@ jobs:
               ;;
             markdown-suite)
               run_markdown_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
-              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX'
+              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests'
               ;;
             pdf-visual-inspector)
               export OFFICEIMO_REQUIRE_PDF_RASTERIZER=1

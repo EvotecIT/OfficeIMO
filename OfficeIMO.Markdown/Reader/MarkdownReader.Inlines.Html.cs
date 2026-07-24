@@ -2,6 +2,71 @@ namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
     private static readonly string[] SupportedInlineHtmlWrapperTags = { "u", "sup", "sub", "ins", "q" };
+    private const int MaximumInlineHtmlWrapperDepth = 32;
+
+    private sealed class InlineHtmlWrapperMatchIndex {
+        private readonly Dictionary<int, (string TagName, int ClosingStart)> _matches;
+        private readonly int _baseOffset;
+
+        internal InlineHtmlWrapperMatchIndex(Dictionary<int, (string TagName, int ClosingStart)> matches, int baseOffset = 0) {
+            _matches = matches;
+            _baseOffset = baseOffset;
+        }
+
+        internal InlineHtmlWrapperMatchIndex Slice(int relativeOffset) =>
+            new(_matches, checked(_baseOffset + relativeOffset));
+
+        internal bool TryGet(int relativeStart, out string tagName, out int closingStart) {
+            if (_matches.TryGetValue(checked(_baseOffset + relativeStart), out var match)) {
+                tagName = match.TagName;
+                closingStart = match.ClosingStart - _baseOffset;
+                return true;
+            }
+
+            tagName = string.Empty;
+            closingStart = -1;
+            return false;
+        }
+    }
+
+    private static InlineHtmlWrapperMatchIndex BuildInlineHtmlWrapperMatchIndex(string text) {
+        var matches = new Dictionary<int, (string TagName, int ClosingStart)>();
+        if (string.IsNullOrEmpty(text)) {
+            return new InlineHtmlWrapperMatchIndex(matches);
+        }
+
+        var openingsByTag = new Dictionary<string, Stack<int>>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
+            openingsByTag[SupportedInlineHtmlWrapperTags[i]] = new Stack<int>();
+        }
+
+        for (int position = 0; position < text.Length; position++) {
+            if (text[position] != '<') {
+                continue;
+            }
+
+            for (int tagIndex = 0; tagIndex < SupportedInlineHtmlWrapperTags.Length; tagIndex++) {
+                string tagName = SupportedInlineHtmlWrapperTags[tagIndex];
+                if (StartsWithExactHtmlTag(text, position, tagName, opening: true)) {
+                    openingsByTag[tagName].Push(position);
+                    position += tagName.Length + 1;
+                    break;
+                }
+
+                if (StartsWithExactHtmlTag(text, position, tagName, opening: false)) {
+                    var openings = openingsByTag[tagName];
+                    if (openings.Count > 0) {
+                        matches[openings.Pop()] = (tagName, position);
+                    }
+
+                    position += tagName.Length + 2;
+                    break;
+                }
+            }
+        }
+
+        return new InlineHtmlWrapperMatchIndex(matches);
+    }
 
     private static bool TryParseSupportedInlineHtmlTag(
         string text,
@@ -11,6 +76,8 @@ public static partial class MarkdownReader {
         MarkdownInlineSourceMap? sourceMap,
         bool allowLinks,
         bool allowImages,
+        InlineHtmlWrapperMatchIndex matches,
+        int wrapperDepth,
         out int consumed,
         out IMarkdownInline htmlNode) {
         consumed = 0;
@@ -20,122 +87,58 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
-            if (!TryParseInlineHtmlWrapper(text, start, SupportedInlineHtmlWrapperTags[i], options, state, sourceMap, allowLinks, allowImages, out consumed, out var inlines)) {
-                continue;
-            }
-
-            var htmlTag = new HtmlTagSequenceInline(SupportedInlineHtmlWrapperTags[i], inlines);
-            SetInlineHtmlTagMarkerSpans(htmlTag, sourceMap, start, consumed);
-            htmlNode = htmlTag;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool TryParseInlineHtmlWrapper(
-        string text,
-        int start,
-        string tagName,
-        MarkdownReaderOptions options,
-        MarkdownReaderState? state,
-        MarkdownInlineSourceMap? sourceMap,
-        bool allowLinks,
-        bool allowImages,
-        out int consumed,
-        out InlineSequence inlines) {
-        consumed = 0;
-        inlines = new InlineSequence();
-
-        if (!StartsWithExactHtmlTag(text, start, tagName, opening: true)) {
+        if (wrapperDepth >= MaximumInlineHtmlWrapperDepth
+            || !matches.TryGet(start, out string tagName, out int closingStart)) {
             return false;
         }
 
         int openLength = tagName.Length + 2;
-        int scan = start + openLength;
-        int depth = 1;
-
-        while (scan < text.Length) {
-            if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
-                depth--;
-                if (depth == 0) {
-                    string inner = text.Substring(start + openLength, scan - (start + openLength));
-                    inlines = ParseInlinesInternal(
-                        inner,
-                        options,
-                        state,
-                        allowLinks,
-                        allowImages,
-                        sourceMap?.Slice(start + openLength, inner.Length));
-                    DecodeHtmlEntitiesInTextRuns(inlines);
-                    consumed = (scan - start) + tagName.Length + 3;
-                    return true;
-                }
-
-                scan += tagName.Length + 3;
-                continue;
-            }
-
-            if (StartsWithExactHtmlTag(text, scan, tagName, opening: true)) {
-                depth++;
-                scan += openLength;
-                continue;
-            }
-
-            scan++;
+        int closingLength = tagName.Length + 3;
+        if (closingStart < start + openLength || closingStart > text.Length - closingLength) {
+            return false;
         }
 
-        return false;
+        string inner = text.Substring(start + openLength, closingStart - (start + openLength));
+        var inlines = ParseInlinesInternal(
+            inner,
+            options,
+            state,
+            allowLinks,
+            allowImages,
+            sourceMap?.Slice(start + openLength, inner.Length),
+            matches.Slice(start + openLength),
+            wrapperDepth + 1);
+        DecodeHtmlEntitiesInTextRuns(inlines);
+        consumed = (closingStart - start) + tagName.Length + 3;
+        var htmlTag = new HtmlTagSequenceInline(tagName, inlines);
+        SetInlineHtmlTagMarkerSpans(htmlTag, sourceMap, start, consumed);
+        htmlNode = htmlTag;
+        return true;
     }
 
-    private static bool TryConsumeSupportedInlineHtmlWrapperSpan(string text, int start, out int consumed) {
+    private static bool TryConsumeSupportedInlineHtmlWrapperSpan(
+        string text,
+        int start,
+        out int consumed,
+        InlineHtmlWrapperMatchIndex? matches = null) {
         consumed = 0;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
             return false;
         }
 
-        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
-            if (TryConsumeSupportedInlineHtmlWrapperSpan(text, start, SupportedInlineHtmlWrapperTags[i], out consumed)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TryConsumeSupportedInlineHtmlWrapperSpan(string text, int start, string tagName, out int consumed) {
-        consumed = 0;
-        if (!StartsWithExactHtmlTag(text, start, tagName, opening: true)) {
+        matches ??= BuildInlineHtmlWrapperMatchIndex(text);
+        if (!matches.TryGet(start, out string tagName, out int closingStart)) {
             return false;
         }
 
         int openLength = tagName.Length + 2;
-        int scan = start + openLength;
-        int depth = 1;
-
-        while (scan < text.Length) {
-            if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
-                depth--;
-                if (depth == 0) {
-                    consumed = (scan - start) + tagName.Length + 3;
-                    return true;
-                }
-
-                scan += tagName.Length + 3;
-                continue;
-            }
-
-            if (StartsWithExactHtmlTag(text, scan, tagName, opening: true)) {
-                depth++;
-                scan += openLength;
-                continue;
-            }
-
-            scan++;
+        int closingLength = tagName.Length + 3;
+        if (closingStart < start + openLength || closingStart > text.Length - closingLength) {
+            return false;
         }
 
-        return false;
+        consumed = (closingStart - start) + tagName.Length + 3;
+        return true;
     }
 
     private static void SetInlineHtmlTagMarkerSpans(

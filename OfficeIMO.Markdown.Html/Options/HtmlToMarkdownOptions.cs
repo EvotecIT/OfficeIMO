@@ -8,6 +8,7 @@ using OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlToMarkdownOptions {
     private int _maxTableExpandedColumns = TableBlock.MaxEffectiveColumnCount;
+    private int _maxDefinitionListEntryExpansions = 10_000;
     private readonly HashSet<string> _appliedPluginIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _appliedFeaturePackIds = new(StringComparer.OrdinalIgnoreCase);
 
@@ -152,6 +153,21 @@ public sealed class HtmlToMarkdownOptions {
     }
 
     /// <summary>
+    /// Maximum number of term/definition entry pairs materialized while converting HTML definition lists.
+    /// Values must be between 1 and 1,000,000.
+    /// </summary>
+    public int MaxDefinitionListEntryExpansions {
+        get => _maxDefinitionListEntryExpansions;
+        set {
+            if (value < 1 || value > 1_000_000) {
+                throw new ArgumentOutOfRangeException(nameof(MaxDefinitionListEntryExpansions), value, "MaxDefinitionListEntryExpansions must be between 1 and 1,000,000.");
+            }
+
+            _maxDefinitionListEntryExpansions = value;
+        }
+    }
+
+    /// <summary>
     /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDoc"/>.
     /// </summary>
     /// <example>
@@ -272,7 +288,8 @@ public sealed class HtmlToMarkdownOptions {
             ListingCardMetadataMode = ListingCardMetadataMode,
             MarkdownWriteOptions = MarkdownWriteOptions?.Clone(),
             MaxInputCharacters = MaxInputCharacters,
-            MaxTableExpandedColumns = MaxTableExpandedColumns
+            MaxTableExpandedColumns = MaxTableExpandedColumns,
+            MaxDefinitionListEntryExpansions = MaxDefinitionListEntryExpansions
         };
 
         for (var i = 0; i < DocumentTransforms.Count; i++) {

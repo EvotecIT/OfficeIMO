@@ -39,7 +39,15 @@ internal sealed partial class HtmlToMarkdownConverter {
                 return;
             }
 
+            long groupExpansionCount = (long)pendingTerms.Count * pendingDefinitions.Count;
+            long totalExpansionCount = context.DefinitionListEntryExpansionCount + groupExpansionCount;
+            if (totalExpansionCount > context.Options.MaxDefinitionListEntryExpansions) {
+                throw new InvalidOperationException(
+                    $"HTML definition lists exceed the configured entry expansion limit of {context.Options.MaxDefinitionListEntryExpansions}.");
+            }
+
             list.AddGroup(new DefinitionListGroup(pendingTerms, pendingDefinitions));
+            context.DefinitionListEntryExpansionCount = (int)totalExpansionCount;
             pendingTerms.Clear();
             pendingDefinitions = null;
             hasDefinitionsForCurrentGroup = false;

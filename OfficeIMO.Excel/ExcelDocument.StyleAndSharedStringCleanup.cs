@@ -4,6 +4,8 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private const int MaximumSharedStringRepairItems = 65_536;
+
         internal void CleanupStyleAndSharedStringArtifacts(bool save = true) {
             var workbookPart = WorkbookPartRoot;
 
@@ -76,9 +78,9 @@ namespace OfficeIMO.Excel {
 
         private void CleanupSharedStringArtifacts(WorkbookPart workbookPart) {
             SharedStringTablePart? sharedStringTablePart = workbookPart.SharedStringTablePart;
-            bool sawSharedStringCell = false;
+            var sharedStringTable = sharedStringTablePart?.SharedStringTable;
+            int itemCount = sharedStringTable?.Elements<SharedStringItem>().Count() ?? 0;
             int sharedStringCellCount = 0;
-            int maxSharedStringIndex = -1;
             bool sharedStringTableChanged = false;
 
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
@@ -93,7 +95,8 @@ namespace OfficeIMO.Excel {
                             }
 
                             string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
-                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
+                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)
+                                || sharedStringIndex >= MaximumSharedStringRepairItems) {
                                 cell.DataType = CellValues.InlineString;
                                 cell.RemoveAllChildren<CellValue>();
                                 cell.RemoveAllChildren<InlineString>();
@@ -102,11 +105,22 @@ namespace OfficeIMO.Excel {
                                 continue;
                             }
 
-                            sawSharedStringCell = true;
-                            sharedStringCellCount++;
-                            if (sharedStringIndex > maxSharedStringIndex) {
-                                maxSharedStringIndex = sharedStringIndex;
+                            while (sharedStringTable != null && itemCount <= sharedStringIndex) {
+                                sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
+                                itemCount++;
+                                sharedStringTableChanged = true;
                             }
+
+                            if (sharedStringIndex >= itemCount) {
+                                cell.DataType = CellValues.InlineString;
+                                cell.RemoveAllChildren<CellValue>();
+                                cell.RemoveAllChildren<InlineString>();
+                                cell.AppendChild(new InlineString(new Text(rawValue)));
+                                worksheetChanged = true;
+                                continue;
+                            }
+
+                            sharedStringCellCount++;
                         }
                     }
                 }
@@ -116,25 +130,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (sharedStringTablePart == null && !sawSharedStringCell) {
+            if (sharedStringTablePart == null) {
                 return;
             }
 
-            if (sharedStringTablePart == null) {
-                sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
-                sharedStringTablePart.SharedStringTable = new SharedStringTable();
-                _sharedStringTablePart = sharedStringTablePart;
-                sharedStringTableChanged = true;
-            }
-
-            var sharedStringTable = sharedStringTablePart.SharedStringTable ??= new SharedStringTable();
-            int itemCount = sharedStringTable.Elements<SharedStringItem>().Count();
-            while (itemCount <= maxSharedStringIndex) {
-                sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
-                itemCount++;
-                _sharedStringTableCount = itemCount;
-                sharedStringTableChanged = true;
-            }
+            sharedStringTable ??= sharedStringTablePart.SharedStringTable = new SharedStringTable();
 
             uint expectedCount = (uint)Math.Max(sharedStringCellCount, itemCount);
             uint expectedUniqueCount = (uint)itemCount;

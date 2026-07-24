@@ -13,10 +13,15 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Workbook reader.</returns>
         public static async Task<ExcelDocumentReader> OpenAsync(Uri uri, ExcelReadOptions? options = null, ExcelHttpLoadOptions? httpOptions = null, CancellationToken cancellationToken = default) {
-            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(uri, httpOptions, cancellationToken).ConfigureAwait(false);
+            var effectiveOptions = options ?? new ExcelReadOptions();
+            byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
+                uri,
+                httpOptions,
+                cancellationToken,
+                effectiveOptions.MaxInputBytes).ConfigureAwait(false);
             return OpenFromBytes(
                 bytes,
-                options,
+                effectiveOptions,
                 normalizeContentTypes: false,
                 contextMessage: $"Failed to open remote workbook '{uri}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }

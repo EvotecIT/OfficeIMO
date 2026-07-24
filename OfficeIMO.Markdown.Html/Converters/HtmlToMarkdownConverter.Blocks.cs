@@ -66,17 +66,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool ShouldTreatAsBlockElement(IElement element, ConversionContext context) {
-        if (context.Footnotes.TryGetDefinitionLabel(element, out _)
-            || context.Footnotes.ShouldConvertContainer(element)
-            || HtmlAccessibilitySemantics.TryGetHeadingLevel(element, out _)) {
-            return true;
-        }
-
-        if (IsBlockElement(element, context)) {
-            return true;
-        }
-
-        if (CanConvertAnchorToLinkedImageBlock(element, context)) {
+        if (ShouldTreatAsIntrinsicBlockElement(element, context)) {
             return true;
         }
 
@@ -84,6 +74,10 @@ internal sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
+        return ShouldTreatAsNonIntrinsicBlockElement(element, context);
+    }
+
+    private static bool ShouldTreatAsNonIntrinsicBlockElement(IElement element, ConversionContext context) {
         if (!IsInlineElement(element, context)) {
             if (IsVisualContractElement(element)
                 || (context.Options.PreserveUnsupportedBlocks
@@ -100,6 +94,13 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         return false;
     }
+
+    private static bool ShouldTreatAsIntrinsicBlockElement(IElement element, ConversionContext context) =>
+        context.Footnotes.TryGetDefinitionLabel(element, out _)
+        || context.Footnotes.ShouldConvertContainer(element)
+        || HtmlAccessibilitySemantics.TryGetHeadingLevel(element, out _)
+        || IsBlockElement(element, context)
+        || CanConvertAnchorToLinkedImageBlock(element, context);
 
     private static bool IsVisualContractElement(IElement element) {
         if (element == null) {
@@ -172,13 +173,42 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool HasDirectBlockChildren(IElement element, ConversionContext context) {
-        foreach (var child in element.Children) {
-            if (ShouldTreatAsBlockElement(child, context)) {
-                return true;
-            }
+        if (context.BlockDescendantCache.TryGetValue(element, out bool cached)) {
+            return cached;
         }
 
-        return false;
+        var pending = new Stack<(IElement Element, bool Expanded)>();
+        pending.Push((element, false));
+        while (pending.Count > 0) {
+            var current = pending.Pop();
+            if (context.BlockDescendantCache.ContainsKey(current.Element)) {
+                continue;
+            }
+
+            if (!current.Expanded) {
+                pending.Push((current.Element, true));
+                foreach (var child in current.Element.Children) {
+                    if (!context.BlockDescendantCache.ContainsKey(child)) {
+                        pending.Push((child, false));
+                    }
+                }
+                continue;
+            }
+
+            bool containsBlock = false;
+            foreach (var child in current.Element.Children) {
+                if (ShouldTreatAsIntrinsicBlockElement(child, context)
+                    || (context.BlockDescendantCache.TryGetValue(child, out bool childContainsBlock) && childContainsBlock)
+                    || ShouldTreatAsNonIntrinsicBlockElement(child, context)) {
+                    containsBlock = true;
+                    break;
+                }
+            }
+
+            context.BlockDescendantCache[current.Element] = containsBlock;
+        }
+
+        return context.BlockDescendantCache.TryGetValue(element, out bool result) && result;
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {

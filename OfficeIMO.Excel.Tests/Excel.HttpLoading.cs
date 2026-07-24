@@ -96,6 +96,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelHttpReaderHonorsTheStricterReadInputLimitBeforeCopying() {
+            byte[] workbookBytes = CreateRemoteWorkbookBytes();
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
+                Task.FromResult(CreateWorkbookResponse(workbookBytes)));
+
+            var ex = await Assert.ThrowsAsync<IOException>(() =>
+                ExcelDocumentReader.OpenAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    new ExcelReadOptions { MaxInputBytes = workbookBytes.Length - 1 },
+                    new ExcelHttpLoadOptions {
+                        HttpMessageHandler = handler,
+                        MaxBytes = workbookBytes.Length * 2L
+                    }));
+
+            Assert.Contains((workbookBytes.Length - 1).ToString(), ex.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public async Task ExcelHttpLoadRejectsResponseThatExceedsLimitDuringCopy() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {

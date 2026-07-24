@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Excel.Utilities;
 using System.IO;
 using System.IO.Packaging;
@@ -44,9 +45,15 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
             }
 
+            var effectiveOptions = options ?? new ExcelReadOptions();
+            byte[] bytes;
+            using (var stream = File.OpenRead(path)) {
+                bytes = OfficeStreamReader.ReadAllBytes(stream, effectiveOptions.MaxInputBytes);
+            }
+
             return OpenFromBytes(
-                File.ReadAllBytes(path),
-                options,
+                bytes,
+                effectiveOptions,
                 normalizeContentTypes: false,
                 contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }
@@ -58,9 +65,10 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
+            var effectiveOptions = options ?? new ExcelReadOptions();
             return OpenFromBytes(
-                ReadAllBytes(stream),
-                options,
+                OfficeStreamReader.ReadAllBytes(stream, effectiveOptions.MaxInputBytes),
+                effectiveOptions,
                 normalizeContentTypes: false,
                 contextMessage: "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }
@@ -72,9 +80,14 @@ namespace OfficeIMO.Excel {
         public static ExcelDocumentReader Open(byte[] bytes, ExcelReadOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
+            var effectiveOptions = options ?? new ExcelReadOptions();
+            if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
+                throw new InvalidDataException($"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+            }
+
             return OpenFromBytes(
                 bytes,
-                options,
+                effectiveOptions,
                 normalizeContentTypes: false,
                 contextMessage: "Failed to open workbook bytes after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }
@@ -406,6 +419,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelDocumentReader OpenFromBytes(byte[] bytes, ExcelReadOptions? options, bool normalizeContentTypes, string contextMessage) {
+            var effectiveOptions = options ?? new ExcelReadOptions();
+            if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
+                throw new InvalidDataException($"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+            }
+
             MemoryStream? packageStream = null;
             Package? package = null;
             try {
@@ -421,11 +439,11 @@ namespace OfficeIMO.Excel {
 
                 package = Package.Open(packageStream, FileMode.Open, FileAccess.Read);
                 var doc = SpreadsheetDocument.Open(package);
-                return new ExcelDocumentReader(doc, options ?? new ExcelReadOptions(), owns: true, package, packageStream);
+                return new ExcelDocumentReader(doc, effectiveOptions, owns: true, package, packageStream);
             } catch (Exception ex) when (!normalizeContentTypes && IsRecoverableOpenException(ex)) {
                 package?.Close();
                 packageStream?.Dispose();
-                return OpenFromBytes(bytes, options, normalizeContentTypes: true, contextMessage);
+                return OpenFromBytes(bytes, effectiveOptions, normalizeContentTypes: true, contextMessage);
             } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
                 package?.Close();
                 packageStream?.Dispose();
@@ -441,40 +459,5 @@ namespace OfficeIMO.Excel {
             return ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException;
         }
 
-        private static byte[] ReadAllBytes(Stream stream) {
-            if (stream is MemoryStream memoryStream) {
-                return memoryStream.ToArray();
-            }
-
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-                long length = stream.Length;
-                if (length > int.MaxValue) {
-                    throw new IOException("Workbook stream is too large to read into memory.");
-                }
-
-                var bytes = new byte[(int)length];
-                int offset = 0;
-                while (offset < bytes.Length) {
-                    int read = stream.Read(bytes, offset, bytes.Length - offset);
-                    if (read == 0) {
-                        break;
-                    }
-
-                    offset += read;
-                }
-
-                if (offset == bytes.Length) {
-                    return bytes;
-                }
-
-                Array.Resize(ref bytes, offset);
-                return bytes;
-            }
-
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
-        }
     }
 }
