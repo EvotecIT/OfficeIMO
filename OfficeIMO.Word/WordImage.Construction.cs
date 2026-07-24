@@ -58,6 +58,7 @@ namespace OfficeIMO.Word {
         /// Initializes an image linked to an external URI.
         /// </summary>
         public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+            if (externalUri == null) throw new ArgumentNullException(nameof(externalUri));
             FilePath = externalUri.ToString();
             shape ??= ShapeTypeValues.Rectangle;
             compressionQuality ??= BlipCompressionValues.Print;

@@ -62,8 +62,7 @@ namespace OfficeIMO.Word.Html {
                 string? font = run.FontFamily ?? options.FontFamily;
                 if (!string.IsNullOrEmpty(font)) {
                     var span = htmlDocument.CreateElement("span");
-                    string value = font!.Contains(' ') ? $"\"{font}\"" : font!;
-                    span.SetAttribute("style", $"font-family:{value}");
+                    span.SetAttribute("style", $"font-family:{QuoteCssString(font!)}");
                     span.AppendChild(node);
                     node = span;
                 }
@@ -87,7 +86,8 @@ namespace OfficeIMO.Word.Html {
                 if (options.IncludeRunColorStyles &&
                     !string.IsNullOrEmpty(run.ColorHex) &&
                     !string.Equals(run.ColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
-                    styles.Add($"color:#{run.ColorHex.Trim().TrimStart('#').ToLowerInvariant()}");
+                    string? normalized = NormalizeSixDigitHexColor(run.ColorHex);
+                    if (normalized != null) styles.Add($"color:#{normalized}");
                 }
                 if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                     string? highlight = GetHighlightCss(run.Highlight);

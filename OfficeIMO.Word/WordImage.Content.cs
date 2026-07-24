@@ -319,6 +319,13 @@ namespace OfficeIMO.Word {
         }
 
         private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (!uri.IsAbsoluteUri ||
+                (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))) {
+                throw new ArgumentException("External image URIs must be absolute HTTP or HTTPS URLs.", nameof(uri));
+            }
+
             _document = document;
 
             var location = paragraph.Location();

@@ -406,10 +406,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginTopWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.TopMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -432,10 +429,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginBottomWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.BottomMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -458,10 +452,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginLeftWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.LeftMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -484,10 +475,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginRightWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.RightMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -503,6 +491,11 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        private static short? ParseMarginWidth(string? width) =>
+            short.TryParse(width, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out short value)
+                ? value
+                : null;
 
         /// <summary>
         /// Gets or sets the top margin in centimeters for the current cell.

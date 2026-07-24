@@ -144,7 +144,8 @@ namespace OfficeIMO.Word.Html {
                     cssStyle = "double";
                 }
 
-                string color = !string.IsNullOrEmpty(colorHex) ? $"#{colorHex}" : "black";
+                string? normalizedColor = NormalizeSixDigitHexColor(colorHex);
+                string color = normalizedColor != null ? $"#{normalizedColor}" : "black";
                 double widthPt = size != null ? size.Value / 8.0 : 1.0;
                 double widthPx = widthPt * 96 / 72;
                 string width = $"{Math.Round(widthPx)}px";

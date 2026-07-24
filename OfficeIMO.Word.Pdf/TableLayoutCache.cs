@@ -1,23 +1,16 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Word.Pdf {
     internal static class TableLayoutCache {
         private const int MaxTableGridColumns = 16_384;
         private const int MaxTableNestingDepth = 128;
-        private static readonly ConditionalWeakTable<WordTable, TableLayout> _cache = new();
-
         internal static TableLayout GetLayout(WordTable table) => GetLayout(table, depth: 0);
 
         private static TableLayout GetLayout(WordTable table, int depth) {
             if (depth >= MaxTableNestingDepth) {
                 throw new InvalidDataException($"Table nesting exceeds the supported limit of {MaxTableNestingDepth} levels.");
-            }
-
-            if (_cache.TryGetValue(table, out TableLayout? existingLayout) && existingLayout != null) {
-                return existingLayout;
             }
 
             List<IReadOnlyList<WordTableCell>> rows = WordTableMatrix.Map(table).ToList();
@@ -90,7 +83,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             TableLayout layout = new(rows, widths, rowStartColumns, rowTrailingColumns);
-            _cache.Add(table, layout);
             return layout;
         }
 

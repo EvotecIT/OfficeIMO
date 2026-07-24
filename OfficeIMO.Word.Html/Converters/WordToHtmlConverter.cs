@@ -418,8 +418,7 @@ namespace OfficeIMO.Word.Html {
                         var font = run.FontFamily ?? options.FontFamily;
                         if (!string.IsNullOrEmpty(font)) {
                             var span = htmlDoc.CreateElement("span");
-                            var value = font.Contains(' ') ? $"\"{font}\"" : font;
-                            span.SetAttribute("style", $"font-family:{value}");
+                            span.SetAttribute("style", $"font-family:{QuoteCssString(font!)}");
                             span.AppendChild(node);
                             node = span;
                         }
@@ -451,8 +450,10 @@ namespace OfficeIMO.Word.Html {
                             var colorHex = run.ColorHex;
                             if (!string.IsNullOrEmpty(colorHex) &&
                                 !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
-                                var normalized = colorHex.Trim().TrimStart('#').ToLowerInvariant();
-                                inlineStyles.Add($"color:#{normalized}");
+                                string? normalized = NormalizeSixDigitHexColor(colorHex);
+                                if (normalized != null) {
+                                    inlineStyles.Add($"color:#{normalized}");
+                                }
                             }
                         }
                         if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
@@ -561,8 +562,9 @@ namespace OfficeIMO.Word.Html {
                     pStyles.Add($"text-align:{alignCss}");
                 }
                 var pBg = para.ShadingFillColorHex;
-                if (!string.IsNullOrEmpty(pBg)) {
-                    pStyles.Add($"background-color:#{pBg}");
+                string? normalizedParagraphBackground = NormalizeSixDigitHexColor(pBg);
+                if (normalizedParagraphBackground != null) {
+                    pStyles.Add($"background-color:#{normalizedParagraphBackground}");
                 }
                 var pBorderCss = GetParagraphBorderCss(para);
                 if (pBorderCss.Count > 0) {
@@ -732,8 +734,9 @@ namespace OfficeIMO.Word.Html {
                             cellStyles.Add($"vertical-align:{vAlign}");
                         }
                         var bg = cell.ShadingFillColorHex;
-                        if (!string.IsNullOrEmpty(bg)) {
-                            cellStyles.Add($"background-color:#{bg}");
+                        string? normalizedCellBackground = NormalizeSixDigitHexColor(bg);
+                        if (normalizedCellBackground != null) {
+                            cellStyles.Add($"background-color:#{normalizedCellBackground}");
                         }
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {

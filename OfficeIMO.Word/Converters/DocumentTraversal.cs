@@ -469,7 +469,10 @@ namespace OfficeIMO.Word {
             string marker = pattern!;
             marker = marker.Replace("%CurrentLevel", FormatNumber(index, formats[level]));
             marker = Regex.Replace(marker, "%([0-9]+)", m => {
-                int lvl = int.Parse(m.Groups[1].Value) - 1;
+                if (!int.TryParse(m.Groups[1].Value, out int placeholderLevel) || placeholderLevel <= 0) {
+                    return m.Value;
+                }
+                int lvl = placeholderLevel - 1;
                 int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
                 formats.TryGetValue(lvl, out NumberFormatValues? fmt);
                 return FormatNumber(value, fmt);

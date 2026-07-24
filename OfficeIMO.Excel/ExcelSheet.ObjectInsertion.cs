@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int BufferedPowerShellObjectExportInitialColumnCapacity = 16;
         private const int BufferedPowerShellObjectExportColumnLimit = 64;
+        private const int ObjectExportMaximumGraphDepth = 64;
+        private const int ObjectExportMaximumCollectionItems = 32_768;
+        private const int ObjectExportMaximumMaterializedCells = 4_194_304;
         private static readonly ConcurrentDictionary<Type, SimpleObjectExportPlan> SimpleObjectExportPlans = new();
         private static readonly ConcurrentDictionary<Type, PowerShellObjectExportPlan> PowerShellObjectExportPlans = new();
 
@@ -29,7 +32,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(items));
             }
 
-            var rows = items as IReadOnlyList<T> ?? items.ToList();
+            IReadOnlyList<T> rows = MaterializeObjectRowsBounded(items, includeHeaders, startRow);
             if (rows.Count == 0) {
                 return;
             }
@@ -56,10 +59,14 @@ namespace OfficeIMO.Excel {
                 flattenedItems.Add(dict);
                 foreach (var key in dict.Keys) {
                     if (headerSet.Add(key)) {
+                        ValidateObjectExportDenseDimensions(rows.Count, headers.Count + 1, includeHeaders);
+                        EnsureObjectExportColumnAvailable(headers.Count);
                         headers.Add(key);
                     }
                 }
             }
+
+            ValidateObjectExportDenseDimensions(rows.Count, headers.Count, includeHeaders);
 
             string? directSaveRange = null;
             bool hasBlankDisplayHeader = includeHeaders && headers.Any(string.IsNullOrWhiteSpace);
@@ -125,10 +132,14 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("At least one column selector is required.", nameof(columns));
             }
 
-            var rows = items as IReadOnlyList<T> ?? items.ToList();
+            ValidateObjectExportDenseDimensions(rowCount: 0, columns.Length, includeHeaders: false);
+
+            IReadOnlyList<T> rows = MaterializeObjectRowsBounded(items, includeHeaders, startRow);
             if (rows.Count == 0) {
                 return;
             }
+
+            ValidateObjectExportDenseDimensions(rows.Count, columns.Length, includeHeaders);
 
             var headers = new string[columns.Length];
             var selectors = new Func<T, object?>[columns.Length];
@@ -191,6 +202,45 @@ namespace OfficeIMO.Excel {
             }
 
             CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
+        }
+
+        private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow) {
+            if (startRow < 1 || startRow > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(startRow), $"Start row must be between 1 and {A1.MaxRows}.");
+            }
+
+            int maximumRows = A1.MaxRows - startRow + 1 - (includeHeaders ? 1 : 0);
+            int capacity = items is IReadOnlyCollection<T> collection ? collection.Count : 0;
+            if (capacity > maximumRows) {
+                throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
+            }
+
+            var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
+            foreach (T item in items) {
+                if (rows.Count >= maximumRows) {
+                    throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
+                }
+                rows.Add(item);
+            }
+            return rows;
+        }
+
+        private static void EnsureObjectExportColumnAvailable(int existingColumnCount) {
+            if (existingColumnCount >= A1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            }
+        }
+
+        private static void ValidateObjectExportDenseDimensions(int rowCount, int columnCount, bool includeHeaders) {
+            if (columnCount > A1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            }
+
+            long materializedCells = (long)(rowCount + (includeHeaders ? 1 : 0)) * Math.Max(1, columnCount);
+            if (materializedCells > ObjectExportMaximumMaterializedCells) {
+                throw new InvalidDataException(
+                    $"Object insertion would materialize {materializedCells} cells, exceeding the {ObjectExportMaximumMaterializedCells}-cell safety limit.");
+            }
         }
 
         private static object? NullObjectSelector<T>(T row) => null;
