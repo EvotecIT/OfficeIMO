@@ -21,12 +21,17 @@ public static partial class ReaderHierarchicalChunker {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         ReaderHierarchicalChunkingOptions normalized = Normalize(options);
+        int? knownInputCount = document.Chunks != null && document.Chunks.Count > 0
+            ? document.Chunks.Count
+            : null;
         return ChunkCore(
             GetSourceChunks(document, normalized.MaxInputChunks, cancellationToken),
             document.Source ?? new OfficeDocumentSource(),
             normalized,
             cancellationToken,
-            enforceSingleSourceIdentity: false);
+            enforceSingleSourceIdentity: false,
+            knownInputCount: knownInputCount,
+            inspectInternalBoundaryMarker: true);
     }
 
     /// <summary>Chunks an existing source-ordered collection.</summary>
@@ -48,10 +53,12 @@ public static partial class ReaderHierarchicalChunker {
         OfficeDocumentSource sourceInfo,
         ReaderHierarchicalChunkingOptions options,
         CancellationToken cancellationToken,
-        bool enforceSingleSourceIdentity) {
+        bool enforceSingleSourceIdentity,
+        int? knownInputCount = null,
+        bool inspectInternalBoundaryMarker = false) {
         var state = new ChunkingState(options, cancellationToken, enforceSingleSourceIdentity);
         int inputIndex = 0;
-        int? knownInputCount = source is ICollection<ReaderChunk> collection
+        knownInputCount ??= source is ICollection<ReaderChunk> collection
             ? collection.Count
             : source is IReadOnlyCollection<ReaderChunk> readOnlyCollection
                 ? readOnlyCollection.Count
@@ -60,7 +67,10 @@ public static partial class ReaderHierarchicalChunker {
         while (!state.OutputLimitReached) {
             cancellationToken.ThrowIfCancellationRequested();
             if (inputIndex >= options.MaxInputChunks) {
-                if (!knownInputCount.HasValue || knownInputCount.Value > options.MaxInputChunks) {
+                bool truncated = knownInputCount.HasValue
+                    ? knownInputCount.Value > options.MaxInputChunks
+                    : !inspectInternalBoundaryMarker || enumerator.MoveNext();
+                if (truncated) {
                     state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
                 }
                 break;

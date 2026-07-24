@@ -309,6 +309,32 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_DocumentPreservesKnownInputCountAtLimit() {
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            MaxInputChunks = 1,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
+        };
+        var exactDocument = new OfficeDocumentReadResult {
+            Chunks = new[] { CreateChunk("first", "first block") }
+        };
+        var truncatedDocument = new OfficeDocumentReadResult {
+            Chunks = new[] {
+                CreateChunk("first", "first block"),
+                CreateChunk("second", "second block")
+            }
+        };
+
+        ReaderChunkHierarchyResult exact = ReaderHierarchicalChunker.Chunk(exactDocument, options);
+        ReaderChunkHierarchyResult truncated = ReaderHierarchicalChunker.Chunk(truncatedDocument, options);
+
+        Assert.DoesNotContain(exact.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+        Assert.Contains(truncated.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
     public void Chunk_DoesNotAdvanceLazySourceBeyondInputLimit() {
         var options = new ReaderHierarchicalChunkingOptions {
             MaxTokens = 10,

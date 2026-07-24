@@ -181,7 +181,7 @@ namespace OfficeIMO.Visio {
 
         private static VisioShowcaseArtifact CreateArtifact(string root, string filePath, VisioShowcaseArtifactKind kind) {
             string fullPath = Path.GetFullPath(filePath);
-            if (!IsPathInsideRoot(root, fullPath)) {
+            if (!IsPathInsideRoot(root, fullPath) || ContainsReparsePoint(root, fullPath)) {
                 throw new ArgumentException("Showcase artifact paths must resolve inside the showcase root.", nameof(filePath));
             }
 
@@ -202,6 +202,24 @@ namespace OfficeIMO.Visio {
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
             return normalizedFile.StartsWith(normalizedRoot, comparison);
+        }
+
+        private static bool ContainsReparsePoint(string root, string filePath) {
+            string normalizedRoot = Path.GetFullPath(root);
+            string rootPrefix = EnsureTrailingSeparator(normalizedRoot);
+            string relative = Path.GetFullPath(filePath).Substring(rootPrefix.Length);
+            string current = normalizedRoot;
+            string[] segments = relative.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries);
+            foreach (string segment in segments) {
+                current = Path.Combine(current, segment);
+                if (!File.Exists(current) && !Directory.Exists(current)) break;
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static VisioShowcaseArtifactKind ClassifyPreviewKind(string root, string filePath) {
