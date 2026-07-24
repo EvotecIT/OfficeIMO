@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
         private const double NativeHeaderFooterFontSize = 9D;
         private const double NativeHeaderFooterLineHeight = NativeHeaderFooterFontSize * 1.2D;
         private const double NativeHeaderFooterBodyGap = 2D;
+        private const double NativeMinimumBodyHeight = 72D;
         private const double NativeHeaderFooterDefaultOffset = 18D;
         private const double NativeFooterDefaultOffset = 20D;
 

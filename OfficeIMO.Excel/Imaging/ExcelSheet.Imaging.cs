@@ -228,7 +228,9 @@ namespace OfficeIMO.Excel {
 
             IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics(
                 includePrintTitlesUnsupported: !allowMultipleResults,
-                includeHeaderFooterUnsupported: !allowMultipleResults || !CanRenderHeaderFooterTextChrome(options.HeaderFooterDateTime ?? DateTime.Now));
+                includeHeaderFooterUnsupported: !allowMultipleResults || !CanRenderHeaderFooterTextChrome(
+                    options.HeaderFooterDateTime ?? DateTime.Now,
+                    options.IncludeWorkbookPathInHeaderFooter));
             if (!allowMultipleResults) {
                 return ranges
                     .Select(range => range

@@ -100,6 +100,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            ApplySignatureMutationPolicy(options);
+
             DirectDataSetWorkbookModel packageModel;
             if (_materializedDirectDataSetFastSaveModel != null) {
                 if (!CanWriteMaterializedDirectDataSetPackage(_materializedDirectDataSetFastSaveModel)) {

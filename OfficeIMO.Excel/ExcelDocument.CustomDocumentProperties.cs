@@ -60,7 +60,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                loadedProperties[property.Name!.Value!] = new ExcelCustomProperty(property);
+                try {
+                    loadedProperties[property.Name!.Value!] = new ExcelCustomProperty(property);
+                } catch (Exception exception) when (exception is FormatException
+                                                     || exception is OverflowException
+                                                     || exception is ArgumentException) {
+                    // Malformed optional metadata must not prevent the workbook itself from loading.
+                }
             }
 
             CustomDocumentProperties.ReplaceWith(loadedProperties);

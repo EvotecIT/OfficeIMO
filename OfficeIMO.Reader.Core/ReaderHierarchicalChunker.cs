@@ -51,16 +51,23 @@ public static partial class ReaderHierarchicalChunker {
         bool enforceSingleSourceIdentity) {
         var state = new ChunkingState(options, cancellationToken, enforceSingleSourceIdentity);
         int inputIndex = 0;
+        int? knownInputCount = source is ICollection<ReaderChunk> collection
+            ? collection.Count
+            : source is IReadOnlyCollection<ReaderChunk> readOnlyCollection
+                ? readOnlyCollection.Count
+                : null;
         using IEnumerator<ReaderChunk> enumerator = source.GetEnumerator();
         while (!state.OutputLimitReached) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (inputIndex >= options.MaxInputChunks) {
+                if (!knownInputCount.HasValue || knownInputCount.Value > options.MaxInputChunks) {
+                    state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
+                }
+                break;
+            }
             if (!enumerator.MoveNext()) break;
             ReaderChunk? chunk = enumerator.Current;
             if (ReferenceEquals(chunk, FallbackInputLimitMarker)) {
-                state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
-                break;
-            }
-            if (inputIndex >= options.MaxInputChunks) {
                 state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
                 break;
             }

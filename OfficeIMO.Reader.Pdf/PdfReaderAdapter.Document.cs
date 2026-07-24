@@ -408,19 +408,19 @@ internal static partial class PdfReaderAdapter {
                     DestinationName = link.DestinationName,
                     DestinationPageNumber = link.DestinationPageNumber,
                     DestinationMode = link.DestinationMode?.ToString(),
-                    DestinationTop = link.DestinationTop,
-                    DestinationLeft = link.DestinationLeft,
-                    DestinationBottom = link.DestinationBottom,
-                    DestinationRight = link.DestinationRight,
+                    DestinationTop = NormalizeFiniteCoordinate(link.DestinationTop),
+                    DestinationLeft = NormalizeFiniteCoordinate(link.DestinationLeft),
+                    DestinationBottom = NormalizeFiniteCoordinate(link.DestinationBottom),
+                    DestinationRight = NormalizeFiniteCoordinate(link.DestinationRight),
                     NamedAction = link.NamedAction,
                     RemoteFile = link.RemoteFile,
                     RemoteDestinationName = link.RemoteDestinationName,
                     RemoteDestinationPageNumber = link.RemoteDestinationPageNumber,
                     RemoteDestinationMode = link.RemoteDestinationMode?.ToString(),
-                    RemoteDestinationTop = link.RemoteDestinationTop,
-                    RemoteDestinationLeft = link.RemoteDestinationLeft,
-                    RemoteDestinationBottom = link.RemoteDestinationBottom,
-                    RemoteDestinationRight = link.RemoteDestinationRight,
+                    RemoteDestinationTop = NormalizeFiniteCoordinate(link.RemoteDestinationTop),
+                    RemoteDestinationLeft = NormalizeFiniteCoordinate(link.RemoteDestinationLeft),
+                    RemoteDestinationBottom = NormalizeFiniteCoordinate(link.RemoteDestinationBottom),
+                    RemoteDestinationRight = NormalizeFiniteCoordinate(link.RemoteDestinationRight),
                     Text = link.Contents,
                     Location = BuildLocation(source, page.PageNumber, pageIndex, "link", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString(CultureInfo.InvariantCulture)),
                     Region = new OfficeDocumentRegion {
@@ -620,10 +620,16 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static void AddAttribute(Dictionary<string, string> attributes, string name, double? value) {
-        if (value.HasValue) {
-            attributes[name] = value.Value.ToString("R", CultureInfo.InvariantCulture);
+        double? normalized = NormalizeFiniteCoordinate(value);
+        if (normalized.HasValue) {
+            attributes[name] = normalized.Value.ToString("R", CultureInfo.InvariantCulture);
         }
     }
+
+    private static double? NormalizeFiniteCoordinate(double? value) =>
+        value.HasValue && !double.IsNaN(value.Value) && !double.IsInfinity(value.Value)
+            ? value
+            : null;
 
     private static void AddAttribute(Dictionary<string, string> attributes, string name, string? value) {
         if (!string.IsNullOrWhiteSpace(value)) {

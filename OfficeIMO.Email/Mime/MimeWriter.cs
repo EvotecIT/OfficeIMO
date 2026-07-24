@@ -4,7 +4,8 @@ internal static class MimeWriter {
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
         "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
-        "Content-Disposition"
+        "Content-Disposition", "Disposition-Notification-To", "Return-Receipt-To", "X-Unsent",
+        "Sensitivity", "Status", "Keywords", "Importance", "X-Priority", "Priority"
     };
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {

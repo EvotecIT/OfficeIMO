@@ -824,7 +824,8 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return ConvertNativeTwipsToPoints(width.Width?.Value);
+            double? points = ConvertNativeTwipsToPoints(width.Width?.Value);
+            return points > 0D ? points : null;
         }
 
         private static double? GetNativeTablePreferredWidthPercent(W.TableWidth width) {

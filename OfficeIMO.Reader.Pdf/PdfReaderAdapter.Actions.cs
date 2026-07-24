@@ -70,10 +70,10 @@ internal static partial class PdfReaderAdapter {
             IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType),
             DestinationPageNumber = action.PageNumber,
             DestinationMode = action.DestinationMode?.ToString(),
-            DestinationTop = action.DestinationTop,
-            DestinationLeft = action.DestinationLeft,
-            DestinationBottom = action.DestinationBottom,
-            DestinationRight = action.DestinationRight
+            DestinationTop = NormalizeFiniteCoordinate(action.DestinationTop),
+            DestinationLeft = NormalizeFiniteCoordinate(action.DestinationLeft),
+            DestinationBottom = NormalizeFiniteCoordinate(action.DestinationBottom),
+            DestinationRight = NormalizeFiniteCoordinate(action.DestinationRight)
         };
     }
 

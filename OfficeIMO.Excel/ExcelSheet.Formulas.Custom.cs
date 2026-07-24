@@ -19,7 +19,9 @@ namespace OfficeIMO.Excel {
 
             var customArguments = new ExcelFormulaValue[arguments.Count];
             for (int index = 0; index < arguments.Count; index++) {
-                customArguments[index] = ToCustomFormulaValue(arguments[index]);
+                if (!TryConvertFormulaArgumentToCustomValue(arguments[index], out customArguments[index])) {
+                    return false;
+                }
             }
 
             var context = new ExcelCustomFormulaFunctionContext(
@@ -31,18 +33,36 @@ namespace OfficeIMO.Excel {
             return customResult.HasValue && TryConvertCustomFormulaValue(customResult.Value, out result);
         }
 
-        private static ExcelFormulaValue ToCustomFormulaValue(FormulaArgumentValue value) {
+        private static bool TryConvertFormulaArgumentToCustomValue(
+            FormulaArgumentValue value,
+            out ExcelFormulaValue result) {
             if (value.IsError) {
-                return ExcelFormulaValue.FromError(value.ErrorCode ?? "#VALUE!");
+                string errorCode = (value.ErrorCode ?? "#VALUE!").Trim();
+                if (errorCode.Length == 0 || errorCode.Length > 255 || errorCode[0] != '#'
+                    || errorCode.Any(char.IsWhiteSpace)) {
+                    result = default;
+                    return false;
+                }
+
+                result = ExcelFormulaValue.FromError(errorCode);
+                return true;
             }
 
             if (value.Number.HasValue) {
-                return ExcelFormulaValue.FromNumber(value.Number.Value);
+                double number = value.Number.Value;
+                if (double.IsNaN(number) || double.IsInfinity(number)) {
+                    result = default;
+                    return false;
+                }
+
+                result = ExcelFormulaValue.FromNumber(number);
+                return true;
             }
 
-            return value.Text == null
+            result = value.Text == null
                 ? ExcelFormulaValue.Blank
                 : ExcelFormulaValue.FromText(value.Text);
+            return true;
         }
 
         private static bool TryConvertCustomFormulaValue(ExcelFormulaValue value, out FormulaArgumentValue result) {

@@ -76,6 +76,29 @@ public class RtfEditingWorkflowTests {
     }
 
     [Fact]
+    public void Semantic_Clone_Separates_Header_References_From_Detached_Notes() {
+        RtfDocument source = RtfDocument.Create();
+        RtfNote headerNote = source.AddNote(RtfNoteKind.Footnote);
+        headerNote.AddParagraph("Header note");
+        source.AddHeader().AddParagraph("Header").AddNoteReference(headerNote, "H");
+        RtfNote detached = source.AddNote(RtfNoteKind.Endnote);
+        detached.AddParagraph("Detached note");
+        RtfNote bodyNote = source.AddNote(RtfNoteKind.Footnote);
+        bodyNote.AddParagraph("Body note");
+        source.AddParagraph("Body").AddNoteReference(bodyNote, "B");
+
+        RtfDocument clone = source.Clone();
+
+        RtfGeneratedText headerReference = Assert.Single(clone.HeaderFooters[0].Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
+        Assert.Equal("Header note", headerReference.Note?.ToPlainText());
+        RtfGeneratedText bodyReference = Assert.Single(clone.Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
+        Assert.Equal("Body note", bodyReference.Note?.ToPlainText());
+        RtfNote detachedClone = Assert.Single(clone.Notes, note => note.ToPlainText() == "Detached note");
+        Assert.DoesNotContain(clone.Paragraphs.SelectMany(paragraph => paragraph.Inlines), inline =>
+            inline is RtfGeneratedText generated && generated.Note == detachedClone);
+    }
+
+    [Fact]
     public void Semantic_ReplaceText_Replaces_Visible_Text_In_Inline_Results_And_Shapes() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph("Body ");
