@@ -18,4 +18,26 @@ public class PowerPointAllSeverityBatch21Tests {
 
         Assert.Equal("series", exception.ParamName);
     }
+
+    [Fact]
+    public void ScatterSnapshotAllowsSeriesWithDifferentPointCounts() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries(
+                "Long",
+                new[] { 1D, 2D, 3D },
+                new[] { 10D, 20D, 30D }),
+            new PowerPointScatterChartSeries(
+                "Short",
+                new[] { 4D, 5D },
+                new[] { 40D, 50D })
+        });
+        PowerPointChart chart = slide.AddScatterChart(data);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(new[] { 3, 2 }, snapshot.Data.Series.Select(series => series.Values.Count).ToArray());
+        Assert.Equal(new[] { 3, 2 }, snapshot.Data.Series.Select(series => series.XValues!.Count).ToArray());
+    }
 }
