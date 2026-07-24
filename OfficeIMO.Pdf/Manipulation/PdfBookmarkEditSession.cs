@@ -56,9 +56,9 @@ public sealed class PdfBookmarkEditSession {
         target.Insert(index, node); return this;
     }
     /// <summary>Retargets a bookmark to a page and optional top coordinate.</summary>
-    public PdfBookmarkEditSession Retarget(string id, int pageNumber, double? destinationTop = null) { ValidatePage(pageNumber); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationTop = destinationTop; node.DestinationMode = PdfOpenActionDestinationMode.Xyz; node.DestinationLeft = null; node.DestinationBottom = null; node.DestinationRight = null; node.DestinationZoom = null; return this; }
+    public PdfBookmarkEditSession Retarget(string id, int pageNumber, double? destinationTop = null) { ValidatePage(pageNumber); ValidateCoordinate(destinationTop, nameof(destinationTop)); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationTop = destinationTop; node.DestinationMode = PdfOpenActionDestinationMode.Xyz; node.DestinationLeft = null; node.DestinationBottom = null; node.DestinationRight = null; node.DestinationZoom = null; return this; }
     /// <summary>Retargets a bookmark using an explicit viewer destination mode and coordinates.</summary>
-    public PdfBookmarkEditSession Retarget(string id, int pageNumber, PdfOpenActionDestinationMode destinationMode, double? destinationTop = null, double? destinationLeft = null, double? destinationBottom = null, double? destinationRight = null, double? destinationZoom = null) { ValidatePage(pageNumber); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationMode = destinationMode; node.DestinationTop = destinationTop; node.DestinationLeft = destinationLeft; node.DestinationBottom = destinationBottom; node.DestinationRight = destinationRight; node.DestinationZoom = destinationZoom; return this; }
+    public PdfBookmarkEditSession Retarget(string id, int pageNumber, PdfOpenActionDestinationMode destinationMode, double? destinationTop = null, double? destinationLeft = null, double? destinationBottom = null, double? destinationRight = null, double? destinationZoom = null) { ValidatePage(pageNumber); ValidateCoordinates(destinationTop, destinationLeft, destinationBottom, destinationRight, destinationZoom); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationMode = destinationMode; node.DestinationTop = destinationTop; node.DestinationLeft = destinationLeft; node.DestinationBottom = destinationBottom; node.DestinationRight = destinationRight; node.DestinationZoom = destinationZoom; return this; }
     /// <summary>Replaces bookmarks with the source document's inferred heading hierarchy.</summary>
     public PdfBookmarkEditSession RebuildFromHeadings() {
         _roots.Clear(); var stack = new List<PdfBookmarkNode>();
@@ -71,7 +71,10 @@ public sealed class PdfBookmarkEditSession {
     }
     internal IReadOnlyList<PdfBookmarkNode> Snapshot() => _roots;
     private void Import(IReadOnlyList<PdfOutlineItem> source, List<PdfBookmarkNode> target) { foreach (PdfOutlineItem item in source) { if (!item.PageNumber.HasValue) continue; PdfBookmarkNode node = NewNode(item.Title, item.PageNumber.Value, item.DestinationTop, item.IsExpanded, item.DestinationMode, item.DestinationLeft, item.DestinationBottom, item.DestinationRight, item.DestinationZoom); target.Add(node); Import(item.Children, node.MutableChildren); } }
-    private PdfBookmarkNode NewNode(string title, int page, double? top, bool expanded, PdfOpenActionDestinationMode? mode = null, double? left = null, double? bottom = null, double? right = null, double? zoom = null) => new PdfBookmarkNode("bookmark-" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture), title, page, top, expanded, mode, left, bottom, right, zoom);
+    private PdfBookmarkNode NewNode(string title, int page, double? top, bool expanded, PdfOpenActionDestinationMode? mode = null, double? left = null, double? bottom = null, double? right = null, double? zoom = null) {
+        ValidateCoordinates(top, left, bottom, right, zoom);
+        return new PdfBookmarkNode("bookmark-" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture), title, page, top, expanded, mode, left, bottom, right, zoom);
+    }
     private List<PdfBookmarkNode> GetChildren(string? parentId) => parentId == null ? _roots : Require(parentId).MutableChildren;
     private PdfBookmarkNode Require(string id) { Guard.NotNullOrWhiteSpace(id, nameof(id)); return Find(_roots, id) ?? throw new KeyNotFoundException("PDF bookmark was not found: " + id); }
     private (List<PdfBookmarkNode> Siblings, int Index) RequireLocation(string id) { if (TryFindLocation(_roots, id, out List<PdfBookmarkNode>? siblings, out int index)) return (siblings!, index); throw new KeyNotFoundException("PDF bookmark was not found: " + id); }
@@ -79,5 +82,17 @@ public sealed class PdfBookmarkEditSession {
     private static bool TryFindLocation(List<PdfBookmarkNode> nodes, string id, out List<PdfBookmarkNode>? siblings, out int index) { for (int i = 0; i < nodes.Count; i++) { if (nodes[i].Id == id) { siblings = nodes; index = i; return true; } if (TryFindLocation(nodes[i].MutableChildren, id, out siblings, out index)) return true; } siblings = null; index = -1; return false; }
     private static bool Contains(PdfBookmarkNode node, string id) => node.Id == id || node.MutableChildren.Any(child => Contains(child, id));
     private void ValidatePage(int page) { if (page < 1 || page > _logical.Pages.Count) throw new ArgumentOutOfRangeException(nameof(page)); }
+    private static void ValidateCoordinates(double? top, double? left, double? bottom, double? right, double? zoom) {
+        ValidateCoordinate(top, nameof(top));
+        ValidateCoordinate(left, nameof(left));
+        ValidateCoordinate(bottom, nameof(bottom));
+        ValidateCoordinate(right, nameof(right));
+        ValidateCoordinate(zoom, nameof(zoom));
+    }
+    private static void ValidateCoordinate(double? value, string parameterName) {
+        if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+            throw new ArgumentOutOfRangeException(parameterName, "PDF bookmark destination coordinates must be finite.");
+        }
+    }
     private static void ValidateTitle(string title) => Guard.NotNullOrWhiteSpace(title, nameof(title));
 }

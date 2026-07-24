@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
                         : TranslateSharedFormulaReference(match, rowOffset, columnOffset)));
         }
 
-        private bool IsSharedFormulaFunctionToken(string formula, Match match) {
+        private static bool IsSharedFormulaFunctionToken(string formula, Match match) {
             if (match.Groups["qualifier"].Success
                 || match.Groups["cellEndColumn"].Success
                 || match.Groups["cellSpill"].Success
@@ -154,9 +154,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string token = match.Groups["cellStartColumn"].Value + match.Groups["cellStartRow"].Value;
-            return ExcelFormulaCapabilities.IsBuiltInFunction(token)
-                || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
+            // Formula preservation must not depend on whether OfficeIMO knows how to
+            // evaluate a UDF. Excel permits unregistered function names that resemble
+            // cell references, and translating those names corrupts the stored formula.
+            return true;
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

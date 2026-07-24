@@ -326,6 +326,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
             columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
+            if (columnCount > 18_278 || checked((long)rowCount * columnCount) > 10_000_000L) {
+                throw new NotSupportedException(
+                    $"Worksheet '{worksheet.Name}' requires a {rowCount} by {columnCount} grid, which exceeds Google Sheets limits.");
+            }
         }
 
         private static void ExpandGridToInclude(string a1Range, ref int rowCount, ref int columnCount) {

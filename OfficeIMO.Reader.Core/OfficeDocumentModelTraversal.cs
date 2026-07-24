@@ -8,20 +8,24 @@ namespace OfficeIMO.Reader;
 
 internal static class OfficeDocumentModelTraversal {
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
+        IEnumerable<OfficeDocumentBlock> candidates =
+            (document.Blocks ?? System.Array.Empty<OfficeDocumentBlock>())
+            .Concat((document.Pages ?? System.Array.Empty<OfficeDocumentPage>())
+                .Where(page => page?.Blocks != null)
+                .SelectMany(page => page.Blocks));
+        foreach (OfficeDocumentBlock block in OrderBlocks(candidates)) yield return block;
+    }
+
+    internal static IReadOnlyList<OfficeDocumentBlock> OrderBlocks(
+        IEnumerable<OfficeDocumentBlock> candidates) {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var ordered = new List<OrderedBlock>();
         int insertionIndex = 0;
-        foreach (OfficeDocumentBlock block in document.Blocks ?? System.Array.Empty<OfficeDocumentBlock>()) {
+        foreach (OfficeDocumentBlock block in candidates) {
             if (block != null && seen.Add(block)) ordered.Add(new OrderedBlock(block, insertionIndex++));
         }
-        foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
-            if (page?.Blocks == null) continue;
-            foreach (OfficeDocumentBlock block in page.Blocks) {
-                if (block != null && seen.Add(block)) ordered.Add(new OrderedBlock(block, insertionIndex++));
-            }
-        }
         ordered.Sort(CompareBlocks);
-        for (int index = 0; index < ordered.Count; index++) yield return ordered[index].Block;
+        return ordered.Select(item => item.Block).ToArray();
     }
 
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {

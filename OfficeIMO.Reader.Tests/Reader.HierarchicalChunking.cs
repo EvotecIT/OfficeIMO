@@ -448,6 +448,60 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_OrdersFallbackPageBodiesBeforeLaterPageHeadings() {
+        var pageOneHeading = new OfficeDocumentBlock {
+            Id = "p1-heading",
+            Kind = "heading",
+            Level = 1,
+            Text = "Page one",
+            Location = new ReaderLocation { Page = 1, SourceBlockIndex = 0 }
+        };
+        var pageTwoHeading = new OfficeDocumentBlock {
+            Id = "p2-heading",
+            Kind = "heading",
+            Level = 1,
+            Text = "Page two",
+            Location = new ReaderLocation { Page = 2, SourceBlockIndex = 0 }
+        };
+        var pageOneBody = new OfficeDocumentBlock {
+            Id = "p1-body",
+            Kind = "paragraph",
+            Text = "First body",
+            Location = new ReaderLocation { Page = 1, SourceBlockIndex = 1 }
+        };
+        var pageTwoBody = new OfficeDocumentBlock {
+            Id = "p2-body",
+            Kind = "paragraph",
+            Text = "Second body",
+            Location = new ReaderLocation { Page = 2, SourceBlockIndex = 1 }
+        };
+        var document = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Text,
+            Blocks = new[] { pageOneHeading, pageTwoHeading },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 1, Blocks = new[] { pageOneBody } },
+                new OfficeDocumentPage { Number = 2, Blocks = new[] { pageTwoBody } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 20,
+                OverlapTokens = 0,
+                MaxInputChunks = 8,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Equal(
+            new[] { "Page one", "First body", "Page two", "Second body" },
+            result.Chunks.Select(chunk => chunk.Text));
+        Assert.Equal("Page one", result.Chunks[1].Location.HeadingPath);
+        Assert.Equal("Page two", result.Chunks[3].Location.HeadingPath);
+    }
+
+    [Fact]
     public void Chunk_InheritsPageLocationBeyondInputChunkOrdinal() {
         var block = new OfficeDocumentBlock { Id = "retained", Text = "body" };
         var document = new OfficeDocumentReadResult {

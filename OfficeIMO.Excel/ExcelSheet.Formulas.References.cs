@@ -710,7 +710,7 @@ namespace OfficeIMO.Excel {
                     index++;
                 }
                 if (index == value.Length) {
-                    return sections.Count > 0;
+                    return sections.Count > 0 && separators.Count == sections.Count - 1;
                 }
 
                 if (value[index] != '[') {
@@ -733,7 +733,7 @@ namespace OfficeIMO.Excel {
                     index++;
                 }
                 if (index == value.Length) {
-                    return true;
+                    return separators.Count == sections.Count - 1;
                 }
 
                 if (value[index] != ',' && value[index] != ':') {
@@ -744,7 +744,7 @@ namespace OfficeIMO.Excel {
                 index++;
             }
 
-            return sections.Count > 0;
+            return sections.Count > 0 && separators.Count == sections.Count - 1;
         }
 
         private static bool TryResolveTableReferenceRange(

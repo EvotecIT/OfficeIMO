@@ -172,6 +172,18 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void LatexParserAcceptsLegacyOfficeImoKindCommands() {
+        OfficeMathExpression expression = OfficeMathMarkup.FromLatex(
+            @"\officeimoidentifier{x}+\officeimonumber{42}+\officeimooperator{≈}+\officeimofunction{sin}{y}");
+
+        Assert.Equal(OfficeMathKind.Identifier, expression.Children[0].Kind);
+        Assert.Equal(OfficeMathKind.Number, expression.Children[2].Kind);
+        Assert.Equal(OfficeMathKind.Operator, expression.Children[4].Kind);
+        Assert.Equal(OfficeMathKind.Function, expression.Children[6].Kind);
+        Assert.Equal("x+42+≈+sin(y)", expression.ToPlainText());
+    }
+
+    [Fact]
     public void LatexGreekCommandsRemainIdentifiersInScriptsAndMathMl() {
         OfficeMathExpression expression = OfficeMathMarkup.FromLatex(@"\alpha_i+\beta");
 

@@ -185,6 +185,23 @@ public static class OfficeInkRenderer {
         OfficePoint support = stroke.GetTransformedTipSupport(-deltaY, deltaX);
         OfficePoint fromSupport = new OfficePoint(support.X * fromPressure, support.Y * fromPressure);
         OfficePoint toSupport = new OfficePoint(support.X * toPressure, support.Y * toPressure);
+        double maximumSupport = Math.Max(
+            Math.Sqrt(fromSupport.X * fromSupport.X + fromSupport.Y * fromSupport.Y),
+            Math.Sqrt(toSupport.X * toSupport.X + toSupport.Y * toSupport.Y));
+        if (double.IsNaN(maximumSupport)
+            || double.IsInfinity(maximumSupport)
+            || maximumSupport <= 0.000000000001D) {
+            OfficeShape fallback = OfficeShape.Line(x1, y1, x2, y2);
+            fallback.StrokeColor = renderColor;
+            fallback.StrokeOpacity = opacity;
+            fallback.StrokeWidth = 0.01D;
+            fallback.StrokeLineCap = stroke.TipShape == OfficeInkTipShape.Rectangle
+                ? OfficeStrokeLineCap.Square
+                : OfficeStrokeLineCap.Round;
+            fallback.StrokeLineJoin = OfficeStrokeLineJoin.Round;
+            drawing.AddShapeForClippedRendering(fallback, Math.Min(x1, x2), Math.Min(y1, y2));
+            return;
+        }
         var points = new[] {
             new OfficePoint(x1 + fromSupport.X, y1 + fromSupport.Y),
             new OfficePoint(x2 + toSupport.X, y2 + toSupport.Y),

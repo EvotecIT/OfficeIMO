@@ -104,9 +104,25 @@ public sealed partial class OfficeDrawing {
     /// <param name="color">Optional text color.</param>
     /// <param name="alignment">Horizontal alignment inside the frame.</param>
     /// <param name="lineHeight">Optional resolved line height.</param>
+    /// <returns>The current drawing.</returns>
+    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null) =>
+        AddPositionedText(text, x, y, width, height, font, color, alignment, lineHeight, null);
+
+    /// <summary>
+    /// Adds an already-positioned single text run with an explicit resolved glyph advance.
+    /// </summary>
+    /// <param name="text">Text content to draw.</param>
+    /// <param name="x">Horizontal frame position in drawing units.</param>
+    /// <param name="y">Vertical frame position in drawing units.</param>
+    /// <param name="width">Clipping frame width in drawing units.</param>
+    /// <param name="height">Clipping frame height in drawing units.</param>
+    /// <param name="font">Optional font descriptor.</param>
+    /// <param name="color">Optional text color.</param>
+    /// <param name="alignment">Horizontal alignment inside the frame.</param>
+    /// <param name="lineHeight">Optional resolved line height.</param>
     /// <param name="textAdvanceWidth">Resolved horizontal glyph advance, or <see langword="null"/> to use <paramref name="width"/>.</param>
     /// <returns>The current drawing.</returns>
-    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, double? textAdvanceWidth = null) =>
+    public OfficeDrawing AddPositionedText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, double? textAdvanceWidth) =>
         AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, OfficeTextVerticalAlignment.Top, 0D, null, null, false, false, false, false, false, null, null, OfficeTextOverflowBehavior.Clip, textAdvanceWidth ?? width, allowOverflow: false);
 
     private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, bool allowOverflow) {

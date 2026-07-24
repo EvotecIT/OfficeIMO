@@ -1547,6 +1547,43 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_MatchParentUsesPhysicalParentAlignment() {
+        const string html =
+            "<div style='width:200px;text-align:center'><p style='margin:0;text-align:match-parent'>Matched</p></div>";
+
+        var parsed = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(parsed);
+        Assert.Equal("center", styles[parsed.QuerySelector("div")!].GetValue("text-align"));
+        Assert.Equal("match-parent", styles[parsed.QuerySelector("p")!].GetValue("text-align"));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions {
+                ViewportWidth = 200D,
+                Margins = HtmlRenderMargins.All(0D)
+            });
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text == "Matched");
+        // Inline text fragments are already physically positioned, so their
+        // local drawing frame remains left-aligned. The inherited alignment is
+        // observable through the centered physical position.
+        Assert.True(text.X > 50D);
+    }
+
+    [Fact]
+    public void HtmlRenderer_RootDirectionMetadataHonorsCssInitialReset() {
+        const string html =
+            "<!doctype html><html dir='rtl' style='direction:initial'><body><p>LTR metadata</p></body></html>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html));
+
+        Assert.Equal(HtmlRenderTextDirection.LeftToRight, rendered.Metadata.Direction);
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_TagsRasterAndVectorImageAlternativeTextAsFigures() {
         string rasterData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         const string vectorData = "%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='2' height='2' fill='red'/%3E%3C/svg%3E";

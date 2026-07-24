@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
-            Alignment = ResolveAlignment(computed.GetValue("text-align"), direction),
+            Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
@@ -331,10 +331,16 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private static OfficeColor ResolveColor(string value, OfficeColor fallback) => HtmlRenderCssValues.TryColor(value, out OfficeColor color) ? color : fallback;
 
-    private static OfficeTextAlignment ResolveAlignment(string value, string direction) {
+    private static OfficeTextAlignment ResolveAlignment(
+        string value,
+        string direction,
+        OfficeTextAlignment? parentAlignment) {
         if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
         if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
         if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
+        if (string.Equals(value, "match-parent", StringComparison.OrdinalIgnoreCase) && parentAlignment.HasValue) {
+            return parentAlignment.Value;
+        }
         bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
         if (string.Equals(value, "end", StringComparison.OrdinalIgnoreCase)) return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
         return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;

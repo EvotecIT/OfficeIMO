@@ -360,6 +360,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return cells;
             }
 
+            var cellIndexes = new Dictionary<(ushort Row, ushort Column), int>();
             LegacyXlsSharedFormulaTable sharedFormulaTable = LegacyXlsSharedFormulaTable.Create(sheet, sheetIndex, formulaNameIndex);
             LegacyXlsArrayFormulaTable arrayFormulaTable = LegacyXlsArrayFormulaTable.Create(sheet, sheetIndex, formulaNameIndex);
             foreach (Row row in sheetData.Elements<Row>()) {
@@ -383,7 +384,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
                     LegacyXlsCell? legacyCell = ConvertCell(sheet, workbookPart, sheetIndex, cell, checked((ushort)(effectiveRow - 1U)), checked((ushort)(effectiveColumn - 1)), styleTable, dateSystem, formulaNameIndex, sharedFormulaTable, arrayFormulaTable, fontTable);
                     if (legacyCell.HasValue) {
-                        cells.Add(legacyCell.Value);
+                        LegacyXlsCell value = legacyCell.Value;
+                        var coordinate = (value.Row, value.Column);
+                        if (cellIndexes.TryGetValue(coordinate, out int existingIndex)) {
+                            // Malformed Open XML can contain duplicate cell coordinates. BIFF8
+                            // cannot represent those deterministically, so preserve the last
+                            // authored cell just as ordinary worksheet lookup does.
+                            cells[existingIndex] = value;
+                        } else {
+                            cellIndexes.Add(coordinate, cells.Count);
+                            cells.Add(value);
+                        }
                     }
 
                     sequentialColumn = effectiveColumn + 1;

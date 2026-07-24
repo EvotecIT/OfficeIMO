@@ -64,7 +64,8 @@ internal static partial class EpubReaderAdapter {
                 resolvedVisuals.Add(visual);
                 continue;
             }
-            if (string.Equals(visual.SourceName, "data-uri", StringComparison.Ordinal)) {
+            if (string.Equals(visual.SourceName, "data-uri", StringComparison.Ordinal)
+                && !string.IsNullOrWhiteSpace(visual.PayloadHash)) {
                 resolvedVisuals.Add(visual);
                 continue;
             }

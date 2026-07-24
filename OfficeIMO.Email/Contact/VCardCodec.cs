@@ -82,8 +82,10 @@ internal static partial class VCardCodec {
         contact.IsPrivate = sensitivity.HasValue ? sensitivity.Value != 0 : (bool?)null;
         if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
 
-        document.MimeSemanticProjectionIsIncomplete |= ApplyEmails(properties, contact) ||
-            ApplyPhones(properties, contact.Phones) ||
+        bool emailProjectionIncomplete = ApplyEmails(properties, contact);
+        bool phoneProjectionIncomplete = ApplyPhones(properties, contact.Phones);
+        document.MimeSemanticProjectionIsIncomplete |= emailProjectionIncomplete ||
+            phoneProjectionIncomplete ||
             HasAddressSlotOverflow(properties) || HasUnprojectedAddressComponents(properties) ||
             HasUnsupportedAddressTypes(properties) || HasUrlSlotOverflow(properties) ||
             HasUnsupportedUrlTypes(properties);

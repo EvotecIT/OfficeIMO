@@ -41,7 +41,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if (replacements.Count == 0) return sourcePackageBytes;
-            byte[] rewritten = RewritePackage(sourcePackageBytes, replacements);
+            byte[] rewritten = RewritePackage(
+                sourcePackageBytes,
+                replacements,
+                sourceWorkbook.MaxPartBytes,
+                sourceWorkbook.MaxPackageBytes);
             if (!XlsbPackageDetector.TryFindWorkbookPart(rewritten, out _)) {
                 throw new InvalidDataException("The rewritten package no longer satisfies the XLSB package contract.");
             }
@@ -147,10 +151,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static byte[] RewritePackage(byte[] sourcePackageBytes, IReadOnlyDictionary<string, byte[]> replacements) {
+        internal static byte[] RewritePackage(
+            byte[] sourcePackageBytes,
+            IReadOnlyDictionary<string, byte[]> replacements,
+            int maxPartBytes,
+            long maxPackageBytes) {
             using var sourceStream = new MemoryStream(sourcePackageBytes, writable: false);
             using var sourceArchive = new ZipArchive(sourceStream, ZipArchiveMode.Read, leaveOpen: false);
             using var destinationStream = new MemoryStream(sourcePackageBytes.Length + 4096);
+            long decompressedBytes = 0;
+            byte[] buffer = new byte[81920];
             using (var destinationArchive = new ZipArchive(destinationStream, ZipArchiveMode.Create, leaveOpen: true)) {
                 foreach (ZipArchiveEntry sourceEntry in sourceArchive.Entries) {
                     string normalizedName = sourceEntry.FullName.Replace('\\', '/');
@@ -158,15 +168,73 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     try { destinationEntry.LastWriteTime = sourceEntry.LastWriteTime; } catch (ArgumentOutOfRangeException) { }
                     using Stream output = destinationEntry.Open();
                     if (replacements.TryGetValue(normalizedName, out byte[]? replacement)) {
+                        ChargeRewriteBytes(
+                            normalizedName,
+                            replacement.Length,
+                            maxPartBytes,
+                            maxPackageBytes,
+                            ref decompressedBytes);
                         output.Write(replacement, 0, replacement.Length);
                     } else {
+                        if (sourceEntry.Length > maxPartBytes) {
+                            throw new InvalidDataException(
+                                $"The XLSB package part '{normalizedName}' declares {sourceEntry.Length} decompressed bytes, exceeding the configured rewrite limit of {maxPartBytes} bytes.");
+                        }
                         using Stream input = sourceEntry.Open();
-                        input.CopyTo(output);
+                        int partBytes = 0;
+                        while (true) {
+                            int read = input.Read(buffer, 0, buffer.Length);
+                            if (read == 0) break;
+                            ChargeRewriteBytes(
+                                normalizedName,
+                                read,
+                                maxPartBytes,
+                                maxPackageBytes,
+                                ref decompressedBytes,
+                                ref partBytes);
+                            output.Write(buffer, 0, read);
+                        }
                     }
                 }
             }
 
             return destinationStream.ToArray();
+        }
+
+        private static void ChargeRewriteBytes(
+            string partName,
+            int bytes,
+            int maxPartBytes,
+            long maxPackageBytes,
+            ref long decompressedBytes) {
+            int partBytes = 0;
+            ChargeRewriteBytes(
+                partName,
+                bytes,
+                maxPartBytes,
+                maxPackageBytes,
+                ref decompressedBytes,
+                ref partBytes);
+        }
+
+        private static void ChargeRewriteBytes(
+            string partName,
+            int bytes,
+            int maxPartBytes,
+            long maxPackageBytes,
+            ref long decompressedBytes,
+            ref int partBytes) {
+            if (bytes < 0 || partBytes > maxPartBytes - bytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package part '{partName}' exceeds the configured rewrite limit of {maxPartBytes} bytes while decompressing.");
+            }
+            if (decompressedBytes > maxPackageBytes - bytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package exceeds the configured aggregate rewrite limit of {maxPackageBytes} bytes while decompressing.");
+            }
+
+            partBytes += bytes;
+            decompressedBytes += bytes;
         }
 
         private static byte[] ReadEntry(ZipArchiveEntry entry, int maxBytes) {

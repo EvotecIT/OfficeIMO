@@ -228,6 +228,26 @@ public class DrawingInkTests {
     }
 
     [Fact]
+    public void InkRendererFallsBackToLineForSingularAffineTipTransform() {
+        var stroke = new OfficeInkStroke {
+            Width = 8D,
+            Height = 6D,
+            Transform = OfficeTransform.Scale(1D, 0D)
+        }
+            .AddPoint(10D, 10D)
+            .AddPoint(40D, 10D);
+
+        OfficeDrawing drawing = OfficeInkRenderer.Render(
+            new OfficeInkDocument().Add(stroke), 100D, 100D);
+
+        OfficeDrawingShape line = Assert.Single(
+            drawing.Shapes,
+            item => item.Shape.Kind == OfficeShapeKind.Line);
+        Assert.Equal(OfficeShapeKind.Line, line.Shape.Kind);
+        Assert.Equal(0.01D, line.Shape.StrokeWidth, 6);
+    }
+
+    [Fact]
     public void InkPointsValidatePressureAndCoordinates() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(double.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeInkPoint(0, 0, 1.01));

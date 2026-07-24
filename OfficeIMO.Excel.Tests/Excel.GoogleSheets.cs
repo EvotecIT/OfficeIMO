@@ -1118,7 +1118,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsBatchCompiler_FullColumnValidationRemainsOneRangeRequest() {
+        public void Test_GoogleSheetsBatchCompiler_RejectsGridExpansionBeyondServiceLimits() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFullColumnValidation.xlsx");
 
             try {
@@ -1130,13 +1130,9 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                GoogleSheetsBatch batch = reloadedDocument.BuildGoogleSheetsBatch();
-
-                GoogleSheetsSetDataValidationRequest validation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
-                Assert.Equal(0, validation.StartRowIndex);
-                Assert.Equal(1048576, validation.EndRowIndexExclusive);
-                Assert.True(batch.Requests.Count < 20);
-                Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single().Cells);
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                    () => reloadedDocument.BuildGoogleSheetsBatch());
+                Assert.Contains("exceeds Google Sheets limits", exception.Message, StringComparison.Ordinal);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

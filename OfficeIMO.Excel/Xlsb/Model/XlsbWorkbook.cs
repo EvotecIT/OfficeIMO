@@ -7,11 +7,17 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         private readonly List<XlsbImportDiagnostic> _diagnostics = new List<XlsbImportDiagnostic>();
         private readonly List<XlsbPreservedRecordInfo> _preservedRecords = new List<XlsbPreservedRecordInfo>();
 
-        internal XlsbWorkbook(byte[] originalPackageBytes) {
+        internal XlsbWorkbook(byte[] originalPackageBytes, int maxPartBytes, long maxPackageBytes) {
             OriginalPackageBytes = originalPackageBytes ?? throw new ArgumentNullException(nameof(originalPackageBytes));
+            MaxPartBytes = maxPartBytes;
+            MaxPackageBytes = maxPackageBytes;
         }
 
         internal byte[] OriginalPackageBytes { get; }
+
+        internal int MaxPartBytes { get; }
+
+        internal long MaxPackageBytes { get; }
 
         internal IReadOnlyList<XlsbWorksheet> Worksheets => _worksheets;
 

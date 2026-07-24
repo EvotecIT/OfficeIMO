@@ -677,13 +677,19 @@ public static class OfficeMathMarkup {
                 case "boxed": return OfficeMath.Box(ParseRequiredGroup());
                 case "phantom": return OfficeMath.Phantom(ParseRequiredGroup());
                 case "text": return OfficeMath.Text(ParseTextGroupValue());
-                case "mathit": return OfficeMath.Identifier(ParseRequiredGroup().ToPlainText());
-                case "mathrm": return OfficeMath.Number(ParseRequiredGroup().ToPlainText());
+                case "mathit":
+                case "officeimoidentifier":
+                    return OfficeMath.Identifier(ParseRequiredGroup().ToPlainText());
+                case "mathrm":
+                case "officeimonumber":
+                    return OfficeMath.Number(ParseRequiredGroup().ToPlainText());
                 case "mathbin":
+                case "officeimooperator":
                     string operatorValue = ParseRequiredGroup().ToPlainText();
                     _preserveNextOperatorKind = true;
                     return OfficeMath.Operator(operatorValue);
                 case "operatorname":
+                case "officeimofunction":
                     string functionName = ParseRequiredGroup().ToPlainText();
                     return OfficeMath.Function(functionName, ParseFunctionArgument());
                 case "backslash": return OfficeMath.Text("\\");

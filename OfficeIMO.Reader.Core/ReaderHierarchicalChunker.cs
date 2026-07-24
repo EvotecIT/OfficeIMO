@@ -202,21 +202,20 @@ public static partial class ReaderHierarchicalChunker {
         var seenIds = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
         int maximumInspections = (int)Math.Min(int.MaxValue, (long)maximumInputChunks * 4L);
-        int emittedBlocks = 0;
         IReadOnlyList<OfficeDocumentBlock> documentBlocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();
         int documentInspectionCount = Math.Min(documentBlocks.Count, maximumInspections);
-        var retainedDocumentBlocks = new List<OfficeDocumentBlock>(Math.Min(documentInspectionCount, maximumInputChunks));
-        bool documentLimitReached = documentBlocks.Count > documentInspectionCount;
+        var candidates = new List<OfficeDocumentBlock>(
+            Math.Min(documentInspectionCount, maximumInputChunks));
+        bool limitReached = documentBlocks.Count > documentInspectionCount;
         for (int blockIndex = 0; blockIndex < documentInspectionCount; blockIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentBlock block = documentBlocks[blockIndex];
             if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
-            if (emittedBlocks >= maximumInputChunks) {
-                documentLimitReached = true;
+            if (candidates.Count >= maximumInputChunks) {
+                limitReached = true;
                 break;
             }
-            retainedDocumentBlocks.Add(block);
-            emittedBlocks++;
+            candidates.Add(block);
         }
 
         int maximumPageIndexInspections = (int)Math.Min(
@@ -224,49 +223,53 @@ public static partial class ReaderHierarchicalChunker {
             (long)maximumInputChunks * PageIndexInspectionMultiplier);
         PageBlockIndex pageIndex = IndexPageBlocks(
             pages,
-            retainedDocumentBlocks,
+            candidates,
             maximumPageIndexInspections,
             cancellationToken);
-        for (int blockIndex = 0; blockIndex < retainedDocumentBlocks.Count; blockIndex++) {
-            OfficeDocumentBlock block = retainedDocumentBlocks[blockIndex];
-            if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page) && !string.IsNullOrWhiteSpace(block.Id)) {
+
+        if (!limitReached) {
+            int inspectedPageEntries = 0;
+            for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
+                if (inspectedPageEntries >= maximumInspections) {
+                    limitReached = true;
+                    break;
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                inspectedPageEntries++;
+                OfficeDocumentPage page = pages[pageIndexValue];
+                if (page?.Blocks == null) continue;
+                IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
+                for (int blockIndex = 0; blockIndex < pageBlocks.Count; blockIndex++) {
+                    if (inspectedPageEntries >= maximumInspections) {
+                        limitReached = true;
+                        break;
+                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    inspectedPageEntries++;
+                    OfficeDocumentBlock block = pageBlocks[blockIndex];
+                    if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
+                    if (candidates.Count >= maximumInputChunks) {
+                        limitReached = true;
+                        break;
+                    }
+                    candidates.Add(block);
+                    pageIndex.ByReference[block] = page;
+                    if (!string.IsNullOrWhiteSpace(block.Id)) pageIndex.ById[block.Id!] = page;
+                }
+                if (limitReached) break;
+            }
+        }
+
+        IReadOnlyList<OfficeDocumentBlock> ordered = OfficeDocumentModelTraversal.OrderBlocks(candidates);
+        for (int blockIndex = 0; blockIndex < ordered.Count; blockIndex++) {
+            OfficeDocumentBlock block = ordered[blockIndex];
+            if (!pageIndex.ByReference.TryGetValue(block, out OfficeDocumentPage? page)
+                && !string.IsNullOrWhiteSpace(block.Id)) {
                 pageIndex.ById.TryGetValue(block.Id!, out page);
             }
             yield return new FallbackBlock(block, page);
         }
-        if (documentLimitReached) {
-            yield return FallbackBlock.LimitMarker;
-            yield break;
-        }
-
-        int inspectedPageEntries = 0;
-        for (int pageIndexValue = 0; pageIndexValue < pages.Count; pageIndexValue++) {
-            if (inspectedPageEntries >= maximumInspections) {
-                yield return FallbackBlock.LimitMarker;
-                yield break;
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            inspectedPageEntries++;
-            OfficeDocumentPage page = pages[pageIndexValue];
-            if (page?.Blocks == null) continue;
-            IReadOnlyList<OfficeDocumentBlock> pageBlocks = page.Blocks;
-            for (int blockIndex = 0; blockIndex < pageBlocks.Count; blockIndex++) {
-                if (inspectedPageEntries >= maximumInspections) {
-                    yield return FallbackBlock.LimitMarker;
-                    yield break;
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                inspectedPageEntries++;
-                OfficeDocumentBlock block = pageBlocks[blockIndex];
-                if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
-                if (emittedBlocks >= maximumInputChunks) {
-                    yield return FallbackBlock.LimitMarker;
-                    yield break;
-                }
-                emittedBlocks++;
-                yield return new FallbackBlock(block, page);
-            }
-        }
+        if (limitReached) yield return FallbackBlock.LimitMarker;
     }
 
     private static bool TryRegisterFallbackBlock(
@@ -291,9 +294,7 @@ public static partial class ReaderHierarchicalChunker {
         var targetsById = new Dictionary<string, OfficeDocumentBlock>(StringComparer.Ordinal);
         for (int targetIndex = 0; targetIndex < targetBlocks.Count; targetIndex++) {
             OfficeDocumentBlock target = targetBlocks[targetIndex];
-            if (!string.IsNullOrWhiteSpace(target.Id)) {
-                targetsById[target.Id!] = target;
-            }
+            if (!string.IsNullOrWhiteSpace(target.Id)) targetsById[target.Id!] = target;
         }
 
         int inspections = 0;
@@ -317,8 +318,8 @@ public static partial class ReaderHierarchicalChunker {
                     byReference[block] = page;
                     remaining.Remove(block);
                 }
-                if (!string.IsNullOrWhiteSpace(block.Id) &&
-                    targetsById.TryGetValue(block.Id!, out OfficeDocumentBlock? target)) {
+                if (!string.IsNullOrWhiteSpace(block.Id)
+                    && targetsById.TryGetValue(block.Id!, out OfficeDocumentBlock? target)) {
                     byId[block.Id!] = page;
                     remaining.Remove(target);
                 }
@@ -333,14 +334,14 @@ public static partial class ReaderHierarchicalChunker {
 
     private sealed class PageBlockIndex {
         internal PageBlockIndex(
-            IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> byReference,
-            IReadOnlyDictionary<string, OfficeDocumentPage> byId) {
+            Dictionary<OfficeDocumentBlock, OfficeDocumentPage> byReference,
+            Dictionary<string, OfficeDocumentPage> byId) {
             ByReference = byReference;
             ById = byId;
         }
 
-        internal IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> ByReference { get; }
-        internal IReadOnlyDictionary<string, OfficeDocumentPage> ById { get; }
+        internal Dictionary<OfficeDocumentBlock, OfficeDocumentPage> ByReference { get; }
+        internal Dictionary<string, OfficeDocumentPage> ById { get; }
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
