@@ -45,5 +45,23 @@ public sealed class VisioAllSeverityBatch14SecurityTests {
             Directory.Delete(parent, true);
         }
     }
+
+    [Fact]
+    public void ShowcaseSummaryRejectsSymlinkedRootBeforeHashingArtifacts() {
+        string parent = Path.Combine(Path.GetTempPath(), "officeimo-showcase-root-symlink-" + Guid.NewGuid().ToString("N"));
+        string outsideDirectory = Path.Combine(parent, "outside");
+        string rootLink = Path.Combine(parent, "root-link");
+        Directory.CreateDirectory(outsideDirectory);
+        string outside = Path.Combine(outsideDirectory, "outside.vsdx");
+        File.WriteAllText(outside, "outside");
+        try {
+            Directory.CreateSymbolicLink(rootLink, outsideDirectory);
+
+            Assert.Throws<ArgumentException>(() =>
+                VisioShowcaseSummary.Create(rootLink, new[] { Path.Combine(rootLink, "outside.vsdx") }));
+        } finally {
+            Directory.Delete(parent, true);
+        }
+    }
 #endif
 }

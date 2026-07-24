@@ -206,6 +206,11 @@ namespace OfficeIMO.Visio {
 
         private static bool ContainsReparsePoint(string root, string filePath) {
             string normalizedRoot = Path.GetFullPath(root);
+            if ((File.Exists(normalizedRoot) || Directory.Exists(normalizedRoot)) &&
+                (File.GetAttributes(normalizedRoot) & FileAttributes.ReparsePoint) != 0) {
+                return true;
+            }
+
             string rootPrefix = EnsureTrailingSeparator(normalizedRoot);
             string relative = Path.GetFullPath(filePath).Substring(rootPrefix.Length);
             string current = normalizedRoot;
