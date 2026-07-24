@@ -322,8 +322,9 @@ namespace OfficeIMO.Word {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
             if (!uri.IsAbsoluteUri ||
                 (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-                 !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))) {
-                throw new ArgumentException("External image URIs must be absolute HTTP or HTTPS URLs.", nameof(uri));
+                 !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(uri.Scheme, "cid", StringComparison.OrdinalIgnoreCase))) {
+                throw new ArgumentException("External image URIs must use the HTTP, HTTPS, or CID scheme.", nameof(uri));
             }
 
             _document = document;

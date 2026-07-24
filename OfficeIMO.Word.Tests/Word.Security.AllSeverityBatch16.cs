@@ -135,6 +135,7 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         WordParagraph paragraph = document.AddParagraph();
 
         paragraph.AddImage(new Uri("https://example.test/image.png"), 10, 10);
+        paragraph.AddImage(new Uri("cid:linked-image@example.test"), 10, 10);
         Assert.Null(Record.Exception(() => document.ToPdf()));
         Assert.Throws<ArgumentException>(() =>
             paragraph.AddImage(new Uri("file:///private/secret.png"), 10, 10));
