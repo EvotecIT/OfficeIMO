@@ -639,6 +639,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelThemeColorResolver_NormalizesInvalidSpreadsheetTintValues() {
+            Assert.Equal(
+                OfficeIMO.Excel.Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint("FF336699", 1D),
+                OfficeIMO.Excel.Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint("FF336699", 2D));
+            Assert.Equal(
+                OfficeIMO.Excel.Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint("FF336699", -1D),
+                OfficeIMO.Excel.Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint("FF336699", -2D));
+            Assert.Equal(
+                "FF336699",
+                OfficeIMO.Excel.Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint("FF336699", double.NaN));
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportAppliesConditionalColorScalesAndDataBarsWithDiagnostics() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

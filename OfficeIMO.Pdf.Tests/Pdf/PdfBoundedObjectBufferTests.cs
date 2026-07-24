@@ -15,6 +15,12 @@ public class PdfBoundedObjectBufferTests {
             Assert.True(store.IsSpilled);
             Assert.Equal(0, store.RetainedMemoryBytes);
             Assert.True(File.Exists(spillPath));
+            Assert.ThrowsAny<IOException>(() => File.OpenRead(spillPath));
+#if NET6_0_OR_GREATER
+            if (!OperatingSystem.IsWindows()) {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(spillPath));
+            }
+#endif
             Assert.Equal("abc", store.Read(first));
             Assert.Equal("def", store.Read(second));
         }
@@ -33,6 +39,7 @@ public class PdfBoundedObjectBufferTests {
             Assert.True(store.IsSpilled);
             Assert.Equal(0, store.RetainedMemoryBytes);
             Assert.True(File.Exists(spillPath));
+            Assert.ThrowsAny<IOException>(() => File.OpenRead(spillPath));
             Assert.Equal(new byte[] { 1, 2, 3 }, store[0]);
             Assert.Equal(new byte[] { 4, 5, 6 }, store[1]);
 

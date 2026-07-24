@@ -196,13 +196,19 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             using var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
-                recognitionTask = engine.RecognizeAsync(request, providerCancellation.Token).AsTask();
+                providerCancellation.CancelAfter(options.CandidateTimeout);
+                recognitionTask = Task.Run(async () =>
+                    await engine.RecognizeAsync(request, providerCancellation.Token).ConfigureAwait(false));
                 OfficeOcrEngineResult result = await WaitWithTimeoutAsync(
                     recognitionTask,
                     options.CandidateTimeout,
                     cancellationToken).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
-            } catch (OcrCandidateTimeoutException) {
+            } catch (Exception exception) when (
+                exception is OcrCandidateTimeoutException
+                || (exception is OperationCanceledException
+                    && providerCancellation.IsCancellationRequested
+                    && !cancellationToken.IsCancellationRequested)) {
                 CancelProviderAfterTimeout(providerCancellation);
                 abandonedOperations.Track(recognitionTask);
                 ObserveBackgroundFailure(recognitionTask);

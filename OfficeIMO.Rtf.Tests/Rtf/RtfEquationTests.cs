@@ -314,6 +314,56 @@ public sealed class RtfEquationTests {
     }
 
     [Fact]
+    public void WordToRtf_FlattensRevisedActiveFieldsButKeepsRevisedEquationFields() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(
+            new InsertedRun(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" INCLUDEPICTURE \\\"https://example.test/active.png\\\" ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("safe cached image")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })) {
+                Id = "3001",
+                Author = "Reviewer",
+            },
+            new InsertedRun(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("(a)/(b)")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })) {
+                Id = "3002",
+                Author = "Reviewer",
+            },
+            new InsertedRun(
+                new SimpleField(new Run(new Text("safe simple result"))) {
+                    Instruction = " INCLUDEPICTURE \\\"https://example.test/simple.png\\\" ",
+                }) {
+                Id = "3003",
+                Author = "Reviewer",
+            },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new InsertedRun(new Run(new FieldCode(" INCLUDEPICTURE \\\"https://example.test/split.png\\\" "))) {
+                Id = "3004",
+                Author = "Reviewer",
+            },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("safe split result")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfField field = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+
+        Assert.True(field.IsEquation);
+        Assert.Equal("(a)/(b)", field.ToPlainText());
+        Assert.Equal("safe cached image(a)/(b)safe simple resultsafe split result", rtfParagraph.ToPlainText());
+        string serialized = word.ToRtfDocument().ToRtf();
+        Assert.DoesNotContain("INCLUDEPICTURE", serialized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("example.test", serialized, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void WordToRtf_MapsTopLevelInlineContentControlWithoutDroppingNestedEquation() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("before ");

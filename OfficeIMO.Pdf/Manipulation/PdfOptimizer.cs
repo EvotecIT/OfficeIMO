@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing.Internal;
 using System.IO.Compression;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Pdf;
 
@@ -65,7 +66,7 @@ internal static partial class PdfOptimizer {
             catalogObjectNumber,
             metadata,
             pdf,
-            PdfIncrementalObjectWriter.ReadTrailerIdEntry(trailerRaw),
+            BuildSafeTrailerIdEntry(pdf),
             effectiveOptions);
         if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
@@ -353,6 +354,19 @@ internal static partial class PdfOptimizer {
         foreach (string key in dictionary.Items.Keys.ToArray()) {
             dictionary.Items[key] = ReplaceReferences(dictionary.Items[key], replacements);
         }
+    }
+
+    private static string BuildSafeTrailerIdEntry(byte[] sourcePdf) {
+#if NET6_0_OR_GREATER
+        byte[] digest = SHA256.HashData(sourcePdf);
+#else
+        using SHA256 sha256 = SHA256.Create();
+        byte[] digest = sha256.ComputeHash(sourcePdf);
+#endif
+        var identifier = new byte[16];
+        Buffer.BlockCopy(digest, 0, identifier, 0, identifier.Length);
+        string encoded = PdfSyntaxEscaper.HexString(identifier);
+        return " /ID [" + encoded + " " + encoded + "]";
     }
 
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, string trailerIdEntry, PdfOptimizationOptions options) {

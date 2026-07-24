@@ -354,6 +354,8 @@ namespace OfficeIMO.Word {
                 if (!emittedControlArtifacts.Add(artifactControl)) return;
                 string visibleArtifactText = string.Concat(artifactControl
                     .Descendants<Text>()
+                    .Where(value => !value.Ancestors<DeletedRun>().Any())
+                    .Where(value => !value.Ancestors<MoveFromRun>().Any())
                     .Where(value => !IsInsideEquationBackingElement(value, occurrences))
                     .Select(value => value.Text));
                 segments.Add(WordEquationContentSegment.FromRunArtifact(

@@ -152,7 +152,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string fileId,
             IProgress<GoogleDriveTransferProgress>? progress = null,
             TranslationReport? report = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             if (string.IsNullOrWhiteSpace(fileId)) throw new ArgumentException("File id is required.", nameof(fileId));
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive file download", cancellationToken).ConfigureAwait(false);
@@ -163,7 +164,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                maxResponseBytes: maxResponseBytes ?? Options.MaxDownloadBytes).ConfigureAwait(false);
             progress?.Report(new GoogleDriveTransferProgress(bytes.LongLength, bytes.LongLength));
             return bytes;
         }
@@ -173,7 +175,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string mimeType,
             IProgress<GoogleDriveTransferProgress>? progress = null,
             TranslationReport? report = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            long? maxResponseBytes = null) {
             if (string.IsNullOrWhiteSpace(fileId)) throw new ArgumentException("File id is required.", nameof(fileId));
             if (string.IsNullOrWhiteSpace(mimeType)) throw new ArgumentException("Export MIME type is required.", nameof(mimeType));
             report ??= new TranslationReport();
@@ -185,7 +188,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",
                 report,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                maxResponseBytes: maxResponseBytes ?? Options.MaxDownloadBytes).ConfigureAwait(false);
             progress?.Report(new GoogleDriveTransferProgress(bytes.LongLength, bytes.LongLength));
             return bytes;
         }

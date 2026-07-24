@@ -53,8 +53,9 @@ internal sealed class MsgParserState {
     internal void CountAttachment(long bytes) {
         ThrowIfCancellationRequested();
         AttachmentCount++;
-        if (AttachmentCount > Options.MaxPartCount) {
-            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount), AttachmentCount, Options.MaxPartCount);
+        if (AttachmentCount > Options.MaxAttachmentCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentCount),
+                AttachmentCount, Options.MaxAttachmentCount);
         }
         EnsureAttachmentBytesWithinLimits(bytes);
         TotalAttachmentBytes = checked(TotalAttachmentBytes + bytes);

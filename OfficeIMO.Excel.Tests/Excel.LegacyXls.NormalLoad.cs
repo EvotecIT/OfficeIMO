@@ -165,6 +165,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal("RC4 secret", value);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task EncryptedLoad_RejectsUnencryptedLegacyXls(bool asyncLoad) {
+            byte[] compound = CreateMinimalLegacyXlsCompound();
+
+            if (asyncLoad) {
+                using var source = new MemoryStream(compound);
+                InvalidDataException exception = await Assert.ThrowsAsync<InvalidDataException>(
+                    () => ExcelDocument.LoadEncryptedAsync(source, "unused"));
+                Assert.Contains("password-encrypted legacy XLS", exception.Message, StringComparison.Ordinal);
+            } else {
+                using var source = new MemoryStream(compound);
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                    () => ExcelDocument.LoadEncrypted(source, "unused"));
+                Assert.Contains("password-encrypted legacy XLS", exception.Message, StringComparison.Ordinal);
+            }
+        }
+
         [Fact]
         public void LegacyXls_NormalLoad_StreamProjectsToExcelDocumentAndSavesOpenXmlStream() {
             byte[] compound = CreateMinimalLegacyXlsCompound();

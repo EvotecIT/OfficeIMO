@@ -96,8 +96,10 @@ namespace OfficeIMO.Word {
             if (part?.WordprocessingCommentsPart != null && part.WordprocessingCommentsPart.Comments != null) {
                 var commentList = part.WordprocessingCommentsPart.Comments.OfType<Comment>().ToList();
                 var commentExList = part.WordprocessingCommentsExPart?.CommentsEx?.OfType<CommentEx>().ToList() ?? new List<CommentEx>();
+                Dictionary<string, CommentEx> commentsExByParagraphId = IndexCommentExByParagraphId(commentExList);
                 for (int i = 0; i < commentList.Count; i++) {
-                    var ce = FindCommentExForComment(commentList[i], commentExList, i) ?? new CommentEx();
+                    var ce = FindCommentExForComment(commentList[i], commentExList, commentsExByParagraphId, i)
+                        ?? new CommentEx();
                     comments.Add(new WordComment(document, commentList[i], ce));
                 }
             }

@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (session == null) throw new ArgumentNullException(nameof(session));
 
             GoogleSheetsImportOptions effectiveOptions = options ?? new GoogleSheetsImportOptions();
+            ValidateOptions(effectiveOptions);
             return effectiveOptions.Mode == GoogleSheetsImportMode.DriveExport
                 ? await ImportViaDriveAsync(spreadsheetId, session, effectiveOptions, cancellationToken).ConfigureAwait(false)
                 : await ImportNativeAsync(spreadsheetId, session, effectiveOptions, cancellationToken).ConfigureAwait(false);
@@ -47,7 +48,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 GoogleDriveMimeTypes.MicrosoftExcel,
                 options.Progress,
                 report,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken,
+                options.MaxResponseBytes).ConfigureAwait(false);
 
             var stream = new MemoryStream(xlsx, writable: true);
             ExcelDocument document;
@@ -87,6 +89,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(spreadsheetId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsureSpreadsheet(source, spreadsheetId);
+            EnsureDownloadable(source, spreadsheetId);
 
             GoogleWorkspaceAccessToken token = await session
                 .AcquireAccessTokenAsync(new[] { GoogleWorkspaceScopeCatalog.SpreadsheetsReadonly }, cancellationToken)
@@ -103,9 +106,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     "Google Sheets API",
                     report,
                     GoogleSheetsJsonSerializerContext.Default.GoogleSheetsNativeSpreadsheet,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    options.MaxResponseBytes).ConfigureAwait(false);
             }
 
+            ValidateNativeSpreadsheet(spreadsheet, options);
             ExcelDocument document = ProjectNativeSpreadsheet(spreadsheet, report);
             report.Add(
                 TranslationSeverity.Info,
@@ -476,6 +481,72 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 uri.Append("&ranges=").Append(Uri.EscapeDataString(range));
             }
             return uri.ToString();
+        }
+
+        private static void ValidateOptions(GoogleSheetsImportOptions options) {
+            if (options.MaxResponseBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxResponseBytes));
+            if (options.MaxSheets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSheets));
+            if (options.MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
+            if (options.MaxDimensionGroupMembers <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDimensionGroupMembers));
+        }
+
+        private static void ValidateNativeSpreadsheet(
+            GoogleSheetsNativeSpreadsheet spreadsheet,
+            GoogleSheetsImportOptions options) {
+            if (spreadsheet.Sheets.Count > options.MaxSheets) {
+                throw new InvalidDataException($"Google Sheets native import exceeded the configured {options.MaxSheets} sheet limit.");
+            }
+
+            long projectedEntries = 0;
+            long dimensionGroupMembers = 0;
+            foreach (GoogleSheetsNativeSheet sheet in spreadsheet.Sheets) {
+                foreach (GoogleSheetsNativeGridData block in sheet.Data) {
+                    long dimensionMetadataEntries = (long)block.RowMetadata.Count + block.ColumnMetadata.Count;
+                    if (dimensionMetadataEntries > options.MaxCells - projectedEntries) {
+                        throw new InvalidDataException(
+                            $"Google Sheets native import exceeded the configured {options.MaxCells} cell and dimension-metadata limit.");
+                    }
+                    projectedEntries += dimensionMetadataEntries;
+
+                    foreach (GoogleSheetsNativeRowData row in block.RowData) {
+                        if (row.Values.Count > options.MaxCells - projectedEntries) {
+                            throw new InvalidDataException($"Google Sheets native import exceeded the configured {options.MaxCells} cell limit.");
+                        }
+                        projectedEntries += row.Values.Count;
+                    }
+                }
+                CountDimensionGroupMembers(sheet.RowGroups, sheet.Properties.SheetId, "ROWS", 1048576,
+                    options, ref dimensionGroupMembers);
+                CountDimensionGroupMembers(sheet.ColumnGroups, sheet.Properties.SheetId, "COLUMNS", 16384,
+                    options, ref dimensionGroupMembers);
+            }
+        }
+
+        private static void CountDimensionGroupMembers(
+            IReadOnlyList<GoogleSheetsNativeDimensionGroup> groups,
+            int sheetId,
+            string dimension,
+            int maximum,
+            GoogleSheetsImportOptions options,
+            ref long total) {
+            foreach (GoogleSheetsNativeDimensionGroup group in groups) {
+                GoogleSheetsNativeDimensionRange range = group.Range;
+                if (range.SheetId != sheetId
+                    || !string.Equals(range.Dimension, dimension, StringComparison.OrdinalIgnoreCase)
+                    || range.StartIndex < 0
+                    || range.StartIndex >= maximum
+                    || range.EndIndex <= range.StartIndex
+                    || group.Depth <= 0) {
+                    continue;
+                }
+
+                long members = Math.Min(maximum, range.EndIndex) - (long)range.StartIndex;
+                if (members > options.MaxDimensionGroupMembers - total) {
+                    throw new InvalidDataException(
+                        $"Google Sheets native import exceeded the configured {options.MaxDimensionGroupMembers} dimension-group member limit.");
+                }
+                total += members;
+            }
         }
 
         private static void EnsureSpreadsheet(GoogleDriveFile source, string spreadsheetId) {

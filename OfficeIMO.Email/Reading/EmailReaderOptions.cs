@@ -20,7 +20,8 @@ public sealed class EmailReaderOptions {
         int maxCompoundDirectoryEntries = 65536,
         int maxMapiPropertyCount = 100000,
         long maxDecodedPropertyBytes = 512L * 1024L * 1024L,
-        int maxTnefAttributeCount = 100000) {
+        int maxTnefAttributeCount = 100000,
+        int maxAttachmentCount = 10000) {
         if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
         if (maxHeaderBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderBytes));
         if (maxHeaderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderCount));
@@ -33,6 +34,7 @@ public sealed class EmailReaderOptions {
         if (maxMapiPropertyCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxMapiPropertyCount));
         if (maxDecodedPropertyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytes));
         if (maxTnefAttributeCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxTnefAttributeCount));
+        if (maxAttachmentCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentCount));
 
         MaxInputBytes = maxInputBytes;
         MaxHeaderBytes = maxHeaderBytes;
@@ -48,6 +50,7 @@ public sealed class EmailReaderOptions {
         MaxMapiPropertyCount = maxMapiPropertyCount;
         MaxDecodedPropertyBytes = maxDecodedPropertyBytes;
         MaxTnefAttributeCount = maxTnefAttributeCount;
+        MaxAttachmentCount = maxAttachmentCount;
     }
 
     /// <summary>Maximum artifact size accepted by the reader.</summary>
@@ -78,4 +81,6 @@ public sealed class EmailReaderOptions {
     public long MaxDecodedPropertyBytes { get; }
     /// <summary>Maximum number of TNEF attributes.</summary>
     public int MaxTnefAttributeCount { get; }
+    /// <summary>Maximum aggregate attachment count across the message and nested messages.</summary>
+    public int MaxAttachmentCount { get; }
 }

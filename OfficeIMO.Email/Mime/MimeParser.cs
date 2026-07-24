@@ -123,14 +123,16 @@ internal static class MimeParser {
         bool semanticBodyPart = (calendarContent || vcardContent) && !attachmentDisposition &&
             string.IsNullOrWhiteSpace(fileName) && string.IsNullOrWhiteSpace(contentId) &&
             string.IsNullOrWhiteSpace(contentLocation);
+        if (!isBody) {
+            state.CountAttachment();
+        }
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
             !semanticBodyPart;
         long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
-            state.EnsureAttachmentWithinLimits(decodedLength);
+            state.CountAttachmentBytes(decodedLength);
             if (skipAttachmentDecoding) {
-                state.CountAttachment(decodedLength);
                 document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
                     inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength,
                     isRelatedSibling));
@@ -169,7 +171,6 @@ internal static class MimeParser {
         }
 
         if (embeddedMessage) {
-            state.CountAttachment(decoded.LongLength);
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
                 inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
                 decoded.LongLength, isRelatedSibling);
@@ -185,7 +186,6 @@ internal static class MimeParser {
             return;
         }
 
-        state.CountAttachment(decoded.LongLength);
         EmailAttachment attachment = CreateAttachment(headers, contentType, disposition, fileName,
             inlineDisposition || additionalInlineBody, attachmentDisposition,
             state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength,

@@ -1,4 +1,5 @@
 using OfficeIMO.GoogleWorkspace.Drive;
+using System.IO;
 
 namespace OfficeIMO.GoogleWorkspace.Sync {
     public enum GoogleWorkspaceChangeSourceKind { User = 0, SharedDrive = 1 }
@@ -21,6 +22,8 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         public IList<string> SharedDriveIds { get; } = new List<string>();
         public int PageSize { get; set; } = 100;
         public int MaxPagesPerSource { get; set; } = 10000;
+        public int MaxChangesPerSource { get; set; } = 10_000;
+        public int MaxTotalChanges { get; set; } = 50_000;
         public bool IncludeRemoved { get; set; } = true;
         public bool IncludeCorpusRemovals { get; set; } = true;
         public bool ContinueOnSourceFailure { get; set; } = true;
@@ -70,6 +73,8 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
             if (checkpoint == null) throw new ArgumentNullException(nameof(checkpoint));
             options ??= new GoogleWorkspaceChangeReadOptions();
             if (options.MaxPagesPerSource < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPagesPerSource));
+            if (options.MaxChangesPerSource < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxChangesPerSource));
+            if (options.MaxTotalChanges < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalChanges));
             var report = new TranslationReport();
             GoogleWorkspaceSyncCheckpoint next = checkpoint.Clone();
             var changes = new List<GoogleWorkspaceTrackedChange>();
@@ -116,7 +121,16 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
                         if (source.Kind == GoogleWorkspaceChangeSourceKind.User && includeItemsFromAllDrives) {
                             pageChanges = pageChanges.Where(change => !partitionedDriveIds.Contains(change.DriveId ?? change.File?.DriveId ?? string.Empty));
                         }
-                        sourceChanges.AddRange(pageChanges.Select(change => new GoogleWorkspaceTrackedChange(source, change)));
+                        GoogleWorkspaceTrackedChange[] materializedPage = pageChanges
+                            .Select(change => new GoogleWorkspaceTrackedChange(source, change))
+                            .ToArray();
+                        if (materializedPage.Length > options.MaxChangesPerSource - sourceChanges.Count) {
+                            throw new InvalidDataException($"Google Drive change pagination for {source.Key} exceeded the configured {options.MaxChangesPerSource} change limit.");
+                        }
+                        if (materializedPage.Length > options.MaxTotalChanges - changes.Count - sourceChanges.Count) {
+                            throw new InvalidDataException($"Google Drive change pagination exceeded the configured {options.MaxTotalChanges} total change limit.");
+                        }
+                        sourceChanges.AddRange(materializedPage);
                         if (!string.IsNullOrWhiteSpace(response.NextPageToken)) {
                             pageToken = response.NextPageToken!;
                             continue;

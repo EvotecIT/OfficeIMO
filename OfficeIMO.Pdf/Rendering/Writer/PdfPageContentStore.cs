@@ -67,8 +67,7 @@ internal sealed class PdfPageContentStore : IDisposable {
 
     private void EnsureSpillStorage() {
         if (_spillStream != null) return;
-        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf-" + Guid.NewGuid().ToString("N") + ".pages");
-        _spillStream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read, 81920, FileOptions.SequentialScan);
+        _spillStream = PdfTemporaryFile.Create(".pages", FileOptions.SequentialScan, out string path);
         _spillPath = path;
         for (int i = 0; i < _entries.Count; i++) {
             Entry entry = _entries[i];
