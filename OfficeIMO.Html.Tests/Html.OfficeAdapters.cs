@@ -866,8 +866,8 @@ public class HtmlOfficeAdapters {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        html = html.Replace("<td>10</td>", "<td data-officeimo-x=\"1\">10</td>", StringComparison.Ordinal)
-            .Replace("<td>20</td>", string.Empty, StringComparison.Ordinal);
+        html = html.Replace("<td>10</td>", "<td data-officeimo-x=\"1\">10</td>")
+            .Replace("<td>20</td>", string.Empty);
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
