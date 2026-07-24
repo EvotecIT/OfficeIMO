@@ -509,6 +509,7 @@ namespace OfficeIMO.Excel {
             FlattenObjectRecursive(value, prefix, result, new HashSet<object>(ObjectReferenceComparer.Instance), depth: 0);
         }
 
+        [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
         private static void FlattenObjectRecursive(object? value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth) {
             if (value == null) {
                 if (!string.IsNullOrEmpty(prefix)) {
@@ -545,6 +546,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
         private static void FlattenObjectCore(object value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth, Type type) {
             if (value is IDictionary dictionary) {
                 int itemCount = 0;
