@@ -105,12 +105,6 @@ namespace OfficeIMO.Word {
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
-        private static Run AppendDedicatedShapeRun(WordParagraph paragraph, OpenXmlElement content) {
-            var run = new Run(content);
-            paragraph._paragraph!.Append(run);
-            return run;
-        }
-
         private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType) {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
@@ -195,7 +189,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(_rectangle);
 
-            _run = AppendDedicatedShapeRun(paragraph, pict);
+            _run = paragraph.VerifyRun();
+            _run.Append(pict);
         }
 
         /// <summary>
@@ -233,7 +228,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(ellipse);
 
-            Run run = AppendDedicatedShapeRun(paragraph, pict);
+            Run run = paragraph.VerifyRun();
+            run.Append(pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -264,7 +260,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(roundRect);
 
-            Run run = AppendDedicatedShapeRun(paragraph, pict);
+            Run run = paragraph.VerifyRun();
+            run.Append(pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -286,7 +283,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(line);
 
-            Run run = AppendDedicatedShapeRun(paragraph, pict);
+            Run run = paragraph.VerifyRun();
+            run.Append(pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -315,7 +313,8 @@ namespace OfficeIMO.Word {
             Picture pict = new Picture();
             pict.Append(poly);
 
-            Run run = AppendDedicatedShapeRun(paragraph, pict);
+            Run run = paragraph.VerifyRun();
+            run.Append(pict);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run);
         }
@@ -395,7 +394,8 @@ namespace OfficeIMO.Word {
             inline.Append(graphic);
 
             var WordDrawing = new WordDrawing(inline);
-            Run run = AppendDedicatedShapeRun(paragraph, WordDrawing);
+            Run run = paragraph.VerifyRun();
+            run.Append(WordDrawing);
 
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
@@ -421,7 +421,8 @@ namespace OfficeIMO.Word {
             var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
             var anchor = BuildAnchor(cx, cy, offX, offY, graphic);
             var WordDrawing = new WordDrawing(anchor);
-            Run run = AppendDedicatedShapeRun(paragraph, WordDrawing);
+            Run run = paragraph.VerifyRun();
+            run.Append(WordDrawing);
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
 

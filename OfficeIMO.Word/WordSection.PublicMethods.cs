@@ -519,6 +519,8 @@ namespace OfficeIMO.Word {
         /// cleaning up numbering and any unreferenced header and footer parts.
         /// </summary>
         public void RemoveSection() {
+            HashSet<int> numberingIds = CollectReferencedNumberingIds();
+
             foreach (var element in this.ElementsByType.ToList()) {
                 switch (element) {
                     case WordParagraph paragraph:
@@ -584,6 +586,71 @@ namespace OfficeIMO.Word {
             }
 
             _document.Sections.Remove(this);
+            RemoveOrphanedNumbering(numberingIds);
+        }
+
+        private void RemoveOrphanedNumbering(IEnumerable<int> numberingIds) {
+            NumberingDefinitionsPart? numberingPart =
+                _document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
+            Numbering? numbering = numberingPart?.Numbering;
+            if (numbering == null) {
+                return;
+            }
+
+            HashSet<int> referencedIds = CollectReferencedNumberingIds();
+
+            foreach (int numberingId in numberingIds.Where(id => !referencedIds.Contains(id))) {
+                NumberingInstance? instance = numbering.Elements<NumberingInstance>()
+                    .FirstOrDefault(candidate => candidate.NumberID?.Value == numberingId);
+                int? abstractId = instance?.AbstractNumId?.Val?.Value;
+                instance?.Remove();
+
+                if (abstractId.HasValue &&
+                    !numbering.Elements<NumberingInstance>()
+                        .Any(candidate => candidate.AbstractNumId?.Val?.Value == abstractId.Value)) {
+                    numbering.Elements<AbstractNum>()
+                        .FirstOrDefault(candidate => candidate.AbstractNumberId?.Value == abstractId.Value)
+                        ?.Remove();
+                }
+            }
+
+            if (!numbering.Elements<AbstractNum>().Any() &&
+                !numbering.Elements<NumberingInstance>().Any() &&
+                !numbering.Elements<NumberingPictureBullet>().Any() &&
+                numberingPart != null) {
+                _document._wordprocessingDocument!.MainDocumentPart!.DeletePart(numberingPart);
+            }
+        }
+
+        private HashSet<int> CollectReferencedNumberingIds() {
+            var numberingIds = new HashSet<int>();
+            MainDocumentPart? mainPart = _document._wordprocessingDocument?.MainDocumentPart;
+            if (mainPart == null) {
+                return numberingIds;
+            }
+
+            var visited = new HashSet<OpenXmlPart>();
+            void Visit(OpenXmlPart part) {
+                if (!visited.Add(part)) {
+                    return;
+                }
+
+                OpenXmlPartRootElement? root = part.RootElement;
+                if (root != null) {
+                    foreach (NumberingId numberingId in root.Descendants<NumberingId>()) {
+                        if (numberingId.Val?.Value is int value) {
+                            numberingIds.Add(value);
+                        }
+                    }
+                }
+
+                foreach (IdPartPair child in part.Parts) {
+                    Visit(child.OpenXmlPart);
+                }
+            }
+
+            Visit(mainPart);
+            return numberingIds;
         }
     }
 }

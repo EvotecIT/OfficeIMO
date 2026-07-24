@@ -56,6 +56,58 @@ public partial class Word {
     }
 
     [Fact]
+    public void RemovingSectionCleansNumberingUsedOnlyInTablesAndHeaders() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("retained");
+        WordSection targetSection = document.AddSection();
+
+        WordList tableList = targetSection.AddTable(1, 1).Rows[0].Cells[0].AddList(WordListStyle.Bulleted);
+        tableList.AddItem("table-list-item");
+        targetSection.AddHeadersAndFooters();
+        WordHeaderFooter header = Assert.IsAssignableFrom<WordHeaderFooter>(targetSection.Header.Default);
+        WordList headerList = header.AddList(WordListStyle.Numbered);
+        headerList.AddItem("header-list-item");
+        int[] removedNumberingIds = { tableList._numberId, headerList._numberId };
+
+        targetSection.RemoveSection();
+
+        Numbering? numbering = document._wordprocessingDocument.MainDocumentPart?
+            .NumberingDefinitionsPart?
+            .Numbering;
+        Assert.DoesNotContain(
+            numbering?.Elements<NumberingInstance>() ?? Enumerable.Empty<NumberingInstance>(),
+            instance => removedNumberingIds.Contains(instance.NumberID?.Value ?? -1));
+    }
+
+    [Fact]
+    public void RemovingSectionPreservesNumberingReferencedByFootnotes() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("retained");
+        WordSection targetSection = document.AddSection();
+        WordList removedList = targetSection.AddParagraph("section-list").AddList(WordListStyle.Bulleted);
+        int sharedNumberingId = removedList._numberId;
+
+        MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+        FootnotesPart footnotesPart = mainPart.FootnotesPart ?? mainPart.AddNewPart<FootnotesPart>();
+        footnotesPart.Footnotes = new Footnotes(
+            new Footnote(
+                new Paragraph(
+                    new ParagraphProperties(
+                        new NumberingProperties(new NumberingId { Val = sharedNumberingId })),
+                    new Run(new Text("footnote-list-item")))) {
+                Id = 1
+            });
+
+        targetSection.RemoveSection();
+
+        Numbering numbering = Assert.IsType<Numbering>(
+            mainPart.NumberingDefinitionsPart?.Numbering);
+        Assert.Contains(
+            numbering.Elements<NumberingInstance>(),
+            instance => instance.NumberID?.Value == sharedNumberingId);
+    }
+
+    [Fact]
     public void RemoveSectionToleratesMissingAndDuplicateHeaderRelationships() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("first section");

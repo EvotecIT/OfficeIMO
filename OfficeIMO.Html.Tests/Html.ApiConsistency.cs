@@ -149,16 +149,19 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
-    public void HtmlPdfOptions_FromRenderOptionsPreserveCallerUrlPolicy() {
+    public void HtmlPdfOptions_FromRenderOptionsPreserveCallerRestrictionsWithinPdfPolicy() {
         var source = new HtmlRenderOptions {
             UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
         };
 
         var copied = new HtmlPdfSaveOptions(source);
 
-        Assert.False(copied.UrlPolicy.RestrictUrlSchemes);
-        Assert.False(copied.UrlPolicy.DisallowFileUrls);
-        Assert.True(copied.UrlPolicy.AllowDataUrls);
+        Assert.True(copied.UrlPolicy.RestrictUrlSchemes);
+        Assert.True(copied.UrlPolicy.DisallowFileUrls);
+        Assert.False(copied.UrlPolicy.AllowDataUrls);
+        Assert.True(HtmlUrlPolicyEvaluator.IsAllowed("https://example.test/report", copied.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("file:///private/report.html", copied.UrlPolicy));
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed("data:text/html,report", copied.UrlPolicy));
     }
 
     [Fact]
