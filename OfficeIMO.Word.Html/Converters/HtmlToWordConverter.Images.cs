@@ -361,7 +361,11 @@ namespace OfficeIMO.Word.Html {
 
             if (Uri.TryCreate(src, UriKind.Absolute, out var uri)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(uri, width.Value, height.Value, wrap, description: alt);
+                if (uri.IsFile) {
+                    paragraph.AddTrustedExternalImage(uri, width.Value, height.Value, wrap, description: alt);
+                } else {
+                    paragraph.AddImage(uri, width.Value, height.Value, wrap, description: alt);
+                }
                 image = paragraph.Image!;
                 return true;
             }
@@ -369,7 +373,7 @@ namespace OfficeIMO.Word.Html {
             if (File.Exists(src)) {
                 var fileUri = new Uri(Path.GetFullPath(src));
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                paragraph.AddImage(fileUri, width.Value, height.Value, wrap, description: alt);
+                paragraph.AddTrustedExternalImage(fileUri, width.Value, height.Value, wrap, description: alt);
                 image = paragraph.Image!;
                 return true;
             }

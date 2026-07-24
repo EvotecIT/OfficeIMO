@@ -52,4 +52,15 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
 
         Assert.Null(exception);
     }
+
+    [Fact]
+    public void WordToHtmlKeepsDistinctParagraphsWithEqualPublicValues() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("same-content");
+        document.AddParagraph("same-content");
+
+        string html = document.ToHtml();
+
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(html, ">same-content</p>").Count);
+    }
 }

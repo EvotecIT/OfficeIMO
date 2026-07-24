@@ -748,7 +748,7 @@ namespace OfficeIMO.Word.Html {
 
                         IElement? cellDefinitionList = null;
                         var cellParagraphs = cell.Paragraphs;
-                        var processedCellParagraphs = new HashSet<WordParagraph>();
+                        var processedCellParagraphs = new HashSet<WordParagraph>(ParagraphElementComparer.Instance);
                         var cellListStack = new Stack<IElement>();
                         var cellItemStack = new Stack<IElement>();
                         var cellListNumberStack = new Stack<int>();
@@ -757,7 +757,7 @@ namespace OfficeIMO.Word.Html {
                             if (processedCellParagraphs.Contains(p)) {
                                 continue;
                             }
-                            for (int j = pIdx + 1; j < cellParagraphs.Count && cellParagraphs[j].Equals(p); j++) {
+                            for (int j = pIdx + 1; j < cellParagraphs.Count && SameParagraphElement(cellParagraphs[j], p); j++) {
                                 var candidate = cellParagraphs[j];
                                 if ((!p.IsBookmark && candidate.IsBookmark) || candidate.Text.Length > p.Text.Length) {
                                     p = candidate;
@@ -765,7 +765,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             if (IsDefinitionListParagraph(p) && IsEmptyDefinitionListParagraph(p)) {
                                 for (int j = pIdx + 1; j < cellParagraphs.Count; j++) {
-                                    if (!cellParagraphs[j].Equals(p)) {
+                                    if (!SameParagraphElement(cellParagraphs[j], p)) {
                                         break;
                                     }
                                     if (!IsEmptyDefinitionListParagraph(cellParagraphs[j])) {
@@ -989,7 +989,7 @@ namespace OfficeIMO.Word.Html {
                 AppendRuns(li, paragraph);
             }
 
-            var processedParagraphs = new HashSet<WordParagraph>();
+            var processedParagraphs = new HashSet<WordParagraph>(ParagraphElementComparer.Instance);
             int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -1023,7 +1023,7 @@ namespace OfficeIMO.Word.Html {
                         if (!paragraph.IsBookmark) {
                             // Look ahead for a sibling wrapper (same underlying paragraph) that carries a bookmark
                             for (int j = idx + 1; j < elements.Count; j++) {
-                                if (elements[j] is WordParagraph sibling && sibling.Equals(paragraph)) {
+                                if (elements[j] is WordParagraph sibling && SameParagraphElement(sibling, paragraph)) {
                                     if (sibling.IsBookmark) { paragraph = sibling; }
                                     continue;
                                 }
@@ -1130,6 +1130,22 @@ namespace OfficeIMO.Word.Html {
             AppendStyleDefinitions(document, htmlDoc, head, paragraphStyles, runStyles, cancellationToken);
 
             return htmlDoc.DocumentElement.OuterHtml;
+        }
+
+        private static bool SameParagraphElement(WordParagraph left, WordParagraph right) =>
+            ReferenceEquals(left._paragraph, right._paragraph);
+
+        private sealed class ParagraphElementComparer : IEqualityComparer<WordParagraph> {
+            internal static readonly ParagraphElementComparer Instance = new();
+
+            public bool Equals(WordParagraph? left, WordParagraph? right) =>
+                ReferenceEquals(left, right) ||
+                (left != null && right != null && SameParagraphElement(left, right));
+
+            public int GetHashCode(WordParagraph paragraph) {
+                object identity = paragraph._paragraph != null ? paragraph._paragraph : paragraph;
+                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(identity);
+            }
         }
 
         private static string? NormalizeRunLanguage(string? language, string? documentLanguage) {

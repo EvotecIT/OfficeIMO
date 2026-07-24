@@ -57,12 +57,16 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes an image linked to an external URI.
         /// </summary>
-        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null) {
+        public WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage = WrapTextImage.InLineWithText, string description = "", ShapeTypeValues? shape = null, BlipCompressionValues? compressionQuality = null)
+            : this(document, paragraph, externalUri, width, height, wrapImage, description, shape, compressionQuality, allowFileUri: false) {
+        }
+
+        internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WrapTextImage wrapImage, string description, ShapeTypeValues? shape, BlipCompressionValues? compressionQuality, bool allowFileUri) {
             if (externalUri == null) throw new ArgumentNullException(nameof(externalUri));
             FilePath = externalUri.ToString();
             shape ??= ShapeTypeValues.Rectangle;
             compressionQuality ??= BlipCompressionValues.Print;
-            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage);
+            AddExternalImage(document, paragraph, externalUri, width, height, shape.Value, compressionQuality.Value, description, wrapImage, allowFileUri);
         }
 
         private Graphic GetGraphic(double emuWidth, double emuHeight, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
