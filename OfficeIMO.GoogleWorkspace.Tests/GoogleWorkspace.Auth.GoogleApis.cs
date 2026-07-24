@@ -45,12 +45,27 @@ namespace OfficeIMO.Tests {
             var options = new GoogleInstalledApplicationAuthorizationOptions {
                 ClientSecrets = new ClientSecrets { ClientId = "client-id", ClientSecret = "client-secret" },
                 Scopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+                UserId = "local-user",
             };
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => GoogleInstalledApplicationAuthorization.AuthorizeCredentialAsync(options));
 
             Assert.Contains("does not default OAuth refresh tokens to plaintext files", exception.Message);
+        }
+
+        [Fact]
+        public async Task Test_InstalledApplicationAuthorization_RequiresExplicitStableUserId() {
+            var options = new GoogleInstalledApplicationAuthorizationOptions {
+                ClientSecrets = new ClientSecrets { ClientId = "client-id", ClientSecret = "client-secret" },
+                Scopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+                TokenStore = new MemoryTokenStore(),
+            };
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => GoogleInstalledApplicationAuthorization.AuthorizeCredentialAsync(options));
+
+            Assert.Contains("stable local user ID", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]

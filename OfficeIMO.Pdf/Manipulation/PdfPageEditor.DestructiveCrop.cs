@@ -47,7 +47,7 @@ internal static partial class PdfPageEditor {
                 var resources = new PdfDictionary(); resources.Items["XObject"] = xObjects;
                 page.Items["Resources"] = resources;
                 page.Items["Contents"] = new PdfReference(contentNumber, 0);
-                page.Items.Remove("Annots"); page.Items.Remove("StructParents");
+                page.Items.Remove("Annots"); page.Items.Remove("StructParents"); page.Items.Remove("Thumb");
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });

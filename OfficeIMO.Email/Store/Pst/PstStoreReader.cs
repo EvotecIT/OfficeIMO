@@ -267,7 +267,6 @@ internal sealed partial class PstStoreReader {
         if (options == null) throw new ArgumentNullException(nameof(options));
         _cancellationToken = cancellationToken;
         PstNodeReference node = ResolveReferencedNode(reference);
-        ResetAttachmentBudget();
         return ReadItem(node, reference.FolderId, _format,
             reference.IsAssociated, reference.IsOrphaned, options, reference.Summary);
     }

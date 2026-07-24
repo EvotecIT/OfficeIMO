@@ -246,7 +246,7 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EmitsNodeLimitRow() {
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesNodeLimitBeforeModelLoad() {
         const string yaml = "root:\n  child:\n    value: 1\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
@@ -259,8 +259,8 @@ public sealed class ReaderYamlModularTests {
                 IncludeMarkdown = false
             }));
 
-        Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("(max nodes reached)", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum node count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public sealed class ReaderYamlModularTests {
 
     [Fact]
     public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarLengthBeforeModelLoad() {
-        string yaml = "value: " + new string('a', 32) + "\n";
+        string yaml = "value: \"" + new string('a', 32) + "\"\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
         var chunk = Assert.Single(YamlReaderAdapter.Read(
@@ -302,13 +302,12 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_CountsDepthLimitedChildrenAgainstNodeLimit() {
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesDepthLimitBeforeModelLoad() {
         const string yaml =
             "root:\n" +
-            "  - one\n" +
-            "  - two\n" +
-            "  - three\n" +
-            "  - four\n";
+            "  child:\n" +
+            "    grandchild:\n" +
+            "      value: one\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
         var chunk = Assert.Single(YamlReaderAdapter.Read(
@@ -316,13 +315,35 @@ public sealed class ReaderYamlModularTests {
             sourceName: "depth-limited.yaml",
             yamlOptions: new YamlReadOptions {
                 MaxDepth = 1,
-                MaxNodes = 4,
+                MaxNodes = 100,
                 ChunkRows = 10,
                 IncludeMarkdown = false
             }));
 
-        Assert.Contains("depth-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum depth reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarDepthBeforeModelLoad() {
+        const string yaml =
+            "root:\n" +
+            "  child:\n" +
+            "    value: one\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
+            stream,
+            sourceName: "scalar-depth-limited.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxDepth = 1,
+                MaxNodes = 100,
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum depth reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -341,6 +362,7 @@ public sealed class ReaderYamlModularTests {
                 IncludeMarkdown = false
             }));
 
-        Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum node count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 }

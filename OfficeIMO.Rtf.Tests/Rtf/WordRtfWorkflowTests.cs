@@ -61,7 +61,7 @@ public class WordRtfWorkflowTests {
     }
 
     [Fact]
-    public void Compare_Uses_Word_Structural_Comparison_And_Cleans_Temporary_Files() {
+    public void Compare_Uses_Word_Structural_Comparison_Without_Temporary_Files() {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Before");
         RtfDocument target = RtfDocument.Create();
@@ -71,8 +71,8 @@ public class WordRtfWorkflowTests {
 
         Assert.True(result.WorkflowResult.HasChanges);
         Assert.NotEmpty(result.WorkflowResult.Findings);
-        Assert.False(File.Exists(result.WorkflowResult.SourcePath));
-        Assert.False(File.Exists(result.WorkflowResult.TargetPath));
+        Assert.Equal("source.rtf", result.WorkflowResult.SourcePath);
+        Assert.Equal("target.rtf", result.WorkflowResult.TargetPath);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordCompareCompleted");
     }
 

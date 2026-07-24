@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 string typeface = atom.ReadUtf16Text(0, 64);
                 int terminator = typeface.IndexOf('\0');
                 if (terminator >= 0) typeface = typeface.Substring(0, terminator);
+                typeface = LegacyPptXmlText.SanitizeAttributeValue(typeface) ?? string.Empty;
                 if (typeface.Length == 0) {
                     AddDiagnostic("PPT-FONT-NAME-EMPTY", LegacyPptDiagnosticSeverity.Warning,
                         $"Font index {index} has an empty typeface name and was skipped.", atom.Offset);

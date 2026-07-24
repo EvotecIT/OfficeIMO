@@ -3,11 +3,12 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
-    private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
+    private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, bool includeDocumentActions) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
-        bool includeDocumentActions = ShouldIncludeDocumentLevelActions(selectedPages, page);
         PdfDocumentOpenAction? scopedOpenAction = includeDocumentActions ? GetScopedOpenAction(document.OpenAction, scope) : null;
-        IReadOnlyList<PdfCatalogAction> catalogActions = GetScopedCatalogActions(document, selectedPages, page);
+        IReadOnlyList<PdfCatalogAction> catalogActions = includeDocumentActions
+            ? GetScopedCatalogActions(document)
+            : Array.Empty<PdfCatalogAction>();
         bool hasOpenAction = scopedOpenAction is not null;
         bool hasCatalogActions = catalogActions.Count > 0;
         int selectedPageActionCount = CountPageActions(scope);
@@ -39,35 +40,8 @@ internal static partial class PdfReaderAdapter {
         return actions.Count == 0 ? null : actions.AsReadOnly();
     }
 
-    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
-        if (!ShouldIncludeDocumentLevelActions(selectedPages, page)) {
-            return Array.Empty<PdfCatalogAction>();
-        }
-
-        return AreAllDocumentPagesSelected(document, selectedPages)
-            ? document.CatalogActions
-            : Array.Empty<PdfCatalogAction>();
-    }
-
-    private static bool ShouldIncludeDocumentLevelActions(IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
-        return page is null || selectedPages.Count == 1;
-    }
-
-    private static bool AreAllDocumentPagesSelected(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages) {
-        if (document.PageCount == 0 || selectedPages.Count != document.PageCount) {
-            return false;
-        }
-
-        var seen = new HashSet<int>();
-        for (int i = 0; i < selectedPages.Count; i++) {
-            int pageNumber = selectedPages[i].PageNumber;
-            if (pageNumber < 1 || pageNumber > document.PageCount || !seen.Add(pageNumber)) {
-                return false;
-            }
-        }
-
-        return seen.Count == document.PageCount;
-    }
+    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document) =>
+        document.CatalogActions;
 
     private static PdfDocumentOpenAction? GetScopedOpenAction(PdfDocumentOpenAction? openAction, IReadOnlyList<PdfLogicalPage> scope) {
         if (openAction is null) {

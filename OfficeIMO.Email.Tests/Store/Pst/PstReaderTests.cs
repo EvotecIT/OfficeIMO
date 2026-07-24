@@ -43,6 +43,23 @@ public sealed class PstReaderTests {
     }
 
     [Fact]
+    public void SummaryProjectionCountsFilteredPstPropertyRecordsAgainstTheScanLimit() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create());
+        using EmailStoreSession session = EmailStoreSession.Open(
+            stream,
+            "mailbox.pst",
+            new EmailStoreReaderOptions(maxPropertiesPerItem: 2));
+
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+        EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+            () => session.ReadSummary(reference));
+
+        Assert.Equal(nameof(EmailStoreReaderOptions.MaxPropertiesPerItem), exception.LimitName);
+        Assert.Equal(3, exception.Actual);
+        Assert.Equal(2, exception.Maximum);
+    }
+
+    [Fact]
     public void ReadsAnsiPstHierarchyAndProjectsMessagesThroughOfficeImoEmail() {
         using var stream = new MemoryStream(PstTestFileBuilder.Create(ansi: true));
 

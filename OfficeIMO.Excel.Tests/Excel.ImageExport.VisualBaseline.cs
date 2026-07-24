@@ -1581,7 +1581,25 @@ namespace OfficeIMO.Tests {
             canvas.DrawLine(86, 10, 150, 10, OfficeColor.White, 2);
             canvas.DrawLine(86, 22, 138, 22, OfficeColor.White, 2);
             canvas.DrawLine(86, 34, 124, 34, OfficeColor.White, 2);
-            return OfficePngWriter.Encode(image, OfficePngCompression.Stored);
+            return EncodeOpaqueRgbPng(image);
+        }
+
+        private static byte[] EncodeOpaqueRgbPng(OfficeRasterImage image) {
+            byte[] rgba = image.GetPixels();
+            byte[] scanlines = new byte[checked(image.Height * (1 + image.Width * 3))];
+            int source = 0;
+            int target = 0;
+            for (int row = 0; row < image.Height; row++) {
+                scanlines[target++] = 0;
+                for (int column = 0; column < image.Width; column++) {
+                    scanlines[target++] = rgba[source++];
+                    scanlines[target++] = rgba[source++];
+                    scanlines[target++] = rgba[source++];
+                    source++;
+                }
+            }
+
+            return OfficePngWriter.EncodeScanlines(image.Width, image.Height, bitDepth: 8, colorType: 2, scanlines, OfficePngCompression.Stored);
         }
 
         private static byte[] CreateTwoCellBannerPng() {

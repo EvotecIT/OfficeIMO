@@ -17,6 +17,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool ReportUnsupportedContent { get; set; } = true;
 
         /// <summary>
+        /// Preserves external-workbook relationships as active Open XML links. Disabled by default because
+        /// opening the projected workbook may cause a spreadsheet client to contact an attacker-controlled target.
+        /// </summary>
+        public bool PreserveExternalWorkbookLinks { get; set; }
+
+        /// <summary>
         /// Optional password used to decrypt password-to-open encrypted legacy XLS workbooks.
         /// </summary>
         public string? Password { get; set; }

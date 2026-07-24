@@ -103,6 +103,19 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
     }
 
     [Fact]
+    public void HtmlToMarkdown_RejectsFenceSyntaxInCodeLanguageAttributes() {
+        const string html = "<pre data-language=\"csharp&#10;```&#10;# injected\">safe()</pre>";
+
+        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        CodeBlock code = Assert.Single(document.Blocks.OfType<CodeBlock>());
+        string markdown = document.ToMarkdown();
+
+        Assert.Equal(string.Empty, code.Language);
+        Assert.Contains("safe()", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("# injected", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesReversedAndValueResetOrderedListMarkers() {
         const string html = """
 <ol reversed><li>Three</li><li value="7">Seven</li><li>Six</li></ol>

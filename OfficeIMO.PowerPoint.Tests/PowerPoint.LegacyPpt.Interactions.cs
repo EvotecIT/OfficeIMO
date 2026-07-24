@@ -301,6 +301,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(report.Findings, finding =>
                     finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
                 Assert.False(report.CanWrite);
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
                 savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
                         LossPolicy = PowerPointConversionLossPolicy.Allow
@@ -331,7 +333,17 @@ namespace OfficeIMO.Tests {
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                LegacyPptWritePreflightReport report = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-EXTERNAL-LINK");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             Assert.Equal(sourceBytes, savedBytes);
@@ -545,8 +557,15 @@ namespace OfficeIMO.Tests {
                     100000, 100000, 1000000, 500000);
                 AddShapeHyperlink(added, rectangle, target, mouseOver: false);
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite, string.Join(Environment.NewLine, report.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
@@ -554,7 +573,7 @@ namespace OfficeIMO.Tests {
             LegacyPptInteraction interaction = Assert.Single(saved.Slides[1].Shapes
                 .SelectMany(shape => shape.Interactions));
             Assert.Equal(target, interaction.Hyperlink!.Uri);
-            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+            Assert.False(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
         }

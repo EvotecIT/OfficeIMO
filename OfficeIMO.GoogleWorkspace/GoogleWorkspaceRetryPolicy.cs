@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.IO;
 
 namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
@@ -91,6 +92,57 @@ namespace OfficeIMO.GoogleWorkspace {
             TimeSpan requestTimeout,
             CancellationToken cancellationToken,
             Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
+            return await SendCoreAsync(
+                client,
+                requestFactory,
+                retryOptions,
+                requestSafety,
+                requestTimeout,
+                HttpCompletionOption.ResponseContentRead,
+                cancellationToken,
+                (response, _) => Task.FromResult(response),
+                disposeFinalResponse: false,
+                onRetry).ConfigureAwait(false);
+        }
+
+        internal static Task<TResult> SendAndProcessAsync<TResult>(
+            HttpClient client,
+            Func<HttpRequestMessage> requestFactory,
+            GoogleWorkspaceRetryOptions retryOptions,
+            GoogleWorkspaceRequestSafety requestSafety,
+            TimeSpan requestTimeout,
+            CancellationToken cancellationToken,
+            Func<HttpResponseMessage, CancellationToken, Task<TResult>>
+                responseHandler,
+            Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
+            if (responseHandler == null) {
+                throw new ArgumentNullException(nameof(responseHandler));
+            }
+            return SendCoreAsync(
+                client,
+                requestFactory,
+                retryOptions,
+                requestSafety,
+                requestTimeout,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken,
+                responseHandler,
+                disposeFinalResponse: true,
+                onRetry);
+        }
+
+        private static async Task<TResult> SendCoreAsync<TResult>(
+            HttpClient client,
+            Func<HttpRequestMessage> requestFactory,
+            GoogleWorkspaceRetryOptions retryOptions,
+            GoogleWorkspaceRequestSafety requestSafety,
+            TimeSpan requestTimeout,
+            HttpCompletionOption completionOption,
+            CancellationToken cancellationToken,
+            Func<HttpResponseMessage, CancellationToken, Task<TResult>>
+                responseHandler,
+            bool disposeFinalResponse,
+            Action<GoogleWorkspaceRetryEvent>? onRetry) {
             if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
             int retryBudget = retryOptions.MaxRetryCount;
 
@@ -104,23 +156,11 @@ namespace OfficeIMO.GoogleWorkspace {
                     string method = request.Method.Method;
                     string uri = request.RequestUri?.AbsoluteUri ?? string.Empty;
 
+                    HttpResponseMessage response;
                     try {
-                        var response = await client.SendAsync(request, timeoutSource.Token).ConfigureAwait(false);
-                        if (!CanRetry(requestSafety) || !ShouldRetry(response.StatusCode) || attempt >= retryBudget) {
-                            return response;
-                        }
-
-                        var (delay, delayStrategy) = GetRetryDelay(response.Headers.RetryAfter, attempt, retryOptions);
-                        onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
-                            method,
-                            uri,
-                            attempt + 1,
-                            retryBudget,
-                            $"HTTP {(int)response.StatusCode}",
-                            delay,
-                            delayStrategy));
-                        response.Dispose();
-                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                        response = await client.SendAsync(request,
+                            completionOption,
+                            timeoutSource.Token).ConfigureAwait(false);
                     } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
                         onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
@@ -132,6 +172,7 @@ namespace OfficeIMO.GoogleWorkspace {
                             delay,
                             delayStrategy));
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                        continue;
                     } catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
                         onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
@@ -143,9 +184,78 @@ namespace OfficeIMO.GoogleWorkspace {
                             delay,
                             delayStrategy));
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                        continue;
                     }
+
+                    if (!CanRetry(requestSafety)
+                        || !ShouldRetry(response.StatusCode)
+                        || attempt >= retryBudget) {
+                        try {
+                            if (!disposeFinalResponse) {
+                                return await responseHandler(response,
+                                    timeoutSource.Token).ConfigureAwait(false);
+                            }
+                            using (response) {
+                                return await responseHandler(response,
+                                    timeoutSource.Token).ConfigureAwait(false);
+                            }
+                        } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "network failure while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
+                        } catch (IOException) when (CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "network failure while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
+                        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
+                            response.Dispose();
+                            await DelayAfterTransportFailureAsync(method, uri, attempt, retryBudget,
+                                retryOptions, "request timeout while reading response", cancellationToken,
+                                onRetry).ConfigureAwait(false);
+                            continue;
+                        }
+                    }
+
+                    var (statusDelay, statusDelayStrategy) = GetRetryDelay(
+                        response.Headers.RetryAfter, attempt, retryOptions);
+                    onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
+                        method,
+                        uri,
+                        attempt + 1,
+                        retryBudget,
+                        $"HTTP {(int)response.StatusCode}",
+                        statusDelay,
+                        statusDelayStrategy));
+                    response.Dispose();
+                    await Task.Delay(statusDelay, cancellationToken)
+                        .ConfigureAwait(false);
                 }
             }
+        }
+
+        private static async Task DelayAfterTransportFailureAsync(
+            string method,
+            string uri,
+            int attempt,
+            int retryBudget,
+            GoogleWorkspaceRetryOptions retryOptions,
+            string trigger,
+            CancellationToken cancellationToken,
+            Action<GoogleWorkspaceRetryEvent>? onRetry) {
+            var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
+            onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
+                method,
+                uri,
+                attempt + 1,
+                retryBudget,
+                trigger,
+                delay,
+                delayStrategy));
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
         }
 
         private static bool CanRetry(GoogleWorkspaceRequestSafety requestSafety) {

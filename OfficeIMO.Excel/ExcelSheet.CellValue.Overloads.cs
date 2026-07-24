@@ -423,8 +423,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets a formula in the specified cell.
+        /// Sets a formula in the specified cell while preserving any existing value as its cached result.
         /// </summary>
+        /// <remarks>
+        /// Cached formula values are part of the workbook contract and are intentionally retained. This method is
+        /// not a secure-erasure or redaction API; callers removing sensitive historic content should rebuild the
+        /// workbook from approved data rather than relying on an in-place formula mutation.
+        /// </remarks>
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="formula">The formula expression.</param>

@@ -80,6 +80,17 @@ namespace OfficeIMO.Tests {
                                     new A.Offset { X = 100000L, Y = 50000L },
                                     new A.Extents { Cx = 200000L, Cy = 100000L }),
                                 new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle }))));
+                    tree.Append(new DocumentFormat.OpenXml.Presentation.Picture(
+                        new NonVisualPictureProperties(
+                            new NonVisualDrawingProperties { Id = 912U, Name = "Long Boundary Logo" },
+                            new NonVisualPictureDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new BlipFill(new A.Blip(), new A.Stretch(new A.FillRectangle())),
+                        new ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = long.MaxValue, Y = 0L },
+                                new A.Extents { Cx = 1L, Cy = 1L }),
+                            new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle })));
                     layoutPart.SlideLayout.Save();
                 }
 
@@ -92,6 +103,52 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1100000L, bounds.Top);
                 Assert.Equal(400000L, bounds.Width);
                 Assert.Equal(200000L, bounds.Height);
+                Assert.Null(Assert.Single(
+                    inventory.Assets,
+                    candidate => candidate.Name == "Long Boundary Logo").Bounds);
+            } finally {
+                Delete(templatePath);
+            }
+        }
+
+        [Fact]
+        public void InspectTemplate_DropsNonFiniteGroupedAssetBoundsInsteadOfOverflowing() {
+            string templatePath = CreateTemplatePresentation();
+            try {
+                using (PresentationDocument document = PresentationDocument.Open(templatePath, true)) {
+                    SlideLayoutPart layoutPart = document.PresentationPart!.SlideMasterParts.First()
+                        .SlideLayoutParts.First();
+                    ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+                    tree.Append(new GroupShape(
+                        new NonVisualGroupShapeProperties(
+                            new NonVisualDrawingProperties { Id = 910U, Name = "Extreme Group" },
+                            new NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new GroupShapeProperties(new A.TransformGroup(
+                            new A.Offset { X = long.MaxValue, Y = long.MaxValue },
+                            new A.Extents { Cx = long.MaxValue, Cy = long.MaxValue },
+                            new A.ChildOffset { X = 0L, Y = 0L },
+                            new A.ChildExtents { Cx = 1L, Cy = 1L })),
+                        new DocumentFormat.OpenXml.Presentation.Picture(
+                            new NonVisualPictureProperties(
+                                new NonVisualDrawingProperties { Id = 911U, Name = "Extreme Logo" },
+                                new NonVisualPictureDrawingProperties(),
+                                new ApplicationNonVisualDrawingProperties()),
+                            new BlipFill(new A.Blip(), new A.Stretch(new A.FillRectangle())),
+                            new ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = long.MaxValue, Y = long.MaxValue },
+                                    new A.Extents { Cx = long.MaxValue, Cy = long.MaxValue }),
+                                new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle }))));
+                    layoutPart.SlideLayout.Save();
+                }
+
+                PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect(templatePath);
+                PowerPointTemplateAssetInfo asset = Assert.Single(
+                    inventory.Assets,
+                    candidate => candidate.Name == "Extreme Logo");
+
+                Assert.Null(asset.Bounds);
             } finally {
                 Delete(templatePath);
             }
@@ -149,6 +206,29 @@ namespace OfficeIMO.Tests {
                 using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
                 Assert.Single(reopened.Slides);
                 Assert.True(reopened.Slides[0].Hidden);
+            } finally {
+                Delete(templatePath, outputPath);
+            }
+        }
+
+        [Fact]
+        public void CreateFromTemplate_DoesNotExposeCopiedTemplateWhenRetentionValidationFails() {
+            string templatePath = CreateTemplatePresentation();
+            string outputPath = TempPath(".pptx");
+            try {
+                var options = new PowerPointTemplateCreationOptions {
+                    SlideRetention = PowerPointTemplateSlideRetention.Selected
+                };
+                options.SourceSlideIndexes.Add(99);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    PowerPointTemplate.CreatePresentation(templatePath, outputPath, options));
+
+                Assert.False(File.Exists(outputPath));
+                string directory = Path.GetDirectoryName(outputPath)!;
+                string prefix = "." + Path.GetFileNameWithoutExtension(outputPath) + ".";
+                Assert.DoesNotContain(Directory.EnumerateFiles(directory), path =>
+                    Path.GetFileName(path).StartsWith(prefix, StringComparison.Ordinal));
             } finally {
                 Delete(templatePath, outputPath);
             }

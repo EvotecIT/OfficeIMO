@@ -234,19 +234,19 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            TimePeriodValues value = rule.TimePeriod.Value;
-            if (value == TimePeriodValues.Yesterday) return nameof(TimePeriodValues.Yesterday);
-            if (value == TimePeriodValues.Today) return nameof(TimePeriodValues.Today);
-            if (value == TimePeriodValues.Tomorrow) return nameof(TimePeriodValues.Tomorrow);
-            if (value == TimePeriodValues.Last7Days) return nameof(TimePeriodValues.Last7Days);
-            if (value == TimePeriodValues.LastWeek) return nameof(TimePeriodValues.LastWeek);
-            if (value == TimePeriodValues.ThisWeek) return nameof(TimePeriodValues.ThisWeek);
-            if (value == TimePeriodValues.NextWeek) return nameof(TimePeriodValues.NextWeek);
-            if (value == TimePeriodValues.LastMonth) return nameof(TimePeriodValues.LastMonth);
-            if (value == TimePeriodValues.ThisMonth) return nameof(TimePeriodValues.ThisMonth);
-            if (value == TimePeriodValues.NextMonth) return nameof(TimePeriodValues.NextMonth);
+            string? value = rule.TimePeriod.InnerText;
+            if (string.Equals(value, "yesterday", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.Yesterday);
+            if (string.Equals(value, "today", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.Today);
+            if (string.Equals(value, "tomorrow", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.Tomorrow);
+            if (string.Equals(value, "last7Days", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.Last7Days);
+            if (string.Equals(value, "lastWeek", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.LastWeek);
+            if (string.Equals(value, "thisWeek", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.ThisWeek);
+            if (string.Equals(value, "nextWeek", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.NextWeek);
+            if (string.Equals(value, "lastMonth", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.LastMonth);
+            if (string.Equals(value, "thisMonth", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.ThisMonth);
+            if (string.Equals(value, "nextMonth", StringComparison.OrdinalIgnoreCase)) return nameof(TimePeriodValues.NextMonth);
 
-            return rule.TimePeriod.InnerText;
+            return value;
         }
 
         private static IReadOnlyList<string> ReadColorScaleColors(ConditionalFormattingRule rule) {

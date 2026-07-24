@@ -1,5 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -33,6 +34,21 @@ namespace OfficeIMO.Tests {
             Assert.Contains(GoogleDriveMimeTypes.MicrosoftWord, formats.ExportFormats[GoogleDriveMimeTypes.Document]);
             Assert.Equal("https://www.googleapis.com/drive/v3/about?fields=importFormats,exportFormats", requestedUri!.AbsoluteUri);
             Assert.Equal(GoogleWorkspaceScopeCatalog.DriveReadonly, Assert.Single(credential.LastScopes));
+        }
+
+        [Fact]
+        public async Task Test_DriveClient_DownloadAndExportEnforceConfiguredResponseLimit() {
+            using var httpClient = new HttpClient(new FakeHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(new byte[5]),
+            })));
+            using var client = new GoogleDriveClient(
+                new GoogleWorkspaceSession(
+                    new RecordingCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient, MaxRetryCount = 1 }),
+                new GoogleDriveClientOptions { MaxDownloadBytes = 4 });
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => client.DownloadAsync("file-1"));
+            await Assert.ThrowsAsync<InvalidDataException>(() => client.ExportAsync("file-1", GoogleDriveMimeTypes.MicrosoftWord));
         }
 
         [Fact]

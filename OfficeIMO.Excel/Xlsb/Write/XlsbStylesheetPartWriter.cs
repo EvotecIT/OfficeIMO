@@ -5,6 +5,7 @@ using OfficeIMO.Excel.Xlsb.Biff12;
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Writes the core BIFF12 formatting collections referenced by normal worksheet cells.</summary>
     internal static class XlsbStylesheetPartWriter {
+        private const int MaximumStyleNameLength = 255;
         private const int BrtBeginStyleSheet = 278;
         private const int BrtEndStyleSheet = 279;
         private const int BrtBeginFills = 603;
@@ -274,6 +275,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             string name = normal?.Name?.Value ?? "Normal";
+            ValidateStyleName(name, "cell style");
             using var payload = new MemoryStream(16 + name.Length * 2);
             WriteUInt32(payload, formatId);
             payload.WriteByte(1);
@@ -289,12 +291,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void WriteTableStyles(Stream output, TableStyles? styles) {
             string table = styles?.DefaultTableStyle?.Value ?? "TableStyleMedium2";
             string pivot = styles?.DefaultPivotStyle?.Value ?? "PivotStyleLight16";
+            ValidateStyleName(table, "default table style");
+            ValidateStyleName(pivot, "default pivot style");
             using var payload = new MemoryStream(12 + (table.Length + pivot.Length) * 2);
             WriteUInt32(payload, 0);
             WriteWideString(payload, table);
             WriteWideString(payload, pivot);
             XlsbRecordWriter.Write(output, BrtBeginTableStyles, payload.ToArray());
             XlsbRecordWriter.Write(output, BrtEndTableStyles);
+        }
+
+        private static void ValidateStyleName(string value, string description) {
+            if (value.Length > MaximumStyleNameLength) {
+                throw new NotSupportedException(
+                    $"Native XLSB generation found a {description} name longer than {MaximumStyleNameLength} characters.");
+            }
         }
 
         private static void WriteColor(Stream output, ColorType? color) {

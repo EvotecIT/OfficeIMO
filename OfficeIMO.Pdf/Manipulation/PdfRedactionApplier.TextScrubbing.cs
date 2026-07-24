@@ -11,8 +11,9 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
         IReadOnlyList<PdfRedactionMatch> matches,
+        IReadOnlyList<PdfRedactionArea> areas,
         ref int nextObjectNumber) {
-        RedactionTextTarget[] textTargets = BuildTextTargets(matches);
+        RedactionTextTarget[] textTargets = BuildTextTargets(matches, areas);
         if (textTargets.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
             return false;
@@ -122,7 +123,9 @@ internal static partial class PdfRedactionApplier {
         return true;
     }
 
-    private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionMatch> matches) {
+    private static RedactionTextTarget[] BuildTextTargets(
+        IReadOnlyList<PdfRedactionMatch> matches,
+        IReadOnlyList<PdfRedactionArea> areas) {
         return matches
             .Where(match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
             .Select(match => new RedactionTextTarget(
@@ -132,6 +135,12 @@ internal static partial class PdfRedactionApplier {
                 match.Width,
                 match.Height))
             .Where(target => target.Text.Length > 0)
+            .Concat(areas.Select(area => new RedactionTextTarget(
+                string.Empty,
+                area.X,
+                area.Y,
+                area.Width,
+                area.Height)))
             .ToArray();
     }
 
@@ -286,10 +295,6 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, Matrix2D> localTransforms = CollectTextObjectTransforms(content, graphicsState);
         foreach (TextObjectSpan span in EnumerateTextObjectSpans(content)) {
             string shownText = NormalizeText(ExtractTextFromTextObject(span.Value, fontDecoders));
-            if (shownText.Length == 0) {
-                continue;
-            }
-
             Matrix2D localTransform = localTransforms.TryGetValue(span.Index, out Matrix2D resolved)
                 ? resolved
                 : Matrix2D.Identity;
@@ -538,6 +543,16 @@ internal static partial class PdfRedactionApplier {
         List<RedactionTextObject> textObjects,
         RedactionTextTarget target,
         HashSet<int> removeByIndex) {
+        if (target.Text.Length == 0) {
+            foreach (RedactionTextObject textObject in textObjects) {
+                if (IntersectsTarget(textObject, target)) {
+                    removeByIndex.Add(textObject.Index);
+                }
+            }
+
+            return;
+        }
+
         for (int start = 0; start < textObjects.Count; start++) {
             if (ContainsOrdinal(textObjects[start].Text, target.Text)) {
                 if (IntersectsTarget(textObjects[start], target)) {
@@ -579,7 +594,10 @@ internal static partial class PdfRedactionApplier {
 
     private static bool IntersectsTarget(RedactionTextBounds? bounds, RedactionTextTarget target) {
         if (bounds is null) {
-            return true;
+            // An area target may only remove text whose geometry proves an intersection.
+            // Treating an unknown location as a match lets one unlocatable object remove
+            // every other unlocatable BT/ET block on the page.
+            return false;
         }
 
         return Intersects(

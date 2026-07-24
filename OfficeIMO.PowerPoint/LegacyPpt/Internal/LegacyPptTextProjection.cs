@@ -211,7 +211,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 return;
             }
             AppendBulletDecorationProperties(properties, run);
-            if (run.HasBullet == true && run.BulletCharacter.HasValue) {
+            if (run.HasBullet == true && run.BulletCharacter.HasValue
+                && LegacyPptXmlText.IsValidAttributeCharacter(
+                    run.BulletCharacter.Value)) {
                 properties.Append(new A.CharacterBullet { Char = run.BulletCharacter.Value.ToString() });
             }
         }
@@ -241,8 +243,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             if (run.BulletHasFont == false) {
                 properties.Append(new A.BulletFontText());
-            } else if (run.BulletHasFont == true && run.BulletTypeface != null) {
-                properties.Append(new A.BulletFont { Typeface = run.BulletTypeface });
+            } else if (run.BulletHasFont == true) {
+                string? typeface = LegacyPptXmlText.SanitizeAttributeValue(
+                    run.BulletTypeface);
+                if (!string.IsNullOrEmpty(typeface)) {
+                    properties.Append(new A.BulletFont { Typeface = typeface });
+                }
             }
         }
 
@@ -586,12 +592,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     new A.RgbColorModelHex { Val = source.Color }));
             }
             string? latinTypeface = source.AnsiTypeface ?? source.Typeface;
-            if (latinTypeface != null) properties.Append(new A.LatinFont { Typeface = latinTypeface });
-            if (source.OldEastAsianTypeface != null) {
-                properties.Append(new A.EastAsianFont { Typeface = source.OldEastAsianTypeface });
+            latinTypeface = LegacyPptXmlText.SanitizeAttributeValue(latinTypeface);
+            if (!string.IsNullOrEmpty(latinTypeface)) {
+                properties.Append(new A.LatinFont { Typeface = latinTypeface });
             }
-            if (source.SymbolTypeface != null) {
-                properties.Append(new A.SymbolFont { Typeface = source.SymbolTypeface });
+            string? eastAsianTypeface = LegacyPptXmlText.SanitizeAttributeValue(
+                source.OldEastAsianTypeface);
+            if (!string.IsNullOrEmpty(eastAsianTypeface)) {
+                properties.Append(new A.EastAsianFont { Typeface = eastAsianTypeface });
+            }
+            string? symbolTypeface = LegacyPptXmlText.SanitizeAttributeValue(
+                source.SymbolTypeface);
+            if (!string.IsNullOrEmpty(symbolTypeface)) {
+                properties.Append(new A.SymbolFont { Typeface = symbolTypeface });
             }
         }
 

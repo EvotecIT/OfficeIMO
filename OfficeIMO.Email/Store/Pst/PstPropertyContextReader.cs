@@ -37,14 +37,16 @@ internal sealed class PstPropertyContextReader {
         long maximum = Math.Min(_options.MaxDecodedPropertyBytesPerItem,
             maximumDecodedBytes ?? _options.MaxDecodedPropertyBytesPerItem);
         if (rootHid != 0) {
+            int scannedPropertyCount = 0;
             foreach (byte[] record in _heap.EnumerateBthLeafRecords(rootHid, 2, 6, indexLevels)) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                scannedPropertyCount++;
+                if (scannedPropertyCount > _options.MaxPropertiesPerItem) {
+                    throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxPropertiesPerItem),
+                        scannedPropertyCount, _options.MaxPropertiesPerItem);
+                }
                 ushort id = PstBinary.UInt16(record, 0);
                 if (includedPropertyIds != null && !includedPropertyIds.Contains(id)) continue;
-                if (properties.Count >= _options.MaxPropertiesPerItem) {
-                    throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxPropertiesPerItem),
-                        properties.Count + 1L, _options.MaxPropertiesPerItem);
-                }
                 var type = (MapiPropertyType)PstBinary.UInt16(record, 2);
                 uint rawValue = PstBinary.UInt32(record, 4);
                 if (deferredPropertyIds != null && deferredPropertyIds.Contains(id)) {

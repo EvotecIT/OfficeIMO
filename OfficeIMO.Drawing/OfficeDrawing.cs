@@ -18,6 +18,7 @@ public sealed partial class OfficeDrawing {
     private readonly List<OfficeDrawingElement> _elements = new List<OfficeDrawingElement>();
     private readonly ReadOnlyCollection<OfficeDrawingElement> _elementsView;
     private readonly HashSet<OfficeDrawingElement> _behindContentElements = new HashSet<OfficeDrawingElement>();
+    private int _behindContentBatchDepth;
 
     /// <summary>Drawing width in the caller's layout unit.</summary>
     public double Width { get; }
@@ -77,7 +78,11 @@ public sealed partial class OfficeDrawing {
         }
 
         int elementIndex = AddBehindContentElement(item);
-        _shapes.Insert(GetTypedElementInsertIndex<OfficeDrawingShape>(elementIndex), item);
+        if (_behindContentBatchDepth > 0) {
+            _shapes.Add(item);
+        } else {
+            _shapes.Insert(GetTypedElementInsertIndex<OfficeDrawingShape>(elementIndex), item);
+        }
         return this;
     }
 
@@ -242,7 +247,11 @@ public sealed partial class OfficeDrawing {
         }
 
         int elementIndex = AddBehindContentElement(item);
-        _images.Insert(GetTypedElementInsertIndex<OfficeDrawingImage>(elementIndex), item);
+        if (_behindContentBatchDepth > 0) {
+            _images.Add(item);
+        } else {
+            _images.Insert(GetTypedElementInsertIndex<OfficeDrawingImage>(elementIndex), item);
+        }
         return this;
     }
 
@@ -569,9 +578,79 @@ public sealed partial class OfficeDrawing {
 
     private int AddBehindContentElement(OfficeDrawingElement item) {
         _behindContentElements.Add(item);
+        if (_behindContentBatchDepth > 0) {
+            _elements.Add(item);
+            return _elements.Count - 1;
+        }
+
         int index = GetBehindContentInsertIndex();
         _elements.Insert(index, item);
         return index;
+    }
+
+    /// <summary>
+    /// Defers behind-content ordering so importers can add many background elements in linear time.
+    /// Paint order is restored when the returned scope is disposed.
+    /// </summary>
+    internal IDisposable DeferBehindContentOrdering() {
+        _behindContentBatchDepth++;
+        return new BehindContentOrderingScope(this);
+    }
+
+    private void EndBehindContentOrdering() {
+        if (_behindContentBatchDepth <= 0) return;
+        _behindContentBatchDepth--;
+        if (_behindContentBatchDepth != 0) return;
+
+        int backgroundIndex = GetPageBackgroundIndex();
+        var ordered = new List<OfficeDrawingElement>(_elements.Count);
+        if (backgroundIndex >= 0) ordered.Add(_elements[backgroundIndex]);
+        for (int index = 0; index < _elements.Count; index++) {
+            if (index != backgroundIndex && _behindContentElements.Contains(_elements[index])) {
+                ordered.Add(_elements[index]);
+            }
+        }
+        for (int index = 0; index < _elements.Count; index++) {
+            if (index != backgroundIndex && !_behindContentElements.Contains(_elements[index])) {
+                ordered.Add(_elements[index]);
+            }
+        }
+
+        _elements.Clear();
+        _elements.AddRange(ordered);
+        _shapes.Clear();
+        _images.Clear();
+        for (int index = 0; index < _elements.Count; index++) {
+            if (_elements[index] is OfficeDrawingShape shape) _shapes.Add(shape);
+            if (_elements[index] is OfficeDrawingImage image) _images.Add(image);
+        }
+    }
+
+    private int GetPageBackgroundIndex() {
+        if (_elements.Count == 0) return -1;
+        return _elements[0] is OfficeDrawingShape shape
+            && shape.X == 0D
+            && shape.Y == 0D
+            && shape.Shape.Kind == OfficeShapeKind.Rectangle
+            && shape.Shape.Width == Width
+            && shape.Shape.Height == Height
+            && shape.Shape.StrokeWidth <= 0D
+            ? 0
+            : -1;
+    }
+
+    private sealed class BehindContentOrderingScope : IDisposable {
+        private OfficeDrawing? _owner;
+
+        internal BehindContentOrderingScope(OfficeDrawing owner) {
+            _owner = owner;
+        }
+
+        public void Dispose() {
+            OfficeDrawing? owner = _owner;
+            _owner = null;
+            owner?.EndBehindContentOrdering();
+        }
     }
 
     private int GetTypedElementInsertIndex<T>(int elementIndex) where T : OfficeDrawingElement {

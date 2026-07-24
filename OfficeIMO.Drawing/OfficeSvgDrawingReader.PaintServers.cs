@@ -126,6 +126,8 @@ public static partial class OfficeSvgDrawingReader {
 
     private sealed class SvgPaintServerRegistry {
         private readonly SvgDefinitionRegistry _definitions;
+        private readonly Dictionary<string, SvgGradientDefinition> _resolved = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _invalid = new(StringComparer.Ordinal);
 
         internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions) {
             _definitions = definitions;
@@ -138,8 +140,15 @@ public static partial class OfficeSvgDrawingReader {
                 || (!element!.Name.LocalName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
                     && !element.Name.LocalName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase))) return false;
 
-            var resolving = new HashSet<string>(StringComparer.Ordinal);
-            if (!TryResolveDefinition(id, element, resolving, 0, out SvgGradientDefinition? definition)) return false;
+            if (!_resolved.TryGetValue(id, out SvgGradientDefinition? definition)) {
+                if (_invalid.Contains(id)) return false;
+                var resolving = new HashSet<string>(StringComparer.Ordinal);
+                if (!TryResolveDefinition(id, element, resolving, 0, out definition) || definition == null) {
+                    _invalid.Add(id);
+                    return false;
+                }
+                _resolved[id] = definition;
+            }
             try {
                 if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity || definition.SpreadMode != SvgGradientSpreadMode.Pad) {
                     paint = new SvgResolvedPaint(definition);
@@ -173,7 +182,15 @@ public static partial class OfficeSvgDrawingReader {
             int depth,
             out SvgGradientDefinition? definition) {
             definition = null;
-            if (depth >= MaximumGradientReferenceDepth || !resolving.Add(id)) return false;
+            if (_resolved.TryGetValue(id, out SvgGradientDefinition? cached)) {
+                definition = cached;
+                return true;
+            }
+            if (_invalid.Contains(id)) return false;
+            if (depth >= MaximumGradientReferenceDepth || !resolving.Add(id)) {
+                _invalid.Add(id);
+                return false;
+            }
             try {
                 SvgGradientKind kind = element.Name.LocalName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
                     ? SvgGradientKind.Linear
@@ -211,6 +228,7 @@ public static partial class OfficeSvgDrawingReader {
                         || !TryCoordinate(element, "y2", defaultY2, allowOutsideUnit: false, userSpaceOnUse, out SvgGradientCoordinate y2)
                         || (x1.Equals(x2) && y1.Equals(y2))) return false;
                     definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse, gradientTransform, spreadMode);
+                    _resolved[id] = definition;
                     return true;
                 }
 
@@ -228,9 +246,11 @@ public static partial class OfficeSvgDrawingReader {
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
                 if (!userSpaceOnUse && focalRadius.Value > radius.Value) return false;
                 definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform, spreadMode);
+                _resolved[id] = definition;
                 return true;
             } finally {
                 resolving.Remove(id);
+                if (definition == null) _invalid.Add(id);
             }
         }
 

@@ -150,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double targetHeight = Math.Max(0.01D, ResolveBalancedColumnHeight(children, requestedCount));
-        MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight);
+        MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
         EnsureMultiColumnLimit(plan.ColumnCount);
         partitionHeight = Math.Max(targetHeight, plan.UsedHeight);
         AddColumnRuleVisuals(visuals, style, 0D, offsetY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source);

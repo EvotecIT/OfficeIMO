@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.OpenDocument;
 
@@ -131,6 +132,12 @@ public abstract partial class OdfDocument {
             if (data.LongLength > options.MaxEntryUncompressedBytes) throw new InvalidDataException("Flat OpenDocument image exceeds MaxEntryUncompressedBytes.");
             string? mediaType = (string?)image.Attribute(OdfNamespaces.Draw + "mime-type");
             string extension = ImageExtension(mediaType, data);
+            if (extension == ".svg") {
+                if (!OfficeSvgDrawingReader.TryRead(data, out OfficeDrawing? drawing) || drawing == null) {
+                    throw new InvalidDataException("Flat OpenDocument SVG image is not a supported bounded vector image.");
+                }
+                data = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
+            }
             string path = "Pictures/flat-image" + index++.ToString(CultureInfo.InvariantCulture) + extension;
             package.AddOrReplaceEntry(path, data, ImageMediaType(extension));
             image.SetAttributeValue(OdfNamespaces.XLink + "href", path);
@@ -190,33 +197,46 @@ public abstract partial class OdfDocument {
             return;
         }
 
-        XElement? masters = flatRoot.Element(OdfNamespaces.Office + "master-styles");
-        var styleNames = new HashSet<string>(StringComparer.Ordinal);
-        if (masters != null) {
-            foreach (XAttribute attribute in masters.DescendantsAndSelf().Attributes()) styleNames.Add(attribute.Value);
+        XElement[] automaticStyles = source.Elements().ToArray();
+        var stylesByName = new Dictionary<string, List<XElement>>(StringComparer.Ordinal);
+        foreach (XElement element in automaticStyles) {
+            string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
+            if (string.IsNullOrEmpty(name)) continue;
+            if (!stylesByName.TryGetValue(name!, out List<XElement>? namedStyles)) {
+                namedStyles = new List<XElement>();
+                stylesByName.Add(name!, namedStyles);
+            }
+            namedStyles.Add(element);
         }
 
-        XElement[] automaticStyles = source.Elements().ToArray();
-        bool added;
-        do {
-            added = false;
-            foreach (XElement element in automaticStyles) {
-                string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
-                bool isStyleScoped = element.Name == OdfNamespaces.Style + "page-layout" ||
-                    element.Name == OdfNamespaces.Style + "presentation-page-layout" ||
-                    (name != null && styleNames.Contains(name));
-                if (!isStyleScoped) continue;
-                foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) added |= styleNames.Add(attribute.Value);
+        var styleScopedElements = new HashSet<XElement>();
+        var pendingNames = new Queue<string>();
+        var queuedNames = new HashSet<string>(StringComparer.Ordinal);
+        void QueueReferences(XElement element) {
+            foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) {
+                if (queuedNames.Add(attribute.Value)) pendingNames.Enqueue(attribute.Value);
             }
-        } while (added);
+        }
+
+        XElement? masters = flatRoot.Element(OdfNamespaces.Office + "master-styles");
+        if (masters != null) QueueReferences(masters);
+        foreach (XElement element in automaticStyles) {
+            if (element.Name != OdfNamespaces.Style + "page-layout"
+                && element.Name != OdfNamespaces.Style + "presentation-page-layout") continue;
+            if (styleScopedElements.Add(element)) QueueReferences(element);
+        }
+        while (pendingNames.Count > 0) {
+            string name = pendingNames.Dequeue();
+            if (!stylesByName.TryGetValue(name, out List<XElement>? namedStyles)) continue;
+            foreach (XElement element in namedStyles) {
+                if (styleScopedElements.Add(element)) QueueReferences(element);
+            }
+        }
 
         var styleScoped = new List<XElement>();
         var contentScoped = new List<XElement>();
         foreach (XElement element in automaticStyles) {
-            string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
-            bool belongsToStyles = element.Name == OdfNamespaces.Style + "page-layout" ||
-                element.Name == OdfNamespaces.Style + "presentation-page-layout" ||
-                (name != null && styleNames.Contains(name));
+            bool belongsToStyles = styleScopedElements.Contains(element);
             (belongsToStyles ? styleScoped : contentScoped).Add(new XElement(element));
         }
 

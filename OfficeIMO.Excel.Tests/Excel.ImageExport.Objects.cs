@@ -13,6 +13,56 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelImageExportObjectTests {
         [Fact]
+        public void ExcelRange_ImageExportToleratesMalformedDrawingTextAttributes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorksheet("MalformedShape").CellValue(1, 1, "Anchor");
+                document.Save();
+            }
+
+            AppendAbsoluteDrawingShape(filePath, "Malformed shape", "Safe shape text", xPixels: 4, yPixels: 4, widthPixels: 96, heightPixels: 34);
+            CorruptAbsoluteDrawingShapeAttributes(filePath);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            OfficeImageExportResult result = loaded["MalformedShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:C3",
+                ShowGridlines = false
+            });
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.True(svg.Length < 100_000, $"Expected bounded shape output but got {svg.Length} characters.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportKeepsCellTextVisibleThroughNoFillShapes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("InvisibleShape");
+                sheet.SetColumnWidth(1, 8);
+                sheet.SetColumnWidth(2, 30);
+                sheet.SetRowHeight(1, 24);
+                sheet.CellValue(1, 1, "Visible through shape");
+                document.Save();
+            }
+
+            AppendAbsoluteDrawingShape(filePath, "Invisible shape", string.Empty, xPixels: 2, yPixels: 2, widthPixels: 150, heightPixels: 28);
+            MakeFirstAbsoluteDrawingShapeInvisible(filePath);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            OfficeImageExportResult result = loaded["InvisibleShape"].ExportImage(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:B1",
+                ShowGridlines = false
+            });
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+
+            Assert.Contains("Visible through shape", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+                diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing ||
+                diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportRendersCellCommentIndicatorsAndReportsUnsupportedBodiesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -1462,6 +1512,46 @@ namespace OfficeIMO.Tests {
                 new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
+        }
+
+        private static void MakeFirstAbsoluteDrawingShapeInvisible(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            Xdr.Shape shape = spreadsheet.WorkbookPart!.WorksheetParts.Single()
+                .DrawingsPart!.WorksheetDrawing!.Descendants<Xdr.Shape>().Single();
+            Xdr.ShapeProperties properties = shape.ShapeProperties!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.RemoveAllChildren<A.GradientFill>();
+            properties.RemoveAllChildren<A.PatternFill>();
+            properties.RemoveAllChildren<A.NoFill>();
+            properties.PrependChild(new A.NoFill());
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
+            outline.RemoveAllChildren();
+            outline.Append(new A.NoFill());
+            shape.Ancestors<Xdr.WorksheetDrawing>().Single().Save();
+        }
+
+        private static void CorruptAbsoluteDrawingShapeAttributes(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            Xdr.Shape shape = spreadsheet.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.WorksheetDrawing!.Descendants<Xdr.Shape>().Single();
+            A.Transform2D transform = shape.ShapeProperties!.GetFirstChild<A.Transform2D>()!;
+            A.BodyProperties body = shape.TextBody!.GetFirstChild<A.BodyProperties>()!;
+            A.ParagraphProperties paragraph = shape.TextBody.Descendants<A.ParagraphProperties>().FirstOrDefault()
+                ?? shape.TextBody.Descendants<A.Paragraph>().Single().PrependChild(new A.ParagraphProperties());
+            A.RunProperties run = shape.TextBody.Descendants<A.RunProperties>().Single();
+            A.LatinFont latin = run.GetFirstChild<A.LatinFont>() ?? run.AppendChild(new A.LatinFont());
+
+            transform.SetAttribute(new OpenXmlAttribute(string.Empty, "rot", string.Empty, "not-an-angle"));
+            transform.SetAttribute(new OpenXmlAttribute(string.Empty, "flipH", string.Empty, "not-a-boolean"));
+            body.SetAttribute(new OpenXmlAttribute(string.Empty, "lIns", string.Empty, long.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            body.SetAttribute(new OpenXmlAttribute(string.Empty, "rIns", string.Empty, "not-an-inset"));
+            body.SetAttribute(new OpenXmlAttribute(string.Empty, "anchor", string.Empty, "not-an-anchor"));
+            body.SetAttribute(new OpenXmlAttribute(string.Empty, "wrap", string.Empty, "not-a-wrap-mode"));
+            body.SetAttribute(new OpenXmlAttribute(string.Empty, "vert", string.Empty, "not-an-orientation"));
+            paragraph.SetAttribute(new OpenXmlAttribute(string.Empty, "algn", string.Empty, "not-an-alignment"));
+            run.SetAttribute(new OpenXmlAttribute(string.Empty, "sz", string.Empty, "not-a-font-size"));
+            run.SetAttribute(new OpenXmlAttribute(string.Empty, "b", string.Empty, "not-a-boolean"));
+            latin.SetAttribute(new OpenXmlAttribute(string.Empty, "typeface", string.Empty, "Malformed Font"));
+            spreadsheet.WorkbookPart.WorksheetParts.Single().DrawingsPart!.WorksheetDrawing!.Save();
         }
 
         private static Xdr.TwoCellAnchor CreateShapeAnchor(int fromColumn, int fromRow, int toColumn, int toRow, uint id, string name) {

@@ -162,6 +162,38 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
     }
 
     [Fact]
+    public void FlatXmlPartitionsReverseOrderedStyleDependencyChainsInLinearPasses() {
+        const int styleCount = 3_000;
+        XDocument flat = OdtDocument.Create().ToFlatXml();
+        XElement automatic = flat.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
+        for (int index = styleCount - 1; index >= 0; index--) {
+            var style = new XElement(
+                OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", "chain-" + index),
+                new XAttribute(OdfNamespaces.Style + "family", "paragraph"));
+            if (index + 1 < styleCount) {
+                style.SetAttributeValue(OdfNamespaces.Style + "parent-style-name", "chain-" + (index + 1));
+            }
+            automatic.Add(style);
+        }
+        flat.Root.Element(OdfNamespaces.Office + "master-styles")!.Add(
+            new XElement(
+                OdfNamespaces.Style + "master-page",
+                new XAttribute(OdfNamespaces.Style + "name", "ChainMaster"),
+                new XAttribute(OdfNamespaces.Style + "page-layout-name", "chain-0")));
+        using var stream = new MemoryStream();
+        flat.Save(stream, SaveOptions.DisableFormatting);
+        stream.Position = 0;
+
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
+
+        XElement stylesAutomatic = reopened.Package.GetXml("styles.xml").Root!
+            .Element(OdfNamespaces.Office + "automatic-styles")!;
+        Assert.Equal(styleCount, stylesAutomatic.Elements(OdfNamespaces.Style + "style")
+            .Count(style => ((string?)style.Attribute(OdfNamespaces.Style + "name"))?.StartsWith("chain-", StringComparison.Ordinal) == true));
+    }
+
+    [Fact]
     public void FlatXmlSaveReportsPackageOnlyContentAsLossy() {
         OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Flat projection");

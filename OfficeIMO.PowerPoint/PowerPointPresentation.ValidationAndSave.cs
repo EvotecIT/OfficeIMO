@@ -345,6 +345,8 @@ namespace OfficeIMO.PowerPoint {
             if (options == null
                 && TryCopyOriginalEncryptedLegacyPackage(
                     out byte[] originalEncryptedBytes)) {
+                LegacyPptWritePreflight.ThrowIfBlocked(
+                    AnalyzeLegacyPptWrite(), options);
                 return originalEncryptedBytes;
             }
             ApplySignatureMutationPolicy();
@@ -371,6 +373,8 @@ namespace OfficeIMO.PowerPoint {
             if (LastSignatureReport?.Action
                     != PowerPointSignatureMutationAction.Removed
                 && TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {
+                LegacyPptWritePreflight.ThrowIfBlocked(
+                    AnalyzeLegacyPptWrite(), options);
                 return originalBytes;
             }
             ApplySignatureMutationPolicy();
@@ -378,6 +382,8 @@ namespace OfficeIMO.PowerPoint {
             PresentationRoot.Save();
             _document!.Save();
             if (LegacyPptPreservingWriter.TryWritePresentation(this, out byte[] preservedBytes)) {
+                LegacyPptWritePreflight.ThrowIfBlocked(
+                    AnalyzeLegacyPptWrite(), options);
                 return preservedBytes;
             }
             if (LastSignatureReport?.Action == PowerPointSignatureMutationAction.Preserved

@@ -53,9 +53,9 @@ Worksheet metadata records: 67
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 0
+Unsupported features: 2
 Unsupported projection gaps: 0
-Preserved feature records: 0
+Preserved feature records: 2
 Errors: 0
 Warnings: 0
 
@@ -63,6 +63,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 
 ## Formula Tokens By Name
@@ -890,6 +891,36 @@ Warnings: 0
 | Sheet5 | 1 |
 | Sheet6 | 1 |
 | Sheet8 | 1 |
+
+## Unsupported Features By Code
+
+| Key | Count |
+| --- | --- |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
+
+## Unsupported Features By Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalReference | 2 |
+
+## Unsupported Feature Record Types
+
+| Key | Count |
+| --- | --- |
+| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 2 |
+
+## Unsupported Feature Details
+
+| Key | Count |
+| --- | --- |
+| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
+
+## Unsupported Feature Locations
+
+| Key | Count |
+| --- | --- |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 2 |
 
 ## File Format States
 
@@ -3172,3 +3203,15 @@ Warnings: 0
 | Selection | 10 |
 | SheetOptions | 10 |
 | Sort | 1 |
+
+## Preserved Feature Records By Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalReference | 2 |
+
+## Preserved Feature Record Details
+
+| Key | Count |
+| --- | --- |
+| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |

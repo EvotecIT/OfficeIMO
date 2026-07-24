@@ -1,10 +1,6 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSanitizer {
-    private static readonly HashSet<string> UnsafeActionTypes = new HashSet<string>(StringComparer.Ordinal) {
-        "JavaScript", "Launch", "GoToR", "SubmitForm", "ImportData", "Movie", "Rendition", "RichMedia"
-    };
-
     private static readonly HashSet<string> RichAnnotationSubtypes = new HashSet<string>(StringComparer.Ordinal) {
         "RichMedia", "Movie", "Sound", "Screen", "3D", "FileAttachment"
     };
@@ -229,7 +225,7 @@ internal static partial class PdfSanitizer {
             return false;
         }
 
-        if (!UnsafeActionTypes.Contains(actionType) || policy.IsActionAllowed(actionType)) {
+        if (!PdfActiveContentPolicy.IsUnsafeActionType(actionType) || policy.IsActionAllowed(actionType)) {
             return false;
         }
 

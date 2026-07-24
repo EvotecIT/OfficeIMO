@@ -10,6 +10,47 @@ namespace OfficeIMO.Markup.Tests;
 
 public class OfficeMarkupPowerPointPreflightTests {
     [Fact]
+    public void DefaultMarkupPreflightSkipsPairwiseCollisionScanUnlessExplicitlyRequested() {
+        const string markup = """
+---
+profile: presentation
+---
+
+# Collision policy
+
+@slide {
+  layout: blank
+}
+
+::textbox x=10% y=20% w=55% h=20%
+First overlapping box
+
+::textbox x=20% y=25% w=55% h=20%
+Second overlapping box
+""";
+        OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
+
+        OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointPresentationResult(
+            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointPresentationResult(
+            new MarkupToPowerPointOptions {
+                RenderMermaidDiagrams = false,
+                PreflightOptions = new PowerPointDeckPreflightOptions {
+                    DetectShapeCollisions = true,
+                    IncludeVisualSnapshotDiagnostics = false
+                }
+            });
+
+        using (bounded.Value)
+        using (explicitCollisionScan.Value) {
+            Assert.DoesNotContain(bounded.Report.Preflight.Findings,
+                finding => finding.Code == "Layout.ShapeCollision");
+            Assert.Contains(explicitCollisionScan.Report.Preflight.Findings,
+                finding => finding.Code == "Layout.ShapeCollision");
+        }
+    }
+
+    [Fact]
     public void SaveAsPowerPoint_ReturnsSharedPreflightThatCanBePersistedSeparately() {
         const string markup = """
 ---

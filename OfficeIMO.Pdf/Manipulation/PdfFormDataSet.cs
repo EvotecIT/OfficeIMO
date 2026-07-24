@@ -18,6 +18,13 @@ public sealed class PdfFormDataField {
 
 /// <summary>Dependency-free AcroForm data set with typed and XFDF interchange.</summary>
 public sealed class PdfFormDataSet {
+    /// <summary>Default maximum XFDF source length accepted before XML materialization.</summary>
+    public const int DefaultMaxXfdfDocumentCharacters = 8_000_000;
+    /// <summary>Default maximum number of XFDF fields.</summary>
+    public const int DefaultMaxXfdfFields = 100_000;
+    /// <summary>Default maximum aggregate XFDF value length.</summary>
+    public const int DefaultMaxXfdfValueCharacters = 4_000_000;
+
     private readonly PdfFormDataField[] _fields;
     /// <summary>Creates a unique-name data set.</summary>
     public PdfFormDataSet(IEnumerable<PdfFormDataField> fields) {
@@ -45,12 +52,19 @@ public sealed class PdfFormDataSet {
         return builder.ToString();
     }
     /// <summary>Parses bounded, DTD-free XFDF field data.</summary>
-    public static PdfFormDataSet ParseXfdf(string xfdf, int maxFields = 100000, int maxValueCharacters = 4000000) {
+    public static PdfFormDataSet ParseXfdf(
+        string xfdf,
+        int maxFields = DefaultMaxXfdfFields,
+        int maxValueCharacters = DefaultMaxXfdfValueCharacters,
+        int maxDocumentCharacters = DefaultMaxXfdfDocumentCharacters) {
         Guard.NotNull(xfdf, nameof(xfdf));
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (maxFields <= 0) throw new ArgumentOutOfRangeException(nameof(maxFields)); if (maxValueCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxValueCharacters));
+        if (maxFields <= 0) throw new ArgumentOutOfRangeException(nameof(maxFields));
+        if (maxValueCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxValueCharacters));
+        if (maxDocumentCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDocumentCharacters));
 #pragma warning restore CA1512
-        var settings = new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = Math.Max(maxValueCharacters, xfdf.Length) };
+        if (xfdf.Length > maxDocumentCharacters) throw new InvalidOperationException("XFDF document character limit exceeded.");
+        var settings = new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = maxDocumentCharacters };
         var document = new System.Xml.XmlDocument { XmlResolver = null };
         using (var reader = System.Xml.XmlReader.Create(new StringReader(xfdf), settings)) {
             document.Load(reader);

@@ -8,7 +8,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
     public sealed class GoogleInstalledApplicationAuthorizationOptions {
         public ClientSecrets? ClientSecrets { get; set; }
         public IReadOnlyList<string> Scopes { get; set; } = Array.Empty<string>();
-        public string UserId { get; set; } = "default";
+        public string? UserId { get; set; }
         public IGoogleWorkspaceTokenStore? TokenStore { get; set; }
         public ICodeReceiver? CodeReceiver { get; set; }
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
             return await GoogleWebAuthorizationBroker.AuthorizeAsync(
                     initializer,
                     options.Scopes,
-                    options.UserId,
+                    options.UserId!,
                     usePkce: true,
                     taskCancellationToken: cancellationToken,
                     dataStore: new GoogleApisDataStoreAdapter(options.TokenStore!),

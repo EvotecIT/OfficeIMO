@@ -17,6 +17,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.IReadOnlyDictionary<string, int> sectionPageNumbers;
         private readonly System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>> deferredMaterializations;
         private readonly System.Collections.Generic.List<SectionBlock> encounteredSectionDefinitions = new System.Collections.Generic.List<SectionBlock>();
+        private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
         private PdfOptions currentOpts;
         private int currentPageGroupId;

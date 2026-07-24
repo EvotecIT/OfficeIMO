@@ -125,8 +125,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> rowBreakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))
             .Where(boundary => !items.Any(item => item.Row < boundary && item.Row + item.RowSpan > boundary))
             .Select(boundary => contentY + rows.Positions[boundary]);
+        var rowItemCountDeltas = new int[rowCount + 1];
+        foreach (GridItem item in items) {
+            rowItemCountDeltas[item.Row]++;
+            rowItemCountDeltas[Math.Min(rowCount, item.Row + item.RowSpan)]--;
+        }
+        var rowItemCounts = new int[rowCount];
+        int activeRowItems = 0;
+        for (int row = 0; row < rowCount; row++) {
+            activeRowItems += rowItemCountDeltas[row];
+            rowItemCounts[row] = activeRowItems;
+        }
         IEnumerable<double> itemBreakOffsets = items
-            .Where(item => item.RowSpan == 1 && items.Count(other => other.Row <= item.Row && other.Row + other.RowSpan > item.Row) == 1)
+            .Where(item => item.RowSpan == 1 && rowItemCounts[item.Row] == 1)
             .SelectMany(item => item.Block!.BreakOffsets.Select(offset =>
                 contentY + rows.Positions[item.Row] + item.OffsetY + offset));
         IEnumerable<double> breakOffsets = rowBreakOffsets.Concat(itemBreakOffsets).Distinct().OrderBy(offset => offset);

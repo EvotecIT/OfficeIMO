@@ -4,6 +4,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int MaximumHeaderFooterFontFamilyCharacters = 256;
+
         private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextSection normalized) {
             normalized = HeaderFooterTextSection.Empty;
             if (string.IsNullOrWhiteSpace(text)) {
@@ -180,6 +182,10 @@ namespace OfficeIMO.Excel {
 
             int end = text.IndexOf('"', openingQuoteIndex + 1);
             if (end < 0) {
+                return false;
+            }
+
+            if (end - openingQuoteIndex - 1 > MaximumHeaderFooterFontFamilyCharacters) {
                 return false;
             }
 

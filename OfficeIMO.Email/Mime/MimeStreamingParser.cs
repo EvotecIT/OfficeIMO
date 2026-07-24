@@ -12,7 +12,11 @@ internal sealed class MimeStreamingParser {
     private readonly EmailReadWorkspace _workspace;
     private readonly List<ExternalPart> _externalParts = new List<ExternalPart>();
     private int _analyzedPartCount;
+    private int _analyzedAttachmentCount;
     private long _totalAttachmentBytes;
+    private bool _hasTextBody;
+    private bool _hasHtmlBody;
+    private bool _hasRtfBody;
 
     private MimeStreamingParser(Stream input, EmailReaderOptions options,
         IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace) {
@@ -40,11 +44,14 @@ internal sealed class MimeStreamingParser {
     private void AnalyzeMessage(long start, long end, int depth, string location) {
         if (depth > _options.MaxNestedMessageDepth) return;
         HeaderSection section = ReadHeaders(start, end, location);
-        AnalyzeEntity(section.Headers, section.BodyStart, end, 0, location);
+        AnalyzeEntity(section.Headers, section.BodyStart, end, 0, location,
+            defaultContentType: "text/plain", preferredBodyContentId: null,
+            isRelatedSibling: false, isDefaultRelatedRoot: false);
     }
 
     private void AnalyzeEntity(IReadOnlyList<EmailHeader> headers, long bodyStart, long end,
-        int depth, string location) {
+        int depth, string location, string defaultContentType, string? preferredBodyContentId,
+        bool isRelatedSibling, bool isDefaultRelatedRoot) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (depth > _options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), depth,
@@ -57,38 +64,94 @@ internal sealed class MimeStreamingParser {
         }
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
-            "text/plain", _diagnostics, location);
+            defaultContentType, _diagnostics, location);
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, _diagnostics, location);
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
+        string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
+        string? contentLocation = MimeHeaderParser.GetValue(headers, "Content-Location");
+        bool contentIdMatchesPreferred = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
+            string.Equals(MimeParser.TrimAngleBrackets(contentId),
+                MimeParser.TrimAngleBrackets(preferredBodyContentId), StringComparison.OrdinalIgnoreCase);
+        bool isPreferredRelatedBody = isDefaultRelatedRoot || contentIdMatchesPreferred;
+        bool hasRelatedIdentity = !string.IsNullOrWhiteSpace(contentId) ||
+            !string.IsNullOrWhiteSpace(contentLocation);
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment",
             StringComparison.OrdinalIgnoreCase);
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
-            !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)) {
+            !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
+            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
             if (boundary == null) return;
             IReadOnlyList<Segment> parts = SplitMultipart(bodyStart, end, boundary, location);
+            string childDefaultContentType = string.Equals(contentType.Value, "multipart/digest",
+                StringComparison.OrdinalIgnoreCase) ? "message/rfc822" : "text/plain";
+            bool isRelated = string.Equals(contentType.Value, "multipart/related",
+                StringComparison.OrdinalIgnoreCase);
+            string? childPreferredBodyContentId = isRelated
+                ? MimeParser.TrimAngleBrackets(contentType.GetParameter("start"))
+                : preferredBodyContentId;
             for (int index = 0; index < parts.Count; index++) {
                 Segment part = parts[index];
                 string partLocation = string.Concat(location, "/part[",
                     index.ToString(CultureInfo.InvariantCulture), "]");
                 HeaderSection child = ReadHeaders(part.Start, part.End, partLocation);
-                AnalyzeEntity(child.Headers, child.BodyStart, part.End, depth + 1, partLocation);
+                string? partPreferredBodyContentId = childPreferredBodyContentId;
+                bool partIsDefaultRelatedRoot = isRelated && index == 0 &&
+                    string.IsNullOrWhiteSpace(childPreferredBodyContentId);
+                if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && index == 0) {
+                    partPreferredBodyContentId = MimeParser.TrimAngleBrackets(
+                        MimeHeaderParser.GetValue(child.Headers, "Content-ID"));
+                }
+                AnalyzeEntity(child.Headers, child.BodyStart, part.End, depth + 1, partLocation,
+                    childDefaultContentType, partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot);
             }
             return;
         }
+
+        bool isBodyCandidate = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
+            (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody) &&
+            (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
+        bool isBody = isBodyCandidate && ClaimBodySlot(contentType.Value);
+        if (!isBody) CountAnalyzedAttachment();
 
         bool embedded = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool semantic = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase) ||
             VCardCodec.IsVCardContentType(contentType.Value, contentType.GetParameter("profile"));
-        if ((!attachmentDisposition && string.IsNullOrWhiteSpace(fileName)) || embedded || semantic) return;
+        if (isBody || (!attachmentDisposition && string.IsNullOrWhiteSpace(fileName)) || embedded || semantic) return;
 
         _externalParts.Add(new ExternalPart(bodyStart, end,
             MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding"), fileName,
             contentType.Value, MimeParser.TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Content-ID")),
             MimeHeaderParser.GetValue(headers, "Content-Location"), location));
+    }
+
+    private bool ClaimBodySlot(string contentType) {
+        if (string.Equals(contentType, "text/plain", StringComparison.OrdinalIgnoreCase)) {
+            if (_hasTextBody) return false;
+            _hasTextBody = true;
+            return true;
+        }
+        if (string.Equals(contentType, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            if (_hasHtmlBody) return false;
+            _hasHtmlBody = true;
+            return true;
+        }
+        if (_hasRtfBody) return false;
+        _hasRtfBody = true;
+        return true;
+    }
+
+    private void CountAnalyzedAttachment() {
+        _analyzedAttachmentCount++;
+        if (_analyzedAttachmentCount > _options.MaxAttachmentCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentCount),
+                _analyzedAttachmentCount, _options.MaxAttachmentCount);
+        }
     }
 
     private HeaderSection ReadHeaders(long start, long end, string location) {

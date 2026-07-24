@@ -561,12 +561,12 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia");
+            return ContainsAnyParsedPdfName(pdf, options, PdfActiveContentPolicy.MarkerNames);
         }
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia") ||
-            ContainsAnyParsedPdfName(pdf, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia");
+        return ContainsAnyPdfName(text, PdfActiveContentPolicy.MarkerNames) ||
+            ContainsAnyParsedPdfName(pdf, PdfActiveContentPolicy.MarkerNames);
     }
 
     internal static string? GetHeaderVersion(byte[] pdf) {

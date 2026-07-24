@@ -3012,6 +3012,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_SkipsChartFramesTooSmallForSafeRendering() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            PowerPointSlide slide = presentation.AddSlide();
+            var data = new PowerPointChartData(
+                new[] { "A", "B" },
+                new[] { new PowerPointChartSeries("Series", new[] { 1D, 2D }) });
+            slide.AddChartPoints(data, 10, 10, 1, 1);
+
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape);
+        }
+
+        [Fact]
         public void PowerPointSlide_RendersComboChartsThroughSharedDrawingChartRenderer() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

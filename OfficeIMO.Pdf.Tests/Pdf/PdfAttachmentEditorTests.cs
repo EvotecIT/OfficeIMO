@@ -165,7 +165,8 @@ public class PdfAttachmentEditorTests {
         byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(source, options));
+        PdfReadDocument document = PdfReadDocument.Open(source, options);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.ExtractAttachments());
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(8, exception.Limit);

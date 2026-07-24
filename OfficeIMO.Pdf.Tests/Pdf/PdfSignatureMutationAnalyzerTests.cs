@@ -101,6 +101,74 @@ public class PdfSignatureMutationAnalyzerTests {
         Assert.True(report.RevisionChainExtended);
     }
 
+    [Fact]
+    public void Analyze_RejectsSupersededActiveSignatureDictionary() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(source);
+        PdfSignatureInfo signature = Assert.Single(security.Signatures);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
+        string byteRange = string.Join(" ", signature.ByteRangeValues.Select(value =>
+            value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        string contents = ToHex(signature.ContentsBytes ?? Array.Empty<byte>());
+        byte[] replacement = PdfObjectBytes.WrapIndirectObject(
+            signature.ObjectNumber,
+            "<< /Type /Sig /Filter /Tampered.Handler /SubFilter /adbe.pkcs7.detached /ByteRange [" +
+            byteRange + "] /Contents <" + contents + "> >>");
+        byte[] superseded = PdfIncrementalObjectWriter.Append(
+            source,
+            objects,
+            security,
+            trailerRaw,
+            rawObjects: new[] { (signature.ObjectNumber, replacement) });
+
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(
+            source,
+            superseded,
+            PdfMutationOperation.UpdateMetadata);
+
+        PdfSignatureMutationResult result = Assert.Single(report.Signatures);
+        Assert.True(report.OriginalBytesArePrefix);
+        Assert.True(result.ByteRangePreserved);
+        Assert.False(result.ActiveDefinitionPreserved);
+        Assert.False(result.IsStructurallyPreserved);
+        Assert.False(report.AllExistingSignaturesArePreserved);
+    }
+
+    [Fact]
+    public void Analyze_DoesNotTraversePageContentThroughSignatureWidgetBacklink() {
+        string sourceText = Encoding.ASCII.GetString(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
+            .Replace("/Subtype /Widget /Rect", "/Subtype /Widget /P 3 0 R /Rect")
+            .Replace(
+                "<< /Length 0 >>\nstream\n\nendstream",
+                "<< /Length 1048577 >>\nstream\n" + new string('q', 1_048_577) + "\nendstream");
+        byte[] source = Encoding.ASCII.GetBytes(sourceText);
+        byte[] updated = AppendMetadataWithoutPolicy(source, "Later metadata");
+
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(
+            source,
+            updated,
+            PdfMutationOperation.UpdateMetadata);
+
+        PdfSignatureMutationResult result = Assert.Single(report.Signatures);
+        Assert.True(result.ActiveDefinitionPreserved);
+        Assert.True(result.IsStructurallyPreserved);
+    }
+
+    [Fact]
+    public void Analyze_StillComparesNestedDocMdpPermissionValues() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+        byte[] changed = ReplaceFirst(source, "/MDP << /P 2", "/MDP << /P 3");
+
+        PdfSignatureMutationReport report = PdfSignatureMutationAnalyzer.Analyze(
+            source,
+            changed,
+            PdfMutationOperation.UpdateMetadata);
+
+        PdfSignatureMutationResult result = Assert.Single(report.Signatures);
+        Assert.False(result.ActiveDefinitionPreserved);
+        Assert.False(result.IsStructurallyPreserved);
+    }
+
     private static byte[] ReplaceFirst(byte[] source, string oldValue, string newValue) {
         byte[] oldBytes = Encoding.ASCII.GetBytes(oldValue);
         byte[] newBytes = Encoding.ASCII.GetBytes(newValue);
@@ -116,6 +184,14 @@ public class PdfSignatureMutationAnalyzerTests {
         }
 
         throw new InvalidOperationException("Expected signature marker was not found.");
+    }
+
+    private static string ToHex(byte[] bytes) {
+        var builder = new StringBuilder(bytes.Length * 2);
+        for (int index = 0; index < bytes.Length; index++) {
+            builder.Append(bytes[index].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return builder.ToString();
     }
 
     private static byte[] AppendMetadataWithoutPolicy(byte[] source, string title) {

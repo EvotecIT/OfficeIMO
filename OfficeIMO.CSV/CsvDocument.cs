@@ -200,11 +200,7 @@ public sealed partial class CsvDocument
             throw new IOException($"The file '{fullPath}' already exists.");
         }
 
-        var directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+        OfficeFileCommit.EnsureTargetDirectory(fullPath);
 
         if (options.Append)
         {
@@ -213,9 +209,7 @@ public sealed partial class CsvDocument
             return;
         }
 
-        var temporaryPath = Path.Combine(
-            string.IsNullOrEmpty(directory) ? Environment.CurrentDirectory : directory,
-            "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+        var temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
 
         try
         {
@@ -224,23 +218,17 @@ public sealed partial class CsvDocument
                 WriteObjects(writer, items, options);
             }
 
-            if (File.Exists(fullPath))
-            {
-                File.Replace(temporaryPath, fullPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
-            }
-            else
-            {
-                File.Move(temporaryPath, fullPath);
-            }
+            OfficeFileCommit.CommitTemporaryFile(
+                temporaryPath,
+                fullPath,
+                options.NoClobber
+                    ? OfficeFileCommit.ConflictPolicy.FailIfExists
+                    : OfficeFileCommit.ConflictPolicy.Replace);
+            temporaryPath = string.Empty;
         }
-        catch
+        finally
         {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
-
-            throw;
+            OfficeFileCommit.DeleteIfExists(temporaryPath);
         }
     }
 

@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return tint.HasValue && Math.Abs(tint.Value) > double.Epsilon
-                ? OfficeColorTransforms.SpreadsheetTint(color.Value, tint.Value).ToArgbHex()
+                ? OfficeColorTransforms.SpreadsheetTint(color.Value, NormalizeSpreadsheetTint(tint.Value)).ToArgbHex()
                 : color.Value.ToArgbHex();
         }
 
@@ -78,7 +78,12 @@ namespace OfficeIMO.Excel.Utilities {
                 throw new ArgumentException("Color must be a six-digit RGB or eight-digit ARGB value.", nameof(argb));
             }
 
-            return OfficeColorTransforms.SpreadsheetTint(color, tint).ToArgbHex();
+            return OfficeColorTransforms.SpreadsheetTint(color, NormalizeSpreadsheetTint(tint)).ToArgbHex();
+        }
+
+        private static double NormalizeSpreadsheetTint(double tint) {
+            if (double.IsNaN(tint) || double.IsInfinity(tint)) return 0D;
+            return Math.Max(-1D, Math.Min(1D, tint));
         }
 
         internal static string? NormalizeArgb(string? value) {

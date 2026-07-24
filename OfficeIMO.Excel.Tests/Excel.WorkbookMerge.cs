@@ -177,7 +177,8 @@ namespace OfficeIMO.Tests {
             using (var target = ExcelDocument.Load(targetPath))
             using (var source = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
-                    CopyMode = ExcelWorksheetCopyMode.Package
+                    CopyMode = ExcelWorksheetCopyMode.Package,
+                    CopyExternalWorkbookReferences = true
                 });
                 target.Save();
             }

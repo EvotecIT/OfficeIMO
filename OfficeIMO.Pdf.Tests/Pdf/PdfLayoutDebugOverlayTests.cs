@@ -41,4 +41,15 @@ public class PdfLayoutDebugOverlayTests {
         Assert.Equal(PdfReadLimitKind.InteractionRegions, exception.Kind);
         Assert.Equal(1, exception.Limit);
     }
+
+    [Fact]
+    public void DebugOverlay_RejectsRasterDimensionsBeyondPixelBudget() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Raster budget")).ToBytes();
+        var options = new PdfLayoutDebugOverlayOptions { MaxRasterPixels = 100 };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfLayoutDebugOverlay.ToPng(source, 1, scale: 1D, options));
+
+        Assert.Contains("pixel limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

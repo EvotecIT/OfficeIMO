@@ -170,6 +170,7 @@ public static partial class PdfRewritePreservation {
             CompareString(issues, prefix + ".Relationship", before.Relationship.ToString(), after.Relationship.ToString());
             CompareString(issues, prefix + ".Filter", before.Filter, after.Filter);
             CompareCounts(issues, prefix + ".SizeBytes", before.SizeBytes, after.SizeBytes, true);
+            CompareNullableInt(issues, prefix + ".DeclaredSizeBytes", before.DeclaredSizeBytes, after.DeclaredSizeBytes);
             CompareString(issues, prefix + ".Source", before.Source, after.Source);
         }
     }

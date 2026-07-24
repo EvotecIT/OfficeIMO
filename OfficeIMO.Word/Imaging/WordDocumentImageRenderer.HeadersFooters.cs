@@ -202,7 +202,9 @@ namespace OfficeIMO.Word {
                 sectionPageCount: sectionPageCount,
                 pageNumberValue: pageNumberValue,
                 pageNumberText: pageNumberText);
-            AddHeaderFooterContent(headerFooter, measurementContext, new List<OfficeImageExportDiagnostic>(), "header-footer");
+            using (measurementDrawing.DeferBehindContentOrdering()) {
+                AddHeaderFooterContent(headerFooter, measurementContext, new List<OfficeImageExportDiagnostic>(), "header-footer");
+            }
             return Math.Max(DefaultHeaderFooterLineHeightPoints, measurementContext.Y);
         }
 

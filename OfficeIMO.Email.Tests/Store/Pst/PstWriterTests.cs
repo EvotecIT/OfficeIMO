@@ -179,6 +179,42 @@ public sealed class PstWriterTests {
     }
 
     [Fact]
+    public void LazySessionReadsShareTheConfiguredPstAttachmentAggregateBudget() {
+        string path = TemporaryPstPath();
+        try {
+            using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path)) {
+                string folder = writer.AddFolder("Mailbox");
+                for (int index = 0; index < 2; index++) {
+                    var document = new EmailDocument { Subject = "Item " + index };
+                    document.Attachments.Add(new EmailAttachment {
+                        FileName = "payload.bin",
+                        Content = new byte[] { 1, 2, 3, 4, 5, 6 },
+                        Length = 6
+                    });
+                    writer.AddItem(folder, document);
+                }
+                writer.Complete();
+            }
+
+            using EmailStoreSession session = EmailStoreSession.Open(
+                path,
+                new EmailStoreReaderOptions(
+                    maxAttachmentBytes: 10,
+                    maxTotalAttachmentBytes: 10));
+            EmailStoreItemReference[] references = session.EnumerateItems().ToArray();
+
+            Assert.Single(session.ReadItem(references[0]).Document.Attachments);
+            EmailStoreLimitExceededException exception = Assert.Throws<EmailStoreLimitExceededException>(
+                () => session.ReadItem(references[1]));
+
+            Assert.Equal(nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
+            Assert.Equal(12, exception.Actual);
+        } finally {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
     public void Ost_session_converts_to_a_different_new_pst_without_mutating_source() {
         byte[] sourceBytes = PstTestFileBuilder.Create(ost: true,
             attachmentContent: new byte[] { 9, 8, 7 });

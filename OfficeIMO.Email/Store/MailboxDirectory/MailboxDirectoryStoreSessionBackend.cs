@@ -1,11 +1,14 @@
 using OfficeIMO.Email;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace OfficeIMO.Email.Store;
 
 internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly string _root;
+    private readonly string _unixOpenRoot;
+    private readonly string _windowsOpenRoot;
     private readonly StringComparison _rootComparison;
     private readonly EmailStoreReaderOptions _options;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
@@ -20,9 +23,16 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     internal MailboxDirectoryStoreSessionBackend(string path, EmailStoreReaderOptions options,
         CancellationToken cancellationToken) {
         _root = AppendSeparator(Path.GetFullPath(path));
-        string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
+        string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         string? rootParent = Path.GetDirectoryName(rootWithoutSeparator);
         _rootComparison = EmailStorePathIdentity.GetComparison(rootParent ?? rootWithoutSeparator);
+        _unixOpenRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? _root
+            : AppendSeparator(ResolveUnixRealPath(rootWithoutSeparator) ?? rootWithoutSeparator);
+        _windowsOpenRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? AppendSeparator(EmailStorePathIdentity.ResolvePhysicalPath(
+                rootWithoutSeparator))
+            : _root;
         _options = options;
         DisplayName = new DirectoryInfo(path).Name;
         Index(cancellationToken);
@@ -93,7 +103,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     private void Index(CancellationToken cancellationToken) {
         var candidates = new List<MailboxCandidate>();
         var pending = new Stack<DirectoryCandidate>();
-        pending.Push(new DirectoryCandidate(_root.TrimEnd(Path.DirectorySeparatorChar), 0));
+        pending.Push(new DirectoryCandidate(TrimTrailingDirectorySeparators(_root), 0));
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             DirectoryCandidate current = pending.Pop();
@@ -231,7 +241,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         if (normalized.StartsWith(_root, _rootComparison)) {
             return normalized.Substring(_root.Length).Replace('\\', '/');
         }
-        string rootWithoutSeparator = _root.TrimEnd(Path.DirectorySeparatorChar);
+        string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         return string.Equals(normalized, rootWithoutSeparator, _rootComparison)
             ? string.Empty
             : normalized;
@@ -273,7 +283,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
-    private static bool IsEmlx(FileInfo file) {
+    private bool IsEmlx(FileInfo file) {
         if (!file.Name.EndsWith(".emlx", StringComparison.OrdinalIgnoreCase)) return false;
         string? parent = file.Directory?.Name;
         if (!string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) &&
@@ -290,18 +300,18 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
-    private static bool IsRegularMailboxFile(string path) {
+    private bool IsRegularMailboxFile(string path) {
         if (!TryOpenRegularMailboxFile(path, 4 * 1024, out FileStream stream)) return false;
         stream.Dispose();
         return true;
     }
 
-    private static FileStream OpenRegularMailboxFile(string path) {
+    private FileStream OpenRegularMailboxFile(string path) {
         if (TryOpenRegularMailboxFile(path, 64 * 1024, out FileStream stream)) return stream;
         throw new IOException("The mailbox item is no longer a regular readable file.");
     }
 
-    private static bool TryOpenRegularMailboxFile(
+    private bool TryOpenRegularMailboxFile(
         string path,
         int bufferSize,
         out FileStream stream) {
@@ -311,6 +321,11 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 stream = new FileStream(
                     path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize,
                     FileOptions.SequentialScan);
+                if (!OpenedPathRemainsInsideRoot(stream.SafeFileHandle, path)) {
+                    stream.Dispose();
+                    stream = null!;
+                    return false;
+                }
                 return true;
             } catch (Exception exception) when (
                 exception is IOException || exception is UnauthorizedAccessException) {
@@ -321,10 +336,9 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         int nonBlocking = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x0004 : 0x0800;
         int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
         int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
-        int descriptor = OpenUnix(path, nonBlocking | closeOnExec | noFollow);
+        int descriptor = OpenUnixPathWithoutLinks(path, nonBlocking | closeOnExec | noFollow);
         if (descriptor < 0) return false;
-        if (GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) != 0 ||
-            (status.Mode & 0xF000) != 0x8000) {
+        if (!IsRegularUnixDescriptor(descriptor)) {
             CloseUnix(descriptor);
             return false;
         }
@@ -343,8 +357,119 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
+    private static bool IsRegularUnixDescriptor(int descriptor) =>
+        GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) == 0
+        && (status.Mode & 0xF000) == 0x8000;
+
+    private bool OpenedPathRemainsInsideRoot(SafeFileHandle handle, string requestedPath) {
+        var buffer = new StringBuilder(1024);
+        uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
+        if (length == 0) return false;
+        if (length >= buffer.Capacity) {
+            buffer = new StringBuilder(checked((int)length + 1));
+            length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
+            if (length == 0 || length >= buffer.Capacity) return false;
+        }
+        return IsResolvedPathInsideRoot(NormalizeWindowsFinalPath(buffer.ToString()), requestedPath);
+    }
+
+    private bool IsResolvedPathInsideRoot(string resolvedPath, string requestedPath) {
+        string normalized;
+        try {
+            normalized = Path.GetFullPath(resolvedPath);
+        } catch (Exception exception) when (
+            exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException) {
+            return false;
+        }
+        string requested = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? EmailStorePathIdentity.ResolvePhysicalPath(requestedPath)
+            : Path.GetFullPath(requestedPath);
+        return normalized.StartsWith(_windowsOpenRoot, _rootComparison)
+            && string.Equals(normalized, requested, _rootComparison);
+    }
+
+    private static string NormalizeWindowsFinalPath(string path) {
+        const string uncPrefix = @"\\?\UNC\";
+        const string devicePrefix = @"\\?\";
+        if (path.StartsWith(uncPrefix, StringComparison.OrdinalIgnoreCase)) {
+            return @"\\" + path.Substring(uncPrefix.Length);
+        }
+        return path.StartsWith(devicePrefix, StringComparison.OrdinalIgnoreCase)
+            ? path.Substring(devicePrefix.Length)
+            : path;
+    }
+
+    private int OpenUnixPathWithoutLinks(string path, int fileFlags) {
+        string normalized = Path.GetFullPath(path);
+        if (!normalized.StartsWith(_root, _rootComparison)) return -1;
+        string relative = normalized.Substring(_root.Length);
+        string[] segments = relative.Split(
+            new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+            StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0 || segments.Any(segment => segment == "." || segment == "..")) return -1;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            const int noFollow = 0x00000100;
+            const int noFollowAny = 0x20000000;
+            string canonicalPath = Path.Combine(_unixOpenRoot, string.Join(Path.DirectorySeparatorChar.ToString(), segments));
+            return OpenUnix(canonicalPath, (fileFlags & ~noFollow) | noFollowAny);
+        }
+
+        const int linuxCloseOnExec = 0x00080000;
+        const int linuxNoFollow = 0x00020000;
+        const int linuxDirectory = 0x00010000;
+        int directory = OpenUnix(
+            TrimTrailingDirectorySeparators(_unixOpenRoot),
+            linuxCloseOnExec | linuxNoFollow | linuxDirectory);
+        if (directory < 0) return -1;
+        try {
+            for (int index = 0; index < segments.Length - 1; index++) {
+                int child = OpenAtUnix(
+                    directory,
+                    segments[index],
+                    linuxCloseOnExec | linuxNoFollow | linuxDirectory);
+                if (child < 0) return -1;
+                CloseUnix(directory);
+                directory = child;
+            }
+            return OpenAtUnix(directory, segments[segments.Length - 1], fileFlags);
+        } finally {
+            CloseUnix(directory);
+        }
+    }
+
+    internal static string TrimTrailingDirectorySeparators(string path) {
+        string root = Path.GetPathRoot(path) ?? string.Empty;
+        int length = path.Length;
+        while (length > root.Length
+               && (path[length - 1] == Path.DirectorySeparatorChar
+                   || path[length - 1] == Path.AltDirectorySeparatorChar)) {
+            length--;
+        }
+        return length == path.Length ? path : path.Substring(0, length);
+    }
+
+    private static string? ResolveUnixRealPath(string path) {
+        IntPtr resolved = RealPathUnix(path, IntPtr.Zero);
+        if (resolved == IntPtr.Zero) return null;
+        try {
+            return Marshal.PtrToStringAnsi(resolved);
+        } finally {
+            FreeUnix(resolved);
+        }
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFinalPathNameByHandle(
+        SafeFileHandle file,
+        StringBuilder filePath,
+        uint filePathLength,
+        uint flags);
+
     [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
     private static extern int OpenUnix(string path, int flags);
+
+    [DllImport("libc", EntryPoint = "openat", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern int OpenAtUnix(int directoryDescriptor, string path, int flags);
 
     [DllImport("libc", EntryPoint = "lseek", SetLastError = true)]
     private static extern long SeekUnix(int descriptor, long offset, int origin);
@@ -376,6 +501,12 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         internal uint UserFlags;
         internal int HardLinkCount;
     }
+
+    [DllImport("libc", EntryPoint = "realpath", SetLastError = true, CharSet = CharSet.Ansi)]
+    private static extern IntPtr RealPathUnix(string path, IntPtr resolvedPath);
+
+    [DllImport("libc", EntryPoint = "free")]
+    private static extern void FreeUnix(IntPtr pointer);
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
         if (name == null) throw new ArgumentNullException(nameof(name));

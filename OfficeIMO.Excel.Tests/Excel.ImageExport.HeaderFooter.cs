@@ -31,6 +31,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_SvgHeaderFooterDoesNotSerializeClippedTextOrOversizedFontNames() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Report");
+            FillPageBreakGrid(sheet);
+            string visiblePrefix = new string('V', 600);
+            string oversizedFont = new string('F', 10000);
+            sheet.SetHeaderFooter(
+                headerLeft: visiblePrefix + "PLAIN-SECRET-TAIL",
+                headerCenter: "&B" + visiblePrefix + "RICH-SECRET-TAIL",
+                footerRight: "&\"" + oversizedFont + ",Bold\"FONT-SECRET-TAIL");
+
+            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
+                OfficeImageExportFormat.Svg,
+                new ExcelWorksheetImageExportOptions {
+                    Range = "A1:B2",
+                    ShowGridlines = false
+                }));
+            string svg = Encoding.UTF8.GetString(result.Bytes);
+
+            Assert.DoesNotContain("PLAIN-SECRET-TAIL", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("RICH-SECRET-TAIL", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("FONT-SECRET-TAIL", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(oversizedFont, svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedSvgExportRendersSupportedHeaderFooterFields() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -96,7 +122,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:H4",
+                Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
                 HeaderFooterDateTime = headerFooterDateTime
@@ -193,7 +219,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:D4",
+                Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             });
@@ -217,7 +243,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:D4",
+                Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             });
@@ -299,7 +325,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:D4",
+                Range = "A1:P4",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false,
                 HeaderFooterDateTime = headerFooterDateTime
@@ -331,7 +357,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(4, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
-                Range = "A1:D6",
+                Range = "A1:P6",
                 SplitByManualPageBreaks = true,
                 ShowGridlines = false
             });

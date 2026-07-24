@@ -15,6 +15,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void HtmlToPdf_SkipsEmptySvgWithAlternativeText() {
+        string svg = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>"));
+        string html = "<img src='data:image/svg+xml;base64," + svg +
+            "' alt='Empty vector'><p>After empty vector</p>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Contains(
+            "After empty vector",
+            PdfCore.PdfReadDocument.Open(pdf).ExtractText(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Html_DirectOutputs_UseOneSharedOptionsShape() {
         const string html = "<main><h1>Quarterly report</h1><p>Direct HTML rendering.</p></main>";
         var options = new HtmlPdfSaveOptions {

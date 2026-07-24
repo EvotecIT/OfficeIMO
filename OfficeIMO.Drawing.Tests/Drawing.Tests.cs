@@ -22,6 +22,37 @@ public partial class DrawingTests {
     };
 
     [Fact]
+    public void DeferredBehindContentOrderingRestoresStablePaintOrderInOnePass() {
+        var drawing = new OfficeDrawing(100, 60);
+        OfficeShape background = OfficeShape.Rectangle(100, 60);
+        background.FillColor = OfficeColor.White;
+        background.StrokeWidth = 0D;
+        drawing.AddShape(background, 0, 0);
+        drawing.AddText("foreground-one", 5, 5, 50, 10);
+
+        OfficeShape blue = OfficeShape.Rectangle(10, 10);
+        blue.FillColor = OfficeColor.Blue;
+        OfficeShape red = OfficeShape.Rectangle(10, 10);
+        red.FillColor = OfficeColor.Red;
+        using (drawing.DeferBehindContentOrdering()) {
+            for (int index = 0; index < 5000; index++) {
+                drawing.AddShapeBehindContent(index % 2 == 0 ? blue : red, 10, 10);
+                if (index == 2499) {
+                    drawing.AddText("foreground-two", 5, 20, 50, 10);
+                }
+            }
+        }
+
+        Assert.Equal(5003, drawing.Elements.Count);
+        Assert.Equal(5001, drawing.Shapes.Count);
+        Assert.Equal(OfficeColor.White, Assert.IsType<OfficeDrawingShape>(drawing.Elements[0]).Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, Assert.IsType<OfficeDrawingShape>(drawing.Elements[1]).Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, Assert.IsType<OfficeDrawingShape>(drawing.Elements[5000]).Shape.FillColor);
+        Assert.Equal("foreground-one", Assert.IsType<OfficeDrawingText>(drawing.Elements[5001]).Text);
+        Assert.Equal("foreground-two", Assert.IsType<OfficeDrawingText>(drawing.Elements[5002]).Text);
+    }
+
+    [Fact]
     public void OfficeImageExportBuilder_AppliesSharedFluentPresets() {
         var options = new TestImageExportOptions();
         var builder = new TestImageExportBuilder(options);
@@ -2046,15 +2077,30 @@ public partial class DrawingTests {
     public void OfficeSvgFormattingAppendsSharedPercentStipplePatternRectangle() {
         var builder = new StringBuilder();
 
-        builder.AppendHatchPatternRectangle(0, 0, 8, 8, OfficeColor.FromRgb(10, 160, 30), 4, 1, OfficeHatchPatternKind.Percent12_5);
+        builder.AppendHatchPatternRectangle(12, 18, 8, 8, OfficeColor.FromRgb(10, 160, 30), 4, 1, OfficeHatchPatternKind.Percent12_5);
 
         string svg = builder.ToString();
         Assert.DoesNotContain("<line", svg, StringComparison.Ordinal);
         Assert.DoesNotContain("<circle", svg, StringComparison.Ordinal);
-        Assert.Equal(8, CountOccurrences(svg, "<rect"));
+        Assert.Equal(3, CountOccurrences(svg, "<rect"));
+        Assert.Contains("<pattern", svg, StringComparison.Ordinal);
+        Assert.Contains("patternUnits=\"userSpaceOnUse\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"12\" y=\"18\" width=\"4\" height=\"4\" viewBox=\"0 0 4 4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"url(#office-stipple-", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0AA01E\"", svg, StringComparison.Ordinal);
         Assert.Contains("x=\"0\" y=\"0\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
         Assert.Contains("x=\"2\" y=\"2\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgFormattingBoundsHugeStippleRectanglesToOnePatternTile() {
+        var builder = new StringBuilder();
+
+        builder.AppendHatchPatternRectangle(0, 0, 1_000_000_000, 1_000_000_000, OfficeColor.Green, 4, 1, OfficeHatchPatternKind.Percent75);
+
+        string svg = builder.ToString();
+        Assert.Equal(13, CountOccurrences(svg, "<rect"));
+        Assert.True(svg.Length < 2_000, $"Expected bounded SVG output but got {svg.Length} characters.");
     }
 
     [Fact]
@@ -3194,6 +3240,18 @@ public partial class DrawingTests {
         Assert.Equal(measurer.MeasureWidth("e", style), measurer.MeasureWidth(composed, style), 6);
         Assert.Equal(measurer.MeasureWidth("漢", style), measurer.MeasureWidth(smile, style), 6);
         Assert.Equal(new[] { "A", composed, smile, "B" }, OfficeTextElements.Split("A" + composed + smile + "B"));
+    }
+
+    [Fact]
+    public void OfficeTextMeasurerTreatsMalformedSurrogatesAsSingleReplacementScalars() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
+
+        double replacement = measurer.MeasureWidth("\ufffd", style);
+
+        Assert.Equal(replacement, measurer.MeasureWidth("\ud800", style), 6);
+        Assert.Equal(replacement, measurer.MeasureWidth("\udc00", style), 6);
+        Assert.Equal(replacement * 2D, measurer.MeasureWidth("\ud800\ud800", style), 6);
     }
 
     [Fact]

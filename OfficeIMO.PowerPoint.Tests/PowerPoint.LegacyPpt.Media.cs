@@ -370,8 +370,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
                 finding.SupportLevel);
             Assert.Equal(1, finding.Count);
-            Assert.Equal(sourceBytes,
+            LegacyPptWritePreflightReport preflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, item =>
+                item.Code == "PPT-WRITE-PRESERVED-EXTERNAL-MEDIA");
+            Assert.Throws<NotSupportedException>(() =>
                 projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(sourceBytes, projected.ToBytes(
+                PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         [Fact]

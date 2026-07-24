@@ -583,22 +583,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 bool originalTopologyChanged = !currentSlideOrder.Select(slide => slide.PersistId)
                     .SequenceEqual(projectionMap.Slides.Select(slide => slide.PersistId));
-                if (addedSlides.Count > 0) {
-                    if (originalTopologyChanged || currentSlideOrder.Count != projectionMap.Slides.Count
-                        || !TryAppendNewSlides(package, projectionMap, addedSlides, rewritten,
-                            interactionCatalog, interactionContext, textFonts,
-                            pictureBullets,
-                            out IReadOnlyList<uint> addedSlideIds)) {
-                        return false;
-                    }
-                    slideIds.AddRange(addedSlideIds);
-                } else if (originalTopologyChanged) {
-                    if (!TryRewriteDocumentSlideOrder(package, projectionMap, currentSlideOrder,
-                            out byte[] documentRecord)) {
-                        return false;
-                    }
-                    rewritten.Add(package.DocumentPersistId, documentRecord);
-                }
+                if (addedSlides.Count > 0 || originalTopologyChanged) return false;
                 if (materializedLayoutDrawingUpdates.Count > 0) {
                     rewritten.TryGetValue(package.DocumentPersistId,
                         out byte[]? currentDocumentBytes);

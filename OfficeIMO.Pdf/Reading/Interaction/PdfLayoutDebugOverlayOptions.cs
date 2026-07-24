@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls the shared-Drawing layout diagnostics projected over one PDF page.</summary>
 public sealed class PdfLayoutDebugOverlayOptions {
+    /// <summary>Default maximum number of pixels allocated by one PNG overlay.</summary>
+    public const long DefaultMaxRasterPixels = 64_000_000;
+
     /// <summary>Draw boxes around whitespace-delimited words.</summary>
     public bool ShowWords { get; set; } = true;
 
@@ -18,6 +21,9 @@ public sealed class PdfLayoutDebugOverlayOptions {
 
     /// <summary>Maximum boxes and labels added to one overlay.</summary>
     public int MaxElements { get; set; } = 20000;
+
+    /// <summary>Maximum number of pixels allocated when rasterizing one overlay.</summary>
+    public long MaxRasterPixels { get; set; } = DefaultMaxRasterPixels;
 
     /// <summary>Word-box color.</summary>
     public OfficeColor WordColor { get; set; } = OfficeColor.FromRgb(40, 120, 220);

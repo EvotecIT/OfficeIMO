@@ -4,7 +4,9 @@ using OfficeIMO.Excel.LegacyXls.Model;
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class LegacyBiffWorkbookParser {
         internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options) {
-            var workbook = new LegacyXlsWorkbook();
+            var workbook = new LegacyXlsWorkbook {
+                PreserveExternalWorkbookLinks = options.PreserveExternalWorkbookLinks
+            };
             var decodedImageBudget = new LegacyXlsDecodedImageBudget(options.MaxDecodedImageBytes);
             IReadOnlyList<BiffRecord> records = ReadWorkbookGlobalRecords(workbookStream, workbook.MutableDiagnostics);
             var sharedStrings = new List<BiffStringReader.BiffStringValue>();
@@ -476,7 +478,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             workbook.MutableExternalReferences.Add(reference!);
             bool unsupportedExternalReference = reference!.Kind == LegacyXlsExternalReferenceKind.AddIn
-                || reference.Kind == LegacyXlsExternalReferenceKind.DdeOrOle;
+                || reference.Kind == LegacyXlsExternalReferenceKind.DdeOrOle
+                || (reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook
+                    && !options.PreserveExternalWorkbookLinks);
             if (unsupportedExternalReference) {
                 LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateExternalReferenceFeature(record, reference);
                 workbook.MutableUnsupportedFeatures.Add(feature);

@@ -254,16 +254,22 @@ namespace OfficeIMO.Tests {
                 });
                 LegacyPptWritePreflightReport report = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite,
-                    string.Join(Environment.NewLine, report.Findings));
-                appendedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                appendedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation withAppended = LegacyPptPresentation.Load(
                 appendedBytes);
             Assert.Equal(new[] { withAppended.Slides[0].SlideId,
                 withAppended.Slides[1].SlideId },
                 Assert.Single(withAppended.CustomShows).SlideIds);
-            Assert.True(withAppended.Package.DocumentStream.AsSpan(0,
+            Assert.False(withAppended.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
 
@@ -273,17 +279,22 @@ namespace OfficeIMO.Tests {
                 imported.RemoveSlide(1);
                 LegacyPptWritePreflightReport report = imported
                     .AnalyzeLegacyPptWrite();
-                Assert.True(report.CanWrite,
-                    string.Join(Environment.NewLine, report.Findings));
-                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                Assert.False(report.CanWrite);
+                Assert.Contains(report.Findings, finding =>
+                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                Assert.Throws<NotSupportedException>(() =>
+                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
             LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
             Assert.Single(removed.Slides);
             Assert.Equal(new[] { removed.Slides[0].SlideId },
                 Assert.Single(removed.CustomShows).SlideIds);
-            Assert.True(removed.Package.DocumentStream.AsSpan(0,
-                    withAppended.Package.DocumentStream.Length)
-                .SequenceEqual(withAppended.Package.DocumentStream));
+            Assert.False(removed.Package.DocumentStream.AsSpan()
+                .StartsWith(withAppended.Package.DocumentStream));
         }
 
         private static void AddCustomShow(PowerPointPresentation presentation,

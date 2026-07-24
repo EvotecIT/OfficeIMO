@@ -119,6 +119,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_ReportsOversizedShadowOffsetsWithoutOverflowing() {
+            using PowerPointPresentation source = PowerPointPresentation.Create();
+            PowerPointAutoShape shape = source.AddSlide(P.SlideLayoutValues.Blank)
+                .AddShapePoints(A.ShapeTypeValues.Rectangle, 24, 24, 120, 70);
+            shape.SetShadow("222222", blurPoints: 1D, distancePoints: 1D,
+                angleDegrees: 0D, transparencyPercent: 0);
+            P.Shape element = Assert.IsType<P.Shape>(shape.Element);
+            A.OuterShadow shadow = element.ShapeProperties!
+                .GetFirstChild<A.EffectList>()!
+                .GetFirstChild<A.OuterShadow>()!;
+            shadow.Distance = long.MaxValue;
+
+            LegacyPptWritePreflightReport preflight = source.AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-SHAPE-STYLE");
+        }
+
+        [Fact]
         public void NativeWriter_AuthorsUnattachedConnectorsWithLineFormatting() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation

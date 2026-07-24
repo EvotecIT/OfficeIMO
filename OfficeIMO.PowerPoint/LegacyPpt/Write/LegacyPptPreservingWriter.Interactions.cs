@@ -115,8 +115,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptProjectionMap projectionMap,
             LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
             out PreservingInteractionContext context) {
+            if (!TryReadExternalObjectIdSeed(package, out uint externalObjectIdSeed)) {
+                context = null!;
+                return false;
+            }
             context = new PreservingInteractionContext(presentation, projectionMap,
-                ReadExternalObjectIdSeed(package));
+                externalObjectIdSeed);
             foreach (LegacyPptWriter.LegacyPptWriterHyperlink hyperlink
                      in catalog.Hyperlinks) {
                 if (!context.TryMap(hyperlink, out _)) return false;
@@ -124,14 +128,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static uint ReadExternalObjectIdSeed(LegacyPptPackage package) {
+        private static bool TryReadExternalObjectIdSeed(
+            LegacyPptPackage package,
+            out uint seed) {
+            seed = 0;
             if (!TryReadDocument(package, out LegacyPptRecord? document)
-                || document == null) return 0;
-            LegacyPptRecord? list = document.Children.SingleOrDefault(record =>
-                record.Type == RecordExternalObjectList);
-            LegacyPptRecord? atom = list?.Children.SingleOrDefault(record =>
-                record.Type == RecordExternalObjectListAtom);
-            return atom?.PayloadLength == 4 ? atom.ReadUInt32(0) : 0;
+                || document == null) return true;
+            LegacyPptRecord[] lists = document.Children.Where(record =>
+                record.Type == RecordExternalObjectList).Take(2).ToArray();
+            if (lists.Length > 1) return false;
+            if (lists.Length == 0) return true;
+            LegacyPptRecord[] atoms = lists[0].Children.Where(record =>
+                record.Type == RecordExternalObjectListAtom).Take(2).ToArray();
+            if (atoms.Length > 1) return false;
+            if (atoms.Length == 0 || atoms[0].PayloadLength != 4) return true;
+            seed = atoms[0].ReadUInt32(0);
+            return true;
         }
 
         private static bool TryAppendNewHyperlinks(LegacyPptPackage package,

@@ -382,6 +382,29 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
     }
 
+    [Fact]
+    public void HtmlGrid_HandlesManyItemsSharingOneRowWithoutQuadraticOccupancyScans() {
+        const int itemCount = 2048;
+        var html = new StringBuilder("<div style='display:grid;grid-template-columns:1fr;grid-template-rows:20px'>");
+        for (int index = 0; index < itemCount; index++) {
+            html.Append("<span style='grid-row:1;grid-column:1'>x</span>");
+        }
+        html.Append("</div>");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            html.ToString(),
+            new HtmlRenderOptions {
+                ViewportWidth = 100D,
+                Margins = HtmlRenderMargins.All(0D),
+                MaxLayoutOperations = 100_000
+            });
+
+        Assert.Single(rendered.Pages);
+        Assert.DoesNotContain(
+            rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded);
+    }
+
     private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 

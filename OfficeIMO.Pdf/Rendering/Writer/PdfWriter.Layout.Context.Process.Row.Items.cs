@@ -307,30 +307,48 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureColKeepWithNextChainHeight(System.Collections.Generic.List<ColItem> items, int startIndex) {
-            double total = 0D;
-            for (int itemIndex = startIndex; itemIndex < items.Count; itemIndex++) {
+            if ((uint)startIndex >= (uint)items.Count) {
+                return 0D;
+            }
+
+            if (!rowColumnKeepChainHeights.TryGetValue(items, out double[]? heights)) {
+                heights = BuildColKeepWithNextChainHeights(items);
+                rowColumnKeepChainHeights.Add(items, heights);
+            }
+
+            return heights[startIndex];
+        }
+
+        private double[] BuildColKeepWithNextChainHeights(System.Collections.Generic.List<ColItem> items) {
+            var heights = new double[items.Count];
+            for (int itemIndex = items.Count - 1; itemIndex >= 0; itemIndex--) {
                 ColItem item = items[itemIndex];
                 if (item is ColBookmark) {
+                    heights[itemIndex] = itemIndex + 1 < items.Count ? heights[itemIndex + 1] : 0D;
                     continue;
                 }
 
                 bool keepWithNext = ColItemKeepsWithNext(item);
+                int nextItemIndex = itemIndex + 1;
+                double itemHeight;
                 if (keepWithNext && item is ColListItem listItem && listItem.IsFirstInKeepWithNextGroup) {
-                    double spacingBefore = ResolveColumnSpacingBefore(listItem.SpacingBefore, total + 1D);
-                    total += listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore;
-                    itemIndex += Math.Max(0, listItem.KeepWithNextGroupItemCount - 1);
+                    double spacingBefore = ResolveColumnSpacingBefore(listItem.SpacingBefore, 1D);
+                    itemHeight = listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore;
+                    nextItemIndex += Math.Max(0, listItem.KeepWithNextGroupItemCount - 1);
                 } else {
-                    total += keepWithNext
-                        ? MeasureColItemFullHeight(item, total + 1D)
+                    itemHeight = keepWithNext
+                        ? MeasureColItemFullHeight(item, 1D)
                         : MeasureColItemFirstVisualHeight(item);
                 }
 
-                if (!keepWithNext) {
-                    break;
+                if (keepWithNext && nextItemIndex < items.Count) {
+                    itemHeight += heights[nextItemIndex];
                 }
+
+                heights[itemIndex] = itemHeight;
             }
 
-            return total;
+            return heights;
         }
 
         private bool ColItemKeepsWithNext(ColItem item) {

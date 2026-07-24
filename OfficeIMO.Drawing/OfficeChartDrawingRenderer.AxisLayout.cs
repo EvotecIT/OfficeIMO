@@ -7,6 +7,7 @@ public static partial class OfficeChartDrawingRenderer {
     private const double MinimumValueAxisLabelWidth = 34D;
     private const double MaximumValueAxisLabelWidth = 92D;
     private const double AxisLabelHorizontalPadding = 6D;
+    private const int MaximumMeasuredCategoryLabelCharacters = 512;
 
     private static double GetVerticalAxisLabelBandWidth(
         OfficeChartSnapshot snapshot,
@@ -54,9 +55,15 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static double MeasureCategoryAxisLabelBandWidth(IReadOnlyList<string> categories, OfficeChartLayout layout) {
         double widest = 0D;
-        for (int i = 0; i < categories.Count; i++) {
-            if (!string.IsNullOrWhiteSpace(categories[i])) {
-                widest = Math.Max(widest, MeasureAxisLabelWidth(categories[i], layout));
+        int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumHorizontalCategoryAxisLabels));
+        for (int i = 0; i < categories.Count; i += stride) {
+            string label = categories[i] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(label)) {
+                if (label.Length > MaximumMeasuredCategoryLabelCharacters) {
+                    label = label.Substring(0, MaximumMeasuredCategoryLabelCharacters);
+                }
+
+                widest = Math.Max(widest, MeasureAxisLabelWidth(label, layout));
             }
         }
 

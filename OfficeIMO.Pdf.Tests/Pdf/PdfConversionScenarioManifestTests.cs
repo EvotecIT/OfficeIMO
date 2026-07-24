@@ -885,7 +885,7 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
-    public void PdfReaderPageChunks_DoNotRepeatDocumentCatalogActions() {
+    public void PdfReaderPageChunks_RetainDocumentCatalogActionsOnlyOnce() {
         byte[] pdf = CreateCatalogActionsMultiPagePdf();
 
         List<ReaderChunk> pageChunks = PdfReaderAdapter.Read(
@@ -894,12 +894,14 @@ public sealed class PdfConversionScenarioManifestTests {
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
 
         Assert.Equal(2, pageChunks.Count);
+        Assert.Equal(2, pageChunks[0].Actions!.Count(action => action.Scope == ReaderActionScope.Catalog));
+        Assert.DoesNotContain(pageChunks[1].Actions ?? Array.Empty<ReaderActionSummary>(), action => action.Scope == ReaderActionScope.Catalog);
         Assert.All(pageChunks, chunk => {
-            Assert.DoesNotContain(chunk.Actions ?? Array.Empty<ReaderActionSummary>(), action => action.Scope == ReaderActionScope.Catalog);
-            Assert.DoesNotContain(chunk.Actions ?? Array.Empty<ReaderActionSummary>(), action => action.Scope == ReaderActionScope.DocumentOpen);
             Assert.NotNull(chunk.Diagnostics);
             Assert.Equal(2, chunk.Diagnostics!.CatalogActionCount);
             Assert.True(chunk.Diagnostics.HasCatalogActions);
+            Assert.Equal(2, chunk.Diagnostics.PotentiallyUnsafeActionCount);
+            Assert.Equal(2, chunk.Diagnostics.JavaScriptActionCount);
         });
 
         ReaderChunk documentChunk = Assert.Single(PdfReaderAdapter.Read(

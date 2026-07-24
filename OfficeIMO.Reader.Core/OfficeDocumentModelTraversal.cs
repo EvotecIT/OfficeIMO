@@ -113,11 +113,22 @@ internal static class OfficeDocumentModelTraversal {
         }
     }
 
-    internal static IEnumerable<OfficeDocumentFormField> Forms(OfficeDocumentReadResult document) {
+    internal static IEnumerable<OfficeDocumentFormField> Forms(
+        OfficeDocumentReadResult document,
+        int maxCandidates = int.MaxValue,
+        Action? candidateLimitExceeded = null) {
+        if (maxCandidates <= 0) yield break;
+        int candidateCount = 0;
         var seen = new HashSet<OfficeDocumentFormField>(ReferenceIdentityComparer<OfficeDocumentFormField>.Instance);
         var seenIds = new HashSet<string>(System.StringComparer.Ordinal);
         foreach (OfficeDocumentFormField form in document.Forms ?? System.Array.Empty<OfficeDocumentFormField>()) {
-            if (form != null && seen.Add(form) &&
+            if (candidateCount >= maxCandidates) {
+                candidateLimitExceeded?.Invoke();
+                yield break;
+            }
+            candidateCount++;
+            if (form == null) continue;
+            if (seen.Add(form) &&
                 (string.IsNullOrWhiteSpace(form.Id) || seenIds.Add(form.Id))) {
                 yield return form;
             }
@@ -125,7 +136,13 @@ internal static class OfficeDocumentModelTraversal {
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Forms == null) continue;
             foreach (OfficeDocumentFormField form in page.Forms) {
-                if (form != null && seen.Add(form) &&
+                if (candidateCount >= maxCandidates) {
+                    candidateLimitExceeded?.Invoke();
+                    yield break;
+                }
+                candidateCount++;
+                if (form == null) continue;
+                if (seen.Add(form) &&
                     (string.IsNullOrWhiteSpace(form.Id) || seenIds.Add(form.Id))) {
                     yield return form;
                 }
@@ -137,6 +154,11 @@ internal static class OfficeDocumentModelTraversal {
             if (chunk?.FormFields == null) continue;
             for (int index = 0; index < chunk.FormFields.Count; index++) {
                 ReaderFormField field = chunk.FormFields[index];
+                if (candidateCount >= maxCandidates) {
+                    candidateLimitExceeded?.Invoke();
+                    yield break;
+                }
+                candidateCount++;
                 if (field == null) continue;
                 OfficeDocumentFormField form = ProjectChunkForm(chunk, field, chunkIndex, index);
                 if (seenIds.Add(form.Id)) yield return form;

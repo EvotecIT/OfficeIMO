@@ -79,8 +79,17 @@ namespace OfficeIMO.Tests {
                 projectedOle.FollowColorScheme);
             Assert.Equal(storageBytes, projectedOle.GetData());
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(binary,
+            LegacyPptWritePreflightReport projectedPreflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(projectedPreflight.CanWrite);
+            Assert.Contains(projectedPreflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-PRESERVED-OLE");
+            Assert.Throws<NotSupportedException>(() =>
                 projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         [Fact]
@@ -164,8 +173,17 @@ namespace OfficeIMO.Tests {
             }
             Assert.Equal(imageBytes, projectedBytes.ToArray());
             Assert.Empty(projected.ValidateDocument());
-            Assert.Equal(binary,
+            LegacyPptWritePreflightReport projectedPreflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(projectedPreflight.CanWrite);
+            Assert.Contains(projectedPreflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-PRESERVED-OLE");
+            Assert.Throws<NotSupportedException>(() =>
                 projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(binary, projected.ToBytes(PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         [Fact]
@@ -610,12 +628,24 @@ namespace OfficeIMO.Tests {
             using (var input = new MemoryStream(sourceBytes))
             using (PowerPointPresentation imported =
                    PowerPointPresentation.Load(input)) {
-                Assert.Equal(sourceBytes,
+                LegacyPptWritePreflightReport exactPreflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(exactPreflight.CanWrite);
+                Assert.Contains(exactPreflight.Findings, finding =>
+                    finding.Code == "PPT-WRITE-PRESERVED-OLE");
+                Assert.Throws<NotSupportedException>(() =>
                     imported.ToBytes(PowerPointFileFormat.Ppt));
+                Assert.Equal(sourceBytes, imported.ToBytes(
+                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    }));
                 PowerPointOleObject ole = Assert.Single(
                     imported.Slides[0].OleObjects);
                 ole.Left += 15875L;
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(

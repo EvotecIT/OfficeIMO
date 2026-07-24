@@ -235,6 +235,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2L, exception.Limit);
     }
 
+    [Fact]
+    public void HtmlColumns_BalancingProbesMayTemporarilyExceedTheFinalColumnLimit() {
+        const string html = """
+            <div style='column-count:2;column-fill:balance'>
+              <div style='height:40px;break-inside:avoid'>One</div>
+              <div style='height:40px;break-inside:avoid'>Two</div>
+              <div style='height:40px;break-inside:avoid'>Three</div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxColumnCount = 2
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("One", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("Three", StringComparison.Ordinal));
+    }
+
     private static HtmlRenderDocument RenderColumns(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 

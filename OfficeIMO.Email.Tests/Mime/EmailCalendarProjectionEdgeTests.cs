@@ -327,6 +327,21 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
+    public void CalendarAttendeeNeverPromotesEnvelopeBccRecipient() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Bcc: Hidden <hidden@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:hidden@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Hidden:mailto:hidden@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailRecipient recipient = Assert.Single(document.Recipients);
+        Assert.Equal(EmailRecipientKind.Bcc, recipient.Kind);
+        Assert.Equal("hidden@example.com", recipient.Address.Address);
+    }
+
+    [Fact]
     public void UsesCalendarAttendeeNameWhenEnvelopeRecipientHasNoDisplayName() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "To: alice@example.com\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +

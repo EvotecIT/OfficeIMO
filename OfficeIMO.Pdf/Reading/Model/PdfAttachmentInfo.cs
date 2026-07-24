@@ -14,7 +14,8 @@ public sealed class PdfAttachmentInfo {
         string filter,
         int fileSpecObjectNumber,
         int embeddedFileObjectNumber,
-        int sizeBytes,
+        int encodedSizeBytes,
+        int? declaredSizeBytes,
         string source,
         DateTimeOffset? creationDate,
         DateTimeOffset? modificationDate) {
@@ -27,7 +28,8 @@ public sealed class PdfAttachmentInfo {
         Filter = filter;
         FileSpecObjectNumber = fileSpecObjectNumber;
         EmbeddedFileObjectNumber = embeddedFileObjectNumber;
-        SizeBytes = sizeBytes;
+        EncodedSizeBytes = encodedSizeBytes;
+        DeclaredSizeBytes = declaredSizeBytes;
         Source = source;
         CreationDate = creationDate;
         ModificationDate = modificationDate;
@@ -60,8 +62,26 @@ public sealed class PdfAttachmentInfo {
     /// <summary>Object number of the embedded file stream, or 0 for a direct stream.</summary>
     public int EmbeddedFileObjectNumber { get; }
 
-    /// <summary>Decoded attachment payload size in bytes.</summary>
-    public int SizeBytes { get; }
+    /// <summary>
+    /// Encoded attachment stream size in bytes. This is a compatibility alias for <see cref="EncodedSizeBytes"/>;
+    /// it is not the decoded attachment size when stream filters are present.
+    /// </summary>
+    public int SizeBytes => EncodedSizeBytes;
+
+    /// <summary>Exact encoded attachment stream size stored in the PDF.</summary>
+    public int EncodedSizeBytes { get; }
+
+    /// <summary>
+    /// Untrusted decoded-size claim from the embedded-file /Params /Size entry, when present.
+    /// Callers must not use this value as a resource limit.
+    /// </summary>
+    public int? DeclaredSizeBytes { get; }
+
+    /// <summary>
+    /// Decoded attachment size is unknown during metadata-only inspection. Extract the attachment under
+    /// <see cref="PdfReadLimits.MaxTotalAttachmentBytes"/> and inspect its payload length when the exact value is required.
+    /// </summary>
+    public int? DecodedSizeBytes { get; }
 
     /// <summary>Catalog source that referenced this attachment, for example Names/EmbeddedFiles or AF.</summary>
     public string Source { get; }

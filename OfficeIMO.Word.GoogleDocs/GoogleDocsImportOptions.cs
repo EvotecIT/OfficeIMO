@@ -22,12 +22,23 @@ namespace OfficeIMO.Word.GoogleDocs {
     }
 
     public sealed class GoogleDocsImportOptions {
+        public const long DefaultMaxResponseBytes = 64L * 1024L * 1024L;
         public GoogleDocsImportMode Mode { get; set; } = GoogleDocsImportMode.DriveExport;
         public GoogleDocsImportTabMode TabMode { get; set; } = GoogleDocsImportTabMode.FlattenWithHeadings;
         public string? TabId { get; set; }
         public GoogleDocsSuggestionsMode Suggestions { get; set; } = GoogleDocsSuggestionsMode.Accepted;
         public WordLoadOptions LoadOptions { get; set; } = new WordLoadOptions();
         public IProgress<OfficeIMO.GoogleWorkspace.Drive.GoogleDriveTransferProgress>? Progress { get; set; }
+        public long MaxResponseBytes { get; set; } = DefaultMaxResponseBytes;
+        public int MaxTabs { get; set; } = 100;
+        public int MaxStructuralElements { get; set; } = 100_000;
+        /// <summary>
+        /// Maximum aggregate rectangular table-cell projection. The same ceiling is also applied
+        /// independently to aggregate table rows so sparse tables cannot allocate unbounded
+        /// document rows.
+        /// </summary>
+        public int MaxTableCells { get; set; } = 1_000_000;
+        public long MaxTextCharacters { get; set; } = 10_000_000L;
     }
 
     public sealed class GoogleDocsImportResult {

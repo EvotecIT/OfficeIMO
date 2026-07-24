@@ -886,6 +886,26 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownResolvesManyDistinctListIdsWithoutRepeatedTableScans() {
+        const int listCount = 1024;
+        RtfDocument document = RtfDocument.Create();
+        for (int index = 1; index <= listCount; index++) {
+            int definitionId = 10_000 + index;
+            RtfListDefinition definition = document.AddListDefinition(definitionId);
+            definition.AddLevel(RtfListKind.Decimal).StartAt = index;
+            document.AddListOverride(index, definitionId);
+            document.AddParagraph("Item " + index)
+                .SetList(listId: index, level: 0, kind: RtfListKind.Decimal)
+                .ListDefinitionId = definitionId;
+        }
+
+        string markdown = document.ToMarkdown();
+
+        Assert.Contains("1. Item 1", markdown, StringComparison.Ordinal);
+        Assert.Contains(listCount + ". Item " + listCount, markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownPreservesListStartsAndDoesNotPromoteDataRows() {
         RtfDocument document = RtfDocument.Create();
         RtfListDefinition definition = document.AddListDefinition(100);

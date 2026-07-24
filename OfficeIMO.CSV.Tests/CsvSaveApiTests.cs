@@ -135,6 +135,25 @@ public class CsvSaveApiTests
     }
 
     [Fact]
+    public void CreateTextWriter_NoClobberClaimsDestinationAtomically()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.NoClobber." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            File.WriteAllText(path, "existing");
+
+            Assert.Throws<IOException>(() =>
+                CsvFile.CreateTextWriter(path, new CsvSaveOptions { NoClobber = true }));
+
+            Assert.Equal("existing", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task SaveAsync_Append_Creates_Missing_Parent_Directory()
     {
         string directory = CreateMissingDirectoryPath();

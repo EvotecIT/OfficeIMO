@@ -1047,6 +1047,32 @@ namespace OfficeIMO.Tests {
                 .Elements<NumberingFormat>(), format => format.FormatCode?.Value == "0.0000");
         }
 
+        [Theory]
+        [InlineData("cell")]
+        [InlineData("table")]
+        [InlineData("pivot")]
+        public void Xlsb_NewWorkbook_RejectsOversizedStyleNamesBeforeEncoding(string target) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Styles");
+            sheet.CellValue(1, 1, "Value");
+            sheet.CellBold(1, 1);
+            Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
+            stylesheet.TableStyles ??= new TableStyles { Count = 0U };
+            string oversized = new string('s', 100_000);
+            if (target == "cell") {
+                Assert.Single(stylesheet.CellStyles!.Elements<CellStyle>()).Name = oversized;
+            } else if (target == "table") {
+                stylesheet.TableStyles!.DefaultTableStyle = oversized;
+            } else {
+                stylesheet.TableStyles!.DefaultPivotStyle = oversized;
+            }
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.ToBytes(ExcelFileFormat.Xlsb));
+
+            Assert.Contains("style", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void Xlsb_NewWorkbook_WritesWorksheetGeometry() {
             using ExcelDocument document = ExcelDocument.Create();

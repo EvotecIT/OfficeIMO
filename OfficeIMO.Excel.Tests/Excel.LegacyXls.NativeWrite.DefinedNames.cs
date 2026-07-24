@@ -224,7 +224,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                    xlsOutputPath,
+                    new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
                 result.EnsureNoImportErrors();
                 LegacyXlsExternalReference externalReference = Assert.Single(
                     result.Workbook.ExternalReferences,
@@ -263,7 +265,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                    xlsOutputPath,
+                    new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
                 result.EnsureNoImportErrors();
                 LegacyXlsExternalReference externalReference = Assert.Single(
                     result.Workbook.ExternalReferences,
@@ -341,7 +345,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(
+                    xlsOutputPath,
+                    new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
                 result.EnsureNoImportErrors();
 
                 LegacyXlsExternalReference externalReference = Assert.Single(

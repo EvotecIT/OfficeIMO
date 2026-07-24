@@ -53,6 +53,11 @@ internal static class PdfSignatureValidator {
                 PdfDiagnosticSeverity.Info,
                 "NoSignatures",
                 "No PDF signature fields, signature values, or /ByteRange markers were detected."));
+        } else if (security.Signatures.Count == 0) {
+            findings.Add(new PdfSignatureValidationFinding(
+                PdfDiagnosticSeverity.Error,
+                "UnreadableSignature",
+                "PDF signature markers were detected, but no complete signature dictionary could be validated."));
         }
 
         var signatureResults = new List<PdfSignatureValidationResult>(security.Signatures.Count);

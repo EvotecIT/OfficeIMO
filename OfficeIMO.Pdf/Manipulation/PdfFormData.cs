@@ -19,5 +19,13 @@ internal static class PdfFormData {
     internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options, PdfReadOptions? readOptions) { Guard.NotNull(data, nameof(data)); return PdfFormFiller.FillFields(pdf, data.ToFieldValues(), options, readOptions); }
     /// <summary>Imports XFDF through the validated full-rewrite filler.</summary>
     public static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options = null) => ImportXfdf(pdf, xfdf, options, readOptions: null);
-    internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options, PdfReadOptions? readOptions) => Import(pdf, PdfFormDataSet.ParseXfdf(xfdf), options, readOptions);
+    internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options, PdfReadOptions? readOptions) {
+        PdfFormFillerOptions effective = options ?? new PdfFormFillerOptions();
+        PdfFormDataSet data = PdfFormDataSet.ParseXfdf(
+            xfdf,
+            effective.MaxXfdfFields,
+            effective.MaxXfdfValueCharacters,
+            effective.MaxXfdfDocumentCharacters);
+        return Import(pdf, data, effective, readOptions);
+    }
 }

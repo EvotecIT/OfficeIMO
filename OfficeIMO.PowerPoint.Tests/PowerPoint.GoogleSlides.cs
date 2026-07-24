@@ -52,6 +52,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_DropsMalformedRichTextColorsBeforeJsonGeneration() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTextRun run = presentation.AddSlide()
+                .AddTextBoxPoints("Unsafe color", 20, 30, 300, 80)
+                .Paragraphs[0].Runs[0];
+            run.Color = "GG0000";
+
+            GoogleSlidesTextBox text = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+
+            Assert.Null(text.ForegroundColorHex);
+            Assert.Null(Assert.Single(text.TextRuns).ForegroundColorHex);
+        }
+
+        [Fact]
         public void BatchCompiler_DoesNotSendUnsupportedNativeImageFormats() {
             string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {
@@ -576,9 +592,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
+        public async Task NativeImporter_RejectsFilesThatCannotBeDownloaded() {
+            int nativeReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(request => {
-                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"deck-blocked\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":false}}"));
+                }
+                nativeReads++;
+                return Task.FromResult(Json("{\"presentationId\":\"deck-blocked\"}"));
+            }));
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                new GoogleSlidesImporter().ImportAsync("deck-blocked", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native }));
+
+            Assert.Contains("cannot be exported", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(0, nativeReads);
+        }
+
+        [Fact]
+        public async Task NativeImporter_ProjectsTextTableAndNotesWhenDownloadIsAllowed() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":true}}"));
                 const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported \",\"style\":{\"bold\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}}},{\"textRun\":{\"content\":\"text\\n\",\"style\":{\"italic\":true,\"underline\":true,\"foregroundColor\":{\"opaqueColor\":{\"rgbColor\":{\"red\":0.8,\"green\":0.2,\"blue\":0.1}}}}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\",\"shapeProperties\":{\"shapeBackgroundFill\":{\"propertyState\":\"RENDERED\",\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.8,\"green\":0.4,\"blue\":0.2}},\"alpha\":0.75}},\"outline\":{\"propertyState\":\"RENDERED\",\"outlineFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}},\"weight\":{\"magnitude\":2.5,\"unit\":\"PT\"}}}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\\n\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\\n\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
@@ -642,7 +676,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_PreservesGeometryForTextBearingShapes() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(Json("{\"id\":\"deck-text-shape\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":false}}"));
+                    return Task.FromResult(Json("{\"id\":\"deck-text-shape\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
                 }
                 const string slides = "{\"presentationId\":\"deck-text-shape\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"arrow-1\",\"size\":{\"width\":{\"magnitude\":180,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RIGHT_ARROW\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Next step\",\"style\":{\"bold\":true}}}]}}}]}]}";
                 return Task.FromResult(Json(slides));
@@ -667,12 +701,12 @@ namespace OfficeIMO.Tests {
             byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(Json("{\"id\":\"deck-transform\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":false}}"));
+                    return Task.FromResult(Json("{\"id\":\"deck-transform\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
                 }
-                if (request.RequestUri.Host == "images.example.test") {
+                if (request.RequestUri.Host == "lh3.googleusercontent.com") {
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
                 }
-                const string slides = "{\"presentationId\":\"deck-transform\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"shape-rotated\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":100,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-rotated\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":200,\"translateY\":50,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[]}}]}]}},{\"objectId\":\"image-rotated\",\"size\":{\"width\":{\"magnitude\":60,\"unit\":\"PT\"},\"height\":{\"magnitude\":30,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":300,\"translateY\":50,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}},{\"objectId\":\"shape-skewed\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":1,\"scaleY\":1,\"shearX\":0.25,\"translateX\":400,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}}]}]}";
+                const string slides = "{\"presentationId\":\"deck-transform\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"shape-rotated\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":100,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-rotated\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":200,\"translateY\":50,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[]}}]}]}},{\"objectId\":\"image-rotated\",\"size\":{\"width\":{\"magnitude\":60,\"unit\":\"PT\"},\"height\":{\"magnitude\":30,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":300,\"translateY\":50,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://lh3.googleusercontent.com/image.gif\"}},{\"objectId\":\"shape-skewed\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":1,\"scaleY\":1,\"shearX\":0.25,\"translateX\":400,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}}]}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -699,11 +733,12 @@ namespace OfficeIMO.Tests {
             byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-gif\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
-                if (request.RequestUri.Host == "images.example.test") {
-                    Assert.Equal("https://images.example.test/image.gif", request.RequestUri.AbsoluteUri);
+                if (request.RequestUri.Host == "lh3.googleusercontent.com") {
+                    Assert.Equal("https://lh3.googleusercontent.com/image.gif", request.RequestUri.AbsoluteUri);
+                    Assert.Null(request.Headers.Authorization);
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
                 }
-                const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"stretchedPictureFill\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}},\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}]}]}";
+                const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"stretchedPictureFill\":{\"contentUrl\":\"https://lh3.googleusercontent.com/image.gif\"}}},\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://lh3.googleusercontent.com/image.gif\"}}]}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -716,6 +751,70 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("image/gif", slide.GetBackground().ImageContentType);
                 Assert.DoesNotContain(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
                 Assert.DoesNotContain(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.BACKGROUND_IMAGE_FALLBACK");
+            }
+        }
+
+        [Fact]
+        public async Task NativeImporter_RejectsUntrustedImageContentUrls() {
+            int untrustedRequests = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json(
+                        "{\"id\":\"deck-untrusted\",\"mimeType\":\"application/vnd.google-apps.presentation\"}"));
+                }
+                if (request.RequestUri.Host == "attacker.example.test") {
+                    untrustedRequests++;
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(new byte[1])
+                    });
+                }
+                const string slides = "{\"presentationId\":\"deck-untrusted\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"image\":{\"contentUrl\":\"https://attacker.example.test/image.png\"}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter()
+                .ImportAsync("deck-untrusted", Session(httpClient),
+                    new GoogleSlidesImportOptions {
+                        Mode = GoogleSlidesImportMode.Native
+                    });
+
+            using (imported.Presentation) {
+                Assert.Equal(0, untrustedRequests);
+                Assert.Empty(Assert.Single(imported.Presentation.Slides).Pictures);
+                Assert.Contains(imported.Report.Notices, notice =>
+                    notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
+            }
+        }
+
+        [Fact]
+        public async Task NativeImporter_EnforcesPerImageResponseLimit() {
+            byte[] gif = Convert.FromBase64String(
+                "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json(
+                        "{\"id\":\"deck-image-limit\",\"mimeType\":\"application/vnd.google-apps.presentation\"}"));
+                }
+                if (request.RequestUri.Host == "lh3.googleusercontent.com") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(gif)
+                    });
+                }
+                const string slides = "{\"presentationId\":\"deck-image-limit\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"image\":{\"contentUrl\":\"https://lh3.googleusercontent.com/image.gif\"}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter()
+                .ImportAsync("deck-image-limit", Session(httpClient),
+                    new GoogleSlidesImportOptions {
+                        Mode = GoogleSlidesImportMode.Native,
+                        MaxImageBytes = 8
+                    });
+
+            using (imported.Presentation) {
+                Assert.Empty(Assert.Single(imported.Presentation.Slides).Pictures);
+                Assert.Contains(imported.Report.Notices, notice =>
+                    notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
         }
 
@@ -785,7 +884,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTextBox("Same");
             GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation, revisionId: "revision-1", driveVersion: 4);
             using var httpClient = new HttpClient(new DelegateHandler(request => {
-                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":5,\"capabilities\":{\"canDownload\":false}}"));
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":5,\"capabilities\":{\"canDownload\":true}}"));
                 const string slides = "{\"presentationId\":\"deck-diff\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Same\"}}]}}}]}]}";
                 return Task.FromResult(Json(slides));
             }));

@@ -71,10 +71,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
                     finding.SupportLevel);
                 Assert.Equal(1, finding.Count);
-                Assert.Equal(sourceBytes,
+                LegacyPptWritePreflightReport exactPreflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(exactPreflight.CanWrite);
+                Assert.Contains(exactPreflight.Findings, item =>
+                    item.Code == "PPT-WRITE-PRESERVED-LINKED-OLE");
+                Assert.Throws<NotSupportedException>(() =>
                     imported.ToBytes(PowerPointFileFormat.Ppt));
+                Assert.Equal(sourceBytes, imported.ToBytes(
+                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    }));
                 textBox.Text = "Edited companion";
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             AssertExternalObjectPreserved(source, savedBytes,
@@ -133,10 +145,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointFeatureSupportLevel.Preserved,
                     finding.SupportLevel);
                 Assert.Equal(1, finding.Count);
-                Assert.Equal(sourceBytes,
+                LegacyPptWritePreflightReport exactPreflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.False(exactPreflight.CanWrite);
+                Assert.Contains(exactPreflight.Findings, item =>
+                    item.Code == "PPT-WRITE-PRESERVED-ACTIVEX");
+                Assert.Throws<NotSupportedException>(() =>
                     imported.ToBytes(PowerPointFileFormat.Ppt));
+                Assert.Equal(sourceBytes, imported.ToBytes(
+                    PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    }));
                 textBox.Text = "Edited companion";
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt,
+                    new PowerPointSaveOptions {
+                        LossPolicy = PowerPointConversionLossPolicy.Allow
+                    });
             }
 
             AssertExternalObjectPreserved(source, savedBytes,
@@ -195,8 +219,17 @@ namespace OfficeIMO.Tests {
             Assert.Contains(projected.LegacyPptImportDiagnostics,
                 diagnostic => diagnostic.Code ==
                     "PPT-OLE-LINK-IDENTITY");
-            Assert.Equal(sourceBytes,
+            LegacyPptWritePreflightReport preflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-PRESERVED-LINKED-OLE");
+            Assert.Throws<NotSupportedException>(() =>
                 projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(sourceBytes, projected.ToBytes(
+                PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                    LossPolicy = PowerPointConversionLossPolicy.Allow
+                }));
         }
 
         private static void AssertExternalObjectPreserved(

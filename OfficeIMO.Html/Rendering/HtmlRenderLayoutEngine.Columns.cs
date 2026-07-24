@@ -46,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         targetHeight = Math.Max(0.01D, targetHeight);
 
-        MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight);
+        MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
         EnsureMultiColumnLimit(plan.ColumnCount);
         double contentHeight = declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
         double boxHeight = ResolveBoxHeight(contentHeight, style);
@@ -119,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double upper = Math.Max(lower, totalHeight);
         for (int iteration = 0; iteration < 24; iteration++) {
             double candidate = (lower + upper) / 2D;
-            MultiColumnPlan plan = BuildMultiColumnPlan(blocks, candidate);
+            MultiColumnPlan plan = BuildMultiColumnPlan(blocks, candidate, requestedCount, throwOnLimit: false);
             bool fits = plan.ColumnCount <= requestedCount && plan.UsedHeight <= candidate + 0.0001D;
             if (fits) upper = candidate;
             else lower = candidate;
@@ -127,7 +127,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return upper;
     }
 
-    private MultiColumnPlan BuildMultiColumnPlan(IReadOnlyList<HtmlRenderFlowBlock> blocks, double targetHeight) {
+    private MultiColumnPlan BuildMultiColumnPlan(
+        IReadOnlyList<HtmlRenderFlowBlock> blocks,
+        double targetHeight,
+        int maximumGeneratedColumns,
+        bool throwOnLimit) {
         var fragments = new List<MultiColumnFragment>();
         int column = 0;
         double y = 0D;
@@ -138,6 +142,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double available = targetHeight - y;
                 double remaining = child.Height - start;
                 if (available <= 0.0001D) {
+                    if (column + 2 > maximumGeneratedColumns) {
+                        if (throwOnLimit) EnsureMultiColumnLimit(column + 2);
+                        return new MultiColumnPlan(fragments, column + 2, usedHeight);
+                    }
                     column++;
                     y = 0D;
                     continue;
@@ -149,6 +157,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else {
                     end = FindFragmentEnd(child, start, available, child.Height);
                     if (end <= start + 0.0001D && y > 0.0001D) {
+                        if (column + 2 > maximumGeneratedColumns) {
+                            if (throwOnLimit) EnsureMultiColumnLimit(column + 2);
+                            return new MultiColumnPlan(fragments, column + 2, usedHeight);
+                        }
                         column++;
                         y = 0D;
                         continue;
@@ -162,6 +174,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 usedHeight = Math.Max(usedHeight, y);
                 start = end;
                 if (start < child.Height - 0.0001D) {
+                    if (column + 2 > maximumGeneratedColumns) {
+                        if (throwOnLimit) EnsureMultiColumnLimit(column + 2);
+                        return new MultiColumnPlan(fragments, column + 2, usedHeight);
+                    }
                     column++;
                     y = 0D;
                 }

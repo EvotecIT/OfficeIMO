@@ -78,19 +78,19 @@ internal static partial class PdfSyntax {
 
         try {
             var (objects, trailerRaw) = ParseObjects(pdf, options);
-            rootReference = TryReadLastReference(trailerRaw, "Root");
+            rootReference = TryReadFirstReference(trailerRaw, "Root");
             if (rootReference is not null) {
                 rootObjectNumber = rootReference.ObjectNumber;
                 rootObjectGeneration = rootReference.Generation;
             }
 
-            infoReference = TryReadLastReference(trailerRaw, "Info");
+            infoReference = TryReadFirstReference(trailerRaw, "Info");
             if (infoReference is not null) {
                 infoObjectNumber = infoReference.ObjectNumber;
                 infoObjectGeneration = infoReference.Generation;
             }
 
-            PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
+            PdfReference? encryptReference = TryReadFirstReference(trailerRaw, "Encrypt");
             encryptObjectNumber = encryptReference?.ObjectNumber;
             hasEncryption = encryptReference is not null;
             encryptionFilter = null;
@@ -507,6 +507,26 @@ internal static partial class PdfSyntax {
 
     private static int? TryReadLastReferenceObjectNumber(string text, string key) {
         return TryReadLastReference(text, key)?.ObjectNumber;
+    }
+
+    private static int? TryReadFirstReferenceObjectNumber(string text, string key) {
+        return TryReadFirstReference(text, key)?.ObjectNumber;
+    }
+
+    private static PdfReference? TryReadFirstReference(string text, string key) {
+#if NET8_0_OR_GREATER
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+#else
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
+#endif
+        Match match = regex.Match(text);
+        if (match.Success
+            && int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber)
+            && int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
+            return new PdfReference(objectNumber, generation);
+        }
+
+        return null;
     }
 
     private static PdfReference? TryReadLastReference(string text, string key) {

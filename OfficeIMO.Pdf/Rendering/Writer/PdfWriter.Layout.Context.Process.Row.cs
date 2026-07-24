@@ -817,11 +817,11 @@ internal static partial class PdfWriter {
                                     TableCellTextLayout lines = table.RowLines[rowIndex][c];
                                     int sourceStartLine = wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                                     int requestedLineCount = wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
-                                    int visibleLineCount = Math.Max(0, Math.Min(requestedLineCount, lines.LineCount - sourceStartLine));
+                                    double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
+                                    int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight);
                                     double verticalOffset = 0;
                                     double visibleTextHeight = 0D;
                                     if (visibleLineCount > 0) {
-                                        double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
                                         visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
                                         double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
                                         double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);

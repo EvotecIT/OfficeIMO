@@ -113,21 +113,17 @@ public static class WordRtfWorkflowExtensions {
         RtfConversionResult<WordDocument> targetConversion = target.ToWordDocumentResult();
         using WordDocument sourceWord = sourceConversion.Value;
         using WordDocument targetWord = targetConversion.Value;
-        string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
-        string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
-        try {
-            sourceWord.Save(sourcePath);
-            targetWord.Save(targetPath);
-            WordComparisonResult comparison = WordDocumentComparer.CompareStructure(sourcePath, targetPath, options);
-            var report = new RtfConversionReport();
-            report.Merge(sourceConversion.Report);
-            report.Merge(targetConversion.Report);
-            report.Add(RtfConversionSeverity.Information, "RtfWordCompareCompleted", "RTF documents were compared by OfficeIMO.Word.", RtfConversionAction.Preserved, feature: "compare");
-            return new RtfWordWorkflowResult<WordComparisonResult>(source, comparison, report);
-        } finally {
-            TryDelete(sourcePath);
-            TryDelete(targetPath);
-        }
+        WordComparisonResult comparison = WordDocumentComparer.CompareStructure(
+            sourceWord,
+            targetWord,
+            options,
+            sourceLabel: "source.rtf",
+            targetLabel: "target.rtf");
+        var report = new RtfConversionReport();
+        report.Merge(sourceConversion.Report);
+        report.Merge(targetConversion.Report);
+        report.Add(RtfConversionSeverity.Information, "RtfWordCompareCompleted", "RTF documents were compared by OfficeIMO.Word.", RtfConversionAction.Preserved, feature: "compare");
+        return new RtfWordWorkflowResult<WordComparisonResult>(source, comparison, report);
     }
 
     private static RtfWordWorkflowResult<T> Complete<T>(
@@ -144,11 +140,4 @@ public static class WordRtfWorkflowExtensions {
         return new RtfWordWorkflowResult<T>(output.Value, workflowResult, report);
     }
 
-    private static void TryDelete(string path) {
-        try {
-            if (File.Exists(path)) File.Delete(path);
-        } catch (IOException) {
-        } catch (UnauthorizedAccessException) {
-        }
-    }
 }

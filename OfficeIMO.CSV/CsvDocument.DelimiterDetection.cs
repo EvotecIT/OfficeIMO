@@ -60,7 +60,8 @@ public sealed partial class CsvDocument
         using var records = ReadLogicalDelimiterDetectionRecords(
             reader,
             line => ShouldSkipCommentDuringDelimiterDetection(line, options, useHeaderDiscovery, allowPreHeaderCommentSkip),
-            line => IsDelimiterDetectionHeaderCandidate(line, options, candidates)).GetEnumerator();
+            line => IsDelimiterDetectionHeaderCandidate(line, options, candidates),
+            options.MaxCommentContinuationLines).GetEnumerator();
         while (records.MoveNext())
         {
             var record = records.Current;
@@ -123,8 +124,14 @@ public sealed partial class CsvDocument
     private static IEnumerable<string> ReadLogicalDelimiterDetectionRecords(
         TextReader reader,
         Func<string, bool> shouldSkipRawCommentRecord,
-        Func<string, bool> isHeaderCandidate)
+        Func<string, bool> isHeaderCandidate,
+        int maxCommentContinuationLines)
     {
+        if (maxCommentContinuationLines <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxCommentContinuationLines));
+        }
+
         var pendingLines = new Queue<string>();
         while (TryReadDelimiterDetectionLine(reader, pendingLines, out var line))
         {
@@ -132,7 +139,12 @@ public sealed partial class CsvDocument
             UpdateLogicalDelimiterDetectionQuoteState(line, ref inQuotes);
             if (shouldSkipRawCommentRecord(line) && inQuotes)
             {
-                SkipRawDelimiterDetectionCommentRecord(reader, pendingLines, line, isHeaderCandidate);
+                SkipRawDelimiterDetectionCommentRecord(
+                    reader,
+                    pendingLines,
+                    line,
+                    isHeaderCandidate,
+                    maxCommentContinuationLines);
                 continue;
             }
 
@@ -181,12 +193,13 @@ public sealed partial class CsvDocument
         TextReader reader,
         Queue<string> pendingLines,
         string firstLine,
-        Func<string, bool> isHeaderCandidate)
+        Func<string, bool> isHeaderCandidate,
+        int maxCommentContinuationLines)
     {
         var continuations = new List<string>();
         var inQuotes = false;
         UpdateLogicalDelimiterDetectionQuoteState(firstLine, ref inQuotes);
-        while (reader.ReadLine() is { } next)
+        while (continuations.Count < maxCommentContinuationLines && reader.ReadLine() is { } next)
         {
             continuations.Add(next);
             UpdateLogicalDelimiterDetectionQuoteState(next, ref inQuotes);

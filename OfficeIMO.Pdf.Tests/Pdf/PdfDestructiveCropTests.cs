@@ -43,4 +43,31 @@ public class PdfDestructiveCropTests {
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageEditor.DestructiveCropPages(source, 0, 0, 300, 500));
         Assert.Contains(exception.Plan.BlockerCodes, static code => code.Contains("Forms", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void DestructiveCrop_RemovesPageThumbnailReferenceAndPayload() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Thumbnail crop source")).ToBytes();
+        int pageObjectNumber = PdfReadDocument.Open(source).Pages[0].ObjectNumber;
+        byte[] withThumbnail = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            int thumbnailObjectNumber = objects.Keys.Max() + 1;
+            var imageDictionary = new PdfDictionary();
+            imageDictionary.Items["Type"] = new PdfName("XObject");
+            imageDictionary.Items["Subtype"] = new PdfName("Image");
+            imageDictionary.Items["Width"] = new PdfNumber(1);
+            imageDictionary.Items["Height"] = new PdfNumber(1);
+            imageDictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
+            imageDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+            objects[thumbnailObjectNumber] = new PdfIndirectObject(
+                thumbnailObjectNumber,
+                0,
+                new PdfStream(imageDictionary, new byte[] { 0x7F }));
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
+            page.Items["Thumb"] = new PdfReference(thumbnailObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        byte[] cropped = PdfPageEditor.DestructiveCropPages(withThumbnail, 0, 0, 612, 792, new PdfDestructiveCropOptions { Dpi = 72 }).ToBytes();
+
+        Assert.DoesNotContain("/Thumb", PdfEncoding.Latin1GetString(cropped), StringComparison.Ordinal);
+    }
 }

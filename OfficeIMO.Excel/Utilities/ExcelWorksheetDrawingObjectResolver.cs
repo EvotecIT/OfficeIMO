@@ -102,8 +102,8 @@ namespace OfficeIMO.Excel.Utilities {
                 position.ToOffsetYPixels,
                 shapePresetName,
                 shapeKind,
-                transform?.HorizontalFlip?.Value == true,
-                transform?.VerticalFlip?.Value == true,
+                ReadBooleanAttribute(transform, "flipH"),
+                ReadBooleanAttribute(transform, "flipV"),
                 rotationDegrees,
                 fillColorArgb,
                 strokeColorArgb,
@@ -180,15 +180,15 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static OfficeTextAlignment ResolveTextAlignment(Xdr.TextBody? textBody) {
-            A.TextAlignmentTypeValues? alignment = textBody?
+            string? alignment = textBody?
                 .Elements<A.Paragraph>()
-                .Select(paragraph => paragraph.GetFirstChild<A.ParagraphProperties>()?.Alignment?.Value)
-                .FirstOrDefault(value => value.HasValue);
-            if (alignment == A.TextAlignmentTypeValues.Right) {
+                .Select(paragraph => GetRawAttribute(paragraph.GetFirstChild<A.ParagraphProperties>(), "algn"))
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            if (string.Equals(alignment, "r", StringComparison.OrdinalIgnoreCase)) {
                 return OfficeTextAlignment.Right;
             }
 
-            if (alignment == A.TextAlignmentTypeValues.Left) {
+            if (string.Equals(alignment, "l", StringComparison.OrdinalIgnoreCase)) {
                 return OfficeTextAlignment.Left;
             }
 
@@ -196,12 +196,12 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static OfficeTextVerticalAlignment ResolveTextVerticalAlignment(A.BodyProperties? bodyProperties) {
-            A.TextAnchoringTypeValues? anchor = bodyProperties?.Anchor?.Value;
-            if (anchor == A.TextAnchoringTypeValues.Top) {
+            string? anchor = GetRawAttribute(bodyProperties, "anchor");
+            if (string.Equals(anchor, "t", StringComparison.OrdinalIgnoreCase)) {
                 return OfficeTextVerticalAlignment.Top;
             }
 
-            if (anchor == A.TextAnchoringTypeValues.Bottom) {
+            if (string.Equals(anchor, "b", StringComparison.OrdinalIgnoreCase)) {
                 return OfficeTextVerticalAlignment.Bottom;
             }
 
@@ -213,8 +213,8 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            A.TextWrappingValues? wrap = bodyProperties.Wrap?.Value;
-            return wrap != A.TextWrappingValues.None;
+            string? wrap = GetRawAttribute(bodyProperties, "wrap");
+            return !string.Equals(wrap, "none", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ResolveTextShrinkToFit(A.BodyProperties? bodyProperties) =>
@@ -224,32 +224,32 @@ namespace OfficeIMO.Excel.Utilities {
             bodyProperties?.GetFirstChild<A.ShapeAutoFit>() != null;
 
         private static ExcelDrawingTextOrientation ResolveTextOrientation(A.BodyProperties? bodyProperties) {
-            A.TextVerticalValues? vertical = bodyProperties?.Vertical?.Value;
-            if (!vertical.HasValue || vertical == A.TextVerticalValues.Horizontal) {
+            string? vertical = GetRawAttribute(bodyProperties, "vert");
+            if (string.IsNullOrWhiteSpace(vertical) || string.Equals(vertical, "horz", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.Horizontal;
             }
 
-            if (vertical == A.TextVerticalValues.Vertical) {
+            if (string.Equals(vertical, "vert", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.Vertical;
             }
 
-            if (vertical == A.TextVerticalValues.Vertical270) {
+            if (string.Equals(vertical, "vert270", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.Vertical270;
             }
 
-            if (vertical == A.TextVerticalValues.EastAsianVetical) {
+            if (string.Equals(vertical, "eaVert", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.EastAsianVertical;
             }
 
-            if (vertical == A.TextVerticalValues.MongolianVertical) {
+            if (string.Equals(vertical, "mongolianVert", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.MongolianVertical;
             }
 
-            if (vertical == A.TextVerticalValues.WordArtVertical) {
+            if (string.Equals(vertical, "wordArtVert", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.WordArtVertical;
             }
 
-            if (vertical == A.TextVerticalValues.WordArtLeftToRight) {
+            if (string.Equals(vertical, "wordArtVertRtl", StringComparison.OrdinalIgnoreCase)) {
                 return ExcelDrawingTextOrientation.WordArtLeftToRight;
             }
 
@@ -262,10 +262,10 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return new DrawingTextInsets(
-                ParseEmuPixels(bodyProperties.LeftInset?.Value ?? DefaultLeftRightTextInsetEmu),
-                ParseEmuPixels(bodyProperties.TopInset?.Value ?? DefaultTopBottomTextInsetEmu),
-                ParseEmuPixels(bodyProperties.RightInset?.Value ?? DefaultLeftRightTextInsetEmu),
-                ParseEmuPixels(bodyProperties.BottomInset?.Value ?? DefaultTopBottomTextInsetEmu));
+                ParseEmuPixels(GetRawAttribute(bodyProperties, "lIns"), DefaultLeftRightTextInsetEmu),
+                ParseEmuPixels(GetRawAttribute(bodyProperties, "tIns"), DefaultTopBottomTextInsetEmu),
+                ParseEmuPixels(GetRawAttribute(bodyProperties, "rIns"), DefaultLeftRightTextInsetEmu),
+                ParseEmuPixels(GetRawAttribute(bodyProperties, "bIns"), DefaultTopBottomTextInsetEmu));
         }
 
         private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody, WorkbookPart? workbookPart) {
@@ -277,24 +277,26 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             string? colorArgb = ExcelThemeColorResolver.Resolve(runProperties.GetFirstChild<A.SolidFill>(), workbookPart);
-            string? fontFamily = NormalizeFontFamily(runProperties.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
-            double? fontSize = runProperties.FontSize?.Value > 0
-                ? runProperties.FontSize.Value / 100D
+            string? fontFamily = NormalizeFontFamily(GetRawAttribute(runProperties.GetFirstChild<A.LatinFont>(), "typeface"));
+            double? fontSize = int.TryParse(GetRawAttribute(runProperties, "sz"), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int rawFontSize) && rawFontSize > 0
+                ? rawFontSize / 100D
                 : null;
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-            if (runProperties.Bold?.Value == true) {
+            if (ReadBooleanAttribute(runProperties, "b")) {
                 fontStyle |= OfficeFontStyle.Bold;
             }
 
-            if (runProperties.Italic?.Value == true) {
+            if (ReadBooleanAttribute(runProperties, "i")) {
                 fontStyle |= OfficeFontStyle.Italic;
             }
 
-            if (runProperties.Underline?.Value != null && runProperties.Underline.Value != A.TextUnderlineValues.None) {
+            string? underline = GetRawAttribute(runProperties, "u");
+            if (!string.IsNullOrWhiteSpace(underline) && !string.Equals(underline, "none", StringComparison.OrdinalIgnoreCase)) {
                 fontStyle |= OfficeFontStyle.Underline;
             }
 
-            if (runProperties.Strike?.Value != null && runProperties.Strike.Value != A.TextStrikeValues.NoStrike) {
+            string? strike = GetRawAttribute(runProperties, "strike");
+            if (!string.IsNullOrWhiteSpace(strike) && !string.Equals(strike, "noStrike", StringComparison.OrdinalIgnoreCase)) {
                 fontStyle |= OfficeFontStyle.Strikethrough;
             }
 
@@ -701,7 +703,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            if (transform.Rotation?.Value is not int rotation) {
+            if (!int.TryParse(GetRawAttribute(transform, "rot"), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int rotation)) {
                 return false;
             }
 
@@ -748,6 +750,27 @@ namespace OfficeIMO.Excel.Utilities {
         private static string? NormalizeFontFamily(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
 
+        private static string? GetRawAttribute(OpenXmlElement? element, string localName) {
+            if (element == null) {
+                return null;
+            }
+
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)) {
+                    return attribute.Value;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool ReadBooleanAttribute(OpenXmlElement? element, string localName) {
+            string? value = GetRawAttribute(element, localName);
+            return string.Equals(value, "1", StringComparison.Ordinal) ||
+                string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "on", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static int ParseOneBasedMarker(string? value, int maximum) =>
             int.TryParse(value, out int zeroBased) && zeroBased >= 0 && zeroBased < maximum ? zeroBased + 1 : 0;
 
@@ -761,6 +784,11 @@ namespace OfficeIMO.Excel.Utilities {
 
         private static int ParseEmuPixels(long? value) =>
             value.HasValue ? ConvertEmuToPixels(value.Value) : 0;
+
+        private static int ParseEmuPixels(string? value, long defaultValue) =>
+            long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long emus)
+                ? ConvertEmuToPixels(emus)
+                : ConvertEmuToPixels(defaultValue);
 
         private static int ConvertEmuToPixels(long emus) {
             double pixels = Math.Round(emus / EmusPerPixel);

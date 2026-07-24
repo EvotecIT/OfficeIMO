@@ -15,22 +15,24 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot, width, height);
-            OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot, useMinimumCanvas: false);
-            if (chartDrawing.Width > width || chartDrawing.Height > height) {
-                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer requires a larger drawing area than the chart frame.");
-                return;
-            }
-
             try {
+                OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot, width, height);
+                OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot, useMinimumCanvas: false);
+                if (chartDrawing.Width > width || chartDrawing.Height > height) {
+                    AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer requires a larger drawing area than the chart frame.");
+                    return;
+                }
+
                 OfficeImageFrameTransform transform = CreateChartFrameTransform(chart, left, top, width, height);
                 if (transform.HasTransform) {
                     drawing.AddDrawing(chartDrawing, left, top, transform);
                 } else {
                     drawing.AddDrawing(chartDrawing, left, top);
                 }
-            } catch (ArgumentOutOfRangeException) {
-                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the rendered Drawing chart would exceed the slide canvas.");
+            } catch (ArgumentException) {
+                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its frame is too small for safe rendering.");
+            } catch (InvalidOperationException) {
+                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its cached layout could not be rendered safely.");
             }
         }
 

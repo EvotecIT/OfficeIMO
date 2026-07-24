@@ -6,6 +6,49 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Renderer_RawHtmlHandling_Tests {
     [Fact]
+    public void GenericAttributes_DoNotBypassSanitizedHtmlAttributePolicy() {
+        const string markdown = "Safe {onclick=\"alert(1)\" style=\"display:none\" href=\"javascript:alert(2)\" srcdoc=\"<script>x</script>\" data-safe=\"yes\" title=\"kept\"}\n\n![safe](/safe.png){srcset=\"https://attacker.test/leak.png 2x\" imagesrcset=\"https://attacker.test/preload.png 1x\"}";
+        var readerOptions = new MarkdownReaderOptions { GenericAttributes = true };
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = RawHtmlHandling.Sanitize
+        };
+
+        string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, readerOptions)
+            .ToHtmlFragment(htmlOptions);
+
+        Assert.DoesNotContain("onclick", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("style=", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("href=", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("srcdoc", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("srcset", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("imagesrcset", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-safe=\"yes\"", html, StringComparison.Ordinal);
+        Assert.Contains("title=\"kept\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenericAttributes_PreserveTrustedAllowRendering() {
+        const string markdown = "Trusted {style=\"color:red\" href=\"https://example.test\" onclick=\"trusted()\"}";
+        var readerOptions = new MarkdownReaderOptions { GenericAttributes = true };
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = RawHtmlHandling.Allow
+        };
+
+        string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, readerOptions)
+            .ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("style=\"color:red\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.test\"", html, StringComparison.Ordinal);
+        Assert.Contains("onclick=\"trusted()\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlOptions_Can_Strip_RawHtml_Blocks() {
         var md = "<div>hi</div>\n\nParagraph";
         var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Strip };
