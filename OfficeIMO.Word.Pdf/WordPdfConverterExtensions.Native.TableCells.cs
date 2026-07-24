@@ -365,6 +365,9 @@ namespace OfficeIMO.Word.Pdf {
             double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
             double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
             double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
+            leftIndent = NormalizeNativeTableCellIndent(leftIndent);
+            rightIndent = NormalizeNativeTableCellIndent(rightIndent);
+            firstLineIndent = double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent) ? 0D : firstLineIndent;
 
             if (paragraph.IndentationHangingPoints.HasValue) {
                 double hangingIndent = paragraph.IndentationHangingPoints.Value;
@@ -379,6 +382,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return (leftIndent, rightIndent, firstLineIndent);
         }
+
+        private static double NormalizeNativeTableCellIndent(double value) =>
+            value < 0D || double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
 
         private static double? ResolveNativeTableCellParagraphLineHeight(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);

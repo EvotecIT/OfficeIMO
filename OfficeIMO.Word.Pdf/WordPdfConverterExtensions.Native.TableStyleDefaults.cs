@@ -354,34 +354,29 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<W.Style> GetNativeTableStyleChain(WordDocument document, string? styleId) {
-            W.Styles? styles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
+            NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
+            string? resolvedStyleId = cache?.ResolveTableStyleId(styleId);
+            if (cache == null || string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 return Array.Empty<W.Style>();
             }
 
-            Dictionary<string, W.Style> tableStyles = styles
-                .Elements<W.Style>()
-                .Where(style => style.Type?.Value == W.StyleValues.Table && !string.IsNullOrEmpty(style.StyleId?.Value))
-                .ToDictionary(style => style.StyleId!.Value!, style => style, StringComparer.Ordinal);
-
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                styleId = tableStyles.Values.FirstOrDefault(style => style.Default?.Value == true)?.StyleId?.Value;
-            }
-
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return Array.Empty<W.Style>();
+            if (cache.TableChains.TryGetValue(resolvedStyleId!, out IReadOnlyList<W.Style>? cachedChain)) {
+                return cachedChain;
             }
 
             var chain = new List<W.Style>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            string? currentStyleId = styleId;
-            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && tableStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+            string? currentStyleId = resolvedStyleId;
+            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.TableStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
                 currentStyleId = style.BasedOn?.Val?.Value;
             }
 
             chain.Reverse();
-            return chain;
+            IReadOnlyList<W.Style> result = chain.ToArray();
+            cache.TableChains[resolvedStyleId!] = result;
+            return result;
         }
 
         private static string? GetNativeTableStyleId(WordTable table) =>

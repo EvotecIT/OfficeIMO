@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -182,6 +183,51 @@ namespace OfficeIMO.Tests {
 
                     Assert.Empty(report.FindFeatures("Images"));
                     Assert.Same(report, report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_EmptySlideBackgroundPropertiesDoNotHideInheritedImage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Inherited background image");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    SlideMasterPart masterPart = slidePart.SlideLayoutPart!.SlideMasterPart!;
+                    ImagePart imagePart = masterPart.AddImagePart(DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                    using (FileStream stream = File.OpenRead(imagePath)) {
+                        imagePart.FeedData(stream);
+                    }
+
+                    string relationshipId = masterPart.GetIdOfPart(imagePart);
+                    masterPart.SlideMaster!.CommonSlideData!.Background = new Background(
+                        new BackgroundProperties(
+                            new A.BlipFill(
+                                new A.Blip { Embed = relationshipId },
+                                new A.Stretch(new A.FillRectangle()))));
+                    masterPart.SlideMaster.Save();
+
+                    slidePart.Slide.CommonSlideData!.Background = new Background(new BackgroundProperties());
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -1000,6 +1046,214 @@ namespace OfficeIMO.Tests {
                         && feature.Details.Any(detail => detail.Contains("Microsoft_Excel_Worksheet", StringComparison.OrdinalIgnoreCase)));
                     Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "Embedded packages");
                     Assert.False(report.HasAdvancedFeatures);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsUnsafeChartOwnedPackageAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    if (chartPart.EmbeddedPackagePart is EmbeddedPackagePart existingPackage) {
+                        chartPart.DeletePart(existingPackage);
+                    }
+                    EmbeddedPackagePart package = chartPart.AddEmbeddedPackagePart("application/vnd.ms-excel.sheet.macroEnabled.12");
+                    using var content = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+                    package.FeedData(content);
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, embedded.SupportLevel);
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsUnreferencedChartWorkbookAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    chartPart.ChartSpace!.RemoveAllChildren<C.ExternalData>();
+                    chartPart.ChartSpace.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsMalformedChartWorkbookAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    EmbeddedPackagePart package = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
+                    using var content = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+                    package.FeedData(content);
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsChartWorkbookWithExternalRelationshipAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    EmbeddedPackagePart package = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
+                    using Stream workbookStream = package.GetStream(FileMode.Open, FileAccess.ReadWrite);
+                    using SpreadsheetDocument workbook = SpreadsheetDocument.Open(workbookStream, true);
+                    workbook.WorkbookPart!.AddExternalRelationship(
+                        "urn:officeimo:test-external-workbook",
+                        new Uri("https://example.invalid/linked.xlsx"),
+                        "rIdUnsafeExternalWorkbook");
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsChartWorkbookWithNestedSharedStringPartAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    EmbeddedPackagePart package = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
+                    using Stream workbookStream = package.GetStream(FileMode.Open, FileAccess.ReadWrite);
+                    using SpreadsheetDocument workbook = SpreadsheetDocument.Open(workbookStream, true);
+                    SharedStringTablePart sharedStrings = Assert.Single(workbook.WorkbookPart!.GetPartsOfType<SharedStringTablePart>());
+                    AddExtendedPart(
+                        sharedStrings,
+                        "urn:officeimo:test-nested-shared-string-part",
+                        "application/octet-stream",
+                        "bin",
+                        new byte[] { 1, 2, 3, 4 });
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_TreatsOversizedCompressedChartWorksheetAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                    EmbeddedPackagePart package = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
+                    using Stream workbookStream = package.GetStream(FileMode.Open, FileAccess.ReadWrite);
+                    using SpreadsheetDocument workbook = SpreadsheetDocument.Open(workbookStream, true);
+                    WorksheetPart worksheetPart = Assert.Single(workbook.WorkbookPart!.GetPartsOfType<WorksheetPart>());
+                    S.SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<S.SheetData>()!;
+                    sheetData.Append(new S.Row(
+                        new S.Cell {
+                            DataType = S.CellValues.String,
+                            CellValue = new S.CellValue(new string('A', 3 * 1024 * 1024))
+                        }));
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
                 if (File.Exists(filePath)) {

@@ -116,10 +116,41 @@ internal static class YamlReaderAdapter {
         limitError = null;
         var parser = new Parser(reader);
         int events = 0;
+        int nodes = 0;
+        int containerDepth = 0;
         while (parser.MoveNext()) {
             events++;
             if (events > options.MaxParseEvents) {
                 limitError = "YAML parse limit exceeded: maximum parse event count reached.";
+                return false;
+            }
+
+            switch (parser.Current) {
+                case MappingStart:
+                case SequenceStart:
+                    nodes++;
+                    containerDepth++;
+                    if (containerDepth > options.MaxDepth + 1) {
+                        limitError = "YAML parse limit exceeded: maximum depth reached.";
+                        return false;
+                    }
+                    break;
+                case MappingEnd:
+                case SequenceEnd:
+                    containerDepth = Math.Max(0, containerDepth - 1);
+                    break;
+                case Scalar:
+                case AnchorAlias:
+                    nodes++;
+                    if (containerDepth > options.MaxDepth) {
+                        limitError = "YAML parse limit exceeded: maximum depth reached.";
+                        return false;
+                    }
+                    break;
+            }
+
+            if (nodes > options.MaxNodes) {
+                limitError = "YAML parse limit exceeded: maximum node count reached.";
                 return false;
             }
 

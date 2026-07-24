@@ -236,6 +236,32 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_First_Row_Fill_When_Vertical_Merge_Suppresses_Header_Role() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleMergedFirstRow.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Merged First Row Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "112233" }))
+            { Type = TableStyleOverrideValues.FirstRow })
+        { Type = StyleValues.Table, StyleId = "MergedFirstRowTable" });
+
+        WordTable table = document.AddTable(2, 2);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "MergedFirstRowTable" };
+        table.ConditionalFormattingFirstRow = true;
+        table.Rows[0].Cells[0].MergeVertically(1);
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(0, style.HeaderRowCount);
+        Assert.Equal(0, style.RepeatHeaderRowCount);
+        Assert.NotNull(style.CellFills);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills![(0, 0)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills[(0, 1)]);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Last_Row_Conditional_Formatting() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleLastRowConditional.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

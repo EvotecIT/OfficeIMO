@@ -64,6 +64,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
+            NativeStyleLookupCache? cache = GetNativeStyleLookupCache(paragraph._document);
+            string? resolvedStyleId = cache?.ResolveParagraphStyleId(paragraph.StyleId);
+            if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId) && cache.ParagraphDefaults.TryGetValue(resolvedStyleId!, out NativeParagraphStyleDefaults cachedDefaults)) {
+                return cachedDefaults;
+            }
+
             IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
             if (styleChain.Count == 0) {
                 return NativeParagraphStyleDefaults.Empty;
@@ -156,7 +162,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            return new NativeParagraphStyleDefaults(
+            var result = new NativeParagraphStyleDefaults(
                 fontSize,
                 fontFamily,
                 bold,
@@ -184,41 +190,46 @@ namespace OfficeIMO.Word.Pdf {
                 contextualSpacing,
                 shadingFillColorHex,
                 borders);
+            if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
+                cache.ParagraphDefaults[resolvedStyleId!] = result;
+            }
+
+            return result;
         }
 
         private static IReadOnlyList<W.Style> GetNativeParagraphStyleChain(WordDocument? document, string? styleId) {
-            W.Styles? styles = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
+            NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
+            string? resolvedStyleId = cache?.ResolveParagraphStyleId(styleId);
+            if (cache == null || string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 return Array.Empty<W.Style>();
             }
 
-            Dictionary<string, W.Style> paragraphStyles = styles
-                .Elements<W.Style>()
-                .Where(style => IsNativeParagraphStyle(style) && !string.IsNullOrEmpty(style.StyleId?.Value))
-                .ToDictionary(style => style.StyleId!.Value!, style => style, StringComparer.Ordinal);
-
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                styleId = paragraphStyles.Values.FirstOrDefault(style => style.Default?.Value == true)?.StyleId?.Value;
-            }
-
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return Array.Empty<W.Style>();
+            if (cache.ParagraphChains.TryGetValue(resolvedStyleId!, out IReadOnlyList<W.Style>? cachedChain)) {
+                return cachedChain;
             }
 
             var chain = new List<W.Style>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            string? currentStyleId = styleId;
-            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && paragraphStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+            string? currentStyleId = resolvedStyleId;
+            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.ParagraphStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
                 currentStyleId = style.BasedOn?.Val?.Value;
             }
 
             chain.Reverse();
-            return chain;
+            IReadOnlyList<W.Style> result = chain.ToArray();
+            cache.ParagraphChains[resolvedStyleId!] = result;
+            return result;
         }
 
         private static NativeCharacterStyleDefaults GetNativeCharacterStyleDefaults(WordDocument? document, W.RunProperties? runProperties) {
             string? styleId = runProperties?.RunStyle?.Val?.Value;
+            NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
+            if (cache != null && !string.IsNullOrWhiteSpace(styleId) && cache.CharacterDefaults.TryGetValue(styleId!, out NativeCharacterStyleDefaults cachedDefaults)) {
+                return cachedDefaults;
+            }
+
             IReadOnlyList<W.Style> styleChain = GetNativeCharacterStyleChain(document, styleId);
             if (styleChain.Count == 0) {
                 return NativeCharacterStyleDefaults.Empty;
@@ -251,7 +262,7 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = styleRunProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 
-            return new NativeCharacterStyleDefaults(
+            var result = new NativeCharacterStyleDefaults(
                 fontSize,
                 fontFamily,
                 bold,
@@ -263,29 +274,36 @@ namespace OfficeIMO.Word.Pdf {
                 baseline,
                 colorHex,
                 highlight);
+            if (cache != null && !string.IsNullOrWhiteSpace(styleId)) {
+                cache.CharacterDefaults[styleId!] = result;
+            }
+
+            return result;
         }
 
         private static IReadOnlyList<W.Style> GetNativeCharacterStyleChain(WordDocument? document, string? styleId) {
-            W.Styles? styles = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null || string.IsNullOrWhiteSpace(styleId)) {
+            NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
+            if (cache == null || string.IsNullOrWhiteSpace(styleId)) {
                 return Array.Empty<W.Style>();
             }
 
-            Dictionary<string, W.Style> characterStyles = styles
-                .Elements<W.Style>()
-                .Where(style => IsNativeCharacterStyle(style) && !string.IsNullOrEmpty(style.StyleId?.Value))
-                .ToDictionary(style => style.StyleId!.Value!, style => style, StringComparer.Ordinal);
+            if (cache.CharacterChains.TryGetValue(styleId!, out IReadOnlyList<W.Style>? cachedChain)) {
+                return cachedChain;
+            }
 
             var chain = new List<W.Style>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? currentStyleId = styleId;
-            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && characterStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.CharacterStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
                 currentStyleId = style.BasedOn?.Val?.Value;
             }
 
             chain.Reverse();
-            return chain;
+            IReadOnlyList<W.Style> result = chain.ToArray();
+            cache.CharacterChains[styleId!] = result;
+            return result;
         }
 
         private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {

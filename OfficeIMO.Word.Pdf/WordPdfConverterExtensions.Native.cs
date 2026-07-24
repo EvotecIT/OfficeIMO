@@ -110,6 +110,7 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
+            ResetNativeStyleLookupCache(document);
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options, nativeFontMap))
@@ -203,6 +204,9 @@ namespace OfficeIMO.Word.Pdf {
                 sectionIndex = sectionGroupEnd;
             }
 
+            // The lookup cache is conversion-scoped. Releasing it here preserves the pre-existing
+            // post-conversion behavior and prevents disposed document state from being reused.
+            ResetNativeStyleLookupCache(document);
             return pdf;
         }
 

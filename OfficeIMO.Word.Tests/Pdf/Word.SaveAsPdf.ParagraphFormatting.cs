@@ -597,6 +597,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Clamps_Untrusted_Paragraph_Border_Space() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpaceLimit.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpaceLimit.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph paragraph = document.AddParagraph("BoundedBorderSpace");
+                paragraph.Borders.LeftStyle = BorderValues.Single;
+                paragraph.Borders.RightStyle = BorderValues.Single;
+                paragraph.Borders.TopStyle = BorderValues.Single;
+                paragraph.Borders.BottomStyle = BorderValues.Single;
+                paragraph.Borders.LeftSpace = uint.MaxValue;
+                paragraph.Borders.RightSpace = uint.MaxValue;
+                paragraph.Borders.TopSpace = uint.MaxValue;
+                paragraph.Borders.BottomSpace = uint.MaxValue;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            Assert.Contains("BoundedBorderSpace", PdfTextExtractor.ExtractAllText(pdfPath));
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Tab_Leaders() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTabs.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTabs.pdf");
