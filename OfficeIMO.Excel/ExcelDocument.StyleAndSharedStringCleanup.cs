@@ -4,6 +4,8 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private const int MaximumSharedStringRepairItems = 65_536;
+
         internal void CleanupStyleAndSharedStringArtifacts(bool save = true) {
             var workbookPart = WorkbookPartRoot;
 
@@ -94,7 +96,22 @@ namespace OfficeIMO.Excel {
 
                             string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
                             if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)
-                                || sharedStringIndex >= itemCount) {
+                                || sharedStringIndex >= MaximumSharedStringRepairItems) {
+                                cell.DataType = CellValues.InlineString;
+                                cell.RemoveAllChildren<CellValue>();
+                                cell.RemoveAllChildren<InlineString>();
+                                cell.AppendChild(new InlineString(new Text(rawValue)));
+                                worksheetChanged = true;
+                                continue;
+                            }
+
+                            while (sharedStringTable != null && itemCount <= sharedStringIndex) {
+                                sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
+                                itemCount++;
+                                sharedStringTableChanged = true;
+                            }
+
+                            if (sharedStringIndex >= itemCount) {
                                 cell.DataType = CellValues.InlineString;
                                 cell.RemoveAllChildren<CellValue>();
                                 cell.RemoveAllChildren<InlineString>();
