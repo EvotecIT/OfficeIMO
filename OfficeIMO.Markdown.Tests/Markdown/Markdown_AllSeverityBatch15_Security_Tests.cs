@@ -41,6 +41,21 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
+    public void PictureSrcSetFiltersCommaSeparatedCandidatesWithoutWhitespace() {
+        var image = new ImageBlock("https://images.example/photo.png", "photo");
+        image.PictureSources.Add(new ImagePictureSource(
+            "https://tracker.example/fallback.webp",
+            srcSet: "https://images.example/photo.webp,https://tracker.example/pixel.webp 2x"));
+
+        var options = new HtmlOptions();
+        options.AllowedHttpImageHosts.Add("images.example");
+        string html = MarkdownDoc.Create().Add(image).ToHtmlFragment(options);
+
+        Assert.Contains("https://images.example/photo.webp", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InvalidThemeColorsCannotEscapeTheStyleElement() {
         string payload = "red;}</style><script>alert(1)</script>";
         string html = MarkdownDoc.Create().H1("safe").ToHtmlDocument(new HtmlOptions {
