@@ -34,7 +34,8 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.UseTextFallbacks(
                 documentAndMonospaceFallbacks,
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: false),
-                options.ResourcePolicy.AllowSystemFontEmbedding);
+                options.ResourcePolicy.AllowSystemFontEmbedding,
+                preserveDocumentFontSlots);
         }
 
         PdfCore.PdfTextFallbackFeatures runFallbacks = fallbackFeatures &
@@ -43,7 +44,8 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.UseTextFallbacks(
                 runFallbacks,
                 CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: usesCodeFont),
-                options.ResourcePolicy.AllowSystemFontEmbedding);
+                options.ResourcePolicy.AllowSystemFontEmbedding,
+                preserveDocumentFontSlots);
         }
     }
 

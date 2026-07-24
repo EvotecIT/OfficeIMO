@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Reusable chart layout metadata shared by OfficeIMO chart renderers and format exporters.
 /// </summary>
-public sealed class OfficeChartLayout {
+public sealed partial class OfficeChartLayout {
     internal const int MaxNumberFormatLength = 1024;
 
     private static readonly OfficeChartLayout DefaultLayout = new OfficeChartLayout();

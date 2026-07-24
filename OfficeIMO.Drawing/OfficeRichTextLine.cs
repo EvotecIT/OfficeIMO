@@ -7,6 +7,11 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured line of rich text.
 /// </summary>
 public sealed class OfficeRichTextLine {
+    /// <summary>Creates a line with renderer-resolved height and no horizontal offset.</summary>
+    public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments)
+        : this(segments, 0D, 0D) {
+    }
+
     /// <summary>
     /// Creates a measured rich text line.
     /// </summary>

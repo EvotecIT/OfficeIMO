@@ -251,7 +251,7 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (!text.WrapText && !text.ShrinkToFit && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
+        if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
             if (text.TextAdvanceWidth.HasValue) {
                 canvas.DrawPositionedText(
                     text.Text,

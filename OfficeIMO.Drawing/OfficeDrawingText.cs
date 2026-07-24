@@ -7,6 +7,40 @@ namespace OfficeIMO.Drawing;
 /// Coordinates use the drawing's local top-left coordinate space.
 /// </summary>
 public sealed class OfficeDrawingText : OfficeDrawingElement {
+    /// <summary>Creates an unrotated positioned drawing text box using the original public contract.</summary>
+    public OfficeDrawingText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeFontInfo? font,
+        OfficeColor? color,
+        OfficeTextAlignment alignment,
+        double? lineHeight)
+        : this(
+            text,
+            x,
+            y,
+            width,
+            height,
+            font,
+            color,
+            alignment,
+            lineHeight,
+            OfficeTextVerticalAlignment.Top,
+            0D,
+            null,
+            null,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null) {
+    }
+
     /// <summary>
     /// Creates a positioned drawing text box.
     /// </summary>

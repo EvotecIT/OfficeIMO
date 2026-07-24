@@ -351,7 +351,22 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, shape.Shape.Width, style.Align);
-            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - shape.Shape.Height, X2 = x + shape.Shape.Width, Y2 = topY, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });
+            double x1 = x;
+            double x2 = x + shape.Shape.Width;
+            double y1 = topY - shape.Shape.Height;
+            double y2 = topY;
+            double halfStroke = Math.Max(0.5D, Math.Max(0D, shape.Shape.StrokeWidth) / 2D);
+            if (x2 <= x1) {
+                x1 -= halfStroke;
+                x2 += halfStroke;
+            }
+
+            if (y2 <= y1) {
+                y1 -= halfStroke;
+                y2 += halfStroke;
+            }
+
+            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });
         }
 
         private void AddDrawingLinkAnnotation(DrawingBlock drawing, PdfDrawingStyle style, double containerX, double containerWidth, double topY, int? structElementIndex = null) {
@@ -365,4 +380,3 @@ internal static partial class PdfWriter {
 
     }
 }
-

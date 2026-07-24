@@ -191,6 +191,7 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
+                TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
                 PageSize = new PdfCore.PageSize(420, 360),
                 Margins = PdfCore.PageMargins.Uniform(24)
             });

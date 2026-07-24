@@ -119,7 +119,11 @@ internal static class HtmlPdfRenderedConverter {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
-            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, options.ResourcePolicy.AllowSystemFontEmbedding);
+            pdf.Options.UseTextFallbacks(
+                activeTextFallbacks,
+                reservedFontSlots,
+                options.ResourcePolicy.AllowSystemFontEmbedding,
+                preserveConfiguredFontSlots: options.FontFamily != null);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
