@@ -594,10 +594,10 @@ internal static partial class PdfRedactionApplier {
 
     private static bool IntersectsTarget(RedactionTextBounds? bounds, RedactionTextTarget target) {
         if (bounds is null) {
-            // An area target may only remove text whose geometry proves an intersection.
-            // Treating an unknown location as a match lets one unlocatable object remove
-            // every other unlocatable BT/ET block on the page.
-            return false;
+            // An area redaction is a confidentiality boundary. If a text object cannot be
+            // located, retaining it could leave extractable text inside the painted area.
+            // Text-targeted redactions still require their textual match before reaching here.
+            return target.Text.Length == 0;
         }
 
         return Intersects(

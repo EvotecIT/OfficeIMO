@@ -232,7 +232,7 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
-    public void OneNoteAdapter_PreservesOversizedNonTextUnitsAtSharedSourceBoundaries() {
+    public void OneNoteAdapter_SplitsOversizedNonTextUnitsAtTheConfiguredBoundary() {
         string title = "Heading " + new string('h', 40);
         string altText = "Preview " + new string('i', 40);
         var section = new OneNoteSection { Name = "Oversized" };
@@ -249,15 +249,21 @@ public sealed class ReaderOneNoteModularTests {
             section,
             readerOptions: new ReaderOptions { MaxChars = 16 });
 
-        Assert.Equal(2, result.Chunks.Count);
-        Assert.Equal(title, result.Chunks[0].Text);
-        Assert.Equal("# " + title, result.Chunks[0].Markdown);
-        Assert.Equal("[Image: " + altText + "]", result.Chunks[1].Text);
-        Assert.Equal("![" + altText + "](onenote-page-0001-asset-0001)",
-            result.Chunks[1].Markdown);
-        Assert.All(result.Chunks, chunk =>
-            Assert.Contains(chunk.Warnings!, warning =>
-                warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase)));
+        Assert.True(result.Chunks.Count > 2);
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 16);
+            Assert.True(chunk.Markdown!.Length <= 16);
+            Assert.DoesNotContain(chunk.Warnings ?? Array.Empty<string>(), warning =>
+                warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
+        });
+        Assert.Equal(title + "[Image: " + altText + "]",
+            string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.Equal("# " + title + "![" + altText + "](onenote-page-0001-asset-0001)",
+            string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
+        Assert.Equal(
+            "# " + title + Environment.NewLine + Environment.NewLine +
+            "![" + altText + "](onenote-page-0001-asset-0001)",
+            result.Markdown);
     }
 
     [Theory]
@@ -297,13 +303,21 @@ public sealed class ReaderOneNoteModularTests {
         OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
             section,
             readerOptions: new ReaderOptions { MaxChars = 1 });
-        ReaderChunk[] contentChunks = result.Chunks.Skip(1).ToArray();
+        int contentStart = result.Chunks.ToList().FindIndex(
+            chunk => chunk.Text.Contains("\U0001F642", StringComparison.Ordinal));
+        Assert.True(contentStart >= 0);
+        ReaderChunk[] contentChunks = result.Chunks.Skip(contentStart).ToArray();
 
         Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Text)));
         Assert.Equal(sourceText, string.Concat(contentChunks.Select(chunk => chunk.Markdown)));
         Assert.DoesNotContain('?', string.Concat(contentChunks.Select(chunk => chunk.Text)));
         Assert.Equal("\U0001F642", contentChunks[0].Text);
-        Assert.Contains(contentChunks[0].Warnings!, warning => warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 1 || chunk.Text == "\U0001F642");
+            Assert.True(chunk.Markdown!.Length <= 1 || chunk.Markdown == "\U0001F642");
+            Assert.DoesNotContain(chunk.Warnings ?? Array.Empty<string>(), warning =>
+                warning.Contains("preserved as one chunk", StringComparison.OrdinalIgnoreCase));
+        });
     }
 
     [Fact]

@@ -5,11 +5,18 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class CommonMarkHtmlComparison {
     public static HtmlOptions CreatePlainHtmlOptions() {
-        return new HtmlOptions {
+        var options = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null
         };
+        options.AdditionalAllowedLinkSchemes.AddRange(new[] {
+            "a+b+c",
+            "irc",
+            "localhost",
+            "made-up-scheme"
+        });
+        return options;
     }
 
     public static string Normalize(string html) {

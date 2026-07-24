@@ -110,14 +110,20 @@ namespace OfficeIMO.Word {
                 .Where(f => f.Type != null && types.Contains(WordSection.GetType(f.Type))).ToList();
             foreach (var footer in footersToRemove) {
                 if (footer.Id == null) continue;
-                var part = mainDocumentPart.GetPartById(footer.Id.Value!) as FooterPart;
+                string relationshipId = footer.Id.Value!;
+                var part = mainDocumentPart.Parts
+                    .FirstOrDefault(candidate => candidate.RelationshipId == relationshipId)
+                    .OpenXmlPart as FooterPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 footer.Remove();
             }
             foreach (var part in partsToDelete) {
-                mainDocumentPart.DeletePart(part);
+                string relationshipId = mainDocumentPart.GetIdOfPart(part);
+                if (!documentRoot.Descendants<FooterReference>().Any(footer => footer.Id?.Value == relationshipId)) {
+                    mainDocumentPart.DeletePart(part);
+                }
             }
         }
         /// <summary>

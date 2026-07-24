@@ -24,13 +24,18 @@ namespace OfficeIMO.Word {
                     template.ChangeDocumentType(DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
 
                     MainDocumentPart mainPart = template.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing in template.");
-                    if (mainPart.DocumentSettingsPart == null) {
-                        mainPart.AddNewPart<DocumentSettingsPart>();
+                    DocumentSettingsPart? settingsPart = mainPart.DocumentSettingsPart;
+                    if (settingsPart != null) {
+                        const string attachedTemplateRelationship =
+                            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate";
+                        foreach (ExternalRelationship relationship in settingsPart.ExternalRelationships
+                            .Where(relationship => relationship.RelationshipType == attachedTemplateRelationship)
+                            .ToList()) {
+                            settingsPart.DeleteExternalRelationship(relationship.Id);
+                        }
+                        settingsPart.Settings?.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.AttachedTemplate>();
+                        settingsPart.Settings?.Save();
                     }
-
-                    mainPart.DocumentSettingsPart!.AddExternalRelationship(
-                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
-                        new Uri(fullTemplatePath, UriKind.Absolute));
                     mainPart.Document?.Save();
                 }
 

@@ -580,11 +580,15 @@ namespace OfficeIMO.Excel {
             Stream destination,
             ExcelFileFormat format,
             ExcelSaveOptions? options) {
-            using FileStream staging = OfficeTemporaryFile.Create(
+            using FileStream stagingFile = OfficeTemporaryFile.Create(
                 "OfficeIMO.Excel-",
                 ".tmp",
                 FileOptions.SequentialScan,
                 out _);
+            using var staging = new ExcelBoundedSeekableStream(
+                stagingFile,
+                ResolveTemporaryPackageLimit(options),
+                leaveOpen: true);
             SaveToStreamCore(staging, format, options);
             staging.Position = 0L;
             staging.CopyTo(destination, 81920);
@@ -596,15 +600,29 @@ namespace OfficeIMO.Excel {
             ExcelFileFormat format,
             ExcelSaveOptions? options,
             CancellationToken cancellationToken) {
-            using FileStream staging = OfficeTemporaryFile.Create(
+            using FileStream stagingFile = OfficeTemporaryFile.Create(
                 "OfficeIMO.Excel-",
                 ".tmp",
                 FileOptions.Asynchronous | FileOptions.SequentialScan,
                 out _);
+            using var staging = new ExcelBoundedSeekableStream(
+                stagingFile,
+                ResolveTemporaryPackageLimit(options),
+                leaveOpen: true);
             await SaveToStreamAsyncCore(staging, format, options, cancellationToken).ConfigureAwait(false);
             staging.Position = 0L;
             await staging.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
             await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        private static long ResolveTemporaryPackageLimit(ExcelSaveOptions? options) {
+            long? limit = options == null
+                ? ExcelSaveOptions.DefaultMaxTemporaryPackageBytes
+                : options.MaxTemporaryPackageBytes;
+            if (limit.HasValue && limit.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(ExcelSaveOptions.MaxTemporaryPackageBytes));
+            }
+            return limit ?? long.MaxValue;
         }
 #endif
 
