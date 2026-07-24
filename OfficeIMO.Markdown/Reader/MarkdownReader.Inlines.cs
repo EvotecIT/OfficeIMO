@@ -12,10 +12,26 @@ public static partial class MarkdownReader {
         return sequence;
     }
 
-    private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages, MarkdownInlineSourceMap? sourceMap = null) {
+    private static InlineSequence ParseInlinesInternal(
+        string text,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        MarkdownInlineSourceMap? sourceMap = null,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null,
+        int inlineHtmlWrapperDepth = 0,
+        int imageAltDepth = 0) {
         var root = new InlineSequence { AutoSpacing = false };
         if (string.IsNullOrEmpty(text)) return root;
         var inlineParserExtensions = BuildEffectiveInlineParserExtensions(options);
+        inlineHtmlWrapperMatches ??= BuildInlineHtmlWrapperMatchIndex(text);
+        EmphasisClosingRunIndex? emphasisClosingRuns = text.IndexOf('*') >= 0 || text.IndexOf('_') >= 0
+            ? EmphasisClosingRunIndex.Build(text, options.CjkFriendlyEmphasis)
+            : null;
+        EmphasisClosingRunIndex? standardEmphasisClosingRuns = options.CjkFriendlyEmphasis && text.IndexOf('_') >= 0
+            ? EmphasisClosingRunIndex.Build(text, cjkFriendlyEmphasis: false)
+            : emphasisClosingRuns;
 
         // We parse emphasis/strong/strikethrough using a simple stack of open frames so that nesting like
         // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
@@ -329,7 +345,10 @@ public static partial class MarkdownReader {
                 state,
                 nestedAllowLinks,
                 nestedAllowImages,
-                SliceMap(relativeStart, safeLength));
+                SliceMap(relativeStart, safeLength),
+                inlineHtmlWrapperMatches.Slice(relativeStart),
+                inlineHtmlWrapperDepth,
+                imageAltDepth);
         }
 
         int pos = 0;
@@ -447,7 +466,7 @@ public static partial class MarkdownReader {
                 if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddFootnoteRefNode(lab, pos, rb + 1 - pos); pos = rb + 1; continue; }
             }
 
-            if (TryParseImageLink(
+            if (allowImages && TryParseImageLink(
                 text,
                 pos,
                 sourceMap,
@@ -466,15 +485,16 @@ public static partial class MarkdownReader {
                 out int imageLinkHrefStart,
                 out int imageLinkHrefLength,
                 out int? imageLinkHrefTitleStart,
-                out int? imageLinkHrefTitleLength)) {
+                out int? imageLinkHrefTitleLength,
+                inlineHtmlWrapperMatches)) {
                 if (allowLinks && allowImages) {
                     var imgResolved = ResolveUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
-                        AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : ExtractImageAltPlainText(alt2, options, state), pos, consumed);
+                        AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : ExtractImageAltPlainText(alt2, options, state, imageAltDepth), pos, consumed);
                     } else {
-                        var plainAlt2 = ExtractImageAltPlainText(alt2, options, state);
+                        var plainAlt2 = ExtractImageAltPlainText(alt2, options, state, imageAltDepth);
                         var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2, plainAlt2);
                         AddRawNode(imageLink, pos, consumed);
                         int outerSeparatorStart = FindLinkedImageOuterSeparatorStart(pos, consumed, imageLinkHrefStart);
@@ -521,14 +541,15 @@ public static partial class MarkdownReader {
                         out var altRef,
                         out var refLabel,
                         out int altRefStart,
-                        out int altRefLength)) {
+                        out int altRefLength,
+                        inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                             var resolved = ResolveUrl(defImg.Url, options);
                             if (resolved is null) {
-                                AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state), pos, consumedRefImg);
+                                AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state, imageAltDepth), pos, consumedRefImg);
                             } else {
-                                var plainAltRef = ExtractImageAltPlainText(altRef, options, state);
+                                var plainAltRef = ExtractImageAltPlainText(altRef, options, state, imageAltDepth);
                                 AddReferenceImageNode(
                                     altRef,
                                     resolved!,
@@ -562,12 +583,13 @@ public static partial class MarkdownReader {
                         out int srcStartImg,
                         out int srcLengthImg,
                         out int? titleStartImg,
-                        out int? titleLengthImg)) {
+                        out int? titleLengthImg,
+                        inlineHtmlWrapperMatches)) {
                         var srcResolved = ResolveUrl(srcImg, options);
                         if (srcResolved is null) {
-                            AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state), pos, consumedImg);
+                            AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {
-                            var plainAltImg = ExtractImageAltPlainText(altImg, options, state);
+                            var plainAltImg = ExtractImageAltPlainText(altImg, options, state, imageAltDepth);
                             AddInlineImageNode(
                                 altImg,
                                 srcResolved!,
@@ -585,7 +607,7 @@ public static partial class MarkdownReader {
                         pos += consumedImg; continue;
                     }
 
-                    if (TryConsumeLiteralInlineImage(text, pos, out int literalImageLength)) {
+                    if (TryConsumeLiteralInlineImage(text, pos, out int literalImageLength, inlineHtmlWrapperMatches)) {
                         AddTextNode(text.Substring(pos, literalImageLength), pos, literalImageLength);
                         pos += literalImageLength; continue;
                     }
@@ -618,8 +640,8 @@ public static partial class MarkdownReader {
             }
             if (text[pos] == '[') {
                 if (allowLinks) {
-                    if (TryParseLink(text, pos, options, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
-                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, label2.Length));
+                    if (TryParseLink(text, pos, options, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2, inlineHtmlWrapperMatches)) {
+                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, label2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
@@ -636,7 +658,7 @@ public static partial class MarkdownReader {
                         pos += consumed2; continue;
                     }
 
-                    if (state != null && TryParseCollapsedRef(text, pos, options, out int consumedC, out var lbl2)) {
+                    if (state != null && TryParseCollapsedRef(text, pos, options, out int consumedC, out var lbl2, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl2);
                         if (ContainsResolvedLinkInLabel(lbl2, options, state)) {
                             AddTextNode("[", pos, 1);
@@ -644,7 +666,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl2.Length));
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl2.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
                             if (resolved is null) {
@@ -658,7 +680,7 @@ public static partial class MarkdownReader {
                         AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
                         pos += consumedC; continue;
                     }
-                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out var lbl, out var refLabel)) {
+                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out var lbl, out var refLabel, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (ContainsResolvedLinkInLabel(lbl, options, state)) {
                             AddTextNode("[", pos, 1);
@@ -666,7 +688,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl.Length));
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
                             if (resolved is null) {
@@ -677,7 +699,7 @@ public static partial class MarkdownReader {
                             pos += consumedR; continue;
                         }
                     }
-                    if (state != null && TryParseShortcutRef(text, pos, options, out int consumedS, out var lbl3)) {
+                    if (state != null && TryParseShortcutRef(text, pos, options, out int consumedS, out var lbl3, inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(lbl3);
                         if (ContainsResolvedLinkInLabel(lbl3, options, state)) {
                             AddTextNode("[", pos, 1);
@@ -685,7 +707,7 @@ public static partial class MarkdownReader {
                             continue;
                         }
 
-                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, lbl3.Length));
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages, SliceMap(pos + 1, lbl3.Length), inlineHtmlWrapperMatches.Slice(pos + 1), inlineHtmlWrapperDepth, imageAltDepth);
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
                             if (resolved is null) {
@@ -798,9 +820,9 @@ public static partial class MarkdownReader {
                 }
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
-                bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
-                bool splitDoubleRunIntoRootDualItalic = ShouldSplitDoubleRunIntoRootDualItalic(text, pos, marker, remaining, canOpen, canClose, stack, options.CjkFriendlyEmphasis);
-                int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose, options.CjkFriendlyEmphasis);
+                bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose, standardEmphasisClosingRuns);
+                bool splitDoubleRunIntoRootDualItalic = ShouldSplitDoubleRunIntoRootDualItalic(text, pos, marker, remaining, canOpen, canClose, stack, emphasisClosingRuns);
+                int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose, emphasisClosingRuns);
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
@@ -892,7 +914,7 @@ public static partial class MarkdownReader {
             }
 
             if (options.InlineHtml && text[pos] == '<') {
-                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, sourceMap, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
+                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, sourceMap, allowLinks, allowImages, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, out int consumedHtmlTag, out var htmlNode)) {
                     AddRawNode(htmlNode, pos, consumedHtmlTag);
                     pos += consumedHtmlTag;
                     continue;

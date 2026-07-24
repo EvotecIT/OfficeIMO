@@ -169,7 +169,8 @@ namespace OfficeIMO.Excel.Pdf {
                     return;
                 }
 
-                bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding;
+                bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding &&
+                    options.ResourcePolicy.AllowDocumentFontEmbedding;
                 if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {
                     return;
                 }

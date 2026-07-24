@@ -7,13 +7,16 @@ internal sealed class ToUnicodeCMap {
     private const int MaxRangeMappings = 4096;
     private const int MaxSourceCodeBytes = 4;
     private const int MaxDestinationTextCharacters = 4096;
+    private const int MaxReverseMappingTextCharacters = 64;
+    private const int MaxReverseMapNodes = 65536;
     private const int MaxDestinationHexCharactersWithWhitespace = MaxDestinationTextCharacters * 8;
 
     private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
+    private readonly ReverseMapNode _reverseMapRoot = new();
     private int _maxKeyBytes = 1;
-    private int _maxReverseTextLength = 1;
     private int _processedMappings;
+    private int _reverseMapNodeCount = 1;
+    private bool _reverseMapBudgetExhausted;
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {
@@ -119,12 +122,16 @@ internal sealed class ToUnicodeCMap {
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
         _map[key] = s;
-        if (s.Length > 0) {
-            _maxReverseTextLength = Math.Max(_maxReverseTextLength, s.Length);
-        }
+        if (!_reverseMapBudgetExhausted && s.Length > 0 && s.Length <= MaxReverseMappingTextCharacters) {
+            ReverseMapNode node = _reverseMapRoot;
+            for (int index = 0; index < s.Length; index++) {
+                if (!node.TryGetOrAdd(s[index], ref _reverseMapNodeCount, MaxReverseMapNodes, out node)) {
+                    _reverseMapBudgetExhausted = true;
+                    return;
+                }
+            }
 
-        if (!_reverseMap.ContainsKey(s)) {
-            _reverseMap[s] = key;
+            node.CodeHex ??= key;
         }
     }
 
@@ -233,12 +240,16 @@ internal sealed class ToUnicodeCMap {
         for (int index = 0; index < text.Length;) {
             string? codeHex = null;
             int matchedLength = 0;
-            int maxLength = Math.Min(_maxReverseTextLength, text.Length - index);
-            for (int length = maxLength; length >= 1; length--) {
-                string candidate = text.Substring(index, length);
-                if (_reverseMap.TryGetValue(candidate, out codeHex)) {
-                    matchedLength = length;
+            ReverseMapNode node = _reverseMapRoot;
+            int maxLength = Math.Min(MaxReverseMappingTextCharacters, text.Length - index);
+            for (int length = 1; length <= maxLength; length++) {
+                if (!node.TryGet(text[index + length - 1], out node)) {
                     break;
+                }
+
+                if (node.CodeHex != null) {
+                    codeHex = node.CodeHex;
+                    matchedLength = length;
                 }
             }
 
@@ -255,16 +266,44 @@ internal sealed class ToUnicodeCMap {
         return true;
     }
 
+    private sealed class ReverseMapNode {
+        private Dictionary<char, ReverseMapNode>? _children;
+
+        internal string? CodeHex { get; set; }
+
+        internal bool TryGetOrAdd(char value, ref int nodeCount, int maximumNodes, out ReverseMapNode child) {
+            if (_children != null && _children.TryGetValue(value, out ReverseMapNode? existing)) {
+                child = existing;
+                return true;
+            }
+
+            if (nodeCount >= maximumNodes) {
+                child = null!;
+                return false;
+            }
+
+            _children ??= new Dictionary<char, ReverseMapNode>();
+            child = new ReverseMapNode();
+            _children[value] = child;
+            nodeCount++;
+            return true;
+        }
+
+        internal bool TryGet(char value, out ReverseMapNode child) {
+            if (_children != null && _children.TryGetValue(value, out ReverseMapNode? match)) {
+                child = match;
+                return true;
+            }
+
+            child = null!;
+            return false;
+        }
+    }
+
     private static string ByteSliceToHex(byte[] b, int start, int len) {
         var sb = new System.Text.StringBuilder(len * 2);
         for (int i = 0; i < len; i++) sb.Append(b[start + i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         return sb.ToString();
     }
 
-    private static int GetScalarLength(string value, int index) =>
-        char.IsHighSurrogate(value[index]) &&
-        index + 1 < value.Length &&
-        char.IsLowSurrogate(value[index + 1])
-            ? 2
-            : 1;
 }

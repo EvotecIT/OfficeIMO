@@ -8,6 +8,19 @@ namespace OfficeIMO.Excel {
         private int _maxSharedStringItems = 1_000_000;
         private int _maxSharedStringItemCharacters = 32_767;
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
+        private long _maxInputBytes = 512L * 1024L * 1024L;
+
+        /// <summary>Maximum workbook bytes buffered by <see cref="ExcelDocumentReader"/>. Default: 512 MiB.</summary>
+        public long MaxInputBytes {
+            get => _maxInputBytes;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Workbook input limit must be greater than zero.");
+                }
+
+                _maxInputBytes = value;
+            }
+        }
 
         /// <summary>Maximum columns exposed by one range data reader.</summary>
         public int MaxDataReaderColumns { get; set; } = 16_384;

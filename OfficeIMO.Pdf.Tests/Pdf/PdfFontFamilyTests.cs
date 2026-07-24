@@ -633,6 +633,35 @@ public class PdfFontFamilyTests {
         Assert.Null(family);
     }
 
+#if NET6_0_OR_GREATER
+    [Fact]
+    public void PdfEmbeddedFontFamily_SystemFontEnumerationSkipsSymbolicLinkLoops() {
+        if (OperatingSystem.IsWindows()) {
+            return;
+        }
+
+        string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string loop = Path.Combine(root, "nested", "loop");
+        try {
+            string nested = Directory.CreateDirectory(Path.Combine(root, "nested")).FullName;
+            File.WriteAllBytes(Path.Combine(nested, "safe.ttf"), new byte[] { 0, 1, 2, 3 });
+            Directory.CreateSymbolicLink(loop, root);
+
+            string[] files = PdfEmbeddedFontFamily.EnumerateTrueTypeFontFiles(root).ToArray();
+
+            Assert.Single(files);
+            Assert.EndsWith("safe.ttf", files[0], StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(loop)) {
+                Directory.Delete(loop);
+            }
+
+            Directory.Delete(root, recursive: true);
+        }
+    }
+#endif
+
     [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsOversizedFontFiles() {
         if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {

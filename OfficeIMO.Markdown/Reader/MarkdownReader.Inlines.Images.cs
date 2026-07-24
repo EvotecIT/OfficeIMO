@@ -1,9 +1,19 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private static string ExtractImageAltPlainText(string altMarkdown, MarkdownReaderOptions options, MarkdownReaderState? state) {
+    private const int MaxImageAltNestingDepth = 32;
+
+    private static string ExtractImageAltPlainText(
+        string altMarkdown,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        int imageAltDepth = 0) {
         if (string.IsNullOrEmpty(altMarkdown)) {
             return string.Empty;
+        }
+
+        if (imageAltDepth >= MaxImageAltNestingDepth) {
+            return altMarkdown;
         }
 
         var altSequence = ParseInlinesInternal(
@@ -11,14 +21,15 @@ public static partial class MarkdownReader {
             options,
             state,
             allowLinks: true,
-            allowImages: true);
+            allowImages: true,
+            imageAltDepth: imageAltDepth + 1);
         return InlinePlainText.Extract(altSequence);
     }
 
-    private static bool TryConsumeLiteralInlineImage(string text, int start, out int consumed) {
+    private static bool TryConsumeLiteralInlineImage(string text, int start, out int consumed, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
-        int altEnd = FindMatchingBracket(text, start + 1);
+        int altEnd = FindMatchingBracket(text, start + 1, inlineHtmlWrapperMatches: inlineHtmlWrapperMatches);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int parenClose = FindMatchingParen(text, altEnd + 1);
@@ -49,14 +60,15 @@ public static partial class MarkdownReader {
         out int hrefStart,
         out int hrefLength,
         out int? hrefTitleStart,
-        out int? hrefTitleLength) {
+        out int? hrefTitleLength,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0; alt = img = href = string.Empty; imgTitle = hrefTitle = null;
         altStart = altLength = imgStart = imgLength = hrefStart = hrefLength = 0;
         imgTitleStart = imgTitleLength = hrefTitleStart = hrefTitleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
         if (start + 1 >= text.Length || text[start + 1] != '!') return false;
         if (start + 2 >= text.Length || text[start + 2] != '[') return false;
-        int altEnd = FindMatchingBracket(text, start + 2);
+        int altEnd = FindMatchingBracket(text, start + 2, inlineHtmlWrapperMatches: inlineHtmlWrapperMatches);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int imgClose = FindMatchingParen(text, altEnd + 1);
@@ -141,7 +153,8 @@ public static partial class MarkdownReader {
         out int srcStart,
         out int srcLength,
         out int? titleStart,
-        out int? titleLength) {
+        out int? titleLength,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         return TryParseInlineImage(
             text,
             start,
@@ -155,7 +168,8 @@ public static partial class MarkdownReader {
             out srcStart,
             out srcLength,
             out titleStart,
-            out titleLength);
+            out titleLength,
+            inlineHtmlWrapperMatches);
     }
 
     private static bool TryParseInlineImage(
@@ -171,14 +185,15 @@ public static partial class MarkdownReader {
         out int srcStart,
         out int srcLength,
         out int? titleStart,
-        out int? titleLength) {
+        out int? titleLength,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0;
         alt = src = string.Empty;
         title = null;
         altStart = altLength = srcStart = srcLength = 0;
         titleStart = titleLength = null;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
-        int altEnd = FindMatchingBracket(text, start + 1);
+        int altEnd = FindMatchingBracket(text, start + 1, inlineHtmlWrapperMatches: inlineHtmlWrapperMatches);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int parenClose = FindMatchingParen(text, altEnd + 1);
@@ -221,12 +236,13 @@ public static partial class MarkdownReader {
         out string alt,
         out string label,
         out int altStart,
-        out int altLength) {
+        out int altLength,
+        InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0;
         alt = label = string.Empty;
         altStart = altLength = 0;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
-        int altEnd = FindMatchingBracket(text, start + 1);
+        int altEnd = FindMatchingBracket(text, start + 1, inlineHtmlWrapperMatches: inlineHtmlWrapperMatches);
         if (altEnd < 0) return false;
 
         altStart = start + 2;
@@ -238,7 +254,7 @@ public static partial class MarkdownReader {
 
         // Full or collapsed reference: ![alt][label] or ![alt][]
         if (altEnd + 1 < text.Length && text[altEnd + 1] == '[') {
-            int labelEnd = FindMatchingBracket(text, altEnd + 1);
+            int labelEnd = FindMatchingBracket(text, altEnd + 1, inlineHtmlWrapperMatches: inlineHtmlWrapperMatches);
             if (labelEnd < 0) return false;
             label = text.Substring(altEnd + 2, labelEnd - (altEnd + 2));
             if (string.IsNullOrEmpty(label)) label = alt;

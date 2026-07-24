@@ -12,8 +12,6 @@ namespace OfficeIMO.Excel {
         private static readonly IReadOnlyDictionary<int, IReadOnlyList<int>> EmptyGeneratedPivotGroupingFieldMap =
             new Dictionary<int, IReadOnlyList<int>>(0);
 
-        private const int EmbeddedPivotCacheRecordRowLimit = 4096;
-
         private StylesCache? _pivotStylesCache;
 
         /// <summary>
@@ -342,6 +340,7 @@ namespace OfficeIMO.Excel {
                     pivotFilterList,
                     headerIndex,
                     fieldOptionMap);
+                ValidatePivotFieldScanBudget(r1 + 1, r2, sourceSharedItemRequirements, generatedGroupingFields.Count);
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
@@ -369,14 +368,7 @@ namespace OfficeIMO.Excel {
                 ReportPivotTiming("AddPivotTable.PrepareCacheMetadata");
 
                 int sourceRecordCount = Math.Max(0, r2 - r1);
-                bool savePivotCacheRecords = ShouldEmbedPivotCacheRecords(
-                    sourceRecordCount,
-                    groupingMap,
-                    generatedGroupingFields,
-                    calculatedFieldList,
-                    pivotFilterList,
-                    fieldOptionMap);
-                bool effectiveSavePivotCacheRecords = options?.SaveSourceData ?? savePivotCacheRecords;
+                bool effectiveSavePivotCacheRecords = options?.SaveSourceData == true;
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
                 var cacheDef = new PivotCacheDefinition {
                     CacheSource = new CacheSource {

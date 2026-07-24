@@ -5,6 +5,11 @@ namespace OfficeIMO.Reader.Csv;
 /// </summary>
 public sealed class CsvReadOptions {
     /// <summary>
+    /// Maximum columns accepted from one CSV record. Default: 4,096.
+    /// </summary>
+    public int MaxColumns { get; set; } = 4_096;
+
+    /// <summary>
     /// Rows per emitted chunk.
     /// </summary>
     public int ChunkRows { get; set; } = 200;

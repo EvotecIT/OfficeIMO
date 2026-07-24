@@ -28,6 +28,185 @@ public static partial class MarkdownReader {
         public int OpenIndex { get; }
     }
 
+    private sealed class EmphasisClosingRunIndex {
+        private const byte HasRunOfAtLeastTwo = 1 << 2;
+        private const byte SingleRunCountMask = 0x03;
+        private readonly byte[] _asteriskSuffixSummaries;
+        private readonly byte[] _underscoreSuffixSummaries;
+        private readonly ClosingRunLengthIndex _asteriskOddRuns;
+        private readonly ClosingRunLengthIndex _asteriskEvenRuns;
+        private readonly ClosingRunLengthIndex _underscoreOddRuns;
+        private readonly ClosingRunLengthIndex _underscoreEvenRuns;
+
+        private EmphasisClosingRunIndex(
+            byte[] asteriskSuffixSummaries,
+            byte[] underscoreSuffixSummaries,
+            ClosingRunLengthIndex asteriskOddRuns,
+            ClosingRunLengthIndex asteriskEvenRuns,
+            ClosingRunLengthIndex underscoreOddRuns,
+            ClosingRunLengthIndex underscoreEvenRuns) {
+            _asteriskSuffixSummaries = asteriskSuffixSummaries;
+            _underscoreSuffixSummaries = underscoreSuffixSummaries;
+            _asteriskOddRuns = asteriskOddRuns;
+            _asteriskEvenRuns = asteriskEvenRuns;
+            _underscoreOddRuns = underscoreOddRuns;
+            _underscoreEvenRuns = underscoreEvenRuns;
+        }
+
+        internal static EmphasisClosingRunIndex Build(string text, bool cjkFriendlyEmphasis) {
+            var asteriskSummaries = new byte[text.Length + 1];
+            var underscoreSummaries = new byte[text.Length + 1];
+            var asteriskOddRuns = new Dictionary<int, int>();
+            var asteriskEvenRuns = new Dictionary<int, int>();
+            var underscoreOddRuns = new Dictionary<int, int>();
+            var underscoreEvenRuns = new Dictionary<int, int>();
+
+            for (int index = text.Length - 1; index >= 0; index--) {
+                asteriskSummaries[index] = asteriskSummaries[index + 1];
+                underscoreSummaries[index] = underscoreSummaries[index + 1];
+
+                char marker = text[index];
+                if ((marker != '*' && marker != '_') || (index > 0 && text[index - 1] == marker)) {
+                    continue;
+                }
+
+                int runLength = 1;
+                while (index + runLength < text.Length && text[index + runLength] == marker) {
+                    runLength++;
+                }
+
+                GetDelimiterFlags(text, index, marker, runLength, cjkFriendlyEmphasis, out _, out bool canClose);
+                if (!canClose) {
+                    continue;
+                }
+
+                Dictionary<int, int> runStarts;
+                if (marker == '*') {
+                    runStarts = (runLength & 1) == 0 ? asteriskEvenRuns : asteriskOddRuns;
+                } else {
+                    runStarts = (runLength & 1) == 0 ? underscoreEvenRuns : underscoreOddRuns;
+                }
+                if (!runStarts.TryGetValue(runLength, out int currentMaximumStart) || index > currentMaximumStart) {
+                    runStarts[runLength] = index;
+                }
+
+                byte[] summaries = marker == '*' ? asteriskSummaries : underscoreSummaries;
+                if (runLength >= 2) {
+                    summaries[index] |= HasRunOfAtLeastTwo;
+                } else {
+                    int singleCount = Math.Min(2, (summaries[index] & SingleRunCountMask) + 1);
+                    summaries[index] = (byte)((summaries[index] & ~SingleRunCountMask) | singleCount);
+                }
+            }
+
+            return new EmphasisClosingRunIndex(
+                asteriskSummaries,
+                underscoreSummaries,
+                ClosingRunLengthIndex.Create(asteriskOddRuns),
+                ClosingRunLengthIndex.Create(asteriskEvenRuns),
+                ClosingRunLengthIndex.Create(underscoreOddRuns),
+                ClosingRunLengthIndex.Create(underscoreEvenRuns));
+        }
+
+        internal bool HasRunAtLeastTwo(int start, char marker) {
+            byte summary = GetSummary(start, marker);
+            return (summary & HasRunOfAtLeastTwo) != 0;
+        }
+
+        internal int CountSingleRuns(int start, char marker) => GetSummary(start, marker) & SingleRunCountMask;
+
+        internal int GetLargestRunAtMost(int start, char marker, int maximumRunLength, bool odd) {
+            ClosingRunLengthIndex index;
+            if (marker == '*') {
+                index = odd ? _asteriskOddRuns : _asteriskEvenRuns;
+            } else {
+                index = odd ? _underscoreOddRuns : _underscoreEvenRuns;
+            }
+
+            return index.GetLargestRunAtMost(maximumRunLength, start);
+        }
+
+        private byte GetSummary(int start, char marker) {
+            byte[] summaries = marker == '*' ? _asteriskSuffixSummaries : _underscoreSuffixSummaries;
+            int index = Math.Max(0, Math.Min(start, summaries.Length - 1));
+            return summaries[index];
+        }
+
+        private sealed class ClosingRunLengthIndex {
+            private readonly int[] _runLengths;
+            private readonly int[] _maximumStarts;
+            private readonly int _leafOffset;
+
+            private ClosingRunLengthIndex(int[] runLengths, int[] maximumStarts, int leafOffset) {
+                _runLengths = runLengths;
+                _maximumStarts = maximumStarts;
+                _leafOffset = leafOffset;
+            }
+
+            internal static ClosingRunLengthIndex Create(Dictionary<int, int> maximumStartsByRunLength) {
+                int[] runLengths = maximumStartsByRunLength.Keys.ToArray();
+                Array.Sort(runLengths);
+
+                int leafOffset = 1;
+                while (leafOffset < runLengths.Length) {
+                    leafOffset <<= 1;
+                }
+
+                var maximumStarts = new int[leafOffset * 2];
+                for (int index = 0; index < maximumStarts.Length; index++) {
+                    maximumStarts[index] = -1;
+                }
+                for (int index = 0; index < runLengths.Length; index++) {
+                    maximumStarts[leafOffset + index] = maximumStartsByRunLength[runLengths[index]];
+                }
+                for (int index = leafOffset - 1; index > 0; index--) {
+                    maximumStarts[index] = Math.Max(maximumStarts[index * 2], maximumStarts[(index * 2) + 1]);
+                }
+
+                return new ClosingRunLengthIndex(runLengths, maximumStarts, leafOffset);
+            }
+
+            internal int GetLargestRunAtMost(int maximumRunLength, int minimumStart) {
+                if (_runLengths.Length == 0 || maximumRunLength <= 0) {
+                    return 0;
+                }
+
+                int maximumIndex = Array.BinarySearch(_runLengths, maximumRunLength);
+                if (maximumIndex < 0) {
+                    maximumIndex = ~maximumIndex - 1;
+                }
+                if (maximumIndex < 0) {
+                    return 0;
+                }
+
+                int matchingIndex = FindRightmostIndex(
+                    node: 1,
+                    segmentStart: 0,
+                    segmentEnd: _leafOffset - 1,
+                    queryEnd: maximumIndex,
+                    minimumStart);
+                return matchingIndex >= 0 && matchingIndex < _runLengths.Length
+                    ? _runLengths[matchingIndex]
+                    : 0;
+            }
+
+            private int FindRightmostIndex(int node, int segmentStart, int segmentEnd, int queryEnd, int minimumStart) {
+                if (segmentStart > queryEnd || _maximumStarts[node] < minimumStart) {
+                    return -1;
+                }
+                if (segmentStart == segmentEnd) {
+                    return segmentStart;
+                }
+
+                int middle = segmentStart + ((segmentEnd - segmentStart) / 2);
+                int right = FindRightmostIndex((node * 2) + 1, middle + 1, segmentEnd, queryEnd, minimumStart);
+                return right >= 0
+                    ? right
+                    : FindRightmostIndex(node * 2, segmentStart, middle, queryEnd, minimumStart);
+            }
+        }
+    }
+
     private static bool TryCloseFrame(
         Stack<InlineFrame> stack,
         char marker,
@@ -261,14 +440,21 @@ public static partial class MarkdownReader {
         return top.Marker == marker && top.Kind == FrameKind.Italic;
     }
 
-    private static bool ShouldSplitDoubleUnderscoreToLiteralAndItalic(string text, int start, int runLen, bool canOpen, bool canClose) {
+    private static bool ShouldSplitDoubleUnderscoreToLiteralAndItalic(
+        string text,
+        int start,
+        int runLen,
+        bool canOpen,
+        bool canClose,
+        EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return false;
         if (runLen != 2) return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
         if (text[start] != '_') return false;
+        if (closingRuns == null) return false;
 
-        return !HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 2, cjkFriendlyEmphasis: false) &&
-               CountFutureClosingDelimiterRuns(text, start + 2, '_', requiredRunLength: 1, maximumCount: 2, cjkFriendlyEmphasis: false) == 1;
+        return !closingRuns.HasRunAtLeastTwo(start + 2, '_') &&
+               closingRuns.CountSingleRuns(start + 2, '_') == 1;
     }
 
     private static bool ShouldSplitDoubleRunIntoRootDualItalic(
@@ -279,40 +465,36 @@ public static partial class MarkdownReader {
         bool canOpen,
         bool canClose,
         Stack<InlineFrame> stack,
-        bool cjkFriendlyEmphasis) {
+        EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return false;
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
         if (stack == null || stack.Count != 1) return false;
-        if (HasFutureClosingDelimiterRun(text, start + 2, marker, minimumRunLength: 2, cjkFriendlyEmphasis)) return false;
+        if (closingRuns == null || closingRuns.HasRunAtLeastTwo(start + 2, marker)) return false;
 
-        return CountFutureClosingDelimiterRuns(text, start + 2, marker, requiredRunLength: 1, maximumCount: 2, cjkFriendlyEmphasis) >= 2;
+        return closingRuns.CountSingleRuns(start + 2, marker) >= 2;
     }
 
-    private static int GetLiteralPrefixLengthForOddCloser(string text, int start, char marker, int runLen, bool canOpen, bool canClose, bool cjkFriendlyEmphasis) {
+    private static int GetLiteralPrefixLengthForOddCloser(
+        string text,
+        int start,
+        char marker,
+        int runLen,
+        bool canOpen,
+        bool canClose,
+        EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return 0;
         if (runLen < 2 || (runLen % 2) != 0) return 0;
         if (marker != '*' && marker != '_') return 0;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return 0;
+        if (closingRuns == null) return 0;
 
-        for (int candidate = runLen - 1; candidate >= 1; candidate -= 2) {
-            if (FindNextClosingDelimiterRunIndex(text, start + runLen, marker, requiredRunLength: candidate, cjkFriendlyEmphasis) < 0) continue;
+        int suffixStart = start + runLen;
+        int largestOddCloser = closingRuns.GetLargestRunAtMost(suffixStart, marker, runLen, odd: true);
+        int largestEvenCloser = closingRuns.GetLargestRunAtMost(suffixStart, marker, runLen, odd: false);
 
-            bool hasSameOrLongerEvenCloser = false;
-            for (int even = runLen; even >= candidate + 1; even -= 2) {
-                if (FindNextClosingDelimiterRunIndex(text, start + runLen, marker, requiredRunLength: even, cjkFriendlyEmphasis) >= 0) {
-                    hasSameOrLongerEvenCloser = true;
-                    break;
-                }
-            }
-
-            if (!hasSameOrLongerEvenCloser) {
-                return runLen - candidate;
-            }
-        }
-
-        return 0;
+        return largestOddCloser > largestEvenCloser ? runLen - largestOddCloser : 0;
     }
 
     private static bool HasFutureClosingDelimiterRun(string text, int start, char marker, int minimumRunLength, bool cjkFriendlyEmphasis) {

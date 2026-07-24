@@ -106,6 +106,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly List<SpanItem> _spans = new();
         private readonly Dictionary<string, SpanItem> _spansById = new(StringComparer.Ordinal);
         private readonly List<CalloutItem> _callouts = new();
+        private readonly HashSet<string> _shapeIds = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _nextCalloutIndexByTarget = new(StringComparer.Ordinal);
         private VisioStyleTheme _theme = VisioStyleTheme.Modern();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private DateTime? _startDate;
@@ -133,6 +135,9 @@ namespace OfficeIMO.Visio.Diagrams {
         internal VisioTimelineDiagramBuilder(VisioDocument document, string pageName) {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _pageName = string.IsNullOrWhiteSpace(pageName) ? "Timeline" : pageName;
+            _shapeIds.Add("timeline-axis");
+            _shapeIds.Add("timeline-start-label");
+            _shapeIds.Add("timeline-end-label");
         }
 
         /// <summary>Sets the page size used by the generated timeline page.</summary>
@@ -205,16 +210,23 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a centered editable title above the generated timeline.</summary>
         public VisioTimelineDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
             string normalizedId = RequireId(id, nameof(id), "Title id");
-            if (IsShapeIdInUse(normalizedId)) {
+            bool replacesExistingTitle = _titleText != null;
+            if (IsShapeIdInUse(normalizedId) &&
+                (!replacesExistingTitle || !string.Equals(_titleId, normalizedId, StringComparison.Ordinal))) {
                 throw new ArgumentException($"A timeline item with shape id '{normalizedId}' already exists.", nameof(id));
             }
 
             ValidatePositive(height, nameof(height));
             ValidateNonNegative(gap, nameof(gap));
+            if (replacesExistingTitle && !string.Equals(_titleId, normalizedId, StringComparison.Ordinal)) {
+                _shapeIds.Remove(_titleId);
+            }
+
             _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
             _titleId = normalizedId;
             _titleHeight = height;
             _titleGap = gap;
+            _shapeIds.Add(normalizedId);
             return this;
         }
 
@@ -252,6 +264,8 @@ namespace OfficeIMO.Visio.Diagrams {
             MilestoneItem item = new(normalizedId, text ?? string.Empty, date.Date, kind, placement);
             _milestones.Add(item);
             _milestonesById.Add(normalizedId, item);
+            _shapeIds.Add(normalizedId);
+            _shapeIds.Add(GetMilestoneLabelId(normalizedId));
             return this;
         }
 
@@ -277,6 +291,7 @@ namespace OfficeIMO.Visio.Diagrams {
             SpanItem item = new(normalizedId, text ?? string.Empty, start.Date, end.Date, lane, placement);
             _spans.Add(item);
             _spansById.Add(normalizedId, item);
+            _shapeIds.Add(normalizedId);
             return this;
         }
 
@@ -303,6 +318,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidatePositive(options.Width, nameof(options.Width));
             ValidatePositive(options.Height, nameof(options.Height));
             _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            _shapeIds.Add(normalizedId);
             return this;
         }
 
@@ -329,6 +345,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidatePositive(options.Width, nameof(options.Width));
             ValidatePositive(options.Height, nameof(options.Height));
             _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, placement, gap, options));
+            _shapeIds.Add(normalizedId);
             return this;
         }
 
@@ -644,38 +661,7 @@ namespace OfficeIMO.Visio.Diagrams {
             return _milestonesById.ContainsKey(id) || _spansById.ContainsKey(id);
         }
 
-        private bool IsShapeIdInUse(string id) {
-            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
-                return true;
-            }
-
-            if (string.Equals(id, "timeline-axis", StringComparison.Ordinal) ||
-                string.Equals(id, "timeline-start-label", StringComparison.Ordinal) ||
-                string.Equals(id, "timeline-end-label", StringComparison.Ordinal)) {
-                return true;
-            }
-
-            foreach (MilestoneItem milestone in _milestones) {
-                if (string.Equals(milestone.Id, id, StringComparison.Ordinal) ||
-                    string.Equals(GetMilestoneLabelId(milestone.Id), id, StringComparison.Ordinal)) {
-                    return true;
-                }
-            }
-
-            foreach (SpanItem span in _spans) {
-                if (string.Equals(span.Id, id, StringComparison.Ordinal)) {
-                    return true;
-                }
-            }
-
-            foreach (CalloutItem callout in _callouts) {
-                if (string.Equals(callout.Id, id, StringComparison.Ordinal)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        private bool IsShapeIdInUse(string id) => _shapeIds.Contains(id);
 
         private void EnsureKnownTimelineItem(string id, string parameterName) {
             if (!_milestonesById.ContainsKey(id) && !_spansById.ContainsKey(id)) {
@@ -686,14 +672,16 @@ namespace OfficeIMO.Visio.Diagrams {
         private string CreateCalloutId(string targetId) {
             string id = targetId + "-callout";
             if (!IsShapeIdInUse(id)) {
+                _nextCalloutIndexByTarget[targetId] = 2;
                 return id;
             }
 
-            int index = 2;
+            int index = _nextCalloutIndexByTarget.TryGetValue(targetId, out int nextIndex) ? nextIndex : 2;
             while (IsShapeIdInUse(id + "-" + index)) {
                 index++;
             }
 
+            _nextCalloutIndexByTarget[targetId] = index + 1;
             return id + "-" + index;
         }
 

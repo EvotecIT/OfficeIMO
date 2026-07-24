@@ -619,6 +619,44 @@ internal static partial class PdfWriter {
         return targetCells;
     }
 
+    private static System.Collections.Generic.List<TableCellLayout>[] GetTableCellLayoutsByRow(TableBlock table, int columnCount) {
+        var layouts = new System.Collections.Generic.List<TableCellLayout>[table.Cells.Count];
+        var activeRowSpans = new int[columnCount];
+        for (int currentRow = 0; currentRow < table.Cells.Count; currentRow++) {
+            var rowLayouts = new System.Collections.Generic.List<TableCellLayout>();
+            layouts[currentRow] = rowLayouts;
+            int column = 0;
+            var row = table.Cells[currentRow];
+            for (int cellIndex = 0; cellIndex < row.Count && column < columnCount; cellIndex++) {
+                while (column < columnCount && activeRowSpans[column] > 0) {
+                    column++;
+                }
+
+                if (column >= columnCount) {
+                    break;
+                }
+
+                PdfTableCell cell = row[cellIndex];
+                int columnSpan = System.Math.Min(cell.ColumnSpan, columnCount - column);
+                int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
+                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap));
+                for (int c = column; c < column + columnSpan; c++) {
+                    activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
+                }
+
+                column += columnSpan;
+            }
+
+            for (int c = 0; c < activeRowSpans.Length; c++) {
+                if (activeRowSpans[c] > 0) {
+                    activeRowSpans[c]--;
+                }
+            }
+        }
+
+        return layouts;
+    }
+
     private static double GetTableCellWidth(double[] columnWidths, int column, int columnSpan, double columnGap) {
         double width = 0D;
         int lastColumn = System.Math.Min(columnWidths.Length, column + columnSpan);

@@ -8,6 +8,22 @@ using System.Text;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const long MaximumPivotFieldScanCells = 1_000_000L;
+
+        private static void ValidatePivotFieldScanBudget(int firstDataRow, int lastDataRow, IReadOnlyList<bool> collectFieldValues, int generatedFieldCount) {
+            long rowCount = Math.Max(0L, (long)lastDataRow - firstDataRow + 1L);
+            int collectedFields = generatedFieldCount;
+            for (int field = 0; field < collectFieldValues.Count; field++) {
+                if (collectFieldValues[field]) {
+                    collectedFields++;
+                }
+            }
+
+            long scanCells = rowCount * collectedFields;
+            if (scanCells > MaximumPivotFieldScanCells) {
+                throw new InvalidOperationException($"Pivot shared-item discovery would inspect {scanCells} cells, exceeding the supported limit of {MaximumPivotFieldScanCells}.");
+            }
+        }
 
         private List<PivotFieldValues> BuildPivotFieldValueMap(int fieldCount, int firstDataRow, int lastDataRow, int firstColumn,
             IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap, IReadOnlyList<bool>? collectFieldValues = null) {
@@ -105,25 +121,6 @@ namespace OfficeIMO.Excel {
 
         private static bool ShouldCollectPivotSharedItems(int fieldIndex, IReadOnlyList<bool>? collectFieldValues)
             => collectFieldValues == null || fieldIndex < 0 || fieldIndex >= collectFieldValues.Count || collectFieldValues[fieldIndex];
-
-        private static bool ShouldEmbedPivotCacheRecords(
-            int sourceRecordCount,
-            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
-            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
-            IReadOnlyList<ExcelPivotCalculatedField> calculatedFields,
-            IReadOnlyList<ExcelPivotFilter> pivotFilters,
-            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap)
-        {
-            if (sourceRecordCount <= 0 || sourceRecordCount > EmbeddedPivotCacheRecordRowLimit) {
-                return false;
-            }
-
-            // Simple source-range pivots can refresh from the worksheet. Embed cache
-            // records only for bounded scenarios that introduce cache-only fields.
-            return groupingMap.Count != 0
-                || generatedFields.Count != 0
-                || calculatedFields.Count != 0;
-        }
 
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,

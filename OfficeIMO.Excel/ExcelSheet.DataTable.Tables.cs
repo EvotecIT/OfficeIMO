@@ -377,56 +377,113 @@ namespace OfficeIMO.Excel {
             }
 
             var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                return;
+            foreach (Row rowElement in sheetData?.Elements<Row>() ?? Enumerable.Empty<Row>()) {
+                int ordinalColumnIndex = 0;
+                foreach (Cell cell in rowElement.Elements<Cell>()) {
+                    ordinalColumnIndex++;
+                    string? reference = cell.CellReference?.Value;
+                    int rowIndex;
+                    int columnIndex;
+                    if (!string.IsNullOrEmpty(reference)) {
+                        (rowIndex, columnIndex) = A1.ParseCellRef(reference!);
+                    } else {
+                        uint rawRowIndex = rowElement.RowIndex?.Value ?? 0U;
+                        rowIndex = rawRowIndex <= A1.MaxRows ? (int)rawRowIndex : 0;
+                        columnIndex = ordinalColumnIndex;
+                    }
+
+                    if (rowIndex < startRow || rowIndex > endRow
+                        || columnIndex < startColumn || columnIndex > endColumn) {
+                        continue;
+                    }
+
+                    string location = string.IsNullOrEmpty(reference)
+                        ? A1.ColumnIndexToLetters(columnIndex) + rowIndex.ToString(CultureInfo.InvariantCulture)
+                        : reference!;
+                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {location} already contains worksheet data or formatting.");
+                }
             }
 
-            foreach (Row rowElement in sheetData.Elements<Row>()) {
-                if (rowElement.RowIndex == null) {
-                    continue;
+            EnsureAppendTargetHasNoRangeMetadata(startRow, endRow, startColumn, endColumn, tableName);
+        }
+
+        private void EnsureAppendTargetHasNoRangeMetadata(int startRow, int endRow, int startColumn, int endColumn, string tableName) {
+            foreach (Hyperlink hyperlink in WorksheetRoot.Descendants<Hyperlink>()) {
+                if (AppendTargetIntersectsReference(hyperlink.Reference?.Value, startRow, endRow, startColumn, endColumn)) {
+                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because the target range contains a hyperlink.");
                 }
+            }
 
-                int rowIndex = (int)rowElement.RowIndex.Value;
-                if (rowIndex < startRow) {
-                    continue;
+            foreach (MergeCell mergeCell in WorksheetRoot.Descendants<MergeCell>()) {
+                if (AppendTargetIntersectsReference(mergeCell.Reference?.Value, startRow, endRow, startColumn, endColumn)) {
+                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because the target range intersects a merged cell.");
                 }
+            }
 
-                if (rowIndex > endRow) {
-                    break;
+            foreach (DataValidation validation in WorksheetRoot.Descendants<DataValidation>()) {
+                if (AppendTargetIntersectsReferences(validation.SequenceOfReferences?.InnerText, startRow, endRow, startColumn, endColumn)) {
+                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because the target range contains data validation.");
                 }
+            }
 
-                foreach (Cell cell in rowElement.Elements<Cell>()) {
-                    string? reference = cell.CellReference?.Value;
-                    if (string.IsNullOrEmpty(reference)) {
-                        continue;
-                    }
+            foreach (ConditionalFormatting formatting in WorksheetRoot.Descendants<ConditionalFormatting>()) {
+                if (AppendTargetIntersectsReferences(formatting.SequenceOfReferences?.InnerText, startRow, endRow, startColumn, endColumn)) {
+                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because the target range contains conditional formatting.");
+                }
+            }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReference(reference!);
-                    if (columnIndex < startColumn || columnIndex > endColumn) {
-                        continue;
-                    }
-
-                    if (CellHasContent(cell)) {
-                        throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {reference} already contains data.");
+            var comments = _worksheetPart.WorksheetCommentsPart?.Comments?.CommentList;
+            if (comments != null) {
+                foreach (Comment comment in comments.Elements<Comment>()) {
+                    if (AppendTargetIntersectsReference(comment.Reference?.Value, startRow, endRow, startColumn, endColumn)) {
+                        throw new InvalidOperationException($"Cannot append to table '{tableName}' because the target range contains a comment.");
                     }
                 }
             }
         }
 
-        private static bool CellHasContent(Cell cell) {
-            if (cell.CellFormula != null) {
-                return true;
+        private static bool AppendTargetIntersectsReferences(string? references, int startRow, int endRow, int startColumn, int endColumn) {
+            if (string.IsNullOrWhiteSpace(references)) {
+                return false;
             }
 
-            if (cell.CellValue != null && !string.IsNullOrEmpty(cell.CellValue.Text)) {
-                return true;
-            }
-
-            if (cell.InlineString != null) {
-                return true;
+            string[] tokens = references!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            for (int index = 0; index < tokens.Length; index++) {
+                if (AppendTargetIntersectsReference(tokens[index], startRow, endRow, startColumn, endColumn)) {
+                    return true;
+                }
             }
 
             return false;
         }
+
+        private static bool AppendTargetIntersectsReference(string? reference, int startRow, int endRow, int startColumn, int endColumn) {
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return false;
+            }
+
+            string normalized = reference!.Replace("$", string.Empty).Trim();
+            int rangeStartRow;
+            int rangeStartColumn;
+            int rangeEndRow;
+            int rangeEndColumn;
+            if (normalized.IndexOf(':') >= 0) {
+                if (!A1.TryParseRange(normalized, out rangeStartRow, out rangeStartColumn, out rangeEndRow, out rangeEndColumn)) {
+                    return false;
+                }
+            } else {
+                (rangeStartRow, rangeStartColumn) = A1.ParseCellRef(normalized);
+                rangeEndRow = rangeStartRow;
+                rangeEndColumn = rangeStartColumn;
+            }
+
+            return rangeStartRow > 0
+                && rangeStartColumn > 0
+                && rangeStartRow <= endRow
+                && rangeEndRow >= startRow
+                && rangeStartColumn <= endColumn
+                && rangeEndColumn >= startColumn;
+        }
+
     }
 }

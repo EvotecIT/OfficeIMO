@@ -237,6 +237,18 @@ public partial class PdfReaderAndFooterRegressionTests {
         Assert.Equal(PdfWriter.EstimateSimpleTextWidth("Z \u20AC\u0104A", PdfStandardFont.Helvetica, 12), span.Advance, 3);
     }
 
+    [Theory]
+    [InlineData("65 /uD800")]
+    [InlineData("65 /uDFFF")]
+    [InlineData("65 /uniD800")]
+    public void PdfReadPage_GetTextSpans_RejectsSurrogateGlyphNames(string differences) {
+        byte[] bytes = BuildPdfWithFontEncodingDifferences(differences, "41");
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("A", span.Text);
+    }
+
     [Fact]
     public void TextContentParser_AdvancesRunsThroughActiveTextMatrix() {
         const string content = "BT /F1 10 Tf 2 0 0 2 10 20 Tm (A) Tj (B) Tj ET";
