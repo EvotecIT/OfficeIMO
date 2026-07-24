@@ -161,6 +161,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_DropsExternalFormulaWhenWorkbookNameContainsApostrophe() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream("C:\\Data\\O'Brien.xls");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+
+            Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                .OrderBy(cell => cell.CellReference!.Value, StringComparer.Ordinal)
+                .ToArray();
+            Assert.All(cells, cell => Assert.Null(cell.CellFormula));
+            Assert.Empty(spreadsheet.WorkbookPart.GetPartsOfType<ExternalWorkbookPart>());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_PreservesLocalFormulaWhoseStringLiteralMentionsExternalWorkbook() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaStringLiteralMatchingExternalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions { LossPolicy = ExcelConversionLossPolicy.Allow });
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell formulaCell = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "B1");
+            Assert.Equal("\"[Budget.xls]Jan\"&A1", formulaCell.CellFormula!.Text);
+            Assert.Empty(spreadsheet.WorkbookPart.GetPartsOfType<ExternalWorkbookPart>());
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaExternalDefinedNames() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalDefinedNameWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1459,12 +1492,15 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
-            internal static byte[] CreateFormulaExternalWorkbookReferenceWorkbookStream() {
+            internal static byte[] CreateFormulaExternalWorkbookReferenceWorkbookStream() =>
+                CreateFormulaExternalWorkbookReferenceWorkbookStream("C:\\Data\\Budget.xls");
+
+            internal static byte[] CreateFormulaExternalWorkbookReferenceWorkbookStream(string target) {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ExternalFormula"));
-                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan", "Feb"));
+                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload(target, "Jan", "Feb"));
                 WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 0, 0)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
@@ -1472,6 +1508,29 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 15d, formulaTokens: Build3dReferenceAdditionFormulaTokens(0, 0, 0, 5)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 0, 42d, formulaTokens: BuildSum3dAreaFormulaTokens(0, 0, 0, 1, 0)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaStringLiteralMatchingExternalWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "StringLiteral"));
+                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Local"));
+                WriteRecord(stream, 0x0006, BuildFormulaStringResultPayload(
+                    0,
+                    1,
+                    BuildStringLiteralConcatFormulaTokens("[Budget.xls]Jan", 0, 0)));
+                WriteRecord(stream, 0x0207, BuildFormulaStringPayload("[Budget.xls]JanLocal"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

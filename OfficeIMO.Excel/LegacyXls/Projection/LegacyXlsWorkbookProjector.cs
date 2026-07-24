@@ -943,11 +943,37 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 int separator = normalizedTarget.LastIndexOf('/');
                 string fileName = separator >= 0 ? normalizedTarget.Substring(separator + 1) : normalizedTarget;
                 if (fileName.Length == 0) continue;
-                if (formulaText.IndexOf("[" + fileName + "]", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    formulaText.IndexOf("'" + fileName + "'!", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    formulaText.IndexOf(fileName + "!", StringComparison.OrdinalIgnoreCase) >= 0) {
+                string escapedFileName = fileName.Replace("'", "''");
+                if (ContainsFormulaTokenOutsideStringLiteral(formulaText, "[" + escapedFileName + "]") ||
+                    ContainsFormulaTokenOutsideStringLiteral(formulaText, "'" + escapedFileName + "'!") ||
+                    ContainsFormulaTokenOutsideStringLiteral(formulaText, escapedFileName + "!")) {
                     return true;
                 }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsFormulaTokenOutsideStringLiteral(string formulaText, string token) {
+            bool inStringLiteral = false;
+            for (int index = 0; index < formulaText.Length;) {
+                if (formulaText[index] == '"') {
+                    if (inStringLiteral && index + 1 < formulaText.Length && formulaText[index + 1] == '"') {
+                        index += 2;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                    index++;
+                    continue;
+                }
+
+                if (!inStringLiteral && index <= formulaText.Length - token.Length &&
+                    string.Compare(formulaText, index, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    return true;
+                }
+
+                index++;
             }
 
             return false;
