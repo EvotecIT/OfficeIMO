@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Save an OfficeIMO Excel workbook as PDF"
 meta.howto.description: "Load or create an Excel workbook and publish selected worksheet content through the first-party PDF engine."
 meta.howto.steps:
-  - "Install|Add the OfficeIMO.Excel.Pdf NuGet package."
-  - "Load|Open a supported workbook with ExcelDocument.Load or create one."
-  - "Configure|Choose worksheets, layout, page setup, and resource policy when needed."
-  - "Publish|Call SaveAsPdf and inspect the result."
+  - name: "Install"
+    text: "Add the OfficeIMO.Excel.Pdf NuGet package."
+  - name: "Load"
+    text: "Open a supported workbook with ExcelDocument.Load or create one."
+  - name: "Configure"
+    text: "Choose worksheets, layout, page setup, and resource policy when needed."
+  - name: "Publish"
+    text: "Call SaveAsPdf and inspect the result."
 ---
 
 `OfficeIMO.Excel.Pdf` publishes workbook content through the first-party OfficeIMO PDF engine. It is useful for statements, tabular reports, operational exports, and scheduled jobs where a stable read-only deliverable is more appropriate than an editable spreadsheet.

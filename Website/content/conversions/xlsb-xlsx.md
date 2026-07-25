@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Convert XLSB to XLSX with OfficeIMO.Excel"
 meta.howto.description: "Use the first-party Excel engine to inspect and convert a binary workbook without Microsoft Excel."
 meta.howto.steps:
-  - "Install|Add the OfficeIMO.Excel NuGet package."
-  - "Analyze|Preview XLSB-to-XLSX fidelity findings."
-  - "Convert|Call ExcelDocument.Convert for the selected paths."
-  - "Verify|Check the formulas, styles, links, and worksheet content important to the workload."
+  - name: "Install"
+    text: "Add the OfficeIMO.Excel NuGet package."
+  - name: "Analyze"
+    text: "Preview XLSB-to-XLSX fidelity findings."
+  - name: "Convert"
+    text: "Call ExcelDocument.Convert for the selected paths."
+  - name: "Verify"
+    text: "Check the formulas, styles, links, and worksheet content important to the workload."
 ---
 
 XLSB is a binary workbook format used for large or calculation-heavy Excel files. It is not the same container as XLSX, and renaming the extension is not a conversion. `OfficeIMO.Excel` includes a first-party XLSB parser and writer so applications can inspect and transform these workbooks through the normal Excel document model.

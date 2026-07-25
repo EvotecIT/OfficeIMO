@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Convert an XLS workbook to XLSX with OfficeIMO.Excel"
 meta.howto.description: "Inspect an XLS workbook, enforce a compatibility policy, and write XLSX without Microsoft Excel."
 meta.howto.steps:
-  - "Install|Add the OfficeIMO.Excel NuGet package."
-  - "Analyze|Preview formulas, styles, charts, and other compatibility findings."
-  - "Convert|Call ExcelDocument.Convert with XLS and XLSX paths."
-  - "Validate|Open or inspect the output required by the target workflow."
+  - name: "Install"
+    text: "Add the OfficeIMO.Excel NuGet package."
+  - name: "Analyze"
+    text: "Preview formulas, styles, charts, and other compatibility findings."
+  - name: "Convert"
+    text: "Call ExcelDocument.Convert with XLS and XLSX paths."
+  - name: "Validate"
+    text: "Open or inspect the output required by the target workflow."
 ---
 
 `OfficeIMO.Excel` reads legacy BIFF workbooks and modern Open XML workbooks through one Excel API. That makes it useful for finance archives, line-of-business exports, scheduled imports, and migrations where `.xls` still appears alongside `.xlsx`.

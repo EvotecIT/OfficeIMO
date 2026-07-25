@@ -617,6 +617,49 @@
 .imo-intent-content > :first-child {
   margin-top: 0;
 }
+.imo-howto {
+  margin: 0 0 2.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--imo-border, rgba(148, 163, 184, .2));
+  border-radius: 1.1rem;
+  background: color-mix(in srgb, var(--imo-primary, #38bdf8) 6%, var(--imo-surface, #0f172a));
+}
+.imo-howto h2 {
+  margin: .35rem 0 .65rem;
+}
+.imo-howto > p:not(.imo-section__eyebrow) {
+  color: var(--imo-text-muted, #94a3b8);
+}
+.imo-howto ol {
+  display: grid;
+  gap: .8rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: imo-howto-step;
+}
+.imo-howto li {
+  display: grid;
+  grid-template-columns: 2rem minmax(7rem, auto) 1fr;
+  gap: .75rem;
+  align-items: start;
+  counter-increment: imo-howto-step;
+}
+.imo-howto li::before {
+  content: counter(imo-howto-step);
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--imo-primary, #38bdf8);
+  color: var(--imo-primary-contrast, #082f49);
+  font-size: .8rem;
+  font-weight: 900;
+}
+.imo-howto li span {
+  color: var(--imo-text-muted, #94a3b8);
+}
 .imo-intent-sidebar {
   align-self: start;
   position: sticky;
@@ -666,5 +709,11 @@
   }
   .imo-intent-sidebar {
     position: static;
+  }
+  .imo-howto li {
+    grid-template-columns: 2rem 1fr;
+  }
+  .imo-howto li span {
+    grid-column: 2;
   }
 }

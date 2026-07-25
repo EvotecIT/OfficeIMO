@@ -154,6 +154,9 @@ $projectRequirements = [ordered]@{
 }
 foreach ($relativeProjectPath in $projectRequirements.Keys) {
     [xml] $project = Get-Content -LiteralPath (Join-Path $repositoryRootPath $relativeProjectPath) -Raw
+    $description = [string] @($project.Project.PropertyGroup.Description |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First 1)
     $tags = [string] @($project.Project.PropertyGroup.PackageTags |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
         Select-Object -First 1)
@@ -161,6 +164,11 @@ foreach ($relativeProjectPath in $projectRequirements.Keys) {
         if ($tags -notmatch "(?i)(^|[;,\s])$([regex]::Escape($tag))([;,\s]|$)") {
             throw "Project '$relativeProjectPath' package tags are missing '$tag'."
         }
+    }
+    if ($relativeProjectPath -eq 'OfficeIMO.Excel\OfficeIMO.Excel.csproj' -and
+        ($description -notmatch '(?i)\bXLT\b.{0,80}\b(classification|import)\b' -or
+         $description -match '(?i)creating,\s*reading,\s*editing,\s*and\s*converting[^.;]*\bXLT\b')) {
+        throw 'OfficeIMO.Excel package metadata must describe legacy XLT as classification/import support, not general authoring.'
     }
 }
 
@@ -222,6 +230,17 @@ if (-not $solutionLayout.Contains('{{ if page.meta.powershell }}', [StringCompar
 $googleWorkspaceSolution = Get-Content -LiteralPath (Join-Path $siteRootPath 'content\solutions\google-workspace-migration.md') -Raw
 if ($googleWorkspaceSolution.Contains('meta.powershell: true', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'The Google Workspace migration route must not advertise an undocumented PSWriteOffice surface.'
+}
+
+$conversionLayout = Get-Content -LiteralPath (Join-Path $siteRootPath 'themes\officeimo\layouts\conversion.html') -Raw
+foreach ($requiredHowToEvidence in @(
+    'page.meta.howto.steps',
+    'step.name',
+    'step.text'
+)) {
+    if (-not $conversionLayout.Contains($requiredHowToEvidence, [StringComparison]::Ordinal)) {
+        throw "Conversion layout must render the same HowTo metadata used by schema: '$requiredHowToEvidence'."
+    }
 }
 
 $faqData = Get-Content -LiteralPath (Join-Path $siteRootPath 'data\faq.json') -Raw | ConvertFrom-Json

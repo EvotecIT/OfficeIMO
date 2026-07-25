@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, XLT, and XLTX workbooks without Microsoft Office.</Description>
+        <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.</Description>
         <AssemblyName>OfficeIMO.Excel</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 

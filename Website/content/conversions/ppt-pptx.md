@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Convert PPT to PPTX with OfficeIMO.PowerPoint"
 meta.howto.description: "Analyze a legacy presentation and create a modern PPTX file without PowerPoint automation."
 meta.howto.steps:
-  - "Install|Add the OfficeIMO.PowerPoint NuGet package."
-  - "Analyze|Review slide, shape, media, chart, and preservation findings."
-  - "Convert|Call PowerPointPresentation.Convert for the PPT and PPTX paths."
-  - "Review|Validate the slides important to the presentation workflow."
+  - name: "Install"
+    text: "Add the OfficeIMO.PowerPoint NuGet package."
+  - name: "Analyze"
+    text: "Review slide, shape, media, chart, and preservation findings."
+  - name: "Convert"
+    text: "Call PowerPointPresentation.Convert for the PPT and PPTX paths."
+  - name: "Review"
+    text: "Validate the slides important to the presentation workflow."
 ---
 
 `OfficeIMO.PowerPoint` handles legacy PPT, POT, and PPS files as well as modern PPTX, PPTM, POTX, and PPSX presentations. Applications can use the same conversion surface in services, desktop software, containers, and scheduled jobs without launching Microsoft PowerPoint.

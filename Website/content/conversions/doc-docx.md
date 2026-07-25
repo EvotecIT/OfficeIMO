@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Convert a DOC file to DOCX with OfficeIMO.Word"
 meta.howto.description: "Analyze the source, choose an accepted compatibility policy, and create a modern DOCX file without Microsoft Word."
 meta.howto.steps:
-  - "Install|Add the OfficeIMO.Word NuGet package to the application."
-  - "Analyze|Inspect the conversion report when the workflow has fidelity requirements."
-  - "Convert|Call WordDocument.Convert with the source DOC and destination DOCX paths."
-  - "Review|Record or reject findings according to the application's document policy."
+  - name: "Install"
+    text: "Add the OfficeIMO.Word NuGet package to the application."
+  - name: "Analyze"
+    text: "Inspect the conversion report when the workflow has fidelity requirements."
+  - name: "Convert"
+    text: "Call WordDocument.Convert with the source DOC and destination DOCX paths."
+  - name: "Review"
+    text: "Record or reject findings according to the application's document policy."
 ---
 
 Use `OfficeIMO.Word` when a .NET application needs to bring Word 97–2003 files into a modern document workflow without Microsoft Word or COM automation. The normal Word engine detects the source format, projects supported DOC content into the OfficeIMO object model, and records features that need approximation, visual fallback, preservation, or rejection.

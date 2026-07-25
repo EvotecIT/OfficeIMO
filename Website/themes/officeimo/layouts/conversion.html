@@ -45,6 +45,18 @@
 
     <div class="imo-container imo-intent-layout">
       <article class="imo-intent-content markdown-body">
+        {{ if page.meta.howto.steps }}
+        <section class="imo-howto" aria-labelledby="conversion-steps-title">
+          <p class="imo-section__eyebrow">Practical steps</p>
+          <h2 id="conversion-steps-title">{{ page.meta.howto.name ?? "Complete this conversion" }}</h2>
+          {{ if page.meta.howto.description }}<p>{{ page.meta.howto.description }}</p>{{ end }}
+          <ol>
+            {{ for step in page.meta.howto.steps }}
+            <li><strong>{{ step.name }}</strong><span>{{ step.text }}</span></li>
+            {{ end }}
+          </ol>
+        </section>
+        {{ end }}
 {{ content }}
       </article>
       <aside class="imo-intent-sidebar">

@@ -10,10 +10,14 @@ meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.howto.name: "Save an OfficeIMO Word document as PDF"
 meta.howto.description: "Load or create a Word document and publish it through the first-party OfficeIMO PDF engine."
 meta.howto.steps:
-  - "Install|Add OfficeIMO.Word.Pdf, which brings the focused Word and PDF integration."
-  - "Load|Open a supported Word document with WordDocument.Load or create one."
-  - "Publish|Call SaveAsPdf with the destination path."
-  - "Inspect|Check the returned save result and conversion warnings."
+  - name: "Install"
+    text: "Add OfficeIMO.Word.Pdf, which brings the focused Word and PDF integration."
+  - name: "Load"
+    text: "Open a supported Word document with WordDocument.Load or create one."
+  - name: "Publish"
+    text: "Call SaveAsPdf with the destination path."
+  - name: "Inspect"
+    text: "Check the returned save result and conversion warnings."
 ---
 
 `OfficeIMO.Word.Pdf` connects the Word document model to the first-party OfficeIMO PDF engine. It is intended for reports, invoices, letters, contracts, and server-generated documents where the application controls both the source content and publishing policy.
