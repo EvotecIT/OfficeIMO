@@ -154,6 +154,7 @@ namespace OfficeIMO.Word.Pdf {
                  PdfCore.PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(familyName, pdfOptions.DefaultFont));
             if (!representedExactly) {
                 nativeFontMap.ReportFontSubstitution(
+                    pdfOptions,
                     familyName,
                     pdfOptions.DefaultFont,
                     GetEmbeddedFontFamilyName(pdfOptions, pdfOptions.DefaultFont));
@@ -383,6 +384,25 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (pdfOptions.TryResolveFontFamilySubstitution(
+                    trimmedFamilyName,
+                    out PdfCore.PdfFontFamilySubstitution? substitution) &&
+                substitution != null) {
+                nativeFontMap.RegisterNamed(trimmedFamilyName, substitution.TargetFontFamily);
+                PdfCore.PdfStandardFont substitutionSlot =
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(
+                        trimmedFamilyName,
+                        out PdfCore.PdfStandardFont mappedSubstitutionSlot)
+                        ? mappedSubstitutionSlot
+                        : PdfCore.PdfStandardFont.Helvetica;
+                nativeFontMap.ReportFontSubstitution(
+                    pdfOptions,
+                    trimmedFamilyName,
+                    substitutionSlot,
+                    substitution.TargetFontFamily);
+                return;
+            }
+
             if (allowSystemFontEmbedding &&
                 pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out string? registeredFamilyName) &&
                 registeredFamilyName != null) {
@@ -417,6 +437,7 @@ namespace OfficeIMO.Word.Pdf {
                      PdfCore.PdfStandardFontMapper.IsStandardPdfFamilyEquivalent(trimmedFamilyName, fontFamily));
                 if (!representedExactly) {
                     nativeFontMap.ReportFontSubstitution(
+                        pdfOptions,
                         trimmedFamilyName,
                         fontFamily,
                         GetEmbeddedFontFamilyName(pdfOptions, fontFamily));
@@ -438,6 +459,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? mappedFallback
                 : PdfCore.PdfStandardFont.Helvetica;
             nativeFontMap.ReportFontSubstitution(
+                pdfOptions,
                 trimmedFamilyName,
                 fallback,
                 GetEmbeddedFontFamilyName(pdfOptions, fallback));

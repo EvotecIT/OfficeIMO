@@ -283,6 +283,25 @@ public static partial class PowerPointPdfConverterExtensions {
         int slideNumber,
         bool reportSubstitution = true) {
         if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+            if (pdfOptions.TryResolveFontFamilySubstitution(
+                    trimmedFamilyName,
+                    out PdfCore.PdfFontFamilySubstitution? substitution) &&
+                substitution != null) {
+                if (reportSubstitution) {
+                    options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
+                        "OfficeIMO.PowerPoint.Pdf",
+                        "font-family-substitution",
+                        "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        trimmedFamilyName,
+                        fallbackSlot: null,
+                        resolvedFontFamily: substitution.TargetFontFamily,
+                        additionalDetails: new Dictionary<string, string> {
+                            ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        }));
+                }
+                return;
+            }
+
             if (pdfOptions.HasNamedFontFamily(trimmedFamilyName)) {
                 return;
             }
@@ -307,16 +326,15 @@ public static partial class PowerPointPdfConverterExtensions {
                 PdfCore.PdfStandardFont reportedFallback = mapped
                     ? fallback
                     : PdfCore.PdfStandardFont.Helvetica;
-                PdfCore.PdfStandardFont normalizedFallback = PdfCore.PdfStandardFontMapper.GetFontFamily(reportedFallback);
-                options.Report.Add(new PdfCore.PdfConversionWarning(
+                options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                     "OfficeIMO.PowerPoint.Pdf",
                     "font-family-substitution",
                     "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "The source font family '" + trimmedFamilyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedFallback + ".",
-                    details: new Dictionary<string, string> {
-                        ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        ["fontFamily"] = trimmedFamilyName,
-                        ["fallbackSlot"] = normalizedFallback.ToString()
+                    trimmedFamilyName,
+                    reportedFallback,
+                    pdfOptions.GetEmbeddedFontFamilyName(reportedFallback),
+                    new Dictionary<string, string> {
+                        ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     }));
             }
         }

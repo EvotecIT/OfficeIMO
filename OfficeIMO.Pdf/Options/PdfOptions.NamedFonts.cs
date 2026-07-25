@@ -221,12 +221,23 @@ public sealed partial class PdfOptions {
         }
 
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName!)) {
-            if (_namedFontFamilies.TryGetValue(NormalizeNamedFontFamilyKey(candidate), out family)) {
+            if (TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
+                substitution != null &&
+                TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {
+                return true;
+            }
+            if (TryGetNamedFontFamilyDirect(candidate, out family)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private bool TryGetNamedFontFamilyDirect(string familyName, out PdfEmbeddedFontFamily? family) {
+        family = null;
+        return _namedFontFamilies != null &&
+               _namedFontFamilies.TryGetValue(NormalizeNamedFontFamilyKey(familyName), out family);
     }
 
     internal bool TryGetNamedFontData(PdfNamedFontFace face, out byte[]? data, out string? fontName) {

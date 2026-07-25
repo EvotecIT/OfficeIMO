@@ -169,6 +169,25 @@ namespace OfficeIMO.Excel.Pdf {
             string sheetName,
             bool reportSubstitution = true) {
             if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+                if (pdfOptions.TryResolveFontFamilySubstitution(
+                        trimmedFamilyName,
+                        out PdfCore.PdfFontFamilySubstitution? substitution) &&
+                    substitution != null) {
+                    if (reportSubstitution) {
+                        options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
+                            "OfficeIMO.Excel.Pdf",
+                            "WorksheetFontFamilySubstituted",
+                            sheetName,
+                            trimmedFamilyName,
+                            fallbackSlot: null,
+                            resolvedFontFamily: substitution.TargetFontFamily,
+                            additionalDetails: new Dictionary<string, string> {
+                                ["sheetName"] = sheetName
+                            }));
+                    }
+                    return;
+                }
+
                 if (pdfOptions.HasNamedFontFamily(trimmedFamilyName)) {
                     return;
                 }
@@ -194,16 +213,15 @@ namespace OfficeIMO.Excel.Pdf {
                     PdfCore.PdfStandardFont reportedFallback = mapped
                         ? fallback
                         : PdfCore.PdfStandardFont.Helvetica;
-                    PdfCore.PdfStandardFont normalizedFallback = PdfCore.PdfStandardFontMapper.GetFontFamily(reportedFallback);
-                    options.Report.Add(new PdfCore.PdfConversionWarning(
+                    options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
                         "OfficeIMO.Excel.Pdf",
                         "WorksheetFontFamilySubstituted",
                         sheetName,
-                        "The source font family '" + trimmedFamilyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedFallback + ".",
-                        details: new Dictionary<string, string> {
-                            ["sheetName"] = sheetName,
-                            ["fontFamily"] = trimmedFamilyName,
-                            ["fallbackSlot"] = normalizedFallback.ToString()
+                        trimmedFamilyName,
+                        reportedFallback,
+                        pdfOptions.GetEmbeddedFontFamilyName(reportedFallback),
+                        new Dictionary<string, string> {
+                            ["sheetName"] = sheetName
                         }));
                 }
             }

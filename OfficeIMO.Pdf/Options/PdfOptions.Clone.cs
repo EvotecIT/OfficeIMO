@@ -61,6 +61,7 @@ public sealed partial class PdfOptions {
             _diagnosticsConverter = _diagnosticsConverter,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
             _namedFontFamilies = CloneNamedFontFamilies(_namedFontFamilies),
+            _fontFamilySubstitutions = CloneFontFamilySubstitutions(_fontFamilySubstitutions),
             _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
             Portfolio = _portfolio?.Clone(),
             ShowHeader = ShowHeader,
