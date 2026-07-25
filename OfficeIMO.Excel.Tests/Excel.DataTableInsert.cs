@@ -587,6 +587,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_HeaderlessDefaultColumnsRemainPositional() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHeaderlessDefaultColumns.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales");
+
+                var append = new DataTable();
+                append.Columns.Add("Column2", typeof(string));
+                append.Columns.Add("Column1", typeof(string));
+                append.Rows.Add("first-position", "second-position");
+
+                Assert.Equal("A1:B2", sheet.AppendDataTableToTable(append, "HeaderlessSales"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("first-position", GetCellText(spreadsheet, worksheetPart, "A2"));
+                Assert.Equal("second-position", GetCellText(spreadsheet, worksheetPart, "B2"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_HiddenHeadersUseMatchingColumnNames() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeaders.xlsx");
 
@@ -624,6 +655,41 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
                 Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A3"));
                 Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_HiddenHeadersRejectMissingNamedColumn() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeadersMissingColumn.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "HiddenHeaderSales");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.HeaderRowCount = 0U;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Revenue", typeof(int));
+                append.Columns.Add("Foo", typeof(string));
+                append.Rows.Add(150, "misrouted");
+
+                var exception = Assert.Throws<ArgumentException>(() =>
+                    document.Sheets[0].AppendDataTableToTable(append, "HiddenHeaderSales"));
+                Assert.Contains("Region", exception.Message);
             }
 
             File.Delete(filePath);
