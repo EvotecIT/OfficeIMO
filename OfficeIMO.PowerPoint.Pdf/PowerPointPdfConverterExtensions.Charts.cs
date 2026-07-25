@@ -79,10 +79,13 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfSaveOptions options) {
         var series = snapshot.Data.Series
-            .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
-                renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
-                axisGroup: item.AxisGroup))
+            .Select(item => item.BubbleSizes != null
+                ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
+                    item.BubbleSizes, item.Color, item.PointColors)
+                : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                    pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
+                    renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
+                    axisGroup: item.AxisGroup))
             .ToList();
         var data = new OfficeChartData(snapshot.Data.Categories, series);
         return new OfficeChartSnapshot(
@@ -126,6 +129,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 return OfficeChartKind.Radar;
             case PptCore.PowerPointChartSnapshotKind.Scatter:
                 return OfficeChartKind.Scatter;
+            case PptCore.PowerPointChartSnapshotKind.Bubble:
+                return OfficeChartKind.Bubble;
             case PptCore.PowerPointChartSnapshotKind.Pie:
                 return OfficeChartKind.Pie;
             case PptCore.PowerPointChartSnapshotKind.Doughnut:

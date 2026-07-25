@@ -164,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
-            props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            props.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }), true);
         }
 
         private static void ApplyNoFill(OpenXmlCompositeElement props) {
@@ -172,7 +172,7 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
             props.RemoveAllChildren<A.NoFill>();
-            props.Append(new A.NoFill());
+            props.AddChild(new A.NoFill(), true);
         }
 
         private static void ApplyNoLine(OpenXmlCompositeElement props) {
@@ -330,7 +330,8 @@ namespace OfficeIMO.PowerPoint {
             return series is C.LineChartSeries
                    || series is C.BarChartSeries
                    || series is C.AreaChartSeries
-                   || series is C.ScatterChartSeries;
+                   || series is C.ScatterChartSeries
+                   || series is C.BubbleChartSeries;
         }
 
         private static void InsertTrendline(OpenXmlCompositeElement series, C.Trendline trendline) {

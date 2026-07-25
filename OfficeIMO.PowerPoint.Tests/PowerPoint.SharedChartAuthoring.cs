@@ -566,6 +566,15 @@ namespace OfficeIMO.Tests {
         }
 
         private static OfficeChartData CreateData(OfficeChartKind kind) {
+            if (kind == OfficeChartKind.Bubble) {
+                return new OfficeChartData(new[] { "1", "2", "3", "4" }, new[] {
+                    OfficeChartSeries.CreateBubble("Portfolio",
+                        new[] { 1D, 2D, 3D, 4D },
+                        new[] { 2D, 4D, 3D, 5D },
+                        new[] { 12D, 28D, 18D, 42D },
+                        OfficeColor.Parse("#0B7FAB"))
+                });
+            }
             if (kind == OfficeChartKind.Scatter) {
                 return new OfficeChartData(new[] { "1", "2", "3", "4" }, new[] {
                     new OfficeChartSeries("Observed", new[] { 2D, 4D, 3D, 5D },

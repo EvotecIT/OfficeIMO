@@ -32,7 +32,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsSharedChartLayer(OpenXmlCompositeElement element) =>
             element is C.BarChart || element is C.LineChart || element is C.AreaChart ||
-            element is C.RadarChart || element is C.PieChart || element is C.DoughnutChart;
+            element is C.RadarChart || element is C.PieChart || element is C.DoughnutChart ||
+            element is C.BubbleChart;
 
         private static bool AreCompatibleSharedChartLayers(OpenXmlCompositeElement source,
             OpenXmlCompositeElement replacement, C.PlotArea sourcePlotArea, C.PlotArea replacementPlotArea) {
@@ -94,6 +95,7 @@ namespace OfficeIMO.PowerPoint {
             ReplaceSharedSeriesChild<C.Values>(updated, generated);
             ReplaceSharedSeriesChild<C.XValues>(updated, generated);
             ReplaceSharedSeriesChild<C.YValues>(updated, generated);
+            ReplaceSharedSeriesChild<C.BubbleSize>(updated, generated);
             return updated;
         }
 
@@ -113,7 +115,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool IsSharedSeriesElement(OpenXmlCompositeElement element) =>
             element is C.BarChartSeries || element is C.LineChartSeries ||
             element is C.AreaChartSeries || element is C.RadarChartSeries ||
-            element is C.PieChartSeries;
+            element is C.PieChartSeries || element is C.BubbleChartSeries;
 
         private static void ReplaceSharedAxisReferences(OpenXmlCompositeElement preserved,
             OpenXmlCompositeElement generated) {

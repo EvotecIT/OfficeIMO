@@ -26,9 +26,12 @@ namespace OfficeIMO.PowerPoint {
 
             EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
             if (embedded != null) {
-                byte[] workbookBytes = chartKind == OfficeChartKind.Scatter
-                    ? PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointScatterChartData(data))
-                    : PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data));
+                byte[] workbookBytes = chartKind switch {
+                    OfficeChartKind.Scatter =>
+                        PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointScatterChartData(data)),
+                    OfficeChartKind.Bubble => PowerPointUtils.BuildBubbleChartWorkbook(data),
+                    _ => PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data))
+                };
                 using var stream = new MemoryStream(workbookBytes);
                 embedded.FeedData(stream);
             }
@@ -41,9 +44,9 @@ namespace OfficeIMO.PowerPoint {
             if (data == null) throw new ArgumentNullException(nameof(data));
             var builder = new StringBuilder();
             builder.Append("Chart kind: ").Append(chartKind).AppendLine();
-            if (chartKind == OfficeChartKind.Scatter &&
+            if ((chartKind == OfficeChartKind.Scatter || chartKind == OfficeChartKind.Bubble) &&
                 data.Series.Any(series => series.XValues != null)) {
-                AppendScatterDataSummary(builder, data);
+                AppendNumericPointDataSummary(builder, data, includeBubbleSize: chartKind == OfficeChartKind.Bubble);
                 return builder.ToString();
             }
             builder.Append("Category");
@@ -64,8 +67,9 @@ namespace OfficeIMO.PowerPoint {
             return builder.ToString();
         }
 
-        private static void AppendScatterDataSummary(StringBuilder builder, OfficeChartData data) {
-            builder.AppendLine("Series\tX\tY");
+        private static void AppendNumericPointDataSummary(StringBuilder builder, OfficeChartData data,
+            bool includeBubbleSize) {
+            builder.AppendLine(includeBubbleSize ? "Series\tX\tY\tSize" : "Series\tX\tY");
             bool firstPoint = true;
             foreach (OfficeChartSeries series in data.Series) {
                 for (int pointIndex = 0; pointIndex < series.Values.Count; pointIndex++) {
@@ -79,6 +83,13 @@ namespace OfficeIMO.PowerPoint {
                     }
                     builder.Append('\t')
                         .Append(series.Values[pointIndex].ToString("G", CultureInfo.InvariantCulture));
+                    if (includeBubbleSize) {
+                        builder.Append('\t');
+                        if (series.BubbleSizes != null && pointIndex < series.BubbleSizes.Count) {
+                            builder.Append(series.BubbleSizes[pointIndex]
+                                .ToString("G", CultureInfo.InvariantCulture));
+                        }
+                    }
                 }
             }
         }
@@ -124,12 +135,24 @@ namespace OfficeIMO.PowerPoint {
             for (int seriesIndex = 0; seriesIndex < powerPointSnapshot.Data.Series.Count; seriesIndex++) {
                 PowerPointChartSeries item = powerPointSnapshot.Data.Series[seriesIndex];
                 uint sourceIndex = item.SourceIndex ?? (uint)seriesIndex;
-                series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                    pointColors: null, showMarkers: true,
-                    showInLegend: !hiddenLegendSeries.Contains(sourceIndex), connectLine: true,
-                    strokeWidth: item.StrokeWidth,
-                    renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
-                    axisGroup: item.AxisGroup));
+                bool showInLegend = !hiddenLegendSeries.Contains(sourceIndex);
+                if (item.BubbleSizes != null) {
+                    if (item.XValues == null || item.BubbleSizes.Any(size =>
+                            double.IsNaN(size) || double.IsInfinity(size) || size < 0D)) {
+                        snapshot = null!;
+                        return false;
+                    }
+                    series.Add(OfficeChartSeries.CreateBubble(item.Name, item.XValues!,
+                        item.Values, item.BubbleSizes, item.Color, item.PointColors,
+                        showInLegend: showInLegend));
+                } else {
+                    series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                        pointColors: null, showMarkers: true,
+                        showInLegend: showInLegend, connectLine: true,
+                        strokeWidth: item.StrokeWidth,
+                        renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
+                        axisGroup: item.AxisGroup));
+                }
             }
             var data = new OfficeChartData(powerPointSnapshot.Data.Categories, series);
             snapshot = new OfficeChartSnapshot(powerPointSnapshot.Name, powerPointSnapshot.Title, kind, data,
@@ -168,6 +191,7 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointChartSnapshotKind.StackedArea: return OfficeChartKind.AreaStacked;
                 case PowerPointChartSnapshotKind.StackedArea100: return OfficeChartKind.AreaStacked100;
                 case PowerPointChartSnapshotKind.Scatter: return OfficeChartKind.Scatter;
+                case PowerPointChartSnapshotKind.Bubble: return OfficeChartKind.Bubble;
                 case PowerPointChartSnapshotKind.Radar: return OfficeChartKind.Radar;
                 case PowerPointChartSnapshotKind.Pie: return OfficeChartKind.Pie;
                 case PowerPointChartSnapshotKind.Doughnut: return OfficeChartKind.Doughnut;

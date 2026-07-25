@@ -26,6 +26,7 @@ namespace OfficeIMO.PowerPoint {
             if (ApplySeriesByIndex(plotArea.Elements<C.PieChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.DoughnutChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.BubbleChart>(), seriesIndex, apply)) return true;
 
             return false;
         }
@@ -43,6 +44,7 @@ namespace OfficeIMO.PowerPoint {
             if (ApplySeriesByName(plotArea.Elements<C.PieChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.DoughnutChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.BubbleChart>(), seriesName, ignoreCase, apply)) return true;
 
             return false;
         }
@@ -157,7 +159,8 @@ namespace OfficeIMO.PowerPoint {
                    element is C.LineChartSeries ||
                    element is C.AreaChartSeries ||
                    element is C.PieChartSeries ||
-                   element is C.ScatterChartSeries;
+                   element is C.ScatterChartSeries ||
+                   element is C.BubbleChartSeries;
         }
 
         private static int GetSeriesIndex(OpenXmlCompositeElement series) {

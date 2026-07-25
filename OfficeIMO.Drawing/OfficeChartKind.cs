@@ -50,5 +50,8 @@ public enum OfficeChartKind {
     Pie,
 
     /// <summary>Doughnut chart.</summary>
-    Doughnut
+    Doughnut,
+
+    /// <summary>Bubble chart with numeric X/Y coordinates and per-point sizes.</summary>
+    Bubble
 }

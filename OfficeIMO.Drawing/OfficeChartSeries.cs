@@ -65,7 +65,37 @@ public sealed class OfficeChartSeries {
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
     /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
     /// <param name="axisGroup">Primary or secondary value axis used by combo chart renderers.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartKind? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartKind? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
+        : this(name, values, xValues, bubbleSizes: null, color, pointColors, showMarkers, showInLegend,
+            connectLine, markerSize, markerShape, markerOutlineColor, markerOutlineWidth, strokeWidth,
+            strokeDashStyle, renderKind, axisGroup) {
+    }
+
+    /// <summary>
+    /// Creates a bubble-chart series with numeric X/Y coordinates and per-point bubble sizes.
+    /// </summary>
+    /// <param name="name">Display name for the series.</param>
+    /// <param name="xValues">Numeric X-axis values.</param>
+    /// <param name="yValues">Numeric Y-axis values.</param>
+    /// <param name="bubbleSizes">Non-negative bubble sizes aligned with the X/Y values.</param>
+    /// <param name="color">Optional source-defined series color.</param>
+    /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
+    /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
+    public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
+        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
+        IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true) =>
+        new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
+            showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
+            markerOutlineColor: color, markerOutlineWidth: null, strokeWidth: null,
+            strokeDashStyle: null, renderKind: OfficeChartKind.Bubble,
+            axisGroup: OfficeChartAxisGroup.Primary);
+
+    private OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
+        IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
+        bool showMarkers, bool showInLegend, bool connectLine, int? markerSize,
+        OfficeChartMarkerShape? markerShape, OfficeColor? markerOutlineColor,
+        double? markerOutlineWidth, double? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
+        OfficeChartKind? renderKind, OfficeChartAxisGroup axisGroup) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
@@ -85,6 +115,19 @@ public sealed class OfficeChartSeries {
             XValues = new ReadOnlyCollection<double>(new List<double>(xValues));
             if (XValues.Count != Values.Count) {
                 throw new ArgumentException("Series X-axis values must match the number of series values.", nameof(xValues));
+            }
+        }
+        if (bubbleSizes != null) {
+            BubbleSizes = new ReadOnlyCollection<double>(new List<double>(bubbleSizes));
+            if (BubbleSizes.Count != Values.Count) {
+                throw new ArgumentException("Series bubble sizes must match the number of series values.", nameof(bubbleSizes));
+            }
+            for (int index = 0; index < BubbleSizes.Count; index++) {
+                double size = BubbleSizes[index];
+                if (double.IsNaN(size) || double.IsInfinity(size) || size < 0D) {
+                    throw new ArgumentOutOfRangeException(nameof(bubbleSizes),
+                        "Bubble sizes must contain only finite, non-negative values.");
+                }
             }
         }
 
@@ -116,6 +159,9 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Optional per-series numeric X-axis values for scatter charts.</summary>
     public IReadOnlyList<double>? XValues { get; }
+
+    /// <summary>Optional per-point sizes for bubble charts.</summary>
+    public IReadOnlyList<double>? BubbleSizes { get; }
 
     /// <summary>Optional source-defined series color.</summary>
     public OfficeColor? Color { get; }

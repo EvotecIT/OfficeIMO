@@ -30,9 +30,14 @@ namespace OfficeIMO.PowerPoint {
                 if (series.Values.Count == 0) {
                     throw new ArgumentException("Chart series cannot be empty.", nameof(data));
                 }
-                if (defaultKind == OfficeChartKind.Scatter) {
+                if (defaultKind == OfficeChartKind.Scatter || defaultKind == OfficeChartKind.Bubble) {
                     if (series.XValues != null && series.XValues.Count != series.Values.Count) {
-                        throw new ArgumentException("Scatter X and Y value counts must match.", nameof(data));
+                        throw new ArgumentException("Numeric X and Y value counts must match.", nameof(data));
+                    }
+                    if (defaultKind == OfficeChartKind.Bubble &&
+                        (series.BubbleSizes == null || series.BubbleSizes.Count != series.Values.Count)) {
+                        throw new ArgumentException(
+                            "Every bubble series must provide one bubble size for each X/Y point.", nameof(data));
                     }
                 } else if (series.Values.Count != data.Categories.Count) {
                     throw new ArgumentException("Every chart series must match the category count.", nameof(data));
@@ -45,10 +50,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException("A secondary-axis chart requires at least one primary-axis series.");
             }
 
-            if (descriptors.Any(item => item.Kind == OfficeChartKind.Scatter)) {
-                if (defaultKind != OfficeChartKind.Scatter ||
-                    descriptors.Any(item => item.Kind != OfficeChartKind.Scatter) || hasSecondary) {
-                    throw new NotSupportedException("Scatter series cannot be combined with categorical or secondary-axis series.");
+            if (descriptors.Any(item => item.Kind == OfficeChartKind.Scatter ||
+                                        item.Kind == OfficeChartKind.Bubble)) {
+                bool sameNumericKind = descriptors.All(item => item.Kind == defaultKind);
+                if ((defaultKind != OfficeChartKind.Scatter && defaultKind != OfficeChartKind.Bubble) ||
+                    !sameNumericKind || hasSecondary) {
+                    throw new NotSupportedException(
+                        "Scatter and bubble series cannot be combined with other chart families or secondary axes.");
                 }
                 foreach (OfficeChartSeries series in data.Series) {
                     if (series.XValues == null) ParseScatterCategories(data.Categories);
@@ -168,6 +176,16 @@ namespace OfficeIMO.PowerPoint {
             }
             if (descriptors.All(item => item.Kind == OfficeChartKind.Doughnut)) {
                 plotArea.Append(CreateDoughnutChart(ToPowerPointChartData(data)));
+                return;
+            }
+            if (descriptors.All(item => item.Kind == OfficeChartKind.Bubble)) {
+                uint xAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+                uint yAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+                plotArea.Append(CreateSharedBubbleChart(data, xAxisId, yAxisId));
+                plotArea.Append(CreateSharedValueAxis(xAxisId, yAxisId,
+                    C.AxisPositionValues.Bottom, secondary: false));
+                plotArea.Append(CreateSharedValueAxis(yAxisId, xAxisId,
+                    C.AxisPositionValues.Left, secondary: false));
                 return;
             }
 
@@ -382,6 +400,7 @@ namespace OfficeIMO.PowerPoint {
                 else if (chart is C.AreaChart area) foreach (C.AreaChartSeries series in area.Elements<C.AreaChartSeries>()) yield return series;
                 else if (chart is C.RadarChart radar) foreach (C.RadarChartSeries series in radar.Elements<C.RadarChartSeries>()) yield return series;
                 else if (chart is C.ScatterChart scatter) foreach (C.ScatterChartSeries series in scatter.Elements<C.ScatterChartSeries>()) yield return series;
+                else if (chart is C.BubbleChart bubble) foreach (C.BubbleChartSeries series in bubble.Elements<C.BubbleChartSeries>()) yield return series;
                 else if (chart is C.PieChart pie) foreach (C.PieChartSeries series in pie.Elements<C.PieChartSeries>()) yield return series;
                 else if (chart is C.DoughnutChart doughnut) foreach (C.PieChartSeries series in doughnut.Elements<C.PieChartSeries>()) yield return series;
             }
@@ -390,7 +409,7 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
             OfficeChartSeries series, OfficeChartKind kind) {
             if (!series.Color.HasValue && series.StrokeWidth == null && series.StrokeDashStyle == null &&
-                series.ConnectLine) return;
+                (series.ConnectLine || IsFilledSharedKind(kind))) return;
             C.ChartShapeProperties properties = seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
                 new C.ChartShapeProperties();
             if (series.Color.HasValue && IsFilledSharedKind(kind)) {
@@ -525,7 +544,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsFilledSharedKind(OfficeChartKind kind) =>
             IsBarOrColumnKind(kind) || IsAreaKind(kind) || kind == OfficeChartKind.Pie ||
-            kind == OfficeChartKind.Doughnut;
+            kind == OfficeChartKind.Doughnut || kind == OfficeChartKind.Bubble;
 
         private static bool IsMarkerKind(OfficeChartKind kind) => IsLineKind(kind) ||
             kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Radar;

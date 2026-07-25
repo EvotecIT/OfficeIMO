@@ -1579,6 +1579,7 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange pairedYRange = GetScatterPointRanges(rangeSeries, sharedXValues).YRange;
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
         ValueRange yRange = valueAxisRange ?? ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
+        double maximumBubbleSize = GetMaximumBubbleSize(allRangeSeries);
         for (int s = 0; s < scatterSeries.Count; s++) {
             OfficeChartSeries currentSeries = scatterSeries[s].Series;
             int sourceSeriesIndex = scatterSeries[s].SourceIndex;
@@ -1625,7 +1626,12 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficePoint point = points[i].Point;
                 if (layout.ShowMarkers && currentSeries.ShowMarkers) {
                     OfficeColor pointColor = GetPointColor(currentSeries.PointColors, points[i].SourceIndex, color);
-                    AddMarker(drawing, currentSeries, point, 5D, pointColor, 1.25D);
+                    if (currentSeries.BubbleSizes != null) {
+                        AddBubbleMarker(drawing, currentSeries, points[i].SourceIndex, point,
+                            plotWidth, plotHeight, maximumBubbleSize, pointColor);
+                    } else {
+                        AddMarker(drawing, currentSeries, point, 5D, pointColor, 1.25D);
+                    }
                 }
 
                 int pointIndex = points[i].SourceIndex;

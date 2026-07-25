@@ -96,6 +96,18 @@ namespace OfficeIMO.PowerPoint {
                     return true;
                 }
 
+                if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
+                    PowerPointChartData? data = ReadBubbleSeriesData(
+                        bubbleChart.Elements<C.BubbleChartSeries>(), colorScheme);
+                    if (data == null) {
+                        snapshot = null!;
+                        return false;
+                    }
+
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Bubble, data);
+                    return true;
+                }
+
                 if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
                     PowerPointChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Pie, colorScheme);
                     if (data == null) {
@@ -132,6 +144,7 @@ namespace OfficeIMO.PowerPoint {
                 + plotArea.Elements<C.AreaChart>().Count()
                 + plotArea.Elements<C.RadarChart>().Count()
                 + plotArea.Elements<C.ScatterChart>().Count()
+                + plotArea.Elements<C.BubbleChart>().Count()
                 + plotArea.Elements<C.PieChart>().Count()
                 + plotArea.Elements<C.DoughnutChart>().Count();
         }
@@ -408,6 +421,7 @@ namespace OfficeIMO.PowerPoint {
             chartKind == PowerPointChartSnapshotKind.Area ||
             chartKind == PowerPointChartSnapshotKind.StackedArea ||
             chartKind == PowerPointChartSnapshotKind.StackedArea100 ||
+            chartKind == PowerPointChartSnapshotKind.Bubble ||
             chartKind == PowerPointChartSnapshotKind.Pie ||
             chartKind == PowerPointChartSnapshotKind.Doughnut;
 

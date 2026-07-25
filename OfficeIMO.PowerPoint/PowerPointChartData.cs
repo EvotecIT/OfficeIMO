@@ -46,10 +46,17 @@ namespace OfficeIMO.PowerPoint {
 
             int expected = Categories.Count;
             foreach (PowerPointChartSeries item in Series) {
-                if (item.ChartKind == PowerPointChartSnapshotKind.Scatter) {
+                if (item.ChartKind == PowerPointChartSnapshotKind.Scatter ||
+                    item.ChartKind == PowerPointChartSnapshotKind.Bubble) {
                     if (item.XValues == null || item.XValues.Count != item.Values.Count) {
                         throw new System.ArgumentException(
-                            "Each scatter series must have matching X and Y value counts.",
+                            "Each numeric-axis series must have matching X and Y value counts.",
+                            nameof(series));
+                    }
+                    if (item.ChartKind == PowerPointChartSnapshotKind.Bubble &&
+                        (item.BubbleSizes == null || item.BubbleSizes.Count != item.Values.Count)) {
+                        throw new System.ArgumentException(
+                            "Each bubble series must have matching X, Y, and size value counts.",
                             nameof(series));
                     }
                 } else if (item.Values.Count != expected) {
@@ -162,6 +169,16 @@ namespace OfficeIMO.PowerPoint {
         /// Optional numeric X-axis values for this series.
         /// </summary>
         public IReadOnlyList<double>? XValues { get; private set; }
+
+        /// <summary>
+        /// Optional per-point sizes for a bubble series.
+        /// </summary>
+        internal IReadOnlyList<double>? BubbleSizes { get; set; }
+
+        /// <summary>
+        /// Optional source-defined colors aligned with individual data points.
+        /// </summary>
+        internal IReadOnlyList<OfficeColor?>? PointColors { get; set; }
 
         /// <summary>
         /// Optional chart kind for mixed/combo chart rendering.

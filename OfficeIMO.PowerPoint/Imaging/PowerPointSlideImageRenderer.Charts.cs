@@ -48,16 +48,19 @@ namespace OfficeIMO.PowerPoint {
             var series = new List<OfficeChartSeries>(snapshot.Data.Series.Count);
             for (int i = 0; i < snapshot.Data.Series.Count; i++) {
                 PowerPointChartSeries item = snapshot.Data.Series[i];
-                series.Add(new OfficeChartSeries(
-                    item.Name,
-                    item.Values,
-                    item.XValues,
-                    color: item.Color,
-                    pointColors: null,
-                    showMarkers: true,
-                    strokeWidth: item.StrokeWidth,
-                    renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind),
-                    axisGroup: item.AxisGroup));
+                series.Add(item.BubbleSizes != null
+                    ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
+                        item.BubbleSizes, item.Color, item.PointColors)
+                    : new OfficeChartSeries(
+                        item.Name,
+                        item.Values,
+                        item.XValues,
+                        color: item.Color,
+                        pointColors: null,
+                        showMarkers: true,
+                        strokeWidth: item.StrokeWidth,
+                        renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind),
+                        axisGroup: item.AxisGroup));
             }
 
             return new OfficeChartSnapshot(
@@ -91,6 +94,8 @@ namespace OfficeIMO.PowerPoint {
                     return OfficeChartKind.LineStacked100;
                 case PowerPointChartSnapshotKind.Scatter:
                     return OfficeChartKind.Scatter;
+                case PowerPointChartSnapshotKind.Bubble:
+                    return OfficeChartKind.Bubble;
                 case PowerPointChartSnapshotKind.Pie:
                     return OfficeChartKind.Pie;
                 case PowerPointChartSnapshotKind.Doughnut:

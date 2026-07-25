@@ -117,6 +117,30 @@ chartSlide.AddChartCm(
 chartSlide.Notes.Text = "Chart and table share the same source data.";
 ```
 
+For a native bubble chart, create each series with explicit X, Y, and size values:
+
+```csharp
+var bubbleData = new OfficeChartData(
+    new[] { "1", "2", "3" },
+    new[] {
+        OfficeChartSeries.CreateBubble(
+            "Portfolio",
+            xValues: new[] { 1D, 2D, 3D },
+            yValues: new[] { 12D, 18D, 15D },
+            bubbleSizes: new[] { 9D, 36D, 16D })
+    });
+
+chartSlide.AddChartCm(
+    OfficeChartKind.Bubble,
+    bubbleData,
+    content.LeftCm,
+    content.TopCm + 2.0,
+    content.WidthCm,
+    4.8);
+```
+
+Bubble sizes must be finite and non-negative, with one size for every X/Y point. The chart remains editable in PowerPoint, and `UpdateData(...)` refreshes both cached chart values and the embedded workbook.
+
 ## Manage slide order and reuse
 
 ```csharp

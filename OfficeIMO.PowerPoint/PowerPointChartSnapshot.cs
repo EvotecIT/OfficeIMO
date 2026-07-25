@@ -51,7 +51,10 @@ namespace OfficeIMO.PowerPoint {
         StackedArea100,
 
         /// <summary>Radar chart.</summary>
-        Radar
+        Radar,
+
+        /// <summary>Bubble chart.</summary>
+        Bubble
     }
 
     /// <summary>
