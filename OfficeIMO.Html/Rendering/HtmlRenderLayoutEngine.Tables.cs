@@ -301,8 +301,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     0,
                     source)
             };
+        double trailingSourceEnd = caption != null && caption.Side == "bottom"
+            ? tableY + tableHeight
+            : outerHeight;
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
-            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, semanticTrailingVisuals) }
+            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, trailingSourceEnd, trailingHeight, semanticTrailingVisuals) }
             : Array.Empty<HtmlRenderTrailingGroup>();
         return new HtmlRenderFlowBlock(
             containingWidth,

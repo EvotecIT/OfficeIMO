@@ -104,11 +104,16 @@ public static class OfficeImageComposer {
             }
         }
 
+        var reservedIds = new HashSet<string>(seenIds, StringComparer.Ordinal);
         for (int index = 0; index < svgLayers.Count; index++) {
             OfficeImageLayer layer = svgLayers[index];
             string layerContent = layer.SvgInnerContent!;
             if (duplicateIds.Count > 0 && svgLayerIds[index].Overlaps(duplicateIds)) {
-                layerContent = NamespaceSvgLayerIds(layerContent, "officeimo-layer-" + (index + 1) + "-", duplicateIds);
+                layerContent = NamespaceSvgLayerIds(
+                    layerContent,
+                    "officeimo-layer-" + (index + 1) + "-",
+                    duplicateIds,
+                    reservedIds);
             }
 
             builder.AppendNestedSvg(layer.X, layer.Y, layer.Width, layer.Height, layerContent);
@@ -129,10 +134,14 @@ public static class OfficeImageComposer {
         }
     }
 
-    private static string NamespaceSvgLayerIds(string svg, string prefix, HashSet<string> idsToNamespace) {
+    private static string NamespaceSvgLayerIds(
+        string svg,
+        string prefix,
+        HashSet<string> idsToNamespace,
+        HashSet<string> reservedIds) {
         var ids = new Dictionary<string, string>(StringComparer.Ordinal);
-        CollectSvgIds(svg, '"', prefix, idsToNamespace, ids);
-        CollectSvgIds(svg, '\'', prefix, idsToNamespace, ids);
+        CollectSvgIds(svg, '"', prefix, idsToNamespace, reservedIds, ids);
+        CollectSvgIds(svg, '\'', prefix, idsToNamespace, reservedIds, ids);
         if (ids.Count == 0) {
             return svg;
         }
@@ -188,7 +197,13 @@ public static class OfficeImageComposer {
         }
     }
 
-    private static void CollectSvgIds(string svg, char quote, string prefix, HashSet<string> idsToNamespace, Dictionary<string, string> ids) {
+    private static void CollectSvgIds(
+        string svg,
+        char quote,
+        string prefix,
+        HashSet<string> idsToNamespace,
+        HashSet<string> reservedIds,
+        Dictionary<string, string> ids) {
         string marker = "id=" + quote;
         int searchStart = 0;
         while (searchStart < svg.Length) {
@@ -210,7 +225,14 @@ public static class OfficeImageComposer {
 
             string id = svg.Substring(valueStart, valueEnd - valueStart);
             if (id.Length > 0 && idsToNamespace.Contains(id) && !ids.ContainsKey(id)) {
-                ids.Add(id, prefix + id);
+                string candidate = prefix + id;
+                int suffix = 2;
+                while (!reservedIds.Add(candidate)) {
+                    candidate = prefix + id + "-" + suffix;
+                    suffix++;
+                }
+
+                ids.Add(id, candidate);
             }
 
             searchStart = valueEnd + 1;

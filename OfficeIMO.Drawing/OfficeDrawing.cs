@@ -86,6 +86,39 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds unrotated text using the original public text-box contract.</summary>
+    public OfficeDrawing AddText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeFontInfo? font,
+        OfficeColor? color,
+        OfficeTextAlignment alignment,
+        double? lineHeight) =>
+        AddText(
+            text,
+            x,
+            y,
+            width,
+            height,
+            font,
+            color,
+            alignment,
+            lineHeight,
+            OfficeTextVerticalAlignment.Top,
+            0D,
+            null,
+            null,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null);
+
     /// <summary>Adds text inside a local drawing rectangle and returns this drawing.</summary>
     public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
         return AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, OfficeTextOverflowBehavior.Ellipsis, null, allowOverflow: false);

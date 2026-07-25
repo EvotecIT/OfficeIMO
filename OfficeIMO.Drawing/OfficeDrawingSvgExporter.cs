@@ -451,7 +451,7 @@ public static partial class OfficeDrawingSvgExporter {
             AppendTextFrameGroupStart(sb, text);
         }
 
-        if (text.WrapText || text.ShrinkToFit || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
+        if (text.WrapText || text.ShrinkToFit || text.StackedText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
             AppendTextBlock(sb, text, useFrameTransform);
             if (useFrameTransform) {
                 sb.Append("</g>");

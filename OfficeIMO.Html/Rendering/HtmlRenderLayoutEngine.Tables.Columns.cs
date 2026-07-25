@@ -83,11 +83,45 @@ internal sealed partial class HtmlRenderLayoutEngine {
             preferred = Math.Max(preferred, authored);
         }
         foreach (IElement image in cell.QuerySelectorAll("img").Where(candidate => BelongsToTableCell(candidate, cell))) {
-            HtmlRenderBoxStyle imageStyle = _styleResolver.Resolve(image, containingWidth, style);
+            if (!TryResolveVisibleTableDescendantStyle(
+                    image,
+                    cell,
+                    style,
+                    containingWidth,
+                    out HtmlRenderBoxStyle imageStyle)) {
+                continue;
+            }
+
             double imageWidth = ResolveReplacedImageBoxWidth(image, imageStyle) + imageStyle.MarginLeft + imageStyle.MarginRight + insets;
             minimum = Math.Max(minimum, imageWidth);
             preferred = Math.Max(preferred, imageWidth);
         }
+    }
+
+    private bool TryResolveVisibleTableDescendantStyle(
+        IElement element,
+        IElement cell,
+        HtmlRenderBoxStyle cellStyle,
+        double containingWidth,
+        out HtmlRenderBoxStyle elementStyle) {
+        var ancestors = new Stack<IElement>();
+        for (IElement? current = element.ParentElement;
+             current != null && !ReferenceEquals(current, cell);
+             current = current.ParentElement) {
+            ancestors.Push(current);
+        }
+
+        HtmlRenderBoxStyle parentStyle = cellStyle;
+        while (ancestors.Count > 0) {
+            parentStyle = _styleResolver.Resolve(ancestors.Pop(), containingWidth, parentStyle);
+            if (string.Equals(parentStyle.Display, "none", StringComparison.OrdinalIgnoreCase)) {
+                elementStyle = parentStyle;
+                return false;
+            }
+        }
+
+        elementStyle = _styleResolver.Resolve(element, containingWidth, parentStyle);
+        return !string.Equals(elementStyle.Display, "none", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool BelongsToTableCell(IElement element, IElement cell) {

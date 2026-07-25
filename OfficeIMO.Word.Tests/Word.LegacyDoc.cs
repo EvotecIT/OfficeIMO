@@ -1370,10 +1370,7 @@ namespace OfficeIMO.Tests {
 
             Assert.NotEmpty(docPaths);
 
-            bool updateBaselines = string.Equals(
-                Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES"),
-                "1",
-                StringComparison.Ordinal);
+            bool updateBaselines = IsLegacyDocCorpusBaselineUpdateRequested();
             var missingBaselines = new List<string>();
             foreach (string docPath in docPaths) {
                 using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(docPath);

@@ -38,10 +38,10 @@ public readonly struct OfficeImageSourceCrop {
     public bool HasVisibleSourceArea => LeavesVisibleSourceArea(Left, Top, Right, Bottom);
 
     /// <summary>Visible width ratio after applying left and right crop fractions.</summary>
-    public double VisibleWidth => Math.Max(MinimumVisibleRatio, 1D - Left - Right);
+    public double VisibleWidth => Left + Right < 1D ? 1D - Left - Right : MinimumVisibleRatio;
 
     /// <summary>Visible height ratio after applying top and bottom crop fractions.</summary>
-    public double VisibleHeight => Math.Max(MinimumVisibleRatio, 1D - Top - Bottom);
+    public double VisibleHeight => Top + Bottom < 1D ? 1D - Top - Bottom : MinimumVisibleRatio;
 
     /// <summary>
     /// Creates a source crop after clamping each input fraction into the supported normalized range.
