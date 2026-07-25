@@ -92,12 +92,14 @@ jobs:
 
   visio-desktop-showcase:
     name: Generate desktop Visio preview bundle
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_desktop_preview }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_desktop_preview && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: [self-hosted, Windows, Visio]
     timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

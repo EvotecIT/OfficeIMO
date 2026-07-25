@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double horizontalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX;
         double verticalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingY;
         double trackWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * (columnCount + 1));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style);
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style, depth);
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
         var occupiedColumns = new int[columnCount];

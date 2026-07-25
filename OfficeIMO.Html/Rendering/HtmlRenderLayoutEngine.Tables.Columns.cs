@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<IElement> rows, IElement table, int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle) {
+    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<IElement> rows, IElement table, int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth) {
         if (tableStyle.TableLayout == "fixed") {
             var fixedWidths = new double[columnCount];
             ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, fixedWidths, fixedWidths);
@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, tableStyle);
-                ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, out double minimum, out double maximum);
+                ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth, out double minimum, out double maximum);
                 ApplySpanningWidth(minimums, column, span, minimum);
                 ApplySpanningWidth(preferred, column, span, maximum);
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
@@ -70,7 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, out double minimum, out double preferred) {
+    private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
         string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style.TextTransform);
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
@@ -88,6 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     cell,
                     style,
                     containingWidth,
+                    depth,
                     out HtmlRenderBoxStyle imageStyle)) {
                 continue;
             }
@@ -103,23 +104,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement cell,
         HtmlRenderBoxStyle cellStyle,
         double containingWidth,
+        int depth,
         out HtmlRenderBoxStyle elementStyle) {
         var ancestors = new Stack<IElement>();
         for (IElement? current = element.ParentElement;
              current != null && !ReferenceEquals(current, cell);
              current = current.ParentElement) {
+            CheckCancellation();
+            EnsureDepth(depth + ancestors.Count + 2, element);
+            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(current));
             ancestors.Push(current);
         }
 
         HtmlRenderBoxStyle parentStyle = cellStyle;
         while (ancestors.Count > 0) {
-            parentStyle = _styleResolver.Resolve(ancestors.Pop(), containingWidth, parentStyle);
+            CheckCancellation();
+            IElement ancestor = ancestors.Pop();
+            parentStyle = _styleResolver.Resolve(ancestor, containingWidth, parentStyle);
             if (string.Equals(parentStyle.Display, "none", StringComparison.OrdinalIgnoreCase)) {
                 elementStyle = parentStyle;
                 return false;
             }
         }
 
+        CheckCancellation();
+        EnsureDepth(depth + 1, element);
+        ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
         elementStyle = _styleResolver.Resolve(element, containingWidth, parentStyle);
         return !string.Equals(elementStyle.Display, "none", StringComparison.OrdinalIgnoreCase);
     }
