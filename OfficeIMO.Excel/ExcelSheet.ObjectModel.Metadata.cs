@@ -159,6 +159,12 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                changed |= RemapShiftedSortStateReferences(
+                    table,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow);
+
                 if (changed) {
                     table.Save();
                 }
@@ -195,6 +201,9 @@ namespace OfficeIMO.Excel {
                     dimension.Reference = remappedDimensionReferences[0];
                 }
             }
+
+            RemapShiftedProtectedRanges(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
             if (rowBreaks == null) {
@@ -479,17 +488,43 @@ namespace OfficeIMO.Excel {
             uint count = 0;
             foreach (var validation in validations.Elements<DataValidation>().ToList()) {
                 if (validation.SequenceOfReferences?.InnerText is not string references
-                    || !TryRemapShiftedReferenceListRows(references, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    || !TryGetReferenceListAnchorRow(references, out int oldAnchorRow)) {
                     count++;
                     continue;
                 }
 
-                if (remapped.Count == 0) {
-                    validation.Remove();
-                    continue;
+                string updatedReferences = references;
+                if (TryRemapShiftedReferenceListRows(
+                    references,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remapped)) {
+                    if (remapped.Count == 0) {
+                        validation.Remove();
+                        continue;
+                    }
+
+                    updatedReferences = string.Join(" ", remapped);
+                    validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = updatedReferences };
                 }
 
-                validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remapped) };
+                if (TryGetReferenceListAnchorRow(updatedReferences, out int newAnchorRow)) {
+                    int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                    RewriteAnchoredFormulaText(
+                        validation.Formula1,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        anchorRowDelta);
+                    RewriteAnchoredFormulaText(
+                        validation.Formula2,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        anchorRowDelta);
+                }
+
                 count++;
             }
 
@@ -499,16 +534,39 @@ namespace OfficeIMO.Excel {
         private void RemapShiftedConditionalFormatting(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
             foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
                 if (conditional.SequenceOfReferences?.InnerText is not string references
-                    || !TryRemapShiftedReferenceListRows(references, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    || !TryGetReferenceListAnchorRow(references, out int oldAnchorRow)) {
                     continue;
                 }
 
-                if (remapped.Count == 0) {
-                    conditional.Remove();
+                string updatedReferences = references;
+                if (TryRemapShiftedReferenceListRows(
+                    references,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remapped)) {
+                    if (remapped.Count == 0) {
+                        conditional.Remove();
+                        continue;
+                    }
+
+                    updatedReferences = string.Join(" ", remapped);
+                    conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = updatedReferences };
+                }
+
+                if (!TryGetReferenceListAnchorRow(updatedReferences, out int newAnchorRow)) {
                     continue;
                 }
 
-                conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remapped) };
+                int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                foreach (Formula formula in conditional.Descendants<Formula>()) {
+                    RewriteAnchoredFormulaText(
+                        formula,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        anchorRowDelta);
+                }
             }
         }
 

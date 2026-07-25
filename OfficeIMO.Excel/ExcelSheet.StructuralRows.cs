@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
                         $"Cannot delete the header row of table '{tableName}'. Remove or resize the table first.");
                 }
 
-                bool hasTotalsRow = table.TotalsRowShown?.Value == true;
+                bool hasTotalsRow = HasActiveTotalsRow(table);
                 if (hasTotalsRow && tableLastRow >= firstDeletedRow && tableLastRow <= lastDeletedRow) {
                     throw new InvalidOperationException(
                         $"Cannot delete the totals row of table '{tableName}'. Disable totals or resize the table first.");
@@ -437,12 +437,12 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int count,
             bool rewriteUnqualifiedReferences) {
-            if (string.IsNullOrEmpty(formula)) {
+            if (formula is not string formulaText || formulaText.Length == 0) {
                 return;
             }
 
             bool overflow = false;
-            RewriteFormulaReferencesOutsideStrings(formula, segment => {
+            RewriteFormulaReferencesOutsideStrings(formulaText, segment => {
                 ReplaceFormulaRanges(segment, match => {
                     if (CanRewriteFormulaRangeQualifier(match, Name, rewriteUnqualifiedReferences)
                         && int.TryParse(match.Groups["startRow"].Value, out int first)
@@ -487,6 +487,9 @@ namespace OfficeIMO.Excel {
 
         private static void ValidateReferenceAttributesDoNotOverflow(OpenXmlElement root, int firstRow, int count) {
             foreach (OpenXmlElement element in root.Descendants().Prepend(root)) {
+                if (element is SheetDimension) {
+                    continue;
+                }
                 foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
                     if (!string.Equals(attribute.LocalName, "ref", StringComparison.OrdinalIgnoreCase)
                         && !string.Equals(attribute.LocalName, "sqref", StringComparison.OrdinalIgnoreCase)) {
@@ -499,11 +502,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateReferenceListDoesNotOverflow(string? referenceList, int firstRow, int count) {
-            if (string.IsNullOrWhiteSpace(referenceList)) {
+            if (referenceList is not string references || string.IsNullOrWhiteSpace(references)) {
                 return;
             }
 
-            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+            foreach (ReferenceListPart part in SplitReferenceList(references)) {
                 if (TryParseReference(part, out var bounds)
                     && bounds.r2 >= firstRow
                     && (long)bounds.r2 + count > A1.MaxRows) {

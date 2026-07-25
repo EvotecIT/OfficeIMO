@@ -66,36 +66,56 @@ namespace OfficeIMO.Excel {
                             changed = true;
                         }
                     }
+
+                    if (isMutatedSheet && formula.FormulaType?.Value == CellFormulaValues.DataTable) {
+                        changed |= RemapDataTableInputReference(
+                            formula,
+                            firstInput: true,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow);
+                        changed |= RemapDataTableInputReference(
+                            formula,
+                            firstInput: false,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow);
+                    }
                 }
 
                 foreach (DataValidation validation in worksheetPart.Worksheet.Descendants<DataValidation>()) {
-                    changed |= RewriteStructuralFormulaText(
-                        validation.Formula1,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        isMutatedSheet);
-                    changed |= RewriteStructuralFormulaText(
-                        validation.Formula2,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        isMutatedSheet);
-                }
-
-                foreach (ConditionalFormattingRule rule in worksheetPart.Worksheet.Descendants<ConditionalFormattingRule>()) {
-                    foreach (Formula formula in rule.Elements<Formula>()) {
+                    if (!isMutatedSheet) {
                         changed |= RewriteStructuralFormulaText(
-                            formula,
+                            validation.Formula1,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            isMutatedSheet);
+                            rewriteUnqualifiedReferences: false);
+                        changed |= RewriteStructuralFormulaText(
+                            validation.Formula2,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            rewriteUnqualifiedReferences: false);
+                    }
+                }
+
+                if (!isMutatedSheet) {
+                    foreach (ConditionalFormattingRule rule in worksheetPart.Worksheet.Descendants<ConditionalFormattingRule>()) {
+                        foreach (Formula formula in rule.Elements<Formula>()) {
+                            changed |= RewriteStructuralFormulaText(
+                                formula,
+                                firstAffectedRow,
+                                rowDelta,
+                                lastDeletedRow,
+                                rewriteUnqualifiedReferences: false);
+                        }
                     }
                 }
 
                 foreach (Hyperlink hyperlink in worksheetPart.Worksheet.Descendants<Hyperlink>()) {
-                    if (string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
+                    if (!string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
+                        || string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
                         continue;
                     }
 
@@ -195,6 +215,42 @@ namespace OfficeIMO.Excel {
             RewriteChartsheetAndExtendedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow);
         }
 
+        private static bool RemapDataTableInputReference(
+            CellFormula formula,
+            bool firstInput,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            StringValue? input = firstInput ? formula.R1 : formula.R2;
+            if (input?.Value is not string inputReference
+                || !TryRemapShiftedReferenceListRows(
+                    inputReference,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out List<string> remapped)) {
+                return false;
+            }
+
+            if (remapped.Count == 0) {
+                if (firstInput) {
+                    formula.R1 = null;
+                    formula.Input1Deleted = true;
+                } else {
+                    formula.R2 = null;
+                    formula.Input2Deleted = true;
+                }
+            } else if (firstInput) {
+                formula.R1 = remapped[0];
+                formula.Input1Deleted = null;
+            } else {
+                formula.R2 = remapped[0];
+                formula.Input2Deleted = null;
+            }
+
+            return true;
+        }
+
         private void RewriteChartsheetAndExtendedChartReferences(
             int firstAffectedRow,
             int rowDelta,
@@ -268,8 +324,7 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow,
             bool rewriteUnqualifiedReferences) {
-            string? text = formula?.Text;
-            if (string.IsNullOrEmpty(text)) {
+            if (formula?.Text is not string text || text.Length == 0) {
                 return false;
             }
 
@@ -291,7 +346,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            formula!.Text = rewritten;
+            formula.Text = rewritten;
             return true;
         }
     }
