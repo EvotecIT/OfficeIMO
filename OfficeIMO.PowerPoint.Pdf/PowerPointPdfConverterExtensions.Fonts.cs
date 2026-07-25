@@ -287,18 +287,16 @@ public static partial class PowerPointPdfConverterExtensions {
                     trimmedFamilyName,
                     out PdfCore.PdfFontFamilySubstitution? substitution) &&
                 substitution != null) {
-                if (reportSubstitution) {
-                    options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
-                        "OfficeIMO.PowerPoint.Pdf",
-                        "font-family-substitution",
-                        "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        trimmedFamilyName,
-                        fallbackSlot: null,
-                        resolvedFontFamily: substitution.TargetFontFamily,
-                        additionalDetails: new Dictionary<string, string> {
-                            ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                        }));
-                }
+                options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    "font-family-substitution",
+                    "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    trimmedFamilyName,
+                    fallbackSlot: null,
+                    resolvedFontFamily: substitution.TargetFontFamily,
+                    additionalDetails: new Dictionary<string, string> {
+                        ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    }));
                 return;
             }
 

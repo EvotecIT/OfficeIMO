@@ -45,7 +45,15 @@ namespace OfficeIMO.Word.Pdf {
                     allowDocumentFontEmbedding,
                     nativeFontMap);
             }
-            if (hasConfiguredPdfOptions && !appliedNativeDefaultFont) {
+            bool hasResolvedDocumentDefaultSubstitution =
+                !string.IsNullOrWhiteSpace(defaults.FontFamily) &&
+                pdfOptions.TryResolveFontFamilySubstitution(
+                    defaults.FontFamily,
+                    out PdfCore.PdfFontFamilySubstitution? documentDefaultSubstitution) &&
+                documentDefaultSubstitution != null;
+            if (hasConfiguredPdfOptions &&
+                !appliedNativeDefaultFont &&
+                !hasResolvedDocumentDefaultSubstitution) {
                 nativeFontMap.PreferPdfDefaultForDocumentDefaultFont();
             }
 
