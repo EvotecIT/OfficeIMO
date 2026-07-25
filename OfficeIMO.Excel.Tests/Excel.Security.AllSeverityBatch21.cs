@@ -16,7 +16,7 @@ public class ExcelAllSeverityBatch21Tests {
             "Budget &&14 Report",
             1,
             1,
-            DateTime.UnixEpoch,
+            new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             false,
             null
         };
@@ -60,8 +60,8 @@ public class ExcelAllSeverityBatch21Tests {
         sheet.CellValues(Enumerable.Range(1, 160)
             .Select(row => (row, 1, (object)("value-" + row))));
         typeof(ExcelDocument)
-            .GetField("_requiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(document, true);
+            .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(document, null);
 
         using MemoryStream output = new();
         document.Save(output);

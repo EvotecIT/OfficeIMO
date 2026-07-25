@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void TableBlock_RenderMarkdown_PreservesExistingParenthesisEscapes() {
+        public void TableBlock_RenderMarkdown_PreservesLiteralBackslashesBeforeParentheses() {
             var table = new TableBlock();
             table.Headers.Add("Header");
 
@@ -75,10 +75,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             const string expected = "| Header |\n" +
                                     "| --- |\n" +
-                                    @"| Test A \(stacked bar\) |";
+                                    @"| Test A \\\(stacked bar\\\) |";
 
             Assert.Equal(expected, markdown);
-            Assert.Equal("Test A (stacked bar)", ExtractPlainText(parsedTable.RowInlines[0][0]));
+            Assert.Equal(@"Test A \(stacked bar\)", ExtractPlainText(parsedTable.RowInlines[0][0]));
         }
 
         [Fact]

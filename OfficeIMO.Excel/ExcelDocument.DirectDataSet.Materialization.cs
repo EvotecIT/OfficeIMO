@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel {
 
             if (_pendingDirectCellValueSheet == null) {
                 _pendingDirectCellValueSheet = sheet;
+                _pendingDirectCellValueRequiresSavePreflight = false;
                 return true;
             }
 
@@ -96,6 +97,7 @@ namespace OfficeIMO.Excel {
         internal void ClearPendingDirectCellValueSheet(ExcelSheet sheet) {
             if (ReferenceEquals(_pendingDirectCellValueSheet, sheet)) {
                 _pendingDirectCellValueSheet = null;
+                _pendingDirectCellValueRequiresSavePreflight = false;
             }
         }
 

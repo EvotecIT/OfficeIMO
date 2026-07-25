@@ -88,9 +88,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool requiredSavePreflightBeforePromotion = _requiresSavePreflight;
+            bool pendingWritesRequireSavePreflight = _pendingDirectCellValueRequiresSavePreflight;
             PromotePendingDirectCellValueSheetIfPossible();
-            _requiresSavePreflight |= requiredSavePreflightBeforePromotion;
+            _requiresSavePreflight |= pendingWritesRequireSavePreflight;
 
             if (_requiresSavePreflight) {
                 skipReason = "Save preflight is pending.";
