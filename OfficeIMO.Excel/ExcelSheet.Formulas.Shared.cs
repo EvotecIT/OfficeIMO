@@ -104,6 +104,79 @@ namespace OfficeIMO.Excel {
             return formulas;
         }
 
+        private IReadOnlyList<string> ResolveSharedFormulaTextsForStructuralValidation() {
+            IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions = BuildSharedFormulaDefinitions();
+            if (definitions.Count == 0) {
+                return Array.Empty<string>();
+            }
+
+            var resolved = new List<string>();
+            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()
+                .Where(candidate => candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
+                    && candidate.CellFormula.SharedIndex?.Value != null)) {
+                string text = ResolveCellFormulaText(cell, definitions);
+                if (string.IsNullOrWhiteSpace(text)) {
+                    throw new InvalidOperationException(
+                        $"Cannot edit rows because shared formula group {cell.CellFormula!.SharedIndex!.Value} cannot be validated safely.");
+                }
+                resolved.Add(text);
+            }
+            return resolved;
+        }
+
+        private void MaterializeWorkbookSharedFormulasForStructuralEdit() {
+            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (sheetElement.Id?.Value is not string relationshipId
+                    || WorkbookPartRoot.GetPartById(relationshipId) is not DocumentFormat.OpenXml.Packaging.WorksheetPart worksheetPart) {
+                    continue;
+                }
+
+                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
+                    ? this
+                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                sheet.MaterializeSharedFormulasForStructuralEdit();
+            }
+        }
+
+        private void MaterializeSharedFormulasForStructuralEdit() {
+            IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions = BuildSharedFormulaDefinitions();
+            if (definitions.Count == 0) {
+                return;
+            }
+
+            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
+                .Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
+                    && cell.CellFormula.SharedIndex?.Value != null)
+                .ToList();
+            if (sharedCells.Count == 0) {
+                return;
+            }
+
+            var resolved = new List<(CellFormula Formula, string Text)>();
+            foreach (Cell cell in sharedCells) {
+                CellFormula formula = cell.CellFormula!;
+                if (formula.SharedIndex?.Value is not uint sharedIndex) {
+                    continue;
+                }
+
+                string text = ResolveCellFormulaText(cell, definitions);
+                if (string.IsNullOrWhiteSpace(text)) {
+                    throw new InvalidOperationException(
+                        $"Cannot edit rows because shared formula group {sharedIndex} cannot be materialized safely.");
+                }
+
+                resolved.Add((formula, text));
+            }
+
+            foreach ((CellFormula formula, string text) in resolved) {
+                formula.Text = text;
+                formula.FormulaType = null;
+                formula.SharedIndex = null;
+                formula.Reference = null;
+                formula.CalculateCell = true;
+            }
+        }
+
         private static bool ContainsSharedFormulaCell(SharedFormulaDefinition definition, int row, int column) {
             if (string.IsNullOrWhiteSpace(definition.Reference)) {
                 return true;
