@@ -282,7 +282,7 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        BrowserConversionArtifact safe = _service.CreateSupportBundle(document, result);
+        BrowserConversionArtifact safe = _service.CreateSupportBundle(result);
         using var safeStream = new MemoryStream(safe.Bytes);
         using var safeArchive = new ZipArchive(safeStream, ZipArchiveMode.Read);
         Assert.Equal(["README.txt", "support-summary.json"], safeArchive.Entries.Select(static entry => entry.FullName).ToArray());
@@ -290,13 +290,36 @@ public sealed class BrowserConversionServiceTests {
         Assert.DoesNotContain("Private customer content marker", Encoding.UTF8.GetString(safe.Bytes), StringComparison.Ordinal);
 
         BrowserConversionArtifact explicitContent = _service.CreateSupportBundle(
-            document,
             result,
             includeDocumentContent: true);
         using var contentStream = new MemoryStream(explicitContent.Bytes);
         using var contentArchive = new ZipArchive(contentStream, ZipArchiveMode.Read);
         Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/source.docx");
         Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/result.pdf");
+    }
+
+    [Fact]
+    public void SupportBundle_UsesTheExactTextSnapshotBoundToTheConversionResult() {
+        const string original = "<html lang='en'><body><p>Original snapshot marker</p></body></html>";
+        string editor = original;
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            editor);
+        editor = "<html lang='en'><body><p>Edited after conversion</p></body></html>";
+
+        BrowserConversionArtifact bundle = _service.CreateSupportBundle(
+            result,
+            includeDocumentContent: true);
+        using var stream = new MemoryStream(bundle.Bytes);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        ZipArchiveEntry source = Assert.Single(
+            archive.Entries,
+            static entry => entry.FullName == "content/source.html");
+        using var reader = new StreamReader(source.Open(), Encoding.UTF8);
+        string bundledSource = reader.ReadToEnd();
+
+        Assert.Equal(original, bundledSource);
+        Assert.DoesNotContain(editor, bundledSource, StringComparison.Ordinal);
     }
 
     [Fact]

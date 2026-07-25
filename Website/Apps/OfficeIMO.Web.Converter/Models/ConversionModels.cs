@@ -60,4 +60,5 @@ public sealed record ConversionResult(
     public int? PageCount { get; init; }
     public long ConversionMilliseconds { get; init; }
     public BrowserPdfProfile? Profile { get; init; }
+    public SelectedDocument? SourceSnapshot { get; init; }
 }

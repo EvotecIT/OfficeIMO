@@ -96,10 +96,13 @@ public sealed class BrowserConversionService {
     }
 
     public BrowserConversionArtifact CreateSupportBundle(
-        SelectedDocument source,
         ConversionResult result,
-        bool includeDocumentContent = false) =>
-        BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
+        bool includeDocumentContent = false) {
+        ArgumentNullException.ThrowIfNull(result);
+        SelectedDocument source = result.SourceSnapshot
+            ?? throw new InvalidOperationException("The conversion result does not retain a source snapshot.");
+        return BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
+    }
 
     private static PdfConversionPayload ConvertWordToPdf(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
@@ -214,9 +217,18 @@ public sealed class BrowserConversionService {
                 payload.Serialization.PeakRetainedObjectBytes),
             PageCount = payload.Serialization.PageCount,
             ConversionMilliseconds = conversionMilliseconds,
-            Profile = profile
+            Profile = profile,
+            SourceSnapshot = Snapshot(file)
         };
     }
+
+    private static SelectedDocument Snapshot(SelectedDocument source) =>
+        new(
+            source.Name,
+            source.Extension,
+            source.FormatLabel,
+            source.Size,
+            (byte[])source.Bytes.Clone());
 
     private static (byte[] Bytes, PdfSerializationReport Serialization) SaveWithEvidence(
         PdfDocumentConversionResult conversion) {

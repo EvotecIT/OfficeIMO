@@ -68,7 +68,10 @@ public sealed class HtmlRenderMetadata {
 
     private static string? ResolveLanguage(AngleSharp.Html.Dom.IHtmlDocument document) {
         AngleSharp.Dom.IElement? root = document.DocumentElement;
-        return root?.GetAttribute("lang") ?? root?.GetAttribute("xml:lang");
+        string? language = root?.GetAttribute("lang");
+        return string.IsNullOrWhiteSpace(language)
+            ? root?.GetAttribute("xml:lang")
+            : language;
     }
 
     private static string? First(IReadOnlyDictionary<string, string> values, params string[] names) {

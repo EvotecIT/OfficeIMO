@@ -161,6 +161,10 @@ public static partial class HtmlComputedStyleEngine {
                 environment.Features.ReducedMotion == HtmlReducedMotionPreference.Reduce ? "reduce" : "no-preference",
                 StringComparison.Ordinal);
         }
+        if (feature == "pointer") return environment.Features.Pointer != HtmlPointerCapability.None;
+        if (feature == "any-pointer") return environment.Features.AnyPointer != HtmlPointerCapability.None;
+        if (feature == "hover") return environment.Features.Hover != HtmlHoverCapability.None;
+        if (feature == "any-hover") return environment.Features.AnyHover != HtmlHoverCapability.None;
         if (TryReadMediaFeatureValue(feature, "pointer", out string pointer)) {
             return string.Equals(pointer, PointerValue(environment.Features.Pointer), StringComparison.Ordinal);
         }

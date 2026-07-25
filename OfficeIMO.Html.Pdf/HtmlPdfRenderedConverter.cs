@@ -100,7 +100,11 @@ internal static partial class HtmlPdfRenderedConverter {
                 subject: rendered.Metadata.Subject,
                 keywords: rendered.Metadata.Keywords);
         }
-        if (rendered.Metadata.Language != null) pdf.Language(rendered.Metadata.Language);
+        if ((string.IsNullOrWhiteSpace(documentOptions.Language)
+             || string.Equals(documentOptions.Language, "und", StringComparison.OrdinalIgnoreCase))
+            && rendered.Metadata.Language != null) {
+            pdf.Language(rendered.Metadata.Language);
+        }
         if (rendered.Metadata.Title != null || rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) {
             pdf.ViewerPreferences(preferences => {
                 if (rendered.Metadata.Title != null) preferences.DisplayDocTitle = true;
@@ -121,13 +125,11 @@ internal static partial class HtmlPdfRenderedConverter {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(
+        RegisteredWebFonts webFonts = RegisterWebFonts(
             pdf,
             rendered,
-            diagnostics,
-            reservedFontSlots,
             cancellationToken);
-        foreach (PdfCore.PdfStandardFont slot in webFonts.Values) {
+        foreach (PdfCore.PdfStandardFont slot in webFonts.Slots.Values) {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
@@ -163,7 +165,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, CancellationToken cancellationToken) {
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, page.Width, page.Height, cancellationToken);
@@ -173,7 +175,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddVisual(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderVisual visual,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
         CancellationToken cancellationToken,
@@ -202,7 +204,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
         canvas.ActualText(group.Text, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -211,7 +213,7 @@ internal static partial class HtmlPdfRenderedConverter {
         });
     }
 
-    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
         if (!group.Visuals.Any(ContainsPaintableVisual)) return;
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
@@ -276,7 +278,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddEffectGroup(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderEffectGroup group,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
         CancellationToken cancellationToken,
@@ -300,7 +302,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddClipGroup(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderClipGroup group,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
         CancellationToken cancellationToken,
@@ -326,7 +328,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddPathClipGroup(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderPathClipGroup group,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         double surfaceWidth,
         double surfaceHeight,
         CancellationToken cancellationToken,
@@ -360,7 +362,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddText(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderText visual,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         double surfaceWidth,
         bool asSpan) {
         if (visual.Text.Length == 0) return;
@@ -436,7 +438,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddDrawing(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderDrawing visual,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        RegisteredWebFonts webFonts,
         CancellationToken cancellationToken) {
         OfficeDrawing source = visual.Drawing;
         double scaleX = visual.Width / source.Width;
@@ -498,25 +500,31 @@ internal static partial class HtmlPdfRenderedConverter {
                     });
                     continue;
                 }
-            if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
+                if (element is not OfficeDrawingText text || string.IsNullOrWhiteSpace(text.Text)) continue;
                 FlushShapes();
                 double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;
                 double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY * PointsPerCssPixel;
                 PdfCore.PdfColor? color = text.Color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(text.Color.Value) : null;
-                var run = new PdfCore.TextRun(
+                IReadOnlyList<OfficeFontFallbackRun> plannedRuns = webFonts.Faces.PlanFallbackRuns(
                     text.Text,
-                    bold: text.Font.IsBold,
-                    underline: text.Font.IsUnderline,
-                    color: color,
-                    italic: text.Font.IsItalic,
-                    strike: text.Font.IsStrikethrough,
-                    fontSize: fontSize,
-                    font: MapFont(text.Font.FamilyName, webFonts),
-                    linkUri: visual.LinkUri,
-                    linkContents: visual.LinkUri == null ? null : text.Text,
-                    fontFamily: text.Font.FamilyName);
+                    text.Font.FamilyName,
+                    text.Font.Style);
+                IReadOnlyList<PdfCore.TextRun> runs = plannedRuns.Select(run =>
+                    new PdfCore.TextRun(
+                        run.Text,
+                        bold: text.Font.IsBold,
+                        underline: text.Font.IsUnderline,
+                        color: color,
+                        italic: text.Font.IsItalic,
+                        strike: text.Font.IsStrikethrough,
+                        fontSize: fontSize,
+                        font: MapFont(run.FamilyName, webFonts),
+                        linkUri: visual.LinkUri,
+                        linkContents: visual.LinkUri == null ? null : run.Text,
+                        fontFamily: run.FamilyName))
+                    .ToList();
                 target.Text(
-                    new[] { run },
+                    runs,
                     (visual.X + text.X * scaleX) * PointsPerCssPixel,
                     (visual.Y + text.Y * scaleY) * PointsPerCssPixel,
                     text.Width * scaleX * PointsPerCssPixel,

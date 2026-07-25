@@ -80,7 +80,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         }
     }
     private bool CanConvert => !IsBusy && (ActiveRoute.InputKind == ConversionInputKind.File ? SelectedFile is not null : !string.IsNullOrWhiteSpace(TextInput));
-    private SelectedDocument? CurrentSource => SelectedFile ?? (ActiveRoute.Id == "html-pdf" ? CreateTextSource() : null);
     private string OutputHeading => Output?.FileName ?? $"{ActiveRoute.Target} output";
     private string ElapsedLabel => ElapsedMilliseconds < 1000 ? $"{ElapsedMilliseconds} ms" : $"{ElapsedMilliseconds / 1000d:0.0} s";
 
@@ -212,8 +211,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
         route.Id is "html-markdown" or "html-pdf";
 
     private async Task PrepareSupportBundleAsync() {
-        SelectedDocument? source = CurrentSource;
-        if (_interop is null || source is null || Output is null) {
+        if (_interop is null || Output is null) {
             return;
         }
 
@@ -221,7 +219,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
             await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
         }
         BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(
-            source,
             Output,
             IncludeDocumentContentInSupportBundle);
         OutputSupportFileName = supportBundle.FileName;
@@ -234,11 +231,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
                 ? "The bundle includes source and PDF bytes because you opted in."
                 : "The bundle contains fingerprints and diagnostics only; document content is excluded.",
             "ocx-dot--good"));
-    }
-
-    private SelectedDocument CreateTextSource() {
-        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(TextInput);
-        return new SelectedDocument("officeimo-html.html", ".html", "HTML", bytes.LongLength, bytes);
     }
 
     private async Task InvalidateSupportBundleAsync() {

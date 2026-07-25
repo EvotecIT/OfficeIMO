@@ -10,9 +10,9 @@ namespace OfficeIMO.Html.Pdf;
 internal static partial class HtmlPdfRenderedConverter {
     private static PdfCore.PdfStandardFont MapFont(
         string familyName,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+        RegisteredWebFonts webFonts) {
         foreach (string candidate in EnumerateFamilies(familyName)) {
-            if (webFonts.TryGetValue(candidate, out PdfCore.PdfStandardFont embedded)) {
+            if (webFonts.Slots.TryGetValue(candidate, out PdfCore.PdfStandardFont embedded)) {
                 return embedded;
             }
         }
@@ -26,11 +26,9 @@ internal static partial class HtmlPdfRenderedConverter {
             : PdfCore.PdfStandardFont.Helvetica;
     }
 
-    private static IReadOnlyDictionary<string, PdfCore.PdfStandardFont> RegisterWebFonts(
+    private static RegisteredWebFonts RegisterWebFonts(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
-        HtmlDiagnosticReport? diagnostics,
-        ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontFaceCollection faces = rendered.Fonts;
@@ -38,11 +36,13 @@ internal static partial class HtmlPdfRenderedConverter {
             .GroupBy(face => face.ResourceFamilyName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
         var mappings = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
-        if (byFamily.Count == 0) return mappings;
+        if (byFamily.Count == 0) return new RegisteredWebFonts(mappings, faces);
 
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
+        foreach (string familyNames in EnumerateUsedWebFontFamilyLists(
+                     rendered.Pages.SelectMany(page => page.Visuals),
+                     faces)) {
             cancellationToken.ThrowIfCancellationRequested();
             foreach (string family in EnumerateFamilies(familyNames)) {
                 if (byFamily.ContainsKey(family) && seen.Add(family)) orderedFamilies.Add(family);
@@ -55,7 +55,7 @@ internal static partial class HtmlPdfRenderedConverter {
             mappings[family] = MapStandardFont(family);
         }
 
-        return mappings;
+        return new RegisteredWebFonts(mappings, faces);
     }
 
     private static void ReserveUsedStandardFontSlots(
@@ -143,6 +143,43 @@ internal static partial class HtmlPdfRenderedConverter {
             } else if (visual is HtmlRenderDrawing drawing) {
                 foreach (string familyNames in EnumerateDrawingFontFamilyLists(drawing.Drawing.Elements)) {
                     yield return familyNames;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateUsedWebFontFamilyLists(
+        IEnumerable<HtmlRenderVisual> visuals,
+        OfficeFontFaceCollection faces) {
+        foreach (HtmlRenderVisual visual in EnumerateVisuals(visuals)) {
+            if (visual is HtmlRenderText text) {
+                yield return text.Font.FamilyName;
+            } else if (visual is HtmlRenderDrawing drawing) {
+                foreach (string familyName in EnumerateDrawingWebFontFamilies(drawing.Drawing.Elements, faces)) {
+                    yield return familyName;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDrawingWebFontFamilies(
+        IEnumerable<OfficeDrawingElement> elements,
+        OfficeFontFaceCollection faces) {
+        foreach (OfficeDrawingElement element in elements) {
+            if (element is OfficeDrawingText text) {
+                foreach (OfficeFontFallbackRun run in faces.PlanFallbackRuns(
+                             text.Text,
+                             text.Font.FamilyName,
+                             text.Font.Style)) {
+                    yield return run.FamilyName;
+                }
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                foreach (string familyName in EnumerateDrawingWebFontFamilies(effectGroup.Drawing.Elements, faces)) {
+                    yield return familyName;
+                }
+            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+                foreach (string familyName in EnumerateDrawingWebFontFamilies(tilingPattern.Tile.Elements, faces)) {
+                    yield return familyName;
                 }
             }
         }
@@ -244,5 +281,17 @@ internal static partial class HtmlPdfRenderedConverter {
             string family = raw.Trim().Trim('"', '\'');
             if (family.Length > 0) yield return family;
         }
+    }
+
+    private sealed class RegisteredWebFonts {
+        internal RegisteredWebFonts(
+            IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
+            OfficeFontFaceCollection faces) {
+            Slots = slots;
+            Faces = faces;
+        }
+
+        internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
+        internal OfficeFontFaceCollection Faces { get; }
     }
 }

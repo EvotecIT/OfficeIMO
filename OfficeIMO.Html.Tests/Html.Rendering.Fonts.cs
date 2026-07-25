@@ -295,6 +295,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_EmbedsUnicodeRangeFaceUsedBySvgText() {
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 24'><text x='2' y='17' font-family='ScopedSvg' font-size='12'>A</text></svg>";
+        string html = "<style>@font-face{font-family:ScopedSvg;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "');unicode-range:U+0020-0041}</style><img style='width:60px;height:24px' src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "' alt='scoped font sample'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+
+        HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Contains(drawing.InnerDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "A");
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByRepeatedSvgBackgroundText() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null

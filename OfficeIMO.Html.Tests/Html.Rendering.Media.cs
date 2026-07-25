@@ -88,6 +88,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_MediaFeaturesHonorBooleanPointerAndHoverQueries() {
+        var interactive = new HtmlRenderMediaFeatures {
+            Pointer = HtmlPointerCapability.Fine,
+            AnyPointer = HtmlPointerCapability.Coarse,
+            Hover = HtmlHoverCapability.Hover,
+            AnyHover = HtmlHoverCapability.Hover
+        };
+
+        Assert.True(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(pointer) and (any-pointer) and (hover) and (any-hover)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            interactive));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(pointer), (any-pointer), (hover), (any-hover)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            new HtmlRenderMediaFeatures()));
+    }
+
+    [Fact]
     public void HtmlRender_AdditionalStylesheetsParticipateInTheBoundedAuthorCascade() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 400D,

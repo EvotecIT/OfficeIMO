@@ -151,6 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var breakOffsets = new List<double>();
         var continuationVisuals = new List<HtmlRenderVisual>();
         var trailingVisuals = new List<HtmlRenderVisual>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double continuationHeight = 0D;
         double trailingStart = 0D;
         double trailingHeight = 0D;
@@ -199,6 +200,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
+                }
+                foreach (HtmlCssRunningStringAssignment assignment in cell.Inline.RunningStringAssignments) {
+                    runningStringAssignments.Add(assignment.Translate(textY));
                 }
                 AddBoxOutlinePaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 bool headerCell = string.Equals(cell.Element.TagName, "th", StringComparison.OrdinalIgnoreCase);
@@ -320,7 +324,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             continuationVisuals: semanticContinuationVisuals,
             continuationHeight: continuationHeight,
             continuationStartsAfter: headerStart + continuationHeight,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: runningStringAssignments);
     }
 
     private static bool BelongsToTable(IElement row, IElement table) {

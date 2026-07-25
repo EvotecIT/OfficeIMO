@@ -456,13 +456,20 @@ internal sealed class HtmlInlineRun {
 }
 
 internal sealed class HtmlInlineLayout {
-    internal HtmlInlineLayout(IEnumerable<HtmlRenderVisual> visuals, double height, IEnumerable<double>? breakOffsets = null) {
+    internal HtmlInlineLayout(
+        IEnumerable<HtmlRenderVisual> visuals,
+        double height,
+        IEnumerable<double>? breakOffsets = null,
+        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
+        RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
+            runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
+    internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
 }

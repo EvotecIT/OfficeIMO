@@ -102,7 +102,7 @@ public sealed class HtmlPdfToolTests {
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(
                 "Accessible tool outputProofExact artifact".Distinct().Select(static character => (int)character).ToArray()));
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes(
-            "<html lang='en-US'><head><title>Accessible tool output</title></head><body><h1>Proof</h1><p>Exact artifact</p></body></html>"));
+            "<html lang='fr'><head><title>Accessible tool output</title></head><body><h1>Proof</h1><p>Exact artifact</p></body></html>"));
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
@@ -120,6 +120,7 @@ public sealed class HtmlPdfToolTests {
 
             Assert.Equal(0, exitCode);
             byte[] artifact = output.ToArray();
+            Assert.Equal("en-US", OfficeIMO.Pdf.PdfReadDocument.Open(artifact).CatalogLanguage);
             OfficeIMO.Pdf.PdfComplianceProofReport proof = OfficeIMO.Pdf.PdfDocument.Open(artifact)
                 .AssessComplianceProof(OfficeIMO.Pdf.PdfComplianceProfile.PdfUa1);
             Assert.True(proof.HasArtifactEvidence);

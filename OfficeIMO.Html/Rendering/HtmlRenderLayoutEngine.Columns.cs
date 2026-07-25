@@ -93,7 +93,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY));
         return true;
     }
 
@@ -229,6 +230,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         long key = (long)Math.Round(value * 10000D, MidpointRounding.AwayFromZero);
         offsets.Add(key);
         candidates.Add(key);
+    }
+
+    private static IEnumerable<HtmlCssRunningStringAssignment> EnumerateMultiColumnRunningStringAssignments(
+        MultiColumnPlan plan,
+        double offsetY) {
+        foreach (MultiColumnFragment fragment in plan.Fragments) {
+            bool finalFragment = fragment.End >= fragment.Block.Height - 0.0001D;
+            foreach (HtmlCssRunningStringAssignment assignment in fragment.Block.RunningStringAssignments) {
+                if (assignment.Offset < fragment.Start - 0.0001D
+                    || assignment.Offset > fragment.End + 0.0001D
+                    || (!finalFragment && assignment.Offset >= fragment.End - 0.0001D)) {
+                    continue;
+                }
+                yield return assignment.Translate(offsetY + fragment.Y - fragment.Start);
+            }
+        }
     }
 
     private void EnsureMultiColumnLimit(int count) {

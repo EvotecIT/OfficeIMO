@@ -21,6 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var contentVisuals = new List<HtmlRenderVisual>();
         var contentBreakOffsets = new SortedSet<double>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
             MultiColumnSpanPartition partition = partitions[index];
@@ -42,6 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentHeight,
                 contentVisuals,
                 contentBreakOffsets,
+                runningStringAssignments,
                 out double partitionHeight);
             contentHeight += partitionHeight;
 
@@ -53,6 +55,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             foreach (double offset in spanner.BreakOffsets) {
                 contentBreakOffsets.Add(contentHeight + offset);
+            }
+            foreach (HtmlCssRunningStringAssignment assignment in spanner.RunningStringAssignments) {
+                runningStringAssignments.Add(assignment.Translate(contentHeight));
             }
             contentHeight += spanner.Height;
         }
@@ -97,7 +102,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: runningStringAssignments.Select(assignment => assignment.Translate(contentY)));
         return true;
     }
 
@@ -143,6 +149,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double offsetY,
         ICollection<HtmlRenderVisual> visuals,
         ISet<double> breakOffsets,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments,
         out double partitionHeight) {
         if (children.Count == 0) {
             partitionHeight = 0D;
@@ -165,6 +172,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (double offset in ResolveMultiColumnBreakOffsets(plan, 0D, partitionHeight)) {
             breakOffsets.Add(offsetY + offset);
+        }
+        foreach (HtmlCssRunningStringAssignment assignment in EnumerateMultiColumnRunningStringAssignments(plan, offsetY)) {
+            runningStringAssignments.Add(assignment);
         }
     }
 

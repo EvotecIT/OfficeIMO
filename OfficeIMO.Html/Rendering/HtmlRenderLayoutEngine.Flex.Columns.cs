@@ -123,7 +123,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: itemPaintLayers.SelectMany(layer =>
+                layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))));
         return true;
     }
 

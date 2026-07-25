@@ -76,6 +76,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Part IV: Maintenance", margin.Text);
     }
 
+    [Theory]
+    [InlineData("<div style='display:flex'><h2 style='string-set:section content()'>Flex section</h2></div>", "Flex section")]
+    [InlineData("<div style='display:grid;grid-template-columns:1fr'><h2 style='string-set:section content()'>Grid section</h2></div>", "Grid section")]
+    [InlineData("<div style='column-count:2'><h2 style='string-set:section content()'>Column section</h2><p>Body</p></div>", "Column section")]
+    [InlineData("<table><tr><td><h2 style='string-set:section content()'>Table section</h2></td></tr></table>", "Table section")]
+    public void HtmlRender_Paged_PropagatesRunningStringsThroughSpecializedContainers(
+        string body,
+        string expected) {
+        string html = "<style>@page{size:3in 2in;margin:24px;@top-center{content:string(section)}}h2{margin:0;font-size:12px;line-height:14px}</style>" + body;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == expected);
+    }
+
     [Fact]
     public void HtmlRender_Paged_OmitsRunningStringsBeyondTheConfiguredCharacterLimit() {
         const string html = """
