@@ -100,7 +100,10 @@ namespace OfficeIMO.PowerPoint {
                     if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
                         IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
-                            IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()))) {
+                            IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
+                            series.Elements<C.DataPoint>().Any(point =>
+                                IsBubble3DEnabled(
+                                    point.GetFirstChild<C.Bubble3D>())))) {
                         snapshot = null!;
                         return false;
                     }

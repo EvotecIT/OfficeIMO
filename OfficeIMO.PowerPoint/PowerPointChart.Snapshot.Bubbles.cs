@@ -17,9 +17,10 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<double>? categoryXValues = null;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
-                if (HasUnsupportedFill(element.GetFirstChild<C.ChartShapeProperties>()) ||
+                if (HasUnsupportedSeriesStyle(
+                        element.GetFirstChild<C.ChartShapeProperties>()) ||
                     element.Elements<C.DataPoint>().Any(point =>
-                        HasUnsupportedFill(
+                        HasUnsupportedPointStyle(
                             point.GetFirstChild<C.ChartShapeProperties>()))) {
                     return null;
                 }
@@ -74,6 +75,20 @@ namespace OfficeIMO.PowerPoint {
         private static bool HasUnsupportedFill(C.ChartShapeProperties? properties) =>
             properties?.ChildElements.Any(child =>
                 child is NoFill or GradientFill or PatternFill or BlipFill or GroupFill) == true;
+
+        private static bool HasUnsupportedSeriesStyle(
+            C.ChartShapeProperties? properties) =>
+            HasUnsupportedFill(properties) ||
+            HasUnsupportedOutlineFill(properties?.GetFirstChild<Outline>());
+
+        private static bool HasUnsupportedPointStyle(
+            C.ChartShapeProperties? properties) =>
+            HasUnsupportedFill(properties) ||
+            properties?.GetFirstChild<Outline>() != null;
+
+        private static bool HasUnsupportedOutlineFill(Outline? outline) =>
+            outline?.ChildElements.Any(child =>
+                child is GradientFill or PatternFill or BlipFill or GroupFill) == true;
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme) {

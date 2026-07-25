@@ -417,6 +417,15 @@ namespace OfficeIMO.Tests {
 
             nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = null;
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = false;
+            C.DataPoint point = nativeSeries.PrependChild(new C.DataPoint(
+                new C.Index { Val = 0U },
+                new C.Bubble3D()));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            point.GetFirstChild<C.Bubble3D>()!.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
@@ -460,6 +469,40 @@ namespace OfficeIMO.Tests {
                 point.GetFirstChild<C.ChartShapeProperties>()!;
             pointProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
             pointProperties.Append(new DocumentFormat.OpenXml.Drawing.PatternFill());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            pointProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.PatternFill>();
+            pointProperties.Append(new DocumentFormat.OpenXml.Drawing.Outline(
+                new DocumentFormat.OpenXml.Drawing.SolidFill(
+                    new DocumentFormat.OpenXml.Drawing.RgbColorModelHex {
+                        Val = "445566"
+                    })));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsUnsupportedSeriesOutlineFills() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties properties =
+                nativeSeries.GetFirstChild<C.ChartShapeProperties>() ??
+                nativeSeries.AppendChild(new C.ChartShapeProperties());
+            DocumentFormat.OpenXml.Drawing.Outline outline =
+                properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>() ??
+                properties.AppendChild(new DocumentFormat.OpenXml.Drawing.Outline());
+            outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+            outline.Append(new DocumentFormat.OpenXml.Drawing.GradientFill());
+
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
