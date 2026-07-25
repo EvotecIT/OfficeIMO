@@ -69,5 +69,26 @@ public class ExcelAllSeverityBatch21Tests {
         Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
     }
 
+    [Fact]
+    public void MaterializingPendingCellsClearsThePromotionOnlyPreflightMarker() {
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValues(Enumerable.Range(1, 160)
+            .Select(row => (row, 1, (object)("value-" + row))));
+        typeof(ExcelDocument)
+            .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(document, null);
+
+        Assert.True(sheet.TryGetCellText(1, 1, out string? value));
+
+        Assert.Equal("value-1", value);
+        Assert.False((bool)typeof(ExcelDocument)
+            .GetField("_pendingDirectCellValueRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(document)!);
+        Assert.True((bool)typeof(ExcelDocument)
+            .GetField("_requiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(document)!);
+    }
+
     private sealed record HeaderRow(string Value);
 }

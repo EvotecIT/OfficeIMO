@@ -108,6 +108,7 @@ namespace OfficeIMO.Excel {
             }
 
             _pendingDirectCellValueSheet = null;
+            _pendingDirectCellValueRequiresSavePreflight = false;
             sheet.MaterializePendingDirectCellValues();
             return sheet;
         }

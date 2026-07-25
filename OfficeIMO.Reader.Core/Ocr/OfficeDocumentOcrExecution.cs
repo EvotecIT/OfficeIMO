@@ -196,8 +196,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             using var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
-                providerCancellation.CancelAfter(options.CandidateTimeout);
-                // Isolate a provider's synchronous prefix so it cannot starve the timeout timer on a small thread pool.
+                // Isolate both the provider's synchronous prefix and timeout supervision from a small thread pool.
                 recognitionTask = Task.Factory.StartNew(
                         async () => await engine
                             .RecognizeAsync(request, providerCancellation.Token)
@@ -209,7 +208,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 OfficeOcrEngineResult result = await WaitWithTimeoutAsync(
                     recognitionTask,
                     options.CandidateTimeout,
-                    cancellationToken).ConfigureAwait(false);
+                    cancellationToken,
+                    providerCancellation).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
             } catch (Exception exception) when (
                 exception is OcrCandidateTimeoutException
@@ -252,20 +252,42 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         }
     }
 
-    private static async Task<T> WaitWithTimeoutAsync<T>(
+    private static Task<T> WaitWithTimeoutAsync<T>(
         Task<T> operation,
         TimeSpan timeout,
-        CancellationToken cancellationToken) {
-        if (operation.IsCompleted) return await operation.ConfigureAwait(false);
-        using var deadlineCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Task deadline = Task.Delay(timeout, deadlineCancellation.Token);
-        Task completed = await Task.WhenAny(operation, deadline).ConfigureAwait(false);
-        if (completed == operation) {
-            deadlineCancellation.Cancel();
-            return await operation.ConfigureAwait(false);
+        CancellationToken cancellationToken,
+        CancellationTokenSource operationCancellation) {
+        if (operation.IsCompleted) {
+            return operation;
+        }
+
+        return Task.Factory.StartNew(
+            () => WaitWithTimeoutOnDedicatedThread(
+                operation,
+                timeout,
+                cancellationToken,
+                operationCancellation),
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+            TaskScheduler.Default);
+    }
+
+    private static T WaitWithTimeoutOnDedicatedThread<T>(
+        Task<T> operation,
+        TimeSpan timeout,
+        CancellationToken cancellationToken,
+        CancellationTokenSource operationCancellation) {
+        try {
+            int timeoutMilliseconds = checked((int)timeout.TotalMilliseconds);
+            if (operation.Wait(timeoutMilliseconds, cancellationToken)) {
+                return operation.GetAwaiter().GetResult();
+            }
+        } catch (AggregateException) {
+            return operation.GetAwaiter().GetResult();
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        CancelProviderAfterTimeout(operationCancellation);
         throw new OcrCandidateTimeoutException();
     }
 
