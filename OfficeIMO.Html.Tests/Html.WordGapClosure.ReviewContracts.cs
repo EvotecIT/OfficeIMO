@@ -14,6 +14,89 @@ namespace OfficeIMO.Tests;
 
 public partial class HtmlWordGapClosure {
     [Fact]
+    public void WordTableCell_AddHtml_PreservesFormattedEmptyParagraphs() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].PageBreakBefore = true;
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<p>Added</p>"""));
+
+        Paragraph[] paragraphs = cell._tableCell.Elements<Paragraph>().ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.NotNull(paragraphs[0].ParagraphProperties?.GetFirstChild<PageBreakBefore>());
+        Assert.Equal(string.Empty, paragraphs[0].InnerText);
+        Assert.Equal("Added", paragraphs[1].InnerText);
+    }
+
+    [Fact]
+    public void HtmlToWord_InheritedLogicalPadding_UsesTheParentComputedValue() {
+        const string html = """
+            <div style="padding-inline-start:10px">
+              <p style="padding-inline-start:inherit">Inherited padding</p>
+            </div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Inherited padding");
+
+        Assert.Equal(300, paragraph.IndentationBefore);
+        Assert.Null(paragraph.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_NegativeLogicalPadding_DoesNotOverrideValidPhysicalPadding() {
+        const string html = """
+            <p style="padding-left:20px;padding-inline-start:-5px">Negative longhand</p>
+            <p style="padding-top:20px;padding-block:-5px 4px">Negative pair</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph longhand = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Negative longhand");
+        WordParagraph pair = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Negative pair");
+        CssStyleMapper.CssProperties negativeMargin = CssStyleMapper.ParseStyles("margin:-5px");
+
+        Assert.Equal(300, longhand.IndentationBefore);
+        Assert.Equal(300, pair.LineSpacingBefore);
+        Assert.Null(pair.LineSpacingAfter);
+        Assert.Equal(-75, negativeMargin.MarginLeft);
+    }
+
+    [Fact]
+    public void HtmlToWord_StyledEmptyBlock_MaterializesItsWordFrame() {
+        const string html = """
+            <div style="border:1px solid #123456;background-color:#abcdef;padding:4px"></div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(60, paragraph.IndentationBefore);
+        Assert.Equal(60, paragraph.IndentationAfter);
+    }
+
+    [Fact]
+    public void WordToHtml_VisibleHighlight_TakesPrecedenceOverExactRunShading() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph run = document.AddParagraph("Layered");
+        run.RunShadingFillColorHex = "ABCDEF";
+        run.Highlight = HighlightColorValues.Cyan;
+
+        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+
+        Assert.Contains("background-color:#00ffff", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToWord_CssWideBoxValues_ResetEarlierPhysicalAndLogicalSpacing() {
         const string html = """
             <p style="margin-left:10px;margin-left:initial;padding-right:12px;padding-right:unset">Physical reset</p>

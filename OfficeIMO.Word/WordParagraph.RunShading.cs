@@ -13,7 +13,12 @@ namespace OfficeIMO.Word {
         public string RunShadingFillColorHex {
             get {
                 RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
-                string? fill = runProperties?.Shading?.Fill?.Value;
+                Shading? shading = runProperties?.Shading;
+                if (shading?.Val?.Value == ShadingPatternValues.Nil) {
+                    return string.Empty;
+                }
+
+                string? fill = shading?.Fill?.Value;
                 return fill != null ? fill.ToUpperInvariant() : string.Empty;
             }
             set {
@@ -28,7 +33,10 @@ namespace OfficeIMO.Word {
                 if (!string.IsNullOrWhiteSpace(value)) {
                     runProperties.Shading ??= new Shading();
                     runProperties.Shading.Fill = value.Replace("#", string.Empty).ToUpperInvariant();
-                    runProperties.Shading.Val ??= ShadingPatternValues.Clear;
+                    ShadingPatternValues? pattern = runProperties.Shading.Val?.Value;
+                    if (!pattern.HasValue || pattern.Value == ShadingPatternValues.Nil) {
+                        runProperties.Shading.Val = ShadingPatternValues.Clear;
+                    }
                 } else {
                     runProperties.Shading?.Remove();
                 }

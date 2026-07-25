@@ -48,8 +48,8 @@ namespace OfficeIMO.Word.Html {
             !paragraph._paragraph.ChildElements.Any(IsMeaningfulCellParagraphChild);
 
         private static bool IsMeaningfulCellParagraphChild(OpenXmlElement child) {
-            if (child is ParagraphProperties) {
-                return false;
+            if (child is ParagraphProperties properties) {
+                return properties.HasChildren || properties.HasAttributes;
             }
 
             if (child is Run run) {
@@ -439,6 +439,12 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                             var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
+                            if (generatedParagraphs.Count == 0 &&
+                                currentParagraph == null &&
+                                RequiresEmptyBlockParagraph(element)) {
+                                AddParagraphInScope(section, cell, headerFooter);
+                                generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
+                            }
                             ApplyContainerFrameFromCss(element, generatedParagraphs);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;

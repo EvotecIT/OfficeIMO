@@ -91,11 +91,12 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (options.IncludeRunHighlightStyles) {
                     string? normalizedRunBackground = NormalizeSixDigitHexColor(run.RunShadingFillColorHex);
-                    if (normalizedRunBackground != null) {
+                    string? highlight = GetHighlightCss(run.Highlight);
+                    if (!string.IsNullOrEmpty(highlight) &&
+                        (!isHtmlMarkedText || normalizedRunBackground != null)) {
+                        styles.Add($"background-color:{highlight}");
+                    } else if (normalizedRunBackground != null) {
                         styles.Add($"background-color:#{normalizedRunBackground}");
-                    } else if (!isHtmlMarkedText) {
-                        string? highlight = GetHighlightCss(run.Highlight);
-                        if (!string.IsNullOrEmpty(highlight)) styles.Add($"background-color:{highlight}");
                     }
                 }
                 if (styles.Count > 0) {

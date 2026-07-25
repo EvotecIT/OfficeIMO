@@ -61,7 +61,11 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        public static CssProperties ParseStyles(string? style, bool rightToLeft = false) {
+        public static CssProperties ParseStyles(
+            string? style,
+            bool rightToLeft = false,
+            CssProperties? inheritedBox = null,
+            bool inheritedRightToLeft = false) {
             CssProperties result = new();
             if (string.IsNullOrWhiteSpace(style)) {
                 return result;
@@ -69,7 +73,12 @@ namespace OfficeIMO.Word.Html {
 
             Dictionary<string, string> properties = Parse(style);
 
-            ApplyBoxPropertiesInDeclarationOrder(style!, rightToLeft, result);
+            ApplyBoxPropertiesInDeclarationOrder(
+                style!,
+                rightToLeft,
+                result,
+                inheritedBox,
+                inheritedRightToLeft);
 
             if (properties.TryGetValue("text-decoration", out string? deco)) {
                 ApplyTextDecoration(deco, result);
@@ -108,15 +117,31 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyBoxPropertiesInDeclarationOrder(
             string style,
             bool rightToLeft,
-            CssProperties result) {
-            ApplyBoxPropertiesInDeclarationOrder(style, rightToLeft, result, important: false);
-            ApplyBoxPropertiesInDeclarationOrder(style, rightToLeft, result, important: true);
+            CssProperties result,
+            CssProperties? inheritedBox,
+            bool inheritedRightToLeft) {
+            ApplyBoxPropertiesInDeclarationOrder(
+                style,
+                rightToLeft,
+                result,
+                inheritedBox,
+                inheritedRightToLeft,
+                important: false);
+            ApplyBoxPropertiesInDeclarationOrder(
+                style,
+                rightToLeft,
+                result,
+                inheritedBox,
+                inheritedRightToLeft,
+                important: true);
         }
 
         private static void ApplyBoxPropertiesInDeclarationOrder(
             string style,
             bool rightToLeft,
             CssProperties result,
+            CssProperties? inheritedBox,
+            bool inheritedRightToLeft,
             bool important) {
             foreach (string part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (!TryParseDeclaration(part, out string name, out string value, out bool declarationIsImportant) ||
@@ -126,50 +151,74 @@ namespace OfficeIMO.Word.Html {
 
                 switch (name) {
                     case "margin":
-                        if (IsCssWideBoxReset(value)) ResetMargin(result);
+                        if (IsCssBoxInheritance(value)) CopyMargin(inheritedBox, result);
+                        else if (IsCssWideBoxReset(value)) ResetMargin(result);
                         else ApplyMarginShorthand(value, result);
                         break;
                     case "margin-left":
-                        if (IsCssWideBoxReset(value)) result.MarginLeft = null;
+                        if (IsCssBoxInheritance(value)) result.MarginLeft = inheritedBox?.MarginLeft;
+                        else if (IsCssWideBoxReset(value)) result.MarginLeft = null;
                         else if (TryParseLength(value, out int marginLeft)) result.MarginLeft = marginLeft;
                         break;
                     case "margin-right":
-                        if (IsCssWideBoxReset(value)) result.MarginRight = null;
+                        if (IsCssBoxInheritance(value)) result.MarginRight = inheritedBox?.MarginRight;
+                        else if (IsCssWideBoxReset(value)) result.MarginRight = null;
                         else if (TryParseLength(value, out int marginRight)) result.MarginRight = marginRight;
                         break;
                     case "margin-top":
-                        if (IsCssWideBoxReset(value)) result.MarginTop = null;
+                        if (IsCssBoxInheritance(value)) result.MarginTop = inheritedBox?.MarginTop;
+                        else if (IsCssWideBoxReset(value)) result.MarginTop = null;
                         else if (TryParseLength(value, out int marginTop)) result.MarginTop = marginTop;
                         break;
                     case "margin-bottom":
-                        if (IsCssWideBoxReset(value)) result.MarginBottom = null;
+                        if (IsCssBoxInheritance(value)) result.MarginBottom = inheritedBox?.MarginBottom;
+                        else if (IsCssWideBoxReset(value)) result.MarginBottom = null;
                         else if (TryParseLength(value, out int marginBottom)) result.MarginBottom = marginBottom;
                         break;
                     case "padding":
-                        if (IsCssWideBoxReset(value)) ResetPadding(result);
+                        if (IsCssBoxInheritance(value)) CopyPadding(inheritedBox, result);
+                        else if (IsCssWideBoxReset(value)) ResetPadding(result);
                         else ApplyPaddingShorthand(value, result);
                         break;
                     case "padding-left":
-                        if (IsCssWideBoxReset(value)) result.PaddingLeft = null;
-                        else if (TryParseLength(value, out int paddingLeft)) result.PaddingLeft = paddingLeft;
+                        if (IsCssBoxInheritance(value)) result.PaddingLeft = inheritedBox?.PaddingLeft;
+                        else if (IsCssWideBoxReset(value)) result.PaddingLeft = null;
+                        else if (TryParsePaddingLength(value, out int paddingLeft)) result.PaddingLeft = paddingLeft;
                         break;
                     case "padding-right":
-                        if (IsCssWideBoxReset(value)) result.PaddingRight = null;
-                        else if (TryParseLength(value, out int paddingRight)) result.PaddingRight = paddingRight;
+                        if (IsCssBoxInheritance(value)) result.PaddingRight = inheritedBox?.PaddingRight;
+                        else if (IsCssWideBoxReset(value)) result.PaddingRight = null;
+                        else if (TryParsePaddingLength(value, out int paddingRight)) result.PaddingRight = paddingRight;
                         break;
                     case "padding-top":
-                        if (IsCssWideBoxReset(value)) result.PaddingTop = null;
-                        else if (TryParseLength(value, out int paddingTop)) result.PaddingTop = paddingTop;
+                        if (IsCssBoxInheritance(value)) result.PaddingTop = inheritedBox?.PaddingTop;
+                        else if (IsCssWideBoxReset(value)) result.PaddingTop = null;
+                        else if (TryParsePaddingLength(value, out int paddingTop)) result.PaddingTop = paddingTop;
                         break;
                     case "padding-bottom":
-                        if (IsCssWideBoxReset(value)) result.PaddingBottom = null;
-                        else if (TryParseLength(value, out int paddingBottom)) result.PaddingBottom = paddingBottom;
+                        if (IsCssBoxInheritance(value)) result.PaddingBottom = inheritedBox?.PaddingBottom;
+                        else if (IsCssWideBoxReset(value)) result.PaddingBottom = null;
+                        else if (TryParsePaddingLength(value, out int paddingBottom)) result.PaddingBottom = paddingBottom;
                         break;
                     default:
                         if (name.StartsWith("margin-", StringComparison.Ordinal)) {
-                            ApplySingleLogicalBoxProperty(name, value, "margin", rightToLeft, result);
+                            ApplySingleLogicalBoxProperty(
+                                name,
+                                value,
+                                "margin",
+                                rightToLeft,
+                                result,
+                                inheritedBox,
+                                inheritedRightToLeft);
                         } else if (name.StartsWith("padding-", StringComparison.Ordinal)) {
-                            ApplySingleLogicalBoxProperty(name, value, "padding", rightToLeft, result);
+                            ApplySingleLogicalBoxProperty(
+                                name,
+                                value,
+                                "padding",
+                                rightToLeft,
+                                result,
+                                inheritedBox,
+                                inheritedRightToLeft);
                         }
                         break;
                 }
@@ -226,7 +275,19 @@ namespace OfficeIMO.Word.Html {
             string value,
             string prefix,
             bool rightToLeft,
-            CssProperties result) {
+            CssProperties result,
+            CssProperties? inheritedBox,
+            bool inheritedRightToLeft) {
+            if (IsCssBoxInheritance(value)) {
+                InheritLogicalBoxProperty(
+                    name,
+                    prefix,
+                    rightToLeft,
+                    result,
+                    inheritedBox,
+                    inheritedRightToLeft);
+                return;
+            }
             if (IsCssWideBoxReset(value)) {
                 ResetLogicalBoxProperty(name, prefix, rightToLeft, result);
                 return;
@@ -249,25 +310,25 @@ namespace OfficeIMO.Word.Html {
             int? blockEnd = null;
 
             if (properties.TryGetValue($"{prefix}-inline", out string? inline)) {
-                ParseLogicalPair(inline, out inlineStart, out inlineEnd);
+                ParseLogicalPair(inline, prefix, out inlineStart, out inlineEnd);
             }
             if (properties.TryGetValue($"{prefix}-block", out string? block)) {
-                ParseLogicalPair(block, out blockStart, out blockEnd);
+                ParseLogicalPair(block, prefix, out blockStart, out blockEnd);
             }
             if (properties.TryGetValue($"{prefix}-inline-start", out string? inlineStartText) &&
-                TryParseLength(inlineStartText, out int parsedInlineStart)) {
+                TryParseBoxLength(prefix, inlineStartText, out int parsedInlineStart)) {
                 inlineStart = parsedInlineStart;
             }
             if (properties.TryGetValue($"{prefix}-inline-end", out string? inlineEndText) &&
-                TryParseLength(inlineEndText, out int parsedInlineEnd)) {
+                TryParseBoxLength(prefix, inlineEndText, out int parsedInlineEnd)) {
                 inlineEnd = parsedInlineEnd;
             }
             if (properties.TryGetValue($"{prefix}-block-start", out string? blockStartText) &&
-                TryParseLength(blockStartText, out int parsedBlockStart)) {
+                TryParseBoxLength(prefix, blockStartText, out int parsedBlockStart)) {
                 blockStart = parsedBlockStart;
             }
             if (properties.TryGetValue($"{prefix}-block-end", out string? blockEndText) &&
-                TryParseLength(blockEndText, out int parsedBlockEnd)) {
+                TryParseBoxLength(prefix, blockEndText, out int parsedBlockEnd)) {
                 blockEnd = parsedBlockEnd;
             }
 
@@ -296,11 +357,17 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static void ParseLogicalPair(string value, out int? start, out int? end) {
+        private static void ParseLogicalPair(
+            string value,
+            string prefix,
+            out int? start,
+            out int? end) {
             start = null;
             end = null;
             var parts = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 0 || parts.Length > 2 || !TryParseLength(parts[0], out int first)) {
+            if (parts.Length == 0 ||
+                parts.Length > 2 ||
+                !TryParseBoxLength(prefix, parts[0], out int first)) {
                 return;
             }
 
@@ -310,7 +377,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            if (!TryParseLength(parts[1], out int second)) {
+            if (!TryParseBoxLength(prefix, parts[1], out int second)) {
                 return;
             }
 
@@ -448,6 +515,14 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
+        private static bool TryParsePaddingLength(string value, out int twips) =>
+            TryParseLength(value, out twips) && twips >= 0;
+
+        private static bool TryParseBoxLength(string prefix, string value, out int twips) =>
+            prefix.Equals("padding", StringComparison.OrdinalIgnoreCase)
+                ? TryParsePaddingLength(value, out twips)
+                : TryParseLength(value, out twips);
+
         private static void ApplyMarginShorthand(string margin, CssProperties result) {
             var parts = margin.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0) {
@@ -459,18 +534,24 @@ namespace OfficeIMO.Word.Html {
                     top = right = bottom = left = all;
                 }
             } else if (parts.Length == 2) {
-                if (TryParseLength(parts[0], out int tb) && TryParseLength(parts[1], out int lr)) {
+                if (TryParseLength(parts[0], out int tb) &&
+                    TryParseLength(parts[1], out int lr)) {
                     top = bottom = tb;
                     left = right = lr;
                 }
             } else if (parts.Length == 3) {
-                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int rl) && TryParseLength(parts[2], out int b)) {
+                if (TryParseLength(parts[0], out int t) &&
+                    TryParseLength(parts[1], out int rl) &&
+                    TryParseLength(parts[2], out int b)) {
                     top = t;
                     bottom = b;
                     left = right = rl;
                 }
             } else {
-                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int r) && TryParseLength(parts[2], out int b) && TryParseLength(parts[3], out int l)) {
+                if (TryParseLength(parts[0], out int t) &&
+                    TryParseLength(parts[1], out int r) &&
+                    TryParseLength(parts[2], out int b) &&
+                    TryParseLength(parts[3], out int l)) {
                     top = t;
                     right = r;
                     bottom = b;
@@ -490,22 +571,28 @@ namespace OfficeIMO.Word.Html {
             }
             int? top = null, right = null, bottom = null, left = null;
             if (parts.Length == 1) {
-                if (TryParseLength(parts[0], out int all)) {
+                if (TryParsePaddingLength(parts[0], out int all)) {
                     top = right = bottom = left = all;
                 }
             } else if (parts.Length == 2) {
-                if (TryParseLength(parts[0], out int tb) && TryParseLength(parts[1], out int lr)) {
+                if (TryParsePaddingLength(parts[0], out int tb) &&
+                    TryParsePaddingLength(parts[1], out int lr)) {
                     top = bottom = tb;
                     left = right = lr;
                 }
             } else if (parts.Length == 3) {
-                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int rl) && TryParseLength(parts[2], out int b)) {
+                if (TryParsePaddingLength(parts[0], out int t) &&
+                    TryParsePaddingLength(parts[1], out int rl) &&
+                    TryParsePaddingLength(parts[2], out int b)) {
                     top = t;
                     bottom = b;
                     left = right = rl;
                 }
             } else {
-                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int r) && TryParseLength(parts[2], out int b) && TryParseLength(parts[3], out int l)) {
+                if (TryParsePaddingLength(parts[0], out int t) &&
+                    TryParsePaddingLength(parts[1], out int r) &&
+                    TryParsePaddingLength(parts[2], out int b) &&
+                    TryParsePaddingLength(parts[3], out int l)) {
                     top = t;
                     right = r;
                     bottom = b;

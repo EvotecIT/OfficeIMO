@@ -45,31 +45,59 @@ namespace OfficeIMO.Word.Html {
             ApplyBlockFrameFromCss(element, new[] { paragraph }, applyContainerSpacing: false);
         }
 
-        private static void ApplyContainerFrameFromCss(
-            IElement element,
-            IReadOnlyList<WordParagraph> paragraphs,
-            bool applyContainerSpacing = true) {
-            if (paragraphs.Count == 0) {
-                return;
+        private static CssStyleMapper.CssProperties ParseElementBoxStyles(IElement element) {
+            var lineage = new Stack<IElement>();
+            for (IElement? current = element; current != null; current = current.ParentElement) {
+                lineage.Push(current);
             }
 
-            ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing);
+            CssStyleMapper.CssProperties? inheritedBox = null;
+            bool inheritedRightToLeft = false;
+            while (lineage.Count > 0) {
+                IElement current = lineage.Pop();
+                bool rightToLeft = GetBidiFromDir(current) == true;
+                inheritedBox = CssStyleMapper.ParseStyles(
+                    current.GetAttribute("style"),
+                    rightToLeft,
+                    inheritedBox,
+                    inheritedRightToLeft);
+                inheritedRightToLeft = rightToLeft;
+            }
+
+            return inheritedBox ?? new CssStyleMapper.CssProperties();
         }
 
-        private static void ApplyBlockFrameFromCss(
-            IElement element,
-            IReadOnlyList<WordParagraph> paragraphs,
-            bool applyContainerSpacing) {
-            string? styleText = element.GetAttribute("style");
-            if (string.IsNullOrWhiteSpace(styleText) || paragraphs.Count == 0) {
-                return;
+        private static bool RequiresEmptyBlockParagraph(IElement element) {
+            if (StyleRequestsPageBreakBefore(element) || StyleRequestsPageBreakAfter(element)) {
+                return true;
             }
 
-            string? background = null;
-            var sideBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
+            CssStyleMapper.CssProperties box = ParseElementBoxStyles(element);
+            if ((box.PaddingTop ?? 0) != 0 ||
+                (box.PaddingRight ?? 0) != 0 ||
+                (box.PaddingBottom ?? 0) != 0 ||
+                (box.PaddingLeft ?? 0) != 0) {
+                return true;
+            }
+
+            string? styleText = element.GetAttribute("style");
+            if (string.IsNullOrWhiteSpace(styleText)) {
+                return false;
+            }
+
+            ParseBlockFrameStyles(styleText!, out string? background, out var sideBorders);
+            return background != null || sideBorders.Values.Any(border => border.Materialize().HasValue);
+        }
+
+        private static void ParseBlockFrameStyles(
+            string styleText,
+            out string? background,
+            out Dictionary<BlockBorderSide, BlockBorderState> sideBorders) {
+            background = null;
+            sideBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
             for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
                 bool important = priorityPass == 1;
-                foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                foreach (string part in styleText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                     if (!CssStyleMapper.TryParseDeclaration(
                             part,
                             out string name,
@@ -121,6 +149,29 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             }
+        }
+
+        private static void ApplyContainerFrameFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            bool applyContainerSpacing = true) {
+            if (paragraphs.Count == 0) {
+                return;
+            }
+
+            ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing);
+        }
+
+        private static void ApplyBlockFrameFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            bool applyContainerSpacing) {
+            string? styleText = element.GetAttribute("style");
+            if (string.IsNullOrWhiteSpace(styleText) || paragraphs.Count == 0) {
+                return;
+            }
+
+            ParseBlockFrameStyles(styleText!, out string? background, out var sideBorders);
 
             if (!string.IsNullOrEmpty(background)) {
                 foreach (WordParagraph paragraph in paragraphs) {
@@ -150,7 +201,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            CssStyleMapper.CssProperties box = CssStyleMapper.ParseStyles(styleText, GetBidiFromDir(element) == true);
+            CssStyleMapper.CssProperties box = ParseElementBoxStyles(element);
             int horizontalStart = (box.MarginLeft ?? 0) + (box.PaddingLeft ?? 0);
             int horizontalEnd = (box.MarginRight ?? 0) + (box.PaddingRight ?? 0);
             foreach (WordParagraph paragraph in paragraphs) {

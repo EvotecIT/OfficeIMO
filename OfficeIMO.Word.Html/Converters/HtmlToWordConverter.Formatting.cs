@@ -221,7 +221,7 @@ namespace OfficeIMO.Word.Html {
                 paragraph.Style = style.Value;
             }
 
-            var parsed = CssStyleMapper.ParseStyles(styleAttribute, GetBidiFromDir(element) == true);
+            var parsed = ParseElementBoxStyles(element);
             var declaration = ParseInlineDeclaration(styleAttribute);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
             int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
