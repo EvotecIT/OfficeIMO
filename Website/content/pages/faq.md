@@ -3,14 +3,18 @@ title: "Frequently Asked Questions"
 description: "Answers about OfficeIMO licensing, DOC/XLS/PPT and modern format support, conversion fidelity, .NET platforms, PowerShell, containers, and dependencies."
 layout: faq
 meta.faq.questions:
-  - "Does OfficeIMO require Microsoft Office to be installed?|No. OfficeIMO uses managed document engines and does not require Microsoft Office, COM automation, or Office interop assemblies at runtime."
-  - "Does OfficeIMO support DOC, XLS, XLSB, and PPT?|Yes. Modern and legacy Word, Excel, and PowerPoint families are covered by operation-level compatibility contracts with explicit fidelity and limitation states."
-  - "Is OfficeIMO free for commercial use?|Yes. OfficeIMO packages are MIT licensed. Review the separate terms of optional third-party dependencies used by your selected package set."
-  - "Can OfficeIMO run in Docker or CI?|Yes. The COM-free .NET packages are designed for services, containers, workers, GitHub Actions, and other automation environments."
-  - "Can I automate OfficeIMO with PowerShell?|Yes. PSWriteOffice exposes the document platform through first-party PowerShell commands, generated help, and task-oriented aliases."
-  - "Can OfficeIMO convert Word, Excel, and PowerPoint files?|Yes. Conversion routes are package-specific and report whether content remains native, becomes an approximation or visual fallback, is preserved, or is blocked."
-  - "Does OfficeIMO support NativeAOT?|Most production projects have checked Windows and Linux NativeAOT evidence. The compatibility page and deployment guide identify the actual proof boundary."
-  - "How does OfficeIMO compare with Aspose or GemBox?|OfficeIMO leads with MIT licensing, source access, modular packages, PowerShell, and explicit fidelity. Commercial suites may offer broader portfolios, mature rendering for some workloads, formal support, and SLAs."
+  - "Does OfficeIMO require Microsoft Office to be installed?|No. OfficeIMO uses managed, first-party document engines and does not require Microsoft Office, COM automation, or Office interop assemblies at runtime."
+  - "Does OfficeIMO support DOC, XLS, XLSB, and PPT as well as DOCX, XLSX, and PPTX?|Yes. OfficeIMO classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and reports bidirectional conversion coverage by operation and fidelity."
+  - "What .NET versions are supported?|OfficeIMO targets .NET 8.0, .NET 10.0, .NET Standard 2.0, and .NET Framework 4.7.2."
+  - "Is OfficeIMO free for commercial use?|Yes. OfficeIMO packages are MIT licensed. Commercial teams should also review the separate terms of optional third-party dependencies used by their selected package set."
+  - "How does OfficeIMO compare to Aspose or GemBox?|OfficeIMO leads with MIT licensing, source access, modular packages, PowerShell, and explicit fidelity. Commercial suites can provide broader portfolio coverage, mature rendering for some workloads, formal support, and procurement SLAs."
+  - "Can I use OfficeIMO in a Docker container or CI/CD pipeline?|Yes. The COM-free .NET packages fit Linux containers, GitHub Actions, Azure DevOps, and other CI/CD environments. Validate fonts and native dependencies for rendering-heavy workloads."
+  - "What is PSWriteOffice?|PSWriteOffice is the first-party PowerShell surface over OfficeIMO, with generated help and commands for Word, Excel, PowerPoint, PDF, Reader, Visio, text, open-format, email, and conversion workflows."
+  - "Does OfficeIMO support reading existing documents?|Yes. The core Word, Excel, and PowerPoint libraries load and edit existing files, while OfficeIMO.Reader provides a normalized extraction API across modular format handlers."
+  - "Is NativeAOT compilation supported?|Yes, for 89 of the 90 production projects. The project matrix records 86 fully rooted libraries, one bounded Google APIs workflow, two native command-line tools, and the managed-only WPF/WebView2 renderer."
+  - "What are the dependencies?|The core Office packages use DocumentFormat.OpenXml and first-party OfficeIMO.Drawing primitives. Optional converter and compatibility packages add focused dependencies documented on the Third-Party Dependencies page."
+  - "Can I convert Word documents to PDF?|Yes. OfficeIMO.Word.Pdf provides Word-to-PDF export without Microsoft Office, and OfficeIMO.Excel.Pdf provides the corresponding Excel route."
+  - "Is thread safety supported?|Separate document instances can run on separate threads. Concurrent access to the same document instance is not supported; OfficeIMO.Excel also provides parallel bulk operations such as AutoFit and bulk writes."
 ---
 
 {{< faq >}}

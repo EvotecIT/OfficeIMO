@@ -224,6 +224,32 @@ if ($googleWorkspaceSolution.Contains('meta.powershell: true', [StringComparison
     throw 'The Google Workspace migration route must not advertise an undocumented PSWriteOffice surface.'
 }
 
+$faqData = Get-Content -LiteralPath (Join-Path $siteRootPath 'data\faq.json') -Raw | ConvertFrom-Json
+$visibleFaqQuestions = @($faqData.sections.items.question)
+$faqPageContent = Get-Content -LiteralPath (Join-Path $siteRootPath 'content\pages\faq.md') -Raw
+$faqFrontMatter = [regex]::Match(
+    $faqPageContent,
+    '(?ms)^meta\.faq\.questions:\s*\r?\n(?<items>(?:\s+-\s+".*"\s*\r?\n)+)'
+)
+if (-not $faqFrontMatter.Success) {
+    throw 'FAQ page must expose structured-data questions in front matter.'
+}
+$schemaFaqQuestions = @([regex]::Matches(
+    $faqFrontMatter.Groups['items'].Value,
+    '(?m)^\s+-\s+"(?<question>[^"|]+)\|(?<answer>[^"]+)"\s*$'
+) | ForEach-Object {
+    if ([string]::IsNullOrWhiteSpace($_.Groups['answer'].Value)) {
+        throw "FAQ schema question '$($_.Groups['question'].Value)' has no answer."
+    }
+    $_.Groups['question'].Value
+})
+$missingSchemaQuestions = @($visibleFaqQuestions | Where-Object { $_ -notin $schemaFaqQuestions })
+$hiddenSchemaQuestions = @($schemaFaqQuestions | Where-Object { $_ -notin $visibleFaqQuestions })
+if ($missingSchemaQuestions.Count -gt 0 -or $hiddenSchemaQuestions.Count -gt 0 -or
+    $visibleFaqQuestions.Count -ne $schemaFaqQuestions.Count) {
+    throw "FAQ schema and visible FAQ questions differ. Missing schema: $($missingSchemaQuestions -join '; '). Hidden schema: $($hiddenSchemaQuestions -join '; ')."
+}
+
 $staticCatalogPath = Join-Path $siteRootPath 'static\data\office-capabilities.json'
 if (-not (Test-Path -LiteralPath $staticCatalogPath -PathType Leaf)) {
     throw "Generated public capability catalog is missing: $staticCatalogPath"
