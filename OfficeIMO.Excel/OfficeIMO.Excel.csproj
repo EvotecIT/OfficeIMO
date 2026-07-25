@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>An Open Source cross-platform .NET library providing an easy way to create
-            Excel documents.</Description>
+        <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, XLT, and XLTX workbooks without Microsoft Office.</Description>
         <AssemblyName>OfficeIMO.Excel</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
@@ -16,8 +15,7 @@
         <Authors>Przemyslaw Klys</Authors>
 
         <PackageId>OfficeIMO.Excel</PackageId>
-        <PackageTags>
-            docx;net60;excel;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
+        <PackageTags>xls;xlsx;xlsb;xlsm;xlt;xltx;excel;spreadsheet;office;openxml;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>

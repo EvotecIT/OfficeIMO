@@ -7,6 +7,12 @@ install: "dotnet add package OfficeIMO.Markdown"
 nuget: "OfficeIMO.Markdown"
 docs_url: "/docs/markdown/"
 api_url: "/api/markdown/"
+meta.software.name: "OfficeIMO.Markdown"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Markdown"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.Markdown?

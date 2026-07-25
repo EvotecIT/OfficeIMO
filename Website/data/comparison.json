@@ -22,9 +22,17 @@
     {
       "feature": "Format and workload focus",
       "values": [
-        "Strongest around Open XML packages, Markdown, CSV, and document-reader workflows in this repo",
+        "Modern and legacy Word, Excel, and PowerPoint; PDF, email, OneNote, OpenDocument, HTML, RTF, publishing, and Reader workflows",
         "Often broader across rendering, conversion, and additional file-format families",
-        "The exact formats, conversions, and rendering scenarios your product must support"
+        "The exact read, create, edit, save, convert, render, extract, and preserve operations your product needs"
+      ]
+    },
+    {
+      "feature": "Conversion fidelity and loss policy",
+      "values": [
+        "Feature-level compatibility evidence distinguishes native, editable approximation, visual fallback, preservation, deliberate drop, and blocked outcomes",
+        "Vendor behavior and diagnostics vary by product and route",
+        "Whether the application can detect and approve loss before committing an output file"
       ]
     },
     {
@@ -38,7 +46,7 @@
     {
       "feature": "AOT and trimming reality",
       "values": [
-        "88 of 89 production projects have Windows and Linux NativeAOT evidence; the WPF/WebView2 renderer uses managed Windows deployment",
+        "89 of 90 production projects have Windows and Linux NativeAOT evidence; the WPF/WebView2 renderer uses managed Windows deployment",
         "Varies by vendor, package, and feature set",
         "Real publish profiles, linker settings, and the exact package mix you plan to ship"
       ]
@@ -46,7 +54,7 @@
     {
       "feature": "Support model",
       "values": [
-        "GitHub issues, source inspection, and community-driven troubleshooting",
+        "GitHub issues, source inspection, community support, sponsorship, and scoped commercial engineering",
         "Vendor-maintained docs, support channels, and commercial escalation paths",
         "Response expectations, SLA requirements, and who owns production support"
       ]

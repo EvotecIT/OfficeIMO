@@ -9,6 +9,12 @@ install: "Install-Module PSWriteOffice"
 nuget: ""
 docs_url: "/docs/pswriteoffice/"
 api_url: "/api/powershell/"
+meta.software.name: "PSWriteOffice"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.powershellgallery.com/packages/PSWriteOffice"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why PSWriteOffice?

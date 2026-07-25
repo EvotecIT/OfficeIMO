@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. The repository currently has **89 production projects**: **88 publish and execute in NativeAOT validation**, while the WPF/WebView2 renderer is deliberately tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. The repository currently has **90 production projects**: **89 publish and execute in NativeAOT validation**, while the WPF/WebView2 renderer is deliberately tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 88 native-validated projects are not all proved in the same way:
 

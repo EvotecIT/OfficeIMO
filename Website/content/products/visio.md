@@ -8,6 +8,12 @@ nuget: "OfficeIMO.Visio"
 docs_url: "/docs/visio/"
 api_url: "/api/visio/"
 preview_id: "visio"
+meta.software.name: "OfficeIMO.Visio"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Visio"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.Visio?

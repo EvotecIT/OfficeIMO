@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>An Open Source cross-platform .NET library providing an easy way to create
-            Microsoft Word (DocX) documents.</Description>
+        <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.</Description>
         <AssemblyName>OfficeIMO.Word</AssemblyName>
         <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
@@ -15,8 +14,7 @@
         <Authors>Przemyslaw Klys</Authors>
 
         <PackageId>OfficeIMO.Word</PackageId>
-        <PackageTags>
-            docx;net60;word;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
+        <PackageTags>doc;docx;docm;dot;dotx;word;office;openxml;document;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>

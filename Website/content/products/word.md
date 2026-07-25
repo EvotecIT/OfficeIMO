@@ -1,19 +1,26 @@
 ---
 title: "OfficeIMO.Word"
-description: "Create and edit Word documents from .NET. Paragraphs, tables, images, charts, watermarks, and more without Office automation."
+description: "Create, read, edit, and convert DOC, DOCX, DOCM, DOT, and modern Word templates from .NET without Microsoft Word."
 layout: product
 product_color: "#2563eb"
 install: "dotnet add package OfficeIMO.Word"
 nuget: "OfficeIMO.Word"
 docs_url: "/docs/word/"
 api_url: "/api/word/"
+meta.software.name: "OfficeIMO.Word"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.version: "3.0.0"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Word"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.Word?
 
-OfficeIMO.Word helps .NET applications generate and modify `.docx` files without COM interop or Office automation. It is a good fit for reports, contracts, invoices, and other structured document workflows where you want code-first control over content, layout, and packaging.
+OfficeIMO.Word helps .NET applications create, read, edit, and convert modern `.docx` documents and supported Word 97–2003 `.doc` files without COM interop or Microsoft Word. It is a good fit for reports, contracts, invoices, archive modernization, and other structured workflows where code needs control over content, layout, compatibility, and packaging.
 
-The best fit is modern document automation: assemble real documents, inspect them before editing, convert selected content through HTML or Markdown, and keep review metadata visible when documents move through approval workflows.
+Modern Word files use the complete OfficeIMO object model. Legacy files load through the same `WordDocument.Load(...)` entry point, project supported content into that model, and use preflight diagnostics before native DOC output. Unsupported content is reported, preserved, converted through an explicit fallback, or blocked—it is not silently presented as native support.
 
 ## Features
 
@@ -29,15 +36,18 @@ The best fit is modern document automation: assemble real documents, inspect the
 - **Document protection** — read-only, password protection, and editing restrictions
 - **Footnotes & endnotes** — numbered references with custom formatting
 - **Sections & page numbering** — multiple sections with independent orientation, margins, and numbering
+- **Word 97–2003 DOC and DOT** — first-party import, native writing for the supported subset, bidirectional conversion, preservation-aware edits, and structured loss reports
+- **Compatibility policies** — require native output, prefer editability or visual fidelity, allow documented best effort, or retain the complete source for recovery
 
-## Workflow Focus
+## Choose the Word path
 
-| Workflow | What OfficeIMO.Word owns | Current product direction |
-|----------|--------------------------|---------------------------|
-| Document assembly | Merge fields, repeated regions, content-control bindings, validation, and batch output | Make template automation easy to evaluate with guides and proof artifacts. |
-| Review automation | Comments, revisions, visible markup, document comparison, and feature inspection | Build a structured review/redline/diff story for contracts, policies, proposals, and audit documents. |
-| HTML and Markdown conversion | Word/HTML and Word/Markdown converter packages with diagnostics and resource policy | Expand real-world conversion fixtures, support matrices, and generated artifact galleries. |
-| Real-document proof | Examples, tests, docs, and website showcase content | Lead with source inputs, generated DOCX files, validation status, and known limitations. |
+| Workflow | Recommended route | What remains visible |
+|----------|-------------------|----------------------|
+| Create a new report, contract, or invoice | Author DOCX with `WordDocument.Create(...)` | Paragraphs, tables, sections, fields, images, charts, controls, and validation |
+| Modernize an archive | Load DOC and save DOCX | Import warnings, preserved source metadata, and unsupported features |
+| Deliver a legacy DOC | Analyze DOCX-to-DOC, select a compatibility mode, then convert | Native, approximated, rasterized, preserved, blocked, and dropped decisions |
+| Review and approval | Load DOCX or supported DOC content into the normal model | Comments, revisions, comparison, redline, and feature inspection |
+| Publish to web or text | Add the focused HTML, Markdown, RTF, OpenDocument, or PDF package | Resource policy and conversion diagnostics from the selected adapter |
 
 ## Quick start
 
@@ -75,6 +85,22 @@ table.Style = WordTableStyle.GridTable4Accent1;
 document.Save();
 ```
 
+## Convert DOC and DOCX
+
+```csharp
+using OfficeIMO.Word;
+
+// The normal loader detects the legacy DOC container.
+using WordDocument legacy = WordDocument.Load("contract.doc");
+legacy.Save("contract-modernized.docx");
+
+// Bidirectional conversion uses the same import and save preflight.
+WordDocument.Convert("contract.doc", "contract.docx");
+WordDocument.Convert("contract.docx", "contract.doc");
+```
+
+Use `AnalyzeConversion(...)` before writing when your application needs to reject approximation, static visual fallback, source retention, or known loss.
+
 ## Compatibility
 
 | Target Framework  | Supported |
@@ -84,7 +110,7 @@ document.Save();
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` files intended for Word and other OOXML-capable editors.
+OfficeIMO.Word runs on Windows, Linux, and macOS. It creates and edits modern Word packages and supports first-party DOC/DOT import, native writing for the documented subset, and bidirectional conversion. The [format compatibility dashboard](/compatibility/#word) is the concise public view; the repository contract records every tracked feature and limitation.
 
 ## Related guides
 
@@ -93,6 +119,7 @@ OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` f
 | [Word documentation](/docs/word/) | Start with the package overview and document structure. |
 | [Tables guide](/docs/word/tables/) | Build styled tables, merged cells, and richer layouts. |
 | [Market readiness](/docs/word/market-readiness/) | See the current non-PDF readiness snapshot for templates, review workflows, conversion proof, and showcase work. |
+| [DOC and DOCX compatibility](/compatibility/#word) | Check formats, conversion directions, tracked behaviors, and fidelity states. |
 | [Word to HTML](/docs/converters/word-html/) | Convert generated documents to and from HTML. |
 | [PSWriteOffice Word cmdlets](/docs/pswriteoffice/word/) | Automate Word output from PowerShell scripts. |
 

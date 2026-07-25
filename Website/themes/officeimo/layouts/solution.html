@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--solution">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main">
+    <section class="imo-intent-hero">
+      <div class="imo-container imo-intent-hero__inner">
+        <div>
+          <p class="imo-section__eyebrow">{{ page.meta.eyebrow ?? "Document workflow" }}</p>
+          <h1>{{ page.title }}</h1>
+          {{ if page.description }}<p class="imo-intent-hero__lead">{{ page.description }}</p>{{ end }}
+          <div class="imo-intent-hero__actions">
+            <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? "/docs/getting-started/" }}">{{ page.meta.primary_label ?? "Start building" }}</a>
+            <a class="imo-btn imo-btn-ghost" href="/downloads/">Choose packages</a>
+          </div>
+        </div>
+        <aside class="imo-intent-proof imo-intent-proof--stack">
+          <strong>{{ page.meta.outcome ?? "A document workflow you control" }}</strong>
+          <span>Runs in your application, service, container, or pipeline</span>
+          <small>MIT licensed · no Microsoft Office runtime</small>
+        </aside>
+      </div>
+    </section>
+
+    <div class="imo-container imo-intent-layout">
+      <article class="imo-intent-content markdown-body">
+{{ content }}
+      </article>
+      <aside class="imo-intent-sidebar">
+        <h2>Why this route</h2>
+        <ul>
+          <li>Focused .NET packages</li>
+          <li>First-party PowerShell</li>
+          <li>Explicit conversion fidelity</li>
+          <li>Source-visible implementation</li>
+        </ul>
+        <a href="/compatibility/">Verify format support</a>
+      </aside>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

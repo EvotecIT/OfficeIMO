@@ -1,0 +1,1669 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "formatInventory": "Docs/Compatibility/generated/office-formats.json",
+    "compatibilityContracts": [
+      "Docs/Compatibility/generated/word-legacy-doc.json",
+      "Docs/Compatibility/generated/excel-legacy-xls.json",
+      "Docs/Compatibility/generated/excel-xlsb.json",
+      "Docs/Compatibility/generated/powerpoint-legacy-ppt.json"
+    ],
+    "claim": "Feature-level compatibility with explicit native, approximation, visual, preservation, and blocked states."
+  },
+  "summary": {
+    "familyCount": 3,
+    "formatCount": 28,
+    "capabilityCount": 137
+  },
+  "fidelityStates": [
+    {
+      "id": "Native",
+      "label": "Native",
+      "description": "Represented directly in the destination format."
+    },
+    {
+      "id": "Approximated",
+      "label": "Editable approximation",
+      "description": "Retained as editable content with a documented approximation."
+    },
+    {
+      "id": "Approximation",
+      "label": "Closest representation",
+      "description": "Mapped to the closest supported representation, with a reported fidelity difference."
+    },
+    {
+      "id": "Rasterized",
+      "label": "Visual fallback",
+      "description": "Appearance retained as a static image when editability is unavailable."
+    },
+    {
+      "id": "PreservedOpaque",
+      "label": "Preserved records",
+      "description": "Original records retained without claiming full editing semantics."
+    },
+    {
+      "id": "Opaque",
+      "label": "Opaque content",
+      "description": "Content carried without interpreting its internal feature semantics."
+    },
+    {
+      "id": "EmbeddedSource",
+      "label": "Source retained",
+      "description": "Original source embedded with hash verification for recovery."
+    },
+    {
+      "id": "Blocked",
+      "label": "Blocked",
+      "description": "Operation refused when proceeding would silently misrepresent the result."
+    },
+    {
+      "id": "NotApplicable",
+      "label": "Not applicable",
+      "description": "The operation does not apply to this feature or format direction."
+    },
+    {
+      "id": "NotImplemented",
+      "label": "Not implemented",
+      "description": "The contract explicitly records a path that is not implemented yet."
+    },
+    {
+      "id": "NotRepresentable",
+      "label": "No destination equivalent",
+      "description": "The destination format has no representation for this feature."
+    },
+    {
+      "id": "Dropped",
+      "label": "Dropped with diagnostics",
+      "description": "The feature is omitted and reported as known loss."
+    }
+  ],
+  "families": [
+    {
+      "id": "word",
+      "title": "Microsoft Word",
+      "package": "OfficeIMO.Word",
+      "packageVersion": "3.0.0",
+      "productUrl": "/products/word/",
+      "docsUrl": "/docs/word/",
+      "apiUrl": "/api/word/",
+      "color": "#2563eb",
+      "legacyFormats": [
+        ".doc",
+        ".dot"
+      ],
+      "modernFormats": [
+        ".docx",
+        ".docm",
+        ".dotx",
+        ".dotm"
+      ],
+      "formats": [
+        {
+          "id": "Word.Doc",
+          "extension": ".doc",
+          "generation": "Legacy",
+          "documentKind": "Document",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Word.Dot",
+          "extension": ".dot",
+          "generation": "Legacy",
+          "documentKind": "Template",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Word.Docx",
+          "extension": ".docx",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "Word.Docm",
+          "extension": ".docm",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "Word.Dotx",
+          "extension": ".dotx",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "Word.Dotm",
+          "extension": ".dotm",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        }
+      ],
+      "contract": {
+        "capabilityCount": 33,
+        "categoryCount": 15,
+        "hasUnimplementedCoverage": true,
+        "operations": [
+          {
+            "id": "representability",
+            "label": "Represent",
+            "states": [
+              {
+                "state": "Approximation",
+                "label": "Closest representation",
+                "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                "count": 3
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 23
+              },
+              {
+                "state": "NotRepresentable",
+                "label": "No destination equivalent",
+                "description": "The destination format has no representation for this feature.",
+                "count": 1
+              },
+              {
+                "state": "Opaque",
+                "label": "Opaque content",
+                "description": "Content carried without interpreting its internal feature semantics.",
+                "count": 6
+              }
+            ]
+          },
+          {
+            "id": "import",
+            "label": "Read and import",
+            "states": [
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 22
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 1
+              },
+              {
+                "state": "NotImplemented",
+                "label": "Not implemented",
+                "description": "The contract explicitly records a path that is not implemented yet.",
+                "count": 1
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 9
+              }
+            ]
+          },
+          {
+            "id": "create",
+            "label": "Create legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 12
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 8
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 10
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 2
+              },
+              {
+                "state": "NotImplemented",
+                "label": "Not implemented",
+                "description": "The contract explicitly records a path that is not implemented yet.",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "id": "roundTrip",
+            "label": "Edit and round-trip",
+            "states": [
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 10
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 1
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 22
+              }
+            ]
+          },
+          {
+            "id": "modernToLegacy",
+            "label": "Modern to legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 12
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 7
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 1
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 9
+              },
+              {
+                "state": "Rasterized",
+                "label": "Visual fallback",
+                "description": "Appearance retained as a static image when editability is unavailable.",
+                "count": 4
+              }
+            ]
+          },
+          {
+            "id": "legacyToModern",
+            "label": "Legacy to modern",
+            "states": [
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 1
+              },
+              {
+                "state": "Dropped",
+                "label": "Dropped with diagnostics",
+                "description": "The feature is omitted and reported as known loss.",
+                "count": 8
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 1
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 22
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "contracts": [
+        {
+          "id": "OfficeIMO.Word.LegacyDoc",
+          "label": "DOC (Word 97–2003)",
+          "scope": "Legacy DOC import, writing, round-trip behavior, and DOC/DOCX conversion.",
+          "source": "word-legacy-doc.json",
+          "schemaVersion": 1,
+          "formats": [
+            ".doc"
+          ],
+          "capabilityCount": 33,
+          "categoryCount": 15,
+          "hasUnimplementedCoverage": true,
+          "operations": [
+            {
+              "id": "representability",
+              "label": "Represent",
+              "states": [
+                {
+                  "state": "Approximation",
+                  "label": "Closest representation",
+                  "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                  "count": 3
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 23
+                },
+                {
+                  "state": "NotRepresentable",
+                  "label": "No destination equivalent",
+                  "description": "The destination format has no representation for this feature.",
+                  "count": 1
+                },
+                {
+                  "state": "Opaque",
+                  "label": "Opaque content",
+                  "description": "Content carried without interpreting its internal feature semantics.",
+                  "count": 6
+                }
+              ]
+            },
+            {
+              "id": "import",
+              "label": "Read and import",
+              "states": [
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 22
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                },
+                {
+                  "state": "NotImplemented",
+                  "label": "Not implemented",
+                  "description": "The contract explicitly records a path that is not implemented yet.",
+                  "count": 1
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 9
+                }
+              ]
+            },
+            {
+              "id": "create",
+              "label": "Create legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 12
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 8
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 10
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 2
+                },
+                {
+                  "state": "NotImplemented",
+                  "label": "Not implemented",
+                  "description": "The contract explicitly records a path that is not implemented yet.",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "id": "roundTrip",
+              "label": "Edit and round-trip",
+              "states": [
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 10
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 22
+                }
+              ]
+            },
+            {
+              "id": "modernToLegacy",
+              "label": "Modern to legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 12
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 7
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 9
+                },
+                {
+                  "state": "Rasterized",
+                  "label": "Visual fallback",
+                  "description": "Appearance retained as a static image when editability is unavailable.",
+                  "count": 4
+                }
+              ]
+            },
+            {
+              "id": "legacyToModern",
+              "label": "Legacy to modern",
+              "states": [
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 1
+                },
+                {
+                  "state": "Dropped",
+                  "label": "Dropped with diagnostics",
+                  "description": "The feature is omitted and reported as known loss.",
+                  "count": 8
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 22
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "excel",
+      "title": "Microsoft Excel",
+      "package": "OfficeIMO.Excel",
+      "packageVersion": "3.0.0",
+      "productUrl": "/products/excel/",
+      "docsUrl": "/docs/excel/",
+      "apiUrl": "/api/excel/",
+      "color": "#059669",
+      "legacyFormats": [
+        ".xls",
+        ".xlt",
+        ".xla",
+        ".xlm",
+        ".xlw"
+      ],
+      "modernFormats": [
+        ".xlsx",
+        ".xlsm",
+        ".xltx",
+        ".xltm",
+        ".xlam",
+        ".xlsb"
+      ],
+      "formats": [
+        {
+          "id": "Excel.Xls",
+          "extension": ".xls",
+          "generation": "Legacy",
+          "documentKind": "Document",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xlt",
+          "extension": ".xlt",
+          "generation": "Legacy",
+          "documentKind": "Template",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xla",
+          "extension": ".xla",
+          "generation": "Legacy",
+          "documentKind": "AddIn",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xlm",
+          "extension": ".xlm",
+          "generation": "Legacy",
+          "documentKind": "Document",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xlw",
+          "extension": ".xlw",
+          "generation": "Legacy",
+          "documentKind": "Workspace",
+          "encoding": "CompoundBinary",
+          "macroEnabled": false
+        },
+        {
+          "id": "Excel.Xlsx",
+          "extension": ".xlsx",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "Excel.Xlsm",
+          "extension": ".xlsm",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xltx",
+          "extension": ".xltx",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "Excel.Xltm",
+          "extension": ".xltm",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xlam",
+          "extension": ".xlam",
+          "generation": "Modern",
+          "documentKind": "AddIn",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "Excel.Xlsb",
+          "extension": ".xlsb",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "BinaryOpenXml",
+          "macroEnabled": true
+        }
+      ],
+      "contract": {
+        "capabilityCount": 48,
+        "categoryCount": 17,
+        "hasUnimplementedCoverage": true,
+        "operations": [
+          {
+            "id": "representability",
+            "label": "Represent",
+            "states": [
+              {
+                "state": "Approximation",
+                "label": "Closest representation",
+                "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                "count": 7
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 31
+              },
+              {
+                "state": "Opaque",
+                "label": "Opaque content",
+                "description": "Content carried without interpreting its internal feature semantics.",
+                "count": 10
+              }
+            ]
+          },
+          {
+            "id": "import",
+            "label": "Read and import",
+            "states": [
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 31
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 17
+              }
+            ]
+          },
+          {
+            "id": "create",
+            "label": "Create legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 13
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 15
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 17
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 2
+              },
+              {
+                "state": "NotImplemented",
+                "label": "Not implemented",
+                "description": "The contract explicitly records a path that is not implemented yet.",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "id": "roundTrip",
+            "label": "Edit and round-trip",
+            "states": [
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 8
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 40
+              }
+            ]
+          },
+          {
+            "id": "modernToLegacy",
+            "label": "Modern to legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 13
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 9
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 2
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 17
+              },
+              {
+                "state": "Rasterized",
+                "label": "Visual fallback",
+                "description": "Appearance retained as a static image when editability is unavailable.",
+                "count": 7
+              }
+            ]
+          },
+          {
+            "id": "legacyToModern",
+            "label": "Legacy to modern",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 1
+              },
+              {
+                "state": "Dropped",
+                "label": "Dropped with diagnostics",
+                "description": "The feature is omitted and reported as known loss.",
+                "count": 11
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 5
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 31
+              }
+            ]
+          }
+        ]
+      },
+      "contracts": [
+        {
+          "id": "OfficeIMO.Excel.LegacyXls",
+          "label": "XLS (BIFF8)",
+          "scope": "Legacy XLS workbook behavior and XLS/XLSX conversion.",
+          "source": "excel-legacy-xls.json",
+          "schemaVersion": 1,
+          "formats": [
+            ".xls"
+          ],
+          "capabilityCount": 28,
+          "categoryCount": 16,
+          "hasUnimplementedCoverage": true,
+          "operations": [
+            {
+              "id": "representability",
+              "label": "Represent",
+              "states": [
+                {
+                  "state": "Approximation",
+                  "label": "Closest representation",
+                  "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                  "count": 4
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 19
+                },
+                {
+                  "state": "Opaque",
+                  "label": "Opaque content",
+                  "description": "Content carried without interpreting its internal feature semantics.",
+                  "count": 5
+                }
+              ]
+            },
+            {
+              "id": "import",
+              "label": "Read and import",
+              "states": [
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 19
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 9
+                }
+              ]
+            },
+            {
+              "id": "create",
+              "label": "Create legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 10
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 8
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 8
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                },
+                {
+                  "state": "NotImplemented",
+                  "label": "Not implemented",
+                  "description": "The contract explicitly records a path that is not implemented yet.",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "id": "roundTrip",
+              "label": "Edit and round-trip",
+              "states": [
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 8
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 20
+                }
+              ]
+            },
+            {
+              "id": "modernToLegacy",
+              "label": "Modern to legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 10
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 5
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 8
+                },
+                {
+                  "state": "Rasterized",
+                  "label": "Visual fallback",
+                  "description": "Appearance retained as a static image when editability is unavailable.",
+                  "count": 4
+                }
+              ]
+            },
+            {
+              "id": "legacyToModern",
+              "label": "Legacy to modern",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 1
+                },
+                {
+                  "state": "Dropped",
+                  "label": "Dropped with diagnostics",
+                  "description": "The feature is omitted and reported as known loss.",
+                  "count": 7
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 19
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "OfficeIMO.Excel.Xlsb",
+          "label": "XLSB (binary Open XML)",
+          "scope": "Binary workbook lifecycle, preservation, and XLSB/XLSX conversion.",
+          "source": "excel-xlsb.json",
+          "schemaVersion": 1,
+          "formats": [
+            ".xlsb"
+          ],
+          "capabilityCount": 20,
+          "categoryCount": 15,
+          "hasUnimplementedCoverage": false,
+          "operations": [
+            {
+              "id": "representability",
+              "label": "Represent",
+              "states": [
+                {
+                  "state": "Approximation",
+                  "label": "Closest representation",
+                  "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                  "count": 3
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 12
+                },
+                {
+                  "state": "Opaque",
+                  "label": "Opaque content",
+                  "description": "Content carried without interpreting its internal feature semantics.",
+                  "count": 5
+                }
+              ]
+            },
+            {
+              "id": "import",
+              "label": "Read and import",
+              "states": [
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 12
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 8
+                }
+              ]
+            },
+            {
+              "id": "create",
+              "label": "Create legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 3
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 7
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 9
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "id": "roundTrip",
+              "label": "Edit and round-trip",
+              "states": [
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 20
+                }
+              ]
+            },
+            {
+              "id": "modernToLegacy",
+              "label": "Modern to legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 3
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 4
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 9
+                },
+                {
+                  "state": "Rasterized",
+                  "label": "Visual fallback",
+                  "description": "Appearance retained as a static image when editability is unavailable.",
+                  "count": 3
+                }
+              ]
+            },
+            {
+              "id": "legacyToModern",
+              "label": "Legacy to modern",
+              "states": [
+                {
+                  "state": "Dropped",
+                  "label": "Dropped with diagnostics",
+                  "description": "The feature is omitted and reported as known loss.",
+                  "count": 4
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 4
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 12
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "powerpoint",
+      "title": "Microsoft PowerPoint",
+      "package": "OfficeIMO.PowerPoint",
+      "packageVersion": "3.0.0",
+      "productUrl": "/products/powerpoint/",
+      "docsUrl": "/docs/powerpoint/",
+      "apiUrl": "/api/powerpoint/",
+      "color": "#dc2626",
+      "legacyFormats": [
+        ".ppt",
+        ".pot",
+        ".pps",
+        ".ppa"
+      ],
+      "modernFormats": [
+        ".pptx",
+        ".pptm",
+        ".potx",
+        ".potm",
+        ".ppsx",
+        ".ppsm",
+        ".ppam"
+      ],
+      "formats": [
+        {
+          "id": "PowerPoint.Ppt",
+          "extension": ".ppt",
+          "generation": "Legacy",
+          "documentKind": "Document",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pot",
+          "extension": ".pot",
+          "generation": "Legacy",
+          "documentKind": "Template",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pps",
+          "extension": ".pps",
+          "generation": "Legacy",
+          "documentKind": "SlideShow",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppa",
+          "extension": ".ppa",
+          "generation": "Legacy",
+          "documentKind": "AddIn",
+          "encoding": "CompoundBinary",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Pptx",
+          "extension": ".pptx",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Pptm",
+          "extension": ".pptm",
+          "generation": "Modern",
+          "documentKind": "Document",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Potx",
+          "extension": ".potx",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Potm",
+          "extension": ".potm",
+          "generation": "Modern",
+          "documentKind": "Template",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppsx",
+          "extension": ".ppsx",
+          "generation": "Modern",
+          "documentKind": "SlideShow",
+          "encoding": "OpenXml",
+          "macroEnabled": false
+        },
+        {
+          "id": "PowerPoint.Ppsm",
+          "extension": ".ppsm",
+          "generation": "Modern",
+          "documentKind": "SlideShow",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        },
+        {
+          "id": "PowerPoint.Ppam",
+          "extension": ".ppam",
+          "generation": "Modern",
+          "documentKind": "AddIn",
+          "encoding": "OpenXml",
+          "macroEnabled": true
+        }
+      ],
+      "contract": {
+        "capabilityCount": 56,
+        "categoryCount": 16,
+        "hasUnimplementedCoverage": false,
+        "operations": [
+          {
+            "id": "representability",
+            "label": "Represent",
+            "states": [
+              {
+                "state": "Approximation",
+                "label": "Closest representation",
+                "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                "count": 3
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 41
+              },
+              {
+                "state": "NotRepresentable",
+                "label": "No destination equivalent",
+                "description": "The destination format has no representation for this feature.",
+                "count": 4
+              },
+              {
+                "state": "Opaque",
+                "label": "Opaque content",
+                "description": "Content carried without interpreting its internal feature semantics.",
+                "count": 8
+              }
+            ]
+          },
+          {
+            "id": "import",
+            "label": "Read and import",
+            "states": [
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 4
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 44
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 8
+              }
+            ]
+          },
+          {
+            "id": "create",
+            "label": "Create legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 2
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 10
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 43
+              },
+              {
+                "state": "NotApplicable",
+                "label": "Not applicable",
+                "description": "The operation does not apply to this feature or format direction.",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "id": "roundTrip",
+            "label": "Edit and round-trip",
+            "states": [
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 4
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 18
+              },
+              {
+                "state": "PreservedOpaque",
+                "label": "Preserved records",
+                "description": "Original records retained without claiming full editing semantics.",
+                "count": 34
+              }
+            ]
+          },
+          {
+            "id": "modernToLegacy",
+            "label": "Modern to legacy",
+            "states": [
+              {
+                "state": "Approximated",
+                "label": "Editable approximation",
+                "description": "Retained as editable content with a documented approximation.",
+                "count": 2
+              },
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 22
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 1
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 29
+              },
+              {
+                "state": "Rasterized",
+                "label": "Visual fallback",
+                "description": "Appearance retained as a static image when editability is unavailable.",
+                "count": 2
+              }
+            ]
+          },
+          {
+            "id": "legacyToModern",
+            "label": "Legacy to modern",
+            "states": [
+              {
+                "state": "Blocked",
+                "label": "Blocked",
+                "description": "Operation refused when proceeding would silently misrepresent the result.",
+                "count": 4
+              },
+              {
+                "state": "Dropped",
+                "label": "Dropped with diagnostics",
+                "description": "The feature is omitted and reported as known loss.",
+                "count": 8
+              },
+              {
+                "state": "EmbeddedSource",
+                "label": "Source retained",
+                "description": "Original source embedded with hash verification for recovery.",
+                "count": 1
+              },
+              {
+                "state": "Native",
+                "label": "Native",
+                "description": "Represented directly in the destination format.",
+                "count": 43
+              }
+            ]
+          }
+        ]
+      },
+      "contracts": [
+        {
+          "id": "OfficeIMO.PowerPoint.LegacyPpt",
+          "label": "PPT (PowerPoint 97–2003)",
+          "scope": "Legacy PPT import, writing, round-trip behavior, and PPT/PPTX conversion.",
+          "source": "powerpoint-legacy-ppt.json",
+          "schemaVersion": 1,
+          "formats": [
+            ".ppt"
+          ],
+          "capabilityCount": 56,
+          "categoryCount": 16,
+          "hasUnimplementedCoverage": false,
+          "operations": [
+            {
+              "id": "representability",
+              "label": "Represent",
+              "states": [
+                {
+                  "state": "Approximation",
+                  "label": "Closest representation",
+                  "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
+                  "count": 3
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 41
+                },
+                {
+                  "state": "NotRepresentable",
+                  "label": "No destination equivalent",
+                  "description": "The destination format has no representation for this feature.",
+                  "count": 4
+                },
+                {
+                  "state": "Opaque",
+                  "label": "Opaque content",
+                  "description": "Content carried without interpreting its internal feature semantics.",
+                  "count": 8
+                }
+              ]
+            },
+            {
+              "id": "import",
+              "label": "Read and import",
+              "states": [
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 4
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 44
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 8
+                }
+              ]
+            },
+            {
+              "id": "create",
+              "label": "Create legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 2
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 10
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 43
+                },
+                {
+                  "state": "NotApplicable",
+                  "label": "Not applicable",
+                  "description": "The operation does not apply to this feature or format direction.",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "id": "roundTrip",
+              "label": "Edit and round-trip",
+              "states": [
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 4
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 18
+                },
+                {
+                  "state": "PreservedOpaque",
+                  "label": "Preserved records",
+                  "description": "Original records retained without claiming full editing semantics.",
+                  "count": 34
+                }
+              ]
+            },
+            {
+              "id": "modernToLegacy",
+              "label": "Modern to legacy",
+              "states": [
+                {
+                  "state": "Approximated",
+                  "label": "Editable approximation",
+                  "description": "Retained as editable content with a documented approximation.",
+                  "count": 2
+                },
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 22
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 29
+                },
+                {
+                  "state": "Rasterized",
+                  "label": "Visual fallback",
+                  "description": "Appearance retained as a static image when editability is unavailable.",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "id": "legacyToModern",
+              "label": "Legacy to modern",
+              "states": [
+                {
+                  "state": "Blocked",
+                  "label": "Blocked",
+                  "description": "Operation refused when proceeding would silently misrepresent the result.",
+                  "count": 4
+                },
+                {
+                  "state": "Dropped",
+                  "label": "Dropped with diagnostics",
+                  "description": "The feature is omitted and reported as known loss.",
+                  "count": 8
+                },
+                {
+                  "state": "EmbeddedSource",
+                  "label": "Source retained",
+                  "description": "Original source embedded with hash verification for recovery.",
+                  "count": 1
+                },
+                {
+                  "state": "Native",
+                  "label": "Native",
+                  "description": "Represented directly in the destination format.",
+                  "count": 43
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
