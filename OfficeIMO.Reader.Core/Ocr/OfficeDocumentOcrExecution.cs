@@ -198,19 +198,29 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
                 // Isolate both the provider's synchronous prefix and timeout supervision from a small thread pool.
+                var providerStart = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 recognitionTask = Task.Factory.StartNew(
-                        async () => await engine
-                            .RecognizeAsync(request, providerCancellation.Token)
-                            .ConfigureAwait(false),
+                        async () => {
+                            providerStart.Task.GetAwaiter().GetResult();
+                            return await engine
+                                .RecognizeAsync(request, providerCancellation.Token)
+                                .ConfigureAwait(false);
+                        },
                         CancellationToken.None,
                         TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
                         TaskScheduler.Default)
                     .Unwrap();
-                OfficeOcrEngineResult result = await WaitWithTimeoutAsync(
-                    recognitionTask,
-                    options.CandidateTimeout,
-                    cancellationToken,
-                    providerCancellation).ConfigureAwait(false);
+                Task<OfficeOcrEngineResult> supervision;
+                try {
+                    supervision = WaitWithTimeoutAsync(
+                        recognitionTask,
+                        options.CandidateTimeout,
+                        cancellationToken,
+                        providerCancellation);
+                } finally {
+                    providerStart.TrySetResult(null);
+                }
+                OfficeOcrEngineResult result = await supervision.ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
             } catch (Exception exception) when (
                 exception is OcrCandidateTimeoutException
@@ -262,23 +272,31 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             return operation;
         }
 
-        return Task.Factory.StartNew(
-            () => WaitWithTimeoutOnDedicatedThread(
-                operation,
-                timeout,
-                cancellationToken,
-                operationCancellation),
+        var supervisorReady = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<T> supervision = Task.Factory.StartNew(
+            () => {
+                Stopwatch elapsed = Stopwatch.StartNew();
+                supervisorReady.TrySetResult(null);
+                return WaitWithTimeoutOnDedicatedThread(
+                    operation,
+                    timeout,
+                    cancellationToken,
+                    operationCancellation,
+                    elapsed);
+            },
             CancellationToken.None,
             TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
             TaskScheduler.Default);
+        supervisorReady.Task.GetAwaiter().GetResult();
+        return supervision;
     }
 
     private static T WaitWithTimeoutOnDedicatedThread<T>(
         Task<T> operation,
         TimeSpan timeout,
         CancellationToken cancellationToken,
-        CancellationTokenSource operationCancellation) {
-        Stopwatch elapsed = Stopwatch.StartNew();
+        CancellationTokenSource operationCancellation,
+        Stopwatch elapsed) {
         try {
             while (true) {
                 TimeSpan elapsedTime = elapsed.Elapsed;
