@@ -198,9 +198,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
                 // Isolate both the provider's synchronous prefix and timeout supervision from a small thread pool.
+                // Confirm the provider worker is parked before arming the deadline so scheduling delay cannot consume it.
+                var providerReady = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 var providerStart = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 recognitionTask = Task.Factory.StartNew(
                         async () => {
+                            providerReady.TrySetResult(null);
                             providerStart.Task.GetAwaiter().GetResult();
                             return await engine
                                 .RecognizeAsync(request, providerCancellation.Token)
@@ -210,6 +213,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                         TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
                         TaskScheduler.Default)
                     .Unwrap();
+                providerReady.Task.GetAwaiter().GetResult();
                 Task<OfficeOcrEngineResult> supervision;
                 try {
                     supervision = WaitWithTimeoutAsync(
