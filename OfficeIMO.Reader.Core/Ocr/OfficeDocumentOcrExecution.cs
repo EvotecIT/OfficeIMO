@@ -197,8 +197,15 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
                 providerCancellation.CancelAfter(options.CandidateTimeout);
-                recognitionTask = Task.Run(async () =>
-                    await engine.RecognizeAsync(request, providerCancellation.Token).ConfigureAwait(false));
+                // Isolate a provider's synchronous prefix so it cannot starve the timeout timer on a small thread pool.
+                recognitionTask = Task.Factory.StartNew(
+                        async () => await engine
+                            .RecognizeAsync(request, providerCancellation.Token)
+                            .ConfigureAwait(false),
+                        CancellationToken.None,
+                        TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Default)
+                    .Unwrap();
                 OfficeOcrEngineResult result = await WaitWithTimeoutAsync(
                     recognitionTask,
                     options.CandidateTimeout,
