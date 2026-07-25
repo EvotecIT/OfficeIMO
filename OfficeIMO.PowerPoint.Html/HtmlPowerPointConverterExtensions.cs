@@ -301,6 +301,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (name.Length == 0) {
                 name = "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
             }
+            bool showInLegend = !string.Equals(
+                row.GetAttribute("data-officeimo-show-in-legend"), "false",
+                StringComparison.OrdinalIgnoreCase);
 
             List<IElement> valueCells = row.QuerySelectorAll("td").ToList();
             var values = new double[valueCells.Count];
@@ -357,15 +360,20 @@ public static partial class HtmlPowerPointConverterExtensions {
                     values,
                     xValues,
                     PptCore.PowerPointChartSnapshotKind.Bubble) {
-                    BubbleSizes = bubbleSizes
+                    BubbleSizes = bubbleSizes,
+                    ShowInLegend = showInLegend
                 }
                 : hasXValues
                 ? new PptCore.PowerPointChartSeries(
                     name,
                     values,
                     xValues,
-                    PptCore.PowerPointChartSnapshotKind.Scatter)
-                : new PptCore.PowerPointChartSeries(name, values));
+                    PptCore.PowerPointChartSnapshotKind.Scatter) {
+                    ShowInLegend = showInLegend
+                }
+                : new PptCore.PowerPointChartSeries(name, values) {
+                    ShowInLegend = showInLegend
+                });
         }
 
         if (series.Count == 0) {
@@ -705,7 +713,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             series.Add(OfficeChartSeries.CreateBubble(
-                item.Name, item.XValues, item.Values, item.BubbleSizes));
+                item.Name, item.XValues, item.Values, item.BubbleSizes,
+                showInLegend: item.ShowInLegend));
         }
 
         if (series.Count == 0) {

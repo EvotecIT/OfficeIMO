@@ -314,6 +314,13 @@ namespace OfficeIMO.PowerPoint {
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
             double bubbleScalePercent = 100D) {
+            HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes(chart);
+            for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
+                PowerPointChartSeries series = data.Series[seriesIndex];
+                uint sourceIndex = series.SourceIndex ?? (uint)seriesIndex;
+                series.ShowInLegend = !hiddenLegendSeries.Contains(sourceIndex);
+            }
+
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
                 ReadTitle(chart),

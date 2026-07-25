@@ -130,12 +130,9 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
             OfficeChartKind kind = MapKind(powerPointSnapshot.ChartKind);
-            HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes();
             var series = new List<OfficeChartSeries>(powerPointSnapshot.Data.Series.Count);
             for (int seriesIndex = 0; seriesIndex < powerPointSnapshot.Data.Series.Count; seriesIndex++) {
                 PowerPointChartSeries item = powerPointSnapshot.Data.Series[seriesIndex];
-                uint sourceIndex = item.SourceIndex ?? (uint)seriesIndex;
-                bool showInLegend = !hiddenLegendSeries.Contains(sourceIndex);
                 if (item.BubbleSizes != null) {
                     if (item.XValues == null || item.BubbleSizes.Any(size =>
                             double.IsNaN(size) || double.IsInfinity(size) || size < 0D)) {
@@ -144,14 +141,14 @@ namespace OfficeIMO.PowerPoint {
                     }
                     series.Add(OfficeChartSeries.CreateBubble(item.Name, item.XValues!,
                         item.Values, item.BubbleSizes, item.Color, item.PointColors,
-                        showInLegend: showInLegend,
+                        showInLegend: item.ShowInLegend,
                         markerOutlineColor: item.StrokeColor ?? item.Color,
                         markerOutlineWidth: item.StrokeWidth,
                         showMarkerOutline: item.ShowStroke));
                 } else {
                     series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                         pointColors: null, showMarkers: true,
-                        showInLegend: showInLegend, connectLine: true,
+                        showInLegend: item.ShowInLegend, connectLine: true,
                         strokeWidth: item.StrokeWidth,
                         renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
                         axisGroup: item.AxisGroup));
@@ -165,9 +162,9 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private HashSet<uint> GetHiddenLegendSeriesIndexes() {
+        private static HashSet<uint> GetHiddenLegendSeriesIndexes(C.Chart chart) {
             var result = new HashSet<uint>();
-            C.Legend? legend = GetChart().GetFirstChild<C.Legend>();
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
             if (legend == null) return result;
             foreach (C.LegendEntry entry in legend.Elements<C.LegendEntry>()) {
                 if (entry.GetFirstChild<C.Delete>()?.Val?.Value == true &&

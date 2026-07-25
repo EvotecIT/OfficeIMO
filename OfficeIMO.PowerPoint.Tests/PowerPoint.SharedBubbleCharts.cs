@@ -274,6 +274,49 @@ namespace OfficeIMO.Tests {
                 shape.Shape.FillColor == OfficeColor.Parse("#112233"));
             Assert.Null(bubble.Shape.StrokeColor);
             Assert.Equal(0D, bubble.Shape.StrokeWidth);
+
+            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+            Assert.Null(outline.GetFirstChild<A.NoFill>());
+            Assert.Equal("445566", outline.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
+        public void BubbleChart_PreservesHiddenLegendEntriesAcrossSharedSnapshots() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+            var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+                OfficeChartSeries.CreateBubble(
+                    "Hidden Portfolio",
+                    new[] { 1D, 2D },
+                    new[] { 2D, 4D },
+                    new[] { 4D, 9D },
+                    showInLegend: false)
+            });
+            PowerPointChart chart = slide.AddChartPoints(
+                OfficeChartKind.Bubble, data, 30, 20, 420, 250);
+
+            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
+            Assert.False(Assert.Single(native.Data.Series).ShowInLegend);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot shared));
+            Assert.False(Assert.Single(shared.Data.Series).ShowInLegend);
+            OfficeChartSnapshot pdf =
+                PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
+                    native, 420D, 250D, new PowerPointPdfSaveOptions());
+            Assert.False(Assert.Single(pdf.Data.Series).ShowInLegend);
+
+            string svg = System.Text.Encoding.UTF8.GetString(
+                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            Assert.DoesNotContain("Hidden Portfolio", svg, StringComparison.Ordinal);
+
+            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+                Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+            });
+            Assert.Contains("data-officeimo-show-in-legend=\"false\"", html,
+                StringComparison.Ordinal);
         }
 
         [Fact]

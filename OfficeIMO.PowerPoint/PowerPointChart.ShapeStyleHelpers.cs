@@ -188,6 +188,7 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.NoFill>();
             outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);

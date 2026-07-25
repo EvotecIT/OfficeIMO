@@ -51,6 +51,7 @@ namespace OfficeIMO.PowerPoint {
                 series.Add(item.BubbleSizes != null
                     ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                         item.BubbleSizes, item.Color, item.PointColors,
+                        showInLegend: item.ShowInLegend,
                         markerOutlineColor: item.StrokeColor ?? item.Color,
                         markerOutlineWidth: item.StrokeWidth,
                         showMarkerOutline: item.ShowStroke)
@@ -61,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
                         color: item.Color,
                         pointColors: null,
                         showMarkers: true,
+                        showInLegend: item.ShowInLegend,
                         strokeWidth: item.StrokeWidth,
                         renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind),
                         axisGroup: item.AxisGroup));

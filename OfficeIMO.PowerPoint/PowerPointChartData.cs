@@ -203,6 +203,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether the source series outline is enabled.</summary>
         internal bool ShowStroke { get; set; } = true;
 
+        /// <summary>Whether the source series is visible in the chart legend.</summary>
+        internal bool ShowInLegend { get; set; } = true;
+
         /// <summary>Primary or secondary value-axis assignment detected for this series.</summary>
         public OfficeChartAxisGroup AxisGroup { get; private set; }
 

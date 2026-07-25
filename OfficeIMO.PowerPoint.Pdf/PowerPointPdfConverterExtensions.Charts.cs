@@ -85,11 +85,13 @@ public static partial class PowerPointPdfConverterExtensions {
             .Select(item => item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                     item.BubbleSizes, item.Color, item.PointColors,
+                    showInLegend: item.ShowInLegend,
                     markerOutlineColor: item.StrokeColor ?? item.Color,
                     markerOutlineWidth: item.StrokeWidth,
                     showMarkerOutline: item.ShowStroke)
                 : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                    pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
+                    pointColors: null, showMarkers: true,
+                    showInLegend: item.ShowInLegend, strokeWidth: item.StrokeWidth,
                     renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
                     axisGroup: item.AxisGroup))
             .ToList();
