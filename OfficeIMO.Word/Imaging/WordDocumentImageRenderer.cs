@@ -412,7 +412,7 @@ namespace OfficeIMO.Word {
                 }
 
                 WordImageListMarker? currentMarker = markerRendered ? null : listMarker;
-                bool runAdded = textRuns.Count == 1 && !HasRunHighlight(textRuns[0])
+                bool runAdded = textRuns.Count == 1 && !HasRunBackground(textRuns[0], colorScheme)
                     ? AddTextRun(textRuns[0], context, diagnostics, currentMarker, colorScheme)
                     : AddRichTextRuns(textRuns, context, diagnostics, currentMarker, colorScheme);
                 if (runAdded && currentMarker.HasValue) {
@@ -631,7 +631,7 @@ namespace OfficeIMO.Word {
                 paragraph.Underline.HasValue && paragraph.Underline.Value != UnderlineValues.None,
                 paragraph.FontFamily ?? "Calibri",
                 paragraph.Strike || paragraph.DoubleStrike,
-                ResolveRunHighlightColor(ResolveRunHighlight(paragraph)));
+                ResolveRunBackgroundColor(paragraph, colorScheme));
         }
 
         private static OfficeFontInfo CreateFont(WordParagraph paragraph) {

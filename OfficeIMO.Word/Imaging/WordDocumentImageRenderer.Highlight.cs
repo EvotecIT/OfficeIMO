@@ -1,10 +1,24 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
-        private static bool HasRunHighlight(WordParagraph paragraph) =>
-            ResolveRunHighlightColor(ResolveRunHighlight(paragraph)).HasValue;
+        private static bool HasRunBackground(WordParagraph paragraph, A.ColorScheme? colorScheme) =>
+            ResolveRunBackgroundColor(paragraph, colorScheme).HasValue;
+
+        private static OfficeColor? ResolveRunBackgroundColor(
+            WordParagraph paragraph,
+            A.ColorScheme? colorScheme) {
+            OfficeColor? highlight = ResolveRunHighlightColor(ResolveRunHighlight(paragraph));
+            if (highlight.HasValue) {
+                return highlight;
+            }
+
+            return TryResolveShadingFillColor(ResolveRunShading(paragraph), colorScheme, out OfficeColor shading)
+                ? shading
+                : null;
+        }
 
         private static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
             if (paragraph._runProperties?.Highlight != null) {
@@ -15,6 +29,21 @@ namespace OfficeIMO.Word {
                 Highlight? highlight = properties.GetFirstChild<Highlight>();
                 if (highlight != null) {
                     return highlight.Val?.Value;
+                }
+            }
+
+            return null;
+        }
+
+        private static Shading? ResolveRunShading(WordParagraph paragraph) {
+            if (paragraph._runProperties?.Shading != null) {
+                return paragraph._runProperties.Shading;
+            }
+
+            foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+                Shading? shading = properties.GetFirstChild<Shading>();
+                if (shading != null) {
+                    return shading;
                 }
             }
 

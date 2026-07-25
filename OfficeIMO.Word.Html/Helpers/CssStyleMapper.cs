@@ -109,14 +109,21 @@ namespace OfficeIMO.Word.Html {
             string style,
             bool rightToLeft,
             CssProperties result) {
+            ApplyBoxPropertiesInDeclarationOrder(style, rightToLeft, result, important: false);
+            ApplyBoxPropertiesInDeclarationOrder(style, rightToLeft, result, important: true);
+        }
+
+        private static void ApplyBoxPropertiesInDeclarationOrder(
+            string style,
+            bool rightToLeft,
+            CssProperties result,
+            bool important) {
             foreach (string part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                string[] pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
+                if (!TryParseDeclaration(part, out string name, out string value, out bool declarationIsImportant) ||
+                    declarationIsImportant != important) {
                     continue;
                 }
 
-                string name = pieces[0].Trim().ToLowerInvariant();
-                string value = pieces[1].Trim();
                 switch (name) {
                     case "margin":
                         ApplyMarginShorthand(value, result);
@@ -157,6 +164,51 @@ namespace OfficeIMO.Word.Html {
                         break;
                 }
             }
+        }
+
+        private static bool TryParseDeclaration(
+            string declaration,
+            out string name,
+            out string value,
+            out bool important) {
+            string[] pieces = declaration.Split(new[] { ':' }, 2);
+            if (pieces.Length != 2) {
+                name = string.Empty;
+                value = string.Empty;
+                important = false;
+                return false;
+            }
+
+            name = pieces[0].Trim().ToLowerInvariant();
+            value = pieces[1].Trim();
+            important = TryRemoveImportantSuffix(ref value);
+            return name.Length > 0 && value.Length > 0;
+        }
+
+        private static bool TryRemoveImportantSuffix(ref string value) {
+            int end = value.Length;
+            while (end > 0 && char.IsWhiteSpace(value[end - 1])) {
+                end--;
+            }
+
+            const string importantKeyword = "important";
+            int keywordStart = end - importantKeyword.Length;
+            if (keywordStart < 0 ||
+                !value.Substring(keywordStart, importantKeyword.Length)
+                    .Equals(importantKeyword, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            int bangIndex = keywordStart;
+            while (bangIndex > 0 && char.IsWhiteSpace(value[bangIndex - 1])) {
+                bangIndex--;
+            }
+            if (bangIndex == 0 || value[bangIndex - 1] != '!') {
+                return false;
+            }
+
+            value = value.Substring(0, bangIndex - 1).TrimEnd();
+            return true;
         }
 
         private static void ApplySingleLogicalBoxProperty(

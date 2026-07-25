@@ -74,14 +74,17 @@ namespace OfficeIMO.Word.Html {
                 string value = pieces[1].Trim();
                 if (name == "background-color") {
                     background = NormalizeColor(value);
-                } else if (name == "border" && TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor)) {
+                } else if (name == "border" &&
+                           TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle) &&
+                           hasBorderStyle) {
                     var border = new BlockBorderState(borderStyle, borderSize, borderColor);
                     sideBorders[BlockBorderSide.Left] = border;
                     sideBorders[BlockBorderSide.Right] = border;
                     sideBorders[BlockBorderSide.Top] = border;
                     sideBorders[BlockBorderSide.Bottom] = border;
                 } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
-                           TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor)) {
+                           TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor, out bool hasSideStyle) &&
+                           hasSideStyle) {
                     sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
                 } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
                     ApplyBlockBorderLonghand(sideBorders, side, component, value);

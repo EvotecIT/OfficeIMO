@@ -903,10 +903,23 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryParseBorder(string value, out BorderValues style, out UInt32Value size, out SixColor color) {
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color) =>
+            TryParseBorder(value, out style, out size, out color, out _);
+
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color,
+            out bool hasExplicitStyle) {
             style = BorderValues.Single;
             size = 4U;
             color = SixColor.Black;
+            hasExplicitStyle = false;
             bool found = false;
             foreach (var part in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var token = part.Trim().ToLowerInvariant();
@@ -921,6 +934,7 @@ namespace OfficeIMO.Word.Html {
                         "none" => BorderValues.None,
                         _ => BorderValues.Single
                     };
+                    hasExplicitStyle = true;
                     found = true;
                 } else {
                     var hex = NormalizeColor(token);

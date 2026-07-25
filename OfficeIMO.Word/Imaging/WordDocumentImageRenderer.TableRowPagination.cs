@@ -144,7 +144,7 @@ namespace OfficeIMO.Word {
                     cell,
                     contentWidth,
                     context.CancellationToken);
-                if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers)) {
+                if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers, colorScheme)) {
                     List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context);
                     if (richRuns.Count == 0) {
                         IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, 0);
@@ -357,12 +357,17 @@ namespace OfficeIMO.Word {
                     context.CancellationCheckpoint).Count);
         }
 
-        private static bool ShouldSplitTableCellAsRichText(IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns, bool hasListMarkers) {
+        private static bool ShouldSplitTableCellAsRichText(
+            IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns,
+            bool hasListMarkers,
+            A.ColorScheme? colorScheme) {
             if (paragraphRuns.Count > 1 || hasListMarkers) {
                 return true;
             }
 
-            return paragraphRuns.Count == 1 && (paragraphRuns[0].Count > 1 || HasRunHighlight(paragraphRuns[0][0]));
+            return paragraphRuns.Count == 1 &&
+                   (paragraphRuns[0].Count > 1 ||
+                    HasRunBackground(paragraphRuns[0][0], colorScheme));
         }
 
         private static List<OfficeRichTextRun> CreateSplitTableCellRichRuns(

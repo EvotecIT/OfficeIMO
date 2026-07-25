@@ -121,9 +121,10 @@ namespace OfficeIMO.Word.Html {
                                 bool standaloneResource = child is IElement resourceElement &&
                                     (resourceElement.TagName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
                                      resourceElement.TagName.Equals("svg", StringComparison.OrdinalIgnoreCase));
-                                ProcessNode(child, doc, section, options, standaloneResource ? null : para, listStack, fmt, cell, headerFooter, headingList);
-                                if (standaloneResource ||
-                                    child is IElement childElement && _blockTags.Contains(childElement.TagName)) {
+                                bool startsOwnParagraph = standaloneResource ||
+                                    child is IElement childElement && _blockTags.Contains(childElement.TagName);
+                                ProcessNode(child, doc, section, options, startsOwnParagraph ? null : para, listStack, fmt, cell, headerFooter, headingList);
+                                if (startsOwnParagraph) {
                                     para = null;
                                 } else if (para == null) {
                                     var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);

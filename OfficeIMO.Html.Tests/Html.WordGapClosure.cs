@@ -81,6 +81,23 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_LogicalSpacing_RespectsImportantPriorityBeforeDeclarationOrder() {
+        const string html = """
+            <p style="margin-left:30px!important;margin-inline-start:10px">Important physical</p>
+            <p style="margin-left:30px;margin-inline-start:10px ! important">Important logical</p>
+            <p style="margin-inline-start:10px!important;margin-left:30px!important">Important physical last</p>
+            <p style="padding-left:30px!important;padding-inline-start:10px">Important padding</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+
+        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore);
+        Assert.Equal(150, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore);
+        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore);
+        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore);
+    }
+
+    [Fact]
     public void HtmlToWord_CssDirection_OverridesDirForLogicalSpacing() {
         const string html = """
             <style>
@@ -145,6 +162,36 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_BlockChild_StartsANewFramedParagraphAfterInlineContent() {
+        const string html = """
+            <span>Before</span><div style="border:1px solid #123456">Inside</div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph before = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Before");
+        WordParagraph inside = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inside");
+
+        Assert.NotSame(before, inside);
+        Assert.Equal(BorderValues.Single, inside.Borders.TopStyle);
+        Assert.Equal(BorderValues.Single, inside.Borders.BottomStyle);
+        Assert.Equal("123456", inside.Borders.LeftColorHex);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_DirectTextBlockStartsANewFramedParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+
+        cell.AddHtml(HtmlConversionDocument.Parse(
+            """<div style="border:1px solid #123456">Inside cell</div>"""));
+
+        WordParagraph inside = Assert.Single(cell.Paragraphs, paragraph => paragraph.Text == "Inside cell");
+        Assert.Equal(BorderValues.Single, inside.Borders.TopStyle);
+        Assert.Equal(BorderValues.Single, inside.Borders.BottomStyle);
+        Assert.Equal("123456", inside.Borders.LeftColorHex);
+    }
+
+    [Fact]
     public void HtmlToWord_BorderColorLonghand_DoesNotSynthesizeVisibleBorder() {
         const string html = """<p style="border-left-color:#ff0000">No border style</p>""";
 
@@ -152,6 +199,24 @@ public class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "No border style");
 
         Assert.Null(paragraph.Borders.LeftStyle);
+    }
+
+    [Fact]
+    public void HtmlToWord_BorderShorthandWithoutStyle_DoesNotSynthesizeVisibleBorder() {
+        const string html = """
+            <p style="border:1px red">All sides</p>
+            <p style="border-left:2px #00ff00">One side</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph allSides = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "All sides");
+        WordParagraph oneSide = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "One side");
+
+        Assert.Null(allSides.Borders.LeftStyle);
+        Assert.Null(allSides.Borders.TopStyle);
+        Assert.Null(allSides.Borders.RightStyle);
+        Assert.Null(allSides.Borders.BottomStyle);
+        Assert.Null(oneSide.Borders.LeftStyle);
     }
 
     [Fact]
@@ -183,6 +248,15 @@ public class HtmlWordGapClosure {
             "background-color:#abcdef",
             reloaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true }),
             StringComparison.OrdinalIgnoreCase);
+
+        WordDocumentVisualSnapshot snapshot = reloaded.CreateVisualSnapshot();
+        OfficeIMO.Drawing.OfficeDrawingRichText richText = Assert.Single(
+            snapshot.Drawing.Elements.OfType<OfficeIMO.Drawing.OfficeDrawingRichText>());
+        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
+            richText.Runs,
+            run => run.Text.Contains("exact", StringComparison.Ordinal));
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
+        Assert.Contains("#ABCDEF", reloaded.ToSvg(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
