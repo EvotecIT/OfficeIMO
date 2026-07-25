@@ -855,6 +855,44 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RoundTripsBubbleChartSizesInSemanticChartData() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1.5D, 2.5D },
+                new[] { 10D, 20D },
+                new[] { 4D, 9D })
+        });
+        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
+            .SetTitle("Bubble");
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-bubble-size=\"4\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-size=\"9\"", html,
+            StringComparison.Ordinal);
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
+        Assert.Equal(new[] { 10D, 20D }, series.Values);
+        Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted ||
+                          diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();

@@ -22,8 +22,11 @@ namespace OfficeIMO.PowerPoint {
                     ReadCachedNumbers(element.GetFirstChild<C.YValues>());
                 IReadOnlyList<double> bubbleSizes =
                     ReadCachedNumbers(element.GetFirstChild<C.BubbleSize>());
-                int pointCount = Math.Min(xValues.Count,
-                    Math.Min(yValues.Count, bubbleSizes.Count));
+                if (xValues.Count != yValues.Count || xValues.Count != bubbleSizes.Count) {
+                    return null;
+                }
+
+                int pointCount = xValues.Count;
                 if (pointCount == 0) continue;
 
                 IReadOnlyList<double> normalizedY = NormalizeValues(yValues, pointCount);

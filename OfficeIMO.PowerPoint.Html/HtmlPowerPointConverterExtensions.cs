@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PptCore = OfficeIMO.PowerPoint;
@@ -182,9 +183,11 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         using (reservation) {
             string chartKind = ReadChartKind(item);
+            bool isBubble = chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase);
             bool restoredFromSemanticData = TryReadChartData(
                 item,
-                chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase),
+                chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase) || isBubble,
+                isBubble,
                 out PptCore.PowerPointChartData? semanticData);
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
@@ -262,7 +265,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         return new PptCore.PowerPointChartData(categories, series);
     }
 
-    private static bool TryReadChartData(IElement item, bool allowXValues, out PptCore.PowerPointChartData? data) {
+    private static bool TryReadChartData(IElement item, bool allowXValues, bool allowBubbleSizes,
+        out PptCore.PowerPointChartData? data) {
         data = null;
         IElement? table = item.QuerySelector("table.officeimo-chart-data");
         if (table == null) {
@@ -287,8 +291,14 @@ public static partial class HtmlPowerPointConverterExtensions {
             List<IElement> valueCells = row.QuerySelectorAll("td").ToList();
             var values = new double[valueCells.Count];
             var xValues = new double[valueCells.Count];
+            var bubbleSizes = new double[valueCells.Count];
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
+            bool hasBubbleSizes = valueCells.Any(
+                cell => cell.GetAttribute("data-officeimo-bubble-size") != null);
             if (hasXValues && !allowXValues) {
+                return false;
+            }
+            if (hasBubbleSizes != allowBubbleSizes) {
                 return false;
             }
 
@@ -308,13 +318,31 @@ public static partial class HtmlPowerPointConverterExtensions {
                         return false;
                     }
                 }
+                if (hasBubbleSizes) {
+                    string? rawBubbleSize = cell.GetAttribute("data-officeimo-bubble-size");
+                    if (rawBubbleSize == null
+                        || !double.TryParse(rawBubbleSize, NumberStyles.Float,
+                            CultureInfo.InvariantCulture, out bubbleSizes[i])
+                        || double.IsNaN(bubbleSizes[i]) || double.IsInfinity(bubbleSizes[i])
+                        || bubbleSizes[i] < 0D) {
+                        return false;
+                    }
+                }
             }
 
             if (!hasXValues && values.Length != categories.Count) {
                 return false;
             }
 
-            series.Add(hasXValues
+            series.Add(hasBubbleSizes
+                ? new PptCore.PowerPointChartSeries(
+                    name,
+                    values,
+                    xValues,
+                    PptCore.PowerPointChartSnapshotKind.Bubble) {
+                    BubbleSizes = bubbleSizes
+                }
+                : hasXValues
                 ? new PptCore.PowerPointChartSeries(
                     name,
                     values,
@@ -598,6 +626,17 @@ public static partial class HtmlPowerPointConverterExtensions {
             return true;
         }
 
+        if (chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase)) {
+            if (!TryCreateBubbleChartData(data, out OfficeChartData? bubbleData) ||
+                bubbleData == null) {
+                return false;
+            }
+
+            chart = slide.AddChartPoints(OfficeChartKind.Bubble, bubbleData,
+                left, top, width, height);
+            return true;
+        }
+
         if (CanImportAsClusteredColumnFallback(chartKind)) {
             chart = slide.AddChartPoints(data, left, top, width, height);
             fallbackMessage = "used chart kind '" + chartKind + "' and was imported as a clustered column fallback.";
@@ -634,6 +673,29 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         scatterData = new PptCore.PowerPointScatterChartData(series);
+        return true;
+    }
+
+    private static bool TryCreateBubbleChartData(PptCore.PowerPointChartData data,
+        out OfficeChartData? bubbleData) {
+        bubbleData = null;
+        var series = new List<OfficeChartSeries>();
+        foreach (PptCore.PowerPointChartSeries item in data.Series) {
+            if (item.XValues == null || item.BubbleSizes == null ||
+                item.XValues.Count != item.Values.Count ||
+                item.BubbleSizes.Count != item.Values.Count) {
+                return false;
+            }
+
+            series.Add(OfficeChartSeries.CreateBubble(
+                item.Name, item.XValues, item.Values, item.BubbleSizes));
+        }
+
+        if (series.Count == 0) {
+            return false;
+        }
+
+        bubbleData = new OfficeChartData(data.Categories, series);
         return true;
     }
 

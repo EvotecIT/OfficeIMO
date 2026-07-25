@@ -435,7 +435,8 @@ public static partial class PowerPointHtmlConverterExtensions {
             var series = snapshot.Data.Series
                 .Select(item => item.BubbleSizes != null
                     ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                        item.BubbleSizes, item.Color, item.PointColors)
+                        item.BubbleSizes, item.Color, item.PointColors,
+                        markerOutlineColor: item.Color, markerOutlineWidth: item.StrokeWidth)
                     : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                         pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
                         renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
@@ -542,6 +543,11 @@ public static partial class PowerPointHtmlConverterExtensions {
                 if (series.XValues != null && i < series.XValues.Count) {
                     body.Append(" data-officeimo-x=\"")
                         .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append('"');
+                }
+                if (series.BubbleSizes != null && i < series.BubbleSizes.Count) {
+                    body.Append(" data-officeimo-bubble-size=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(series.BubbleSizes[i].ToString("G17", CultureInfo.InvariantCulture)))
                         .Append('"');
                 }
 

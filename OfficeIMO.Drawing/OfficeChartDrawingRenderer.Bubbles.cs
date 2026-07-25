@@ -13,9 +13,13 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         double size = series.BubbleSizes[pointIndex];
+        if (size <= 0D) {
+            return;
+        }
+
         double maximumDiameter = Math.Max(12D, Math.Min(42D, Math.Min(plotWidth, plotHeight) * 0.16D));
         double diameter = maximumBubbleSize <= 0D
-            ? 3D
+            ? 0D
             : 3D + (maximumDiameter - 3D) * Math.Sqrt(size / maximumBubbleSize);
         double outlineWidth = series.MarkerOutlineWidth ?? 1D;
         OfficeColor outlineColor = series.MarkerOutlineColor ?? color;

@@ -50,7 +50,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointChartSeries item = snapshot.Data.Series[i];
                 series.Add(item.BubbleSizes != null
                     ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                        item.BubbleSizes, item.Color, item.PointColors)
+                        item.BubbleSizes, item.Color, item.PointColors,
+                        markerOutlineColor: item.Color, markerOutlineWidth: item.StrokeWidth)
                     : new OfficeChartSeries(
                         item.Name,
                         item.Values,

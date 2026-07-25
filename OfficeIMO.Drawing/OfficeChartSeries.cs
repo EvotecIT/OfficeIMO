@@ -81,12 +81,15 @@ public sealed class OfficeChartSeries {
     /// <param name="color">Optional source-defined series color.</param>
     /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
+    /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
-        IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true) =>
+        IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
+        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null) =>
         new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
             showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
-            markerOutlineColor: color, markerOutlineWidth: null, strokeWidth: null,
+            markerOutlineColor: markerOutlineColor ?? color, markerOutlineWidth, strokeWidth: null,
             strokeDashStyle: null, renderKind: OfficeChartKind.Bubble,
             axisGroup: OfficeChartAxisGroup.Primary);
 

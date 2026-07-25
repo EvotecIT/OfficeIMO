@@ -49,6 +49,7 @@ namespace OfficeIMO.Tests {
                         StringComparison.Ordinal);
 
                     chart.SetSeriesFillColor(0, "123456")
+                        .SetSeriesLineColor(0, "654321", widthPoints: 2.5D)
                         .SetDataLabels(showValue: true)
                         .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0");
                     ChartPart authoredChartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
@@ -71,6 +72,8 @@ namespace OfficeIMO.Tests {
                         Assert.Single(refreshed.Data.Series).BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#D62828"),
                         Assert.Single(refreshed.Data.Series).PointColors![0]);
+                    Assert.Equal(2.5D,
+                        Assert.Single(refreshed.Data.Series).MarkerOutlineWidth);
                     C.BubbleChart preservedBubble = authoredChartPart.ChartSpace!
                         .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!
                         .GetFirstChild<C.BubbleChart>()!;
@@ -107,6 +110,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(new[] { 12D, 24D, 36D }, series.Values);
                     Assert.Equal(new[] { 16D, 36D, 64D }, series.BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#F4A261"), series.PointColors![2]);
+                    Assert.Equal(2.5D, series.MarkerOutlineWidth);
                 }
 
                 using PresentationDocument document = PresentationDocument.Open(output, false);
@@ -184,6 +188,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_ZeroSizesRemainInvisibleInSharedRendering() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddChartPoints(OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D, 2D },
+                    new[] { 2D, 4D },
+                    new[] { 0D, 9D }),
+                30, 20, 420, 250);
+
+            string svg = System.Text.Encoding.UTF8.GetString(
+                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+
+            Assert.Equal(1, CountOccurrences(svg, "<ellipse"));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMissingOrInvalidSizesBeforeMutatingSlide() {
             Assert.Throws<ArgumentException>(() => OfficeChartSeries.CreateBubble("Invalid",
                 new[] { 1D, 2D }, new[] { 2D, 3D }, new[] { 5D }));
@@ -207,6 +229,35 @@ namespace OfficeIMO.Tests {
             bubbleSize.NumberReference!.NumberingCache!.Elements<C.NumericPoint>()
                 .Single().NumericValue!.Text = "-4";
             Assert.False(imported.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsMismatchedImportedCaches() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D, 2D, 3D },
+                    new[] { 2D, 4D, 6D },
+                    new[] { 4D, 9D, 16D }));
+            C.NumberingCache sizeCache = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleSize>().Single()
+                .NumberReference!.NumberingCache!;
+            sizeCache.Elements<C.NumericPoint>().Last().Remove();
+            sizeCache.PointCount!.Val = 2U;
+
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        private static int CountOccurrences(string value, string marker) {
+            int count = 0;
+            int offset = 0;
+            while ((offset = value.IndexOf(marker, offset, StringComparison.Ordinal)) >= 0) {
+                count++;
+                offset += marker.Length;
+            }
+            return count;
         }
 
         private static OfficeChartData CreateBubbleData(IReadOnlyList<double> xValues,

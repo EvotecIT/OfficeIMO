@@ -60,7 +60,12 @@ namespace OfficeIMO.Excel {
                 case OfficeChartKind.Radar: return ExcelChartType.Radar;
                 case OfficeChartKind.Pie: return ExcelChartType.Pie;
                 case OfficeChartKind.Doughnut: return ExcelChartType.Doughnut;
-                default: return ExcelChartType.ColumnClustered;
+                case OfficeChartKind.Bubble:
+                    throw new NotSupportedException(
+                        "Bubble charts are not supported by the shared Excel chart API. Use the native Excel bubble-chart API.");
+                default:
+                    throw new NotSupportedException(
+                        $"Shared chart kind '{kind}' is not supported by Excel.");
             }
         }
     }

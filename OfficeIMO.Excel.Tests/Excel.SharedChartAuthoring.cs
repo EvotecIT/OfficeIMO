@@ -134,6 +134,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_SharedBubbleKindIsRejectedInsteadOfFallingBack() {
+            using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Shared");
+            var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+                OfficeChartSeries.CreateBubble("Bubbles",
+                    new[] { 1D, 2D }, new[] { 10D, 20D }, new[] { 4D, 9D })
+            });
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                sheet.AddChart(OfficeChartKind.Bubble, data, row: 1, column: 5));
+
+            Assert.Contains("native Excel bubble-chart API", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Empty(sheet.Charts);
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SharedContractPersistsAuthoredSeriesStyles() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.Styles.xlsx");
             var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
