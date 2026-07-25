@@ -12,6 +12,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -613,6 +614,85 @@ namespace OfficeIMO.Tests {
                 .Descendants<C.BubbleChartSeries>().Single();
             series.RemoveAllChildren<C.Trendline>();
             series.Append(new C.ErrorBars());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_ResolvesThemeColorsInParameterlessSnapshots() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            presentation.SetThemeColor(PowerPointThemeColor.Accent3, "2468AC");
+            presentation.SetThemeColor(PowerPointThemeColor.Accent4, "97531B");
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.BubbleChartSeries series = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties seriesProperties =
+                series.GetFirstChild<C.ChartShapeProperties>()!;
+            seriesProperties.RemoveAllChildren<A.SolidFill>();
+            seriesProperties.PrependChild(new A.SolidFill(
+                new A.SchemeColor { Val = A.SchemeColorValues.Accent3 }));
+            A.Outline outline = seriesProperties.GetFirstChild<A.Outline>() ??
+                seriesProperties.AppendChild(new A.Outline());
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.PrependChild(new A.SolidFill(
+                new A.SchemeColor { Val = A.SchemeColorValues.Accent4 }));
+            series.PrependChild(new C.DataPoint(
+                new C.Index { Val = 0U },
+                new C.ChartShapeProperties(
+                    new A.SolidFill(
+                        new A.SchemeColor { Val = A.SchemeColorValues.Accent4 }))));
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            OfficeChartSeries bubble = Assert.Single(snapshot.Data.Series);
+            Assert.Equal(OfficeColor.Parse("#2468AC"), bubble.Color);
+            Assert.Equal(OfficeColor.Parse("#97531B"), bubble.MarkerOutlineColor);
+            Assert.Equal(OfficeColor.Parse("#97531B"),
+                Assert.Single(bubble.PointColors!));
+            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot nativeSnapshot));
+            Assert.Equal(OfficeColor.Parse("#2468AC"),
+                Assert.Single(nativeSnapshot.Data.Series).Color);
+
+            seriesProperties.GetFirstChild<A.SolidFill>()!.SchemeColor!.Val =
+                A.SchemeColorValues.PhColor;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsBubbleSizeLabelsAndShapeEffects() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            chart.SetDataLabels(showValue: false);
+            C.BubbleChart nativeChart = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!.Descendants<C.BubbleChart>().Single();
+            C.DataLabels labels = nativeChart.GetFirstChild<C.DataLabels>()!;
+            labels.GetFirstChild<C.ShowBubbleSize>()!.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            labels.GetFirstChild<C.ShowBubbleSize>()!.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            C.BubbleChartSeries series =
+                nativeChart.Elements<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties properties =
+                series.GetFirstChild<C.ChartShapeProperties>()!;
+            properties.Append(new A.EffectList(
+                new A.Glow(new A.RgbColorModelHex { Val = "445566" }) {
+                    Radius = 12700L
+                }));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 

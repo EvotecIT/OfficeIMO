@@ -17,7 +17,40 @@ namespace OfficeIMO.PowerPoint {
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
         internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(null, out snapshot);
+            TryGetSnapshot(GetOwnerColorScheme(), out snapshot);
+
+        private A.ColorScheme? GetOwnerColorScheme() {
+            if (_ownerPart is SlidePart slidePart) {
+                return slidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                    ?? slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
+                        .ColorScheme
+                    ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
+                        .ThemeElements?.ColorScheme;
+            }
+
+            if (_ownerPart is SlideLayoutPart layoutPart) {
+                return layoutPart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                    ?? layoutPart.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?
+                        .ColorScheme;
+            }
+
+            if (_ownerPart is SlideMasterPart masterPart) {
+                return masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            }
+
+            if (_ownerPart is NotesSlidePart notesPart) {
+                return notesPart.ThemeOverridePart?.ThemeOverride?.ColorScheme
+                    ?? notesPart.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
+                        .ColorScheme;
+            }
+
+            if (_ownerPart is NotesMasterPart notesMasterPart) {
+                return notesMasterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            }
+
+            return (_ownerPart as HandoutMasterPart)?.ThemePart?.Theme?
+                .ThemeElements?.ColorScheme;
+        }
 
         internal bool TryGetSnapshot(A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
             try {
@@ -99,6 +132,8 @@ namespace OfficeIMO.PowerPoint {
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
                     if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
                         IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                        bubbleChart.Descendants<C.ShowBubbleSize>().Any(
+                            IsShowBubbleSizeEnabled) ||
                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                             IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
                             series.Elements<C.DataPoint>().Any(point =>
@@ -164,6 +199,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
             varyColors != null && varyColors.Val?.Value != false;
+
+        private static bool IsShowBubbleSizeEnabled(C.ShowBubbleSize showBubbleSize) =>
+            showBubbleSize.Val?.Value != false;
 
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()

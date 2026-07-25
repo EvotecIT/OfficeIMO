@@ -21,9 +21,13 @@ namespace OfficeIMO.PowerPoint {
                     element.Elements<C.ErrorBars>().Any() ||
                     HasUnsupportedSeriesStyle(
                         element.GetFirstChild<C.ChartShapeProperties>()) ||
+                    HasUnresolvedSeriesColor(
+                        element.GetFirstChild<C.ChartShapeProperties>(), colorScheme) ||
                     element.Elements<C.DataPoint>().Any(point =>
                         HasUnsupportedPointStyle(
-                            point.GetFirstChild<C.ChartShapeProperties>()))) {
+                            point.GetFirstChild<C.ChartShapeProperties>()) ||
+                        HasUnresolvedPointColor(
+                            point.GetFirstChild<C.ChartShapeProperties>(), colorScheme))) {
                     return null;
                 }
                 if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(),
@@ -78,20 +82,42 @@ namespace OfficeIMO.PowerPoint {
             properties?.ChildElements.Any(child =>
                 child is NoFill or GradientFill or PatternFill or BlipFill or GroupFill) == true;
 
+        private static bool HasUnsupportedEffects(C.ChartShapeProperties? properties) =>
+            properties?.GetFirstChild<EffectList>()?.ChildElements.Count > 0 ||
+            properties?.GetFirstChild<EffectDag>()?.ChildElements.Count > 0;
+
         private static bool HasUnsupportedSeriesStyle(
             C.ChartShapeProperties? properties) =>
             HasUnsupportedFill(properties) ||
+            HasUnsupportedEffects(properties) ||
             HasUnsupportedOutlineFill(properties?.GetFirstChild<Outline>());
 
         private static bool HasUnsupportedPointStyle(
             C.ChartShapeProperties? properties) =>
             HasUnsupportedFill(properties) ||
+            HasUnsupportedEffects(properties) ||
             properties?.GetFirstChild<Outline>() != null;
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline?.ChildElements.Any(child =>
                 child is GradientFill or PatternFill or BlipFill or GroupFill
                     or PresetDash or CustomDash) == true;
+
+        private static bool HasUnresolvedSeriesColor(
+            C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
+            HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme) ||
+            HasUnresolvedSolidFill(
+                properties?.GetFirstChild<Outline>()?.GetFirstChild<SolidFill>(),
+                colorScheme);
+
+        private static bool HasUnresolvedPointColor(
+            C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
+            HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme);
+
+        private static bool HasUnresolvedSolidFill(
+            SolidFill? fill, ColorScheme? colorScheme) =>
+            fill != null &&
+            !OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme).HasValue;
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme) {
