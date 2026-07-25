@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
@@ -135,6 +136,81 @@ namespace OfficeIMO.Excel {
                 }
 
                 scenario.Count = (uint)scenario.Elements<InputCells>().Count();
+            }
+        }
+
+        private void RemapShiftedCellWatches(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            CellWatches? watches = WorksheetRoot.GetFirstChild<CellWatches>();
+            if (watches == null) {
+                return;
+            }
+
+            foreach (CellWatch watch in watches.Elements<CellWatch>().ToList()) {
+                if (watch.CellReference?.Value is not string reference
+                    || !TryRemapShiftedReferenceListRows(
+                        reference,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remapped)) {
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    watch.Remove();
+                } else {
+                    watch.CellReference = remapped[0];
+                }
+            }
+
+            if (!watches.Elements<CellWatch>().Any()) {
+                watches.Remove();
+            }
+        }
+
+        private void RemapShiftedDataConsolidationReferences(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                Worksheet? worksheet = worksheetPart.Worksheet;
+                if (worksheet == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                foreach (DataReference source in worksheet.Descendants<DataReference>().ToList()) {
+                    if (!string.IsNullOrWhiteSpace(source.Id?.Value)
+                        || !string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                        || source.Reference?.Value is not string reference
+                        || !TryRemapShiftedReferenceListRows(
+                            reference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remapped)) {
+                        continue;
+                    }
+
+                    if (remapped.Count == 0) {
+                        source.Remove();
+                    } else {
+                        source.Reference = remapped[0];
+                    }
+                    changed = true;
+                }
+
+                if (!changed) {
+                    continue;
+                }
+
+                foreach (DataReferences sources in worksheet.Descendants<DataReferences>()) {
+                    sources.Count = (uint)sources.Elements<DataReference>().Count();
+                }
+                worksheet.Save();
             }
         }
 

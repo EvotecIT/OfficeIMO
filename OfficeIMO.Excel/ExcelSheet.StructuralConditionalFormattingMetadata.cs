@@ -38,13 +38,20 @@ namespace OfficeIMO.Excel {
                     }
 
                     int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                    int relativeFormulaSourceRowDelta = GetRelativeFormulaSourceRowDelta(
+                        oldAnchorRow,
+                        newAnchorRow,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow);
                     foreach (Xm.Formula formula in formatting.Descendants<Xm.Formula>()) {
                         RewriteAnchoredFormulaText(
                             formula,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            anchorRowDelta);
+                            anchorRowDelta,
+                            relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                     }
                 }
 

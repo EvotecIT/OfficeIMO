@@ -390,7 +390,7 @@ namespace OfficeIMO.Excel {
         private static string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
-                @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
+                @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     ? match.Value
                     : evaluator(match),
@@ -401,7 +401,7 @@ namespace OfficeIMO.Excel {
         private static string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
-                @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
+                @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     ? match.Value
                     : evaluator(match),
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
         private static string ReplaceFormulaRowRanges(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
-                @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
+                @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
                     ? match.Value
                     : evaluator(match),

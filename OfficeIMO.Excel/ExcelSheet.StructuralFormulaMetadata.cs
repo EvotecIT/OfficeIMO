@@ -206,7 +206,8 @@ namespace OfficeIMO.Excel {
                                 firstAffectedRow,
                                 rowDelta,
                                 lastDeletedRow,
-                                calculatedColumnAnchorDelta)
+                                calculatedColumnAnchorDelta,
+                                relativeReferencesFollowAnchor: true)
                             : RewriteStructuralFormulaText(
                                 formula,
                                 firstAffectedRow,
@@ -221,7 +222,8 @@ namespace OfficeIMO.Excel {
                                 firstAffectedRow,
                                 rowDelta,
                                 lastDeletedRow,
-                                totalsRowAnchorDelta)
+                                totalsRowAnchorDelta,
+                                relativeReferencesFollowAnchor: true)
                             : RewriteStructuralFormulaText(
                                 formula,
                                 firstAffectedRow,

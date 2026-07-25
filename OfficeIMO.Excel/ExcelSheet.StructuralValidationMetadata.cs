@@ -33,18 +33,26 @@ namespace OfficeIMO.Excel {
 
                     if (TryGetReferenceListAnchorRow(updatedReferences, out int newAnchorRow)) {
                         int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                        int relativeFormulaSourceRowDelta = GetRelativeFormulaSourceRowDelta(
+                            oldAnchorRow,
+                            newAnchorRow,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow);
                         RewriteAnchoredFormulaText(
                             validation.Formula1,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            anchorRowDelta);
+                            anchorRowDelta,
+                            relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                         RewriteAnchoredFormulaText(
                             validation.Formula2,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            anchorRowDelta);
+                            anchorRowDelta,
+                            relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                     }
 
                     count++;
@@ -87,18 +95,26 @@ namespace OfficeIMO.Excel {
 
                     if (TryGetReferenceListAnchorRow(updatedReferences, out int newAnchorRow)) {
                         int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                        int relativeFormulaSourceRowDelta = GetRelativeFormulaSourceRowDelta(
+                            oldAnchorRow,
+                            newAnchorRow,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow);
                         RewriteAnchoredFormulaText(
                             validation.DataValidationForumla1?.Formula,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            anchorRowDelta);
+                            anchorRowDelta,
+                            relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                         RewriteAnchoredFormulaText(
                             validation.DataValidationForumla2?.Formula,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,
-                            anchorRowDelta);
+                            anchorRowDelta,
+                            relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                     }
 
                     count++;

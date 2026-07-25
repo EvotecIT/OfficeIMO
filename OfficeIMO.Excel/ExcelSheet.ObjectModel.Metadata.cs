@@ -55,6 +55,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
+            RemapShiftedDataConsolidationReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -71,6 +72,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+            RemapShiftedDataConsolidationReferences(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -206,6 +208,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedProtectedRanges(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedIgnoredErrors(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedScenarios(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedCellWatches(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
@@ -464,13 +467,20 @@ namespace OfficeIMO.Excel {
                 }
 
                 int anchorRowDelta = newAnchorRow - oldAnchorRow;
+                int relativeFormulaSourceRowDelta = GetRelativeFormulaSourceRowDelta(
+                    oldAnchorRow,
+                    newAnchorRow,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow);
                 foreach (Formula formula in conditional.Descendants<Formula>()) {
                     RewriteAnchoredFormulaText(
                         formula,
                         firstAffectedRow,
                         rowDelta,
                         lastDeletedRow,
-                        anchorRowDelta);
+                        anchorRowDelta,
+                        relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
                 }
             }
 
