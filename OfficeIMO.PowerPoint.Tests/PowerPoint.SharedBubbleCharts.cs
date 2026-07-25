@@ -79,6 +79,19 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(145D, refreshed.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
                         refreshed.BubbleSizeMode);
+                    Assert.True(chart.TryGetSnapshot(
+                        out PowerPointChartSnapshot nativeSnapshot));
+                    OfficeChartSnapshot pdfSnapshot =
+                        PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
+                            nativeSnapshot, 420D, 250D,
+                            new PowerPointPdfSaveOptions());
+                    Assert.Equal(145D, pdfSnapshot.BubbleScalePercent);
+                    Assert.Equal(OfficeChartBubbleSizeMode.Width,
+                        pdfSnapshot.BubbleSizeMode);
+                    Assert.Equal(OfficeColor.Parse("#654321"),
+                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineColor);
+                    Assert.Equal(2.5D,
+                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineWidth);
                     C.BubbleChart preservedBubble = authoredChartPart.ChartSpace!
                         .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!
                         .GetFirstChild<C.BubbleChart>()!;
@@ -310,6 +323,32 @@ namespace OfficeIMO.Tests {
 
                 Assert.False(chart.TryGetOfficeSnapshot(out _));
             }
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsEnabledThreeDimensionalRendering() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.BubbleChart nativeChart = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChart>().Single();
+            C.BubbleChartSeries nativeSeries =
+                nativeChart.Elements<C.BubbleChartSeries>().Single();
+
+            nativeChart.GetFirstChild<C.Bubble3D>()!.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            nativeChart.GetFirstChild<C.Bubble3D>()!.Val = false;
+            nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         private static int CountOccurrences(string value, string marker) {

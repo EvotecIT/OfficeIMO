@@ -18,9 +18,10 @@ public class DrawingChartBubbleTests {
         Assert.Equal(2, areaDiameters.Length);
         Assert.Equal(2, widthDiameters.Length);
         Assert.Equal(2, scaledDiameters.Length);
-        Assert.True(widthDiameters[0] < areaDiameters[0]);
+        Assert.Equal(areaDiameters[1] * 0.5D, areaDiameters[0], precision: 6);
+        Assert.Equal(widthDiameters[1] * 0.25D, widthDiameters[0], precision: 6);
         Assert.Equal(areaDiameters[1], widthDiameters[1], precision: 6);
-        Assert.True(scaledDiameters[1] > areaDiameters[1] * 1.9D);
+        Assert.Equal(areaDiameters[1] * 2D, scaledDiameters[1], precision: 6);
     }
 
     [Fact]
@@ -45,6 +46,39 @@ public class DrawingChartBubbleTests {
             Assert.True(bubble.Y + bubble.Shape.Height <=
                         verticalAxis.Y + verticalAxis.Shape.Height + 0.001D);
         }
+
+        OfficeDrawingShape[] bubbles = GetBubbles(drawing)
+            .OrderBy(shape => shape.X + shape.Shape.Width / 2D)
+            .ToArray();
+        double[] horizontalTickPositions = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width == 0D &&
+                            shape.Shape.Height > 0D &&
+                            shape.Shape.Height <= 4.001D)
+            .Select(shape => shape.X)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToArray();
+        double[] verticalTickPositions = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Height == 0D &&
+                            shape.Shape.Width > 0D &&
+                            shape.Shape.Width <= 4.001D)
+            .Select(shape => shape.Y)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToArray();
+
+        Assert.Equal(5, horizontalTickPositions.Length);
+        Assert.Equal(5, verticalTickPositions.Length);
+        Assert.Equal(horizontalTickPositions[0],
+            bubbles[0].X + bubbles[0].Shape.Width / 2D, precision: 6);
+        Assert.Equal(horizontalTickPositions[4],
+            bubbles[1].X + bubbles[1].Shape.Width / 2D, precision: 6);
+        Assert.Equal(verticalTickPositions[0],
+            bubbles[1].Y + bubbles[1].Shape.Height / 2D, precision: 6);
+        Assert.Equal(verticalTickPositions[4],
+            bubbles[0].Y + bubbles[0].Shape.Height / 2D, precision: 6);
     }
 
     private static OfficeDrawing RenderBubbles(double scale,
@@ -64,7 +98,10 @@ public class DrawingChartBubbleTests {
             data,
             widthPoints: 420D,
             heightPoints: 260D,
-            layout: new OfficeChartLayout(showLegend: false),
+            layout: new OfficeChartLayout(
+                showLegend: false,
+                horizontalAxisMajorTickMark: OfficeChartAxisTickMark.Cross,
+                verticalAxisMajorTickMark: OfficeChartAxisTickMark.Cross),
             bubbleScalePercent: scale,
             bubbleSizeMode: sizeMode));
     }

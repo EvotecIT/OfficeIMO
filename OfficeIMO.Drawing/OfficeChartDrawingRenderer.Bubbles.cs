@@ -22,10 +22,9 @@ public static partial class OfficeChartDrawingRenderer {
         double sizeFactor = sizeMode == OfficeChartBubbleSizeMode.Width
             ? ratio
             : Math.Sqrt(ratio);
-        double minimumDiameter = Math.Min(3D, maximumDiameter);
         double diameter = maximumBubbleSize <= 0D
             ? 0D
-            : minimumDiameter + (maximumDiameter - minimumDiameter) * sizeFactor;
+            : maximumDiameter * sizeFactor;
         if (diameter <= 0D) {
             return;
         }
@@ -48,6 +47,13 @@ public static partial class OfficeChartDrawingRenderer {
         return Math.Min(shortestSide * 0.8D,
             defaultDiameter * bubbleScalePercent / 100D);
     }
+
+    private static double GetBubblePlotPadding(OfficeChartSnapshot snapshot,
+        double plotWidth, double plotHeight) =>
+        GetMaximumBubbleSize(snapshot.Data.Series) > 0D
+            ? GetMaximumBubbleDiameter(plotWidth, plotHeight,
+                snapshot.BubbleScalePercent) / 2D
+            : 0D;
 
     private static double GetMaximumBubbleSize(
         System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {

@@ -124,6 +124,13 @@ public static partial class OfficeChartDrawingRenderer {
         double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
         double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
         double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
+        double bubblePlotPadding = IsScatterChart(snapshot.ChartKind)
+            ? GetBubblePlotPadding(snapshot, plotWidth, plotHeight)
+            : 0D;
+        double numericPlotLeft = plotLeft + bubblePlotPadding;
+        double numericPlotTop = plotTop + bubblePlotPadding;
+        double numericPlotWidth = Math.Max(1D, plotWidth - bubblePlotPadding * 2D);
+        double numericPlotHeight = Math.Max(1D, plotHeight - bubblePlotPadding * 2D);
         double plotBottomY = plotTop + plotHeight;
         double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
         double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;
@@ -168,9 +175,9 @@ public static partial class OfficeChartDrawingRenderer {
             } else {
                 AddHorizontalAxisMajorTickMarks(
                     drawing,
-                    plotLeft,
+                    numericPlotLeft,
                     horizontalAxisY,
-                    plotWidth,
+                    numericPlotWidth,
                     layout.HorizontalAxisMajorTickMark,
                     horizontalAxisColor,
                     horizontalAxisLineWidth,
@@ -192,9 +199,9 @@ public static partial class OfficeChartDrawingRenderer {
             } else {
                 AddHorizontalAxisMinorTickMarks(
                     drawing,
-                    plotLeft,
+                    numericPlotLeft,
                     horizontalAxisY,
-                    plotWidth,
+                    numericPlotWidth,
                     layout.HorizontalAxisMinorTickMark,
                     horizontalAxisColor,
                     horizontalAxisLineWidth,
@@ -217,8 +224,8 @@ public static partial class OfficeChartDrawingRenderer {
                 AddVerticalValueAxisMajorTickMarks(
                     drawing,
                     verticalAxisX,
-                    plotTop,
-                    plotHeight,
+                    numericPlotTop,
+                    numericPlotHeight,
                     axisRange,
                     valueAxisMajorTicks,
                     layout.VerticalAxisMajorTickMark,
@@ -230,8 +237,8 @@ public static partial class OfficeChartDrawingRenderer {
                 AddVerticalValueAxisMinorTickMarks(
                     drawing,
                     verticalAxisX,
-                    plotTop,
-                    plotHeight,
+                    numericPlotTop,
+                    numericPlotHeight,
                     axisRange,
                     valueAxisMinorTicks,
                     layout.VerticalAxisMinorTickMark,
@@ -276,9 +283,9 @@ public static partial class OfficeChartDrawingRenderer {
             } else {
                 AddVerticalGridLines(
                     drawing,
-                    plotLeft,
+                    numericPlotLeft,
                     plotTop,
-                    plotWidth,
+                    numericPlotWidth,
                     plotHeight,
                     divisions: 8,
                     startIndex: 1,
@@ -322,9 +329,9 @@ public static partial class OfficeChartDrawingRenderer {
                     AddHorizontalValueGridLines(
                         drawing,
                         plotLeft,
-                        plotTop,
+                        numericPlotTop,
                         plotWidth,
-                        plotHeight,
+                        numericPlotHeight,
                         axisRange,
                         valueAxisMinorTicks,
                         GetValueMinorGridLineColor(style),
@@ -334,9 +341,9 @@ public static partial class OfficeChartDrawingRenderer {
                     AddHorizontalGridLines(
                         drawing,
                         plotLeft,
-                        plotTop,
+                        numericPlotTop,
                         plotWidth,
-                        plotHeight,
+                        numericPlotHeight,
                         divisions: 8,
                         startIndex: 1,
                         step: 2,
@@ -364,9 +371,9 @@ public static partial class OfficeChartDrawingRenderer {
             } else {
                 AddVerticalGridLines(
                     drawing,
-                    plotLeft,
+                    numericPlotLeft,
                     plotTop,
-                    plotWidth,
+                    numericPlotWidth,
                     plotHeight,
                     divisions: 4,
                     startIndex: 1,
@@ -394,9 +401,9 @@ public static partial class OfficeChartDrawingRenderer {
                 AddHorizontalValueGridLines(
                     drawing,
                     plotLeft,
-                    plotTop,
+                    numericPlotTop,
                     plotWidth,
-                    plotHeight,
+                    numericPlotHeight,
                     axisRange,
                     valueAxisMajorTicks,
                     GetValueGridLineColor(style),
@@ -411,7 +418,9 @@ public static partial class OfficeChartDrawingRenderer {
         } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
-            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+            AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
+                numericPlotWidth, numericPlotHeight, style, layout,
+                maximumBubbleDiameterOverride: bubblePlotPadding * 2D);
         } else if (IsLineChart(snapshot.ChartKind)) {
             AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else {
@@ -455,8 +464,8 @@ public static partial class OfficeChartDrawingRenderer {
                 AddValueAxisLabels(
                     drawing,
                     axisRange,
-                    plotTop,
-                    plotHeight,
+                    numericPlotTop,
+                    numericPlotHeight,
                     verticalAxisLabelsHigh ? axisLabelRight : axisLabelLeft,
                     verticalAxisLabelsHigh ? axisLabelRightWidth : axisLabelWidth,
                     verticalAxisLabelsHigh ? OfficeTextAlignment.Left : OfficeTextAlignment.Right,
@@ -478,9 +487,9 @@ public static partial class OfficeChartDrawingRenderer {
                     AddHorizontalValueAxisLabels(
                         drawing,
                         scatterXRange,
-                        plotLeft,
+                        numericPlotLeft,
                         horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
-                        plotWidth,
+                        numericPlotWidth,
                         horizontalValueAxisLabelWidth,
                         horizontalAxisLabelsHigh,
                         style,
@@ -1556,7 +1565,8 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
         double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
-        ValueRange? valueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
+        ValueRange? valueAxisRange = null, OfficeChartAxisGroup? axisGroup = null,
+        double? maximumBubbleDiameterOverride = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -1580,15 +1590,11 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
         ValueRange yRange = valueAxisRange ?? ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         double maximumBubbleSize = GetMaximumBubbleSize(allRangeSeries);
-        double maximumBubbleDiameter = maximumBubbleSize > 0D
+        double maximumBubbleDiameter = maximumBubbleDiameterOverride ??
+            (maximumBubbleSize > 0D
             ? GetMaximumBubbleDiameter(plotWidth, plotHeight,
                 snapshot.BubbleScalePercent)
-            : 0D;
-        double bubbleRadius = maximumBubbleDiameter / 2D;
-        double pointPlotLeft = plotLeft + bubbleRadius;
-        double pointPlotTop = plotTop + bubbleRadius;
-        double pointPlotWidth = Math.Max(1D, plotWidth - maximumBubbleDiameter);
-        double pointPlotHeight = Math.Max(1D, plotHeight - maximumBubbleDiameter);
+            : 0D);
         for (int s = 0; s < scatterSeries.Count; s++) {
             OfficeChartSeries currentSeries = scatterSeries[s].Series;
             int sourceSeriesIndex = scatterSeries[s].SourceIndex;
@@ -1620,9 +1626,9 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 double x = ToPlotX(xValue, xRange.Min, xRange.Max,
-                    pointPlotLeft, pointPlotWidth);
+                    plotLeft, plotWidth);
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max,
-                    pointPlotTop, pointPlotHeight);
+                    plotTop, plotHeight);
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
                 if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {

@@ -77,11 +77,16 @@ public static partial class PowerPointPdfConverterExtensions {
         return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
     }
 
-    private static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfSaveOptions options) {
+    /// <summary>
+    /// Maps the native PowerPoint snapshot into the shared chart contract used by PDF rendering.
+    /// </summary>
+    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfSaveOptions options) {
         var series = snapshot.Data.Series
             .Select(item => item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                    item.BubbleSizes, item.Color, item.PointColors)
+                    item.BubbleSizes, item.Color, item.PointColors,
+                    markerOutlineColor: item.StrokeColor ?? item.Color,
+                    markerOutlineWidth: item.StrokeWidth)
                 : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                     pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
                     renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
@@ -96,7 +101,9 @@ public static partial class PowerPointPdfConverterExtensions {
             width,
             height,
             options.ChartStyle,
-            options.ChartLayout);
+            options.ChartLayout,
+            bubbleScalePercent: snapshot.BubbleScalePercent,
+            bubbleSizeMode: snapshot.BubbleSizeMode);
     }
 
     private static OfficeChartKind MapChartKind(PptCore.PowerPointChartSnapshotKind kind) {

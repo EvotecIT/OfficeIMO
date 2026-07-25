@@ -97,6 +97,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
+                    if (IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                        bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
+                            IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()))) {
+                        snapshot = null!;
+                        return false;
+                    }
                     PowerPointChartData? data = ReadBubbleSeriesData(
                         bubbleChart.Elements<C.BubbleChartSeries>(), colorScheme);
                     if (data == null) {
@@ -148,6 +154,9 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
         }
+
+        private static bool IsBubble3DEnabled(C.Bubble3D? bubble3D) =>
+            bubble3D?.Val?.Value == true;
 
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()
