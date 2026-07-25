@@ -72,6 +72,32 @@ function New-ReaderProjection {
     }
 }
 
+function New-PdfPagePreview {
+    param(
+        [Parameter(Mandatory)][string] $InputPath,
+        [Parameter(Mandatory)][string] $OutputPath
+    )
+
+    $renderer = Get-Command 'pdftocairo.exe' -ErrorAction SilentlyContinue
+    if ($null -eq $renderer) {
+        $renderer = Get-Command 'pdftocairo' -ErrorAction SilentlyContinue
+    }
+    if ($null -eq $renderer) {
+        throw 'pdftocairo is required to refresh independent PDF page previews. Install Poppler or use -ManifestOnly with committed evidence.'
+    }
+    if (-not (Test-Path -LiteralPath $InputPath -PathType Leaf)) {
+        throw "Expected showcase PDF was not generated: $InputPath"
+    }
+
+    $outputDirectory = Split-Path -Parent $OutputPath
+    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+    $outputBase = Join-Path $outputDirectory ([System.IO.Path]::GetFileNameWithoutExtension($OutputPath))
+    & $renderer.Source '-f' '1' '-l' '1' '-singlefile' '-png' '-r' '120' $InputPath $outputBase
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
+        throw "pdftocairo failed to render '$InputPath'."
+    }
+}
+
 if (-not $SkipGeneration -and -not $ManifestOnly) {
     foreach ($exampleSwitch in @(
         '--powerpoint-design-brief',
@@ -79,7 +105,8 @@ if (-not $SkipGeneration -and -not $ManifestOnly) {
         '--html-invoice',
         '--excel-report-workflow',
         '--onenote',
-        '--visio-premium'
+        '--visio-premium',
+        '--showcase-real-world'
     )) {
         Invoke-DotNet @(
             'run', '--project', $examplesProject, '-f', $Framework, '--', $exampleSwitch
@@ -91,6 +118,20 @@ $powerPointPath = Join-Path $documentsRoot 'PowerPoint Design Brief Recommendati
 $readerPath = Join-Path $documentsRoot 'PowerPoint-Design-Brief.reader.public.json'
 if (-not $ManifestOnly) {
     New-ReaderProjection -InputPath $powerPointPath -OutputPath $readerPath
+}
+$workflowRoot = Join-Path $documentsRoot 'WorkflowShowcase'
+$realWorldWorkflows = @(
+    'customer-delivery-summary',
+    'change-approval-memo',
+    'release-readiness-report',
+    'project-handover-brief'
+)
+if (-not $ManifestOnly) {
+    foreach ($workflow in $realWorldWorkflows) {
+        New-PdfPagePreview `
+            -InputPath (Join-Path $workflowRoot "$workflow.pdf") `
+            -OutputPath (Join-Path $workflowRoot "$workflow.png")
+    }
 }
 
 $artifacts = @(
@@ -142,6 +183,90 @@ $artifacts = @(
         destination = 'html/invoice.svg'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
         evidence = 'SVG generated directly from the same parsed HTML and options object as the PDF.'
+    },
+    [ordered]@{
+        id = 'word-workflow-source'
+        source = (Join-Path $workflowRoot 'customer-delivery-summary.docx')
+        destination = 'word/customer-delivery-summary.docx'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'Editable DOCX generated from the same Word model as the PDF conversion.'
+    },
+    [ordered]@{
+        id = 'word-workflow-pdf'
+        source = (Join-Path $workflowRoot 'customer-delivery-summary.pdf')
+        destination = 'word/customer-delivery-summary.pdf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'First-party Word-to-PDF conversion of the downloadable DOCX.'
+    },
+    [ordered]@{
+        id = 'word-workflow-preview'
+        source = (Join-Path $workflowRoot 'customer-delivery-summary.png')
+        destination = 'word/customer-delivery-summary-page1.png'
+        generator = 'Poppler pdftocairo page-one render of the generated Word PDF'
+        evidence = 'Independent page-one render of the first-party Word-to-PDF result.'
+    },
+    [ordered]@{
+        id = 'rtf-workflow-source'
+        source = (Join-Path $workflowRoot 'change-approval-memo.rtf')
+        destination = 'rtf/change-approval-memo.rtf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'RTF memo generated from the same model as the PDF conversion.'
+    },
+    [ordered]@{
+        id = 'rtf-workflow-pdf'
+        source = (Join-Path $workflowRoot 'change-approval-memo.pdf')
+        destination = 'rtf/change-approval-memo.pdf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'First-party RTF-to-PDF conversion of the downloadable memo.'
+    },
+    [ordered]@{
+        id = 'rtf-workflow-preview'
+        source = (Join-Path $workflowRoot 'change-approval-memo.png')
+        destination = 'rtf/change-approval-memo-page1.png'
+        generator = 'Poppler pdftocairo page-one render of the generated RTF PDF'
+        evidence = 'Independent page-one render of the first-party RTF-to-PDF result.'
+    },
+    [ordered]@{
+        id = 'markdown-workflow-source'
+        source = (Join-Path $workflowRoot 'release-readiness-report.md')
+        destination = 'markdown/release-readiness-report.md'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'Portable Markdown source generated from the same document model as the PDF.'
+    },
+    [ordered]@{
+        id = 'markdown-workflow-pdf'
+        source = (Join-Path $workflowRoot 'release-readiness-report.pdf')
+        destination = 'markdown/release-readiness-report.pdf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'Themed first-party Markdown-to-PDF conversion.'
+    },
+    [ordered]@{
+        id = 'markdown-workflow-preview'
+        source = (Join-Path $workflowRoot 'release-readiness-report.png')
+        destination = 'markdown/release-readiness-report-page1.png'
+        generator = 'Poppler pdftocairo page-one render of the generated Markdown PDF'
+        evidence = 'Independent page-one render of the themed Markdown PDF.'
+    },
+    [ordered]@{
+        id = 'opendocument-workflow-source'
+        source = (Join-Path $workflowRoot 'project-handover-brief.odt')
+        destination = 'open-document/project-handover-brief.odt'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'Vendor-neutral ODT source generated from the OpenDocument model.'
+    },
+    [ordered]@{
+        id = 'opendocument-workflow-pdf'
+        source = (Join-Path $workflowRoot 'project-handover-brief.pdf')
+        destination = 'open-document/project-handover-brief.pdf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --showcase-real-world"
+        evidence = 'First-party OpenDocument-to-PDF conversion of the downloadable ODT.'
+    },
+    [ordered]@{
+        id = 'opendocument-workflow-preview'
+        source = (Join-Path $workflowRoot 'project-handover-brief.png')
+        destination = 'open-document/project-handover-brief-page1.png'
+        generator = 'Poppler pdftocairo page-one render of the generated OpenDocument PDF'
+        evidence = 'Independent page-one render of the first-party OpenDocument-to-PDF result.'
     },
     [ordered]@{
         id = 'excel-output'

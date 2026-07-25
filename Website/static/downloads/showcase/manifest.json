@@ -59,6 +59,102 @@
       "evidence": "SVG generated directly from the same parsed HTML and options object as the PDF."
     },
     {
+      "id": "word-workflow-source",
+      "path": "/downloads/showcase/word/customer-delivery-summary.docx",
+      "bytes": 20887,
+      "sha256": "408004b32a1e201efc908750348b11ccdb9427899ef30aa691632a2c08c1dea1",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "Editable DOCX generated from the same Word model as the PDF conversion."
+    },
+    {
+      "id": "word-workflow-pdf",
+      "path": "/downloads/showcase/word/customer-delivery-summary.pdf",
+      "bytes": 9245,
+      "sha256": "9915934d40153af92b6839584ce61feff1d7b33f2ab269b944473045c6b5f0b3",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "First-party Word-to-PDF conversion of the downloadable DOCX."
+    },
+    {
+      "id": "word-workflow-preview",
+      "path": "/downloads/showcase/word/customer-delivery-summary-page1.png",
+      "bytes": 89136,
+      "sha256": "85142e1c587cdd8249f7a44e32b03ea5b1dbb40a87e08016c91584f759439b84",
+      "generator": "Poppler pdftocairo page-one render of the generated Word PDF",
+      "evidence": "Independent page-one render of the first-party Word-to-PDF result."
+    },
+    {
+      "id": "rtf-workflow-source",
+      "path": "/downloads/showcase/rtf/change-approval-memo.rtf",
+      "bytes": 1752,
+      "sha256": "33fed5d86ed690e6f86205fdd2b44be50273dfcc4c254715387f4a0338c41cdb",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "RTF memo generated from the same model as the PDF conversion."
+    },
+    {
+      "id": "rtf-workflow-pdf",
+      "path": "/downloads/showcase/rtf/change-approval-memo.pdf",
+      "bytes": 6094,
+      "sha256": "f1843e8d92e227ea29d591c403972774fc0c8c71daa0c86d4f7133e6dd4c5b44",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "First-party RTF-to-PDF conversion of the downloadable memo."
+    },
+    {
+      "id": "rtf-workflow-preview",
+      "path": "/downloads/showcase/rtf/change-approval-memo-page1.png",
+      "bytes": 71001,
+      "sha256": "500fd5d53c4d73c622943f257a1eb8e36a651b26acf9fc948601a6906d35a9d6",
+      "generator": "Poppler pdftocairo page-one render of the generated RTF PDF",
+      "evidence": "Independent page-one render of the first-party RTF-to-PDF result."
+    },
+    {
+      "id": "markdown-workflow-source",
+      "path": "/downloads/showcase/markdown/release-readiness-report.md",
+      "bytes": 587,
+      "sha256": "67d284044dba2925da6bf0561fe2d42760c50a009556693272b04b71305858e3",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "Portable Markdown source generated from the same document model as the PDF."
+    },
+    {
+      "id": "markdown-workflow-pdf",
+      "path": "/downloads/showcase/markdown/release-readiness-report.pdf",
+      "bytes": 200031,
+      "sha256": "e29568be950461f0c620d13c90220df33776818f71a9d36d1ef59f0b0110b3d8",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "Themed first-party Markdown-to-PDF conversion."
+    },
+    {
+      "id": "markdown-workflow-preview",
+      "path": "/downloads/showcase/markdown/release-readiness-report-page1.png",
+      "bytes": 85978,
+      "sha256": "3c20d2deebb1ef93fae0bc3e39014d3e3ca102cbc6637ebb25628cbe713a622d",
+      "generator": "Poppler pdftocairo page-one render of the generated Markdown PDF",
+      "evidence": "Independent page-one render of the themed Markdown PDF."
+    },
+    {
+      "id": "opendocument-workflow-source",
+      "path": "/downloads/showcase/open-document/project-handover-brief.odt",
+      "bytes": 2586,
+      "sha256": "8ad148bfe35728b066321dc86975a4ecdce2273d74fab3213e9ddb2418db86f3",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "Vendor-neutral ODT source generated from the OpenDocument model."
+    },
+    {
+      "id": "opendocument-workflow-pdf",
+      "path": "/downloads/showcase/open-document/project-handover-brief.pdf",
+      "bytes": 6722,
+      "sha256": "e2aa2b0d017931934f35d41c6629ff3b6a30d0496d3b4cda8c14e6cbcbb673a4",
+      "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
+      "evidence": "First-party OpenDocument-to-PDF conversion of the downloadable ODT."
+    },
+    {
+      "id": "opendocument-workflow-preview",
+      "path": "/downloads/showcase/open-document/project-handover-brief-page1.png",
+      "bytes": 68648,
+      "sha256": "b890928c89b573388f2cc6aab07f89e09807b2cdd520c0819e46e58abf001cbd",
+      "generator": "Poppler pdftocairo page-one render of the generated OpenDocument PDF",
+      "evidence": "Independent page-one render of the first-party OpenDocument-to-PDF result."
+    },
+    {
       "id": "excel-output",
       "path": "/downloads/showcase/excel/report-workflow.xlsx",
       "bytes": 11782,

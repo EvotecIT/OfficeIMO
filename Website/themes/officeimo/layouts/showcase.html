@@ -116,7 +116,7 @@
                 <nav aria-label="{{ card.title }} evidence links">
                   <a href="{{ card.evidence_url }}">{{ card.evidence_label }}</a>
                   <a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.format }} source</a>
-                  <a href="{{ card.api_url }}">{{ card.format }} API</a>
+                  <a href="{{ card.api_url }}">{{ if card.api_label }}{{ card.api_label }}{{ else }}{{ card.format }} API{{ end }}</a>
                 </nav>
               </div>
             </div>
@@ -126,7 +126,7 @@
 
         <aside class="imo-showcase-proof-note">
           <strong>Generated from runnable examples</strong>
-          <span>Every card links to committed output and its generating source. Image previews are generated renders or visual baselines; structured previews reproduce bundled Reader JSON or OneNote HTML. Open each proof disclosure for the boundary. <a href="/downloads/showcase/manifest.json">Inspect hashes and generators</a>.</span>
+          <span>Every card links to committed output and its generating source. Conversion previews are independently rendered from the generated PDF; other image previews are generated renders or visual baselines. Structured previews reproduce bundled Reader JSON or OneNote HTML. Open each proof disclosure for the boundary. <a href="/downloads/showcase/manifest.json">Inspect hashes and generators</a>.</span>
         </aside>
 {{ content }}
       </div>
