@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
                 if (element.Elements<C.Trendline>().Any() ||
+                    element.Elements<C.ErrorBars>().Any() ||
                     HasUnsupportedSeriesStyle(
                         element.GetFirstChild<C.ChartShapeProperties>()) ||
                     element.Elements<C.DataPoint>().Any(point =>
@@ -89,7 +90,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline?.ChildElements.Any(child =>
-                child is GradientFill or PatternFill or BlipFill or GroupFill) == true;
+                child is GradientFill or PatternFill or BlipFill or GroupFill
+                    or PresetDash or CustomDash) == true;
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme) {

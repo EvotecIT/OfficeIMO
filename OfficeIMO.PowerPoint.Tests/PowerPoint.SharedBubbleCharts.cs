@@ -555,6 +555,16 @@ namespace OfficeIMO.Tests {
             outline.Append(new DocumentFormat.OpenXml.Drawing.GradientFill());
 
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.GradientFill>();
+            outline.Append(new DocumentFormat.OpenXml.Drawing.PresetDash {
+                Val = DocumentFormat.OpenXml.Drawing.PresetLineDashValues.Dash
+            });
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.PresetDash>();
+            outline.Append(new DocumentFormat.OpenXml.Drawing.CustomDash());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
@@ -582,7 +592,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsTrendlinesFromSharedSnapshots() {
+        public void BubbleChart_RejectsTrendlinesAndErrorBarsFromSharedSnapshots() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -596,6 +606,13 @@ namespace OfficeIMO.Tests {
 
             Assert.NotNull(presentation.Slides[0].SlidePart.ChartParts.Single()
                 .ChartSpace!.Descendants<C.Trendline>().Single());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            C.BubbleChartSeries series = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            series.RemoveAllChildren<C.Trendline>();
+            series.Append(new C.ErrorBars());
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 

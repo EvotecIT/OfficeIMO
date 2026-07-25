@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartBubbleTests {
     [Fact]
+    public void OfficeChartSnapshot_RetainsBinaryCompatibleConstructor() {
+        Assert.NotNull(typeof(OfficeChartSnapshot).GetConstructor(new[] {
+            typeof(string),
+            typeof(string),
+            typeof(OfficeChartKind),
+            typeof(OfficeChartData),
+            typeof(double),
+            typeof(double),
+            typeof(OfficeChartStyle),
+            typeof(OfficeChartLayout)
+        }));
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_HonorsBubbleScaleAndSizeMode() {
         OfficeDrawing area = RenderBubbles(100D, OfficeChartBubbleSizeMode.Area);
         OfficeDrawing width = RenderBubbles(100D, OfficeChartBubbleSizeMode.Width);
@@ -167,6 +181,7 @@ public class DrawingChartBubbleTests {
             data,
             widthPoints: 420D,
             heightPoints: 260D,
+            style: null,
             layout: new OfficeChartLayout(
                 showLegend: false,
                 horizontalAxisMajorTickMark: OfficeChartAxisTickMark.Cross,

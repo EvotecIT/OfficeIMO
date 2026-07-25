@@ -17,13 +17,49 @@ public sealed class OfficeChartSnapshot {
     /// <param name="heightPoints">Requested render height in points.</param>
     /// <param name="style">Optional shared chart style metadata.</param>
     /// <param name="layout">Optional shared chart layout metadata.</param>
+    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+        OfficeChartData data, double widthPoints, double heightPoints,
+        OfficeChartStyle? style = null, OfficeChartLayout? layout = null)
+        : this(name, title, chartKind, data, widthPoints, heightPoints,
+            style, layout, 100D, OfficeChartBubbleSizeMode.Area) {
+    }
+
+    /// <summary>
+    /// Initializes a bubble-aware chart snapshot for rendering with default style and layout.
+    /// </summary>
+    /// <param name="name">Source shape or drawing name.</param>
+    /// <param name="title">Optional display title.</param>
+    /// <param name="chartKind">Supported chart family.</param>
+    /// <param name="data">Chart category and series data.</param>
+    /// <param name="widthPoints">Requested render width in points.</param>
+    /// <param name="heightPoints">Requested render height in points.</param>
     /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
     /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
     public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
-        OfficeChartStyle? style = null, OfficeChartLayout? layout = null,
-        double bubbleScalePercent = 100D,
-        OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area) {
+        double bubbleScalePercent,
+        OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area)
+        : this(name, title, chartKind, data, widthPoints, heightPoints,
+            null, null, bubbleScalePercent, bubbleSizeMode) {
+    }
+
+    /// <summary>
+    /// Initializes a bubble-aware chart snapshot for rendering.
+    /// </summary>
+    /// <param name="name">Source shape or drawing name.</param>
+    /// <param name="title">Optional display title.</param>
+    /// <param name="chartKind">Supported chart family.</param>
+    /// <param name="data">Chart category and series data.</param>
+    /// <param name="widthPoints">Requested render width in points.</param>
+    /// <param name="heightPoints">Requested render height in points.</param>
+    /// <param name="style">Optional shared chart style metadata.</param>
+    /// <param name="layout">Optional shared chart layout metadata.</param>
+    /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
+    /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
+    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+        OfficeChartData data, double widthPoints, double heightPoints,
+        OfficeChartStyle? style, OfficeChartLayout? layout,
+        double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode) {
         if (data == null) {
             throw new ArgumentNullException(nameof(data));
         }
