@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.Pdf {
             public void ReportFontSubstitution(
                 PdfCore.PdfOptions options,
                 string familyName,
-                PdfCore.PdfStandardFont fallbackSlot,
+                PdfCore.PdfStandardFont? fallbackSlot,
                 string? resolvedFontFamily = null) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {

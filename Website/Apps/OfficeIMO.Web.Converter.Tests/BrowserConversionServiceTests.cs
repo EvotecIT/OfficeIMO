@@ -140,8 +140,12 @@ public sealed class BrowserConversionServiceTests {
         Assert.True(root.GetProperty("output").GetProperty("tagged").GetBoolean());
         Assert.Equal(result.FidelityStatus, root.GetProperty("fidelityStatus").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("conversionId").GetString()));
-        Assert.Empty(root.GetProperty("warnings").EnumerateArray());
-        Assert.Empty(result.Warnings);
+        Assert.DoesNotContain(
+            root.GetProperty("warnings").EnumerateArray(),
+            warning => warning.GetProperty("severity").GetString() != "Information");
+        Assert.DoesNotContain(
+            result.StructuredWarnings,
+            warning => warning.Severity != "Information");
     }
 
     [Fact]

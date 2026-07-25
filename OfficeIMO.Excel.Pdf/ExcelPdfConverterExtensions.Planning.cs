@@ -173,18 +173,16 @@ namespace OfficeIMO.Excel.Pdf {
                         trimmedFamilyName,
                         out PdfCore.PdfFontFamilySubstitution? substitution) &&
                     substitution != null) {
-                    if (reportSubstitution) {
-                        options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
-                            "OfficeIMO.Excel.Pdf",
-                            "WorksheetFontFamilySubstituted",
-                            sheetName,
-                            trimmedFamilyName,
-                            fallbackSlot: null,
-                            resolvedFontFamily: substitution.TargetFontFamily,
-                            additionalDetails: new Dictionary<string, string> {
-                                ["sheetName"] = sheetName
-                            }));
-                    }
+                    options.Report.Add(pdfOptions.CreateFontFamilySubstitutionWarning(
+                        "OfficeIMO.Excel.Pdf",
+                        "WorksheetFontFamilySubstituted",
+                        sheetName,
+                        trimmedFamilyName,
+                        fallbackSlot: null,
+                        resolvedFontFamily: substitution.TargetFontFamily,
+                        additionalDetails: new Dictionary<string, string> {
+                            ["sheetName"] = sheetName
+                        }));
                     return;
                 }
 

@@ -1251,6 +1251,7 @@ namespace OfficeIMO.Tests {
                 HighAnsi = sourceFamily
             };
             document.AddParagraph("AB");
+            document.AddParagraph("CD").SetFontFamily("Arial");
 
             var configured = new PdfOptions();
             configured
@@ -1276,11 +1277,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PdfConversionWarningSeverity.Information, diagnostic.Severity);
             Assert.Equal(targetFamily, diagnostic.Details["resolvedFontFamily"]);
             Assert.Equal(bool.TrueString, diagnostic.Details["plannedSubstitution"]);
+            Assert.False(diagnostic.Details.ContainsKey("fallbackSlot"));
             using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
             Assert.Contains(
                 pdf.GetPage(1).Letters,
                 letter => letter.FontName?.Contains(targetFamily.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase) == true ||
                           letter.FontName?.Contains("OfficeIMO", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.Contains(
+                pdf.GetPage(1).Letters,
+                letter => (letter.Value == "C" || letter.Value == "D") &&
+                          letter.FontName?.Contains("Helvetica", StringComparison.OrdinalIgnoreCase) == true);
         }
 
         [Fact]

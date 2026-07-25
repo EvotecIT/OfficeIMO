@@ -397,16 +397,10 @@ namespace OfficeIMO.Word.Pdf {
                     out PdfCore.PdfFontFamilySubstitution? substitution) &&
                 substitution != null) {
                 nativeFontMap.RegisterNamed(trimmedFamilyName, substitution.TargetFontFamily);
-                PdfCore.PdfStandardFont substitutionSlot =
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(
-                        trimmedFamilyName,
-                        out PdfCore.PdfStandardFont mappedSubstitutionSlot)
-                        ? mappedSubstitutionSlot
-                        : PdfCore.PdfStandardFont.Helvetica;
                 nativeFontMap.ReportFontSubstitution(
                     pdfOptions,
                     trimmedFamilyName,
-                    substitutionSlot,
+                    fallbackSlot: null,
                     substitution.TargetFontFamily);
                 return;
             }
