@@ -297,6 +297,16 @@ namespace OfficeIMO.Word.Html {
             foreach (var kvp in own) {
                 accumulated[kvp.Key] = kvp.Value;
             }
+            string? directionAttribute = element.GetAttribute("dir");
+            if (!own.ContainsKey("direction") &&
+                (directionAttribute?.Equals("ltr", StringComparison.OrdinalIgnoreCase) == true ||
+                 directionAttribute?.Equals("rtl", StringComparison.OrdinalIgnoreCase) == true)) {
+                accumulated["direction"] = (
+                    directionAttribute!.ToLowerInvariant(),
+                    default,
+                    false,
+                    int.MaxValue);
+            }
 
             if (accumulated.Count > 0) {
                 ReportUnsupportedCssDiagnostics(

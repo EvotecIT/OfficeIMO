@@ -106,8 +106,28 @@ namespace OfficeIMO.Word.Html {
                             if (!string.IsNullOrWhiteSpace(bodyStyle)) {
                                 ApplySpanStyles(element, ref fmt);
                             }
+                            WordParagraph? para = currentParagraph;
+                            if (para == null && cell != null) {
+                                var existingParagraphs = cell.Paragraphs;
+                                if (existingParagraphs.Count == 1 && string.IsNullOrEmpty(existingParagraphs[0].Text)) {
+                                    para = existingParagraphs[0];
+                                }
+                            }
                             foreach (var child in element.ChildNodes) {
-                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                                int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
+                                bool standaloneResource = child is IElement resourceElement &&
+                                    (resourceElement.TagName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
+                                     resourceElement.TagName.Equals("svg", StringComparison.OrdinalIgnoreCase));
+                                ProcessNode(child, doc, section, options, standaloneResource ? null : para, listStack, fmt, cell, headerFooter, headingList);
+                                if (standaloneResource ||
+                                    child is IElement childElement && _blockTags.Contains(childElement.TagName)) {
+                                    para = null;
+                                } else if (para == null) {
+                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                                    if (scopedParagraphs.Count > paragraphCount) {
+                                        para = scopedParagraphs[scopedParagraphs.Count - 1];
+                                    }
+                                }
                             }
                             break;
                         }
@@ -119,7 +139,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
-                            if (options.SectionTagHandling == SectionTagHandling.WordSection) {
+                            if (options.SectionTagHandling == SectionTagHandling.WordSection && cell == null) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
                                 ApplyExportedSectionMetadata(element, newSection);
                                 int startIndex = newSection.Paragraphs.Count;
@@ -160,7 +180,8 @@ namespace OfficeIMO.Word.Html {
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
-                                    var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
+                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                                    var paragraph = scopedParagraphs.Count > startIndex ? scopedParagraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             }
@@ -180,8 +201,6 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
-                            // Track start within this section rather than whole document
-                            int startIndex = section.Paragraphs.Count;
                             int scopeStartIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
@@ -196,7 +215,8 @@ namespace OfficeIMO.Word.Html {
                             }
                             var id = element.GetAttribute("id");
                             if (!string.IsNullOrEmpty(id)) {
-                                var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
+                                var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                                var paragraph = scopedParagraphs.Count > scopeStartIndex ? scopedParagraphs[scopeStartIndex] : AddParagraphInScope(section, cell, headerFooter);
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
                             var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeStartIndex);
@@ -340,7 +360,11 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "svg": {
-                            ProcessSvgElement(element, doc, section, options, currentParagraph, headerFooter);
+                            WordParagraph? svgParagraph = currentParagraph;
+                            if (svgParagraph == null && cell != null) {
+                                svgParagraph = AddParagraphInScope(section, cell, headerFooter);
+                            }
+                            ProcessSvgElement(element, doc, section, options, svgParagraph, headerFooter);
                             break;
                         }
                     case "pre": {
@@ -370,8 +394,11 @@ namespace OfficeIMO.Word.Html {
                                     }
                                 }
                                 ProcessNode(child, doc, section, options, para, listStack, fmt, cell, headerFooter, headingList);
-                                if (para == null && doc.Paragraphs.Count > 0) {
-                                    para = doc.Paragraphs.Last();
+                                if (para == null) {
+                                    var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                                    if (scopedParagraphs.Count > startIndex) {
+                                        para = scopedParagraphs[scopedParagraphs.Count - 1];
+                                    }
                                 }
                             }
                             var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
@@ -831,7 +858,11 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "img": {
-                            ProcessImage((IHtmlImageElement)element, doc, options, currentParagraph, headerFooter);
+                            WordParagraph? imageParagraph = currentParagraph;
+                            if (imageParagraph == null && cell != null) {
+                                imageParagraph = AddParagraphInScope(section, cell, headerFooter);
+                            }
+                            ProcessImage((IHtmlImageElement)element, doc, options, imageParagraph, headerFooter);
                             break;
                         }
                     case "input":
@@ -906,7 +937,7 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
                 }
-                currentParagraph ??= cell != null ? cell.AddParagraph(paragraph: null, removeExistingParagraphs: true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                 if (textNode.ParentElement != null) {
                     ApplyBidiIfPresent(textNode.ParentElement, currentParagraph);
                     var language = GetElementLanguage(textNode.ParentElement);

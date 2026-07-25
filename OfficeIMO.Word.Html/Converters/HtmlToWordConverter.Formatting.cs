@@ -275,10 +275,10 @@ namespace OfficeIMO.Word.Html {
                 };
             }
 
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-left"), out int pl)) paddingLeft = pl;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-right"), out int pr)) paddingRight = pr;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-top"), out int pt)) paddingTop = pt;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-bottom"), out int pb)) paddingBottom = pb;
+            if (!paddingLeft.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-left"), out int pl)) paddingLeft = pl;
+            if (!paddingRight.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-right"), out int pr)) paddingRight = pr;
+            if (!paddingTop.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-top"), out int pt)) paddingTop = pt;
+            if (!paddingBottom.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-bottom"), out int pb)) paddingBottom = pb;
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "text-indent"), out int indent)) {
                 if (indent > 0) {
@@ -664,7 +664,9 @@ namespace OfficeIMO.Word.Html {
             var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
             var child = parser.ParseDeclaration(childStyle ?? string.Empty);
             foreach (var prop in parent) {
-                if (IsPageBreakProperty(prop.Name) || IsContainerBoxProperty(prop.Name)) {
+                if (IsPageBreakProperty(prop.Name) ||
+                    IsContainerBoxProperty(prop.Name) ||
+                    prop.Name.Equals("direction", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {

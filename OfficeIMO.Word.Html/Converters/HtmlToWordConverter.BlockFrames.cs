@@ -12,16 +12,33 @@ namespace OfficeIMO.Word.Html {
             Bottom
         }
 
-        private struct BlockBorder {
+        private readonly struct BlockBorder {
             internal BlockBorder(BorderValues style, UInt32Value size, SixColor color) {
                 Style = style;
                 Size = size;
                 Color = color;
             }
 
-            internal BorderValues Style { get; set; }
-            internal UInt32Value Size { get; set; }
-            internal SixColor Color { get; set; }
+            internal BorderValues Style { get; }
+            internal UInt32Value Size { get; }
+            internal SixColor Color { get; }
+        }
+
+        private struct BlockBorderState {
+            internal BlockBorderState(BorderValues style, UInt32Value size, SixColor color) {
+                Style = style;
+                Size = size;
+                Color = color;
+            }
+
+            internal BorderValues? Style { get; set; }
+            internal UInt32Value? Size { get; set; }
+            internal SixColor? Color { get; set; }
+
+            internal BlockBorder? Materialize() =>
+                Style.HasValue
+                    ? new BlockBorder(Style.Value, Size ?? 4U, Color ?? SixColor.Black)
+                    : null;
         }
 
         private static void ApplyParagraphFrameFromCss(WordParagraph paragraph, IElement element) {
@@ -46,7 +63,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             string? background = null;
-            var sideBorders = new Dictionary<BlockBorderSide, BlockBorder>();
+            var sideBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
             foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 string[] pieces = part.Split(new[] { ':' }, 2);
                 if (pieces.Length != 2) {
@@ -58,14 +75,14 @@ namespace OfficeIMO.Word.Html {
                 if (name == "background-color") {
                     background = NormalizeColor(value);
                 } else if (name == "border" && TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor)) {
-                    var border = new BlockBorder(borderStyle, borderSize, borderColor);
+                    var border = new BlockBorderState(borderStyle, borderSize, borderColor);
                     sideBorders[BlockBorderSide.Left] = border;
                     sideBorders[BlockBorderSide.Right] = border;
                     sideBorders[BlockBorderSide.Top] = border;
                     sideBorders[BlockBorderSide.Bottom] = border;
                 } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
                            TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor)) {
-                    sideBorders[side] = new BlockBorder(sideStyle, sideSize, sideColor);
+                    sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
                 } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
                     ApplyBlockBorderLonghand(sideBorders, side, component, value);
                 }
@@ -73,7 +90,9 @@ namespace OfficeIMO.Word.Html {
 
             if (!string.IsNullOrEmpty(background)) {
                 foreach (WordParagraph paragraph in paragraphs) {
-                    paragraph.ShadingFillColorHex = background!;
+                    if (string.IsNullOrEmpty(paragraph.ShadingFillColorHex)) {
+                        paragraph.ShadingFillColorHex = background!;
+                    }
                 }
             }
 
@@ -121,18 +140,18 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static BlockBorder? GetBlockBorder(
-            IReadOnlyDictionary<BlockBorderSide, BlockBorder> sideBorders,
+            IReadOnlyDictionary<BlockBorderSide, BlockBorderState> sideBorders,
             BlockBorderSide side) =>
-            sideBorders.TryGetValue(side, out BlockBorder border) ? border : null;
+            sideBorders.TryGetValue(side, out BlockBorderState border) ? border.Materialize() : null;
 
         private static void ApplyBlockBorderLonghand(
-            IDictionary<BlockBorderSide, BlockBorder> sideBorders,
+            IDictionary<BlockBorderSide, BlockBorderState> sideBorders,
             BlockBorderSide side,
             string component,
             string value) {
-            BlockBorder border = sideBorders.TryGetValue(side, out BlockBorder existing)
+            BlockBorderState border = sideBorders.TryGetValue(side, out BlockBorderState existing)
                 ? existing
-                : new BlockBorder(BorderValues.Single, 4U, SixColor.Black);
+                : default;
             switch (component) {
                 case "style":
                     if (!TryParseBlockBorderStyle(value, out BorderValues style)) {

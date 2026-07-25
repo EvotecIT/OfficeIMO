@@ -64,6 +64,46 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_LogicalPadding_RespectsDeclarationOrderWithPhysicalProperties() {
+        const string html = """
+            <p style="padding-left:30px;padding-inline-start:10px;padding-top:40px;padding-block-start:20px">Logical last</p>
+            <p style="padding-inline-start:10px;padding-left:30px;padding-block-start:20px;padding-top:40px">Physical last</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
+        WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
+
+        Assert.Equal(150, logicalLast.IndentationBefore);
+        Assert.Equal(300, logicalLast.LineSpacingBefore);
+        Assert.Equal(450, physicalLast.IndentationBefore);
+        Assert.Equal(600, physicalLast.LineSpacingBefore);
+    }
+
+    [Fact]
+    public void HtmlToWord_CssDirection_OverridesDirForLogicalSpacing() {
+        const string html = """
+            <style>
+              .ltr { direction:ltr; }
+              .ancestor { direction:ltr; }
+            </style>
+            <p class="ltr" dir="rtl" style="margin-inline-start:10px">CSS direction</p>
+            <div class="ancestor">
+              <p dir="rtl" style="margin-inline-start:10px">Own dir</p>
+            </div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "CSS direction");
+        WordParagraph ownDir = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Own dir");
+
+        Assert.Equal(150, paragraph.IndentationBefore);
+        Assert.Null(paragraph.IndentationAfter);
+        Assert.Null(ownDir.IndentationBefore);
+        Assert.Equal(150, ownDir.IndentationAfter);
+    }
+
+    [Fact]
     public void HtmlToWord_BlockContainer_PreservesOneNativeFrameAcrossParagraphs() {
         const string html = """
             <style>.frame { background-color:#abcdef; border:1px solid #123456; padding:4px 8px; }</style>
@@ -85,6 +125,33 @@ public class HtmlWordGapClosure {
         Assert.Equal("123456", first.Borders.LeftColorHex);
         Assert.Equal(120, first.IndentationBefore);
         Assert.Equal(120, second.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_BlockContainer_PreservesMoreSpecificDescendantBackground() {
+        const string html = """
+            <div style="background-color:#0000ff">
+              <p style="background-color:#ff0000">Specific</p>
+              <p>Inherited frame</p>
+            </div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph specific = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specific");
+        WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited frame");
+
+        Assert.Equal("FF0000", specific.ShadingFillColorHex);
+        Assert.Equal("0000FF", inherited.ShadingFillColorHex);
+    }
+
+    [Fact]
+    public void HtmlToWord_BorderColorLonghand_DoesNotSynthesizeVisibleBorder() {
+        const string html = """<p style="border-left-color:#ff0000">No border style</p>""";
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "No border style");
+
+        Assert.Null(paragraph.Borders.LeftStyle);
     }
 
     [Fact]
@@ -220,6 +287,68 @@ public class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(reloadedCell.Elements, element => element is WordTable);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<span>First</span><span>Second</span>"""));
+
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Equal("ExistingFirstSecond", string.Concat(cell.Paragraphs.Select(paragraph => paragraph.Text)));
+    }
+
+    [Fact]
+    public async Task WordTableCell_AddHtmlAsync_KeepsSectionsImagesAndSvgInCellScope() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        string html = $"""
+            <section><p>Scoped section</p></section>
+            <img src="data:image/png;base64,{ValidPng}" alt="Scoped PNG">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">
+              <rect width="10" height="10" fill="#123456"/>
+            </svg>
+            """;
+
+        await cell.AddHtmlAsync(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Scoped section");
+        Assert.Equal(2, document.Images.Count);
+        Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "Scoped section");
+        Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.IsImage);
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
+
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Scoped section");
+        Assert.Equal(2, reloaded.Images.Count);
+    }
+
+    [Fact]
+    public async Task WordTableCell_AddHtmlAsync_UsesHeaderPartForTopLevelImage() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordHeader header = document.Sections[0].Header.Default!;
+        WordTableCell cell = header.AddTable(1, 1).Rows[0].Cells[0];
+        string html = $"""<img src="data:image/png;base64,{ValidPng}" alt="Header PNG">""";
+
+        await cell.AddHtmlAsync(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.IsImage);
+        Assert.Empty(document.Images);
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+
+        WordTableCell reloadedCell = reloaded.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0];
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
+        Assert.Empty(reloaded.Images);
     }
 
     private static void UpdateMaximum(ref int maximum, int candidate) {

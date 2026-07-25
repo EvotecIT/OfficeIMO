@@ -234,6 +234,10 @@ namespace OfficeIMO.Word.Html {
 
         private static bool? GetBidiFromDir(IElement element) {
             for (IElement? current = element; current != null; current = current.ParentElement) {
+                var style = current.GetAttribute("style");
+                if (TryGetDirectionFromStyle(style, out var bidi)) {
+                    return bidi;
+                }
                 var dir = current.GetAttribute("dir");
                 if (!string.IsNullOrWhiteSpace(dir)) {
                     if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
@@ -242,10 +246,6 @@ namespace OfficeIMO.Word.Html {
                     if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase)) {
                         return false;
                     }
-                }
-                var style = current.GetAttribute("style");
-                if (TryGetDirectionFromStyle(style, out var bidi)) {
-                    return bidi;
                 }
             }
             return null;
