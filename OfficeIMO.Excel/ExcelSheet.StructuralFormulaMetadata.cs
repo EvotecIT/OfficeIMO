@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
+using Xm = DocumentFormat.OpenXml.Office.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -129,6 +130,17 @@ namespace OfficeIMO.Excel {
                                 rewriteUnqualifiedReferences: false);
                         }
                     }
+
+                    foreach (Xm.Formula formula in worksheetPart.Worksheet
+                        .Descendants<X14.ConditionalFormatting>()
+                        .SelectMany(formatting => formatting.Descendants<Xm.Formula>())) {
+                        changed |= RewriteStructuralFormulaText(
+                            formula,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            rewriteUnqualifiedReferences: false);
+                    }
                 }
 
                 foreach (Hyperlink hyperlink in worksheetPart.Worksheet.Descendants<Hyperlink>()) {
@@ -180,21 +192,42 @@ namespace OfficeIMO.Excel {
                     }
 
                     bool tableChanged = false;
+                    GetTableFormulaAnchorDeltas(
+                        tablePart.Table,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out int calculatedColumnAnchorDelta,
+                        out int totalsRowAnchorDelta);
                     foreach (CalculatedColumnFormula formula in tablePart.Table.Descendants<CalculatedColumnFormula>()) {
-                        tableChanged |= RewriteStructuralFormulaText(
-                            formula,
-                            firstAffectedRow,
-                            rowDelta,
-                            lastDeletedRow,
-                            isMutatedSheet);
+                        tableChanged |= isMutatedSheet
+                            ? RewriteAnchoredFormulaText(
+                                formula,
+                                firstAffectedRow,
+                                rowDelta,
+                                lastDeletedRow,
+                                calculatedColumnAnchorDelta)
+                            : RewriteStructuralFormulaText(
+                                formula,
+                                firstAffectedRow,
+                                rowDelta,
+                                lastDeletedRow,
+                                rewriteUnqualifiedReferences: false);
                     }
                     foreach (TotalsRowFormula formula in tablePart.Table.Descendants<TotalsRowFormula>()) {
-                        tableChanged |= RewriteStructuralFormulaText(
-                            formula,
-                            firstAffectedRow,
-                            rowDelta,
-                            lastDeletedRow,
-                            isMutatedSheet);
+                        tableChanged |= isMutatedSheet
+                            ? RewriteAnchoredFormulaText(
+                                formula,
+                                firstAffectedRow,
+                                rowDelta,
+                                lastDeletedRow,
+                                totalsRowAnchorDelta)
+                            : RewriteStructuralFormulaText(
+                                formula,
+                                firstAffectedRow,
+                                rowDelta,
+                                lastDeletedRow,
+                                rewriteUnqualifiedReferences: false);
                     }
 
                     if (tableChanged) {
@@ -231,6 +264,48 @@ namespace OfficeIMO.Excel {
             }
 
             RewriteChartsheetAndExtendedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow);
+        }
+
+        private static void GetTableFormulaAnchorDeltas(
+            Table table,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow,
+            out int calculatedColumnAnchorDelta,
+            out int totalsRowAnchorDelta) {
+            calculatedColumnAnchorDelta = 0;
+            totalsRowAnchorDelta = 0;
+            if (table.Reference?.Value is not string reference
+                || !A1.TryParseRange(
+                    reference.Replace("$", string.Empty),
+                    out int oldFirstRow,
+                    out _,
+                    out int oldLastRow,
+                    out _)) {
+                return;
+            }
+
+            int newFirstRow = oldFirstRow;
+            int newLastRow = oldLastRow;
+            if (TryRemapShiftedReferenceListRows(
+                    reference,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out List<string> remapped)
+                && remapped.Count > 0
+                && A1.TryParseRange(
+                    remapped[0].Replace("$", string.Empty),
+                    out int remappedFirstRow,
+                    out _,
+                    out int remappedLastRow,
+                    out _)) {
+                newFirstRow = remappedFirstRow;
+                newLastRow = remappedLastRow;
+            }
+
+            calculatedColumnAnchorDelta = newFirstRow - oldFirstRow;
+            totalsRowAnchorDelta = newLastRow - oldLastRow;
         }
 
         private static bool RemapDataTableInputReference(

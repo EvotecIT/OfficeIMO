@@ -94,6 +94,50 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void RemapShiftedScenarios(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            Scenarios? scenarios = WorksheetRoot.GetFirstChild<Scenarios>();
+            if (scenarios == null) {
+                return;
+            }
+
+            if (scenarios.SequenceOfReferences?.InnerText is string references
+                && TryRemapShiftedReferenceListRows(
+                    references,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out List<string> remappedResults)) {
+                scenarios.SequenceOfReferences = remappedResults.Count == 0
+                    ? null
+                    : new ListValue<StringValue> { InnerText = string.Join(" ", remappedResults) };
+            }
+
+            foreach (Scenario scenario in scenarios.Elements<Scenario>()) {
+                foreach (InputCells input in scenario.Elements<InputCells>().ToList()) {
+                    if (input.CellReference?.Value is not string reference
+                        || !TryRemapShiftedReferenceListRows(
+                            reference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remappedInputs)) {
+                        continue;
+                    }
+
+                    if (remappedInputs.Count == 0) {
+                        input.Remove();
+                    } else {
+                        input.CellReference = remappedInputs[0];
+                    }
+                }
+
+                scenario.Count = (uint)scenario.Elements<InputCells>().Count();
+            }
+        }
+
         private static bool RemapShiftedSortStateReferences(
             OpenXmlElement root,
             int firstAffectedRow,

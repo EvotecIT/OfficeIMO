@@ -232,6 +232,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(
                 0U,
                 cachePart.PivotTableCacheRecordsPart!.PivotCacheRecords!.Count!.Value);
+
+            cachePart.PivotCacheDefinition.RefreshOnLoad = false;
+            cachePart.PivotCacheDefinition.SaveData = true;
+            cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count = 1U;
+
+            sheet.DeleteRows(4);
+
+            Assert.True(cachePart.PivotCacheDefinition.RefreshOnLoad!.Value);
+            Assert.False(cachePart.PivotCacheDefinition.SaveData!.Value);
+            Assert.Equal(
+                0U,
+                cachePart.PivotTableCacheRecordsPart.PivotCacheRecords.Count!.Value);
         }
 
         private static void AppendSharedFormulaGroup(

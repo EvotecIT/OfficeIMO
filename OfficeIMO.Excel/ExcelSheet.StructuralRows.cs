@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when content or a dependent reference would exceed the worksheet row limit, or when the insertion
-        /// would split an array formula or PivotTable output range.
+        /// would split an array formula, data-table, or PivotTable output range, or when the workbook uses R1C1 reference mode.
         /// </exception>
         public void InsertRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
@@ -36,8 +36,8 @@ namespace OfficeIMO.Excel {
         /// Thrown when the requested rows fall outside the worksheet row limit.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the deletion would remove an owned table boundary or intersect an array-formula or PivotTable
-        /// output range that cannot be rebuilt safely.
+        /// Thrown when the deletion would remove an owned table boundary or intersect an array-formula, data-table,
+        /// or PivotTable output range that cannot be rebuilt safely, or when the workbook uses R1C1 reference mode.
         /// </exception>
         public void DeleteRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
@@ -64,15 +64,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            ValidateStructuralRowReferenceMode();
             ValidateStructuralRowControlSafety();
             ValidateRowInsertionAgainstArrayFormulas(firstRow);
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            uint maxShiftedRow = sheetData?.Elements<Row>()
-                .Where(item => item.RowIndex?.Value >= (uint)firstRow)
-                .Select(item => item.RowIndex?.Value ?? 0U)
-                .DefaultIfEmpty(0U)
-                .Max() ?? 0U;
+            uint maxShiftedRow = GetMaximumEffectiveRowIndex(sheetData, firstRow);
             if (maxShiftedRow > 0U && (long)maxShiftedRow + count > A1.MaxRows) {
                 throw new InvalidOperationException("Inserting rows would move worksheet content beyond Excel's row limit.");
             }
@@ -80,6 +77,7 @@ namespace OfficeIMO.Excel {
             MaterializeWorkbookSharedFormulasForStructuralEdit();
 
             if (sheetData != null) {
+                NormalizeImplicitRowIndices(sheetData);
                 foreach (Row row in sheetData.Elements<Row>()
                     .Where(item => item.RowIndex?.Value >= (uint)firstRow)
                     .OrderByDescending(item => item.RowIndex?.Value ?? 0U)
@@ -112,18 +110,16 @@ namespace OfficeIMO.Excel {
             }
 
             int lastRemovedRow = firstRow + count - 1;
+            ValidateStructuralRowReferenceMode();
             ValidateStructuralRowControlSafety();
             ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
             ValidateWorkbookSharedFormulasForStructuralEdit();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
+                NormalizeImplicitRowIndices(sheetData);
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
-                    if (row.RowIndex == null) {
-                        continue;
-                    }
-
-                    int rowIndex = checked((int)row.RowIndex.Value);
+                    int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
                         row.Remove();
                         continue;
@@ -155,7 +151,8 @@ namespace OfficeIMO.Excel {
 
         private void ValidateRowInsertionAgainstArrayFormulas(int firstRow) {
             foreach (CellFormula formula in WorksheetRoot.Descendants<CellFormula>()
-                .Where(item => item.FormulaType?.Value == CellFormulaValues.Array)) {
+                .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
+                    || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
                     || !A1.TryParseRange(
                         reference.Replace("$", string.Empty),
@@ -167,30 +164,37 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (firstRow > arrayFirstRow && firstRow <= arrayLastRow) {
+                    string formulaKind = formula.FormulaType?.Value == CellFormulaValues.DataTable
+                        ? "data-table"
+                        : "array formula";
                     throw new InvalidOperationException(
-                        $"Cannot insert rows through array formula range '{reference}'. Insert before or after the complete array range.");
+                        $"Cannot insert rows through {formulaKind} range '{reference}'. Insert before or after the complete range.");
                 }
             }
         }
 
         private void ValidateRowDeletionAgainstOwnedRanges(int firstDeletedRow, int lastDeletedRow) {
             foreach (CellFormula formula in WorksheetRoot.Descendants<CellFormula>()
-                .Where(item => item.FormulaType?.Value == CellFormulaValues.Array)) {
+                .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
+                    || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
                     || !A1.TryParseRange(
                         reference.Replace("$", string.Empty),
-                        out int arrayFirstRow,
+                        out int ownedFirstRow,
                         out _,
-                        out int arrayLastRow,
+                        out int ownedLastRow,
                         out _)) {
                     continue;
                 }
 
-                bool deletesOwner = arrayFirstRow >= firstDeletedRow && arrayFirstRow <= lastDeletedRow;
-                bool deletesWholeArray = firstDeletedRow <= arrayFirstRow && lastDeletedRow >= arrayLastRow;
-                if (deletesOwner && !deletesWholeArray) {
+                bool deletesOwner = ownedFirstRow >= firstDeletedRow && ownedFirstRow <= lastDeletedRow;
+                bool deletesWholeRange = firstDeletedRow <= ownedFirstRow && lastDeletedRow >= ownedLastRow;
+                if (deletesOwner && !deletesWholeRange) {
+                    string formulaKind = formula.FormulaType?.Value == CellFormulaValues.DataTable
+                        ? "data-table"
+                        : "array formula";
                     throw new InvalidOperationException(
-                        $"Cannot delete the owner row of array formula range '{reference}' while part of the array survives.");
+                        $"Cannot delete the owner row of {formulaKind} range '{reference}' while part of the range survives.");
                 }
             }
 
@@ -271,6 +275,51 @@ namespace OfficeIMO.Excel {
                         $"Cannot insert rows through pivot table output range '{reference}'. Insert before or after the pivot table.");
                 }
             }
+        }
+
+        private void ValidateStructuralRowReferenceMode() {
+            if (WorkbookRoot.GetFirstChild<CalculationProperties>()?.ReferenceMode?.Value == ReferenceModeValues.R1C1) {
+                throw new InvalidOperationException(
+                    "Structural row edits are not supported while the workbook uses R1C1 reference mode. Switch to A1 reference mode first.");
+            }
+        }
+
+        private static uint GetMaximumEffectiveRowIndex(SheetData? sheetData, int firstRow) {
+            uint maximum = 0U;
+            uint previous = 0U;
+            foreach (Row row in sheetData?.Elements<Row>() ?? Enumerable.Empty<Row>()) {
+                uint effective = GetEffectiveRowIndex(row, previous);
+                if (effective >= (uint)firstRow && effective > maximum) {
+                    maximum = effective;
+                }
+                previous = effective;
+            }
+            return maximum;
+        }
+
+        private static void NormalizeImplicitRowIndices(SheetData sheetData) {
+            uint previous = 0U;
+            foreach (Row row in sheetData.Elements<Row>()) {
+                uint effective = GetEffectiveRowIndex(row, previous);
+                row.RowIndex = effective;
+                previous = effective;
+            }
+        }
+
+        private static uint GetEffectiveRowIndex(Row row, uint previous) {
+            if (row.RowIndex?.Value is uint explicitIndex && explicitIndex > 0U) {
+                return explicitIndex;
+            }
+
+            foreach (Cell cell in row.Elements<Cell>()) {
+                if (cell.CellReference?.Value is string reference
+                    && TryParseReference(reference, out var bounds)
+                    && bounds.r1 > 0) {
+                    return (uint)bounds.r1;
+                }
+            }
+
+            return checked(previous + 1U);
         }
 
         private void ValidateStructuralRowReferenceCapacity(int firstRow, int count) {

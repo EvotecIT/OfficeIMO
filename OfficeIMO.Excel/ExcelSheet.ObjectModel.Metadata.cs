@@ -55,10 +55,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
+            RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedWorksheetRangeMetadata(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotLocations(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedThreadedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -71,10 +71,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+            RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedWorksheetRangeMetadata(firstDeletedRow, rowDelta, lastDeletedRow);
-            RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotLocations(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedThreadedComments(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -172,18 +172,19 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapShiftedWorksheetRangeMetadata(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            AutoFilter? autoFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
-            if (autoFilter?.Reference?.Value is string filterReference
-                && TryRemapShiftedReferenceListRows(
-                    filterReference,
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow,
-                    out List<string> remappedFilterReferences)) {
-                if (remappedFilterReferences.Count == 0) {
-                    autoFilter.Remove();
-                } else {
-                    autoFilter.Reference = remappedFilterReferences[0];
+            foreach (AutoFilter autoFilter in WorksheetRoot.Descendants<AutoFilter>().ToList()) {
+                if (autoFilter.Reference?.Value is string filterReference
+                    && TryRemapShiftedReferenceListRows(
+                        filterReference,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remappedFilterReferences)) {
+                    if (remappedFilterReferences.Count == 0) {
+                        autoFilter.Remove();
+                    } else {
+                        autoFilter.Reference = remappedFilterReferences[0];
+                    }
                 }
             }
 
@@ -204,6 +205,7 @@ namespace OfficeIMO.Excel {
 
             RemapShiftedProtectedRanges(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedIgnoredErrors(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedScenarios(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
