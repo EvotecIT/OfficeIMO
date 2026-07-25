@@ -921,12 +921,21 @@ namespace OfficeIMO.Word.Html {
             color = SixColor.Black;
             hasExplicitStyle = false;
             bool found = false;
-            foreach (var part in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            bool hasExplicitWidth = false;
+            bool hasExplicitColor = false;
+            foreach (var part in SplitBorderTokens(value)) {
                 var token = part.Trim().ToLowerInvariant();
                 if (TryParseBorderWidth(token, out var s)) {
+                    if (hasExplicitWidth) {
+                        return false;
+                    }
                     size = s;
+                    hasExplicitWidth = true;
                     found = true;
                 } else if (token == "solid" || token == "dotted" || token == "dashed" || token == "double" || token == "none") {
+                    if (hasExplicitStyle) {
+                        return false;
+                    }
                     style = token switch {
                         "dotted" => BorderValues.Dotted,
                         "dashed" => BorderValues.Dashed,
@@ -938,13 +947,41 @@ namespace OfficeIMO.Word.Html {
                     found = true;
                 } else {
                     var hex = NormalizeColor(token);
-                    if (hex != null) {
-                        color = SixColor.Parse("#" + hex);
-                        found = true;
+                    if (hex == null || hasExplicitColor) {
+                        return false;
                     }
+                    color = SixColor.Parse("#" + hex);
+                    hasExplicitColor = true;
+                    found = true;
                 }
             }
             return found;
+        }
+
+        private static IEnumerable<string> SplitBorderTokens(string value) {
+            int tokenStart = -1;
+            int parenthesisDepth = 0;
+            for (int index = 0; index < value.Length; index++) {
+                char character = value[index];
+                if (character == '(') {
+                    parenthesisDepth++;
+                } else if (character == ')' && parenthesisDepth > 0) {
+                    parenthesisDepth--;
+                }
+
+                if (char.IsWhiteSpace(character) && parenthesisDepth == 0) {
+                    if (tokenStart >= 0) {
+                        yield return value.Substring(tokenStart, index - tokenStart);
+                        tokenStart = -1;
+                    }
+                } else if (tokenStart < 0) {
+                    tokenStart = index;
+                }
+            }
+
+            if (tokenStart >= 0) {
+                yield return value.Substring(tokenStart);
+            }
         }
 
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {

@@ -64,6 +64,15 @@ namespace OfficeIMO.Word.Html {
         private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
 
+        private static int GetGeneratedParagraphStartIndex(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            List<WordParagraph> paragraphs = GetParagraphsInScope(section, cell, headerFooter);
+            return cell != null &&
+                   paragraphs.Count == 1 &&
+                   IsReplaceableEmptyCellParagraph(paragraphs[0])
+                ? 0
+                : paragraphs.Count;
+        }
+
         private static List<WordParagraph> GetGeneratedParagraphs(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
             GetParagraphsInScope(section, cell, headerFooter).Skip(startIndex).ToList();
 
@@ -181,7 +190,7 @@ namespace OfficeIMO.Word.Html {
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             } else {
-                                int startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
+                                int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -219,7 +228,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
-                            int scopeStartIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
+                            int scopeStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -350,7 +359,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "blockquote": {
-                            var startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
+                            var startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
@@ -418,7 +427,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
-                            int startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
+                            int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {

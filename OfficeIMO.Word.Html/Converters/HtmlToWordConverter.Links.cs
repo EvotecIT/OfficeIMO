@@ -17,6 +17,13 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
+        private enum CssDirectionResolution {
+            LeftToRight,
+            RightToLeft,
+            Inherit,
+            Revert
+        }
+
         private static void AddBookmarkIfPresent(IElement element, WordParagraph paragraph) {
             var id = element.GetAttribute("id");
             if (string.IsNullOrEmpty(id)) {
@@ -110,11 +117,17 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var firstParagraph = doc.Paragraphs.FirstOrDefault();
-            if (firstParagraph == null) {
+            Paragraph? firstParagraphElement = doc._wordprocessingDocument
+                .MainDocumentPart?
+                .Document?
+                .Body?
+                .Descendants<Paragraph>()
+                .FirstOrDefault();
+            if (firstParagraphElement == null) {
                 return;
             }
 
+            var firstParagraph = new WordParagraph(doc, firstParagraphElement);
             WordBookmark.AddBookmark(firstParagraph, "_top");
             _pendingTopBookmark = false;
         }
@@ -235,8 +248,17 @@ namespace OfficeIMO.Word.Html {
         private static bool? GetBidiFromDir(IElement element) {
             for (IElement? current = element; current != null; current = current.ParentElement) {
                 var style = current.GetAttribute("style");
-                if (TryGetDirectionFromStyle(style, out var bidi)) {
-                    return bidi;
+                if (TryGetDirectionFromStyle(style, out CssDirectionResolution resolution)) {
+                    switch (resolution) {
+                        case CssDirectionResolution.LeftToRight:
+                            return false;
+                        case CssDirectionResolution.RightToLeft:
+                            return true;
+                        case CssDirectionResolution.Inherit:
+                            continue;
+                        case CssDirectionResolution.Revert:
+                            break;
+                    }
                 }
                 var dir = current.GetAttribute("dir");
                 if (!string.IsNullOrWhiteSpace(dir)) {
@@ -251,13 +273,13 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static bool TryGetDirectionFromStyle(string? style, out bool bidi) {
-            bidi = false;
+        private static bool TryGetDirectionFromStyle(string? style, out CssDirectionResolution resolution) {
+            resolution = default;
             if (string.IsNullOrWhiteSpace(style)) {
                 return false;
             }
 
-            bool? resolved = null;
+            CssDirectionResolution? resolved = null;
             for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
                 bool important = priorityPass == 1;
                 foreach (string part in style!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -272,9 +294,16 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (value.Equals("rtl", StringComparison.OrdinalIgnoreCase)) {
-                        resolved = true;
-                    } else if (value.Equals("ltr", StringComparison.OrdinalIgnoreCase)) {
-                        resolved = false;
+                        resolved = CssDirectionResolution.RightToLeft;
+                    } else if (value.Equals("ltr", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.LeftToRight;
+                    } else if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.Inherit;
+                    } else if (value.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.Revert;
                     }
                 }
             }
@@ -283,7 +312,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            bidi = resolved.Value;
+            resolution = resolved.Value;
             return true;
         }
 

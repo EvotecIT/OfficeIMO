@@ -80,7 +80,14 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (name == "background-color") {
-                        background = NormalizeColor(value);
+                        if (value.Equals("transparent", StringComparison.OrdinalIgnoreCase)) {
+                            background = null;
+                        } else {
+                            string? normalizedBackground = NormalizeColor(value);
+                            if (normalizedBackground != null) {
+                                background = normalizedBackground;
+                            }
+                        }
                     } else if (name == "border" &&
                                TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle)) {
                         if (hasBorderStyle) {

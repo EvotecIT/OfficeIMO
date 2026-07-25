@@ -186,6 +186,27 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_CssWideDirectionValues_ResolveBeforeLogicalSpacing() {
+        const string html = """
+            <p dir="rtl" style="direction:rtl;direction:initial;margin-inline-start:10px">Initial</p>
+            <div dir="rtl">
+              <p dir="ltr" style="direction:inherit;margin-inline-start:10px">Inherited</p>
+            </div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph initial = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Initial");
+        WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited");
+
+        Assert.False(initial.BiDi);
+        Assert.Equal(150, initial.IndentationBefore);
+        Assert.Null(initial.IndentationAfter);
+        Assert.True(inherited.BiDi);
+        Assert.Null(inherited.IndentationBefore);
+        Assert.Equal(150, inherited.IndentationAfter);
+    }
+
+    [Fact]
     public void HtmlToWord_BlockContainer_PreservesOneNativeFrameAcrossParagraphs() {
         const string html = """
             <style>.frame { background-color:#abcdef; border:1px solid #123456; padding:4px 8px; }</style>
@@ -291,6 +312,22 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void WordTableCell_AddHtml_FramesAContainerThatReplacesTheFreshPlaceholder() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+
+        cell.AddHtml(HtmlConversionDocument.Parse(
+            """<div style="border:1px solid #123456;break-before:page">Framed</div>"""));
+
+        Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
+        WordParagraph framed = Assert.Single(cell.Paragraphs, candidate => candidate.Text == "Framed");
+        Assert.Equal("Framed", paragraph.InnerText);
+        Assert.Equal(BorderValues.Single, framed.Borders.TopStyle);
+        Assert.Equal(BorderValues.Single, framed.Borders.BottomStyle);
+        Assert.True(framed.PageBreakBefore);
+    }
+
+    [Fact]
     public void HtmlToWord_BorderColorLonghand_DoesNotSynthesizeVisibleBorder() {
         const string html = """<p style="border-left-color:#ff0000">No border style</p>""";
 
@@ -334,6 +371,33 @@ public class HtmlWordGapClosure {
         Assert.Null(allSides.Borders.RightStyle);
         Assert.Null(allSides.Borders.BottomStyle);
         Assert.Null(oneSide.Borders.LeftStyle);
+    }
+
+    [Fact]
+    public void HtmlToWord_InvalidFrameDeclarations_DoNotReplaceEarlierValidValues() {
+        const string html = """
+            <div style="background-color:red;background-color:bogus"><p>Background</p></div>
+            <div style="border:1px solid red;border:1px solid bogus"><p>Border</p></div>
+            <div style="background-color:red;background-color:transparent"><p>Transparent</p></div>
+            <p style="border:1px solid rgb(1, 2, 3)">Functional color</p>
+            """;
+
+        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ToWordDocumentResult(
+            new HtmlToWordOptions { UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn });
+        using WordDocument document = conversion.Value;
+        WordParagraph background = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Background");
+        WordParagraph border = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Border");
+        WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
+        WordParagraph functionalColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Functional color");
+
+        Assert.Equal("FF0000", background.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, border.Borders.TopStyle);
+        Assert.Equal("FF0000", border.Borders.TopColorHex);
+        Assert.True(string.IsNullOrEmpty(transparent.ShadingFillColorHex));
+        Assert.Equal("010203", functionalColor.Borders.TopColorHex);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "UnsupportedCssValue" &&
+            diagnostic.Source == "div:border");
     }
 
     [Fact]
@@ -695,6 +759,21 @@ public class HtmlWordGapClosure {
         WordTableCell reloadedCell = reloaded.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0];
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
         Assert.Empty(reloaded.Images);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_CreatesTopBookmarkForATableOnlyDocument() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<p><a href="#top">Back</a></p>"""));
+
+        Assert.Contains(document.Bookmarks, bookmark =>
+            string.Equals(bookmark.Name, "_top", StringComparison.OrdinalIgnoreCase));
+        WordParagraph hyperlinkParagraph = Assert.Single(
+            cell.Paragraphs,
+            paragraph => paragraph.Hyperlink != null);
+        Assert.Equal("_top", hyperlinkParagraph.Hyperlink!.Anchor);
     }
 
     private static void UpdateMaximum(ref int maximum, int candidate) {
