@@ -67,7 +67,8 @@ namespace OfficeIMO.Word {
         private static Dictionary<int, ReferenceNumberingDefinition> BuildReferenceNumberingDefinitions(Numbering numbering) {
             Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
                 .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
-                .ToDictionary(abstractNum => abstractNum.AbstractNumberId!.Value, abstractNum => abstractNum);
+                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
 
             var result = new Dictionary<int, ReferenceNumberingDefinition>();
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
@@ -83,9 +84,13 @@ namespace OfficeIMO.Word {
 
                 Dictionary<int, ReferenceLevelDefinition> levels = abstractNum.Elements<Level>()
                     .Where(level => level.LevelIndex?.Value != null)
+                    .GroupBy(level => level.LevelIndex!.Value)
                     .ToDictionary(
-                        level => level.LevelIndex!.Value,
-                        level => CreateReferenceLevelDefinition(level, level.StartNumberingValue?.Val?.Value ?? 1));
+                        group => group.Key,
+                        group => {
+                            Level level = group.First();
+                            return CreateReferenceLevelDefinition(level, level.StartNumberingValue?.Val?.Value ?? 1);
+                        });
 
                 foreach (LevelOverride levelOverride in instance.Elements<LevelOverride>()) {
                     if (levelOverride.LevelIndex?.Value == null) {
@@ -203,7 +208,8 @@ namespace OfficeIMO.Word {
             if (styles != null) {
                 Dictionary<string, Style> paragraphStyles = styles.Elements<Style>()
                     .Where(style => style.Type?.Value == StyleValues.Paragraph && !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .ToDictionary(style => style.StyleId!.Value!, style => style, StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
                 var cache = new Dictionary<string, ReferenceParagraphNumbering?>(StringComparer.OrdinalIgnoreCase);
                 foreach (string styleId in paragraphStyles.Keys) {
@@ -222,7 +228,8 @@ namespace OfficeIMO.Word {
             IDictionary<string, ReferenceParagraphNumbering> resolved) {
             Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
                 .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
-                .ToDictionary(abstractNum => abstractNum.AbstractNumberId!.Value, abstractNum => abstractNum);
+                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
 
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value == null) {

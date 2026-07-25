@@ -154,7 +154,7 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
-        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier-Oblique", "Consolas-Italic", "LiberationMono-Italic", "DejaVuSansMono-Italic");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier-Oblique", "CourierNew-Italic", "Consolas-Italic", "LiberationMono-Italic", "DejaVuSansMono-Italic");
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
     }
 

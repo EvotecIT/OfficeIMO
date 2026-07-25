@@ -8,6 +8,15 @@ namespace OfficeIMO.Drawing;
 /// Describes a clipped image pattern with independently sized tiles and repeat steps in drawing coordinates.
 /// </summary>
 public readonly struct OfficeImagePatternLayout {
+    /// <summary>Creates a pattern layout using the tile dimensions as repeat steps.</summary>
+    public OfficeImagePatternLayout(
+        OfficeImagePlacement area,
+        OfficeImagePlacement tile,
+        bool repeatX,
+        bool repeatY)
+        : this(area, tile, repeatX, repeatY, null, null) {
+    }
+
     /// <summary>Creates a pattern layout from a paint area and one positioned tile.</summary>
     public OfficeImagePatternLayout(
         OfficeImagePlacement area,

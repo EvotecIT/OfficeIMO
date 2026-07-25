@@ -98,14 +98,20 @@ namespace OfficeIMO.Word {
                 .Where(h => h.Type != null && types.Contains(WordSection.GetType(h.Type))).ToList();
             foreach (var header in headersToRemove) {
                 if (header.Id == null) continue;
-                var part = mainDocumentPart.GetPartById(header.Id.Value!) as HeaderPart;
+                string relationshipId = header.Id.Value!;
+                var part = mainDocumentPart.Parts
+                    .FirstOrDefault(candidate => candidate.RelationshipId == relationshipId)
+                    .OpenXmlPart as HeaderPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 header.Remove();
             }
             foreach (var part in partsToDelete) {
-                mainDocumentPart.DeletePart(part);
+                string relationshipId = mainDocumentPart.GetIdOfPart(part);
+                if (!documentRoot.Descendants<HeaderReference>().Any(header => header.Id?.Value == relationshipId)) {
+                    mainDocumentPart.DeletePart(part);
+                }
             }
         }
         /// <summary>

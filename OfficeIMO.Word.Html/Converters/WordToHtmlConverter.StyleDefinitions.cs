@@ -19,7 +19,9 @@ namespace OfficeIMO.Word.Html {
 
             var stylePart = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
             var styleMap = (stylePart?.Styles?.OfType<Style>() ?? Enumerable.Empty<Style>())
-                .ToDictionary<Style, string, Style>(s => s.StyleId!, s => s, StringComparer.OrdinalIgnoreCase);
+                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
+                .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
             string BuildCss(string styleId) {
                 var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -116,6 +118,15 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             return true;
+        }
+
+        private static string? NormalizeSixDigitHexColor(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            string normalized = value!.Trim().TrimStart('#');
+            return IsSixDigitHexColor(normalized) ? normalized.ToLowerInvariant() : null;
         }
 
         private static string QuoteCssString(string value) {

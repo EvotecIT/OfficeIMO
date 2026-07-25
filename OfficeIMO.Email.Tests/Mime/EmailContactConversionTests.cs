@@ -460,7 +460,8 @@ public sealed class EmailContactConversionTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\nEMAIL;TYPE=WORK:first@example.com\r\n" +
-            "EMAIL;TYPE=WORK:second@example.com\r\nEND:VCARD\r\n");
+            "EMAIL;TYPE=WORK:second@example.com\r\n" +
+            "TEL;TYPE=HOME:+48-123-456-789\r\nEND:VCARD\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
@@ -468,6 +469,7 @@ public sealed class EmailContactConversionTests {
 
         Assert.Equal("first@example.com", document.Contact!.Email1.Address);
         Assert.Equal("second@example.com", document.Contact.Email2.Address);
+        Assert.Equal("+48-123-456-789", document.Contact.Phones.Home);
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");

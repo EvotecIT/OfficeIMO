@@ -406,10 +406,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginTopWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.TopMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -432,10 +429,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginBottomWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.BottomMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -458,10 +452,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginLeftWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.LeftMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -484,10 +475,7 @@ namespace OfficeIMO.Word {
         public Int16? MarginRightWidth {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.RightMargin?.Width;
-                if (width != null) {
-                    return short.Parse(width!);
-                }
-                return null;
+                return ParseMarginWidth(width?.Value);
             }
             set {
                 AddTableCellProperties();
@@ -503,6 +491,11 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        private static short? ParseMarginWidth(string? width) =>
+            short.TryParse(width, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out short value)
+                ? value
+                : null;
 
         /// <summary>
         /// Gets or sets the top margin in centimeters for the current cell.
@@ -810,7 +803,7 @@ namespace OfficeIMO.Word {
             };
             NormalizeTableCellPropertiesOrder();
             var tableRow = _tableCell.Parent as TableRow;
-            var indexOfCell = tableRow?.ChildElements.ToList().IndexOf(_tableCell) ?? -1;
+            var indexOfCell = tableRow?.Elements<TableCell>().ToList().IndexOf(_tableCell) ?? -1;
 
             for (int i = 0; i < cellsCount; i++) {
                 if (tableRow != null) {
@@ -856,7 +849,7 @@ namespace OfficeIMO.Word {
             _tableCellProperties!.VerticalMerge?.Remove();
 
             var tableRow = _tableCell.Parent as TableRow;
-            var indexOfCell = tableRow?.ChildElements.ToList().IndexOf(_tableCell) ?? -1;
+            var indexOfCell = tableRow?.Elements<TableCell>().ToList().IndexOf(_tableCell) ?? -1;
 
             for (int i = 0; i < cellsCount; i++) {
                 if (tableRow != null) {
@@ -885,8 +878,7 @@ namespace OfficeIMO.Word {
             // Remove preceding empty paragraph by default (safe), or when explicitly requested.
             var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
             if (paragraph != null) {
-                bool hasText = paragraph.Descendants<Text>().Any(t => !string.IsNullOrWhiteSpace(t.Text));
-                if (removePrecedingParagraph || !hasText) {
+                if (removePrecedingParagraph || !HasMeaningfulParagraphContent(paragraph)) {
                     paragraph.Remove();
                 }
             }
@@ -902,6 +894,25 @@ namespace OfficeIMO.Word {
             };
             _tableCell.Append(trailing);
             return wordTable;
+        }
+
+        private static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+            foreach (var element in paragraph.Descendants()) {
+                if (element is Text text) {
+                    if (!string.IsNullOrWhiteSpace(text.Text)) return true;
+                    continue;
+                }
+
+                if (element is ParagraphProperties || element is Run || element is RunProperties) {
+                    continue;
+                }
+
+                // Drawings, fields, bookmarks, hyperlinks, and other non-text content are data,
+                // even when the paragraph has no w:t descendants.
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

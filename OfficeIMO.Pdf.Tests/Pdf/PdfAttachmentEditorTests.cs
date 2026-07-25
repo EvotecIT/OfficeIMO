@@ -150,6 +150,24 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void Edit_ReconnectsAnnotationThroughSharedEmbeddedFileIdentity() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildAliasedFileAttachmentAnnotationPdf();
+
+        byte[] output = PdfAttachmentEditor.Remove(source, "alias.txt").ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+        PdfDictionary annotation = Assert.Single(
+            objects.Values.Select(static item => item.Value as PdfDictionary),
+            static dictionary => string.Equals(
+                dictionary?.Get<PdfName>("Subtype")?.Name,
+                "FileAttachment",
+                StringComparison.Ordinal))!;
+
+        Assert.Equal("ALIASED-ATTACHMENT-PAYLOAD", ReadAnnotationPayload(objects, annotation));
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "alias.txt"));
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachmentsByFileName(output, "canonical.txt"));
+    }
+
+    [Fact]
     public void Edit_RemovesFileAttachmentAnnotationWhenItsPayloadIsRemoved() {
         byte[] source = PdfAssociatedFileTestSupport.BuildFileAttachmentAnnotationPdf();
 

@@ -263,7 +263,6 @@ namespace OfficeIMO.Excel {
         private List<ExcelSheet> BuildSheetsWithoutCaching()
         {
             var elements = ReadSheetElements();
-            UpdateSheetIdCache(elements);
             return MaterializeSheets(elements);
         }
 
@@ -349,6 +348,7 @@ namespace OfficeIMO.Excel {
         private bool _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet;
         private ExcelSheet? _directDataSetMetadataSourceSheet;
         private ExcelSheet? _pendingDirectCellValueSheet;
+        private bool _pendingDirectCellValueRequiresSavePreflight;
         private bool _materializingDeferredDataSetImport;
         private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
         private int _directDataSetExternalCellMutationPreservationDepth;
@@ -362,6 +362,9 @@ namespace OfficeIMO.Excel {
 
         internal void MarkRequiresSavePreflight() {
             _requiresSavePreflight = true;
+            if (_pendingDirectCellValueSheet != null) {
+                _pendingDirectCellValueRequiresSavePreflight = true;
+            }
             MarkPackageDirty();
         }
 

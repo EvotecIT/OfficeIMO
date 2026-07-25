@@ -21,7 +21,7 @@ The Excel suite covers 25,000-row creation, `IDataReader` writes, typed reads, s
 dotnet run -c Release --project OfficeIMO.Excel.Benchmarks -- --help
 ```
 
-Use the scenario links on the [benchmark page](/benchmarks/#excel-evidence) to inspect the recorded runtime, machine, workload, and result matrix.
+Use the scenario links on the [benchmark page](/benchmarks/#excel-evidence) to inspect the runtime family, workload, and result matrix. Public website artifacts intentionally omit runner host identifiers and detailed operating-system inventory.
 
 ### CSV reads and writes
 

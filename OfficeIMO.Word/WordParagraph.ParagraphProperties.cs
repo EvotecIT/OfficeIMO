@@ -471,20 +471,30 @@ namespace OfficeIMO.Word {
         /// </summary>
         public VerticalPositionValues? VerticalTextAlignment {
             get {
-                if (_runProperties != null && _runProperties.VerticalTextAlignment != null) {
-                    return _runProperties.VerticalTextAlignment.Val?.Value;
+                RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
+                if (runProperties?.VerticalTextAlignment != null) {
+                    return runProperties.VerticalTextAlignment.Val?.Value;
                 }
                 return null;
             }
             set {
-                _runProperties ??= new RunProperties();
+                RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
                 if (value == null) {
-                    if (_runProperties.VerticalTextAlignment == null) {
+                    if (runProperties?.VerticalTextAlignment == null) {
                         return;
                     }
-                    _runProperties.VerticalTextAlignment = null;
+                    runProperties.VerticalTextAlignment = null;
                 } else {
-                    _runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
+                    if (IsHyperLink) {
+                        WordHyperLink hyperlink = Hyperlink!;
+                        runProperties = VerifyRunProperties(
+                            hyperlink._hyperlink!,
+                            hyperlink._run!,
+                            hyperlink._runProperties);
+                    } else {
+                        runProperties = VerifyRunProperties();
+                    }
+                    runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value };
                 }
             }
         }

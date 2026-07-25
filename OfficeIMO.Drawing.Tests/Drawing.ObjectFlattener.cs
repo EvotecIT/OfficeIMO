@@ -44,11 +44,38 @@ public sealed class DrawingObjectFlattenerTests {
         Assert.Equal(Enumerable.Range(1, 9).Select(index => $"Item{index}"), paths);
     }
 
+    [Fact]
+    public void FlattenRejectsReferenceCyclesInExpandedProperties() {
+        var row = new CyclicRow();
+        row.Child = row;
+        var options = new ObjectFlattenerOptions();
+        options.ExpandProperties.Add(nameof(CyclicRow.Child));
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            new ObjectFlattener().Flatten(row, options));
+
+        Assert.Contains("reference cycle", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void FlattenAndGetPathsApplyDepthLimitToValueTupleRest() {
+        var tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9);
+        var options = new ObjectFlattenerOptions { MaxDepth = 1 };
+        var flattener = new ObjectFlattener();
+
+        Assert.Throws<InvalidDataException>(() => flattener.Flatten(tuple, options));
+        Assert.Throws<InvalidDataException>(() => flattener.GetPaths(tuple.GetType(), options));
+    }
+
     private sealed class ContactRow {
         public string Name { get; } = "Alice";
 
         public string Email { get; } = "alice@example.test";
 
         public string Secret { get; } = "private";
+    }
+
+    private sealed class CyclicRow {
+        public CyclicRow? Child { get; set; }
     }
 }

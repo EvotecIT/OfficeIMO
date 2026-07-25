@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double horizontalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX;
         double verticalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingY;
         double trackWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * (columnCount + 1));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style);
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style, depth);
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
         var occupiedColumns = new int[columnCount];
@@ -105,7 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
 
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
-                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, style);
+                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, rowStyle);
                 if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
                     cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
                 }
@@ -301,8 +301,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     0,
                     source)
             };
+        double trailingSourceEnd = caption != null && caption.Side == "bottom"
+            ? tableY + tableHeight
+            : outerHeight;
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
-            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, semanticTrailingVisuals) }
+            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, trailingSourceEnd, trailingHeight, semanticTrailingVisuals) }
             : Array.Empty<HtmlRenderTrailingGroup>();
         return new HtmlRenderFlowBlock(
             containingWidth,

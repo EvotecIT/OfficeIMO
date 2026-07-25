@@ -14,12 +14,16 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             return;
         }
 
-        _ = ReleaseSharedEngineGateWhenSettledAsync(gate, pending);
+        _ = Task.Factory.StartNew(
+            () => ReleaseSharedEngineGateWhenSettled(gate, pending),
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+            TaskScheduler.Default);
     }
 
-    private static async Task ReleaseSharedEngineGateWhenSettledAsync(SemaphoreSlim gate, IReadOnlyList<Task> pending) {
+    private static void ReleaseSharedEngineGateWhenSettled(SemaphoreSlim gate, IReadOnlyList<Task> pending) {
         try {
-            await Task.WhenAll(pending).ConfigureAwait(false);
+            Task.WhenAll(pending).GetAwaiter().GetResult();
         } catch {
             // ExecuteCandidateAsync observes provider failures. The shared gate still has to be released.
         } finally {

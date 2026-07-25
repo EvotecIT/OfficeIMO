@@ -3,7 +3,7 @@
 Generated: 2026-05-31T18:44:43.8878299+00:00
 Run mode: quick
 Publish: False
-Machine: EVOMAGIC ( processors)
+Runtime family: .NET 8
 
 ## How to Read
 - Mean: average elapsed time for the measured operation. Lower is better.

@@ -156,7 +156,7 @@ public partial class DrawingTests {
     public void OfficeArtShapeTransform_HonorsExplicitFlipOverrides() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x033F,
-                (1U << 8) | (1U << 9) | (1U << 25))
+                (1U << 24) | (1U << 25) | (1U << 9))
         };
 
         OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(

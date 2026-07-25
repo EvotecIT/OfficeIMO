@@ -157,10 +157,7 @@ public partial class WordList : WordElement {
     /// </summary>
     public OfficeIMO.Drawing.OfficeColor? Color {
         get {
-            if (ColorHex == "") {
-                return null;
-            }
-            return Helpers.ParseColor(ColorHex);
+            return OfficeIMO.Drawing.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
         }
         set {
             if (value != null) {

@@ -159,11 +159,16 @@ namespace OfficeIMO.Visio {
                 maximumContentWidthPixels = contentWidth * style.Dpi;
             }
 
-            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(
-                text,
-                style.FontSizePixels,
-                maximumContentWidthPixels ?? double.PositiveInfinity,
-                (value, _) => measurer.MeasureWidth(value, style));
+            IReadOnlyList<OfficeTextLine> lines = maximumContentWidthPixels.HasValue
+                ? OfficeTextLayoutEngine.WrapLines(
+                    text,
+                    style.FontSizePixels,
+                    maximumContentWidthPixels.Value,
+                    (value, _) => measurer.MeasureWidth(value, style))
+                : OfficeTextLayoutEngine.MeasureUnwrappedLines(
+                    text,
+                    style.FontSizePixels,
+                    (value, _) => measurer.MeasureWidth(value, style));
             double maxWidthPixels = OfficeTextLayoutEngine.MeasureMaxLineWidth(lines);
             double lineHeightPixels = measurer.MeasureLineHeight(style);
             double measuredWidth = maxWidthPixels / style.Dpi + fixedWidth;

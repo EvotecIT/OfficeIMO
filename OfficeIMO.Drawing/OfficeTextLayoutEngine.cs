@@ -27,6 +27,32 @@ public static partial class OfficeTextLayoutEngine {
     public static IReadOnlyList<OfficeTextLine> WrapLines(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, OfficeTextParagraphIndent? paragraphIndent = null) =>
         WrapLines(text, fontSize, maxWidth, measure, paragraphIndent, out _);
 
+    /// <summary>
+    /// Measures authored lines without applying word wrapping or trimming authored whitespace.
+    /// Tabs are expanded deterministically and line-count/text-size safety limits still apply.
+    /// </summary>
+    public static IReadOnlyList<OfficeTextLine> MeasureUnwrappedLines(
+        string? text,
+        double fontSize,
+        Func<string?, double, double> measure) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        string bounded = LimitLayoutText(text ?? string.Empty);
+        string value = LimitLayoutText(ExpandTabs(bounded));
+        string[] sourceLines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        int lineCount = Math.Min(sourceLines.Length, MaximumLayoutLines);
+        var output = new List<OfficeTextLine>(Math.Max(1, lineCount));
+        for (int index = 0; index < lineCount; index++) {
+            output.Add(CreateMeasuredLine(sourceLines[index], fontSize, measure));
+        }
+
+        return output.Count == 0
+            ? new[] { new OfficeTextLine(string.Empty, 0D) }
+            : output;
+    }
+
     private static IReadOnlyList<OfficeTextLine> WrapLines(
         string? text,
         double fontSize,

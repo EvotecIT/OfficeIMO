@@ -466,12 +466,12 @@ public sealed class EmailStoreSessionTests {
         }
 
         public override int Read(byte[] buffer, int offset, int count) {
+            MaxSingleRead = Math.Max(MaxSingleRead, count);
             if (_position >= _data.LongLength) return 0;
             int available = checked((int)Math.Min(count, _data.LongLength - _position));
             Buffer.BlockCopy(_data, checked((int)_position), buffer, offset, available);
             _position += available;
             TotalBytesRead += available;
-            MaxSingleRead = Math.Max(MaxSingleRead, available);
             return available;
         }
 

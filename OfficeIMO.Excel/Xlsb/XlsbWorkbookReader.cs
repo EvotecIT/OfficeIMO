@@ -85,7 +85,10 @@ namespace OfficeIMO.Excel.Xlsb {
                 throw new InvalidDataException("The package does not contain a canonical XLSB workbook part.");
             }
 
-            var workbook = new XlsbWorkbook((byte[])packageBytes.Clone());
+            var workbook = new XlsbWorkbook(
+                (byte[])packageBytes.Clone(),
+                resolved.MaxPartBytes,
+                resolved.MaxPackageBytes);
             using var packageStream = new MemoryStream(packageBytes, writable: false);
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             var parts = new XlsbPackagePartReader(archive, resolved);

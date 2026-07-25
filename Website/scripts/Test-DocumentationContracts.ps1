@@ -101,8 +101,21 @@ if ($powerPointImageExport -notmatch 'PowerPointPresentation\.Load\("Quarterly-R
 
 $showcasePath = Join-Path $SiteRoot 'data\showcase.json'
 $showcase = Get-Content -LiteralPath $showcasePath -Raw | ConvertFrom-Json
-if (@($showcase.cards).Count -lt 6) {
-    Add-Failure 'The showcase must retain at least six evidence-backed workflows.'
+if (@($showcase.cards).Count -lt 11) {
+    Add-Failure 'The showcase must retain at least eleven evidence-backed workflows.'
+}
+foreach ($requiredFormat in 'Word', 'RTF', 'Markdown', 'OpenDocument') {
+    if (@($showcase.cards | Where-Object format -eq $requiredFormat).Count -ne 1) {
+        Add-Failure "The showcase must expose one evidence-backed $requiredFormat workflow."
+    }
+}
+$duplicateEvidenceLabels = @(
+    $showcase.cards |
+        Group-Object { ([string] $_.evidence_label).Trim().ToUpperInvariant() } |
+        Where-Object Count -gt 1
+)
+foreach ($duplicateLabel in $duplicateEvidenceLabels) {
+    Add-Failure "Showcase evidence link label '$($duplicateLabel.Group[0].evidence_label)' must identify one destination."
 }
 foreach ($card in @($showcase.cards)) {
     foreach ($requiredProperty in @(
@@ -182,11 +195,31 @@ foreach ($artifact in @($showcaseManifest.artifacts)) {
     }
 }
 foreach ($card in @($showcase.cards)) {
-    foreach ($evidenceUrl in @([string] $card.artifact_url, [string] $card.evidence_url)) {
+    $cardEvidence = @([string] $card.artifact_url, [string] $card.evidence_url)
+    if ($card.preview_kind -eq 'image') {
+        $cardEvidence += [string] $card.image
+    }
+    foreach ($evidenceUrl in $cardEvidence) {
         if ($manifestPaths -notcontains $evidenceUrl) {
             Add-Failure "Showcase card '$($card.title)' evidence '$evidenceUrl' is missing from the manifest."
         }
     }
+}
+
+$footerData = Get-Content -LiteralPath (Join-Path $SiteRoot 'data\footer.json') -Raw | ConvertFrom-Json
+if ($footerData.brand.companyName -ne 'Evotec Services sp. z o.o.' -or
+    $footerData.brand.companyLink -ne 'https://evotec.xyz') {
+    Add-Failure 'The shared footer data must link Evotec Services sp. z o.o. to https://evotec.xyz.'
+}
+$sharedFooterMarkup = Get-Content -LiteralPath (Join-Path $SiteRoot 'themes\officeimo\partials\footer.html') -Raw
+if ($sharedFooterMarkup -notmatch 'Developed by\s+<a' -or
+    $sharedFooterMarkup -notmatch 'data\.footer\.brand\.companyLink' -or
+    $sharedFooterMarkup -notmatch 'data\.footer\.brand\.companyName') {
+    Add-Failure 'footer.html must render the company name and link from shared footer data.'
+}
+$apiFooterMarkup = Get-Content -LiteralPath (Join-Path $SiteRoot 'themes\officeimo\partials\api-footer.html') -Raw
+if ($apiFooterMarkup -notmatch 'href="https://evotec\.xyz"[^>]*>Evotec Services sp\. z o\.o\.</a>') {
+    Add-Failure 'api-footer.html must render Evotec Services sp. z o.o. as the evotec.xyz link.'
 }
 
 $readerCard = @($showcase.cards | Where-Object preview_kind -eq 'reader') | Select-Object -First 1

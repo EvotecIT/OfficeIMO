@@ -74,15 +74,17 @@ namespace OfficeIMO.Excel {
             }
 
             RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap, tableNameMap);
-            for (int index = 0; index < importedSourceNames.Count; index++) {
-                ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
-                externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
-                CopyReferencedDefinedNamesFromSource(
-                    sourceDocument,
-                    targetSheet,
-                    sheetNameMap,
-                    tableNameMap,
-                    externalReferenceMap);
+            if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
+                for (int index = 0; index < importedSourceNames.Count; index++) {
+                    ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
+                    externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
+                    CopyReferencedDefinedNamesFromSource(
+                        sourceDocument,
+                        targetSheet,
+                        sheetNameMap,
+                        tableNameMap,
+                        externalReferenceMap);
+                }
             }
 
             MarkPackageDirty();

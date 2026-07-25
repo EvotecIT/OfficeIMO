@@ -48,6 +48,9 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Contains(result.Visuals, visual =>
                 visual.Language == "img" &&
                 visual.SourceName == prefix + "EPUB/shared/images/cover%23v2.png");
+            Assert.Contains(result.Visuals, visual =>
+                visual.Language == "img" &&
+                visual.SourceName == prefix + "EPUB/shared/data-uri");
 
             OfficeDocumentAsset rootImage = Assert.Single(result.Assets, asset => asset.SourceObjectId == "root-image");
             Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, rootImage));

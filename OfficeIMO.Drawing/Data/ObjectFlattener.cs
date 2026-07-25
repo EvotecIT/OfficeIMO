@@ -18,7 +18,7 @@ namespace OfficeIMO.Drawing {
         /// <summary>When true, includes the original object under its path in addition to expanded fields.</summary>
         public bool IncludeFullObjects { get; set; }
         /// <summary>Maximum recursion depth when expanding nested objects.</summary>
-        public int MaxDepth { get; set; } = int.MaxValue;
+        public int MaxDepth { get; set; } = 64;
         /// <summary>
         /// Maximum number of source or expanded rows a tabular consumer may materialize.
         /// The default matches the maximum Excel data rows available below one header row.
@@ -192,14 +192,14 @@ namespace OfficeIMO.Drawing {
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
             if (opts == null) throw new ArgumentNullException(nameof(opts));
-            ValidateCollectionLimit(opts);
+            ValidateLimits(opts);
             if (item == null) {
                 return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             }
 
             object source = item!;
             var result = new Dictionary<string, object?>(GetInitialFlattenCapacity(source.GetType(), opts), StringComparer.OrdinalIgnoreCase);
-            FlattenInternal(source, result, string.Empty, 0, opts);
+            FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
 
             List<string> selectedPaths = ResolvePaths(result.Keys, opts);
             var selected = new Dictionary<string, object?>(selectedPaths.Count, StringComparer.OrdinalIgnoreCase);
@@ -214,6 +214,9 @@ namespace OfficeIMO.Drawing {
         /// Computes all reachable dotted paths for a given <paramref name="type"/> under <paramref name="opts"/>.
         /// </summary>
         public List<string> GetPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
+            if (type == null) throw new ArgumentNullException(nameof(type));
+            if (opts == null) throw new ArgumentNullException(nameof(opts));
+            ValidateLimits(opts);
             var paths = new List<string>(GetInitialFlattenCapacity(type, opts));
             BuildPaths(type, string.Empty, 0, opts, paths);
             return ResolvePaths(paths, opts);
@@ -240,21 +243,37 @@ namespace OfficeIMO.Drawing {
             }
 
             if (IsValueTuple(type)) {
-                int fieldCount = GetValueTupleItemCount(type);
+                int fieldCount = GetValueTupleItemCount(type, opts.MaxDepth, opts.MaxCollectionItems);
                 return fieldCount > 0 ? fieldCount : type.IsGenericType ? type.GetGenericArguments().Length : 0;
             }
 
             return GetObjectFlattenerProperties(type).Length;
         }
 
-        private static void FlattenInternal(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
+        private static void FlattenInternal(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects) {
             if (depth >= opts.MaxDepth) return;
 
             var type = obj.GetType();
+            bool trackReference = !type.IsValueType;
+            if (trackReference && !activeObjects.Add(obj)) {
+                string path = string.IsNullOrEmpty(prefix) ? "<root>" : prefix;
+                throw new InvalidDataException($"The object graph contains a reference cycle at '{path}'.");
+            }
+
+            try {
+                FlattenInternalCore(obj, dict, prefix, depth, opts, activeObjects, type);
+            } finally {
+                if (trackReference) {
+                    activeObjects.Remove(obj);
+                }
+            }
+        }
+
+        private static void FlattenInternalCore(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, Type type) {
 
             // Special-case: ValueTuple (struct tuples) expose public fields (Item1..ItemN) not properties.
             if (IsValueTuple(type)) {
-                FlattenValueTuple(obj, dict, prefix, depth, opts);
+                FlattenValueTuple(obj, dict, prefix, depth, opts, activeObjects);
                 return;
             }
 
@@ -296,7 +315,7 @@ namespace OfficeIMO.Drawing {
                 }
 
                 if (depth + 1 < opts.MaxDepth) {
-                    FlattenInternal(value, dict, path, depth + 1, opts);
+                    FlattenInternal(value, dict, path, depth + 1, opts, activeObjects);
                 }
             }
         }
@@ -309,10 +328,17 @@ namespace OfficeIMO.Drawing {
             return string.Equals(t.FullName, "System.ValueTuple", StringComparison.Ordinal);
         }
 
-        private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
+        private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects) {
+            int tupleItemCount = GetValueTupleItemCount(
+                obj.GetType(),
+                opts.MaxDepth - depth,
+                opts.MaxCollectionItems);
 #if !NETSTANDARD2_0
             // ITuple exposes tuple items without reflecting over runtime-generated accessors.
             if (obj is System.Runtime.CompilerServices.ITuple tuple) {
+                if (tuple.Length > tupleItemCount) {
+                    throw new InvalidDataException($"The tuple at '{(string.IsNullOrEmpty(prefix) ? "<root>" : prefix)}' exceeds the configured traversal limits.");
+                }
                 for (int i = 0; i < tuple.Length; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
                     var val = tuple[i];
@@ -321,7 +347,7 @@ namespace OfficeIMO.Drawing {
                     } else if (IsSimple(val.GetType())) {
                         dict[path] = ApplyFormatting(path, val, opts);
                     } else {
-                        FlattenInternal(val, dict, path, depth + 1, opts);
+                        FlattenInternal(val, dict, path, depth + 1, opts, activeObjects);
                     }
                 }
                 return;
@@ -329,28 +355,33 @@ namespace OfficeIMO.Drawing {
 #endif
 
             int idx = 1;
-            FlattenValueTupleFields(obj, dict, prefix, depth, opts, ref idx);
+            FlattenValueTupleFields(obj, dict, prefix, depth, opts, activeObjects, ref idx);
         }
 
-        private static void FlattenValueTupleFields(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, ref int idx) {
-            var fields = GetValueTupleFields(obj.GetType());
-            foreach (var f in fields) {
-                var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
-                var val = f.GetValue(obj);
-                if (val == null) {
-                    dict[path] = ApplyNullPolicy(path, null, opts);
-                } else if (IsSimple(val.GetType())) {
-                    dict[path] = ApplyFormatting(path, val, opts);
-                } else {
-                    FlattenInternal(val, dict, path, depth + 1, opts);
-                }
-                idx++;
-            }
+        private static void FlattenValueTupleFields(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts, HashSet<object> activeObjects, ref int idx) {
+            object? current = obj;
+            int tupleDepth = 0;
+            while (current != null && IsValueTuple(current.GetType())) {
+                foreach (FieldInfo field in GetValueTupleFields(current.GetType())) {
+                    if (idx > opts.MaxCollectionItems) {
+                        throw new InvalidDataException($"The tuple at '{(string.IsNullOrEmpty(prefix) ? "<root>" : prefix)}' exceeds the {opts.MaxCollectionItems}-item flattening limit.");
+                    }
 
-            FieldInfo? restField = GetValueTupleRestField(obj.GetType());
-            object? rest = restField?.GetValue(obj);
-            if (rest != null && IsValueTuple(rest.GetType())) {
-                FlattenValueTupleFields(rest, dict, prefix, depth, opts, ref idx);
+                    var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
+                    object? value = field.GetValue(current);
+                    if (value == null) {
+                        dict[path] = ApplyNullPolicy(path, null, opts);
+                    } else if (IsSimple(value.GetType())) {
+                        dict[path] = ApplyFormatting(path, value, opts);
+                    } else {
+                        FlattenInternal(value, dict, path, depth + tupleDepth + 1, opts, activeObjects);
+                    }
+                    idx++;
+                }
+
+                FieldInfo? restField = GetValueTupleRestField(current.GetType());
+                current = restField?.GetValue(current);
+                tupleDepth++;
             }
         }
 
@@ -414,7 +445,10 @@ namespace OfficeIMO.Drawing {
         private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
-                int itemCount = GetValueTupleItemCount(type);
+                int itemCount = GetValueTupleItemCount(
+                    type,
+                    opts.MaxDepth - depth,
+                    opts.MaxCollectionItems);
                 // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
                 if (itemCount == 0 && type.IsGenericType)
                     itemCount = type.GetGenericArguments().Length;
@@ -454,11 +488,25 @@ namespace OfficeIMO.Drawing {
         private static FieldInfo[] GetValueTupleFields(Type valueTupleType)
             => _valueTupleFieldCache.GetOrAdd(valueTupleType, CreateValueTupleFields);
 
-        private static int GetValueTupleItemCount(Type valueTupleType) {
-            int count = GetValueTupleFields(valueTupleType).Length;
-            FieldInfo? restField = GetValueTupleRestField(valueTupleType);
-            if (restField != null && IsValueTuple(restField.FieldType)) {
-                count += GetValueTupleItemCount(restField.FieldType);
+        private static int GetValueTupleItemCount(Type valueTupleType, int maximumDepth, int maximumItems) {
+            int count = 0;
+            int depth = 0;
+            Type currentType = valueTupleType;
+            while (IsValueTuple(currentType)) {
+                if (depth++ >= maximumDepth) {
+                    throw new InvalidDataException($"ValueTuple traversal exceeds the {maximumDepth}-level depth limit.");
+                }
+
+                count = checked(count + GetValueTupleFields(currentType).Length);
+                if (count > maximumItems) {
+                    throw new InvalidDataException($"ValueTuple traversal exceeds the {maximumItems}-item limit.");
+                }
+
+                FieldInfo? restField = GetValueTupleRestField(currentType);
+                if (restField == null || !IsValueTuple(restField.FieldType)) {
+                    break;
+                }
+                currentType = restField.FieldType;
             }
             return count;
         }
@@ -526,10 +574,21 @@ namespace OfficeIMO.Drawing {
             }
         }
 
-        private static void ValidateCollectionLimit(ObjectFlattenerOptions options) {
+        private static void ValidateLimits(ObjectFlattenerOptions options) {
+            if (options.MaxDepth <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxDepth));
+            }
             if (options.MaxCollectionItems <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxCollectionItems));
             }
+        }
+
+        private sealed class ObjectReferenceComparer : IEqualityComparer<object> {
+            internal static ObjectReferenceComparer Instance { get; } = new ObjectReferenceComparer();
+
+            public new bool Equals(object? left, object? right) => ReferenceEquals(left, right);
+
+            public int GetHashCode(object value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
         }
 
         private static object? ApplyFormatting(string path, object? value, ObjectFlattenerOptions opts) {

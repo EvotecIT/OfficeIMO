@@ -2085,6 +2085,13 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (maxX <= minX || maxY <= minY) {
+            if (stroke.HasValue && strokeWidth > 0D) {
+                var outline = new List<OfficePoint>(points.Count + 1);
+                outline.AddRange(points);
+                outline.Add(points[0]);
+                AddPointLine(drawing, outline, stroke.Value, strokeWidth, dashStyle);
+            }
+
             return;
         }
 

@@ -236,8 +236,15 @@ namespace OfficeIMO.Word {
         public void MergeVertically(int cellIndex, int rowsCount, bool copyParagraphs = false) {
             var rows = _wordTable.Rows;
             int startIndex = rows.FindIndex(r => r._tableRow == _tableRow);
-            if (startIndex < 0 || cellIndex >= CellsCount) {
+            if (startIndex < 0 || cellIndex < 0 || cellIndex >= CellsCount || rowsCount < 0) {
                 return;
+            }
+
+            int rowsToMerge = Math.Min(rowsCount, rows.Count - startIndex - 1);
+            for (int offset = 1; offset <= rowsToMerge; offset++) {
+                if (cellIndex >= rows[startIndex + offset].Cells.Count) {
+                    return;
+                }
             }
 
             var firstCell = rows[startIndex].Cells[cellIndex];
@@ -245,7 +252,7 @@ namespace OfficeIMO.Word {
             firstCell.VerticalMerge = MergedCellValues.Restart;
             var targetCell = firstCell._tableCell;
 
-            for (int i = 0; i < rowsCount; i++) {
+            for (int i = 0; i < rowsToMerge; i++) {
                 int idx = startIndex + i + 1;
                 if (idx >= rows.Count) break;
 

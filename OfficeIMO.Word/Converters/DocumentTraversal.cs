@@ -11,6 +11,11 @@ namespace OfficeIMO.Word {
         /// Describes list information for a paragraph.
         /// </summary>
         public readonly struct ListInfo {
+            /// <summary>Initializes a list descriptor using the original public constructor shape.</summary>
+            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips, int? hangingIndentTwips)
+                : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, null, null, null, null, null, null) {
+            }
+
             /// <summary>
             /// Initializes a new instance of the <see cref="ListInfo"/> struct.
             /// </summary>
@@ -469,7 +474,10 @@ namespace OfficeIMO.Word {
             string marker = pattern!;
             marker = marker.Replace("%CurrentLevel", FormatNumber(index, formats[level]));
             marker = Regex.Replace(marker, "%([0-9]+)", m => {
-                int lvl = int.Parse(m.Groups[1].Value) - 1;
+                if (!int.TryParse(m.Groups[1].Value, out int placeholderLevel) || placeholderLevel <= 0) {
+                    return m.Value;
+                }
+                int lvl = placeholderLevel - 1;
                 int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
                 formats.TryGetValue(lvl, out NumberFormatValues? fmt);
                 return FormatNumber(value, fmt);

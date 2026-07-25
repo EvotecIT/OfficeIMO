@@ -212,10 +212,12 @@ internal static class PdfAttachmentEditor {
             if (annotation.FileSpecObjectNumber > 0) {
                 fileSpecificationsByOriginalObject.TryGetValue(
                     annotation.FileSpecObjectNumber, out replacement);
-            } else if (annotation.EmbeddedFileObjectNumber > 0) {
+            }
+            if (replacement == null && annotation.EmbeddedFileObjectNumber > 0) {
                 fileSpecificationsByOriginalEmbeddedFile.TryGetValue(
                     annotation.EmbeddedFileObjectNumber, out replacement);
-            } else if (annotation.FileName != null &&
+            }
+            if (replacement == null && annotation.FileName != null &&
                 retainedOriginalNames.TryGetValue(annotation.FileName, out string? retainedName) &&
                 fileSpecificationsByName.TryGetValue(retainedName, out PdfReference? nameReplacement)) {
                 replacement = nameReplacement;

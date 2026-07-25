@@ -83,6 +83,15 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        internal WordParagraph AddTrustedExternalImage(Uri imageUri, double width, double height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            if (imageUri == null) throw new ArgumentNullException(nameof(imageUri));
+            if (!imageUri.IsFile) throw new ArgumentException("Trusted local external images must use the file scheme.", nameof(imageUri));
+            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description, shape: null, compressionQuality: null, allowFileUri: true);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
+            return this;
+        }
+
         /// <summary>
         /// Inserts an external image (by URI) and returns the created <see cref="WordImage"/>.
         /// </summary>

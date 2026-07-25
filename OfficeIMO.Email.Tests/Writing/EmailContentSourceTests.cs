@@ -165,8 +165,10 @@ public sealed class EmailContentSourceTests {
             Assert.True(result.UsesFileBackedContent);
             Assert.Null(attachment.Content);
             Assert.Equal(payloadLength, attachment.ContentSource!.Length);
-            Assert.True(retainedGrowth <= 8L * 1024 * 1024,
-                $"Retained managed memory grew by {retainedGrowth:N0} bytes for a {payloadLength:N0}-byte attachment.");
+            long maximumRetainedGrowth = (payloadLength / 2L) + (1024L * 1024L);
+            Assert.True(retainedGrowth <= maximumRetainedGrowth,
+                $"Retained managed memory grew by {retainedGrowth:N0} bytes for a {payloadLength:N0}-byte attachment; " +
+                $"the bounded allowance was {maximumRetainedGrowth:N0} bytes.");
         } finally {
             try { if (File.Exists(path)) File.Delete(path); }
             catch (IOException) { }

@@ -265,6 +265,15 @@ namespace OfficeIMO.Drawing.Internal {
                 // The destination appeared after the existence check. Replace it below.
             }
 
+#if NET6_0_OR_GREATER
+            if (!OperatingSystem.IsWindows()) {
+                // A rename/replace installs the staging inode on Unix. Apply the existing
+                // destination's mode first so a restrictive workbook or document cannot be
+                // widened to the staging file's default umask-derived permissions.
+                File.SetUnixFileMode(temporaryPath, File.GetUnixFileMode(fullTargetPath));
+            }
+#endif
+
             try {
                 ExecuteWithRetry(() => File.Replace(temporaryPath, fullTargetPath, destinationBackupFileName: null));
                 return;

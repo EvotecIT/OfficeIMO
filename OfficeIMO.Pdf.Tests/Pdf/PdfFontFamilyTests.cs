@@ -265,7 +265,7 @@ public class PdfFontFamilyTests {
         var options = new PdfOptions();
         options.UseTextFallbacks(
             PdfTextFallbackFeatures.SymbolAndEmojiFonts,
-            new[] { PdfStandardFont.Helvetica },
+            new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman },
             allowSystemFontEmbedding: true);
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;

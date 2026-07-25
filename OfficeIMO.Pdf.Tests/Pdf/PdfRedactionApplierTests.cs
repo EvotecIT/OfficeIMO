@@ -27,7 +27,7 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_AreaRedactionPreservesTextObjectsWithoutKnownGeometry() {
+    public void Apply_AreaRedactionFailsClosedForTextObjectsWithoutKnownGeometry() {
         const string content =
             "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET\n" +
             "BT\n% unlocatable-outside-target\nET";
@@ -45,7 +45,7 @@ public class PdfRedactionApplierTests {
         string rewritten = PdfEncoding.Latin1GetString(redacted);
 
         Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
-        Assert.Contains("unlocatable-outside-target", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("unlocatable-outside-target", rewritten, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1118,7 +1118,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsBatchCompiler_FullColumnValidationRemainsOneRangeRequest() {
+        public void Test_GoogleSheetsBatchCompiler_RejectsGridExpansionBeyondServiceLimits() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFullColumnValidation.xlsx");
 
             try {
@@ -1130,18 +1130,29 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                GoogleSheetsBatch batch = reloadedDocument.BuildGoogleSheetsBatch();
-
-                GoogleSheetsSetDataValidationRequest validation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
-                Assert.Equal(0, validation.StartRowIndex);
-                Assert.Equal(1048576, validation.EndRowIndexExclusive);
-                Assert.True(batch.Requests.Count < 20);
-                Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single().Cells);
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                    () => reloadedDocument.BuildGoogleSheetsBatch());
+                Assert.Contains("exceeds Google Sheets limits", exception.Message, StringComparison.Ordinal);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatchCompiler_RejectsAggregateGridExpansionBeyondServiceLimits() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet first = document.AddWorksheet("First");
+            ExcelSheet second = document.AddWorksheet("Second");
+            first.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+            second.ValidationWholeNumber("A1:ALM5000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => document.BuildGoogleSheetsBatch());
+
+            Assert.Contains("across all sheets", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("exceeds Google Sheets limits", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]

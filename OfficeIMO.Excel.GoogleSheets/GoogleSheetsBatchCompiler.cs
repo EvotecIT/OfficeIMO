@@ -242,7 +242,19 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 });
             }
 
+            EnsureSpreadsheetGridWithinLimits(batch);
             return batch;
+        }
+
+        private static void EnsureSpreadsheetGridWithinLimits(GoogleSheetsBatch batch) {
+            long totalCells = 0L;
+            foreach (GoogleSheetsAddSheetRequest sheet in batch.Requests.OfType<GoogleSheetsAddSheetRequest>()) {
+                totalCells = checked(totalCells + ((long)sheet.RowCount * sheet.ColumnCount));
+                if (totalCells > 10_000_000L) {
+                    throw new NotSupportedException(
+                        $"The compiled spreadsheet requires {totalCells.ToString(CultureInfo.InvariantCulture)} grid cells across all sheets, which exceeds Google Sheets limits.");
+                }
+            }
         }
 
         private static void ResolveGridSize(
@@ -326,6 +338,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
             columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
+            if (columnCount > 18_278 || checked((long)rowCount * columnCount) > 10_000_000L) {
+                throw new NotSupportedException(
+                    $"Worksheet '{worksheet.Name}' requires a {rowCount} by {columnCount} grid, which exceeds Google Sheets limits.");
+            }
         }
 
         private static void ExpandGridToInclude(string a1Range, ref int rowCount, ref int columnCount) {

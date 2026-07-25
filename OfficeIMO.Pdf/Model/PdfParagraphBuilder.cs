@@ -80,6 +80,8 @@ public sealed class PdfParagraphBuilder {
     /// <summary>Adds an explicit line break inside the current paragraph.</summary>
     public PdfParagraphBuilder LineBreak() { _runs.Add(TextRun.LineBreak()); return this; }
     /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
+    public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
+    /// <summary>Adds an aligned paragraph tab using the current style flags.</summary>
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) { _runs.Add(new TextRun("\t", _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, fontSize: _currentFontSize, font: _currentFont, baseline: _currentBaseline, tabLeader: leader, tabAlignment: alignment, backgroundColor: _currentBackgroundColor, fontFamily: _currentFontFamily)); return this; }
     /// <summary>Adds a fixed-size visual that participates in paragraph wrapping.</summary>
     public PdfParagraphBuilder Inline(PdfInlineElement element) { Guard.NotNull(element, nameof(element)); _runs.Add(TextRun.Inline(element)); return this; }

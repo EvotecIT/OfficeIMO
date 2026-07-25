@@ -178,7 +178,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (fallbackFeatures != PdfCore.PdfTextFallbackFeatures.None) {
-                pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, allowSystemFontEmbedding);
+                pdfOptions.UseTextFallbacks(
+                    fallbackFeatures,
+                    reservedFontSlots,
+                    allowSystemFontEmbedding,
+                    preserveConfiguredFontSlots);
                 foreach (PdfCore.PdfStandardFont slot in pdfOptions.EmbeddedFontFallbacks?.FontSlots ?? Array.Empty<PdfCore.PdfStandardFont>()) {
                     PdfCore.PdfOptions.AddRegisteredFontFamilySlot(reservedFontSlots, slot);
                 }

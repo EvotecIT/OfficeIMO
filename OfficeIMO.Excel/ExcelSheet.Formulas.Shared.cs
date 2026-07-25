@@ -155,8 +155,52 @@ namespace OfficeIMO.Excel {
             }
 
             string token = match.Groups["cellStartColumn"].Value + match.Groups["cellStartRow"].Value;
-            return ExcelFormulaCapabilities.IsBuiltInFunction(token)
-                || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
+            if (ExcelFormulaCapabilities.IsBuiltInFunction(token)
+                || _excelDocument.Calculation.TryGetCustomFunction(token, out _)) {
+                return true;
+            }
+
+            // An unregistered cell-like token followed by a parenthesized reference
+            // is Excel's whitespace intersection form. Named functions remain
+            // protected above, while both single-cell and range operands translate.
+            return !IsParenthesizedReferenceOperand(formula, cursor);
+        }
+
+        private static bool IsParenthesizedReferenceOperand(string formula, int openingParenthesis) {
+            int cursor = openingParenthesis + 1;
+            int depth = 1;
+            bool sawReference = false;
+            while (cursor < formula.Length) {
+                if (char.IsWhiteSpace(formula[cursor]) || formula[cursor] == ',') {
+                    cursor++;
+                    continue;
+                }
+
+                if (formula[cursor] == '(') {
+                    depth++;
+                    cursor++;
+                    continue;
+                }
+
+                if (formula[cursor] == ')') {
+                    depth--;
+                    cursor++;
+                    if (depth == 0) {
+                        return sawReference;
+                    }
+                    continue;
+                }
+
+                Match reference = SharedFormulaReferenceRegex.Match(formula, cursor);
+                if (!reference.Success || reference.Index != cursor) {
+                    return false;
+                }
+
+                sawReference = true;
+                cursor += reference.Length;
+            }
+
+            return false;
         }
 
         private static string TranslateSharedFormulaReference(Match match, int rowOffset, int columnOffset) {

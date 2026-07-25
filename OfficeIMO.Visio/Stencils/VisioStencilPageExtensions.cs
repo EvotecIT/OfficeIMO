@@ -88,7 +88,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;
             VisioMeasurementUnit sizeUnit = useStencilDefaultSize
-                ? stencil.DefaultUnit ?? page.DefaultUnit
+                ? stencil.DefaultUnit ?? unit ?? page.DefaultUnit
                 : unit ?? page.DefaultUnit;
             VisioDocument? document = page.OwnerDocument;
             string shapeText = text ?? stencil.Name;

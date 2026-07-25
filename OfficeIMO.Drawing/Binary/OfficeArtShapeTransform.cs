@@ -10,10 +10,10 @@ namespace OfficeIMO.Drawing.Binary;
 public sealed class OfficeArtShapeTransform {
     private const uint FlipHorizontalFlag = 1U << 6;
     private const uint FlipVerticalFlag = 1U << 7;
-    private const uint UseFlipHorizontalOverride = 1U << 8;
-    private const uint UseFlipVerticalOverride = 1U << 9;
-    private const uint FlipHorizontalOverride = 1U << 24;
-    private const uint FlipVerticalOverride = 1U << 25;
+    private const uint FlipHorizontalOverride = 1U << 8;
+    private const uint FlipVerticalOverride = 1U << 9;
+    private const uint UseFlipHorizontalOverride = 1U << 24;
+    private const uint UseFlipVerticalOverride = 1U << 25;
 
     private OfficeArtShapeTransform(double? rotationDegrees, bool flipHorizontal, bool flipVertical) {
         RotationDegrees = rotationDegrees;

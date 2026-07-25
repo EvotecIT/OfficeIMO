@@ -933,50 +933,11 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         private static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
             workbook.PreserveExternalWorkbookLinks || !ReferencesExternalWorkbook(workbook, formulaText);
 
-        private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) {
-            foreach (LegacyXlsExternalReference reference in workbook.ExternalReferences) {
-                if (reference.Kind != LegacyXlsExternalReferenceKind.ExternalWorkbook ||
-                    string.IsNullOrWhiteSpace(reference.Target)) {
-                    continue;
-                }
-
-                string fileName = BiffFormulaReferenceFormatter.NormalizeExternalWorkbookTarget(reference.Target);
-                if (fileName.Length == 0) continue;
-                string escapedFileName = fileName.Replace("'", "''");
-                if (ContainsFormulaTokenOutsideStringLiteral(formulaText, "[" + escapedFileName + "]") ||
-                    ContainsFormulaTokenOutsideStringLiteral(formulaText, "'" + escapedFileName + "'!") ||
-                    ContainsFormulaTokenOutsideStringLiteral(formulaText, escapedFileName + "!")) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool ContainsFormulaTokenOutsideStringLiteral(string formulaText, string token) {
-            bool inStringLiteral = false;
-            for (int index = 0; index < formulaText.Length;) {
-                if (formulaText[index] == '"') {
-                    if (inStringLiteral && index + 1 < formulaText.Length && formulaText[index + 1] == '"') {
-                        index += 2;
-                        continue;
-                    }
-
-                    inStringLiteral = !inStringLiteral;
-                    index++;
-                    continue;
-                }
-
-                if (!inStringLiteral && index <= formulaText.Length - token.Length &&
-                    string.Compare(formulaText, index, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    return true;
-                }
-
-                index++;
-            }
-
-            return false;
-        }
+        private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) =>
+            ExternalWorkbookReferenceMatchers.GetValue(
+                workbook,
+                static source => new ExternalWorkbookReferenceMatcher(source.ExternalReferences))
+            .ReferencesExternalWorkbook(formulaText);
 
         private static void ProjectTableDefinitions(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
             if (legacySheet.TableDefinitions.Count == 0) {

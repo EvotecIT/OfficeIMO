@@ -48,6 +48,7 @@ namespace OfficeIMO.Excel {
                 if (!TryProjectFlatDictionaryRow(
                     rows[r],
                     r,
+                    includeHeaders,
                     headers,
                     headerIndexes,
                     directRows,
@@ -56,6 +57,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ValidateObjectExportDenseDimensions(rows.Count, headers.Count, includeHeaders);
             NormalizeFlatDictionaryRowWidths(directRows, headers.Count);
             state.NormalizeColumnTypeWidth(headers.Count);
 
@@ -89,11 +91,12 @@ namespace OfficeIMO.Excel {
 
             for (int r = 0; r < rows.Count; r++) {
                 if (rows[r] is not Dictionary<string, object?> dictionary
-                    || !TryProjectExactDictionaryRow(dictionary, r, headers, headerIndexes, directRows, state)) {
+                    || !TryProjectExactDictionaryRow(dictionary, r, includeHeaders, headers, headerIndexes, directRows, state)) {
                     return false;
                 }
             }
 
+            ValidateObjectExportDenseDimensions(rows.Count, headers.Count, includeHeaders);
             NormalizeFlatDictionaryRowWidths(directRows, headers.Count);
             state.NormalizeColumnTypeWidth(headers.Count);
 
@@ -118,6 +121,7 @@ namespace OfficeIMO.Excel {
         private static bool TryProjectExactDictionaryRow(
             Dictionary<string, object?> dictionary,
             int rowIndex,
+            bool includeHeaders,
             List<string> headers,
             Dictionary<string, int> headerIndexes,
             object?[][] directRows,
@@ -135,6 +139,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                    ValidateObjectExportDenseDimensions(directRows.Length, headers.Count + 1, includeHeaders);
+                    EnsureObjectExportColumnAvailable(headers.Count);
                     columnIndex = headers.Count;
                     headers.Add(columnName);
                     headerIndexes.Add(columnName, columnIndex);
@@ -176,6 +182,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                        EnsureObjectExportColumnAvailable(headers.Count);
                         columnIndex = headers.Count;
                         headers.Add(columnName);
                         headerIndexes.Add(columnName, columnIndex);
@@ -233,6 +240,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                        EnsureObjectExportColumnAvailable(headers.Count);
                         columnIndex = headers.Count;
                         headers.Add(columnName);
                         headerIndexes.Add(columnName, columnIndex);
@@ -266,6 +274,7 @@ namespace OfficeIMO.Excel {
         private static bool TryProjectFlatDictionaryRow(
             object? item,
             int rowIndex,
+            bool includeHeaders,
             List<string> headers,
             Dictionary<string, int> headerIndexes,
             object?[][] directRows,
@@ -338,6 +347,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                    ValidateObjectExportDenseDimensions(directRows.Length, headers.Count + 1, includeHeaders);
+                    EnsureObjectExportColumnAvailable(headers.Count);
                     columnIndex = headers.Count;
                     headers.Add(columnName);
                     headerIndexes.Add(columnName, columnIndex);
@@ -358,6 +369,10 @@ namespace OfficeIMO.Excel {
                     : item is IReadOnlyCollection<KeyValuePair<string, object?>> readOnlyCollection
                         ? readOnlyCollection.Count
                         : 0;
+
+            if (entryCount > A1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            }
 
             if (existingHeaderCount == 0) {
                 return entryCount;
@@ -491,18 +506,57 @@ namespace OfficeIMO.Excel {
 
         [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
+            FlattenObjectRecursive(value, prefix, result, new HashSet<object>(ObjectReferenceComparer.Instance), depth: 0);
+        }
+
+        [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
+        private static void FlattenObjectRecursive(object? value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth) {
             if (value == null) {
                 if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix!] = null;
+                    SetFlattenedObjectValue(result, prefix!, null);
                 }
                 return;
             }
 
+            if (depth >= ObjectExportMaximumGraphDepth) {
+                string path = string.IsNullOrEmpty(prefix) ? "<root>" : prefix!;
+                throw new InvalidDataException($"Object insertion exceeds the {ObjectExportMaximumGraphDepth}-level graph depth limit at '{path}'.");
+            }
+
+            Type type = value.GetType();
+            if (IsObjectExportScalarType(type)) {
+                if (!string.IsNullOrEmpty(prefix)) {
+                    SetFlattenedObjectValue(result, prefix!, value);
+                }
+                return;
+            }
+
+            bool trackReference = !type.IsValueType;
+            if (trackReference && !activeObjects.Add(value)) {
+                string path = string.IsNullOrEmpty(prefix) ? "<root>" : prefix!;
+                throw new InvalidDataException($"Object insertion encountered a reference cycle at '{path}'.");
+            }
+
+            try {
+                FlattenObjectCore(value, prefix, result, activeObjects, depth, type);
+            } finally {
+                if (trackReference) {
+                    activeObjects.Remove(value);
+                }
+            }
+        }
+
+        [RequiresUnreferencedCode("Runtime-object flattening is a compatibility path. Use InsertObjects with explicit column selectors in NativeAOT applications.")]
+        private static void FlattenObjectCore(object value, string? prefix, IDictionary<string, object?> result, HashSet<object> activeObjects, int depth, Type type) {
             if (value is IDictionary dictionary) {
+                int itemCount = 0;
                 foreach (DictionaryEntry entry in dictionary) {
+                    if (itemCount++ >= A1.MaxColumns) {
+                        throw new InvalidDataException($"Object insertion exceeds the {A1.MaxColumns}-entry dictionary limit.");
+                    }
                     string key = entry.Key?.ToString() ?? string.Empty;
                     string childPrefix = string.IsNullOrEmpty(prefix) ? key : prefix + "." + key;
-                    FlattenObject(entry.Value, childPrefix, result);
+                    FlattenObjectRecursive(entry.Value, childPrefix, result, activeObjects, depth + 1);
                 }
                 return;
             }
@@ -510,18 +564,13 @@ namespace OfficeIMO.Excel {
             if (value is IEnumerable enumerable && value is not string) {
                 var values = new List<string>();
                 foreach (var item in enumerable) {
+                    if (values.Count >= ObjectExportMaximumCollectionItems) {
+                        throw new InvalidDataException($"The collection at '{prefix ?? "<root>"}' exceeds the {ObjectExportMaximumCollectionItems}-item limit.");
+                    }
                     values.Add(item?.ToString() ?? string.Empty);
                 }
                 if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix!] = string.Join(", ", values);
-                }
-                return;
-            }
-
-            Type type = value.GetType();
-            if (IsObjectExportScalarType(type)) {
-                if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix!] = value;
+                    SetFlattenedObjectValue(result, prefix!, string.Join(", ", values));
                 }
                 return;
             }
@@ -531,12 +580,27 @@ namespace OfficeIMO.Excel {
             foreach (var prop in props) {
                 hasAny = true;
                 string childPrefix = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                FlattenObject(prop.GetValue(value, null), childPrefix, result);
+                FlattenObjectRecursive(prop.GetValue(value, null), childPrefix, result, activeObjects, depth + 1);
             }
 
             if (!hasAny && !string.IsNullOrEmpty(prefix)) {
-                result[prefix!] = value.ToString();
+                SetFlattenedObjectValue(result, prefix!, value.ToString());
             }
+        }
+
+        private static void SetFlattenedObjectValue(IDictionary<string, object?> result, string path, object? value) {
+            if (!result.ContainsKey(path) && result.Count >= A1.MaxColumns) {
+                throw new InvalidDataException($"Object insertion exceeds Excel's {A1.MaxColumns}-column limit.");
+            }
+            result[path] = value;
+        }
+
+        private sealed class ObjectReferenceComparer : IEqualityComparer<object> {
+            internal static ObjectReferenceComparer Instance { get; } = new ObjectReferenceComparer();
+
+            public new bool Equals(object? left, object? right) => ReferenceEquals(left, right);
+
+            public int GetHashCode(object value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
         }
     }
 }

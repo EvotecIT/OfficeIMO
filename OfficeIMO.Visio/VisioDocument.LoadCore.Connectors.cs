@@ -211,7 +211,11 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)) {
+            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)
+                && !double.IsNaN(numericValue)
+                && !double.IsInfinity(numericValue)
+                && numericValue >= int.MinValue
+                && numericValue <= int.MaxValue) {
                 int integerValue = Convert.ToInt32(numericValue);
                 if (Math.Abs(numericValue - integerValue) <= 1e-9) {
                     result = integerValue;

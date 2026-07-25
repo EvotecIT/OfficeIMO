@@ -33,12 +33,22 @@ namespace OfficeIMO.Visio {
                 Reserve(connector.Id);
             }
 
+            foreach (string reservedId in _reservedAutomaticObjectIds) {
+                Reserve(reservedId);
+            }
+
             int nextId = 1;
             while (usedIds.Contains(nextId)) {
                 nextId++;
             }
 
             return nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        internal void ReserveAutomaticObjectId(string id) {
+            if (!string.IsNullOrWhiteSpace(id)) {
+                _reservedAutomaticObjectIds.Add(id);
+            }
         }
 
         private void PrepareConnectorForPage(VisioConnector connector, VisioConnector? ignoredConnector = null) {

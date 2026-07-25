@@ -86,12 +86,15 @@ internal static partial class PdfWriter {
             }
 
             if (paragraphStyle?.KeepTogether == true) {
-                double paragraphHeight = spacingBefore + lineHeights.Sum();
+                double paragraphContentHeight = lineHeights.Sum();
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                if (paragraphHeight > availableHeight + 0.001) {
+                if (paragraphContentHeight > availableHeight + 0.001) {
                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                 }
 
+                double paragraphHeight =
+                    (y < yStart - 0.001D ? spacingBefore : 0D) +
+                    paragraphContentHeight;
                 if (y < yStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
                     NewPage();
                 }

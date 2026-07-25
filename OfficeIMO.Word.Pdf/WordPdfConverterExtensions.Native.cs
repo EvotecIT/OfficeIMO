@@ -269,6 +269,10 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            if (current._sectionProperties?.GetFirstChild<W.PageNumberType>()?.Start?.HasValue == true) {
+                return false;
+            }
+
             return NativeSectionHeaderFooterReferencesEquivalent(previous, current) &&
                 NativeSectionPageNumberingEquivalent(previous, current);
         }

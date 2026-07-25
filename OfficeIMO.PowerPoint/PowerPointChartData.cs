@@ -46,7 +46,13 @@ namespace OfficeIMO.PowerPoint {
 
             int expected = Categories.Count;
             foreach (PowerPointChartSeries item in Series) {
-                if (item.XValues == null && item.Values.Count != expected) {
+                if (item.ChartKind == PowerPointChartSnapshotKind.Scatter) {
+                    if (item.XValues == null || item.XValues.Count != item.Values.Count) {
+                        throw new System.ArgumentException(
+                            "Each scatter series must have matching X and Y value counts.",
+                            nameof(series));
+                    }
+                } else if (item.Values.Count != expected) {
                     throw new System.ArgumentException(
                         "Each series must have the same number of values as there are categories.",
                         nameof(series));

@@ -13,7 +13,7 @@ public static partial class MarkdownInputNormalizer {
 
     private static string FlattenNestedStrongSpansPreservingInlineCode(string input) {
         var current = input ?? string.Empty;
-        while (true) {
+        for (var iteration = 0; iteration < StrongFlattenMaxIterations; iteration++) {
             var flattened = NestedStrongSpanRegex.Replace(
                 current,
                 static match =>

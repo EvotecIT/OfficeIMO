@@ -18,22 +18,45 @@ public sealed partial class PdfOptions {
     /// <param name="features">Fallback groups to enable. The default enables document, monospace, symbol, and emoji fallbacks.</param>
     /// <returns>The current options for fluent chaining.</returns>
     public PdfOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
-        return UseTextFallbacks(features, Array.Empty<PdfStandardFont>(), allowSystemFontEmbedding: true);
+        return UseTextFallbacks(
+            features,
+            new[] { PdfStandardFont.TimesRoman },
+            allowSystemFontEmbedding: true);
     }
 
     internal PdfOptions UseTextFallbacks(
         PdfTextFallbackFeatures features,
         IEnumerable<PdfStandardFont> reservedFontSlots,
-        bool allowSystemFontEmbedding) {
+        bool allowSystemFontEmbedding,
+        bool preserveConfiguredFontSlots = false) {
         Guard.NotNull(reservedFontSlots, nameof(reservedFontSlots));
         if (!allowSystemFontEmbedding || features == PdfTextFallbackFeatures.None) {
             return this;
         }
 
-        var reservedSlots = new HashSet<PdfStandardFont>();
+        var requestedSlots = new HashSet<PdfStandardFont>();
         foreach (PdfStandardFont slot in reservedFontSlots) {
-            AddRegisteredFontFamilySlot(reservedSlots, slot);
+            AddRegisteredFontFamilySlot(requestedSlots, slot);
         }
+
+        var configuredSlots = new HashSet<PdfStandardFont>();
+        if (preserveConfiguredFontSlots) {
+            AddRegisteredFontFamilySlot(configuredSlots, DefaultFont);
+            AddRegisteredFontFamilySlot(configuredSlots, HeaderFont);
+            AddRegisteredFontFamilySlot(configuredSlots, FooterFont);
+        }
+
+        if ((features & PdfTextFallbackFeatures.DocumentFont) != 0 &&
+            requestedSlots.Contains(PdfStandardFont.Helvetica) &&
+            !configuredSlots.Contains(PdfStandardFont.Helvetica) &&
+            !HasEmbeddedStandardFontFamily(PdfStandardFont.Helvetica)) {
+            RegisterOfficeFontFamily(
+                DefaultDocumentFontFamilyFallback,
+                PdfStandardFont.Helvetica);
+        }
+
+        var reservedSlots = new HashSet<PdfStandardFont>(requestedSlots);
+        reservedSlots.UnionWith(configuredSlots);
 
         if ((features & PdfTextFallbackFeatures.DocumentFont) != 0) {
             PdfStandardFont documentSlot = PdfStandardFontMapper.GetFontFamily(DefaultFont);
@@ -45,7 +68,6 @@ public sealed partial class PdfOptions {
         PdfTextFallbackFeatures runFallbacks = features &
             (PdfTextFallbackFeatures.MultilingualFonts | PdfTextFallbackFeatures.SymbolAndEmojiFonts);
         if (runFallbacks == PdfTextFallbackFeatures.SymbolAndEmojiFonts) {
-            AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
             TryRegisterEmbeddedFontFallbacksFromSystem(
                 DefaultDocumentSymbolAndEmojiFontFamilyFallback,
                 reservedFontSlots: reservedSlots);
@@ -53,10 +75,10 @@ public sealed partial class PdfOptions {
             TryRegisterRunFallbacksFromSystem(runFallbacks, reservedSlots);
         }
 
-        if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0) {
-            if (!reservedSlots.Contains(PdfStandardFont.Courier)) {
-                TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
-            }
+        if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
+            !configuredSlots.Contains(PdfStandardFont.Courier) &&
+            !HasEmbeddedStandardFontFamily(PdfStandardFont.Courier)) {
+            TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
         }
 
         return this;
@@ -71,7 +93,6 @@ public sealed partial class PdfOptions {
         bool symbols = (features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0;
         var reservedSlots = new HashSet<PdfStandardFont>();
         foreach (PdfStandardFont slot in reservedFontSlots) AddRegisteredFontFamilySlot(reservedSlots, slot);
-        AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
         var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (multilingual) AddInstalledRunFallbackCandidates(

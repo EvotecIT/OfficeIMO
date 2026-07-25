@@ -81,7 +81,9 @@ namespace OfficeIMO.Word.Pdf {
                         images.Count == 0 ? null : images,
                         noWrap: !cell.WrapText));
 
-                    PdfCore.PdfColor? fill = ParseNativeColor(cell.ShadingFillColorHex) ?? tableStyleDefaults.CellFill;
+                    PdfCore.PdfColor? fill =
+                        ParseNativeColor(cell.ShadingFillColorHex) ??
+                        cellStyleDefaults.CellFill;
                     if (fill.HasValue) {
                         cellFills[(rowIndex, logicalColumnIndex)] = fill.Value;
                     }
@@ -656,7 +658,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeTableStyleDefaults ApplyNativeTableConditionalStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
-            if (!conditionalStyle.TextColor.HasValue &&
+            if (!conditionalStyle.CellFill.HasValue &&
+                !conditionalStyle.TextColor.HasValue &&
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
@@ -680,6 +683,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
+                CellFill = conditionalStyle.CellFill ?? tableStyleDefaults.CellFill,
                 CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
                 ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,
                 ParagraphLineSpacingPoints = conditionalStyle.ParagraphLineSpacingPoints ?? tableStyleDefaults.ParagraphLineSpacingPoints,

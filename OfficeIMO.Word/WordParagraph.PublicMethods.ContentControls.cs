@@ -296,12 +296,15 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordRepeatingSection"/> instance.</returns>
         public WordRepeatingSection AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) {
             var sdtIdValue = _document.GenerateSdtId();
+            string? escapedAlias = alias == null ? null : System.Security.SecurityElement.Escape(alias);
+            string? escapedTag = tag == null ? null : System.Security.SecurityElement.Escape(tag);
+            string? escapedSectionTitle = sectionTitle == null ? null : System.Security.SecurityElement.Escape(sectionTitle);
 
             string xml = "<w:sdt xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' xmlns:w15='http://schemas.microsoft.com/office/word/2012/wordml'>";
             xml += "<w:sdtPr>";
-            if (!string.IsNullOrEmpty(alias)) xml += $"<w:alias w:val='{alias}'/>";
-            if (!string.IsNullOrEmpty(tag)) xml += $"<w:tag w:val='{tag}'/>";
-            xml += "<w15:repeatingSection" + (string.IsNullOrEmpty(sectionTitle) ? string.Empty : $" w15:sectionTitle='{sectionTitle}'") + "/>";
+            if (!string.IsNullOrEmpty(escapedAlias)) xml += $"<w:alias w:val='{escapedAlias}'/>";
+            if (!string.IsNullOrEmpty(escapedTag)) xml += $"<w:tag w:val='{escapedTag}'/>";
+            xml += "<w15:repeatingSection" + (string.IsNullOrEmpty(escapedSectionTitle) ? string.Empty : $" w15:sectionTitle='{escapedSectionTitle}'") + "/>";
             xml += "</w:sdtPr>";
             xml += "<w:sdtContent><w15:repeatingSectionItem><w:sdt><w:sdtContent><w:r/></w:sdtContent></w:sdt></w15:repeatingSectionItem></w:sdtContent>";
             xml += "</w:sdt>";

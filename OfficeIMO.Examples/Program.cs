@@ -168,6 +168,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--showcase-real-world")) {
+                Showcase.RealWorldWorkflowShowcase.Example(folderPath);
+                return;
+            }
+
             if (HasArgument(args, "--modern-powerpoint")) {
                 PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
                 return;

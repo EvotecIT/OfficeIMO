@@ -315,7 +315,11 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             series.Add(hasXValues
-                ? new PptCore.PowerPointChartSeries(name, values, xValues)
+                ? new PptCore.PowerPointChartSeries(
+                    name,
+                    values,
+                    xValues,
+                    PptCore.PowerPointChartSnapshotKind.Scatter)
                 : new PptCore.PowerPointChartSeries(name, values));
         }
 

@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel.Fluent {
                         effPaths = paths.Take(_maxTableColumns.Value).ToList();
                         _sheet.EffectiveExecution.ReportInfo($"[Columns Shrink] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={effPaths.Count}, dropped={paths.Count - effPaths.Count}");
                     } else if (_overflowMode == OverflowMode.Summarize) {
-                        int keep = Math.Max(1, _maxTableColumns.Value - 1);
+                        int keep = Math.Max(0, _maxTableColumns.Value - 1);
                         if (keep <= 0) {
                             effPaths = new List<string> { "__More__" };
                         } else {

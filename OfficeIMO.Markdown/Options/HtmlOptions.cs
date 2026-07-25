@@ -258,6 +258,15 @@ public sealed class HtmlOptions {
     public List<string> AllowedHttpLinkHosts { get; } = new();
 
     /// <summary>
+    /// Additional URL schemes permitted for rendered hyperlinks beyond the built-in
+    /// <c>http</c>, <c>https</c>, <c>mailto</c>, <c>tel</c>, <c>ftp</c>,
+    /// and <c>urn</c> schemes.
+    /// Keep this list empty for untrusted Markdown. Add only application-specific
+    /// schemes whose protocol handlers are safe for the rendering host.
+    /// </summary>
+    public List<string> AdditionalAllowedLinkSchemes { get; } = new();
+
+    /// <summary>
     /// Optional allowlist of host patterns for absolute HTTP(S) images during HTML rendering.
     /// When non-empty, absolute HTTP(S) images are suppressed unless their host matches an entry.
     /// Pattern rules match <see cref="AllowedHttpLinkHosts"/>.
@@ -359,6 +368,7 @@ public sealed class HtmlOptions {
         clone.SyntaxBlockRenderExtensions.AddRange(SyntaxBlockRenderExtensions);
         clone.SyntaxInlineRenderExtensions.AddRange(SyntaxInlineRenderExtensions);
         clone.AllowedHttpLinkHosts.AddRange(AllowedHttpLinkHosts);
+        clone.AdditionalAllowedLinkSchemes.AddRange(AdditionalAllowedLinkSchemes);
         clone.AllowedHttpImageHosts.AddRange(AllowedHttpImageHosts);
         return clone;
     }

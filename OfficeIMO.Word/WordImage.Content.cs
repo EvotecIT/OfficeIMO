@@ -318,7 +318,17 @@ namespace OfficeIMO.Word {
             });
         }
 
-        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {
+        private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage, bool allowFileUri = false) {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (!uri.IsAbsoluteUri ||
+                (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(uri.Scheme, Uri.UriSchemeFtp, StringComparison.OrdinalIgnoreCase) &&
+                 !(allowFileUri && string.Equals(uri.Scheme, Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase)) &&
+                 !string.Equals(uri.Scheme, "cid", StringComparison.OrdinalIgnoreCase))) {
+                throw new ArgumentException("External image URIs must use the HTTP, HTTPS, FTP, or CID scheme.", nameof(uri));
+            }
+
             _document = document;
 
             var location = paragraph.Location();

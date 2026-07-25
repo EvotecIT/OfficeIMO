@@ -374,7 +374,13 @@ internal static partial class PdfAnnotationEditor {
         ValidateCoordinateArray(options.Vertices, 4, 0, nameof(options.Vertices));
         ValidateCoordinateArray(options.Line, 4, 4, nameof(options.Line));
         ValidateCoordinateArray(options.PopupRectangle, 4, 4, nameof(options.PopupRectangle));
-        if (options.InkPaths is not null) { if (options.InkPaths.Count == 0) throw new ArgumentException("Ink paths cannot be empty.", nameof(options)); foreach (IReadOnlyList<double> path in options.InkPaths) ValidateCoordinateArray(path, 4, 0, nameof(options.InkPaths)); }
+        if (options.InkPaths is not null) {
+            if (options.InkPaths.Count == 0) throw new ArgumentException("Ink paths cannot be empty.", nameof(options));
+            foreach (IReadOnlyList<double> path in options.InkPaths) {
+                if (path is null) throw new ArgumentException("Ink paths cannot contain null entries.", nameof(options));
+                ValidateCoordinateArray(path, 4, 0, nameof(options.InkPaths));
+            }
+        }
         if (options.InReplyToObjectNumber.HasValue && options.InReplyToObjectNumber.Value <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Reply parent object number must be positive.");
         if (options.ReplyType is not null && options.ReplyType != "R" && options.ReplyType != "Group") throw new ArgumentException("Reply type must be R or Group.", nameof(options));
         ValidatePdfName(options.LineStartEnding, nameof(options.LineStartEnding)); ValidatePdfName(options.LineEndEnding, nameof(options.LineEndEnding));
