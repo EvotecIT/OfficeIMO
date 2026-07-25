@@ -29,13 +29,14 @@ Host OfficeIMO in your own service when you need larger inputs, authentication, 
 
 The website pipeline builds the converter from its project source and mounts the published `wwwroot` output under `/apps/officeimo-converter/`. This keeps the deployed WebAssembly assets and integrity metadata aligned with the source in the same build.
 
-For a local production-shaped publish:
+The production-shaped publish relinks the converter's native WebAssembly assets, including HarfBuzz. Install the matching SDK's `wasm-tools` workload once before running it:
 
 ```powershell
+dotnet workload install wasm-tools
 pwsh -NoProfile -File .\Website\build.ps1 -PowerForgeRoot C:\path\to\PSPublishModule
 ```
 
-Use `-Dev` for a faster content/API build. The converter project itself can be checked directly with:
+Use `dotnet workload list` to verify the workload on an existing build machine. Use `-Dev` for a faster content/API build. The converter project itself can be checked directly with:
 
 ```powershell
 dotnet build .\Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release
