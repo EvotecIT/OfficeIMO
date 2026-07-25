@@ -20,8 +20,8 @@ public sealed class HtmlAllSeverityBatch20SecurityTests {
               </tr>
             </table>
             """
-            .Replace("{{HiddenPixel}}", HiddenPixel, StringComparison.Ordinal)
-            .Replace("{{VisiblePixel}}", VisiblePixel, StringComparison.Ordinal);
+            .Replace("{{HiddenPixel}}", HiddenPixel)
+            .Replace("{{VisiblePixel}}", VisiblePixel);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             html,
@@ -50,8 +50,8 @@ public sealed class HtmlAllSeverityBatch20SecurityTests {
               </tr>
             </table>
             """
-            .Replace("{{HiddenPixel}}", HiddenPixel, StringComparison.Ordinal)
-            .Replace("{{VisiblePixel}}", VisiblePixel, StringComparison.Ordinal);
+            .Replace("{{HiddenPixel}}", HiddenPixel)
+            .Replace("{{VisiblePixel}}", VisiblePixel);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             html,
