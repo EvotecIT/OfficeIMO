@@ -436,7 +436,8 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Select(item => item.BubbleSizes != null
                     ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                         item.BubbleSizes, item.Color, item.PointColors,
-                        markerOutlineColor: item.Color, markerOutlineWidth: item.StrokeWidth)
+                        markerOutlineColor: item.StrokeColor ?? item.Color,
+                        markerOutlineWidth: item.StrokeWidth)
                     : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                         pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
                         renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
@@ -449,7 +450,9 @@ public static partial class PowerPointHtmlConverterExtensions {
                 MapChartKind(snapshot.ChartKind),
                 data,
                 Math.Max(1D, width),
-                Math.Max(1D, height));
+                Math.Max(1D, height),
+                bubbleScalePercent: snapshot.BubbleScalePercent,
+                bubbleSizeMode: snapshot.BubbleSizeMode);
             return true;
         } catch (Exception ex) {
             warning = "Chart snapshot could not be mapped to the shared Drawing chart model: " + ex.Message;

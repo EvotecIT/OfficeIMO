@@ -1580,6 +1580,15 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
         ValueRange yRange = valueAxisRange ?? ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         double maximumBubbleSize = GetMaximumBubbleSize(allRangeSeries);
+        double maximumBubbleDiameter = maximumBubbleSize > 0D
+            ? GetMaximumBubbleDiameter(plotWidth, plotHeight,
+                snapshot.BubbleScalePercent)
+            : 0D;
+        double bubbleRadius = maximumBubbleDiameter / 2D;
+        double pointPlotLeft = plotLeft + bubbleRadius;
+        double pointPlotTop = plotTop + bubbleRadius;
+        double pointPlotWidth = Math.Max(1D, plotWidth - maximumBubbleDiameter);
+        double pointPlotHeight = Math.Max(1D, plotHeight - maximumBubbleDiameter);
         for (int s = 0; s < scatterSeries.Count; s++) {
             OfficeChartSeries currentSeries = scatterSeries[s].Series;
             int sourceSeriesIndex = scatterSeries[s].SourceIndex;
@@ -1610,8 +1619,10 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double x = ToPlotX(xValue, xRange.Min, xRange.Max, plotLeft, plotWidth);
-                double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
+                double x = ToPlotX(xValue, xRange.Min, xRange.Max,
+                    pointPlotLeft, pointPlotWidth);
+                double y = ToPlotY(yValue, yRange.Min, yRange.Max,
+                    pointPlotTop, pointPlotHeight);
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
                 if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
@@ -1628,7 +1639,8 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor pointColor = GetPointColor(currentSeries.PointColors, points[i].SourceIndex, color);
                     if (currentSeries.BubbleSizes != null) {
                         AddBubbleMarker(drawing, currentSeries, points[i].SourceIndex, point,
-                            plotWidth, plotHeight, maximumBubbleSize, pointColor);
+                            maximumBubbleSize, maximumBubbleDiameter,
+                            snapshot.BubbleSizeMode, pointColor);
                     } else {
                         AddMarker(drawing, currentSeries, point, 5D, pointColor, 1.25D);
                     }

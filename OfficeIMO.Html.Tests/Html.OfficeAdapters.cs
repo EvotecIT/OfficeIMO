@@ -893,6 +893,33 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1.5D, 2.5D },
+                new[] { 10D, 20D },
+                new[] { 4D, 9D })
+        });
+        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140);
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
+          .Replace(" data-officeimo-x=\"2.5\"", string.Empty);
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+
+        Assert.Empty(imported.Slides[0].Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.ContentOmitted);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();

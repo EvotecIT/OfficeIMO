@@ -301,6 +301,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (hasBubbleSizes != allowBubbleSizes) {
                 return false;
             }
+            if (hasBubbleSizes && !hasXValues) {
+                return false;
+            }
 
             for (int i = 0; i < valueCells.Count; i++) {
                 IElement cell = valueCells[i];

@@ -74,6 +74,11 @@ namespace OfficeIMO.Tests {
                         Assert.Single(refreshed.Data.Series).PointColors![0]);
                     Assert.Equal(2.5D,
                         Assert.Single(refreshed.Data.Series).MarkerOutlineWidth);
+                    Assert.Equal(OfficeColor.Parse("#654321"),
+                        Assert.Single(refreshed.Data.Series).MarkerOutlineColor);
+                    Assert.Equal(145D, refreshed.BubbleScalePercent);
+                    Assert.Equal(OfficeChartBubbleSizeMode.Width,
+                        refreshed.BubbleSizeMode);
                     C.BubbleChart preservedBubble = authoredChartPart.ChartSpace!
                         .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!
                         .GetFirstChild<C.BubbleChart>()!;
@@ -111,6 +116,10 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(new[] { 16D, 36D, 64D }, series.BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#F4A261"), series.PointColors![2]);
                     Assert.Equal(2.5D, series.MarkerOutlineWidth);
+                    Assert.Equal(OfficeColor.Parse("#654321"), series.MarkerOutlineColor);
+                    Assert.Equal(145D, snapshot.BubbleScalePercent);
+                    Assert.Equal(OfficeChartBubbleSizeMode.Width,
+                        snapshot.BubbleSizeMode);
                 }
 
                 using PresentationDocument document = PresentationDocument.Open(output, false);
@@ -140,6 +149,39 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(output)) File.Delete(output);
             }
+        }
+
+        [Fact]
+        public void BubbleChart_AuthorsSeriesOutlineFromBubbleOptions() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            OfficeColor outlineColor = OfficeColor.Parse("#AABBCC");
+            var data = new OfficeChartData(new[] { "1" }, new[] {
+                OfficeChartSeries.CreateBubble("Portfolio",
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    color: OfficeColor.Parse("#112233"),
+                    markerOutlineColor: outlineColor,
+                    markerOutlineWidth: 1.5D)
+            });
+
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble, data);
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            DocumentFormat.OpenXml.Drawing.Outline outline = nativeSeries
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!;
+
+            Assert.Equal(19050, outline.Width!.Value);
+            Assert.Equal("AABBCC", outline
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(outlineColor,
+                Assert.Single(snapshot.Data.Series).MarkerOutlineColor);
         }
 
         [Fact]
@@ -248,6 +290,26 @@ namespace OfficeIMO.Tests {
             sizeCache.PointCount!.Val = 2U;
 
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsMalformedImportedSizeCaches() {
+            foreach (string malformed in new[] { "NaN", "Infinity", "not-a-number" }) {
+                using PowerPointPresentation presentation =
+                    PowerPointPresentation.Create(new MemoryStream());
+                PowerPointChart chart = presentation.AddSlide().AddChart(
+                    OfficeChartKind.Bubble,
+                    CreateBubbleData(
+                        new[] { 1D },
+                        new[] { 2D },
+                        new[] { 4D }));
+                C.NumericPoint point = presentation.Slides[0].SlidePart.ChartParts
+                    .Single().ChartSpace!.Descendants<C.BubbleSize>().Single()
+                    .NumberReference!.NumberingCache!.Elements<C.NumericPoint>().Single();
+                point.NumericValue!.Text = malformed;
+
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+            }
         }
 
         private static int CountOccurrences(string value, string marker) {

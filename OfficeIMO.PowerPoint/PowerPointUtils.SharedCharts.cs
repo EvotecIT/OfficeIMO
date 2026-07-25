@@ -408,7 +408,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
             OfficeChartSeries series, OfficeChartKind kind) {
-            if (!series.Color.HasValue && series.StrokeWidth == null && series.StrokeDashStyle == null &&
+            OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
+                ? series.MarkerOutlineColor ?? series.Color
+                : series.Color;
+            double? outlineWidth = kind == OfficeChartKind.Bubble
+                ? series.MarkerOutlineWidth ?? series.StrokeWidth
+                : series.StrokeWidth;
+            if (!series.Color.HasValue && !outlineColor.HasValue && outlineWidth == null &&
+                series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind))) return;
             C.ChartShapeProperties properties = seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
                 new C.ChartShapeProperties();
@@ -423,13 +430,13 @@ namespace OfficeIMO.PowerPoint {
             outline.RemoveAllChildren<A.NoFill>();
             if (!series.ConnectLine && !IsFilledSharedKind(kind)) {
                 outline.Append(new A.NoFill());
-            } else if (series.Color.HasValue) {
+            } else if (outlineColor.HasValue) {
                 outline.Append(new A.SolidFill(
-                    new A.RgbColorModelHex { Val = series.Color.Value.ToRgbHex() }));
+                    new A.RgbColorModelHex { Val = outlineColor.Value.ToRgbHex() }));
             }
-            if (series.StrokeWidth.HasValue) {
+            if (outlineWidth.HasValue) {
                 outline.Width = (int)Math.Min(int.MaxValue,
-                    PowerPointUnits.FromPoints(series.StrokeWidth.Value));
+                    PowerPointUnits.FromPoints(outlineWidth.Value));
             }
             if (series.StrokeDashStyle.HasValue) {
                 outline.RemoveAllChildren<A.PresetDash>();

@@ -104,7 +104,18 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Bubble, data);
+                    uint bubbleScale = bubbleChart.GetFirstChild<C.BubbleScale>()?.Val?.Value ?? 100U;
+                    if (bubbleScale > 300U) {
+                        snapshot = null!;
+                        return false;
+                    }
+                    OfficeChartBubbleSizeMode bubbleSizeMode =
+                        bubbleChart.GetFirstChild<C.SizeRepresents>()?.Val?.Value ==
+                        C.SizeRepresentsValues.Width
+                            ? OfficeChartBubbleSizeMode.Width
+                            : OfficeChartBubbleSizeMode.Area;
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Bubble, data,
+                        bubbleSizeMode, bubbleScale);
                     return true;
                 }
 
@@ -242,14 +253,19 @@ namespace OfficeIMO.PowerPoint {
                 : OfficeChartAxisGroup.Primary;
         }
 
-        private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {
+        private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
+            PowerPointChartSnapshotKind kind, PowerPointChartData data,
+            OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
+            double bubbleScalePercent = 100D) {
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
                 ReadTitle(chart),
                 kind,
                 data,
                 WidthPoints,
-                HeightPoints);
+                HeightPoints,
+                bubbleSizeMode,
+                bubbleScalePercent);
         }
 
         private static PowerPointChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {
@@ -431,6 +447,15 @@ namespace OfficeIMO.PowerPoint {
             return widthEmus.HasValue && widthEmus.Value > 0L
                 ? PowerPointUnits.ToPoints(widthEmus.Value)
                 : null;
+        }
+
+        private static OfficeColor? ReadSeriesStrokeColor(
+            OpenXmlCompositeElement seriesElement, A.ColorScheme? colorScheme) {
+            C.ChartShapeProperties? properties =
+                seriesElement.GetFirstChild<C.ChartShapeProperties>();
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(
+                properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(),
+                colorScheme);
         }
 
         private static string? ReadTitle(C.Chart chart) {

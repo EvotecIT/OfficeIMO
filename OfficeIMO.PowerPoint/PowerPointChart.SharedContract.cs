@@ -144,7 +144,8 @@ namespace OfficeIMO.PowerPoint {
                     }
                     series.Add(OfficeChartSeries.CreateBubble(item.Name, item.XValues!,
                         item.Values, item.BubbleSizes, item.Color, item.PointColors,
-                        showInLegend: showInLegend, markerOutlineColor: item.Color,
+                        showInLegend: showInLegend,
+                        markerOutlineColor: item.StrokeColor ?? item.Color,
                         markerOutlineWidth: item.StrokeWidth));
                 } else {
                     series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
@@ -157,7 +158,9 @@ namespace OfficeIMO.PowerPoint {
             }
             var data = new OfficeChartData(powerPointSnapshot.Data.Categories, series);
             snapshot = new OfficeChartSnapshot(powerPointSnapshot.Name, powerPointSnapshot.Title, kind, data,
-                powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
+                powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints,
+                bubbleScalePercent: powerPointSnapshot.BubbleScalePercent,
+                bubbleSizeMode: powerPointSnapshot.BubbleSizeMode);
             return true;
         }
 

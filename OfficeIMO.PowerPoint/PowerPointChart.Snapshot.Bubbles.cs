@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -16,12 +17,14 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<double>? categoryXValues = null;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
-                IReadOnlyList<double> xValues =
-                    ReadCachedNumbers(element.GetFirstChild<C.XValues>());
-                IReadOnlyList<double> yValues =
-                    ReadCachedNumbers(element.GetFirstChild<C.YValues>());
-                IReadOnlyList<double> bubbleSizes =
-                    ReadCachedNumbers(element.GetFirstChild<C.BubbleSize>());
+                if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(),
+                        allowNegative: true, out IReadOnlyList<double> xValues) ||
+                    !TryReadStrictCachedNumbers(element.GetFirstChild<C.YValues>(),
+                        allowNegative: true, out IReadOnlyList<double> yValues) ||
+                    !TryReadStrictCachedNumbers(element.GetFirstChild<C.BubbleSize>(),
+                        allowNegative: false, out IReadOnlyList<double> bubbleSizes)) {
+                    return null;
+                }
                 if (xValues.Count != yValues.Count || xValues.Count != bubbleSizes.Count) {
                     return null;
                 }
@@ -46,6 +49,7 @@ namespace OfficeIMO.PowerPoint {
                     ReadSeriesStrokeWidth(element)) {
                     BubbleSizes = normalizedSizes,
                     PointColors = ReadBubblePointColors(element, pointCount, colorScheme),
+                    StrokeColor = ReadSeriesStrokeColor(element, colorScheme),
                     SourceIndex = element.GetFirstChild<C.Index>()?.Val?.Value
                 };
                 series.Add(item);
@@ -76,6 +80,54 @@ namespace OfficeIMO.PowerPoint {
                 found = true;
             }
             return found ? colors : null;
+        }
+
+        private static bool TryReadStrictCachedNumbers(OpenXmlElement? container,
+            bool allowNegative, out IReadOnlyList<double> values) {
+            values = Array.Empty<double>();
+            if (container == null) {
+                return false;
+            }
+
+            List<C.NumericPoint> points =
+                GetBoundedCachedPoints(container.Descendants<C.NumericPoint>());
+            if (points.Count == 0) {
+                return false;
+            }
+
+            int length = GetCachedPointLength(container, points,
+                point => point.Index?.Value);
+            if (length != points.Count) {
+                return false;
+            }
+
+            var parsed = new double[length];
+            var seen = new bool[length];
+            for (int pointIndex = 0; pointIndex < points.Count; pointIndex++) {
+                C.NumericPoint point = points[pointIndex];
+                uint rawIndex = point.Index?.Value ?? (uint)pointIndex;
+                if (rawIndex >= (uint)length || seen[(int)rawIndex]) {
+                    return false;
+                }
+
+                string? text = point.NumericValue?.Text;
+                if (!double.TryParse(text, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double value) ||
+                    double.IsNaN(value) || double.IsInfinity(value) ||
+                    (!allowNegative && value < 0D)) {
+                    return false;
+                }
+
+                parsed[(int)rawIndex] = value;
+                seen[(int)rawIndex] = true;
+            }
+
+            if (seen.Any(present => !present)) {
+                return false;
+            }
+
+            values = parsed;
+            return true;
         }
     }
 }

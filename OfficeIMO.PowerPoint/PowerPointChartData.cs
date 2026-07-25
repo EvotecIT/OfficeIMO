@@ -195,6 +195,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public double? StrokeWidth { get; private set; }
 
+        /// <summary>
+        /// Optional source-defined series outline color for exported snapshots.
+        /// </summary>
+        internal OfficeColor? StrokeColor { get; set; }
+
         /// <summary>Primary or secondary value-axis assignment detected for this series.</summary>
         public OfficeChartAxisGroup AxisGroup { get; private set; }
 
