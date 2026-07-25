@@ -250,8 +250,17 @@ namespace OfficeIMO.Word.Html {
                     case "h6": {
                             int level = int.Parse(element.TagName.Substring(1));
                             WordParagraph paragraph;
-                            if (options.SupportsHeadingNumbering && headingList != null && cell == null) {
+                            if (options.SupportsHeadingNumbering && headingList != null) {
+                                WordParagraph? replaceableCellPlaceholder = null;
+                                if (cell != null) {
+                                    var cellParagraphs = cell.Paragraphs;
+                                    if (cellParagraphs.Count == 1 &&
+                                        IsReplaceableEmptyCellParagraph(cellParagraphs[0])) {
+                                        replaceableCellPlaceholder = cellParagraphs[0];
+                                    }
+                                }
                                 paragraph = headingList.AddItem("", level - 1);
+                                replaceableCellPlaceholder?.Remove();
                             } else {
                                 paragraph = AddParagraphInScope(section, cell, headerFooter);
                             }
@@ -368,7 +377,10 @@ namespace OfficeIMO.Word.Html {
                                     AddBookmarkIfPresent(element, para);
                                 }
                             }
-                            ApplyContainerFrameFromCss(element, blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList());
+                            ApplyContainerFrameFromCss(
+                                element,
+                                blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList(),
+                                applyContainerSpacing: false);
                             if (!string.IsNullOrEmpty(cite)) {
                                 HtmlSemanticMetadata.SetBlockquoteCite(firstPara!, cite);
                                 var noteRef = AddNoteReference(firstPara!, cite ?? string.Empty, options);

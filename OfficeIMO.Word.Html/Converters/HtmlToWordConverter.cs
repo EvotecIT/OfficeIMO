@@ -144,9 +144,19 @@ namespace OfficeIMO.Word.Html {
             ApplyDocumentMetadata(doc, document);
             WordSection section = doc.Sections.First();
             var listStack = new Stack<WordList>();
+            WordList? headingList = options.SupportsHeadingNumbering ? cell.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), cell);
+                ProcessNode(
+                    document.Body,
+                    doc,
+                    section,
+                    options,
+                    null,
+                    listStack,
+                    new TextFormatting(),
+                    cell,
+                    headingList: headingList);
             }
             InsertTopBookmarkIfNeeded(doc);
         }

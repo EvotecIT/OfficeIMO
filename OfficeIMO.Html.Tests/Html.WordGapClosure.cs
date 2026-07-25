@@ -98,6 +98,19 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_InvalidLogicalPair_DoesNotOverridePhysicalSpacing() {
+        const string html = """
+            <p style="margin-left:30px;margin-inline:10px bogus">Invalid pair</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Invalid pair");
+
+        Assert.Equal(450, paragraph.IndentationBefore);
+        Assert.Null(paragraph.IndentationAfter);
+    }
+
+    [Fact]
     public void HtmlToWord_CssDirection_OverridesDirForLogicalSpacing() {
         const string html = """
             <style>
@@ -118,6 +131,20 @@ public class HtmlWordGapClosure {
         Assert.Null(paragraph.IndentationAfter);
         Assert.Null(ownDir.IndentationBefore);
         Assert.Equal(150, ownDir.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_ImportantDirection_MapsLogicalSpacingToTheResolvedSide() {
+        const string html = """
+            <p style="direction:rtl!important;direction:ltr;margin-inline-start:10px">Important direction</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Important direction");
+
+        Assert.True(paragraph.BiDi);
+        Assert.Null(paragraph.IndentationBefore);
+        Assert.Equal(150, paragraph.IndentationAfter);
     }
 
     [Fact]
@@ -180,6 +207,22 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_Blockquote_AppliesBoxSpacingOnce() {
+        const string html = """
+            <blockquote style="margin-left:10px;padding-left:2px;margin-top:4px;padding-top:3px;margin-bottom:5px;padding-bottom:2px">
+              <p>Quoted spacing</p>
+            </blockquote>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Quoted spacing");
+
+        Assert.Equal(180, paragraph.IndentationBefore);
+        Assert.Equal(105, paragraph.LineSpacingBefore);
+        Assert.Equal(105, paragraph.LineSpacingAfter);
+    }
+
+    [Fact]
     public void HtmlToWord_BlockChild_StartsANewFramedParagraphAfterInlineContent() {
         const string html = """
             <span>Before</span><div style="border:1px solid #123456">Inside</div>
@@ -229,6 +272,24 @@ public class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
         WordParagraph allSides = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "All sides");
         WordParagraph oneSide = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "One side");
+
+        Assert.Null(allSides.Borders.LeftStyle);
+        Assert.Null(allSides.Borders.TopStyle);
+        Assert.Null(allSides.Borders.RightStyle);
+        Assert.Null(allSides.Borders.BottomStyle);
+        Assert.Null(oneSide.Borders.LeftStyle);
+    }
+
+    [Fact]
+    public void HtmlToWord_LaterStylelessBorderShorthand_ResetsEarlierVisibleBorder() {
+        const string html = """
+            <p style="border:1px solid red;border:1px red">Reset all sides</p>
+            <p style="border-left:1px solid red;border-left:1px red">Reset one side</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph allSides = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Reset all sides");
+        WordParagraph oneSide = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Reset one side");
 
         Assert.Null(allSides.Borders.LeftStyle);
         Assert.Null(allSides.Borders.TopStyle);
@@ -303,6 +364,9 @@ public class HtmlWordGapClosure {
             run => run.Text.Contains("exact", StringComparison.Ordinal));
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
         Assert.Contains("#ABCDEF", document.ToSvg(), StringComparison.OrdinalIgnoreCase);
+        string roundTrip = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        Assert.Contains("<mark", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#abcdef", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -491,6 +555,54 @@ public class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Existing");
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Preformatted", StringComparison.Ordinal));
         Assert.Contains(reloadedCell.Elements, element => element is WordTable);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_HonorsHeadingNumberingWithoutReplacingExistingContent() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+        var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
+
+        cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
+
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        WordParagraph[] headings = cell.Paragraphs
+            .Where(paragraph => paragraph.Text == "One" || paragraph.Text == "Two")
+            .ToArray();
+        Assert.Equal(2, headings.Length);
+        Assert.All(headings, paragraph => Assert.Equal(WordListStyle.Headings111, paragraph.ListStyle));
+        Assert.Equal(new int?[] { 0, 1 }, headings.Select(paragraph => paragraph.ListItemLevel).ToArray());
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
+        WordParagraph[] reloadedHeadings = reloadedCell.Paragraphs
+            .Where(paragraph => paragraph.Text == "One" || paragraph.Text == "Two")
+            .ToArray();
+
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Equal(2, reloadedHeadings.Length);
+        Assert.All(reloadedHeadings, paragraph => Assert.Equal(WordListStyle.Headings111, paragraph.ListStyle));
+        Assert.Equal(new int?[] { 0, 1 }, reloadedHeadings.Select(paragraph => paragraph.ListItemLevel).ToArray());
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_NumberedHeadingsReplaceTheFreshPlaceholder() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
+
+        cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
+
+        Paragraph[] paragraphs = cell._tableCell.Elements<Paragraph>().ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal(new[] { "One", "Two" }, paragraphs.Select(paragraph => paragraph.InnerText).ToArray());
+        Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "One" || paragraph.Text == "Two");
+        Assert.All(
+            cell.Paragraphs.Where(paragraph => paragraph.Text == "One" || paragraph.Text == "Two"),
+            paragraph => Assert.Equal(WordListStyle.Headings111, paragraph.ListStyle));
     }
 
     [Fact]

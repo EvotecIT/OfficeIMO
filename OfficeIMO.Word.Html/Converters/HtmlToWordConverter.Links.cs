@@ -256,26 +256,35 @@ namespace OfficeIMO.Word.Html {
             if (string.IsNullOrWhiteSpace(style)) {
                 return false;
             }
-            foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
+
+            bool? resolved = null;
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in style!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (!CssStyleMapper.TryParseDeclaration(
+                            part,
+                            out string name,
+                            out string value,
+                            out bool declarationIsImportant) ||
+                        declarationIsImportant != important ||
+                        !name.Equals("direction", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    if (value.Equals("rtl", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = true;
+                    } else if (value.Equals("ltr", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = false;
+                    }
                 }
-                if (!string.Equals(pieces[0].Trim(), "direction", StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-                var value = pieces[1].Trim();
-                if (string.Equals(value, "rtl", StringComparison.OrdinalIgnoreCase)) {
-                    bidi = true;
-                    return true;
-                }
-                if (string.Equals(value, "ltr", StringComparison.OrdinalIgnoreCase)) {
-                    bidi = false;
-                    return true;
-                }
+            }
+
+            if (!resolved.HasValue) {
                 return false;
             }
-            return false;
+
+            bidi = resolved.Value;
+            return true;
         }
 
         private static void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {

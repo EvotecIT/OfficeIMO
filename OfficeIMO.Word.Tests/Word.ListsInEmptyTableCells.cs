@@ -9,6 +9,30 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void TableCell_HeadingList_KeepsSubsequentItemsInTheCell() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+
+        WordList list = cell.AddList(WordListStyle.Headings111);
+        WordParagraph first = list.AddItem("First", 0);
+        first.Style = WordParagraphStyles.Heading1;
+        WordParagraph second = list.AddItem("Second", 1);
+        second.Style = WordParagraphStyles.Heading2;
+
+        Assert.Equal(new[] { "Existing", "First", "Second" }, cell.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+        Assert.Same(cell._tableCell, first._paragraph.Parent);
+        Assert.Same(cell._tableCell, second._paragraph.Parent);
+        Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "First" || paragraph.Text == "Second");
+
+        using MemoryStream stream = document.ToStream();
+        stream.Position = 0;
+        using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+        var errors = new OpenXmlValidator().Validate(package).ToList();
+        Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
+    }
+
+    [Fact]
     public void TableCell_AddList_WorksAfterItsPlaceholderParagraphIsRemoved() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];

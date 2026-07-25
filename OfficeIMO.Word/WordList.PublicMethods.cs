@@ -55,8 +55,6 @@ namespace OfficeIMO.Word {
 
             if (insertionReference is not null) {
                 insertionReference.InsertAfterSelf(paragraph);
-            } else if (_isToc || IsToc) {
-                _document.AppendBlockToBody(paragraph);
             } else if (_headerFooter != null) {
                 if (_headerFooter._header is not null) {
                     _headerFooter._header.Append(paragraph);
@@ -77,6 +75,8 @@ namespace OfficeIMO.Word {
                 } else {
                     parent.Append(paragraph);
                 }
+            } else if (_isToc || IsToc) {
+                _document.AppendBlockToBody(paragraph);
             } else {
                 _document.AppendBlockToBody(paragraph);
             }

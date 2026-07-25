@@ -456,11 +456,11 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                         }
-                        if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
+                        if (options.IncludeRunHighlightStyles) {
                             string? normalizedRunBackground = NormalizeSixDigitHexColor(run.RunShadingFillColorHex);
                             if (normalizedRunBackground != null) {
                                 inlineStyles.Add($"background-color:#{normalizedRunBackground}");
-                            } else {
+                            } else if (!isHtmlMarkedText) {
                                 var highlightCss = GetHighlightCss(run.Highlight);
                                 if (!string.IsNullOrEmpty(highlightCss)) {
                                     inlineStyles.Add($"background-color:{highlightCss}");

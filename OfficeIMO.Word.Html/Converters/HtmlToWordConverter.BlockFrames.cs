@@ -45,12 +45,15 @@ namespace OfficeIMO.Word.Html {
             ApplyBlockFrameFromCss(element, new[] { paragraph }, applyContainerSpacing: false);
         }
 
-        private static void ApplyContainerFrameFromCss(IElement element, IReadOnlyList<WordParagraph> paragraphs) {
+        private static void ApplyContainerFrameFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            bool applyContainerSpacing = true) {
             if (paragraphs.Count == 0) {
                 return;
             }
 
-            ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing: true);
+            ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing);
         }
 
         private static void ApplyBlockFrameFromCss(
@@ -79,17 +82,23 @@ namespace OfficeIMO.Word.Html {
                     if (name == "background-color") {
                         background = NormalizeColor(value);
                     } else if (name == "border" &&
-                               TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle) &&
-                               hasBorderStyle) {
-                        var border = new BlockBorderState(borderStyle, borderSize, borderColor);
-                        sideBorders[BlockBorderSide.Left] = border;
-                        sideBorders[BlockBorderSide.Right] = border;
-                        sideBorders[BlockBorderSide.Top] = border;
-                        sideBorders[BlockBorderSide.Bottom] = border;
+                               TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle)) {
+                        if (hasBorderStyle) {
+                            var border = new BlockBorderState(borderStyle, borderSize, borderColor);
+                            sideBorders[BlockBorderSide.Left] = border;
+                            sideBorders[BlockBorderSide.Right] = border;
+                            sideBorders[BlockBorderSide.Top] = border;
+                            sideBorders[BlockBorderSide.Bottom] = border;
+                        } else {
+                            sideBorders.Clear();
+                        }
                     } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
-                               TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor, out bool hasSideStyle) &&
-                               hasSideStyle) {
-                        sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
+                               TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor, out bool hasSideStyle)) {
+                        if (hasSideStyle) {
+                            sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
+                        } else {
+                            sideBorders.Remove(side);
+                        }
                     } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
                         ApplyBlockBorderLonghand(sideBorders, side, component, value);
                     }

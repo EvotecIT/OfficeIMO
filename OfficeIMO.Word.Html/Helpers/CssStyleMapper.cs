@@ -289,12 +289,18 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            start = first;
             if (parts.Length == 1) {
+                start = first;
                 end = first;
-            } else if (TryParseLength(parts[1], out int second)) {
-                end = second;
+                return;
             }
+
+            if (!TryParseLength(parts[1], out int second)) {
+                return;
+            }
+
+            start = first;
+            end = second;
         }
 
         private static Dictionary<string, string> Parse(string? style) {

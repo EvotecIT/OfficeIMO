@@ -922,9 +922,8 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddList(WordListStyle style) {
             var paragraphs = this.Paragraphs;
-            WordList wordList = paragraphs.Count > 0
-                ? new WordList(this._document, paragraphs[paragraphs.Count - 1])
-                : new WordList(this._document, this._tableCell);
+            WordParagraph? insertionAnchor = paragraphs.Count > 0 ? paragraphs[paragraphs.Count - 1] : null;
+            WordList wordList = new WordList(this._document, this._tableCell, insertionAnchor);
             wordList.AddList(style);
             return wordList;
         }

@@ -322,10 +322,11 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Initializes a list that can append its first item directly to an empty table cell.
     /// </summary>
-    internal WordList(WordDocument wordDocument, TableCell tableCell) {
+    internal WordList(WordDocument wordDocument, TableCell tableCell, WordParagraph? insertionAnchor = null) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         _tableCell = tableCell;
+        _wordParagraph = insertionAnchor;
     }
 
 }
