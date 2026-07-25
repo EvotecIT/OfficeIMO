@@ -106,6 +106,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (!string.IsNullOrWhiteSpace(style.StringSet)) {
+            runs.Add(new HtmlInlineRun(
+                element,
+                style,
+                HtmlRenderStyleResolver.DescribeSource(element)));
+        }
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -230,6 +236,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
         foreach (HtmlInlineRun run in runs) {
+            if (run.RunningStringElement != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                previousWasCollapsibleSpace = false;
+                continue;
+            }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;

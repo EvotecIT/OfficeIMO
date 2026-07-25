@@ -367,6 +367,18 @@ internal sealed class HtmlRenderLineBreakGroup {
 
 internal sealed class HtmlInlineRun {
     internal HtmlInlineRun(
+        IElement runningStringElement,
+        HtmlRenderBoxStyle style,
+        string source) {
+        RunningStringElement = runningStringElement;
+        Text = string.Empty;
+        LogicalText = string.Empty;
+        Style = style;
+        Source = source;
+        SemanticRole = style.SemanticRole;
+    }
+
+    internal HtmlInlineRun(
         string text,
         HtmlRenderBoxStyle style,
         string? linkUri,
@@ -441,6 +453,7 @@ internal sealed class HtmlInlineRun {
     internal double PaintOffsetY { get; }
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
+    internal IElement? RunningStringElement { get; }
     internal bool IsReplacedImage { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }

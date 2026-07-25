@@ -149,5 +149,20 @@ public sealed class HtmlPdfToolTests {
         Assert.Contains("--input-format", error.ToString(), StringComparison.Ordinal);
         Assert.Equal(0, output.Length);
     }
+
+    [Theory]
+    [InlineData("convert", "input.html", "--format", "json")]
+    [InlineData("capabilities", "--input-format", "html")]
+    public async Task HtmlTool_RejectsOptionsOwnedByAnotherSubcommand(params string[] arguments) {
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await HtmlPdfToolApp.RunAsync(arguments, input, output, error);
+
+        Assert.Equal(2, exitCode);
+        Assert.Contains("command", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, output.Length);
+    }
 }
 #endif

@@ -16,6 +16,7 @@ internal static class HtmlRenderFontFaceLoader {
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        long decodedFontBytes = 0L;
         var pipelineOptions = new HtmlResourcePipelineOptions {
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
@@ -43,7 +44,8 @@ internal static class HtmlRenderFontFaceLoader {
                     options,
                     diagnostics,
                     fonts,
-                    reported);
+                    reported,
+                    ref decodedFontBytes);
             }
         }
 
@@ -58,7 +60,8 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         OfficeFontFaceCollection fonts,
-        HashSet<string> reported) {
+        HashSet<string> reported,
+        ref long decodedFontBytes) {
         if (definition.FamilyName.Length == 0) {
             ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontFaceInvalid, "An @font-face rule has no usable font-family descriptor.", definition.Source);
             return;
@@ -144,17 +147,47 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            if (fonts.TryAdd(definition.FamilyName, bytes, style, ranges)) {
+            long remainingDecodedBytes = resources.MaxTotalResourceBytes
+                - resources.AcceptedResourceBytes
+                - decodedFontBytes;
+            if (remainingDecodedBytes <= 0L) {
+                ReportOnce(
+                    diagnostics,
+                    reported,
+                    HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
+                    "Decoded font data exceeded the configured operation-wide resource budget.",
+                    source,
+                    "decodedFontBytes=" + decodedFontBytes);
+                continue;
+            }
+
+            int maximumDecodedBytes = (int)Math.Min(remainingDecodedBytes, int.MaxValue);
+            if (fonts.TryAddBounded(
+                definition.FamilyName,
+                bytes,
+                style,
+                ranges,
+                maximumDecodedBytes,
+                out int acceptedDecodedBytes,
+                out string? fontError)) {
+                decodedFontBytes += acceptedDecodedBytes;
                 return;
             }
 
+            bool decodedLimitExceeded = fontError?.IndexOf("limit", StringComparison.OrdinalIgnoreCase) >= 0;
             ReportOnce(
                 diagnostics,
                 reported,
-                HtmlRenderDiagnosticCodes.FontFormatUnsupported,
-                "A font face is not a supported direct OpenType or WOFF 1 TrueType glyf-outline font.",
+                decodedLimitExceeded
+                    ? HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
+                    : HtmlRenderDiagnosticCodes.FontFormatUnsupported,
+                decodedLimitExceeded
+                    ? "Decoded font data exceeded the configured operation-wide resource budget."
+                    : "A font face is not a supported direct OpenType or WOFF 1 TrueType glyf-outline font.",
                 source,
-                contentType);
+                decodedLimitExceeded
+                    ? "limit=" + maximumDecodedBytes
+                    : contentType);
         }
 
         ReportOnce(

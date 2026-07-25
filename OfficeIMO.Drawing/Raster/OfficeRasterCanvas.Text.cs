@@ -32,6 +32,20 @@ public sealed partial class OfficeRasterCanvas {
             return cached;
         }
 
+        if (_fonts != null) {
+            IReadOnlyList<OfficeFontFallbackRun> fallbackRuns =
+                _fonts.PlanFallbackRuns(text, fontFamily, style);
+            if (fallbackRuns.Count > 1) {
+                double aggregate = 0D;
+                foreach (OfficeFontFallbackRun run in fallbackRuns) {
+                    aggregate += MeasureText(run.Text, size, run.FamilyName, style);
+                }
+                if (cache.Count >= MaxTextMeasurementCacheEntries) cache.Clear();
+                cache[key] = aggregate;
+                return aggregate;
+            }
+        }
+
         OfficeTrueTypeFont? font = ResolveTextFont(text!, fontFamily, style);
         double measured = font != null
             ? MeasureResolvedText(text!, font, size)
@@ -98,6 +112,21 @@ public sealed partial class OfficeRasterCanvas {
         string value = text!;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
         double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
+        if (TryDrawMixedText(
+            value,
+            x,
+            y,
+            width,
+            height,
+            color,
+            fontSize,
+            alignment,
+            style,
+            fontFamily,
+            overflowBehavior,
+            textAdvanceWidth)) {
+            return;
+        }
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
@@ -203,6 +232,25 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        if (TryDrawMixedTextLine(
+            value,
+            anchorX,
+            top,
+            fontHeight,
+            color,
+            bold,
+            italic,
+            alignment,
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            underline,
+            strikethrough,
+            fontFamily,
+            flipHorizontal,
+            flipVertical)) {
+            return;
+        }
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
@@ -278,6 +326,21 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        if (TryDrawMixedTransformedTextLine(
+            value,
+            anchorX,
+            top,
+            fontHeight,
+            color,
+            transform,
+            bold,
+            italic,
+            alignment,
+            underline,
+            strikethrough,
+            fontFamily)) {
+            return;
+        }
         OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
@@ -462,39 +525,6 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         return OfficeTrueTypeFont.TryLoadFontFamily(fontFamily) ?? _font;
-    }
-
-    private readonly struct TextMeasurementKey : IEquatable<TextMeasurementKey> {
-        internal TextMeasurementKey(string text, double fontSize, string? fontFamily, OfficeFontStyle style) {
-            Text = text;
-            FontSize = fontSize;
-            FontFamily = fontFamily ?? string.Empty;
-            Style = OfficeFontFace.NormalizeStyle(style);
-        }
-
-        private string Text { get; }
-        private double FontSize { get; }
-        private string FontFamily { get; }
-        private OfficeFontStyle Style { get; }
-
-        public bool Equals(TextMeasurementKey other) =>
-            FontSize.Equals(other.FontSize) &&
-            string.Equals(Text, other.Text, StringComparison.Ordinal) &&
-            string.Equals(FontFamily, other.FontFamily, StringComparison.Ordinal) &&
-            Style == other.Style;
-
-        public override bool Equals(object? obj) =>
-            obj is TextMeasurementKey other && Equals(other);
-
-        public override int GetHashCode() {
-            unchecked {
-                int hash = (Text != null ? StringComparer.Ordinal.GetHashCode(Text) : 0);
-                hash = (hash * 397) ^ FontSize.GetHashCode();
-                hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(FontFamily);
-                hash = (hash * 397) ^ Style.GetHashCode();
-                return hash;
-            }
-        }
     }
 
     private void DrawStrokeText(

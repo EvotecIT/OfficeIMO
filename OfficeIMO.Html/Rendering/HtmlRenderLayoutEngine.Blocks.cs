@@ -275,6 +275,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
             lineBreakOffsets.AddRange(inline.BreakOffsets);
+            runningStringAssignments.AddRange(inline.RunningStringAssignments);
         }
 
         if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && !style.HasBorderLayout) {
@@ -365,6 +366,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
         HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments =
+            ResolveRunningStringAssignments(element, style, 0D);
+        return ownAssignments.Count == 0
+            ? attached
+            : attached.WithRunningStringAssignments(ownAssignments.Concat(attached.RunningStringAssignments));
+    }
+
+    private IReadOnlyList<HtmlCssRunningStringAssignment> ResolveRunningStringAssignments(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double offset) {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments = HtmlCssRunningStringParser.ResolveAssignments(
             element,
@@ -381,9 +393,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source,
                 "limit=" + _options.MaxRunningStringCharacters);
         }
-        return ownAssignments.Count == 0
-            ? attached
-            : attached.WithRunningStringAssignments(ownAssignments.Concat(attached.RunningStringAssignments));
+        return Math.Abs(offset) <= 0.0001D
+            ? ownAssignments
+            : ownAssignments.Select(assignment => assignment.Translate(offset)).ToList().AsReadOnly();
     }
 
     private static bool CanCollapseParentMargin(HtmlRenderBoxStyle style, bool top) {

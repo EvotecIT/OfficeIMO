@@ -60,6 +60,42 @@ public sealed class DrawingFontUnicodeRangeTests {
     }
 
     [Fact]
+    public void FontCollection_MeasuresAndRasterizesMixedUnicodeRangeRuns() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0590-05FF", out OfficeFontUnicodeRangeSet? hebrew));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", font, OfficeFontStyle.Regular, latin!)
+            .Add("Scoped", font, OfficeFontStyle.Regular, hebrew!);
+
+        Assert.True(fonts.TryMeasureText("A\u05D0", 12D, "Scoped", OfficeFontStyle.Regular, out double width));
+        Assert.True(width > 0D);
+
+        var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+        var image = new OfficeRasterImage(80, 30, OfficeColor.White);
+        var canvas = new OfficeRasterCanvas(
+            image,
+            font: null,
+            fonts: fonts,
+            textShapingProvider: provider);
+
+        canvas.DrawTextLine(
+            "A\u05D0",
+            2D,
+            2D,
+            24D,
+            OfficeColor.Black,
+            alignment: OfficeTextAlignment.Left,
+            fontFamily: "Scoped");
+
+        Assert.Collection(
+            provider.Requests,
+            request => Assert.Equal("A", request.Text),
+            request => Assert.Equal("\u05D0", request.Text));
+        Assert.Contains(image.GetPixels(), channel => channel == 0);
+    }
+
+    [Fact]
     public void SvgExporter_PreservesSelectionFamilyAndUnicodeRangesForDirectDrawingText() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));

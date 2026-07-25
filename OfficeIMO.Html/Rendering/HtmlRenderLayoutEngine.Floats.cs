@@ -204,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
         var breakOffsets = new SortedSet<double>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
 
         if (floatPlacements != null) {
             foreach (InlineFloatPlacement placement in floatPlacements) {
@@ -249,7 +250,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
             foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
                 double x = rightToLeftLine ? cursor - segment.Width : cursor;
-                if (segment.Run.PositionedMarkerElement != null) {
+                if (segment.Run.RunningStringElement != null) {
+                    runningStringAssignments.AddRange(ResolveRunningStringAssignments(
+                        segment.Run.RunningStringElement,
+                        segment.Run.Style,
+                        lineY));
+                } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.AtomicBlock != null) {
@@ -338,7 +344,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlInlineLayout(
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
             height,
-            breakOffsets);
+            breakOffsets,
+            runningStringAssignments);
     }
 
     private sealed class InlineFloatContext {

@@ -219,9 +219,12 @@ public static partial class HtmlComputedStyleEngine {
     private static bool TryEvaluateResolutionFeature(string feature, double actualDpi, out bool applies) {
         applies = false;
         int colon = feature.IndexOf(':');
-        if (colon < 0) return false;
-        string name = feature.Substring(0, colon).Trim();
+        string name = (colon < 0 ? feature : feature.Substring(0, colon)).Trim();
         if (name != "resolution" && name != "min-resolution" && name != "max-resolution") return false;
+        if (colon < 0) {
+            applies = actualDpi > 0D;
+            return true;
+        }
         string value = feature.Substring(colon + 1).Trim();
         int unitStart = 0;
         while (unitStart < value.Length

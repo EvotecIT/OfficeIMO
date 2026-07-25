@@ -97,7 +97,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         Assert.True(HtmlComputedStyleEngine.IsApplicableMedia(
-            "(pointer) and (any-pointer) and (hover) and (any-hover)",
+            "(pointer) and (any-pointer) and (hover) and (any-hover) and (resolution)",
             HtmlCssMediaContext.Screen,
             400D,
             200D,

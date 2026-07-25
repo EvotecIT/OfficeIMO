@@ -96,6 +96,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_CollectsRunningStringsFromInlineElements() {
+        const string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(section); } }
+              p { margin:0; font-size:12px; line-height:14px; }
+            </style>
+            <p>Before <span style="string-set:section content()">Inline section</span> after</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Inline section");
+    }
+
+    [Fact]
     public void HtmlRender_Paged_OmitsRunningStringsBeyondTheConfiguredCharacterLimit() {
         const string html = """
             <style>

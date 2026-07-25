@@ -64,7 +64,39 @@ public sealed class OfficeFontFaceCollection {
         string? resourceFamilyName = normalizedRanges.IsAll || string.IsNullOrWhiteSpace(familyName)
             ? familyName
             : CreateResourceFamilyName(familyName!.Trim(), style, normalizedRanges);
-        return TryAddCore(familyName, data, style, normalizedRanges, resourceFamilyName);
+        return TryAddCore(
+            familyName,
+            data,
+            style,
+            normalizedRanges,
+            resourceFamilyName,
+            maximumDecodedBytes: null,
+            out _,
+            out _);
+    }
+
+    internal bool TryAddBounded(
+        string? familyName,
+        byte[]? data,
+        OfficeFontStyle style,
+        OfficeFontUnicodeRangeSet? unicodeRanges,
+        int maximumDecodedBytes,
+        out int decodedBytes,
+        out string? error) {
+        if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
+        OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
+        string? resourceFamilyName = normalizedRanges.IsAll || string.IsNullOrWhiteSpace(familyName)
+            ? familyName
+            : CreateResourceFamilyName(familyName!.Trim(), style, normalizedRanges);
+        return TryAddCore(
+            familyName,
+            data,
+            style,
+            normalizedRanges,
+            resourceFamilyName,
+            maximumDecodedBytes,
+            out decodedBytes,
+            out error);
     }
 
     private bool TryAddCore(
@@ -72,20 +104,36 @@ public sealed class OfficeFontFaceCollection {
         byte[]? data,
         OfficeFontStyle style,
         OfficeFontUnicodeRangeSet unicodeRanges,
-        string? resourceFamilyName) {
+        string? resourceFamilyName,
+        int? maximumDecodedBytes,
+        out int decodedBytes,
+        out string? error) {
+        decodedBytes = 0;
+        error = null;
         if (string.IsNullOrWhiteSpace(familyName) || data == null || data.Length == 0) {
+            error = "Font data and family name are required.";
             return false;
         }
 
-        if (!OfficeFontContainerDecoder.TryDecodeToOpenType(
+        byte[] openTypeData;
+        bool decoded = maximumDecodedBytes.HasValue
+            ? OfficeFontContainerDecoder.TryDecodeToOpenType(
                 data,
-                out byte[] openTypeData,
+                maximumDecodedBytes.Value,
+                out openTypeData,
                 out _,
-                out _)) {
+                out error)
+            : OfficeFontContainerDecoder.TryDecodeToOpenType(
+                data,
+                out openTypeData,
+                out _,
+                out error);
+        if (!decoded) {
             return false;
         }
         OfficeTrueTypeFont? parsed = OfficeTrueTypeFont.TryLoad(openTypeData);
         if (parsed == null) {
+            error = "Decoded font data does not contain supported TrueType outlines.";
             return false;
         }
 
@@ -107,6 +155,7 @@ public sealed class OfficeFontFaceCollection {
                     normalizedStyle,
                     normalizedRanges,
                     parsed);
+                decodedBytes = openTypeData.Length;
                 return true;
             }
         }
@@ -118,6 +167,7 @@ public sealed class OfficeFontFaceCollection {
             normalizedStyle,
             normalizedRanges,
             parsed));
+        decodedBytes = openTypeData.Length;
         return true;
     }
 
@@ -128,7 +178,15 @@ public sealed class OfficeFontFaceCollection {
         }
 
         foreach (OfficeFontFace face in fonts.Faces) {
-            TryAddCore(face.FamilyName, face.DataSnapshot, face.Style, face.UnicodeRanges, face.ResourceFamilyName);
+            TryAddCore(
+                face.FamilyName,
+                face.DataSnapshot,
+                face.Style,
+                face.UnicodeRanges,
+                face.ResourceFamilyName,
+                maximumDecodedBytes: null,
+                out _,
+                out _);
         }
 
         return this;
@@ -151,13 +209,13 @@ public sealed class OfficeFontFaceCollection {
             return false;
         }
 
-        OfficeTrueTypeFont? font = ResolveForText(text!, familyNames, style, out OfficeFontStyle _);
-        if (font == null) {
-            return false;
+        IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
+        foreach (OfficeFontFallbackRun run in runs) {
+            OfficeTrueTypeFont? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            if (font == null) return false;
+            width += font.Measure(run.Text, fontSize);
         }
-
-        width = font.Measure(text!, fontSize);
-        return true;
+        return runs.Count > 0;
     }
 
     internal bool TryMeasureTextElements(
@@ -172,10 +230,17 @@ public sealed class OfficeFontFaceCollection {
             return false;
         }
 
-        OfficeTrueTypeFont? font = ResolveForText(text, familyNames, style, out OfficeFontStyle _);
-        if (font == null) return false;
-
-        widths = font.MeasureTextElements(elements, fontSize);
+        IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
+        var resolvedWidths = new List<double>(elements.Count);
+        foreach (OfficeFontFallbackRun run in runs) {
+            OfficeTrueTypeFont? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            if (font == null) return false;
+            var runElements = new List<string>();
+            foreach (string element in OfficeTextElements.Enumerate(run.Text)) runElements.Add(element);
+            resolvedWidths.AddRange(font.MeasureTextElements(runElements, fontSize));
+        }
+        if (resolvedWidths.Count != elements.Count) return false;
+        widths = resolvedWidths.AsReadOnly();
         return true;
     }
 
@@ -313,7 +378,7 @@ public sealed class OfficeFontFaceCollection {
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
-                if (!MatchesFamily(face, family) || !face.Covers(text)) continue;
+                if (!MatchesFamily(face, family) || !CoversPlannedText(face, text)) continue;
                 first ??= face;
                 if (face.Style == normalizedStyle) exact ??= face;
                 if (face.Style == OfficeFontStyle.Regular) regular ??= face;
@@ -333,6 +398,16 @@ public sealed class OfficeFontFaceCollection {
             if (!char.IsWhiteSpace(value[index])) return false;
         }
         return value.Length > 0;
+    }
+
+    private static bool CoversPlannedText(OfficeFontFace face, string text) {
+        bool hasNonWhitespace = false;
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            if (IsWhitespace(element)) continue;
+            hasNonWhitespace = true;
+            if (!face.Covers(element)) return false;
+        }
+        return hasNonWhitespace || text.Length > 0;
     }
 
     private static bool MatchesFamily(OfficeFontFace face, string family) =>

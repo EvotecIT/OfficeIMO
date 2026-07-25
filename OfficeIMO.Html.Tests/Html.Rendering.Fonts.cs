@@ -313,6 +313,34 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_ChargesDecodedWoffFacesToTheOperationWideResourceBudget() {
+        byte[] firstOpenType = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] secondOpenType = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] firstWoff = ManagedTextShapingTestAssets.CreateWoff(firstOpenType);
+        byte[] secondWoff = ManagedTextShapingTestAssets.CreateWoff(secondOpenType);
+        string html = "<style>"
+            + "@font-face{font-family:First;src:url('data:font/woff;base64," + Convert.ToBase64String(firstWoff) + "')}"
+            + "@font-face{font-family:Second;src:url('data:font/woff;base64," + Convert.ToBase64String(secondWoff) + "')}"
+            + "</style><p style='font-family:First'>A</p><p style='font-family:Second'>B</p>";
+        var options = new HtmlRenderOptions {
+            MaxResourceBytes = Math.Max(firstWoff.Length, secondWoff.Length),
+            MaxTotalResourceBytes = firstWoff.Length
+                + secondWoff.Length
+                + Math.Max(firstOpenType.Length, secondOpenType.Length)
+                + 1L
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            options);
+
+        Assert.Single(rendered.Fonts.Faces);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
+            && diagnostic.Message.Contains("Decoded font data", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByRepeatedSvgBackgroundText() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null

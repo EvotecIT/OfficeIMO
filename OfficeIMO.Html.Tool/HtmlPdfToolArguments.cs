@@ -52,6 +52,12 @@ internal sealed class HtmlPdfToolArguments {
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
             if (IsHelp(token)) return new HtmlPdfToolArguments { Command = HtmlPdfToolCommand.Help };
+            if (parsed.Command == HtmlPdfToolCommand.Capabilities && token != "--format") {
+                throw new HtmlPdfToolUsageException("The capabilities command accepts only --format text|json.");
+            }
+            if (parsed.Command == HtmlPdfToolCommand.Convert && token == "--format") {
+                throw new HtmlPdfToolUsageException("The convert command does not accept --format.");
+            }
             switch (token) {
                 case "--output":
                 case "-o":
@@ -122,12 +128,6 @@ internal sealed class HtmlPdfToolArguments {
 
     private void Validate() {
         if (Command == HtmlPdfToolCommand.Capabilities) {
-            if (InputPath != null || OutputPath != null || StylesheetPaths.Count > 0 || BaseUri != null
-                || PdfUaLanguage != null || FontFamilyName != null || RegularFontPath != null
-                || BoldFontPath != null || ItalicFontPath != null || BoldItalicFontPath != null
-                || Force || MaxInputBytes != DefaultMaxInputBytes || MaxPages != 10_000) {
-                throw new HtmlPdfToolUsageException("The capabilities command accepts only --format text|json.");
-            }
             return;
         }
 
