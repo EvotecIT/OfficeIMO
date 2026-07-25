@@ -89,9 +89,14 @@ namespace OfficeIMO.Word.Html {
                     string? normalized = NormalizeSixDigitHexColor(run.ColorHex);
                     if (normalized != null) styles.Add($"color:#{normalized}");
                 }
-                if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
-                    string? highlight = GetHighlightCss(run.Highlight);
-                    if (!string.IsNullOrEmpty(highlight)) styles.Add($"background-color:{highlight}");
+                if (options.IncludeRunHighlightStyles) {
+                    string? normalizedRunBackground = NormalizeSixDigitHexColor(run.RunShadingFillColorHex);
+                    if (normalizedRunBackground != null) {
+                        styles.Add($"background-color:#{normalizedRunBackground}");
+                    } else if (!isHtmlMarkedText) {
+                        string? highlight = GetHighlightCss(run.Highlight);
+                        if (!string.IsNullOrEmpty(highlight)) styles.Add($"background-color:{highlight}");
+                    }
                 }
                 if (styles.Count > 0) {
                     var span = htmlDocument.CreateElement("span");

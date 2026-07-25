@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Html {
         NoWrap,
     }
 
-    internal static class CssStyleMapper {
+    internal static partial class CssStyleMapper {
         internal class CssProperties {
             internal int? MarginLeft { get; set; }
             internal int? MarginRight { get; set; }
@@ -126,34 +126,44 @@ namespace OfficeIMO.Word.Html {
 
                 switch (name) {
                     case "margin":
-                        ApplyMarginShorthand(value, result);
+                        if (IsCssWideBoxReset(value)) ResetMargin(result);
+                        else ApplyMarginShorthand(value, result);
                         break;
                     case "margin-left":
-                        if (TryParseLength(value, out int marginLeft)) result.MarginLeft = marginLeft;
+                        if (IsCssWideBoxReset(value)) result.MarginLeft = null;
+                        else if (TryParseLength(value, out int marginLeft)) result.MarginLeft = marginLeft;
                         break;
                     case "margin-right":
-                        if (TryParseLength(value, out int marginRight)) result.MarginRight = marginRight;
+                        if (IsCssWideBoxReset(value)) result.MarginRight = null;
+                        else if (TryParseLength(value, out int marginRight)) result.MarginRight = marginRight;
                         break;
                     case "margin-top":
-                        if (TryParseLength(value, out int marginTop)) result.MarginTop = marginTop;
+                        if (IsCssWideBoxReset(value)) result.MarginTop = null;
+                        else if (TryParseLength(value, out int marginTop)) result.MarginTop = marginTop;
                         break;
                     case "margin-bottom":
-                        if (TryParseLength(value, out int marginBottom)) result.MarginBottom = marginBottom;
+                        if (IsCssWideBoxReset(value)) result.MarginBottom = null;
+                        else if (TryParseLength(value, out int marginBottom)) result.MarginBottom = marginBottom;
                         break;
                     case "padding":
-                        ApplyPaddingShorthand(value, result);
+                        if (IsCssWideBoxReset(value)) ResetPadding(result);
+                        else ApplyPaddingShorthand(value, result);
                         break;
                     case "padding-left":
-                        if (TryParseLength(value, out int paddingLeft)) result.PaddingLeft = paddingLeft;
+                        if (IsCssWideBoxReset(value)) result.PaddingLeft = null;
+                        else if (TryParseLength(value, out int paddingLeft)) result.PaddingLeft = paddingLeft;
                         break;
                     case "padding-right":
-                        if (TryParseLength(value, out int paddingRight)) result.PaddingRight = paddingRight;
+                        if (IsCssWideBoxReset(value)) result.PaddingRight = null;
+                        else if (TryParseLength(value, out int paddingRight)) result.PaddingRight = paddingRight;
                         break;
                     case "padding-top":
-                        if (TryParseLength(value, out int paddingTop)) result.PaddingTop = paddingTop;
+                        if (IsCssWideBoxReset(value)) result.PaddingTop = null;
+                        else if (TryParseLength(value, out int paddingTop)) result.PaddingTop = paddingTop;
                         break;
                     case "padding-bottom":
-                        if (TryParseLength(value, out int paddingBottom)) result.PaddingBottom = paddingBottom;
+                        if (IsCssWideBoxReset(value)) result.PaddingBottom = null;
+                        else if (TryParseLength(value, out int paddingBottom)) result.PaddingBottom = paddingBottom;
                         break;
                     default:
                         if (name.StartsWith("margin-", StringComparison.Ordinal)) {
@@ -217,6 +227,11 @@ namespace OfficeIMO.Word.Html {
             string prefix,
             bool rightToLeft,
             CssProperties result) {
+            if (IsCssWideBoxReset(value)) {
+                ResetLogicalBoxProperty(name, prefix, rightToLeft, result);
+                return;
+            }
+
             var property = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                 [name] = value
             };

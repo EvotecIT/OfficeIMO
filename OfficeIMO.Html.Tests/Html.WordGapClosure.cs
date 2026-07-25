@@ -13,7 +13,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public class HtmlWordGapClosure {
+public partial class HtmlWordGapClosure {
     private const string ValidPng =
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 

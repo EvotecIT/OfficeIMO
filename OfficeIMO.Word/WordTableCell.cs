@@ -923,7 +923,14 @@ namespace OfficeIMO.Word {
         public WordList AddList(WordListStyle style) {
             var paragraphs = this.Paragraphs;
             WordParagraph? insertionAnchor = paragraphs.Count > 0 ? paragraphs[paragraphs.Count - 1] : null;
-            WordList wordList = new WordList(this._document, this._tableCell, insertionAnchor);
+            bool replaceInsertionAnchor = paragraphs.Count == 1 &&
+                                          insertionAnchor != null &&
+                                          !HasMeaningfulParagraphContent(insertionAnchor._paragraph);
+            WordList wordList = new WordList(
+                this._document,
+                this._tableCell,
+                insertionAnchor,
+                replaceInsertionAnchor);
             wordList.AddList(style);
             return wordList;
         }

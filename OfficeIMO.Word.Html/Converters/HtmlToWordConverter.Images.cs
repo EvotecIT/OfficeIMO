@@ -838,8 +838,9 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     remoteCandidateProbeCount++;
-                    if (seen.Add(resolved)) {
-                        sources.Add(resolved);
+                    if (Uri.TryCreate(resolved, UriKind.Absolute, out Uri? canonicalUri) &&
+                        seen.Add(canonicalUri.AbsoluteUri)) {
+                        sources.Add(canonicalUri.AbsoluteUri);
                     }
                 }
             }

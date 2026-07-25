@@ -55,6 +55,11 @@ namespace OfficeIMO.Word {
 
             if (insertionReference is not null) {
                 insertionReference.InsertAfterSelf(paragraph);
+                if (_replaceInsertionAnchor &&
+                    ListItems.Count == 0 &&
+                    ReferenceEquals(insertionReference, _wordParagraph?._paragraph)) {
+                    insertionReference.Remove();
+                }
             } else if (_headerFooter != null) {
                 if (_headerFooter._header is not null) {
                     _headerFooter._header.Append(paragraph);

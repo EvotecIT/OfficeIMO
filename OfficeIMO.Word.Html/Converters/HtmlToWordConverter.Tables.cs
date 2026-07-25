@@ -908,21 +908,30 @@ namespace OfficeIMO.Word.Html {
             out BorderValues style,
             out UInt32Value size,
             out SixColor color) =>
-            TryParseBorder(value, out style, out size, out color, out _);
+            TryParseBorder(value, out style, out size, out color, out _, out _);
 
         private static bool TryParseBorder(
             string value,
             out BorderValues style,
             out UInt32Value size,
             out SixColor color,
-            out bool hasExplicitStyle) {
+            out bool hasExplicitStyle) =>
+            TryParseBorder(value, out style, out size, out color, out hasExplicitStyle, out _);
+
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color,
+            out bool hasExplicitStyle,
+            out bool hasExplicitColor) {
             style = BorderValues.Single;
             size = 4U;
             color = SixColor.Black;
             hasExplicitStyle = false;
             bool found = false;
             bool hasExplicitWidth = false;
-            bool hasExplicitColor = false;
+            hasExplicitColor = false;
             foreach (var part in SplitBorderTokens(value)) {
                 var token = part.Trim().ToLowerInvariant();
                 if (TryParseBorderWidth(token, out var s)) {
