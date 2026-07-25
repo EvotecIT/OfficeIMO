@@ -138,6 +138,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void ValidateWorkbookSharedFormulasForStructuralEdit() {
+            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (sheetElement.Id?.Value is not string relationshipId
+                    || WorkbookPartRoot.GetPartById(relationshipId) is not DocumentFormat.OpenXml.Packaging.WorksheetPart worksheetPart) {
+                    continue;
+                }
+
+                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
+                    ? this
+                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                sheet.ResolveSharedFormulaTextsForStructuralValidation();
+            }
+        }
+
         private void MaterializeSharedFormulasForStructuralEdit() {
             IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions = BuildSharedFormulaDefinitions();
             if (definitions.Count == 0) {

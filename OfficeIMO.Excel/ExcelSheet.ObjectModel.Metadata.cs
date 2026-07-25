@@ -239,54 +239,6 @@ namespace OfficeIMO.Excel {
                 .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
         }
 
-        private void RemapShiftedPivotSources(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            IEnumerable<PivotTableCacheDefinitionPart> cacheParts = WorkbookPartRoot.WorksheetParts
-                .SelectMany(worksheetPart => worksheetPart.PivotTableParts)
-                .Select(pivotPart => pivotPart.PivotTableCacheDefinitionPart)
-                .Where(cachePart => cachePart != null)
-                .Cast<PivotTableCacheDefinitionPart>()
-                .Distinct();
-
-            foreach (PivotTableCacheDefinitionPart cachePart in cacheParts) {
-                WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
-                if (source == null
-                    || !string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
-                    || source.Reference?.Value is not string sourceReference
-                    || !TryRemapShiftedReferenceListRows(
-                        sourceReference,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        out List<string> remappedSources)) {
-                    continue;
-                }
-
-                source.Reference = remappedSources.Count == 0 ? "#REF!" : remappedSources[0];
-                if (cachePart.PivotCacheDefinition != null) {
-                    cachePart.PivotCacheDefinition.RefreshOnLoad = true;
-                    cachePart.PivotCacheDefinition.SaveData = false;
-                    if (remappedSources.Count > 0
-                        && A1.TryParseRange(
-                            remappedSources[0],
-                            out int firstRow,
-                            out _,
-                            out int lastRow,
-                            out _)) {
-                        cachePart.PivotCacheDefinition.RecordCount = (uint)Math.Max(0, lastRow - firstRow);
-                    }
-
-                    PivotTableCacheRecordsPart? recordsPart = cachePart.PivotTableCacheRecordsPart;
-                    if (recordsPart != null) {
-                        recordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
-                        ExcelDocument.MarkPivotCacheRecordsPartAsModelWritten(recordsPart);
-                        recordsPart.PivotCacheRecords.Save();
-                    }
-
-                    cachePart.PivotCacheDefinition.Save();
-                }
-            }
-        }
-
         private void RemapShiftedPivotLocations(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
             foreach (PivotTablePart pivotPart in _worksheetPart.PivotTableParts) {
                 Location? location = pivotPart.PivotTableDefinition?.Location;
@@ -477,58 +429,6 @@ namespace OfficeIMO.Excel {
                     insertAfter = clone;
                 }
             }
-        }
-
-        private void RemapShiftedDataValidations(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            var validations = WorksheetRoot.GetFirstChild<DataValidations>();
-            if (validations == null) {
-                return;
-            }
-
-            uint count = 0;
-            foreach (var validation in validations.Elements<DataValidation>().ToList()) {
-                if (validation.SequenceOfReferences?.InnerText is not string references
-                    || !TryGetReferenceListAnchorRow(references, out int oldAnchorRow)) {
-                    count++;
-                    continue;
-                }
-
-                string updatedReferences = references;
-                if (TryRemapShiftedReferenceListRows(
-                    references,
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow,
-                    out var remapped)) {
-                    if (remapped.Count == 0) {
-                        validation.Remove();
-                        continue;
-                    }
-
-                    updatedReferences = string.Join(" ", remapped);
-                    validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = updatedReferences };
-                }
-
-                if (TryGetReferenceListAnchorRow(updatedReferences, out int newAnchorRow)) {
-                    int anchorRowDelta = newAnchorRow - oldAnchorRow;
-                    RewriteAnchoredFormulaText(
-                        validation.Formula1,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        anchorRowDelta);
-                    RewriteAnchoredFormulaText(
-                        validation.Formula2,
-                        firstAffectedRow,
-                        rowDelta,
-                        lastDeletedRow,
-                        anchorRowDelta);
-                }
-
-                count++;
-            }
-
-            validations.Count = count;
         }
 
         private void RemapShiftedConditionalFormatting(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {

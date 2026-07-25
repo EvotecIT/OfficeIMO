@@ -64,6 +64,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            ValidateStructuralRowControlSafety();
             ValidateRowInsertionAgainstArrayFormulas(firstRow);
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
@@ -111,7 +112,9 @@ namespace OfficeIMO.Excel {
             }
 
             int lastRemovedRow = firstRow + count - 1;
+            ValidateStructuralRowControlSafety();
             ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
+            ValidateWorkbookSharedFormulasForStructuralEdit();
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
@@ -301,7 +304,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
-                    ThrowIfFormulaReferenceOverflows(hyperlink.Location?.Value, firstRow, count, rewriteUnqualified);
+                    if (string.IsNullOrWhiteSpace(hyperlink.Id?.Value)) {
+                        ThrowIfFormulaReferenceOverflows(hyperlink.Location?.Value, firstRow, count, rewriteUnqualified);
+                    }
                 }
 
                 foreach (var tablePart in worksheetPart.TableDefinitionParts) {
@@ -395,6 +400,14 @@ namespace OfficeIMO.Excel {
                     pivotPart.PivotTableDefinition?.Location?.Reference?.Value,
                     firstRow,
                     count);
+            }
+        }
+
+        private void ValidateStructuralRowControlSafety() {
+            if (WorksheetRoot.Descendants<Controls>().Any()
+                || _worksheetPart.ControlPropertiesParts.Any()) {
+                throw new InvalidOperationException(
+                    "Cannot edit rows on a worksheet containing form controls because their anchors and linked cells cannot yet be remapped safely.");
             }
         }
 

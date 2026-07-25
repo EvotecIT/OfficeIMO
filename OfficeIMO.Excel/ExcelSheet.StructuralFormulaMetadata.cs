@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -93,6 +94,23 @@ namespace OfficeIMO.Excel {
                             rewriteUnqualifiedReferences: false);
                         changed |= RewriteStructuralFormulaText(
                             validation.Formula2,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            rewriteUnqualifiedReferences: false);
+                    }
+                }
+
+                if (!isMutatedSheet) {
+                    foreach (X14.DataValidation validation in worksheetPart.Worksheet.Descendants<X14.DataValidation>()) {
+                        changed |= RewriteStructuralFormulaText(
+                            validation.DataValidationForumla1?.Formula,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            rewriteUnqualifiedReferences: false);
+                        changed |= RewriteStructuralFormulaText(
+                            validation.DataValidationForumla2?.Formula,
                             firstAffectedRow,
                             rowDelta,
                             lastDeletedRow,

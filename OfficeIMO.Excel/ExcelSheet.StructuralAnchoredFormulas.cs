@@ -44,7 +44,9 @@ namespace OfficeIMO.Excel {
                             match.Groups["row"].Value,
                             NumberStyles.None,
                             CultureInfo.InvariantCulture,
-                            out int row)) {
+                            out int row)
+                        || row <= 0
+                        || row > A1.MaxRows) {
                         return match.Value;
                     }
 
@@ -127,7 +129,11 @@ namespace OfficeIMO.Excel {
             if (!IsValidFormulaColumn(match.Groups["startCol"].Value)
                 || !IsValidFormulaColumn(match.Groups["endCol"].Value)
                 || !int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
+                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)
+                || startRow <= 0
+                || startRow > A1.MaxRows
+                || endRow <= 0
+                || endRow > A1.MaxRows) {
                 return match.Value;
             }
 
@@ -198,7 +204,11 @@ namespace OfficeIMO.Excel {
             string sheetName,
             int anchorRowDelta) {
             if (!int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
-                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
+                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)
+                || startRow <= 0
+                || startRow > A1.MaxRows
+                || endRow <= 0
+                || endRow > A1.MaxRows) {
                 return match.Value;
             }
 

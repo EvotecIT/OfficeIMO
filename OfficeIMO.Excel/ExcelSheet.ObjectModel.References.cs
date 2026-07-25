@@ -391,7 +391,9 @@ namespace OfficeIMO.Excel {
             return Regex.Replace(
                 segment,
                 @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
-                evaluator,
+                match => IsInsideFormulaStructuredReference(segment, match.Index)
+                    ? match.Value
+                    : evaluator(match),
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
         }
@@ -400,7 +402,9 @@ namespace OfficeIMO.Excel {
             return Regex.Replace(
                 segment,
                 @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
-                evaluator,
+                match => IsInsideFormulaStructuredReference(segment, match.Index)
+                    ? match.Value
+                    : evaluator(match),
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
         }
@@ -409,7 +413,9 @@ namespace OfficeIMO.Excel {
             return Regex.Replace(
                 segment,
                 @"(?<![A-Za-z0-9_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
-                evaluator,
+                match => IsInsideFormulaStructuredReference(segment, match.Index)
+                    ? match.Value
+                    : evaluator(match),
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
         }
@@ -602,6 +608,10 @@ namespace OfficeIMO.Excel {
                     || !IsValidFormulaColumn(match.Groups["endCol"].Value))) {
                 return false;
             }
+            if (!IsValidFormulaRow(match.Groups["startRow"].Value)
+                || !IsValidFormulaRow(match.Groups["endRow"].Value)) {
+                return false;
+            }
             bool startMatches = qualifier.Length > 0
                 ? IsCurrentSheetQualifier(qualifier, sheetName)
                 : rewriteUnqualifiedReferences;
@@ -644,12 +654,20 @@ namespace OfficeIMO.Excel {
             }
 
             return IsValidFormulaColumn(match.Groups["col"].Value)
-                && int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out row);
+                && int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out row)
+                && row > 0
+                && row <= A1.MaxRows;
         }
 
         private static bool IsValidFormulaColumn(string column) {
             int index = A1.ColumnLettersToIndex(column);
             return index > 0 && index <= A1.MaxColumns;
+        }
+
+        private static bool IsValidFormulaRow(string row) {
+            return int.TryParse(row, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
+                && index > 0
+                && index <= A1.MaxRows;
         }
 
         private static string BuildFormulaReference(Match match, int targetRow) {
