@@ -2,7 +2,8 @@
   "brand": {
     "name": "OfficeIMO",
     "tagline": "Open source .NET libraries for document builders, extraction workflows, and PowerShell automation.",
-    "copyright": "Developed by Evotec Services sp. z o.o."
+    "companyName": "Evotec Services sp. z o.o.",
+    "companyLink": "https://evotec.xyz"
   },
   "credit": {
     "text": "Built with",
