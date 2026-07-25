@@ -39,9 +39,13 @@ namespace OfficeIMO.Word {
         /// Gets or sets the exact fill color applied to the current text run.
         /// </summary>
         public Color? RunShadingFillColor {
-            get => string.IsNullOrEmpty(RunShadingFillColorHex)
-                ? null
-                : Helpers.ParseColor(RunShadingFillColorHex);
+            get {
+                string fill = RunShadingFillColorHex;
+                return fill.Length == 6 &&
+                       OfficeIMO.Drawing.OfficeColor.TryParseHex(fill, out OfficeIMO.Drawing.OfficeColor color)
+                    ? color
+                    : null;
+            }
             set => RunShadingFillColorHex = value?.ToRgbHex() ?? string.Empty;
         }
 

@@ -81,6 +81,44 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_StylesheetCascade_ReplaysWinningBoxDeclarationsInCascadeOrder() {
+        const string html = """
+            <style>
+              .x { margin-left:5px; }
+              .x { margin:10px; }
+              .x { margin-left:30px; }
+              #specific { margin-left:30px; }
+              .y { margin:10px; }
+            </style>
+            <p class="x">Source order</p>
+            <p id="specific" class="y">Specificity</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph sourceOrder = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Source order");
+        WordParagraph specificity = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specificity");
+
+        Assert.Equal(450, sourceOrder.IndentationBefore);
+        Assert.Equal(150, sourceOrder.IndentationAfter);
+        Assert.Equal(450, specificity.IndentationBefore);
+        Assert.Equal(150, specificity.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_InlineLogicalSpacing_IsReportedAsUnsupported() {
+        const string html = """<p>Before <span style="margin-inline-start:10px">inline</span> after</p>""";
+        var options = new HtmlToWordOptions {
+            UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error,
+        };
+
+        HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(
+            () => HtmlConversionDocument.Parse(html).ToWordDocument(options));
+
+        Assert.Equal("UnsupportedCssDeclaration", exception.Code);
+        Assert.Equal("span:margin-inline-start", exception.CssSource);
+    }
+
+    [Fact]
     public void HtmlToWord_LogicalSpacing_RespectsImportantPriorityBeforeDeclarationOrder() {
         const string html = """
             <p style="margin-left:30px!important;margin-inline-start:10px">Important physical</p>
@@ -564,9 +602,11 @@ public class HtmlWordGapClosure {
         cell.Paragraphs[0].Text = "Existing";
         var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
 
-        cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
+        cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><p>Middle</p><h2>Two</h2>"), options);
 
-        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Equal(
+            new[] { "Existing", "One", "Middle", "Two" },
+            cell._tableCell.Elements<Paragraph>().Select(paragraph => paragraph.InnerText).ToArray());
         WordParagraph[] headings = cell.Paragraphs
             .Where(paragraph => paragraph.Text == "One" || paragraph.Text == "Two")
             .ToArray();
@@ -582,7 +622,9 @@ public class HtmlWordGapClosure {
             .Where(paragraph => paragraph.Text == "One" || paragraph.Text == "Two")
             .ToArray();
 
-        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Equal(
+            new[] { "Existing", "One", "Middle", "Two" },
+            reloadedCell._tableCell.Elements<Paragraph>().Select(paragraph => paragraph.InnerText).ToArray());
         Assert.Equal(2, reloadedHeadings.Length);
         Assert.All(reloadedHeadings, paragraph => Assert.Equal(WordListStyle.Headings111, paragraph.ListStyle));
         Assert.Equal(new int?[] { 0, 1 }, reloadedHeadings.Select(paragraph => paragraph.ListItemLevel).ToArray());

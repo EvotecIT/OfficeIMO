@@ -277,6 +277,7 @@ namespace OfficeIMO.Word.Html {
 
             var accumulated = new Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)>(
                 StringComparer.OrdinalIgnoreCase);
+            var cascadeOrigins = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             var ancestors = new List<IElement>();
             var parent = element.ParentElement;
@@ -286,16 +287,20 @@ namespace OfficeIMO.Word.Html {
             }
             ancestors.Reverse();
 
+            int cascadeOrigin = 0;
             foreach (var ancestor in ancestors) {
                 var inherited = CollectCssDeclarations(ancestor, inheritedOnly: true);
                 foreach (var kvp in inherited) {
                     accumulated[kvp.Key] = kvp.Value;
+                    cascadeOrigins[kvp.Key] = cascadeOrigin;
                 }
+                cascadeOrigin++;
             }
 
             var own = CollectCssDeclarations(element, inheritedOnly: false);
             foreach (var kvp in own) {
                 accumulated[kvp.Key] = kvp.Value;
+                cascadeOrigins[kvp.Key] = cascadeOrigin;
             }
             string? directionAttribute = element.GetAttribute("dir");
             if (!own.ContainsKey("direction") &&
@@ -306,6 +311,7 @@ namespace OfficeIMO.Word.Html {
                     default,
                     false,
                     int.MaxValue);
+                cascadeOrigins["direction"] = cascadeOrigin;
             }
 
             if (accumulated.Count > 0) {
@@ -313,7 +319,7 @@ namespace OfficeIMO.Word.Html {
                     element,
                     accumulated.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
                 var sb = new StringBuilder();
-                foreach (var kvp in accumulated) {
+                foreach (var kvp in OrderCssDeclarationsForReplay(accumulated, cascadeOrigins)) {
                     sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');
                 }
                 element.SetAttribute("style", sb.ToString());
@@ -323,6 +329,7 @@ namespace OfficeIMO.Word.Html {
         private Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> CollectCssDeclarations(IElement element, bool inheritedOnly) {
             var accumulated = new Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)>(
                 StringComparer.OrdinalIgnoreCase);
+            int declarationOrder = 0;
 
             for (int ruleIndex = 0; ruleIndex < _cssRules.Count; ruleIndex++) {
                 var rule = _cssRules[ruleIndex];
@@ -336,7 +343,7 @@ namespace OfficeIMO.Word.Html {
                         if (inheritedOnly && !_inheritedCssProperties.Contains(property.Name)) {
                             continue;
                         }
-                        ApplyCssCandidate(accumulated, property.Name, property.Value, specificity, property.IsImportant, ruleIndex);
+                        ApplyCssCandidate(accumulated, property.Name, property.Value, specificity, property.IsImportant, declarationOrder++);
                     }
                 }
             }
@@ -349,7 +356,7 @@ namespace OfficeIMO.Word.Html {
                         if (inheritedOnly && !_inheritedCssProperties.Contains(property.Name)) {
                             continue;
                         }
-                        ApplyCssCandidate(accumulated, property.Name, property.Value, Priority.Inline, property.IsImportant, int.MaxValue);
+                        ApplyCssCandidate(accumulated, property.Name, property.Value, Priority.Inline, property.IsImportant, declarationOrder++);
                     }
                 } catch (Exception) {
                     // ignore invalid inline style
@@ -357,6 +364,39 @@ namespace OfficeIMO.Word.Html {
             }
 
             return accumulated;
+        }
+
+        private static IReadOnlyList<KeyValuePair<string, (string Value, Priority Specificity, bool Important, int Order)>>
+            OrderCssDeclarationsForReplay(
+                Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> declarations,
+                IReadOnlyDictionary<string, int> cascadeOrigins) {
+            var ordered = declarations
+                .Select((declaration, index) => (
+                    Declaration: declaration,
+                    Origin: cascadeOrigins[declaration.Key],
+                    Index: index))
+                .ToList();
+
+            ordered.Sort((left, right) => {
+                int comparison = left.Origin.CompareTo(right.Origin);
+                if (comparison != 0) {
+                    return comparison;
+                }
+
+                comparison = left.Declaration.Value.Important.CompareTo(right.Declaration.Value.Important);
+                if (comparison != 0) {
+                    return comparison;
+                }
+
+                if (left.Declaration.Value.Specificity != right.Declaration.Value.Specificity) {
+                    return left.Declaration.Value.Specificity > right.Declaration.Value.Specificity ? 1 : -1;
+                }
+
+                comparison = left.Declaration.Value.Order.CompareTo(right.Declaration.Value.Order);
+                return comparison != 0 ? comparison : left.Index.CompareTo(right.Index);
+            });
+
+            return ordered.Select(item => item.Declaration).ToList();
         }
 
         private void RecordCssRule(ICssStyleRule rule) {

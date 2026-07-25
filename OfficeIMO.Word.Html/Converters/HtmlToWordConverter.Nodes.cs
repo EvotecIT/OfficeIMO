@@ -252,14 +252,18 @@ namespace OfficeIMO.Word.Html {
                             WordParagraph paragraph;
                             if (options.SupportsHeadingNumbering && headingList != null) {
                                 WordParagraph? replaceableCellPlaceholder = null;
+                                WordParagraph? insertionAnchor = null;
                                 if (cell != null) {
                                     var cellParagraphs = cell.Paragraphs;
+                                    insertionAnchor = cellParagraphs.LastOrDefault();
                                     if (cellParagraphs.Count == 1 &&
                                         IsReplaceableEmptyCellParagraph(cellParagraphs[0])) {
                                         replaceableCellPlaceholder = cellParagraphs[0];
                                     }
                                 }
-                                paragraph = headingList.AddItem("", level - 1);
+                                paragraph = insertionAnchor == null
+                                    ? headingList.AddItem("", level - 1)
+                                    : headingList.AddItemAfter("", level - 1, insertionAnchor);
                                 replaceableCellPlaceholder?.Remove();
                             } else {
                                 paragraph = AddParagraphInScope(section, cell, headerFooter);

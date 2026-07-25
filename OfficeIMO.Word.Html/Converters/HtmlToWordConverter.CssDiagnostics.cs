@@ -24,6 +24,20 @@ namespace OfficeIMO.Word.Html {
             "line-height",
             "list-style",
             "list-style-type",
+            "page-break-after",
+            "page-break-before",
+            "text-align",
+            "text-decoration",
+            "text-decoration-line",
+            "text-decoration-style",
+            "text-indent",
+            "text-transform",
+            "vertical-align",
+            "white-space",
+            "width",
+        };
+
+        private static readonly HashSet<string> _blockSpacingCssDiagnosticProperties = new(StringComparer.OrdinalIgnoreCase) {
             "margin",
             "margin-bottom",
             "margin-block",
@@ -46,17 +60,6 @@ namespace OfficeIMO.Word.Html {
             "padding-left",
             "padding-right",
             "padding-top",
-            "page-break-after",
-            "page-break-before",
-            "text-align",
-            "text-decoration",
-            "text-decoration-line",
-            "text-decoration-style",
-            "text-indent",
-            "text-transform",
-            "vertical-align",
-            "white-space",
-            "width",
         };
 
         private void ReportUnsupportedInlineCssDiagnostics(IElement element) {
@@ -124,10 +127,15 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) =>
-            _supportedCssDiagnosticProperties.Contains(propertyName) ||
-            IsSupportedBorderSideShorthand(propertyName) ||
-            (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
+        private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) {
+            if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
+                return IsBlockSpacingElement(elementName);
+            }
+
+            return _supportedCssDiagnosticProperties.Contains(propertyName) ||
+                   IsSupportedBorderSideShorthand(propertyName) ||
+                   (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
+        }
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
@@ -396,6 +404,10 @@ namespace OfficeIMO.Word.Html {
             elementName is "p" or "div" or "address" or "dl" or "dt" or "dd" or "blockquote" or
                 "section" or "article" or "aside" or "nav" or "header" or "footer" or "main" or
                 "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+
+        private static bool IsBlockSpacingElement(string elementName) =>
+            IsBlockFrameElement(elementName) ||
+            elementName is "body" or "li" or "caption" or "figcaption";
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;
