@@ -1290,6 +1290,92 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_PreservesExplicitFontFamilyPrecedenceOverDocumentDefaultSubstitution() {
+            const string sourceFamily = "OfficeIMO Document Default Source";
+            const string targetFamily = "OfficeIMO Portable Default";
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitFontPrecedence.docx"));
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults = styles.DocDefaults.GetFirstChild<RunPropertiesDefault>() ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties = runDefaults.GetFirstChild<RunPropertiesBaseStyle>() ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts {
+                Ascii = sourceFamily,
+                HighAnsi = sourceFamily
+            };
+            document.AddParagraph("AB");
+
+            var configured = new PdfOptions {
+                DefaultFont = PdfStandardFont.TimesRoman
+            };
+            configured
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                    targetFamily,
+                    ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B')))
+                .RegisterFontFamilySubstitution(
+                    sourceFamily,
+                    targetFamily,
+                    PdfFontFamilySubstitutionImpact.Compatible);
+
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false,
+                FontFamily = "OfficeIMO Unavailable Explicit Family",
+                PdfOptions = configured,
+                ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+            });
+            byte[] bytes = result.ToBytes();
+
+            Assert.DoesNotContain(result.Warnings, warning =>
+                warning.Code == "NativeFontFamilySubstituted" &&
+                warning.Details.TryGetValue("fontFamily", out string? family) &&
+                family == sourceFamily);
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            Assert.All(
+                pdf.GetPage(1).Letters.Where(letter => letter.Value == "A" || letter.Value == "B"),
+                letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_UsesFirstRegisteredFamilyBeforeLaterFallbackSubstitution() {
+            const string primaryFamily = "OfficeIMO Primary Portable";
+            const string sourceFallback = "Calibri";
+            const string substitutedFamily = "OfficeIMO Portable Calibri";
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeOrderedFamilyFallbacks.docx"));
+            document.AddParagraph("AB").SetFontFamily(primaryFamily + ", " + sourceFallback);
+
+            var configured = new PdfOptions();
+            configured
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                    primaryFamily,
+                    ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B')))
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                    substitutedFamily,
+                    ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B')))
+                .RegisterFontFamilySubstitution(
+                    sourceFallback,
+                    substitutedFamily,
+                    PdfFontFamilySubstitutionImpact.Compatible);
+
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PdfOptions = configured,
+                ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+            });
+            byte[] bytes = result.ToBytes();
+
+            Assert.DoesNotContain(result.Warnings, warning =>
+                warning.Code == "NativeFontFamilySubstituted" &&
+                warning.Details.TryGetValue("fontFamily", out string? family) &&
+                family == primaryFamily + ", " + sourceFallback);
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            Assert.All(
+                pdf.GetPage(1).Letters.Where(letter => letter.Value == "A" || letter.Value == "B"),
+                letter => Assert.Contains("Primary", letter.FontName, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(
+                pdf.GetPage(1).Letters,
+                letter => letter.FontName?.Contains("Calibri", StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_PdfOptions_Font_Profile_Over_Document_Defaults() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeConfiguredFontProfile.docx"));
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

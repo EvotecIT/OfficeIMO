@@ -74,6 +74,16 @@ public sealed partial class PdfOptions {
     public bool HasNamedFontFamily(string? familyName) =>
         TryGetNamedFontFamily(familyName, out _);
 
+    internal bool TryResolveNamedOfficeFontFamily(string? familyNames, out string? registeredFamilyName) {
+        registeredFamilyName = null;
+        if (!TryGetNamedFontFamily(familyNames, out PdfEmbeddedFontFamily? family) || family == null) {
+            return false;
+        }
+
+        registeredFamilyName = family.FamilyName;
+        return true;
+    }
+
     /// <summary>Removes every embedded named family and its parsed program cache.</summary>
     public PdfOptions ClearNamedFontFamilies() {
         _namedFontFamilies?.Clear();

@@ -67,9 +67,28 @@ public sealed partial class PdfOptions {
     internal bool TryResolveFontFamilySubstitution(
         string? sourceFontFamily,
         out PdfFontFamilySubstitution? substitution) {
-        return TryGetFontFamilySubstitution(sourceFontFamily, out substitution) &&
-               substitution != null &&
-               TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out _);
+        substitution = null;
+        if (string.IsNullOrWhiteSpace(sourceFontFamily) || _fontFamilySubstitutions == null) {
+            return false;
+        }
+
+        foreach (string candidate in EnumerateOfficeFontFamilyCandidates(sourceFontFamily!)) {
+            if (_fontFamilySubstitutions.TryGetValue(
+                    NormalizeOfficeFontFamilyKey(candidate),
+                    out PdfFontFamilySubstitution? configured) &&
+                TryGetNamedFontFamilyDirect(configured.TargetFontFamily, out _)) {
+                substitution = configured;
+                return true;
+            }
+
+            // A directly registered family earlier in an Office/CSS fallback list
+            // takes precedence over substitutions configured for later candidates.
+            if (TryGetNamedFontFamilyDirect(candidate, out _)) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     internal PdfConversionWarning CreateFontFamilySubstitutionWarning(

@@ -46,6 +46,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeFontMap);
             }
             bool hasResolvedDocumentDefaultSubstitution =
+                string.IsNullOrWhiteSpace(options?.FontFamily) &&
                 !string.IsNullOrWhiteSpace(defaults.FontFamily) &&
                 pdfOptions.TryResolveFontFamilySubstitution(
                     defaults.FontFamily,
@@ -350,13 +351,19 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            RegisterNativeFontCandidate(
-                DocumentTraversal.GetListInfo(paragraph)?.MarkerFontFamily,
-                pdfOptions,
-                registeredFamilies,
-                registeredFontSlots,
-                allowSystemFontEmbedding,
-                nativeFontMap);
+            DocumentTraversal.ListInfo? listInfo = DocumentTraversal.GetListInfo(paragraph);
+            if (listInfo.HasValue &&
+                !ShouldUseNativeListTextFontForNormalizedMarker(
+                    listInfo.Value,
+                    NormalizeNativeBulletMarker(listInfo.Value.LevelText ?? string.Empty))) {
+                RegisterNativeFontCandidate(
+                    listInfo.Value.MarkerFontFamily,
+                    pdfOptions,
+                    registeredFamilies,
+                    registeredFontSlots,
+                    allowSystemFontEmbedding,
+                    nativeFontMap);
+            }
         }
 
         private static void RegisterNativeEffectiveParagraphFont(
@@ -402,6 +409,14 @@ namespace OfficeIMO.Word.Pdf {
                     trimmedFamilyName,
                     fallbackSlot: null,
                     substitution.TargetFontFamily);
+                return;
+            }
+
+            if (pdfOptions.TryResolveNamedOfficeFontFamily(
+                    trimmedFamilyName,
+                    out string? registeredNamedFamily) &&
+                registeredNamedFamily != null) {
+                nativeFontMap.RegisterNamed(trimmedFamilyName, registeredNamedFamily);
                 return;
             }
 
