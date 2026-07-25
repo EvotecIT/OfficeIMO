@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsExplicitNoFillStyles() {
+        public void BubbleChart_RejectsUnsupportedFillStyles() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -441,14 +441,25 @@ namespace OfficeIMO.Tests {
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
+            seriesProperties.PrependChild(
+                new DocumentFormat.OpenXml.Drawing.GradientFill());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.GradientFill>();
             seriesProperties.PrependChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
                 new DocumentFormat.OpenXml.Drawing.RgbColorModelHex {
                     Val = "112233"
                 }));
-            nativeSeries.PrependChild(new C.DataPoint(
+            C.DataPoint point = nativeSeries.PrependChild(new C.DataPoint(
                 new C.Index { Val = 0U },
                 new C.ChartShapeProperties(
                     new DocumentFormat.OpenXml.Drawing.NoFill())));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            C.ChartShapeProperties pointProperties =
+                point.GetFirstChild<C.ChartShapeProperties>()!;
+            pointProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
+            pointProperties.Append(new DocumentFormat.OpenXml.Drawing.PatternFill());
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
