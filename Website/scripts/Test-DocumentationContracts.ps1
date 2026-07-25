@@ -109,6 +109,14 @@ foreach ($requiredFormat in 'Word', 'RTF', 'Markdown', 'OpenDocument') {
         Add-Failure "The showcase must expose one evidence-backed $requiredFormat workflow."
     }
 }
+$duplicateEvidenceLabels = @(
+    $showcase.cards |
+        Group-Object { ([string] $_.evidence_label).Trim().ToUpperInvariant() } |
+        Where-Object Count -gt 1
+)
+foreach ($duplicateLabel in $duplicateEvidenceLabels) {
+    Add-Failure "Showcase evidence link label '$($duplicateLabel.Group[0].evidence_label)' must identify one destination."
+}
 foreach ($card in @($showcase.cards)) {
     foreach ($requiredProperty in @(
         'format', 'title', 'description', 'preview_kind', 'proof', 'limit',

@@ -119,7 +119,7 @@
       "artifact_url": "/downloads/showcase/word/customer-delivery-summary.docx",
       "artifact_label": "Download source DOCX",
       "evidence_url": "/downloads/showcase/word/customer-delivery-summary.pdf",
-      "evidence_label": "Download converted PDF",
+      "evidence_label": "Download customer delivery summary PDF",
       "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Showcase/RealWorldWorkflowShowcase.cs",
       "guide_url": "/docs/word/",
       "api_url": "/api/word/"
@@ -142,7 +142,7 @@
       "artifact_url": "/downloads/showcase/rtf/change-approval-memo.rtf",
       "artifact_label": "Download source RTF",
       "evidence_url": "/downloads/showcase/rtf/change-approval-memo.pdf",
-      "evidence_label": "Download converted PDF",
+      "evidence_label": "Download change approval PDF",
       "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Showcase/RealWorldWorkflowShowcase.cs",
       "guide_url": "/docs/rtf/",
       "api_url": "/docs/rtf/",
@@ -166,7 +166,7 @@
       "artifact_url": "/downloads/showcase/markdown/release-readiness-report.md",
       "artifact_label": "Download source Markdown",
       "evidence_url": "/downloads/showcase/markdown/release-readiness-report.pdf",
-      "evidence_label": "Download converted PDF",
+      "evidence_label": "Download release readiness PDF",
       "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Showcase/RealWorldWorkflowShowcase.cs",
       "guide_url": "/docs/markdown/",
       "api_url": "/api/markdown/"
@@ -189,7 +189,7 @@
       "artifact_url": "/downloads/showcase/open-document/project-handover-brief.odt",
       "artifact_label": "Download source ODT",
       "evidence_url": "/downloads/showcase/open-document/project-handover-brief.pdf",
-      "evidence_label": "Download converted PDF",
+      "evidence_label": "Download project handover PDF",
       "source_url": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Showcase/RealWorldWorkflowShowcase.cs",
       "guide_url": "/docs/open-document/",
       "api_url": "/api/open-document/"
