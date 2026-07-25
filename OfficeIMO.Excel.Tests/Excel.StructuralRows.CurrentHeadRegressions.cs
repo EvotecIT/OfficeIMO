@@ -58,6 +58,106 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_DoesNotRebaseRelativeReferencesToOtherSheets() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            document.AddWorksheet("Other");
+            sheet.CellAt(2, 1).SetValue(1);
+
+            var validation = new DataValidation(
+                new Formula1("Other!A2+SUM(Other!B2:B3)+SUM(Other!2:3)>0"),
+                new Formula2("A2>0")) {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "B2" }
+            };
+            sheet.WorksheetPart.Worksheet.Append(
+                new DataValidations(validation) { Count = 1U });
+
+            sheet.InsertRows(2);
+
+            Assert.Equal("B3", validation.SequenceOfReferences!.InnerText);
+            Assert.Equal("Other!A2+SUM(Other!B2:B3)+SUM(Other!2:3)>0", validation.Formula1!.Text);
+            Assert.Equal("A3>0", validation.Formula2!.Text);
+
+            sheet.DeleteRows(2);
+
+            Assert.Equal("B2", validation.SequenceOfReferences!.InnerText);
+            Assert.Equal("Other!A2+SUM(Other!B2:B3)+SUM(Other!2:3)>0", validation.Formula1!.Text);
+            Assert.Equal("A2>0", validation.Formula2!.Text);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_RemapsStandardAndOffice2010IgnoredErrors() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(5, 1).SetValue("1");
+            sheet.CellAt(6, 1).SetValue("2");
+
+            var standardError = new IgnoredError {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A5:A6" },
+                NumberStoredAsText = true
+            };
+            sheet.WorksheetPart.Worksheet.Append(new IgnoredErrors(standardError));
+
+            var extendedError = new X14.IgnoredError(
+                new Xm.ReferenceSequence("B5:B6")) {
+                NumberStoredAsText = true
+            };
+            sheet.WorksheetPart.Worksheet.Append(
+                new ExtensionList(
+                    new Extension(new X14.IgnoredErrors(extendedError)) {
+                        Uri = "{01252117-D84E-4E92-8308-4BE1C098FCBB}"
+                    }));
+
+            sheet.InsertRows(5);
+
+            Assert.Equal("A6:A7", standardError.SequenceOfReferences!.InnerText);
+            Assert.Equal("B6:B7", extendedError.ReferenceSequence!.Text);
+
+            sheet.DeleteRows(5);
+
+            Assert.Equal("A5:A6", standardError.SequenceOfReferences!.InnerText);
+            Assert.Equal("B5:B6", extendedError.ReferenceSequence!.Text);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_RemapsOffice2010ConditionalFormattingTargetsAndFormulas() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            document.AddWorksheet("Other");
+            sheet.CellAt(2, 1).SetValue(1);
+
+            var rule = new X14.ConditionalFormattingRule(
+                new Xm.Formula("A2>0"),
+                new Xm.Formula("Other!A2>0")) {
+                Type = ConditionalFormatValues.Expression,
+                Priority = 1,
+                Id = "{83B1F34C-CC5E-4C1E-BE8B-2E25B97CDE54}"
+            };
+            var formatting = new X14.ConditionalFormatting(
+                rule,
+                new Xm.ReferenceSequence("C2:C3"));
+            var formattings = new X14.ConditionalFormattings(formatting);
+            sheet.WorksheetPart.Worksheet.Append(
+                new ExtensionList(
+                    new Extension(formattings) {
+                        Uri = "{78C0D931-6437-407D-A8EE-F0AAD7539E65}"
+                    }));
+
+            sheet.InsertRows(2);
+
+            Assert.Equal("C3:C4", formatting.GetFirstChild<Xm.ReferenceSequence>()!.Text);
+            Xm.Formula[] formulas = rule.Elements<Xm.Formula>().ToArray();
+            Assert.Equal("A3>0", formulas[0].Text);
+            Assert.Equal("Other!A2>0", formulas[1].Text);
+
+            sheet.DeleteRows(2);
+
+            Assert.Equal("C2:C3", formatting.GetFirstChild<Xm.ReferenceSequence>()!.Text);
+            Assert.Equal("A2>0", formulas[0].Text);
+            Assert.Equal("Other!A2>0", formulas[1].Text);
+        }
+
+        [Fact]
         public void Test_StructuralRows_RejectsFormControlsBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");

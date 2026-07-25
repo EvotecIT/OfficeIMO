@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     bool relativeRow = match.Groups["rowAbs"].Value.Length == 0;
-                    if (!relativeRow && !FormulaQualifierTargetsSheet(match.Groups["sheet"].Value, sheetName)) {
+                    if (!FormulaQualifierTargetsSheet(match.Groups["sheet"].Value, sheetName)) {
                         return match.Value;
                     }
 
@@ -162,16 +162,9 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: true);
             }
 
-            if ((!startRelative && !startTargetsSheet)
-                || (!endRelative && !endTargetsSheet)) {
-                if (!startRelative && !endRelative) {
-                    return match.Value;
-                }
-            }
-
             int targetStart = startRow;
             int targetEnd = endRow;
-            bool startMapped = !startRelative && !startTargetsSheet
+            bool startMapped = !startTargetsSheet
                 || TryMapAnchoredFormulaRow(
                     startRow,
                     startRelative,
@@ -180,7 +173,7 @@ namespace OfficeIMO.Excel {
                     lastDeletedRow,
                     anchorRowDelta,
                     out targetStart);
-            bool endMapped = !endRelative && !endTargetsSheet
+            bool endMapped = !endTargetsSheet
                 || TryMapAnchoredFormulaRow(
                     endRow,
                     endRelative,
@@ -239,7 +232,7 @@ namespace OfficeIMO.Excel {
 
             int targetStart = startRow;
             int targetEnd = endRow;
-            bool startMapped = !startRelative && !startTargetsSheet
+            bool startMapped = !startTargetsSheet
                 || TryMapAnchoredFormulaRow(
                     startRow,
                     startRelative,
@@ -248,7 +241,7 @@ namespace OfficeIMO.Excel {
                     lastDeletedRow,
                     anchorRowDelta,
                     out targetStart);
-            bool endMapped = !endRelative && !endTargetsSheet
+            bool endMapped = !endTargetsSheet
                 || TryMapAnchoredFormulaRow(
                     endRow,
                     endRelative,

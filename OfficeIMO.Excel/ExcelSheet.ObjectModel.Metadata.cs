@@ -203,6 +203,7 @@ namespace OfficeIMO.Excel {
             }
 
             RemapShiftedProtectedRanges(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedIgnoredErrors(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
@@ -401,6 +402,7 @@ namespace OfficeIMO.Excel {
                     _worksheetPart.DeletePart(part);
                 }
             }
+
         }
 
         private void RemapShiftedHyperlinks(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -429,6 +431,7 @@ namespace OfficeIMO.Excel {
                     insertAfter = clone;
                 }
             }
+
         }
 
         private void RemapShiftedConditionalFormatting(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -468,6 +471,8 @@ namespace OfficeIMO.Excel {
                         anchorRowDelta);
                 }
             }
+
+            RemapShiftedOffice2010ConditionalFormatting(firstAffectedRow, rowDelta, lastDeletedRow);
         }
 
         private void RemapShiftedSparklines(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {

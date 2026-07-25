@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -34,6 +35,62 @@ namespace OfficeIMO.Excel {
 
             if (!protectedRanges.Elements<ProtectedRange>().Any()) {
                 protectedRanges.Remove();
+            }
+        }
+
+        private void RemapShiftedIgnoredErrors(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            IgnoredErrors? ignoredErrors = WorksheetRoot.GetFirstChild<IgnoredErrors>();
+            if (ignoredErrors != null) {
+                foreach (IgnoredError ignoredError in ignoredErrors.Elements<IgnoredError>().ToList()) {
+                    if (ignoredError.SequenceOfReferences?.InnerText is not string references
+                        || !TryRemapShiftedReferenceListRows(
+                            references,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remapped)) {
+                        continue;
+                    }
+
+                    if (remapped.Count == 0) {
+                        ignoredError.Remove();
+                    } else {
+                        ignoredError.SequenceOfReferences = new ListValue<StringValue> {
+                            InnerText = string.Join(" ", remapped)
+                        };
+                    }
+                }
+
+                if (!ignoredErrors.Elements<IgnoredError>().Any()) {
+                    ignoredErrors.Remove();
+                }
+            }
+
+            foreach (X14.IgnoredErrors extendedErrors in WorksheetRoot.Descendants<X14.IgnoredErrors>().ToList()) {
+                foreach (X14.IgnoredError ignoredError in extendedErrors.Elements<X14.IgnoredError>().ToList()) {
+                    if (ignoredError.ReferenceSequence?.Text is not string references
+                        || !TryRemapShiftedReferenceListRows(
+                            references,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remapped)) {
+                        continue;
+                    }
+
+                    if (remapped.Count == 0) {
+                        ignoredError.Remove();
+                    } else {
+                        ignoredError.ReferenceSequence.Text = string.Join(" ", remapped);
+                    }
+                }
+
+                if (!extendedErrors.Elements<X14.IgnoredError>().Any()) {
+                    extendedErrors.Remove();
+                }
             }
         }
 
