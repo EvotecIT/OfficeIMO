@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -277,10 +278,18 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         TimeSpan timeout,
         CancellationToken cancellationToken,
         CancellationTokenSource operationCancellation) {
+        Stopwatch elapsed = Stopwatch.StartNew();
         try {
-            int timeoutMilliseconds = checked((int)timeout.TotalMilliseconds);
-            if (operation.Wait(timeoutMilliseconds, cancellationToken)) {
-                return operation.GetAwaiter().GetResult();
+            while (true) {
+                TimeSpan elapsedTime = elapsed.Elapsed;
+                if (elapsedTime >= timeout) break;
+                TimeSpan remaining = timeout - elapsedTime;
+                int waitMilliseconds = remaining.TotalMilliseconds >= int.MaxValue
+                    ? int.MaxValue
+                    : Math.Max(1, (int)Math.Ceiling(remaining.TotalMilliseconds));
+                if (operation.Wait(waitMilliseconds, cancellationToken)) {
+                    return operation.GetAwaiter().GetResult();
+                }
             }
         } catch (AggregateException) {
             return operation.GetAwaiter().GetResult();
