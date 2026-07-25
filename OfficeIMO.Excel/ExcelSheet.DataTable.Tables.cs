@@ -330,23 +330,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (SourceContainsTableColumns(source, tableColumnNames)) {
-                return true;
-            }
-
-            return !HasDefaultHeaderlessColumnNames(tableColumnNames);
-        }
-
-        private static bool SourceContainsTableColumns(DataTable source, IReadOnlyList<string> tableColumnNames) {
-            var sourceColumnNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (DataColumn column in source.Columns) {
-                sourceColumnNames.Add(column.ColumnName);
-            }
-
-            foreach (string tableColumnName in tableColumnNames) {
-                if (!sourceColumnNames.Contains(tableColumnName)) {
-                    return false;
-                }
+            if (HasDefaultHeaderlessColumnNames(tableColumnNames)) {
+                return false;
             }
 
             return true;

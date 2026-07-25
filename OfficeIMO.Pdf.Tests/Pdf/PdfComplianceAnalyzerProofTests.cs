@@ -58,7 +58,7 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
-    public void ProofReportCountsUnprofiledValidatorResultForRequestedProof() {
+    public void ProofReportRejectsUnprofiledValidatorResultForRequestedProof() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
@@ -77,10 +77,10 @@ public partial class PdfComplianceAnalyzerTests {
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
         Assert.True(proof.IsInternallyReady);
-        Assert.True(proof.HasRequiredExternalValidation);
-        Assert.True(proof.CanClaimConformance);
-        Assert.Equal(1, proof.PassedExternalValidationCount);
-        Assert.Empty(proof.MissingExternalValidators);
+        Assert.False(proof.HasRequiredExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+        Assert.Equal(0, proof.PassedExternalValidationCount);
+        Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
     }
 
     [Fact]

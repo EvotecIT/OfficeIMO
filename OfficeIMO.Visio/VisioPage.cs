@@ -65,6 +65,7 @@ namespace OfficeIMO.Visio {
         private readonly List<VisioConnector> _connectors = new();
         private readonly List<VisioLayer> _layers = new();
         private readonly List<VisioComment> _comments = new();
+        private readonly HashSet<string> _reservedAutomaticObjectIds = new(StringComparer.OrdinalIgnoreCase);
         private readonly IList<VisioShape> _shapeCollection;
         private readonly IList<VisioConnector> _connectorCollection;
         private double _width = 8.26771653543307; // A4 width in inches

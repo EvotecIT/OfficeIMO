@@ -41,18 +41,7 @@ namespace OfficeIMO.Excel {
 
                 char token = text[++i];
                 if (token == '&') {
-                    if (i + 1 < text.Length && char.IsDigit(text[i + 1])) {
-                        if (!TryReadHeaderFooterFontSizeToken(text, i + 1, out double parsedFontSize, out int tokenEnd)) {
-                            return false;
-                        }
-
-                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
-                        fontSize = parsedFontSize;
-                        i = tokenEnd;
-                        hasFormatting = true;
-                    } else {
-                        builder.Append('&');
-                    }
+                    builder.Append('&');
                 } else if (token == 'B') {
                     FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     bold = !bold;

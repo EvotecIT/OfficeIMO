@@ -11,6 +11,11 @@ namespace OfficeIMO.Word {
         /// Describes list information for a paragraph.
         /// </summary>
         public readonly struct ListInfo {
+            /// <summary>Initializes a list descriptor using the original public constructor shape.</summary>
+            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips, int? hangingIndentTwips)
+                : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, null, null, null, null, null, null) {
+            }
+
             /// <summary>
             /// Initializes a new instance of the <see cref="ListInfo"/> struct.
             /// </summary>

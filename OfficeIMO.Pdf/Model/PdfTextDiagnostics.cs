@@ -460,8 +460,11 @@ internal static class PdfTextDiagnostics {
     /// <param name="text">Text to inspect.</param>
     /// <param name="candidates">Candidate fonts in priority order.</param>
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
-    /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns>A fallback plan with covered text segments and missing-glyph diagnostics.</returns>
+    public static PdfTextFallbackPlan PlanEmbeddedFontFallbackText(string text, IEnumerable<PdfEmbeddedFontFallbackCandidate> candidates, string source) =>
+        PlanEmbeddedFontFallbackText(text, candidates, source, PdfTextShapingMode.UnicodeScalar);
+
+    /// <summary>Plans embedded-font fallback text with an explicit text shaping mode.</summary>
     public static PdfTextFallbackPlan PlanEmbeddedFontFallbackText(string text, IEnumerable<PdfEmbeddedFontFallbackCandidate> candidates, string source = "", PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(candidates, nameof(candidates));
