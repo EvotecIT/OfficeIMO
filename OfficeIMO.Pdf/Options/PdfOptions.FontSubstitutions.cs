@@ -117,7 +117,7 @@ public sealed partial class PdfOptions {
             details["resolvedFontFamily"] = resolvedFontFamily!;
         }
 
-        if (TryGetFontFamilySubstitution(sourceFontFamily, out PdfFontFamilySubstitution? substitution) &&
+        if (TryResolveFontFamilySubstitution(sourceFontFamily, out PdfFontFamilySubstitution? substitution) &&
             substitution != null &&
             !string.IsNullOrWhiteSpace(resolvedFontFamily) &&
             string.Equals(

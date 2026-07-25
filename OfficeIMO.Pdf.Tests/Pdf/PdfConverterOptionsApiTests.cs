@@ -211,6 +211,40 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.DoesNotContain("Missing Portable Latin", warning.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ResolvedFallbackListSubstitutionUsesItsOwnImpactClassification() {
+        const string resolvedFamily = "Portable Calibri";
+        var options = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(resolvedFamily, [1]))
+            .RegisterFontFamilySubstitution(
+                "Primary",
+                "Missing Primary",
+                PdfFontFamilySubstitutionImpact.LayoutSensitive)
+            .RegisterFontFamilySubstitution(
+                "Calibri",
+                resolvedFamily,
+                PdfFontFamilySubstitutionImpact.Compatible);
+
+        Assert.True(options.TryResolveFontFamilySubstitution(
+            "Primary, Calibri",
+            out PdfFontFamilySubstitution? substitution));
+        Assert.Equal("Calibri", substitution!.SourceFontFamily);
+
+        PdfConversionWarning warning = options.CreateFontFamilySubstitutionWarning(
+            "OfficeIMO.Tests",
+            "FontFamilySubstituted",
+            "document",
+            "Primary, Calibri",
+            fallbackSlot: null,
+            resolvedFontFamily: resolvedFamily);
+
+        Assert.Equal(PdfConversionWarningSeverity.Information, warning.Severity);
+        Assert.Equal(bool.TrueString, warning.Details["plannedSubstitution"]);
+        Assert.Equal(PdfFontFamilySubstitutionImpact.Compatible.ToString(), warning.Details["substitutionImpact"]);
+        Assert.Contains(resolvedFamily, warning.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Missing Primary", warning.Message, StringComparison.Ordinal);
+    }
+
     private static void AssertPortable(PdfResourcePolicy policy) {
         Assert.False(policy.AllowSystemFontEmbedding);
         Assert.False(policy.AllowDocumentFontEmbedding);
