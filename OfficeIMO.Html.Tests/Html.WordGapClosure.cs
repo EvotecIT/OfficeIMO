@@ -302,6 +302,30 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void WordTableCell_AddHtml_DoesNotReplaceSoleImageParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        using (var imageStream = new MemoryStream(Convert.FromBase64String(ValidPng))) {
+            cell.Paragraphs[0].AddImage(imageStream, "existing.png", 10, 10);
+        }
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<span>Appended</span>"""));
+
+        Assert.Single(document.Images);
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.IsImage);
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Appended");
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
+
+        Assert.Single(reloaded.Images);
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Appended");
+    }
+
+    [Fact]
     public async Task WordTableCell_AddHtmlAsync_KeepsSectionsImagesAndSvgInCellScope() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];

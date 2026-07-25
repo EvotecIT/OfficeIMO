@@ -37,12 +37,15 @@ namespace OfficeIMO.Word.Html {
         private static WordParagraph AddParagraphInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             if (cell != null) {
                 var paragraphs = cell.Paragraphs;
-                bool removeExisting = paragraphs.Count == 1 && string.IsNullOrEmpty(paragraphs[0].Text);
+                bool removeExisting = paragraphs.Count == 1 && IsReplaceableEmptyCellParagraph(paragraphs[0]);
                 return cell.AddParagraph("", removeExisting);
             }
 
             return headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
         }
+
+        private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) =>
+            !paragraph._paragraph.ChildElements.Any(child => child is not ParagraphProperties);
 
         private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
@@ -109,7 +112,7 @@ namespace OfficeIMO.Word.Html {
                             WordParagraph? para = currentParagraph;
                             if (para == null && cell != null) {
                                 var existingParagraphs = cell.Paragraphs;
-                                if (existingParagraphs.Count == 1 && string.IsNullOrEmpty(existingParagraphs[0].Text)) {
+                                if (existingParagraphs.Count == 1 && IsReplaceableEmptyCellParagraph(existingParagraphs[0])) {
                                     para = existingParagraphs[0];
                                 }
                             }
