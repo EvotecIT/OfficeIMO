@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 using SixColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
@@ -36,7 +37,9 @@ namespace OfficeIMO.Word.Html {
             internal SixColor? Color { get; set; }
 
             internal BlockBorder? Materialize() =>
-                Style.HasValue && Style.Value != BorderValues.None
+                Style.HasValue &&
+                Style.Value != BorderValues.None &&
+                (Size == null || Size.Value > 0)
                     ? new BlockBorder(Style.Value, Size ?? 4U, Color)
                     : null;
         }
@@ -117,7 +120,7 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                     } else if (name == "border" &&
-                               TryParseBorder(
+                               TryParseBlockBorder(
                                    value,
                                    out var borderStyle,
                                    out var borderSize,
@@ -133,7 +136,7 @@ namespace OfficeIMO.Word.Html {
                         sideBorders[BlockBorderSide.Top] = border;
                         sideBorders[BlockBorderSide.Bottom] = border;
                     } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
-                               TryParseBorder(
+                               TryParseBlockBorder(
                                    value,
                                    out var sideStyle,
                                    out var sideSize,
@@ -245,7 +248,7 @@ namespace OfficeIMO.Word.Html {
                     border.Style = style;
                     break;
                 case "width":
-                    if (!TryParseBorderWidth(value, out UInt32Value size)) {
+                    if (!TryParseBlockBorderWidth(value, out UInt32Value size)) {
                         return;
                     }
                     border.Size = size;
@@ -261,6 +264,75 @@ namespace OfficeIMO.Word.Html {
                     return;
             }
             sideBorders[side] = border;
+        }
+
+        private static bool TryParseBlockBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color,
+            out bool hasExplicitStyle,
+            out bool hasExplicitColor) {
+            string[] tokens = SplitBorderTokens(value).ToArray();
+            string normalized = string.Join(
+                " ",
+                tokens.Select(token => token.Trim() == "0" ? "0px" : token));
+            if (!TryParseBorder(
+                    normalized,
+                    out style,
+                    out size,
+                    out color,
+                    out hasExplicitStyle,
+                    out hasExplicitColor)) {
+                return false;
+            }
+
+            foreach (string token in tokens) {
+                if (!TryParseRawBlockBorderWidth(token, out double width)) {
+                    continue;
+                }
+                if (width < 0) {
+                    return false;
+                }
+                if (width == 0) {
+                    size = 0U;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryParseBlockBorderWidth(string value, out UInt32Value size) {
+            if (!TryParseRawBlockBorderWidth(value, out double width) || width < 0) {
+                size = 0U;
+                return false;
+            }
+            if (width == 0) {
+                size = 0U;
+                return true;
+            }
+
+            return TryParseBorderWidth(value, out size);
+        }
+
+        private static bool TryParseRawBlockBorderWidth(string value, out double width) {
+            string normalized = value.Trim().ToLowerInvariant();
+            if (normalized == "0") {
+                width = 0;
+                return true;
+            }
+
+            if (normalized.EndsWith("px", StringComparison.Ordinal) ||
+                normalized.EndsWith("pt", StringComparison.Ordinal)) {
+                return double.TryParse(
+                    normalized.Substring(0, normalized.Length - 2),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out width);
+            }
+
+            width = 0;
+            return false;
         }
 
         private static bool TryParseBlockBorderStyle(string value, out BorderValues style) {

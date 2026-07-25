@@ -153,7 +153,10 @@ namespace OfficeIMO.Word.Html {
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
                 WordParagraph captionParagraphBelow;
                 if (cell != null) {
-                    captionParagraphBelow = AddParagraphInScope(section, cell, headerFooter);
+                    Paragraph? trailingParagraph = wordTable._table.NextSibling<Paragraph>();
+                    captionParagraphBelow = trailingParagraph != null
+                        ? new WordParagraph(doc, trailingParagraph)
+                        : AddParagraphInScope(section, cell, headerFooter);
                 } else if (headerFooter != null) {
                     captionParagraphBelow = headerFooter.AddParagraph("");
                 } else {

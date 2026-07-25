@@ -76,6 +76,24 @@ namespace OfficeIMO.Word.Html {
         private static List<WordParagraph> GetGeneratedParagraphs(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
             GetParagraphsInScope(section, cell, headerFooter).Skip(startIndex).ToList();
 
+        private static List<WordParagraph> GetMaterializedContainerParagraphs(
+            IElement element,
+            WordSection section,
+            WordTableCell? cell,
+            WordHeaderFooter? headerFooter,
+            WordParagraph? currentParagraph,
+            int startIndex) {
+            List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
+            if (paragraphs.Count == 0 &&
+                currentParagraph == null &&
+                RequiresEmptyBlockParagraph(element)) {
+                AddParagraphInScope(section, cell, headerFooter);
+                paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
+            }
+
+            return paragraphs;
+        }
+
         private static bool ShouldReuseInitialWordSection(IElement element, WordDocument doc, WordSection section) {
             if (!string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase)) {
                 return false;
@@ -182,7 +200,15 @@ namespace OfficeIMO.Word.Html {
                                     para = null;
                                 }
                                 if (mergeSectionStyleIntoChildren) {
-                                    ApplyContainerFrameFromCss(element, newSection.Paragraphs.Skip(startIndex).ToList());
+                                    List<WordParagraph> generatedParagraphs = GetMaterializedContainerParagraphs(
+                                        element,
+                                        newSection,
+                                        null,
+                                        headerFooter,
+                                        null,
+                                        startIndex);
+                                    ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
@@ -203,7 +229,15 @@ namespace OfficeIMO.Word.Html {
                                     para = null;
                                 }
                                 if (mergeSectionStyleIntoChildren) {
-                                    ApplyContainerFrameFromCss(element, GetGeneratedParagraphs(section, cell, headerFooter, startIndex));
+                                    List<WordParagraph> generatedParagraphs = GetMaterializedContainerParagraphs(
+                                        element,
+                                        section,
+                                        cell,
+                                        headerFooter,
+                                        currentParagraph,
+                                        startIndex);
+                                    ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
@@ -246,7 +280,13 @@ namespace OfficeIMO.Word.Html {
                                 var paragraph = scopedParagraphs.Count > scopeStartIndex ? scopedParagraphs[scopeStartIndex] : AddParagraphInScope(section, cell, headerFooter);
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
-                            var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeStartIndex);
+                            var generatedParagraphs = GetMaterializedContainerParagraphs(
+                                element,
+                                section,
+                                cell,
+                                headerFooter,
+                                currentParagraph,
+                                scopeStartIndex);
                             ApplyContainerFrameFromCss(element, generatedParagraphs);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
@@ -438,13 +478,13 @@ namespace OfficeIMO.Word.Html {
                                     }
                                 }
                             }
-                            var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
-                            if (generatedParagraphs.Count == 0 &&
-                                currentParagraph == null &&
-                                RequiresEmptyBlockParagraph(element)) {
-                                AddParagraphInScope(section, cell, headerFooter);
-                                generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
-                            }
+                            var generatedParagraphs = GetMaterializedContainerParagraphs(
+                                element,
+                                section,
+                                cell,
+                                headerFooter,
+                                currentParagraph,
+                                startIndex);
                             ApplyContainerFrameFromCss(element, generatedParagraphs);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
@@ -898,10 +938,18 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "img": {
                             WordParagraph? imageParagraph = currentParagraph;
+                            bool createdCellParagraph = false;
                             if (imageParagraph == null && cell != null) {
                                 imageParagraph = AddParagraphInScope(section, cell, headerFooter);
+                                createdCellParagraph = true;
                             }
                             ProcessImage((IHtmlImageElement)element, doc, options, imageParagraph, headerFooter);
+                            if (createdCellParagraph &&
+                                imageParagraph != null &&
+                                cell!.Paragraphs.Count > 1 &&
+                                IsReplaceableEmptyCellParagraph(imageParagraph)) {
+                                imageParagraph.Remove();
+                            }
                             break;
                         }
                     case "input":

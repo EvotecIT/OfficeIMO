@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
@@ -13,6 +14,84 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class HtmlWordGapClosure {
+    [Theory]
+    [InlineData("section")]
+    [InlineData("article")]
+    [InlineData("aside")]
+    [InlineData("nav")]
+    [InlineData("header")]
+    [InlineData("footer")]
+    [InlineData("main")]
+    public void HtmlToWord_StyledEmptySemanticBlock_MaterializesItsWordFrame(string tagName) {
+        string html = $"<{tagName} style=\"border:1px solid #123456;background-color:#abcdef;padding:4px\"></{tagName}>";
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(60, paragraph.IndentationBefore);
+        Assert.Equal(60, paragraph.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_ZeroWidthBlockBorders_RemainInvisible() {
+        const string html = """
+            <p style="border:0px solid red">Zero shorthand</p>
+            <p style="border-left:1px solid red;border-left-width:0px">Zero longhand</p>
+            <p style="border:0 solid red">Unitless zero</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph shorthand = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Zero shorthand");
+        WordParagraph longhand = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Zero longhand");
+        WordParagraph unitless = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Unitless zero");
+
+        Assert.Null(shorthand.Borders.TopStyle);
+        Assert.Null(shorthand.Borders.LeftStyle);
+        Assert.Null(longhand.Borders.LeftStyle);
+        Assert.Null(unitless.Borders.TopStyle);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_BelowTableCaptionReusesTheTrailingParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        var options = new HtmlToWordOptions { TableCaptionPosition = TableCaptionPosition.Below };
+
+        cell.AddHtml(
+            HtmlConversionDocument.Parse(
+                """<table><caption>Nested caption</caption><tr><td>Value</td></tr></table>"""),
+            options);
+
+        OpenXmlElement[] elements = cell._tableCell.ChildElements
+            .Where(element => element is Table or Paragraph)
+            .ToArray();
+        Assert.Collection(
+            elements,
+            element => Assert.IsType<Table>(element),
+            element => Assert.Equal("Nested caption", Assert.IsType<Paragraph>(element).InnerText));
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_RejectedImageDoesNotLeaveAnEmptyParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<img alt="">"""));
+
+        Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
+        Assert.Equal("Existing", paragraph.InnerText);
+    }
+
     [Fact]
     public void WordTableCell_AddHtml_PreservesFormattedEmptyParagraphs() {
         using WordDocument document = WordDocument.Create();
