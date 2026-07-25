@@ -65,6 +65,7 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -76,7 +77,8 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
+            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
@@ -156,6 +158,7 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -167,7 +170,8 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
+            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);

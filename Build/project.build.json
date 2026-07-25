@@ -26,6 +26,7 @@
     "OfficeIMO.GoogleWorkspace.Sync": "3.0.X",
     "OfficeIMO.Html": "3.0.X",
     "OfficeIMO.Html.Pdf": "3.0.X",
+    "OfficeIMO.Html.Tool": "3.0.X",
     "OfficeIMO.Latex": "3.0.X",
     "OfficeIMO.Latex.Markdown": "3.0.X",
     "OfficeIMO.Latex.Pdf": "3.0.X",

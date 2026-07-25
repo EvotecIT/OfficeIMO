@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>
 /// Scoped caller-supplied TrueType faces used by drawing measurement, rasterization, and SVG export.
+/// Direct sfnt and WOFF 1 containers are accepted and normalized to OpenType bytes.
 /// </summary>
 public sealed class OfficeFontFaceCollection {
     private readonly List<OfficeFontFace> _faces = new List<OfficeFontFace>();
@@ -23,7 +24,7 @@ public sealed class OfficeFontFaceCollection {
     /// <summary>Adds or replaces one family/style face. Invalid or unsupported font bytes throw.</summary>
     public OfficeFontFaceCollection Add(string familyName, byte[] data, OfficeFontStyle style = OfficeFontStyle.Regular) {
         if (!TryAdd(familyName, data, style)) {
-            throw new ArgumentException("The supplied bytes are not a supported TrueType outline font.", nameof(data));
+            throw new ArgumentException("The supplied bytes are not a supported TrueType outline font container.", nameof(data));
         }
 
         return this;
@@ -31,27 +32,92 @@ public sealed class OfficeFontFaceCollection {
 
     /// <summary>Attempts to add or replace one family/style face without throwing for unsupported font data.</summary>
     public bool TryAdd(string? familyName, byte[]? data, OfficeFontStyle style = OfficeFontStyle.Regular) {
+        return TryAdd(familyName, data, style, OfficeFontUnicodeRangeSet.All);
+    }
+
+    /// <summary>
+    /// Adds or replaces one unicode-range-constrained family/style face.
+    /// A deterministic internal resource family is assigned when the range does not cover all Unicode scalars.
+    /// </summary>
+    public OfficeFontFaceCollection Add(
+        string familyName,
+        byte[] data,
+        OfficeFontStyle style,
+        OfficeFontUnicodeRangeSet unicodeRanges) {
+        if (!TryAdd(familyName, data, style, unicodeRanges)) {
+            throw new ArgumentException("The supplied bytes are not a supported TrueType outline font container.", nameof(data));
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Attempts to add or replace one unicode-range-constrained family/style face.
+    /// A deterministic internal resource family is assigned when the range does not cover all Unicode scalars.
+    /// </summary>
+    public bool TryAdd(
+        string? familyName,
+        byte[]? data,
+        OfficeFontStyle style,
+        OfficeFontUnicodeRangeSet? unicodeRanges) {
+        OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
+        string? resourceFamilyName = normalizedRanges.IsAll || string.IsNullOrWhiteSpace(familyName)
+            ? familyName
+            : CreateResourceFamilyName(familyName!.Trim(), style, normalizedRanges);
+        return TryAddCore(familyName, data, style, normalizedRanges, resourceFamilyName);
+    }
+
+    private bool TryAddCore(
+        string? familyName,
+        byte[]? data,
+        OfficeFontStyle style,
+        OfficeFontUnicodeRangeSet unicodeRanges,
+        string? resourceFamilyName) {
         if (string.IsNullOrWhiteSpace(familyName) || data == null || data.Length == 0) {
             return false;
         }
 
-        OfficeTrueTypeFont? parsed = OfficeTrueTypeFont.TryLoad(data);
+        if (!OfficeFontContainerDecoder.TryDecodeToOpenType(
+                data,
+                out byte[] openTypeData,
+                out _,
+                out _)) {
+            return false;
+        }
+        OfficeTrueTypeFont? parsed = OfficeTrueTypeFont.TryLoad(openTypeData);
         if (parsed == null) {
             return false;
         }
 
         string normalizedFamily = familyName!.Trim();
+        string normalizedResourceFamily = string.IsNullOrWhiteSpace(resourceFamilyName)
+            ? normalizedFamily
+            : resourceFamilyName!.Trim();
+        OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges;
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         for (int index = _faces.Count - 1; index >= 0; index--) {
             OfficeFontFace existing = _faces[index];
             if (existing.Style == normalizedStyle
-                && string.Equals(existing.FamilyName, normalizedFamily, StringComparison.OrdinalIgnoreCase)) {
-                _faces[index] = new OfficeFontFace(normalizedFamily, data, normalizedStyle, parsed);
+                && string.Equals(existing.FamilyName, normalizedFamily, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(existing.ResourceFamilyName, normalizedResourceFamily, StringComparison.OrdinalIgnoreCase)) {
+                _faces[index] = new OfficeFontFace(
+                    normalizedFamily,
+                    normalizedResourceFamily,
+                    openTypeData,
+                    normalizedStyle,
+                    normalizedRanges,
+                    parsed);
                 return true;
             }
         }
 
-        _faces.Add(new OfficeFontFace(normalizedFamily, data, normalizedStyle, parsed));
+        _faces.Add(new OfficeFontFace(
+            normalizedFamily,
+            normalizedResourceFamily,
+            openTypeData,
+            normalizedStyle,
+            normalizedRanges,
+            parsed));
         return true;
     }
 
@@ -62,7 +128,7 @@ public sealed class OfficeFontFaceCollection {
         }
 
         foreach (OfficeFontFace face in fonts.Faces) {
-            TryAdd(face.FamilyName, face.DataSnapshot, face.Style);
+            TryAddCore(face.FamilyName, face.DataSnapshot, face.Style, face.UnicodeRanges, face.ResourceFamilyName);
         }
 
         return this;
@@ -134,11 +200,11 @@ public sealed class OfficeFontFaceCollection {
                 if (!resolvedFamilies.TryGetValue(element, out string? resolvedFamily)) {
                     OfficeFontFace? face = null;
                     for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
-                        if (!candidates[candidateIndex].ParsedFont.HasGlyphs(element)) continue;
+                        if (!candidates[candidateIndex].Covers(element)) continue;
                         face = candidates[candidateIndex];
                         break;
                     }
-                    resolvedFamily = face?.FamilyName ?? requestedFamilies;
+                    resolvedFamily = face?.ResourceFamilyName ?? requestedFamilies;
                     resolvedFamilies.Add(element, resolvedFamily);
                 }
                 family = resolvedFamily;
@@ -163,18 +229,24 @@ public sealed class OfficeFontFaceCollection {
         var result = new List<OfficeFontFace>();
         var added = new HashSet<OfficeFontFace>();
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
-            OfficeFontFace? exact = null;
-            OfficeFontFace? regular = null;
-            OfficeFontFace? first = null;
+            var exact = new List<OfficeFontFace>();
+            var regular = new List<OfficeFontFace>();
+            var available = new List<OfficeFontFace>();
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
-                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)) continue;
-                first ??= face;
-                if (face.Style == normalizedStyle) exact ??= face;
-                if (face.Style == OfficeFontStyle.Regular) regular ??= face;
+                if (!MatchesFamily(face, family)) continue;
+                available.Add(face);
+                if (face.Style == normalizedStyle) exact.Add(face);
+                if (face.Style == OfficeFontStyle.Regular) regular.Add(face);
             }
-            OfficeFontFace? preferred = exact ?? regular ?? first;
-            if (preferred != null && added.Add(preferred)) result.Add(preferred);
+            IReadOnlyList<OfficeFontFace> preferred = exact.Count > 0
+                ? exact
+                : regular.Count > 0
+                    ? regular
+                    : available;
+            foreach (OfficeFontFace face in preferred) {
+                if (added.Add(face)) result.Add(face);
+            }
         }
         return result;
     }
@@ -195,7 +267,7 @@ public sealed class OfficeFontFaceCollection {
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
-                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)) {
+                if (!MatchesFamily(face, family)) {
                     continue;
                 }
 
@@ -241,17 +313,14 @@ public sealed class OfficeFontFaceCollection {
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
-                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!MatchesFamily(face, family) || !face.Covers(text)) continue;
                 first ??= face;
-                if (face.Style == normalizedStyle) {
-                    exact = face;
-                    break;
-                }
+                if (face.Style == normalizedStyle) exact ??= face;
                 if (face.Style == OfficeFontStyle.Regular) regular ??= face;
             }
 
             OfficeFontFace? preferred = exact ?? regular ?? first;
-            if (preferred == null || !preferred.ParsedFont.HasGlyphs(text)) continue;
+            if (preferred == null) continue;
             resolvedFace = preferred;
             return preferred.ParsedFont;
         }
@@ -266,4 +335,22 @@ public sealed class OfficeFontFaceCollection {
         return value.Length > 0;
     }
 
+    private static bool MatchesFamily(OfficeFontFace face, string family) =>
+        string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+
+    private static string CreateResourceFamilyName(
+        string familyName,
+        OfficeFontStyle style,
+        OfficeFontUnicodeRangeSet ranges) {
+        string value = ((int)OfficeFontFace.NormalizeStyle(style)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "|"
+            + ranges.ToStableKey();
+        uint hash = 2166136261;
+        for (int index = 0; index < value.Length; index++) {
+            hash ^= value[index];
+            hash *= 16777619;
+        }
+        return familyName + "__officeimo_" + hash.ToString("x8", System.Globalization.CultureInfo.InvariantCulture);
+    }
 }

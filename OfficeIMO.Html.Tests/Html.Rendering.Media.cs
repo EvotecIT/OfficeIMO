@@ -45,4 +45,86 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text.Contains("Paged", StringComparison.Ordinal));
         Assert.Equal(OfficeColor.Blue, text.Color);
     }
+
+    [Fact]
+    public void HtmlRender_MediaFeaturesSelectDeterministicStaticPreferences() {
+        const string html = """
+            <style>
+              .target { color:#0000ff }
+              @media (prefers-color-scheme:dark) and (prefers-reduced-motion:reduce) and (pointer:none) and (hover:none) {
+                .target { color:#ff0000 }
+              }
+            </style>
+            <p class="target">Static preferences</p>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D),
+            MediaFeatures = new HtmlRenderMediaFeatures {
+                PreferredColorScheme = HtmlPreferredColorScheme.Dark,
+                ReducedMotion = HtmlReducedMotionPreference.Reduce
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text.Contains("Static", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.Red, text.Color);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(min-resolution:1dppx) and (max-resolution:96dpi) and (scripting:none) and (update:none)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            options.MediaFeatures));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(pointer:fine)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            options.MediaFeatures));
+    }
+
+    [Fact]
+    public void HtmlRender_AdditionalStylesheetsParticipateInTheBoundedAuthorCascade() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.AdditionalStylesheets.Add(".target { color:#008000; width:clamp(40px, 25%, 80px) }");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse("<style>.target{color:#0000ff}</style><p class='target'>Caller style</p>"),
+            options);
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text.Contains("Caller", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.FromRgb(0, 128, 0), text.Color);
+        HtmlRenderOptions clone = options.Clone();
+        Assert.Single(clone.AdditionalStylesheets);
+        Assert.NotSame(options.MediaFeatures, clone.MediaFeatures);
+    }
+
+    [Fact]
+    public void HtmlRender_AdditionalStylesheetsFollowBodyPositionedDocumentStyles() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.AdditionalStylesheets.Add(".target { color:#008000 }");
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse("<p class='target'>Caller last</p><style>.target{color:#0000ff}</style>"),
+            options);
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text.Contains("Caller last", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.FromRgb(0, 128, 0), text.Color);
+    }
 }

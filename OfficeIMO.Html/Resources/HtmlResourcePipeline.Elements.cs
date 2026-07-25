@@ -368,7 +368,12 @@ public static partial class HtmlResourcePipeline {
 
     private static bool IsApplicableMedia(string mediaText, HtmlResourcePipelineOptions options) {
         if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
-            return HtmlComputedStyleEngine.IsApplicableMedia(mediaText, options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value);
+            return HtmlComputedStyleEngine.IsApplicableMedia(
+                mediaText,
+                options.MediaContext,
+                options.MediaWidth.Value,
+                options.MediaHeight.Value,
+                options.MediaFeatures);
         }
 
         return IsApplicableMedia(mediaText, options.MediaContext);

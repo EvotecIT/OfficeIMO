@@ -19,6 +19,7 @@ namespace OfficeIMO.Html.Pdf;
 /// </example>
 public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+    private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions().EnableTaggedPdfCatalogMarkers();
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
@@ -51,6 +52,19 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// <summary>Optional caller-supplied embedded font family used by generated PDF text.</summary>
     public PdfCore.PdfEmbeddedFontFamily? FontFamily { get; set; }
 
+    /// <summary>
+    /// PDF writer settings used for the generated document, including file version,
+    /// forward-only serialization, tagging, compliance groundwork, and output intents.
+    /// </summary>
+    /// <remarks>
+    /// Conversion snapshots this value. HTML-specific font and shaping properties are
+    /// then applied as explicit adapter overrides.
+    /// </remarks>
+    public PdfCore.PdfOptions DocumentOptions {
+        get => _documentOptions;
+        set => _documentOptions = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
     public new DrawingCore.IOfficeTextShapingProvider? TextShapingProvider {
         get => base.TextShapingProvider;
@@ -78,6 +92,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
+        DocumentOptions = source.DocumentOptions.Clone();
         TextShapingProvider = source.TextShapingProvider;
         ResourcePolicy = source.ResourcePolicy.Clone();
         EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;

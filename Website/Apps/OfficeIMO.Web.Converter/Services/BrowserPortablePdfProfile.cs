@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Drawing.HarfBuzz;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Web.Converter.Models;
 
@@ -60,6 +61,23 @@ internal static class BrowserPortablePdfProfile {
             ]));
 
         return options;
+    }
+
+    internal static HtmlPdfSaveOptions CreateHtmlOptions(BrowserPdfProfile profile) {
+        FontPackData data = Data.Value;
+        return new HtmlPdfSaveOptions {
+            DefaultFontFamily = DefaultFontFamily,
+            DocumentOptions = CreateOptions(profile),
+            FontFamily = new PdfEmbeddedFontFamily(
+                DefaultFontFamily,
+                data.CarlitoRegular,
+                data.CarlitoBold,
+                data.CarlitoItalic,
+                data.CarlitoBoldItalic),
+            TextShapingMode = PdfTextShapingMode.LatinLigatures,
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        };
     }
 
     private static FontPackData LoadFontPack() {

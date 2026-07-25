@@ -167,6 +167,7 @@ public static partial class HtmlComputedStyleEngine {
         "place-self",
         "right",
         "row-gap",
+        "string-set",
         "text-align",
         "text-decoration-line",
         "text-transform",
@@ -202,7 +203,8 @@ public static partial class HtmlComputedStyleEngine {
             new MediaEnvironment(
                 options.MediaContext,
                 options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-                options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D),
+                options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+                options.MediaFeatures),
             true,
             limits);
 

@@ -87,6 +87,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
         ApplyBreaks(computed, style);
+        style.StringSet = computed.GetValue("string-set").Trim();
         return style;
     }
 

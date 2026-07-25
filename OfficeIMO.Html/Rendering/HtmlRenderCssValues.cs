@@ -15,8 +15,12 @@ internal static class HtmlRenderCssValues {
             return true;
         }
 
-        if (normalized == "auto" || normalized == "none" || normalized.IndexOf('(') >= 0) {
+        if (normalized == "auto" || normalized == "none") {
             return false;
+        }
+
+        if (normalized.IndexOf('(') >= 0) {
+            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, out result);
         }
 
         string unit = string.Empty;
@@ -106,22 +110,13 @@ internal static class HtmlRenderCssValues {
             return true;
         }
 
-        if (OfficeColor.TryParse(normalized, out color)) {
+        if (OfficeColor.TryParseCss(normalized, out color)) {
             return true;
-        }
-
-        int rgbStart = normalized.IndexOf("rgb", StringComparison.OrdinalIgnoreCase);
-        if (rgbStart >= 0) {
-            int open = normalized.IndexOf('(', rgbStart);
-            int close = open >= 0 ? normalized.IndexOf(')', open + 1) : -1;
-            if (open >= 0 && close > open && TryRgbFunction(normalized.Substring(open + 1, close - open - 1), out color)) {
-                return true;
-            }
         }
 
         IReadOnlyList<string> parts = SplitWhitespace(normalized);
         for (int i = parts.Count - 1; i >= 0; i--) {
-            if (OfficeColor.TryParse(parts[i].Trim(',', ';'), out color)) {
+            if (OfficeColor.TryParseCss(parts[i].Trim(',', ';'), out color)) {
                 return true;
             }
         }
@@ -259,54 +254,4 @@ internal static class HtmlRenderCssValues {
         return OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
     }
 
-    private static bool TryRgbFunction(string arguments, out OfficeColor color) {
-        color = default;
-        string normalized = arguments.Replace('/', ',');
-        string[] parts = normalized.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 1) {
-            parts = normalized.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        if (parts.Length < 3 || !TryColorChannel(parts[0], out byte red) || !TryColorChannel(parts[1], out byte green) || !TryColorChannel(parts[2], out byte blue)) {
-            return false;
-        }
-
-        byte alpha = 255;
-        if (parts.Length > 3 && !TryAlpha(parts[3], out alpha)) {
-            return false;
-        }
-
-        color = OfficeColor.FromRgba(red, green, blue, alpha);
-        return true;
-    }
-
-    private static bool TryColorChannel(string value, out byte channel) {
-        channel = 0;
-        string normalized = value.Trim();
-        bool percent = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percent) normalized = normalized.Substring(0, normalized.Length - 1);
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-            return false;
-        }
-
-        if (percent) number = number * 255D / 100D;
-        number = Math.Max(0D, Math.Min(255D, number));
-        channel = (byte)Math.Round(number);
-        return true;
-    }
-
-    private static bool TryAlpha(string value, out byte alpha) {
-        alpha = 255;
-        string normalized = value.Trim();
-        bool percent = normalized.EndsWith("%", StringComparison.Ordinal);
-        if (percent) normalized = normalized.Substring(0, normalized.Length - 1);
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-            return false;
-        }
-
-        if (percent) number /= 100D;
-        number = Math.Max(0D, Math.Min(1D, number));
-        alpha = (byte)Math.Round(number * 255D);
-        return true;
-    }
 }

@@ -458,7 +458,8 @@ internal static class HtmlRenderResourceLoader {
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaFeatures = options.MediaFeatures.Clone()
         };
         bool stop = false;
         int concurrency = markAttemptedBeforeResolve ? result.MaxConcurrentLoads : 1;

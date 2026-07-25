@@ -16,7 +16,7 @@ public partial class Html {
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
-        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
         }
@@ -30,11 +30,35 @@ public partial class Html {
         foreach (HtmlDiagnosticDefinition definition in HtmlDiagnosticCatalog.Ordered) {
             Assert.Contains("`" + definition.Code + "`", first, StringComparison.Ordinal);
         }
+        foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
+            Assert.Contains("`" + capability.Id + "`", first, StringComparison.Ordinal);
+        }
 
         Assert.Equal(HtmlDiagnosticCatalog.All.Count, HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
             HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code),
             HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code).OrderBy(value => value, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlRenderCapabilityCatalog_IsCompleteDeterministicAndDiagnosticBacked() {
+        IReadOnlyList<HtmlRenderCapability> capabilities = HtmlRenderCapabilityCatalog.All;
+
+        Assert.NotEmpty(capabilities);
+        Assert.Equal(capabilities.Count, capabilities.Select(capability => capability.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(
+            capabilities.Select(capability => capability.Area + "\0" + capability.Id),
+            capabilities.Select(capability => capability.Area + "\0" + capability.Id).OrderBy(value => value, StringComparer.Ordinal));
+        foreach (HtmlRenderSupportLevel level in Enum.GetValues(typeof(HtmlRenderSupportLevel))) {
+            Assert.Contains(capabilities, capability => capability.SupportLevel == level);
+        }
+        foreach (HtmlRenderCapability capability in capabilities) {
+            Assert.NotEmpty(capability.Features);
+            Assert.Same(capability, HtmlRenderCapabilityCatalog.Get(capability.Id));
+            foreach (string code in capability.DiagnosticCodes) {
+                Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), $"Capability '{capability.Id}' references uncataloged diagnostic '{code}'.");
+            }
+        }
     }
 
     [Fact]

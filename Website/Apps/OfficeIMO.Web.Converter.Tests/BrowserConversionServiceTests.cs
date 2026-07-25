@@ -17,7 +17,7 @@ public sealed class BrowserConversionServiceTests {
 
     [Fact]
     public void RouteCatalog_HasUniqueCustomerRoutes() {
-        Assert.Equal(6, ConversionRouteCatalog.All.Count);
+        Assert.Equal(7, ConversionRouteCatalog.All.Count);
         Assert.Equal(
             ConversionRouteCatalog.All.Count,
             ConversionRouteCatalog.All.Select(static route => route.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
@@ -26,6 +26,39 @@ public sealed class BrowserConversionServiceTests {
             Assert.False(string.IsNullOrWhiteSpace(route.Target));
             Assert.False(string.IsNullOrWhiteSpace(route.EnginePath));
         });
+    }
+
+    [Fact]
+    public void HtmlToPdf_UsesSharedRendererAndReturnsTaggedPortableArtifact() {
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            "<html lang='en-US'><head><title>Browser HTML</title></head><body><main><h1>Ready</h1><p>Local conversion</p><ul><li>One</li></ul><table><tr><th scope='col'>State</th></tr><tr><td>Green</td></tr></table></main></body></html>",
+            BrowserPdfProfileCatalog.Accessible);
+
+        Assert.Equal("application/pdf", result.ContentType);
+        Assert.Equal("officeimo-html.pdf", result.FileName);
+        PdfReadDocument readback = PdfReadDocument.Open(result.Bytes);
+        Assert.True(readback.HasTaggedContent);
+        Assert.Equal("en-US", readback.CatalogLanguage);
+        Assert.Contains("Ready", readback.ExtractText(), StringComparison.Ordinal);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(readback.TaggedContent);
+        Assert.Contains("H1", tagged.StructureTypes);
+        Assert.Contains("P", tagged.StructureTypes);
+        Assert.Contains("L", tagged.StructureTypes);
+        Assert.Contains("Table", tagged.StructureTypes);
+        Assert.Contains("TH", tagged.StructureTypes);
+        Assert.Contains("TD", tagged.StructureTypes);
+
+        PdfComplianceProofReport proof = PdfDocument.Open(result.Bytes)
+            .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
+        Assert.True(proof.HasArtifactEvidence);
+        Assert.Equal(result.Bytes.LongLength, proof.ArtifactSizeBytes);
+        Assert.True(proof.IsInternallyReady, string.Join(Environment.NewLine, proof.BlockingRequirements.Select(static item => item.Diagnostic)));
+        Assert.True(proof.ReadyForExternalValidation);
+        Assert.Equal("MissingExternalValidation", proof.ProofStatus);
+        Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, proof.MissingExternalValidators);
+        Assert.NotNull(result.CompanionReport);
+        Assert.Contains("OfficeIMO.Html.Pdf", Encoding.UTF8.GetString(result.CompanionReport!.Bytes), StringComparison.Ordinal);
     }
 
     [Fact]

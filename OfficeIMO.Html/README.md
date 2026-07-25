@@ -13,6 +13,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - MHTML/MHT web-archive loading, deterministic saving, root-part selection, and CID/Content-Location resource resolution
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
+- bounded CSS length math, caller stylesheets, deterministic media preferences, running strings, and Unicode-range-aware WOFF 1/OpenType fonts
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
@@ -33,8 +34,13 @@ HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 var options = new HtmlRenderOptions {
     ViewportWidth = 720,
     Margins = HtmlRenderMargins.All(24),
-    Scale = 1.5
+    Scale = 1.5,
+    MediaFeatures = new HtmlRenderMediaFeatures {
+        PreferredColorScheme = HtmlPreferredColorScheme.Light,
+        ReducedMotion = HtmlReducedMotionPreference.Reduce
+    }
 };
+options.AdditionalStylesheets.Add("body { color: hsl(215 35% 20%); }");
 
 byte[] png = source.ToPng(options);
 byte[] jpeg = source.ToJpeg(options);
@@ -200,6 +206,8 @@ foreach (HtmlFeaturePreflightResult feature in excel.Features) {
 `HtmlSemanticDocument` is the single interpretation of sections, rich runs, nested lists, tables, links, forms, notes, resources, computed styles, and source locations. Generic Excel, PowerPoint, and OneNote importers consume it instead of independently deciding what the same DOM means. `AnalyzeFor(target)` uses the executable target registry to report `Supported`, `Approximated`, or `Omitted` before artifact creation. Diagnostics carry source and target provenance so applications can map a warning back to both sides of a conversion.
 
 The generated [HTML support matrix](../Docs/officeimo.html-support-matrix.md) is checked against those executable contracts in the test suite. Run `Build/Export-HtmlSupportMatrix.ps1 -Check` to verify it or omit `-Check` to regenerate it.
+
+Applications can inspect the same contract through `HtmlRenderCapabilityCatalog.All`. The catalog distinguishes full, partial, fallback, ignored, and rejected behavior and links partial behavior to stable diagnostic codes.
 
 ## Resource sessions
 

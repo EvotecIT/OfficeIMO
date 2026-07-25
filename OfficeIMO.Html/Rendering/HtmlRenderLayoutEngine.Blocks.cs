@@ -211,6 +211,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
@@ -259,6 +260,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 foreach (HtmlRenderTrailingGroup group in child.TrailingGroups) {
                     trailingGroups.Add(group.Translate(0D, childStart));
+                }
+                foreach (HtmlCssRunningStringAssignment assignment in child.RunningStringAssignments) {
+                    runningStringAssignments.Add(assignment.Translate(childStart));
                 }
 
                 contentBreakOffsets.Add(contentHeight);
@@ -352,14 +356,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedContinuationGroups,
             adjustedTrailingGroups,
             pageName: pageName,
-            unclampedHeight: unclampedOuterHeight);
+            unclampedHeight: unclampedOuterHeight,
+            runningStringAssignments: runningStringAssignments.Select(assignment => assignment.Translate(contentYForBreaks)));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
     }
 
-    private static HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) =>
-        block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+    private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
+        HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+        string source = HtmlRenderStyleResolver.DescribeSource(element);
+        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments = HtmlCssRunningStringParser.ResolveAssignments(
+            element,
+            style.StringSet,
+            _options.MaxRunningStringCharacters,
+            count => ChargeLayoutOperations(count, source),
+            out bool limitExceeded);
+        if (limitExceeded) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.RunningStringLimitExceeded,
+                "A CSS running-string value exceeded the configured character limit and was omitted.",
+                HtmlDiagnosticSeverity.Warning,
+                source,
+                "limit=" + _options.MaxRunningStringCharacters);
+        }
+        return ownAssignments.Count == 0
+            ? attached
+            : attached.WithRunningStringAssignments(ownAssignments.Concat(attached.RunningStringAssignments));
+    }
 
     private static bool CanCollapseParentMargin(HtmlRenderBoxStyle style, bool top) {
         if (style.Display != "block" && style.Display != "list-item") return false;

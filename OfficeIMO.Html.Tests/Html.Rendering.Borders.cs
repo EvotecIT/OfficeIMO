@@ -266,7 +266,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlBorders_InvalidRadiusUsesCatalogedSquareFallback() {
+    public void HtmlBorders_CalculatedRadiusUsesRoundedPath() {
         const string html = "<div id='invalid-radius' style='width:30px;height:20px;margin:0;border-radius:calc(6px);background:#ff0000'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
@@ -276,16 +276,13 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         });
         HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#invalid-radius");
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-
-        Assert.Equal(OfficeShapeKind.Rectangle, shape.Shape.Kind);
-        Assert.Equal("div#invalid-radius", diagnostic.Source);
-        Assert.Contains("border-radius=", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Equal(OfficeShapeKind.RoundedRectangle, shape.Shape.Kind);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.Contains(HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px)"));
-        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:calc(6px))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:calc(6px))"));
     }
 
     [Fact]

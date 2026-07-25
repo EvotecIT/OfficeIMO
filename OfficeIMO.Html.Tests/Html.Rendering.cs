@@ -1316,7 +1316,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_DirectRenderer_MapsHeadingsAndParagraphsToTaggedStructure() {
-        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
+        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title><meta name='author' content='HTML Team'><meta name='description' content='Tagged document proof'><meta name='keywords' content='html, pdf, tagged'><meta name='generator' content='Report Builder'></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
 
@@ -1325,7 +1325,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Semantic document", rendered.Metadata.Title);
         Assert.Equal("pl-PL", rendered.Metadata.Language);
         Assert.Equal(HtmlRenderTextDirection.RightToLeft, rendered.Metadata.Direction);
+        Assert.Equal("HTML Team", rendered.Metadata.Author);
+        Assert.Equal("Tagged document proof", rendered.Metadata.Subject);
+        Assert.Equal("html, pdf, tagged", rendered.Metadata.Keywords);
+        Assert.Equal("Report Builder", rendered.Metadata.Creator);
         Assert.Equal("Semantic document", info.Metadata.Title);
+        Assert.Equal("HTML Team", info.Metadata.Author);
+        Assert.Equal("Tagged document proof", info.Metadata.Subject);
+        Assert.Equal("html, pdf, tagged", info.Metadata.Keywords);
         Assert.Equal("pl-PL", info.CatalogLanguage);
         PdfCore.PdfViewerPreferences viewerPreferences = Assert.IsType<PdfCore.PdfViewerPreferences>(info.ViewerPreferences);
         Assert.Equal("true", viewerPreferences.GetValue("DisplayDocTitle"));

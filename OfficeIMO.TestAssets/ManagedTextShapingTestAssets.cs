@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
@@ -59,6 +61,89 @@ internal static class ManagedTextShapingTestAssets {
         CopyCollectionFace(first, collection, firstOffset);
         CopyCollectionFace(second, collection, secondOffset);
         return collection;
+    }
+
+    internal static byte[] CreateWoff(byte[] openTypeData, bool compressTables = true) {
+        if (openTypeData == null || openTypeData.Length < 12) throw new ArgumentException("OpenType data is required.", nameof(openTypeData));
+        int tableCount = ReadUInt16(openTypeData, 4);
+        int woffDirectoryLength = 44 + tableCount * 20;
+        var records = new List<(uint Tag, byte[] Data, byte[] Encoded, uint Checksum, int Offset)>(tableCount);
+        int offset = woffDirectoryLength;
+        for (int index = 0; index < tableCount; index++) {
+            int sfntRecord = 12 + index * 16;
+            uint tag = ReadUInt32(openTypeData, sfntRecord);
+            int tableOffset = checked((int)ReadUInt32(openTypeData, sfntRecord + 8));
+            int tableLength = checked((int)ReadUInt32(openTypeData, sfntRecord + 12));
+            var table = new byte[tableLength];
+            Array.Copy(openTypeData, tableOffset, table, 0, tableLength);
+            byte[] compressed = compressTables ? CompressZlib(table) : table;
+            byte[] encoded = compressed.Length < table.Length ? compressed : table;
+            records.Add((tag, table, encoded, CalculateTableChecksum(tag, table), offset));
+            offset += Align4(encoded.Length);
+        }
+
+        var woff = new byte[offset];
+        WriteUInt32(woff, 0, 0x774F4646);
+        WriteUInt32(woff, 4, ReadUInt32(openTypeData, 0));
+        WriteUInt32(woff, 8, (uint)woff.Length);
+        WriteUInt16(woff, 12, (ushort)tableCount);
+        WriteUInt32(woff, 16, (uint)openTypeData.Length);
+        for (int index = 0; index < records.Count; index++) {
+            var record = records[index];
+            int directoryRecord = 44 + index * 20;
+            WriteUInt32(woff, directoryRecord, record.Tag);
+            WriteUInt32(woff, directoryRecord + 4, (uint)record.Offset);
+            WriteUInt32(woff, directoryRecord + 8, (uint)record.Encoded.Length);
+            WriteUInt32(woff, directoryRecord + 12, (uint)record.Data.Length);
+            WriteUInt32(woff, directoryRecord + 16, record.Checksum);
+            Array.Copy(record.Encoded, 0, woff, record.Offset, record.Encoded.Length);
+        }
+        return woff;
+    }
+
+    private static byte[] CompressZlib(byte[] data) {
+        using var output = new MemoryStream();
+        output.WriteByte(0x78);
+        output.WriteByte(0x9C);
+        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(data, 0, data.Length);
+        }
+        uint checksum = Adler32(data);
+        output.WriteByte((byte)(checksum >> 24));
+        output.WriteByte((byte)(checksum >> 16));
+        output.WriteByte((byte)(checksum >> 8));
+        output.WriteByte((byte)checksum);
+        return output.ToArray();
+    }
+
+    private static uint Adler32(byte[] data) {
+        const uint modulus = 65521;
+        uint a = 1;
+        uint b = 0;
+        foreach (byte value in data) {
+            a = (a + value) % modulus;
+            b = (b + a) % modulus;
+        }
+        return (b << 16) | a;
+    }
+
+    private static uint CalculateChecksum(byte[] data) {
+        uint checksum = 0;
+        for (int offset = 0; offset < data.Length; offset += 4) {
+            uint value = (uint)data[offset] << 24;
+            if (offset + 1 < data.Length) value |= (uint)data[offset + 1] << 16;
+            if (offset + 2 < data.Length) value |= (uint)data[offset + 2] << 8;
+            if (offset + 3 < data.Length) value |= data[offset + 3];
+            checksum = unchecked(checksum + value);
+        }
+        return checksum;
+    }
+
+    private static uint CalculateTableChecksum(uint tag, byte[] data) {
+        if (tag != 0x68656164 || data.Length < 12) return CalculateChecksum(data);
+        var normalized = (byte[])data.Clone();
+        WriteUInt32(normalized, 8, 0);
+        return CalculateChecksum(normalized);
     }
 
     internal sealed class RecordingProvider : IOfficeTextShapingProvider {

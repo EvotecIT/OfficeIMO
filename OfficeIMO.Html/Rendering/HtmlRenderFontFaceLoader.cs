@@ -19,7 +19,8 @@ internal static class HtmlRenderFontFaceLoader {
         var pipelineOptions = new HtmlResourcePipelineOptions {
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaFeatures = options.MediaFeatures.Clone()
         };
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
@@ -28,7 +29,8 @@ internal static class HtmlRenderFontFaceLoader {
                     styleElement.GetAttribute("media") ?? string.Empty,
                     pipelineOptions.MediaContext,
                     pipelineOptions.MediaWidth!.Value,
-                    pipelineOptions.MediaHeight!.Value)) {
+                    pipelineOptions.MediaHeight!.Value,
+                    pipelineOptions.MediaFeatures)) {
                 continue;
             }
 
@@ -64,6 +66,21 @@ internal static class HtmlRenderFontFaceLoader {
 
         IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractFontFaceUrls(definition.Source);
         OfficeFontStyle style = ResolveStyle(definition);
+        OfficeFontUnicodeRangeSet ranges = OfficeFontUnicodeRangeSet.All;
+        if (!string.IsNullOrWhiteSpace(definition.UnicodeRange)) {
+            if (!OfficeFontUnicodeRangeSet.TryParseCss(definition.UnicodeRange, out OfficeFontUnicodeRangeSet? parsedRanges)
+                || parsedRanges == null) {
+                ReportOnce(
+                    diagnostics,
+                    reported,
+                    HtmlRenderDiagnosticCodes.FontFaceInvalid,
+                    "An @font-face rule has an invalid or excessive unicode-range descriptor.",
+                    definition.FamilyName,
+                    definition.UnicodeRange);
+                return;
+            }
+            ranges = parsedRanges;
+        }
         foreach (string source in sources) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(
                 source,
@@ -127,7 +144,7 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            if (fonts.TryAdd(definition.FamilyName, bytes, style)) {
+            if (fonts.TryAdd(definition.FamilyName, bytes, style, ranges)) {
                 return;
             }
 
@@ -135,7 +152,7 @@ internal static class HtmlRenderFontFaceLoader {
                 diagnostics,
                 reported,
                 HtmlRenderDiagnosticCodes.FontFormatUnsupported,
-                "A font face is not a supported TrueType glyf-outline font.",
+                "A font face is not a supported direct OpenType or WOFF 1 TrueType glyf-outline font.",
                 source,
                 contentType);
         }

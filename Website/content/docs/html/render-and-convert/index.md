@@ -17,7 +17,11 @@ HtmlConversionDocument source = HtmlConversionDocument.Parse(
 
 byte[] png = source.ToPng(new HtmlRenderOptions {
     ViewportWidth = 720,
-    Scale = 1.5
+    Scale = 1.5,
+    MediaFeatures = new HtmlRenderMediaFeatures {
+        PreferredColorScheme = HtmlPreferredColorScheme.Light,
+        ReducedMotion = HtmlReducedMotionPreference.Reduce
+    }
 });
 
 File.WriteAllBytes("status.png", png);
@@ -36,6 +40,34 @@ The renderer supports continuous or paged layout and PNG, JPEG, TIFF, SVG, and W
 | Reader results | `OfficeIMO.Reader.Html` |
 
 The [generated output gallery](/showcase/) includes a runnable invoice workflow with a downloadable PDF and the PNG rendered from the same HTML document and options object.
+
+## Convert from the command line
+
+```shell
+dotnet tool install --global OfficeIMO.Html.Tool
+officeimo-html convert report.html --output report.pdf
+officeimo-html convert archive.mhtml --output archive.pdf
+officeimo-html capabilities --format json
+```
+
+The tool accepts files or standard input, writes files atomically, and defaults to no local or remote resource reads. Embedded data and bounded MHTML resources remain available. Its capability output is generated from the same executable contract as the .NET API and checked-in support matrix.
+
+## Apply host styles and PDF settings
+
+```csharp
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
+
+var options = new HtmlPdfSaveOptions {
+    MaxPageCount = 200,
+    DocumentOptions = new PdfOptions().EnableTaggedPdfCatalogMarkers()
+};
+options.AdditionalStylesheets.Add("@page { margin: 18mm } body { color: hsl(215 35% 20%) }");
+
+byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+```
+
+PDF writer settings are snapshotted through `DocumentOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
 
 ## Control resources
 

@@ -7,6 +7,11 @@ on:
     paths:
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Html/**'
+      - 'OfficeIMO.Html.Pdf/**'
+      - 'OfficeIMO.Html.Tool/**'
+      - 'OfficeIMO.Html.Tests/Html.Tool.cs'
+      - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
@@ -21,6 +26,11 @@ on:
     paths:
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Html/**'
+      - 'OfficeIMO.Html.Pdf/**'
+      - 'OfficeIMO.Html.Tool/**'
+      - 'OfficeIMO.Html.Tests/Html.Tool.cs'
+      - 'OfficeIMO.Html.Tests/Html.Rendering.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'

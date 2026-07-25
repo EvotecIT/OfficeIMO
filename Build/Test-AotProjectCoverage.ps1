@@ -33,6 +33,10 @@ $nativeTools = @(
     [ordered]@{
         name = 'OfficeIMO.Reader.Tool'
         evidence = 'Native executable starts and returns its read, folder, and capabilities help.'
+    },
+    [ordered]@{
+        name = 'OfficeIMO.Html.Tool'
+        evidence = 'Native executable starts and returns its conversion and renderer-capability help.'
     }
 )
 $managedOnly = @(

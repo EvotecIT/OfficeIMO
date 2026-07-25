@@ -1,0 +1,89 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed class DrawingFontUnicodeRangeTests {
+    [Fact]
+    public void UnicodeRangeSet_ParsesNormalizesAndMatchesCssDescriptors() {
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss(
+            "U+0000-007F, U+4??, U+1F600",
+            out OfficeFontUnicodeRangeSet? ranges));
+
+        Assert.NotNull(ranges);
+        Assert.True(ranges!.Contains('A'));
+        Assert.True(ranges.Contains(0x0401));
+        Assert.True(ranges.Contains(0x1F600));
+        Assert.False(ranges.Contains(0x05D0));
+        Assert.Equal(3, ranges.Ranges.Count);
+
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+??", out OfficeFontUnicodeRangeSet? wildcard));
+        Assert.True(wildcard!.Contains(0x00FF));
+        Assert.False(wildcard.Contains(0x0100));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("U+")]
+    [InlineData("U+110000")]
+    [InlineData("U+0100-0001")]
+    [InlineData("U+4?0")]
+    [InlineData("not-a-range")]
+    public void UnicodeRangeSet_RejectsInvalidCssDescriptors(string value) {
+        Assert.False(OfficeFontUnicodeRangeSet.TryParseCss(value, out _));
+    }
+
+    [Fact]
+    public void FontCollection_UsesRangesBeforeGlyphCoverageForOneCssFamily() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0590-05FF", out OfficeFontUnicodeRangeSet? hebrew));
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.True(fonts.TryAdd("Scoped", font, OfficeFontStyle.Regular, latin));
+        Assert.True(fonts.TryAdd("Scoped", font, OfficeFontStyle.Regular, hebrew));
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns("A\u05D0", "Scoped");
+
+        Assert.Collection(
+            runs,
+            run => {
+                Assert.Equal("A", run.Text);
+                Assert.StartsWith("Scoped__officeimo_", run.FamilyName, StringComparison.Ordinal);
+            },
+            run => {
+                Assert.Equal("\u05D0", run.Text);
+                Assert.StartsWith("Scoped__officeimo_", run.FamilyName, StringComparison.Ordinal);
+                Assert.NotEqual(runs[0].FamilyName, run.FamilyName);
+            });
+    }
+
+    [Fact]
+    public void SvgExporter_PreservesSelectionFamilyAndUnicodeRangesForDirectDrawingText() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0590-05FF", out OfficeFontUnicodeRangeSet? hebrew));
+        var drawing = new OfficeDrawing(120D, 30D);
+        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, latin);
+        drawing.Fonts.Add("Scoped", font, OfficeFontStyle.Regular, hebrew);
+        drawing.AddText("A\u05D0", 0D, 0D, 120D, 30D, new OfficeFontInfo("Scoped", 12D));
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(2, CountOccurrences(svg, "@font-face{font-family:\"Scoped\""));
+        Assert.Contains("unicode-range:U+0-7F", svg, StringComparison.Ordinal);
+        Assert.Contains("unicode-range:U+590-5FF", svg, StringComparison.Ordinal);
+        Assert.Contains("font-family=\"Scoped\"", svg, StringComparison.Ordinal);
+    }
+
+    private static int CountOccurrences(string value, string token) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = value.IndexOf(token, offset, StringComparison.Ordinal)) >= 0) {
+            count++;
+            offset += token.Length;
+        }
+        return count;
+    }
+}

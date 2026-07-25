@@ -30,4 +30,7 @@ public sealed class HtmlResourcePipelineOptions {
 
     /// <summary>Optional media-query surface height in CSS pixels. When omitted, the context default is used.</summary>
     public double? MediaHeight { get; set; }
+
+    /// <summary>Static device and user-preference values used when deciding whether media-gated resources are active.</summary>
+    public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();
 }

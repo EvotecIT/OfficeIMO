@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.TestAssets;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -143,6 +144,74 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Fonts.Faces);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_ActivatesBoundedWoffFontThroughTheSharedDrawingDecoder() {
+        string marker = char.ConvertFromUtf32(0x1F600);
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x1F600);
+        byte[] woff = ManagedTextShapingTestAssets.CreateWoff(fontData);
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(woff, "font/woff"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@font-face{font-family:WoffDemo;src:url('https://assets.example.test/font.woff') format('woff')}p{font-family:WoffDemo}</style><p>" + marker + "</p>",
+            options);
+
+        OfficeFontFace face = Assert.Single(rendered.Fonts.Faces);
+        Assert.Equal("WoffDemo", face.FamilyName);
+        Assert.Equal(OfficeFontContainerFormat.OpenType, OfficeFontContainerDecoder.Detect(face.Data));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
+    [Fact]
+    public void HtmlRender_UsesUnicodeRangeConstrainedFacesFromOneCssFamily() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
+        string encoded = Convert.ToBase64String(font);
+        string html = "<style>"
+            + "@font-face{font-family:Scoped;src:url('data:font/ttf;base64," + encoded + "');unicode-range:U+0000-007F}"
+            + "@font-face{font-family:Scoped;src:url('data:font/ttf;base64," + encoded + "');unicode-range:U+0590-05FF}"
+            + "p{font-family:Scoped;font-size:20px}"
+            + "</style><p>A\u05D0</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlRenderText> runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(2, rendered.Fonts.Faces.Count);
+        Assert.Equal(2, rendered.Fonts.Faces.Select(face => face.ResourceFamilyName).Distinct(StringComparer.Ordinal).Count());
+        Assert.Collection(
+            runs,
+            run => {
+                Assert.Equal("A", run.Text);
+                Assert.StartsWith("Scoped__officeimo_", run.Font.FamilyName, StringComparison.Ordinal);
+            },
+            run => {
+                Assert.Equal("\u05D0", run.Text);
+                Assert.StartsWith("Scoped__officeimo_", run.Font.FamilyName, StringComparison.Ordinal);
+                Assert.NotEqual(runs[0].Font.FamilyName, run.Font.FamilyName);
+            });
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceInvalid);
+
+        string svg = HtmlConversionDocument.Parse(html).ToSvg();
+        foreach (OfficeFontFace face in rendered.Fonts.Faces) {
+            Assert.Contains("font-family:\"" + face.ResourceFamilyName + "\"", svg, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void HtmlRender_DiagnosesInvalidUnicodeRangeWithoutActivatingTheFace() {
+        string encoded = Convert.ToBase64String(ManagedTextShapingTestAssets.CreateFont('A'));
+        string html = "<style>@font-face{font-family:Scoped;src:url('data:font/ttf;base64,"
+            + encoded
+            + "');unicode-range:U+110000}p{font-family:Scoped}</style><p>A</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Empty(rendered.Fonts.Faces);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceInvalid);
     }
 
     [Fact]

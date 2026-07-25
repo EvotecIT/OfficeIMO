@@ -50,18 +50,37 @@ public static partial class OfficeDrawingSvgExporter {
 
         sb.Append("<defs><style type=\"text/css\">");
         foreach (OfficeFontFace face in fonts.Faces) {
-            sb.Append("@font-face{font-family:\"")
-                .Append(EscapeCssString(face.FamilyName))
-                .Append("\";src:url(data:font/ttf;base64,")
-                .Append(Convert.ToBase64String(face.DataSnapshot))
-                .Append(") format(\"truetype\");font-weight:")
-                .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
-                .Append(";font-style:")
-                .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal")
-                .Append(";}");
+            AppendEmbeddedFontFace(sb, face, face.ResourceFamilyName);
+            if (!string.Equals(face.ResourceFamilyName, face.FamilyName, StringComparison.Ordinal)) {
+                AppendEmbeddedFontFace(sb, face, face.FamilyName);
+            }
         }
 
         sb.Append("</style></defs>");
+    }
+
+    private static void AppendEmbeddedFontFace(StringBuilder sb, OfficeFontFace face, string familyName) {
+        sb.Append("@font-face{font-family:\"")
+            .Append(EscapeCssString(familyName))
+            .Append("\";src:url(data:font/ttf;base64,")
+            .Append(Convert.ToBase64String(face.DataSnapshot))
+            .Append(") format(\"truetype\");font-weight:")
+            .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+            .Append(";font-style:")
+            .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal");
+        if (!face.UnicodeRanges.IsAll) {
+            sb.Append(";unicode-range:");
+            for (int index = 0; index < face.UnicodeRanges.Ranges.Count; index++) {
+                if (index > 0) sb.Append(',');
+                OfficeFontUnicodeRange range = face.UnicodeRanges.Ranges[index];
+                sb.Append("U+")
+                    .Append(range.Start.ToString("X", CultureInfo.InvariantCulture));
+                if (range.End != range.Start) {
+                    sb.Append('-').Append(range.End.ToString("X", CultureInfo.InvariantCulture));
+                }
+            }
+        }
+        sb.Append(";}");
     }
 
     private static string EscapeCssString(string value) {

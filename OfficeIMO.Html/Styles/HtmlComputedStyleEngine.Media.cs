@@ -14,14 +14,29 @@ public static partial class HtmlComputedStyleEngine {
     /// Evaluates whether a CSS media query list applies to a media context and surface size.
     /// </summary>
     public static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext, double surfaceWidth, double surfaceHeight) {
+        return IsApplicableMedia(mediaText, mediaContext, surfaceWidth, surfaceHeight, new HtmlRenderMediaFeatures());
+    }
+
+    /// <summary>
+    /// Evaluates whether a CSS media query list applies to a media context, surface size,
+    /// and deterministic static device environment.
+    /// </summary>
+    public static bool IsApplicableMedia(
+        string mediaText,
+        HtmlCssMediaContext mediaContext,
+        double surfaceWidth,
+        double surfaceHeight,
+        HtmlRenderMediaFeatures mediaFeatures) {
         if (surfaceWidth <= 0D || double.IsNaN(surfaceWidth) || double.IsInfinity(surfaceWidth)) {
             throw new ArgumentOutOfRangeException(nameof(surfaceWidth));
         }
         if (surfaceHeight <= 0D || double.IsNaN(surfaceHeight) || double.IsInfinity(surfaceHeight)) {
             throw new ArgumentOutOfRangeException(nameof(surfaceHeight));
         }
+        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        mediaFeatures.Validate();
 
-        return IsApplicableMedia(mediaText, new MediaEnvironment(mediaContext, surfaceWidth, surfaceHeight));
+        return IsApplicableMedia(mediaText, new MediaEnvironment(mediaContext, surfaceWidth, surfaceHeight, mediaFeatures));
     }
 
     private static bool IsApplicableMedia(string mediaText, MediaEnvironment environment) {
@@ -114,9 +129,12 @@ public static partial class HtmlComputedStyleEngine {
     private static bool IsMediaFeatureApplicable(string feature, MediaEnvironment environment) {
         if (feature.Length == 0 || feature.IndexOf("not-a-real", StringComparison.Ordinal) >= 0) return false;
 
-        if (feature.StartsWith("color", StringComparison.Ordinal)
-            || feature.StartsWith("min-color", StringComparison.Ordinal)
-            || feature.StartsWith("monochrome", StringComparison.Ordinal)) return true;
+        if (TryEvaluateIntegerFeature(feature, "color", environment.Features.ColorBitsPerComponent, out bool colorApplies)) {
+            return colorApplies;
+        }
+        if (TryEvaluateIntegerFeature(feature, "monochrome", environment.Features.MonochromeBitsPerPixel, out bool monochromeApplies)) {
+            return monochromeApplies;
+        }
 
         if (TryEvaluateMediaLengthFeature(feature, environment, out bool lengthApplies)) return lengthApplies;
 
@@ -128,14 +146,122 @@ public static partial class HtmlComputedStyleEngine {
             return string.Equals(value, landscape ? "landscape" : "portrait", StringComparison.Ordinal);
         }
 
-        if (feature.StartsWith("resolution", StringComparison.Ordinal)) return true;
-
-        if (environment.Context != HtmlCssMediaContext.Print
-            && (feature.StartsWith("hover", StringComparison.Ordinal)
-                || feature.StartsWith("pointer", StringComparison.Ordinal))) return true;
+        if (TryEvaluateResolutionFeature(feature, environment.Features.ResolutionDpi, out bool resolutionApplies)) {
+            return resolutionApplies;
+        }
+        if (TryReadMediaFeatureValue(feature, "prefers-color-scheme", out string colorScheme)) {
+            return string.Equals(
+                colorScheme,
+                environment.Features.PreferredColorScheme == HtmlPreferredColorScheme.Dark ? "dark" : "light",
+                StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "prefers-reduced-motion", out string motion)) {
+            return string.Equals(
+                motion,
+                environment.Features.ReducedMotion == HtmlReducedMotionPreference.Reduce ? "reduce" : "no-preference",
+                StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "pointer", out string pointer)) {
+            return string.Equals(pointer, PointerValue(environment.Features.Pointer), StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "any-pointer", out string anyPointer)) {
+            return string.Equals(anyPointer, PointerValue(environment.Features.AnyPointer), StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "hover", out string hover)) {
+            return string.Equals(hover, HoverValue(environment.Features.Hover), StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "any-hover", out string anyHover)) {
+            return string.Equals(anyHover, HoverValue(environment.Features.AnyHover), StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "scripting", out string scripting)) {
+            return string.Equals(scripting, "none", StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "update", out string update)) {
+            return string.Equals(update, "none", StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "overflow-block", out string overflowBlock)) {
+            string expected = environment.Context == HtmlCssMediaContext.Print ? "paged" : "scroll";
+            return string.Equals(overflowBlock, expected, StringComparison.Ordinal);
+        }
+        if (TryReadMediaFeatureValue(feature, "overflow-inline", out string overflowInline)) {
+            return string.Equals(overflowInline, environment.Context == HtmlCssMediaContext.Print ? "none" : "scroll", StringComparison.Ordinal);
+        }
 
         return false;
     }
+
+    private static bool TryEvaluateIntegerFeature(string feature, string name, int actual, out bool applies) {
+        applies = false;
+        int colon = feature.IndexOf(':');
+        string featureName = (colon < 0 ? feature : feature.Substring(0, colon)).Trim();
+        bool recognized = featureName == name || featureName == "min-" + name || featureName == "max-" + name;
+        if (!recognized) return false;
+        if (colon < 0) {
+            applies = actual > 0;
+            return true;
+        }
+        if (!int.TryParse(feature.Substring(colon + 1).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int expected)
+            || expected < 0) {
+            return true;
+        }
+        applies = featureName.StartsWith("min-", StringComparison.Ordinal)
+            ? actual >= expected
+            : featureName.StartsWith("max-", StringComparison.Ordinal)
+                ? actual <= expected
+                : actual == expected;
+        return true;
+    }
+
+    private static bool TryEvaluateResolutionFeature(string feature, double actualDpi, out bool applies) {
+        applies = false;
+        int colon = feature.IndexOf(':');
+        if (colon < 0) return false;
+        string name = feature.Substring(0, colon).Trim();
+        if (name != "resolution" && name != "min-resolution" && name != "max-resolution") return false;
+        string value = feature.Substring(colon + 1).Trim();
+        int unitStart = 0;
+        while (unitStart < value.Length
+               && (char.IsDigit(value[unitStart]) || value[unitStart] == '.' || value[unitStart] == '+' || value[unitStart] == '-')) {
+            unitStart++;
+        }
+        if (unitStart == 0
+            || !double.TryParse(value.Substring(0, unitStart), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            || parsed < 0D) {
+            return true;
+        }
+        string unit = value.Substring(unitStart).Trim();
+        double expectedDpi;
+        switch (unit) {
+            case "dpi": expectedDpi = parsed; break;
+            case "dpcm": expectedDpi = parsed * 2.54D; break;
+            case "dppx":
+            case "x": expectedDpi = parsed * HtmlRenderOptions.CssPixelsPerInch; break;
+            default: return true;
+        }
+        applies = name.StartsWith("min-", StringComparison.Ordinal)
+            ? actualDpi >= expectedDpi
+            : name.StartsWith("max-", StringComparison.Ordinal)
+                ? actualDpi <= expectedDpi
+                : Math.Abs(actualDpi - expectedDpi) <= 0.000001D;
+        return true;
+    }
+
+    private static bool TryReadMediaFeatureValue(string feature, string name, out string value) {
+        value = string.Empty;
+        int colon = feature.IndexOf(':');
+        if (colon < 0 || !string.Equals(feature.Substring(0, colon).Trim(), name, StringComparison.Ordinal)) return false;
+        value = feature.Substring(colon + 1).Trim();
+        return value.Length > 0;
+    }
+
+    private static string PointerValue(HtmlPointerCapability capability) {
+        if (capability == HtmlPointerCapability.Coarse) return "coarse";
+        if (capability == HtmlPointerCapability.Fine) return "fine";
+        return "none";
+    }
+
+    private static string HoverValue(HtmlHoverCapability capability) =>
+        capability == HtmlHoverCapability.Hover ? "hover" : "none";
 
     private static bool TryEvaluateMediaLengthFeature(string feature, MediaEnvironment environment, out bool applies) {
         int colon = feature.IndexOf(':');
@@ -219,15 +345,21 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private readonly struct MediaEnvironment {
-        internal MediaEnvironment(HtmlCssMediaContext context, double width, double height) {
+        internal MediaEnvironment(
+            HtmlCssMediaContext context,
+            double width,
+            double height,
+            HtmlRenderMediaFeatures? features = null) {
             Context = context;
             Width = width;
             Height = height;
+            Features = features ?? new HtmlRenderMediaFeatures();
         }
 
         internal HtmlCssMediaContext Context { get; }
         internal double Width { get; }
         internal double Height { get; }
+        internal HtmlRenderMediaFeatures Features { get; }
 
         internal static MediaEnvironment CreateDefault(HtmlCssMediaContext context) {
             if (context == HtmlCssMediaContext.Print) {

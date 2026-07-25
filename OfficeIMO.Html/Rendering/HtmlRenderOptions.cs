@@ -6,6 +6,8 @@ namespace OfficeIMO.Html;
 /// Shared layout and safety options used by HTML image and PDF rendering.
 /// </summary>
 public class HtmlRenderOptions : OfficeImageExportOptions {
+    private readonly List<string> _additionalStylesheets = new List<string>();
+
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
     public const double CssPixelsPerInch = 96D;
 
@@ -48,6 +50,15 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
+
+    /// <summary>Deterministic device and user-preference values exposed to CSS media queries.</summary>
+    public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();
+
+    /// <summary>
+    /// Caller-provided author stylesheets appended after document stylesheets.
+    /// Each entry participates in the normal bounded cascade and resource policy.
+    /// </summary>
+    public IList<string> AdditionalStylesheets => _additionalStylesheets;
 
     /// <summary>Optional base URI used to resolve links and resource references.</summary>
     public Uri? BaseUri { get; set; }
@@ -142,6 +153,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum element layout operations allowed in one render.</summary>
     public int MaxLayoutOperations { get; set; } = 1_000_000;
 
+    /// <summary>Maximum normalized UTF-16 characters retained in one CSS running-string value.</summary>
+    public int MaxRunningStringCharacters { get; set; } = 4_096;
+
     /// <summary>Gets the CSS media context selected by the current render mode.</summary>
     public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 
@@ -166,6 +180,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
         target.DefaultLineHeight = DefaultLineHeight;
+        target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
+        target._additionalStylesheets.Clear();
+        target._additionalStylesheets.AddRange(_additionalStylesheets);
         target.BaseUri = BaseUri;
         target.UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone();
         target.ResourceUrlPolicy = ResourceUrlPolicy?.Clone();
@@ -194,6 +211,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxTableColumns = MaxTableColumns;
         target.MaxCollapsedTableBorderSegments = MaxCollapsedTableBorderSegments;
         target.MaxLayoutOperations = MaxLayoutOperations;
+        target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
         return target;
     }
@@ -212,6 +230,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         ValidatePositive(DefaultFontSize, nameof(DefaultFontSize));
         ValidatePositive(DefaultLineHeight, nameof(DefaultLineHeight));
+        (MediaFeatures ?? throw new ArgumentNullException(nameof(MediaFeatures))).Validate();
         if (string.IsNullOrWhiteSpace(DefaultFontFamily)) {
             throw new ArgumentException("A default font family is required.", nameof(DefaultFontFamily));
         }
@@ -272,6 +291,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         }
         if (MaxLayoutOperations <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxLayoutOperations), "Maximum layout operation count must be positive.");
+        }
+        if (MaxRunningStringCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxRunningStringCharacters), "Maximum running-string character count must be positive.");
         }
 
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == System.Threading.Timeout.InfiniteTimeSpan) {
