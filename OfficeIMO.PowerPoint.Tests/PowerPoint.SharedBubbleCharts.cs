@@ -198,6 +198,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_PreservesAlphaForSeriesPointAndOutlineColors() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
+            OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
+            OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
+            var data = new OfficeChartData(new[] { "1" }, new[] {
+                OfficeChartSeries.CreateBubble(
+                    "Portfolio",
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor,
+                    new OfficeColor?[] { pointColor },
+                    markerOutlineColor: outlineColor)
+            });
+
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble, data);
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties seriesProperties =
+                nativeSeries.GetFirstChild<C.ChartShapeProperties>()!;
+            Assert.Equal(50196, seriesProperties
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                .RgbColorModelHex!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Alpha>()!
+                .Val!.Value);
+            Assert.Equal(25098, seriesProperties
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                .RgbColorModelHex!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Alpha>()!
+                .Val!.Value);
+            Assert.Equal(37647, nativeSeries.GetFirstChild<C.DataPoint>()!
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
+                .RgbColorModelHex!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Alpha>()!
+                .Val!.Value);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            OfficeChartSeries snapshotSeries = Assert.Single(snapshot.Data.Series);
+            Assert.Equal(seriesColor, snapshotSeries.Color);
+            Assert.Equal(pointColor, Assert.Single(snapshotSeries.PointColors!));
+            Assert.Equal(outlineColor, snapshotSeries.MarkerOutlineColor);
+        }
+
+        [Fact]
         public void BubbleChart_PreservesExplicitlyDisabledSeriesOutline() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -331,6 +378,10 @@ namespace OfficeIMO.Tests {
                 new[] { 1D, 2D }, new[] { 2D, 3D }, new[] { 5D }));
             Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
                 new[] { 1D }, new[] { 2D }, new[] { -1D }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
+                new[] { double.NaN }, new[] { 2D }, new[] { 1D }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",
+                new[] { 1D }, new[] { double.PositiveInfinity }, new[] { 1D }));
 
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -528,6 +579,24 @@ namespace OfficeIMO.Tests {
 
             varyColors.Val = false;
             Assert.True(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsTrendlinesFromSharedSnapshots() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D, 2D },
+                    new[] { 2D, 4D },
+                    new[] { 4D, 9D }));
+
+            chart.SetSeriesTrendline(0, C.TrendlineValues.Linear);
+
+            Assert.NotNull(presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.Trendline>().Single());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         private static int CountOccurrences(string value, string marker) {

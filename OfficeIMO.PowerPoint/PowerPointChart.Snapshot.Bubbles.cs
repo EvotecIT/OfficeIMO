@@ -17,7 +17,8 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<double>? categoryXValues = null;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
-                if (HasUnsupportedSeriesStyle(
+                if (element.Elements<C.Trendline>().Any() ||
+                    HasUnsupportedSeriesStyle(
                         element.GetFirstChild<C.ChartShapeProperties>()) ||
                     element.Elements<C.DataPoint>().Any(point =>
                         HasUnsupportedPointStyle(

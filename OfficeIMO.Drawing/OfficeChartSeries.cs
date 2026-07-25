@@ -125,6 +125,20 @@ public sealed class OfficeChartSeries {
             }
         }
         if (bubbleSizes != null) {
+            for (int index = 0; index < Values.Count; index++) {
+                double value = Values[index];
+                if (double.IsNaN(value) || double.IsInfinity(value)) {
+                    throw new ArgumentOutOfRangeException(nameof(values),
+                        "Bubble Y-axis values must contain only finite values.");
+                }
+            }
+            for (int index = 0; index < XValues!.Count; index++) {
+                double value = XValues[index];
+                if (double.IsNaN(value) || double.IsInfinity(value)) {
+                    throw new ArgumentOutOfRangeException(nameof(xValues),
+                        "Bubble X-axis values must contain only finite values.");
+                }
+            }
             BubbleSizes = new ReadOnlyCollection<double>(new List<double>(bubbleSizes));
             if (BubbleSizes.Count != Values.Count) {
                 throw new ArgumentException("Series bubble sizes must match the number of series values.", nameof(bubbleSizes));

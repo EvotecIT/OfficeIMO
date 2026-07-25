@@ -424,7 +424,7 @@ namespace OfficeIMO.PowerPoint {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
                 properties.PrependChild(new A.SolidFill(
-                    new A.RgbColorModelHex { Val = series.Color.Value.ToRgbHex() }));
+                    CreateSharedRgbColor(series.Color.Value)));
             }
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
@@ -435,7 +435,7 @@ namespace OfficeIMO.PowerPoint {
                 outline.Append(new A.NoFill());
             } else if (outlineColor.HasValue) {
                 outline.Append(new A.SolidFill(
-                    new A.RgbColorModelHex { Val = outlineColor.Value.ToRgbHex() }));
+                    CreateSharedRgbColor(outlineColor.Value)));
             }
             if (outlineWidth.HasValue) {
                 outline.Width = (int)Math.Min(int.MaxValue,
@@ -462,14 +462,14 @@ namespace OfficeIMO.PowerPoint {
                 if (series.Color.HasValue) {
                     properties.RemoveAllChildren<A.SolidFill>();
                     properties.PrependChild(new A.SolidFill(
-                        new A.RgbColorModelHex { Val = series.Color.Value.ToRgbHex() }));
+                        CreateSharedRgbColor(series.Color.Value)));
                 }
                 A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
                 OfficeColor? markerColor = series.MarkerOutlineColor ?? series.Color;
                 if (markerColor.HasValue) {
                     outline.RemoveAllChildren<A.SolidFill>();
                     outline.Append(new A.SolidFill(
-                        new A.RgbColorModelHex { Val = markerColor.Value.ToRgbHex() }));
+                        CreateSharedRgbColor(markerColor.Value)));
                 }
                 if (series.MarkerOutlineWidth.HasValue) {
                     outline.Width = (int)Math.Min(int.MaxValue,
@@ -493,10 +493,22 @@ namespace OfficeIMO.PowerPoint {
                 if (!color.HasValue) continue;
                 C.DataPoint point = new(new C.Index { Val = (uint)index },
                     new C.ChartShapeProperties(new A.SolidFill(
-                        new A.RgbColorModelHex { Val = color.Value.ToRgbHex() })));
+                        CreateSharedRgbColor(color.Value))));
                 if (insertBefore != null) seriesElement.InsertBefore(point, insertBefore);
                 else seriesElement.Append(point);
             }
+        }
+
+        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color) {
+            var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
+            if (color.A < byte.MaxValue) {
+                rgb.Append(new A.Alpha {
+                    Val = checked((int)Math.Round(
+                        color.A / 255D * 100000D,
+                        MidpointRounding.AwayFromZero))
+                });
+            }
+            return rgb;
         }
 
         private static void InsertSharedSeriesProperties(OpenXmlCompositeElement series, C.ChartShapeProperties properties) {
