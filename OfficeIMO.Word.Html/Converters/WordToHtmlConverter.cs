@@ -457,9 +457,14 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                         if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
-                            var highlightCss = GetHighlightCss(run.Highlight);
-                            if (!string.IsNullOrEmpty(highlightCss)) {
-                                inlineStyles.Add($"background-color:{highlightCss}");
+                            string? normalizedRunBackground = NormalizeSixDigitHexColor(run.RunShadingFillColorHex);
+                            if (normalizedRunBackground != null) {
+                                inlineStyles.Add($"background-color:#{normalizedRunBackground}");
+                            } else {
+                                var highlightCss = GetHighlightCss(run.Highlight);
+                                if (!string.IsNullOrEmpty(highlightCss)) {
+                                    inlineStyles.Add($"background-color:{highlightCss}");
+                                }
                             }
                         }
                         if (inlineStyles.Count > 0) {

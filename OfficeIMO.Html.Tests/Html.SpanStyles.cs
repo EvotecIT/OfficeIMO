@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, underRun.Underline);
 
             var markRun = runs.First(r => r.Text == "mark");
-            Assert.Equal(HighlightColorValues.Yellow, markRun.Highlight);
+            Assert.Equal("FFFF00", markRun.RunShadingFillColorHex);
         }
 
         [Fact]

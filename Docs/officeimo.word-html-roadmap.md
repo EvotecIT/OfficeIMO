@@ -10,14 +10,19 @@ The library should preserve the content people expect from real documents, expos
 
 - Bidirectional conversion exists: HTML to `WordDocument` and `WordDocument` to HTML.
 - The HTML import path already handles headings, paragraphs, inline formatting, links, images, SVG, lists, tables, captions, notes, headers, footers, and sections.
-- CSS support covers inline declarations, stylesheet content, stylesheet files, remote stylesheets, class-to-style mapping, paragraph spacing, indentation, colors, line height, white space, list styles, table widths, borders, cell spacing, and physical plus logical alignment.
-- Resource handling already has caller-provided `HttpClient`, timeout support, data URI images, embedded images, external image links, SVG support, per-image/image-total/CSS-total byte limits, declared image and stylesheet content-type validation, and URI scheme/host policy controls.
+- CSS support covers inline declarations, stylesheet content, stylesheet files, remote stylesheets, class-to-style mapping, paragraph spacing, physical and logical margin/padding, exact text backgrounds, block frames, colors, line height, white space, list styles, table widths, borders, cell spacing, and physical plus logical alignment.
+- Resource handling already has caller-provided `HttpClient`, timeout support, bounded remote-image prefetch, data URI images, embedded images, external image links, SVG support, per-image/image-total/CSS-total byte limits, declared image and stylesheet content-type validation, and URI scheme/host policy controls.
 - The export path already emits metadata, footnotes, endnotes, optional headers/footers, optional comments, images, SVG, lists, tables, paragraph/run classes, inline run colors/highlights, spacing, indentation, and optional default CSS.
 - Existing tests cover many real contracts across HTML import, Word export, style mapping, table behavior, image handling, links, notes, async/cancellation, and whitespace.
 - The current supported feature set is documented in `Docs/officeimo.word-html-support-matrix.md`.
 
 ## Recently Fixed Issues
 
+- HTML import now resolves logical margin and padding properties against inherited text direction while preserving declaration-order precedence with physical properties.
+- Block backgrounds, borders, margins, and padding now map to native paragraph frames, including one continuous frame across multi-paragraph containers.
+- Inline CSS backgrounds now preserve arbitrary colors through exact run shading by default; callers can explicitly request nearest Word-highlight mapping and receive diagnostics for approximated colors.
+- Remote image candidates now prefetch with configurable bounded concurrency, while aggregate byte-budget imports remain sequential for deterministic pre-read enforcement.
+- `WordTableCell.AddHtml` and `AddHtmlAsync` now provide typed insertion into existing cells, including nested lists, tables, images, and saved-package relationships.
 - The shared `OfficeIMO.Html` layer now exposes `HtmlConversionDocumentBuilder`, giving adapters one canonical document contract that combines the source HTML, profile contract, logical model, computed-style summary, resource manifest, resource dependency plan, and normalized HTML output.
 - `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Html.Pdf` now accept the shared conversion document through thin adapter overloads while keeping target-specific rendering in the owning packages.
 - Normalized HTML output now provides a policy-aware review/export lane that resolves allowed URLs against the base URI, removes disallowed URL targets, normalizes boolean attributes, strips event-handler attributes by default, and skips executable non-document elements.
@@ -113,7 +118,7 @@ The library should preserve the content people expect from real documents, expos
 - Layout and page controls: cover remaining margin and flow placement cases around constrained containers.
 - Lists: cover CSS formats that Word does not expose as native numbering, richer nested restart/continuation rules, and robust non-standard list markup produced by editors.
 - Tables: continue hardening irregular row/column spans, malformed nested tables in list items, richer collapsed/separate border conflict behavior, multiple-row footer semantics, and table width inside constrained containers.
-- Images and resources: add safer prefetching and broader raster/vector formats.
+- Images and resources: extend the bounded pipeline to linked CSS and future resource kinds, and cover broader raster/vector formats.
 - Semantics and forms: deepen support for `abbr`, `cite`, `dfn`, `q`, `time`, structural elements, bidirectional text, richer specialized form export where practical, native-style multi-select export where practical, and richer reciprocal form behavior; continue expanding richer nested `blockquote` content and richer non-image `figure` content where Word has a durable representation.
 - Word-to-HTML fidelity: preserve richer comment range fidelity, round-trip richer header/footer content, style definitions, richer list definitions, table styles, images, richer note formatting, and accessibility metadata more completely.
 - Security and reliability: keep parser/resource limits current, prevent regex and CSS parsing DoS paths, and continue expanding warning coverage for skipped or degraded content as new unsupported HTML/resource cases are identified.

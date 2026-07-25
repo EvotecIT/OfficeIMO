@@ -117,6 +117,7 @@ namespace OfficeIMO.Word.Html {
                             var mergeSectionStyleIntoChildren = !IsExportedWordSectionElement(element);
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
+                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
                             if (options.SectionTagHandling == SectionTagHandling.WordSection) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
@@ -133,13 +134,16 @@ namespace OfficeIMO.Word.Html {
                                     ProcessNode(child, doc, newSection, options, para, listStack, fmt, null, headerFooter, headingList);
                                     para = null;
                                 }
+                                if (mergeSectionStyleIntoChildren) {
+                                    ApplyContainerFrameFromCss(element, newSection.Paragraphs.Skip(startIndex).ToList());
+                                }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
                                     var paragraph = newSection.Paragraphs.Count > startIndex ? newSection.Paragraphs[startIndex] : newSection.AddParagraph("");
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             } else {
-                                int startIndex = section.Paragraphs.Count;
+                                int startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -150,6 +154,9 @@ namespace OfficeIMO.Word.Html {
                                     }
                                     ProcessNode(child, doc, section, options, para, listStack, fmt, cell, headerFooter, headingList);
                                     para = null;
+                                }
+                                if (mergeSectionStyleIntoChildren) {
+                                    ApplyContainerFrameFromCss(element, GetGeneratedParagraphs(section, cell, headerFooter, startIndex));
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
@@ -171,6 +178,7 @@ namespace OfficeIMO.Word.Html {
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
+                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
                             // Track start within this section rather than whole document
                             int startIndex = section.Paragraphs.Count;
@@ -191,7 +199,9 @@ namespace OfficeIMO.Word.Html {
                                 var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
-                            ApplyContainerPageBreaksFromCss(element, GetGeneratedParagraphs(section, cell, headerFooter, scopeStartIndex));
+                            var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeStartIndex);
+                            ApplyContainerFrameFromCss(element, generatedParagraphs);
+                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
                         }
                     case "h1":
@@ -211,6 +221,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
+                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             ApplyClassStyle(element, paragraph, options);
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
@@ -220,6 +231,7 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
                             }
+                            ApplyParagraphFrameFromCss(paragraph, element);
                             ApplyPageBreakAfterFromCss(paragraph, element);
                             break;
                         }
@@ -228,6 +240,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
+                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -237,6 +250,7 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
                             }
+                            ApplyParagraphFrameFromCss(paragraph, element);
                             ApplyPageBreakAfterFromCss(paragraph, element);
                             break;
                         }
@@ -245,6 +259,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
+                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -255,6 +270,7 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
                             }
+                            ApplyParagraphFrameFromCss(paragraph, element);
                             ApplyPageBreakAfterFromCss(paragraph, element);
                             break;
                         }
@@ -263,6 +279,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
+                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -277,6 +294,7 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
                             }
+                            ApplyParagraphFrameFromCss(paragraph, element);
                             ApplyPageBreakAfterFromCss(paragraph, element);
                             break;
                         }
@@ -285,6 +303,7 @@ namespace OfficeIMO.Word.Html {
                             var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
+                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, firstPara, listStack, fmt, cell, headerFooter, headingList);
@@ -311,6 +330,7 @@ namespace OfficeIMO.Word.Html {
                                     AddBookmarkIfPresent(element, para);
                                 }
                             }
+                            ApplyContainerFrameFromCss(element, blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList());
                             if (!string.IsNullOrEmpty(cite)) {
                                 HtmlSemanticMetadata.SetBlockquoteCite(firstPara!, cite);
                                 var noteRef = AddNoteReference(firstPara!, cite ?? string.Empty, options);
@@ -338,6 +358,7 @@ namespace OfficeIMO.Word.Html {
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
+                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
                             int startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
                             WordParagraph? para = currentParagraph;
@@ -353,7 +374,9 @@ namespace OfficeIMO.Word.Html {
                                     para = doc.Paragraphs.Last();
                                 }
                             }
-                            ApplyContainerPageBreaksFromCss(element, GetGeneratedParagraphs(section, cell, headerFooter, startIndex));
+                            var generatedParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
+                            ApplyContainerFrameFromCss(element, generatedParagraphs);
+                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
                         }
                     case "br": {

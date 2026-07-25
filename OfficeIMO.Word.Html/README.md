@@ -32,7 +32,8 @@ HtmlTextConversionResult export = document.ToHtmlResult();
 Console.WriteLine(export.RequireValue());
 ```
 
-HTML can also be appended to an existing body, header, or footer with `AddHtmlToBody`, `AddHtmlToHeader`, and `AddHtmlToFooter`.
+HTML can also be appended to an existing body, header, footer, or table cell with
+`AddHtmlToBody`, `AddHtmlToHeader`, `AddHtmlToFooter`, and `WordTableCell.AddHtml`.
 
 Use the result API when conversion evidence matters:
 
@@ -73,6 +74,10 @@ Remote images and stylesheets require the async API:
 HtmlToWordResult remote = await source.ToWordDocumentResultAsync(options, cancellationToken);
 using WordDocument remoteDocument = remote.RequireValue();
 ```
+
+Remote image prefetch uses at most `HtmlToWordOptions.MaxConcurrentResourceLoads` requests at
+once. Imports with `MaxTotalImageBytes` stay sequential so responses that exceed the remaining
+budget can be rejected before their bodies are read.
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
 - `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion.

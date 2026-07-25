@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Html {
                 FontFamily = fontFamily;
                 FontSize = fontSize;
                 Highlight = highlight;
+                BackgroundColorHex = backgroundColorHex;
                 Caps = null;
                 LetterSpacing = letterSpacing;
                 Transform = transform;
@@ -48,6 +49,7 @@ namespace OfficeIMO.Word.Html {
             internal string? FontFamily { get; set; }
             internal int? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
+            internal string? BackgroundColorHex { get; set; }
             internal CapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
             internal TextTransform Transform { get; set; }
@@ -219,7 +221,7 @@ namespace OfficeIMO.Word.Html {
                 paragraph.Style = style.Value;
             }
 
-            var parsed = CssStyleMapper.ParseStyles(styleAttribute);
+            var parsed = CssStyleMapper.ParseStyles(styleAttribute, GetBidiFromDir(element) == true);
             var declaration = ParseInlineDeclaration(styleAttribute);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
             int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
@@ -231,10 +233,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                var highlight = MapColorToHighlight(parsed.BackgroundColor);
-                if (highlight.HasValue) {
-                    paragraph.SetHighlight(highlight.Value);
-                }
+                paragraph.ShadingFillColorHex = parsed.BackgroundColor!;
             }
 
             if (parsed.LineHeight.HasValue) {
@@ -412,7 +411,7 @@ namespace OfficeIMO.Word.Html {
             return collapsed;
         }
 
-        private static void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
+        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline(GetUnderlineValue(formatting) ?? UnderlineValues.Single);
@@ -421,6 +420,7 @@ namespace OfficeIMO.Word.Html {
             if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
+            ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
             if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
@@ -533,10 +533,7 @@ namespace OfficeIMO.Word.Html {
                 formatting.Strike = parsed.Strike.Value;
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                var highlight = MapColorToHighlight(parsed.BackgroundColor);
-                if (highlight.HasValue) {
-                    formatting.Highlight = highlight.Value;
-                }
+                formatting.BackgroundColorHex = parsed.BackgroundColor;
             }
             if (parsed.WhiteSpace.HasValue) {
                 formatting.WhiteSpace = parsed.WhiteSpace.Value;
@@ -667,7 +664,7 @@ namespace OfficeIMO.Word.Html {
             var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
             var child = parser.ParseDeclaration(childStyle ?? string.Empty);
             foreach (var prop in parent) {
-                if (IsPageBreakProperty(prop.Name)) {
+                if (IsPageBreakProperty(prop.Name) || IsContainerBoxProperty(prop.Name)) {
                     continue;
                 }
                 if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
@@ -676,6 +673,13 @@ namespace OfficeIMO.Word.Html {
             }
             return child.CssText;
         }
+
+        private static bool IsContainerBoxProperty(string propertyName) =>
+            propertyName.Equals("background", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.Equals("background-color", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("border", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase);
 
         private static bool TryParseHsl(string text, out byte r, out byte g, out byte b) {
             r = g = b = 0;
@@ -747,48 +751,5 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new() {
-            { HighlightColorValues.Yellow, Color.Yellow },
-            { HighlightColorValues.Green, Color.Lime },
-            { HighlightColorValues.Cyan, Color.Cyan },
-            { HighlightColorValues.Magenta, Color.Magenta },
-            { HighlightColorValues.Blue, Color.Blue },
-            { HighlightColorValues.Red, Color.Red },
-            { HighlightColorValues.DarkBlue, Color.DarkBlue },
-            { HighlightColorValues.DarkCyan, Color.DarkCyan },
-            { HighlightColorValues.DarkGreen, Color.DarkGreen },
-            { HighlightColorValues.DarkMagenta, Color.DarkMagenta },
-            { HighlightColorValues.DarkRed, Color.DarkRed },
-            { HighlightColorValues.DarkYellow, Color.Parse("#808000") },
-            { HighlightColorValues.DarkGray, Color.DarkGray },
-            { HighlightColorValues.LightGray, Color.LightGray },
-            { HighlightColorValues.Black, Color.Black },
-            { HighlightColorValues.White, Color.White }
-        };
-
-        private static HighlightColorValues? MapColorToHighlight(string? hex) {
-            if (string.IsNullOrEmpty(hex)) {
-                return null;
-            }
-            try {
-                var target = Color.Parse("#" + hex);
-                var targetRgb = target;
-                HighlightColorValues? best = null;
-                int bestDistance = int.MaxValue;
-                foreach (var pair in _highlightColors) {
-                    var rgb = pair.Value;
-                    int distance = (rgb.R - targetRgb.R) * (rgb.R - targetRgb.R) +
-                                   (rgb.G - targetRgb.G) * (rgb.G - targetRgb.G) +
-                                   (rgb.B - targetRgb.B) * (rgb.B - targetRgb.B);
-                    if (distance < bestDistance) {
-                        bestDistance = distance;
-                        best = pair.Key;
-                    }
-                }
-                return best;
-            } catch {
-                return null;
-            }
-        }
     }
 }

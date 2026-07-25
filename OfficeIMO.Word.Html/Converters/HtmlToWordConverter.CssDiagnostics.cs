@@ -26,11 +26,23 @@ namespace OfficeIMO.Word.Html {
             "list-style-type",
             "margin",
             "margin-bottom",
+            "margin-block",
+            "margin-block-end",
+            "margin-block-start",
+            "margin-inline",
+            "margin-inline-end",
+            "margin-inline-start",
             "margin-left",
             "margin-right",
             "margin-top",
             "padding",
             "padding-bottom",
+            "padding-block",
+            "padding-block-end",
+            "padding-block-start",
+            "padding-inline",
+            "padding-inline-end",
+            "padding-inline-start",
             "padding-left",
             "padding-right",
             "padding-top",
@@ -94,7 +106,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var elementName = element.TagName.ToLowerInvariant();
-                if (!IsSupportedCssDiagnosticProperty(propertyName)) {
+                if (!IsSupportedCssDiagnosticProperty(elementName, propertyName)) {
                     AddUnsupportedCssDiagnostic(
                         "UnsupportedCssDeclaration",
                         "CSS declaration is not currently mapped to Word output.",
@@ -112,9 +124,10 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsSupportedCssDiagnosticProperty(string propertyName) =>
+        private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) =>
             _supportedCssDiagnosticProperties.Contains(propertyName) ||
-            IsSupportedBorderSideShorthand(propertyName);
+            IsSupportedBorderSideShorthand(propertyName) ||
+            (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
@@ -378,6 +391,11 @@ namespace OfficeIMO.Word.Html {
             propertyName.Equals("border-right", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-top", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-bottom", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsBlockFrameElement(string elementName) =>
+            elementName is "p" or "div" or "address" or "dl" or "dt" or "dd" or "blockquote" or
+                "section" or "article" or "aside" or "nav" or "header" or "footer" or "main" or
+                "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;

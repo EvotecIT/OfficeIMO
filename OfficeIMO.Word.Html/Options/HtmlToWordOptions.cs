@@ -159,6 +159,19 @@ namespace OfficeIMO.Word.Html {
         public TimeSpan? ResourceTimeout { get; set; }
 
         /// <summary>
+        /// Maximum number of remote image requests that may be in flight during asynchronous import.
+        /// Defaults to 8. Imports with a total image byte budget remain sequential so the converter can
+        /// reject a response before reading its body when the remaining budget is too small.
+        /// </summary>
+        public int MaxConcurrentResourceLoads { get; set; } = 8;
+
+        /// <summary>
+        /// Controls how CSS text background colors are represented in Word.
+        /// Exact run shading is used by default so arbitrary CSS colors round-trip without palette loss.
+        /// </summary>
+        public HtmlTextBackgroundMode TextBackgroundMode { get; set; } = HtmlTextBackgroundMode.ExactShading;
+
+        /// <summary>
         /// Optional maximum number of bytes allowed for a single image resource, including SVG images.
         /// When exceeded, the image is skipped, alt text is inserted when available, and a diagnostic is emitted.
         /// </summary>
@@ -396,6 +409,8 @@ namespace OfficeIMO.Word.Html {
                 ImageProcessing = ImageProcessing,
                 HttpClient = HttpClient,
                 ResourceTimeout = ResourceTimeout,
+                MaxConcurrentResourceLoads = MaxConcurrentResourceLoads,
+                TextBackgroundMode = TextBackgroundMode,
                 MaxImageBytes = MaxImageBytes,
                 MaxTotalImageBytes = MaxTotalImageBytes,
                 MaxRemoteImageCandidateProbes = MaxRemoteImageCandidateProbes,
@@ -485,6 +500,22 @@ namespace OfficeIMO.Word.Html {
         /// Only embeds data URI images; external images are skipped.
         /// </summary>
         EmbedDataUriOnly
+    }
+
+    /// <summary>
+    /// Specifies how CSS background colors on inline text are represented in Word.
+    /// </summary>
+    public enum HtmlTextBackgroundMode {
+        /// <summary>
+        /// Uses native run shading, preserving the exact CSS color.
+        /// </summary>
+        ExactShading,
+
+        /// <summary>
+        /// Uses the nearest color from Word's fixed text-highlight palette.
+        /// A conversion diagnostic is emitted when the requested color must be approximated.
+        /// </summary>
+        NearestHighlight
     }
 
     /// <summary>

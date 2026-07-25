@@ -817,6 +817,8 @@ namespace OfficeIMO.Word.Html {
             IHtmlDocument document,
             HtmlToWordOptions options,
             CancellationToken cancellationToken) {
+            var sources = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (IElement element in document.QuerySelectorAll("img")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!(element is IHtmlImageElement image)) {
@@ -836,7 +838,38 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     remoteCandidateProbeCount++;
-                    await PrefetchRemoteImageCandidateAsync(resolved, options, cancellationToken).ConfigureAwait(false);
+                    if (seen.Add(resolved)) {
+                        sources.Add(resolved);
+                    }
+                }
+            }
+
+            if (sources.Count == 0) {
+                return;
+            }
+
+            // A total byte budget requires deterministic, ordered reservations so a response whose
+            // declared length exceeds the remaining budget can be rejected before its body is read.
+            int concurrency = options.MaxTotalImageBytes.HasValue
+                ? 1
+                : Math.Min(options.MaxConcurrentResourceLoads, sources.Count);
+            int nextIndex = -1;
+            var workers = new Task[concurrency];
+            for (int workerIndex = 0; workerIndex < workers.Length; workerIndex++) {
+                workers[workerIndex] = PrefetchWorkerAsync();
+            }
+
+            await Task.WhenAll(workers).ConfigureAwait(false);
+
+            async Task PrefetchWorkerAsync() {
+                while (true) {
+                    int index = Interlocked.Increment(ref nextIndex);
+                    if (index >= sources.Count) {
+                        return;
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await PrefetchRemoteImageCandidateAsync(sources[index], options, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -878,7 +911,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
-                _remoteImageBytesFetched += bytes.LongLength;
+                Interlocked.Add(ref _remoteImageBytesFetched, bytes.LongLength);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             } catch (Exception ex) {
@@ -910,13 +943,13 @@ namespace OfficeIMO.Word.Html {
                 byte[] bytes = FetchBytes(uri, options);
                 reservedBytes = bytes.LongLength;
                 if (!IsEmbeddableImageData(bytes, out var detail)) {
-                    _remoteImageBytesCache.Remove(uri.AbsoluteUri);
+                    _remoteImageBytesCache.TryRemove(uri.AbsoluteUri, out _);
                     _remoteImageFailureCache[uri.AbsoluteUri] = new InvalidDataException(detail);
                     return false;
                 }
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
-                _remoteImageFailureCache.Remove(uri.AbsoluteUri);
+                _remoteImageFailureCache.TryRemove(uri.AbsoluteUri, out _);
                 return true;
             } catch (OperationCanceledException ex) when (!_cancellationToken.IsCancellationRequested) {
                 _remoteImageFailureCache[uri.AbsoluteUri] = ex;

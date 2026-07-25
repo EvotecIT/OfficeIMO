@@ -7,6 +7,7 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -34,8 +35,8 @@ namespace OfficeIMO.Word.Html {
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
         // A converter instance is scoped to one conversion. Keeping parsed sheets here avoids
         // retaining attacker-controlled stylesheet identities for the lifetime of the process.
@@ -62,15 +63,7 @@ namespace OfficeIMO.Word.Html {
         internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
-            cancellationToken.ThrowIfCancellationRequested();
-            _cancellationToken = cancellationToken;
-            _httpClient = options.HttpClient ?? _sharedHttpClient;
-            _resourceTimeout = options.ResourceTimeout;
-            _options = options;
-            _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
-
-            _context = document.Context;
-            ValidateDocumentLimits(document, options);
+            await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             var wordDoc = WordDocument.Create();
             if (!string.IsNullOrEmpty(options.FontFamily)) {
@@ -78,31 +71,6 @@ namespace OfficeIMO.Word.Html {
                 wordDoc.Settings.FontFamily = resolved;
             }
             ApplyDocumentMetadata(wordDoc, document);
-
-            _footnoteMap.Clear();
-            _endnoteMap.Clear();
-            _commentMap.Clear();
-            _unsupportedCssDiagnosticKeys.Clear();
-            _processedRadioInputs.Clear();
-            _cssRules.Clear();
-            _imageCache.Clear();
-            _remoteImageBytesCache.Clear();
-            _remoteImageFailureCache.Clear();
-            _cssClassStyles.Clear();
-            _stylesheetCache.Clear();
-            _pendingTopBookmark = false;
-            _imageBytesUsed = 0;
-            _remoteImageBytesFetched = 0;
-            _cssBytesUsed = 0;
-            ResetAccessibilityDiagnosticsState();
-
-            await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
-            await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
-            await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
-            await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
-
-            CaptureNoteSections(document);
-            CaptureCommentSections(document);
 
             if (options.DefaultPageSize.HasValue) {
                 wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
@@ -127,41 +95,8 @@ namespace OfficeIMO.Word.Html {
         internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
-            cancellationToken.ThrowIfCancellationRequested();
-            _cancellationToken = cancellationToken;
-            _httpClient = options.HttpClient ?? _sharedHttpClient;
-            _resourceTimeout = options.ResourceTimeout;
-            _options = options;
-            _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
-
-            _context = document.Context;
-            ValidateDocumentLimits(document, options);
+            await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
             ApplyDocumentMetadata(doc, document);
-
-            _footnoteMap.Clear();
-            _endnoteMap.Clear();
-            _commentMap.Clear();
-            _unsupportedCssDiagnosticKeys.Clear();
-            _processedRadioInputs.Clear();
-            _cssRules.Clear();
-            _imageCache.Clear();
-            _remoteImageBytesCache.Clear();
-            _remoteImageFailureCache.Clear();
-            _cssClassStyles.Clear();
-            _stylesheetCache.Clear();
-            _pendingTopBookmark = false;
-            _imageBytesUsed = 0;
-            _remoteImageBytesFetched = 0;
-            _cssBytesUsed = 0;
-            ResetAccessibilityDiagnosticsState();
-
-            await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
-            await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
-            await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
-            await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
-
-            CaptureNoteSections(document, cancellationToken);
-            CaptureCommentSections(document, cancellationToken);
 
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
@@ -183,16 +118,52 @@ namespace OfficeIMO.Word.Html {
         private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
+            await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
+            ApplyDocumentMetadata(doc, document);
+
+            var section = doc.Sections.First();
+            var listStack = new Stack<WordList>();
+            WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
+            if (document.Body != null) {
+                cancellationToken.ThrowIfCancellationRequested();
+                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
+            }
+        }
+
+        internal async Task AddHtmlToTableCellAsync(
+            WordTableCell cell,
+            IHtmlDocument document,
+            HtmlToWordOptions options,
+            CancellationToken cancellationToken = default) {
+            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            options ??= new HtmlToWordOptions();
+            await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
+
+            WordDocument doc = cell.Document;
+            ApplyDocumentMetadata(doc, document);
+            WordSection section = doc.Sections.First();
+            var listStack = new Stack<WordList>();
+            if (document.Body != null) {
+                cancellationToken.ThrowIfCancellationRequested();
+                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), cell);
+            }
+            InsertTopBookmarkIfNeeded(doc);
+        }
+
+        private async Task PrepareImportAsync(
+            IHtmlDocument document,
+            HtmlToWordOptions options,
+            CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
+            ValidateResourceConcurrency(options);
             _cancellationToken = cancellationToken;
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
             _cssProcessingBudget = new HtmlCssProcessingBudget(options.Limits);
-
             _context = document.Context;
             ValidateDocumentLimits(document, options);
-            ApplyDocumentMetadata(doc, document);
 
             _footnoteMap.Clear();
             _endnoteMap.Clear();
@@ -215,16 +186,15 @@ namespace OfficeIMO.Word.Html {
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
             await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
             await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
-
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);
+        }
 
-            var section = doc.Sections.First();
-            var listStack = new Stack<WordList>();
-            WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
-            if (document.Body != null) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
+        private static void ValidateResourceConcurrency(HtmlToWordOptions options) {
+            if (options.MaxConcurrentResourceLoads <= 0) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options.MaxConcurrentResourceLoads),
+                    "Maximum concurrent resource loads must be positive.");
             }
         }
 

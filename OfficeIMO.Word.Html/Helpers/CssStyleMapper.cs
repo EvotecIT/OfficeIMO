@@ -61,7 +61,7 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        public static CssProperties ParseStyles(string? style) {
+        public static CssProperties ParseStyles(string? style, bool rightToLeft = false) {
             CssProperties result = new();
             if (string.IsNullOrWhiteSpace(style)) {
                 return result;
@@ -69,21 +69,7 @@ namespace OfficeIMO.Word.Html {
 
             Dictionary<string, string> properties = Parse(style);
 
-            if (properties.TryGetValue("margin", out string? margin)) {
-                ApplyMarginShorthand(margin, result);
-            }
-            if (properties.TryGetValue("margin-left", out string? ml) && TryParseLength(ml, out int mL)) result.MarginLeft = mL;
-            if (properties.TryGetValue("margin-right", out string? mr) && TryParseLength(mr, out int mR)) result.MarginRight = mR;
-            if (properties.TryGetValue("margin-top", out string? mt) && TryParseLength(mt, out int mT)) result.MarginTop = mT;
-            if (properties.TryGetValue("margin-bottom", out string? mb) && TryParseLength(mb, out int mB)) result.MarginBottom = mB;
-
-            if (properties.TryGetValue("padding", out string? padding)) {
-                ApplyPaddingShorthand(padding, result);
-            }
-            if (properties.TryGetValue("padding-left", out string? pl) && TryParseLength(pl, out int pL)) result.PaddingLeft = pL;
-            if (properties.TryGetValue("padding-right", out string? pr) && TryParseLength(pr, out int pR)) result.PaddingRight = pR;
-            if (properties.TryGetValue("padding-top", out string? pt) && TryParseLength(pt, out int pT)) result.PaddingTop = pT;
-            if (properties.TryGetValue("padding-bottom", out string? pb) && TryParseLength(pb, out int pB)) result.PaddingBottom = pB;
+            ApplyBoxPropertiesInDeclarationOrder(style!, rightToLeft, result);
 
             if (properties.TryGetValue("text-decoration", out string? deco)) {
                 ApplyTextDecoration(deco, result);
@@ -117,6 +103,146 @@ namespace OfficeIMO.Word.Html {
             }
 
             return result;
+        }
+
+        private static void ApplyBoxPropertiesInDeclarationOrder(
+            string style,
+            bool rightToLeft,
+            CssProperties result) {
+            foreach (string part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string[] pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length != 2) {
+                    continue;
+                }
+
+                string name = pieces[0].Trim().ToLowerInvariant();
+                string value = pieces[1].Trim();
+                switch (name) {
+                    case "margin":
+                        ApplyMarginShorthand(value, result);
+                        break;
+                    case "margin-left":
+                        if (TryParseLength(value, out int marginLeft)) result.MarginLeft = marginLeft;
+                        break;
+                    case "margin-right":
+                        if (TryParseLength(value, out int marginRight)) result.MarginRight = marginRight;
+                        break;
+                    case "margin-top":
+                        if (TryParseLength(value, out int marginTop)) result.MarginTop = marginTop;
+                        break;
+                    case "margin-bottom":
+                        if (TryParseLength(value, out int marginBottom)) result.MarginBottom = marginBottom;
+                        break;
+                    case "padding":
+                        ApplyPaddingShorthand(value, result);
+                        break;
+                    case "padding-left":
+                        if (TryParseLength(value, out int paddingLeft)) result.PaddingLeft = paddingLeft;
+                        break;
+                    case "padding-right":
+                        if (TryParseLength(value, out int paddingRight)) result.PaddingRight = paddingRight;
+                        break;
+                    case "padding-top":
+                        if (TryParseLength(value, out int paddingTop)) result.PaddingTop = paddingTop;
+                        break;
+                    case "padding-bottom":
+                        if (TryParseLength(value, out int paddingBottom)) result.PaddingBottom = paddingBottom;
+                        break;
+                    default:
+                        if (name.StartsWith("margin-", StringComparison.Ordinal)) {
+                            ApplySingleLogicalBoxProperty(name, value, "margin", rightToLeft, result);
+                        } else if (name.StartsWith("padding-", StringComparison.Ordinal)) {
+                            ApplySingleLogicalBoxProperty(name, value, "padding", rightToLeft, result);
+                        }
+                        break;
+                }
+            }
+        }
+
+        private static void ApplySingleLogicalBoxProperty(
+            string name,
+            string value,
+            string prefix,
+            bool rightToLeft,
+            CssProperties result) {
+            var property = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                [name] = value
+            };
+            ApplyLogicalBoxProperties(property, prefix, rightToLeft, result);
+        }
+
+        private static void ApplyLogicalBoxProperties(
+            IReadOnlyDictionary<string, string> properties,
+            string prefix,
+            bool rightToLeft,
+            CssProperties result) {
+            int? inlineStart = null;
+            int? inlineEnd = null;
+            int? blockStart = null;
+            int? blockEnd = null;
+
+            if (properties.TryGetValue($"{prefix}-inline", out string? inline)) {
+                ParseLogicalPair(inline, out inlineStart, out inlineEnd);
+            }
+            if (properties.TryGetValue($"{prefix}-block", out string? block)) {
+                ParseLogicalPair(block, out blockStart, out blockEnd);
+            }
+            if (properties.TryGetValue($"{prefix}-inline-start", out string? inlineStartText) &&
+                TryParseLength(inlineStartText, out int parsedInlineStart)) {
+                inlineStart = parsedInlineStart;
+            }
+            if (properties.TryGetValue($"{prefix}-inline-end", out string? inlineEndText) &&
+                TryParseLength(inlineEndText, out int parsedInlineEnd)) {
+                inlineEnd = parsedInlineEnd;
+            }
+            if (properties.TryGetValue($"{prefix}-block-start", out string? blockStartText) &&
+                TryParseLength(blockStartText, out int parsedBlockStart)) {
+                blockStart = parsedBlockStart;
+            }
+            if (properties.TryGetValue($"{prefix}-block-end", out string? blockEndText) &&
+                TryParseLength(blockEndText, out int parsedBlockEnd)) {
+                blockEnd = parsedBlockEnd;
+            }
+
+            if (prefix.Equals("margin", StringComparison.OrdinalIgnoreCase)) {
+                if (inlineStart.HasValue) {
+                    if (rightToLeft) result.MarginRight = inlineStart;
+                    else result.MarginLeft = inlineStart;
+                }
+                if (inlineEnd.HasValue) {
+                    if (rightToLeft) result.MarginLeft = inlineEnd;
+                    else result.MarginRight = inlineEnd;
+                }
+                if (blockStart.HasValue) result.MarginTop = blockStart;
+                if (blockEnd.HasValue) result.MarginBottom = blockEnd;
+            } else {
+                if (inlineStart.HasValue) {
+                    if (rightToLeft) result.PaddingRight = inlineStart;
+                    else result.PaddingLeft = inlineStart;
+                }
+                if (inlineEnd.HasValue) {
+                    if (rightToLeft) result.PaddingLeft = inlineEnd;
+                    else result.PaddingRight = inlineEnd;
+                }
+                if (blockStart.HasValue) result.PaddingTop = blockStart;
+                if (blockEnd.HasValue) result.PaddingBottom = blockEnd;
+            }
+        }
+
+        private static void ParseLogicalPair(string value, out int? start, out int? end) {
+            start = null;
+            end = null;
+            var parts = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0 || parts.Length > 2 || !TryParseLength(parts[0], out int first)) {
+                return;
+            }
+
+            start = first;
+            if (parts.Length == 1) {
+                end = first;
+            } else if (TryParseLength(parts[1], out int second)) {
+                end = second;
+            }
         }
 
         private static Dictionary<string, string> Parse(string? style) {
