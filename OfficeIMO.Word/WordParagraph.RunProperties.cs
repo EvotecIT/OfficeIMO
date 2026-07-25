@@ -390,6 +390,12 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                RunProperties? existingRunProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                if (!value.HasValue) {
+                    existingRunProperties?.Highlight?.Remove();
+                    return;
+                }
+
                 RunProperties runProperties;
                 if (IsHyperLink) {
                     var hyperlink = this.Hyperlink!;
@@ -398,7 +404,7 @@ namespace OfficeIMO.Word {
                     runProperties = VerifyRunProperties();
                 }
                 var highlight = new Highlight {
-                    Val = value
+                    Val = value.Value
                 };
                 runProperties.Highlight = highlight;
             }

@@ -166,7 +166,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryParseDeclaration(
+        internal static bool TryParseDeclaration(
             string declaration,
             out string name,
             out string value,
@@ -302,13 +302,18 @@ namespace OfficeIMO.Word.Html {
             if (string.IsNullOrEmpty(style)) {
                 return dict;
             }
-            var styleText = style ?? string.Empty;
-            foreach (string part in styleText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                string[] pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length == 2) {
-                    dict[pieces[0].Trim()] = pieces[1].Trim();
+
+            string styleText = style ?? string.Empty;
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in styleText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (TryParseDeclaration(part, out string name, out string value, out bool declarationIsImportant) &&
+                        declarationIsImportant == important) {
+                        dict[name] = value;
+                    }
                 }
             }
+
             return dict;
         }
 

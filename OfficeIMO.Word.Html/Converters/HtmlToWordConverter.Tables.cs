@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Html {
             ValidateTableLimit(options, rows, cols);
             WordParagraph? captionParagraph = null;
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
-                captionParagraph = cell != null ? cell.AddParagraph("", true)
+                captionParagraph = cell != null ? AddParagraphInScope(section, cell, headerFooter)
                     : currentParagraph != null ? currentParagraph.AddParagraphAfterSelf()
                     : headerFooter != null ? headerFooter.AddParagraph("")
                     : section.AddParagraph("");
@@ -153,7 +153,7 @@ namespace OfficeIMO.Word.Html {
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
                 WordParagraph captionParagraphBelow;
                 if (cell != null) {
-                    captionParagraphBelow = cell.AddParagraph("", true);
+                    captionParagraphBelow = AddParagraphInScope(section, cell, headerFooter);
                 } else if (headerFooter != null) {
                     captionParagraphBelow = headerFooter.AddParagraph("");
                 } else {

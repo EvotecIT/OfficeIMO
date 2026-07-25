@@ -11,14 +11,14 @@ namespace OfficeIMO.Word.Html {
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {
             if (_footnoteMap.TryGetValue(anchor, out var fnText)) {
-                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                 var noteRef = AddNoteReference(currentParagraph!, fnText, options, NoteReferenceType.Footnote);
                 TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, fnText), options, NoteReferenceType.Footnote);
                 return true;
             }
 
             if (_endnoteMap.TryGetValue(anchor, out var enText)) {
-                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                 var noteRef = AddNoteReference(currentParagraph!, enText, options, NoteReferenceType.Endnote);
                 TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, enText), options, NoteReferenceType.Endnote);
                 return true;

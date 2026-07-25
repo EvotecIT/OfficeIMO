@@ -32,6 +32,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (options.TextBackgroundMode == HtmlTextBackgroundMode.ExactShading) {
+                run.Highlight = null;
                 run.SetRunShadingFillColorHex(formatting.BackgroundColorHex!);
                 return;
             }

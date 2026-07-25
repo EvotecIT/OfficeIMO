@@ -162,6 +162,24 @@ public class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_BlockFrame_ResolvesImportantDeclarationsBeforeNormalDeclarations() {
+        const string html = """
+            <p style="background-color:#abcdef!important;background-color:#ffffff;border:1px solid #123456!important;border:4px dashed #ffffff">
+              Important frame
+            </p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text.Contains("Important frame", StringComparison.Ordinal));
+
+        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.LeftStyle);
+        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+    }
+
+    [Fact]
     public void HtmlToWord_BlockChild_StartsANewFramedParagraphAfterInlineContent() {
         const string html = """
             <span>Before</span><div style="border:1px solid #123456">Inside</div>
@@ -257,6 +275,34 @@ public class HtmlWordGapClosure {
             run => run.Text.Contains("exact", StringComparison.Ordinal));
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
         Assert.Contains("#ABCDEF", reloaded.ToSvg(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToWord_ExactTextBackground_OverridesInheritedHighlight() {
+        const string html = """
+            <p><mark>marked <span style="background-color:#abcdef!important">exact</span></mark></p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph markedRun = Assert.Single(
+            document.Paragraphs[0].GetRuns(),
+            run => run.Text.Contains("marked", StringComparison.Ordinal));
+        WordParagraph exactRun = Assert.Single(
+            document.Paragraphs[0].GetRuns(),
+            run => run.Text.Contains("exact", StringComparison.Ordinal));
+
+        Assert.Equal(HighlightColorValues.Yellow, markedRun.Highlight);
+        Assert.Null(exactRun.Highlight);
+        Assert.Equal("ABCDEF", exactRun.RunShadingFillColorHex);
+
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
+            snapshot.Drawing.Elements
+                .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
+                .SelectMany(richText => richText.Runs),
+            run => run.Text.Contains("exact", StringComparison.Ordinal));
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Parse("#ABCDEF"), renderedRun.BackgroundColor);
+        Assert.Contains("#ABCDEF", document.ToSvg(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -397,6 +443,54 @@ public class HtmlWordGapClosure {
         Assert.Single(reloaded.Images);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Appended");
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_ReplacesOnlyTheFreshEmptyRunPlaceholder() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<p>Imported paragraph</p>"""));
+
+        Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
+        Assert.Equal("Imported paragraph", paragraph.InnerText);
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
+        Paragraph reloadedParagraph = Assert.Single(reloadedCell._tableCell.Elements<Paragraph>());
+        Assert.Equal("Imported paragraph", reloadedParagraph.InnerText);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_PreservesExistingContentAcrossBlockHandlers() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""
+            <hr>
+            <input type="text" value="Form value">
+            <pre>Preformatted</pre>
+            <table>
+              <caption>Nested caption</caption>
+              <tr><td>Nested value</td></tr>
+            </table>
+            """));
+
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text.Contains("Preformatted", StringComparison.Ordinal));
+        Assert.Contains(cell.Elements, element => element is WordTable);
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
+
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Existing");
+        Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Preformatted", StringComparison.Ordinal));
+        Assert.Contains(reloadedCell.Elements, element => element is WordTable);
     }
 
     [Fact]

@@ -45,7 +45,21 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) =>
-            !paragraph._paragraph.ChildElements.Any(child => child is not ParagraphProperties);
+            !paragraph._paragraph.ChildElements.Any(IsMeaningfulCellParagraphChild);
+
+        private static bool IsMeaningfulCellParagraphChild(OpenXmlElement child) {
+            if (child is ParagraphProperties) {
+                return false;
+            }
+
+            if (child is Run run) {
+                return run.ChildElements.Any(runChild =>
+                    runChild is not RunProperties &&
+                    (runChild is not Text text || !string.IsNullOrEmpty(text.Text)));
+            }
+
+            return true;
+        }
 
         private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
@@ -416,11 +430,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "hr": {
-                            if (cell != null) {
-                                cell.AddParagraph("", true).AddHorizontalLine();
-                            } else {
-                                (headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("")).AddHorizontalLine();
-                            }
+                            AddParagraphInScope(section, cell, headerFooter).AddHorizontalLine();
                             break;
                         }
                     case "strong":

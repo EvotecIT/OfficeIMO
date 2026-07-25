@@ -64,30 +64,35 @@ namespace OfficeIMO.Word.Html {
 
             string? background = null;
             var sideBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
-            foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                string[] pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
-                }
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (!CssStyleMapper.TryParseDeclaration(
+                            part,
+                            out string name,
+                            out string value,
+                            out bool declarationIsImportant) ||
+                        declarationIsImportant != important) {
+                        continue;
+                    }
 
-                string name = pieces[0].Trim().ToLowerInvariant();
-                string value = pieces[1].Trim();
-                if (name == "background-color") {
-                    background = NormalizeColor(value);
-                } else if (name == "border" &&
-                           TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle) &&
-                           hasBorderStyle) {
-                    var border = new BlockBorderState(borderStyle, borderSize, borderColor);
-                    sideBorders[BlockBorderSide.Left] = border;
-                    sideBorders[BlockBorderSide.Right] = border;
-                    sideBorders[BlockBorderSide.Top] = border;
-                    sideBorders[BlockBorderSide.Bottom] = border;
-                } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
-                           TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor, out bool hasSideStyle) &&
-                           hasSideStyle) {
-                    sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
-                } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
-                    ApplyBlockBorderLonghand(sideBorders, side, component, value);
+                    if (name == "background-color") {
+                        background = NormalizeColor(value);
+                    } else if (name == "border" &&
+                               TryParseBorder(value, out var borderStyle, out var borderSize, out var borderColor, out bool hasBorderStyle) &&
+                               hasBorderStyle) {
+                        var border = new BlockBorderState(borderStyle, borderSize, borderColor);
+                        sideBorders[BlockBorderSide.Left] = border;
+                        sideBorders[BlockBorderSide.Right] = border;
+                        sideBorders[BlockBorderSide.Top] = border;
+                        sideBorders[BlockBorderSide.Bottom] = border;
+                    } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
+                               TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor, out bool hasSideStyle) &&
+                               hasSideStyle) {
+                        sideBorders[side] = new BlockBorderState(sideStyle, sideSize, sideColor);
+                    } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
+                        ApplyBlockBorderLonghand(sideBorders, side, component, value);
+                    }
                 }
             }
 

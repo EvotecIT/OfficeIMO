@@ -35,7 +35,13 @@ namespace OfficeIMO.Word.Html {
             } else {
                 for (int i = start; i < end; i++) {
                     var line = lines[i];
-                    var paragraph = cell != null ? cell.AddParagraph("", i == start) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                    var paragraph = cell != null
+                        ? i == start
+                            ? AddParagraphInScope(section, cell, headerFooter)
+                            : cell.AddParagraph("")
+                        : headerFooter != null
+                            ? headerFooter.AddParagraph("")
+                            : section.AddParagraph("");
                     AddPreformattedLine(element, paragraph, line, mono, ref bookmarkAdded, options);
                 }
             }
@@ -58,7 +64,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ProcessInlineCodeElement(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter, WordList? headingList) {
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
 
             var fmt = formatting;
             ApplySpanStyles(element, ref fmt);
