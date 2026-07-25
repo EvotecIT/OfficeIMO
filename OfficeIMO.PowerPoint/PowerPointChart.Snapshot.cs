@@ -174,6 +174,9 @@ namespace OfficeIMO.PowerPoint {
             if (CountSupportedChartElements(plotArea) <= 1) {
                 return false;
             }
+            if (plotArea.Elements<C.BubbleChart>().Any()) {
+                return false;
+            }
 
             var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data)>();
             foreach (OpenXmlElement element in plotArea.ChildElements) {
@@ -465,6 +468,12 @@ namespace OfficeIMO.PowerPoint {
             return OfficeOpenXmlThemeColorResolver.ResolveColor(
                 properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(),
                 colorScheme);
+        }
+
+        private static bool IsSeriesStrokeVisible(OpenXmlCompositeElement seriesElement) {
+            C.ChartShapeProperties? properties =
+                seriesElement.GetFirstChild<C.ChartShapeProperties>();
+            return properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() == null;
         }
 
         private static string? ReadTitle(C.Chart chart) {

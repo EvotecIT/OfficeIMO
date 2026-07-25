@@ -81,6 +81,75 @@ public class DrawingChartBubbleTests {
             bubbles[0].Y + bubbles[0].Shape.Height / 2D, precision: 6);
     }
 
+    [Fact]
+    public void OfficeChartDrawingRenderer_RendersBubblesWhenScatterMarkersAreHidden() {
+        OfficeColor color = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1D, 2D },
+                new[] { 1D, 2D },
+                new[] { 25D, 100D },
+                color)
+        });
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot(
+                "Bubbles",
+                null,
+                OfficeChartKind.Bubble,
+                data,
+                widthPoints: 420D,
+                heightPoints: 260D,
+                layout: new OfficeChartLayout(showLegend: false, showMarkers: false)));
+
+        Assert.Equal(2, GetBubbles(drawing).Length);
+    }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_PreservesDisabledBubbleOutline() {
+        OfficeColor color = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "1" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1D },
+                new[] { 2D },
+                new[] { 25D },
+                color,
+                showMarkerOutline: false)
+        });
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot(
+                "Bubbles",
+                null,
+                OfficeChartKind.Bubble,
+                data,
+                widthPoints: 420D,
+                heightPoints: 260D));
+        OfficeDrawingShape bubble = Assert.Single(GetBubbles(drawing));
+
+        Assert.False(Assert.Single(data.Series).ShowMarkerOutline);
+        Assert.Null(bubble.Shape.StrokeColor);
+        Assert.Equal(0D, bubble.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void OfficeChartSnapshot_RejectsBubbleSeriesWithoutSizes() {
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries(
+                "Incomplete",
+                new[] { 2D, 4D },
+                new[] { 1D, 2D })
+        });
+
+        Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
+            "Malformed",
+            null,
+            OfficeChartKind.Bubble,
+            data,
+            widthPoints: 420D,
+            heightPoints: 260D));
+    }
+
     private static OfficeDrawing RenderBubbles(double scale,
         OfficeChartBubbleSizeMode sizeMode) {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");

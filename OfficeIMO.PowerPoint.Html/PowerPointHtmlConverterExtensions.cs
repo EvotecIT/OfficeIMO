@@ -437,7 +437,8 @@ public static partial class PowerPointHtmlConverterExtensions {
                     ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                         item.BubbleSizes, item.Color, item.PointColors,
                         markerOutlineColor: item.StrokeColor ?? item.Color,
-                        markerOutlineWidth: item.StrokeWidth)
+                        markerOutlineWidth: item.StrokeWidth,
+                        showMarkerOutline: item.ShowStroke)
                     : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                         pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
                         renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
@@ -519,7 +520,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append("; Categories: ")
                 .Append(snapshot.Data.Categories.Count.ToString(CultureInfo.InvariantCulture))
                 .Append("</div>");
-            AppendChartDataTable(body, snapshot.Data);
+            AppendChartDataTable(body, snapshot);
             return;
         }
 
@@ -528,8 +529,18 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("</span><div class=\"officeimo-diagnostic\">Chart snapshot unavailable.</div>");
     }
 
-    private static void AppendChartDataTable(StringBuilder body, PptCore.PowerPointChartData data) {
-        body.Append("<table class=\"officeimo-chart-data\"><thead><tr><th>Series</th>");
+    private static void AppendChartDataTable(
+        StringBuilder body, PptCore.PowerPointChartSnapshot snapshot) {
+        PptCore.PowerPointChartData data = snapshot.Data;
+        body.Append("<table class=\"officeimo-chart-data\"");
+        if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Bubble) {
+            body.Append(" data-officeimo-bubble-scale=\"")
+                .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))
+                .Append("\" data-officeimo-bubble-size-mode=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(snapshot.BubbleSizeMode.ToString()))
+                .Append('"');
+        }
+        body.Append("><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
             body.Append("<th>")
                 .Append(OfficeHtmlText.Escape(category))

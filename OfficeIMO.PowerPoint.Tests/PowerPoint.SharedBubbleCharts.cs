@@ -198,6 +198,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_PreservesExplicitlyDisabledSeriesOutline() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            DocumentFormat.OpenXml.Drawing.Outline outline = nativeSeries
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!;
+            outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+            outline.Append(new DocumentFormat.OpenXml.Drawing.NoFill());
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+            Assert.False(series.ShowMarkerOutline);
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+            OfficeDrawingShape bubble = Assert.Single(drawing.Shapes, shape =>
+                shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+                shape.Shape.FillColor == OfficeColor.Parse("#112233"));
+            Assert.Null(bubble.Shape.StrokeColor);
+            Assert.Equal(0D, bubble.Shape.StrokeWidth);
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsMixedSnapshotsThatWouldDropBubbleSeries() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart bubble = slide.AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D, 2D },
+                    new[] { 2D, 4D },
+                    new[] { 4D, 9D }));
+            OfficeChartData categoryData = new(
+                new[] { "A", "B" },
+                new[] { new OfficeChartSeries("Values", new[] { 1D, 2D }) });
+            slide.AddChart(OfficeChartKind.ColumnClustered, categoryData);
+            slide.AddChart(OfficeChartKind.Line, categoryData);
+
+            ChartPart[] chartParts = slide.SlidePart.ChartParts.ToArray();
+            C.PlotArea bubblePlot = chartParts[0].ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.PlotArea columnPlot = chartParts[1].ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.PlotArea linePlot = chartParts[2].ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            bubblePlot.InsertBefore(
+                columnPlot.GetFirstChild<C.BarChart>()!.CloneNode(true),
+                bubblePlot.GetFirstChild<C.ValueAxis>());
+            bubblePlot.InsertBefore(
+                linePlot.GetFirstChild<C.LineChart>()!.CloneNode(true),
+                bubblePlot.GetFirstChild<C.ValueAxis>());
+
+            Assert.False(bubble.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
         public void BubbleChart_DrivesPngSvgHtmlAndPdfWithoutFallbackDiagnostics() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

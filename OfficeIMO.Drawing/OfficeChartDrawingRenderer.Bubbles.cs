@@ -28,8 +28,12 @@ public static partial class OfficeChartDrawingRenderer {
         if (diameter <= 0D) {
             return;
         }
-        double outlineWidth = series.MarkerOutlineWidth ?? 1D;
-        OfficeColor outlineColor = series.MarkerOutlineColor ?? color;
+        double outlineWidth = series.ShowMarkerOutline
+            ? series.MarkerOutlineWidth ?? 1D
+            : 0D;
+        OfficeColor? outlineColor = series.ShowMarkerOutline
+            ? series.MarkerOutlineColor ?? color
+            : null;
         AddShape(drawing, OfficeShape.Ellipse(diameter, diameter),
             center.X - diameter / 2D, center.Y - diameter / 2D,
             color, outlineColor, outlineWidth);

@@ -146,7 +146,8 @@ namespace OfficeIMO.PowerPoint {
                         item.Values, item.BubbleSizes, item.Color, item.PointColors,
                         showInLegend: showInLegend,
                         markerOutlineColor: item.StrokeColor ?? item.Color,
-                        markerOutlineWidth: item.StrokeWidth));
+                        markerOutlineWidth: item.StrokeWidth,
+                        showMarkerOutline: item.ShowStroke));
                 } else {
                     series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
                         pointColors: null, showMarkers: true,

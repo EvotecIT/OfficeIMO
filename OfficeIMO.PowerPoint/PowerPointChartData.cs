@@ -200,6 +200,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal OfficeColor? StrokeColor { get; set; }
 
+        /// <summary>Whether the source series outline is enabled.</summary>
+        internal bool ShowStroke { get; set; } = true;
+
         /// <summary>Primary or secondary value-axis assignment detected for this series.</summary>
         public OfficeChartAxisGroup AxisGroup { get; private set; }
 

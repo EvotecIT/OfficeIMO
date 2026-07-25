@@ -83,22 +83,26 @@ public sealed class OfficeChartSeries {
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
+    /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
-        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null) =>
+        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
+        bool showMarkerOutline = true) =>
         new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
             showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
             markerOutlineColor: markerOutlineColor ?? color, markerOutlineWidth, strokeWidth: null,
             strokeDashStyle: null, renderKind: OfficeChartKind.Bubble,
-            axisGroup: OfficeChartAxisGroup.Primary);
+            axisGroup: OfficeChartAxisGroup.Primary,
+            showMarkerOutline: showMarkerOutline);
 
     private OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
         IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
         bool showMarkers, bool showInLegend, bool connectLine, int? markerSize,
         OfficeChartMarkerShape? markerShape, OfficeColor? markerOutlineColor,
         double? markerOutlineWidth, double? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
-        OfficeChartKind? renderKind, OfficeChartAxisGroup axisGroup) {
+        OfficeChartKind? renderKind, OfficeChartAxisGroup axisGroup,
+        bool showMarkerOutline = true) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
@@ -142,6 +146,7 @@ public sealed class OfficeChartSeries {
         MarkerShape = markerShape;
         MarkerOutlineColor = markerOutlineColor;
         MarkerOutlineWidth = markerOutlineWidth;
+        ShowMarkerOutline = showMarkerOutline;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
         RenderKind = renderKind;
@@ -186,6 +191,9 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Optional source-defined marker outline width in drawing units.</summary>
     public double? MarkerOutlineWidth { get; }
+
+    /// <summary>Whether the marker or bubble outline should be rendered.</summary>
+    public bool ShowMarkerOutline { get; }
 
     /// <summary>Optional source-defined series stroke width in drawing units.</summary>
     public double? StrokeWidth { get; }

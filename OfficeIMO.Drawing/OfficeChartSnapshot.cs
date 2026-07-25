@@ -38,6 +38,18 @@ public sealed class OfficeChartSnapshot {
         if (!Enum.IsDefined(typeof(OfficeChartBubbleSizeMode), bubbleSizeMode)) {
             throw new ArgumentOutOfRangeException(nameof(bubbleSizeMode));
         }
+        if (chartKind == OfficeChartKind.Bubble) {
+            for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
+                OfficeChartSeries series = data.Series[seriesIndex];
+                if (series.XValues == null || series.BubbleSizes == null ||
+                    series.XValues.Count != series.Values.Count ||
+                    series.BubbleSizes.Count != series.Values.Count) {
+                    throw new ArgumentException(
+                        "Bubble chart snapshots require matching X, Y, and size values for every series.",
+                        nameof(data));
+                }
+            }
+        }
 
         Name = name ?? string.Empty;
         Title = title;

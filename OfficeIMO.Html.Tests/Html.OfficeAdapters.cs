@@ -866,7 +866,8 @@ public class HtmlOfficeAdapters {
                 new[] { 4D, 9D })
         });
         slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
-            .SetTitle("Bubble");
+            .SetTitle("Bubble")
+            .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -875,6 +876,10 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-bubble-size=\"4\"", html,
             StringComparison.Ordinal);
         Assert.Contains("data-officeimo-bubble-size=\"9\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-scale=\"145\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-size-mode=\"Width\"", html,
             StringComparison.Ordinal);
 
         HtmlToPowerPointResult result =
@@ -887,6 +892,8 @@ public class HtmlOfficeAdapters {
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
         Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
+        Assert.Equal(145D, snapshot.BubbleScalePercent);
+        Assert.Equal(OfficeChartBubbleSizeMode.Width, snapshot.BubbleSizeMode);
         Assert.DoesNotContain(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted ||
                           diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);

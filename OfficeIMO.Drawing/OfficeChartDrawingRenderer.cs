@@ -1641,15 +1641,14 @@ public static partial class OfficeChartDrawingRenderer {
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
-                if (layout.ShowMarkers && currentSeries.ShowMarkers) {
-                    OfficeColor pointColor = GetPointColor(currentSeries.PointColors, points[i].SourceIndex, color);
-                    if (currentSeries.BubbleSizes != null) {
-                        AddBubbleMarker(drawing, currentSeries, points[i].SourceIndex, point,
-                            maximumBubbleSize, maximumBubbleDiameter,
-                            snapshot.BubbleSizeMode, pointColor);
-                    } else {
+                OfficeColor pointColor = GetPointColor(
+                    currentSeries.PointColors, points[i].SourceIndex, color);
+                if (currentSeries.BubbleSizes != null) {
+                    AddBubbleMarker(drawing, currentSeries, points[i].SourceIndex, point,
+                        maximumBubbleSize, maximumBubbleDiameter,
+                        snapshot.BubbleSizeMode, pointColor);
+                } else if (layout.ShowMarkers && currentSeries.ShowMarkers) {
                         AddMarker(drawing, currentSeries, point, 5D, pointColor, 1.25D);
-                    }
                 }
 
                 int pointIndex = points[i].SourceIndex;

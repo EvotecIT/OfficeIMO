@@ -189,6 +189,17 @@ public static partial class HtmlPowerPointConverterExtensions {
                 chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase) || isBubble,
                 isBubble,
                 out PptCore.PowerPointChartData? semanticData);
+            uint bubbleScale = 100U;
+            OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area;
+            if (isBubble && !TryReadBubbleSizing(item, out bubbleScale,
+                    out bubbleSizeMode)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid bubble sizing metadata and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
             PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
@@ -198,6 +209,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             reservation.Commit();
+            if (isBubble) {
+                chart.SetBubbleSizing(bubbleScale, bubbleSizeMode);
+            }
             chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
             ApplyShapeTransforms(item, chart, budget, result);
             result.Charts++;
@@ -700,6 +714,28 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         bubbleData = new OfficeChartData(data.Categories, series);
         return true;
+    }
+
+    private static bool TryReadBubbleSizing(IElement item, out uint scalePercent,
+        out OfficeChartBubbleSizeMode sizeMode) {
+        scalePercent = 100U;
+        sizeMode = OfficeChartBubbleSizeMode.Area;
+        IElement? table = item.QuerySelector("table.officeimo-chart-data");
+        if (table == null) {
+            return true;
+        }
+
+        string? rawScale = table.GetAttribute("data-officeimo-bubble-scale");
+        if (rawScale != null &&
+            (!uint.TryParse(rawScale, NumberStyles.None, CultureInfo.InvariantCulture,
+                out scalePercent) || scalePercent > 300U)) {
+            return false;
+        }
+
+        string? rawMode = table.GetAttribute("data-officeimo-bubble-size-mode");
+        return rawMode == null ||
+               Enum.TryParse(rawMode, ignoreCase: true, out sizeMode) &&
+               Enum.IsDefined(typeof(OfficeChartBubbleSizeMode), sizeMode);
     }
 
     private static string ReadChartKind(IElement item) {

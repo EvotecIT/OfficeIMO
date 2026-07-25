@@ -415,6 +415,7 @@ namespace OfficeIMO.PowerPoint {
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
             if (!series.Color.HasValue && !outlineColor.HasValue && outlineWidth == null &&
+                (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
                 series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind))) return;
             C.ChartShapeProperties properties = seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
@@ -428,7 +429,9 @@ namespace OfficeIMO.PowerPoint {
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
             outline.RemoveAllChildren<A.NoFill>();
-            if (!series.ConnectLine && !IsFilledSharedKind(kind)) {
+            if (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) {
+                outline.Append(new A.NoFill());
+            } else if (!series.ConnectLine && !IsFilledSharedKind(kind)) {
                 outline.Append(new A.NoFill());
             } else if (outlineColor.HasValue) {
                 outline.Append(new A.SolidFill(

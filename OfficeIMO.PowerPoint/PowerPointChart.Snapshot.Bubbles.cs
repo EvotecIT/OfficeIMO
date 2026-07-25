@@ -50,6 +50,7 @@ namespace OfficeIMO.PowerPoint {
                     BubbleSizes = normalizedSizes,
                     PointColors = ReadBubblePointColors(element, pointCount, colorScheme),
                     StrokeColor = ReadSeriesStrokeColor(element, colorScheme),
+                    ShowStroke = IsSeriesStrokeVisible(element),
                     SourceIndex = element.GetFirstChild<C.Index>()?.Val?.Value
                 };
                 series.Add(item);
