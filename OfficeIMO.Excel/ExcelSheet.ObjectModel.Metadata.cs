@@ -302,23 +302,7 @@ namespace OfficeIMO.Excel {
             }
 
             commentsPart.Comments.Save();
-            var shapesToRemove = new HashSet<(int Row, int Col)>();
-            foreach (var cell in removed) {
-                shapesToRemove.Add(cell);
-            }
-
-            foreach (var pair in moved) {
-                shapesToRemove.Add(pair.OldCell);
-            }
-
-            foreach (var cell in shapesToRemove) {
-                RemoveCommentVmlShape(cell.Row, cell.Col);
-            }
-
-            foreach (var pair in moved) {
-                EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
-            }
-
+            RemapCommentVmlShapes(removed, moved);
             CleanupCommentArtifacts();
         }
 

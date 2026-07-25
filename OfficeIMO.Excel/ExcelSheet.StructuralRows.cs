@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when content or a dependent reference would exceed the worksheet row limit, or when the insertion
-        /// would split an array formula, data-table, or PivotTable output range, or when the workbook uses R1C1 reference mode.
+        /// would split an array formula, data-table, or PivotTable output range, when the workbook uses R1C1 reference
+        /// mode, or when the worksheet contains unsupported form controls, OLE objects, or single-cell XML mappings.
         /// </exception>
         public void InsertRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
@@ -37,7 +38,8 @@ namespace OfficeIMO.Excel {
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown when the deletion would remove an owned table boundary or intersect an array-formula, data-table,
-        /// or PivotTable output range that cannot be rebuilt safely, or when the workbook uses R1C1 reference mode.
+        /// or PivotTable output range that cannot be rebuilt safely, when the workbook uses R1C1 reference mode,
+        /// or when the worksheet contains unsupported form controls, OLE objects, or single-cell XML mappings.
         /// </exception>
         public void DeleteRows(int firstRow, int count = 1) {
             ValidateStructuralRowArguments(firstRow, count);
@@ -389,6 +391,11 @@ namespace OfficeIMO.Excel {
             }
 
             ValidateReferenceAttributesDoNotOverflow(WorksheetRoot, firstRow, count);
+            foreach (CellFormula dataTableFormula in WorksheetRoot.Descendants<CellFormula>()
+                .Where(formula => formula.FormulaType?.Value == CellFormulaValues.DataTable)) {
+                ValidateReferenceListDoesNotOverflow(dataTableFormula.R1?.Value, firstRow, count);
+                ValidateReferenceListDoesNotOverflow(dataTableFormula.R2?.Value, firstRow, count);
+            }
             foreach (var tablePart in _worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table != null) {
                     ValidateReferenceAttributesDoNotOverflow(tablePart.Table, firstRow, count);
@@ -457,6 +464,15 @@ namespace OfficeIMO.Excel {
                 || _worksheetPart.ControlPropertiesParts.Any()) {
                 throw new InvalidOperationException(
                     "Cannot edit rows on a worksheet containing form controls because their anchors and linked cells cannot yet be remapped safely.");
+            }
+            if (WorksheetRoot.Descendants<OleObjects>().Any()
+                || _worksheetPart.EmbeddedObjectParts.Any()) {
+                throw new InvalidOperationException(
+                    "Cannot edit rows on a worksheet containing embedded OLE objects because their VML anchors cannot yet be remapped safely.");
+            }
+            if (_worksheetPart.SingleCellTablePart != null) {
+                throw new InvalidOperationException(
+                    "Cannot edit rows on a worksheet containing single-cell XML mappings because their mapped references cannot yet be remapped safely.");
             }
         }
 
@@ -635,7 +651,11 @@ namespace OfficeIMO.Excel {
                 count++;
             }
 
-            merges.Count = count;
+            if (count == 0U) {
+                merges.Remove();
+            } else {
+                merges.Count = count;
+            }
         }
 
         private void ResetStructuralMutationCaches() {

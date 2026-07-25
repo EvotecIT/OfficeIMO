@@ -98,13 +98,7 @@ namespace OfficeIMO.Excel {
             }
 
             commentsPart.Comments.Save();
-            foreach (var pair in moved) {
-                RemoveCommentVmlShape(pair.OldCell.Row, pair.OldCell.Col);
-            }
-
-            foreach (var pair in moved) {
-                EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
-            }
+            RemapCommentVmlShapes(Array.Empty<(int Row, int Col)>(), moved);
         }
 
         private void RemapSortedHyperlinks(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {

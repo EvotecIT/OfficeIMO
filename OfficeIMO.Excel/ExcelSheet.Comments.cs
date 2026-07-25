@@ -644,6 +644,104 @@ namespace OfficeIMO.Excel {
             return removed;
         }
 
+        private void RemapCommentVmlShapes(
+            IReadOnlyCollection<(int Row, int Col)> removed,
+            IReadOnlyCollection<((int Row, int Col) OldCell, (int Row, int Col) NewCell)> moved) {
+            if (removed.Count == 0 && moved.Count == 0) {
+                return;
+            }
+
+            var removedCells = new HashSet<(int Row, int Col)>(removed);
+            var movedCells = moved.ToDictionary(pair => pair.OldCell, pair => pair.NewCell);
+            var movedShapes = new HashSet<(int Row, int Col)>();
+            VmlDrawingPart? vmlPart = TryGetCommentVmlPart();
+            if (vmlPart != null) {
+                XDocument document = LoadOrCreateVmlDocument(vmlPart);
+                XElement? root = document.Root;
+                if (root != null) {
+                    XNamespace v = XNamespace.Get("urn:schemas-microsoft-com:vml");
+                    XNamespace x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
+                    bool changed = false;
+                    foreach (XElement shape in root.Elements(v + "shape").ToList()) {
+                        XElement? clientData = shape.Element(x + "ClientData");
+                        if (clientData == null
+                            || !TryParseVmlCoordinate(clientData.Element(x + "Row")?.Value, out int zeroBasedRow)
+                            || !TryParseVmlCoordinate(clientData.Element(x + "Column")?.Value, out int zeroBasedColumn)) {
+                            continue;
+                        }
+
+                        var oldCell = (Row: zeroBasedRow + 1, Col: zeroBasedColumn + 1);
+                        if (removedCells.Contains(oldCell)) {
+                            shape.Remove();
+                            changed = true;
+                            continue;
+                        }
+
+                        if (!movedCells.TryGetValue(oldCell, out var newCell)) {
+                            continue;
+                        }
+
+                        clientData.SetElementValue(
+                            x + "Row",
+                            (newCell.Row - 1).ToString(CultureInfo.InvariantCulture));
+                        clientData.SetElementValue(
+                            x + "Column",
+                            (newCell.Col - 1).ToString(CultureInfo.InvariantCulture));
+                        ShiftVmlAnchor(
+                            clientData.Element(x + "Anchor"),
+                            newCell.Row - oldCell.Row,
+                            newCell.Col - oldCell.Col);
+                        movedShapes.Add(oldCell);
+                        changed = true;
+                    }
+
+                    if (changed) {
+                        SaveVmlDocument(vmlPart, document);
+                    }
+                }
+            }
+
+            foreach (var pair in moved) {
+                if (!movedShapes.Contains(pair.OldCell)) {
+                    EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
+                }
+            }
+        }
+
+        private static void ShiftVmlAnchor(XElement? anchor, int rowDelta, int columnDelta) {
+            if (anchor?.Value is not string anchorText) {
+                return;
+            }
+
+            string[] parts = anchorText.Split(',');
+            if (parts.Length != 8) {
+                return;
+            }
+
+            var values = new int[parts.Length];
+            for (int index = 0; index < parts.Length; index++) {
+                if (!int.TryParse(
+                    parts[index].Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out values[index])) {
+                    return;
+                }
+            }
+
+            values[0] += columnDelta;
+            values[2] += rowDelta;
+            values[4] += columnDelta;
+            values[6] += rowDelta;
+            if (values[0] < 0 || values[2] < 0 || values[4] < 0 || values[6] < 0) {
+                return;
+            }
+
+            anchor.Value = string.Join(
+                ", ",
+                values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
+        }
+
         private static bool RemoveVmlShape(XElement root, int row, int column) {
             var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
             var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
