@@ -5,6 +5,7 @@ meta.eyebrow: "Document publishing"
 meta.outcome: "Application data turned into dependable deliverables"
 meta.primary_label: "See publishing workflows"
 meta.primary_url: "/docs/workflows/content-publishing/"
+meta.powershell: true
 ---
 
 Document publishing begins with a user need, not a file format. A finance team may need an editable workbook and a signed PDF. A customer may need an accessible Word report. A knowledge pipeline may need HTML and Markdown from the same source material.

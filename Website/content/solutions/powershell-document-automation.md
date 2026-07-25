@@ -5,6 +5,7 @@ meta.eyebrow: "PowerShell document automation"
 meta.outcome: "Repeatable document jobs without COM automation"
 meta.primary_label: "Read the PSWriteOffice guide"
 meta.primary_url: "/docs/pswriteoffice/"
+meta.powershell: true
 ---
 
 PSWriteOffice is the first-party PowerShell surface over OfficeIMO. It is intended for administrators, automation engineers, and build pipelines that need document output without embedding C# in every script or launching desktop Office.

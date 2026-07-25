@@ -1074,7 +1074,7 @@
             },
             {
               "id": "create",
-              "label": "Create legacy",
+              "label": "Create XLSB",
               "states": [
                 {
                   "state": "Approximated",
@@ -1116,7 +1116,7 @@
             },
             {
               "id": "modernToLegacy",
-              "label": "Modern to legacy",
+              "label": "XLSX to XLSB",
               "states": [
                 {
                   "state": "Approximated",
@@ -1152,7 +1152,7 @@
             },
             {
               "id": "legacyToModern",
-              "label": "Legacy to modern",
+              "label": "XLSB to XLSX",
               "states": [
                 {
                   "state": "Dropped",

@@ -64,6 +64,18 @@ if ([int] $catalog.summary.capabilityCount -ne 137) {
     throw "Capability catalog has $($catalog.summary.capabilityCount) behaviors; expected the current 137-behavior source total."
 }
 
+$xlsbContract = @($contracts | Where-Object id -eq 'OfficeIMO.Excel.Xlsb')[0]
+$xlsbOperationLabels = @{
+    modernToLegacy = 'XLSX to XLSB'
+    legacyToModern = 'XLSB to XLSX'
+}
+foreach ($operationId in $xlsbOperationLabels.Keys) {
+    $operation = @($xlsbContract.operations | Where-Object id -eq $operationId)
+    if ($operation.Count -ne 1 -or [string] $operation[0].label -ne $xlsbOperationLabels[$operationId]) {
+        throw "XLSB operation '$operationId' must use the format-specific label '$($xlsbOperationLabels[$operationId])'."
+    }
+}
+
 $stateDefinitions = @{}
 foreach ($state in $catalog.fidelityStates) {
     $stateDefinitions[[string] $state.id] = $state
@@ -190,16 +202,26 @@ $aotClaimFiles = @(
     'content\docs\advanced\aot-trimming\index.md',
     'content\blog\aot-trimming-office.md'
 )
-$aotClaimText = ($aotClaimFiles | ForEach-Object {
-    Get-Content -LiteralPath (Join-Path $siteRootPath $_) -Raw
-}) -join "`n"
 $validatedClaim = "$($aot.summary.nativeAotValidatedProjectCount) of $($aot.summary.productionProjectCount)"
-if (-not $aotClaimText.Contains($validatedClaim, [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Customer-facing NativeAOT claims do not match the current '$validatedClaim' project matrix."
-}
+$validatedClaimPattern = "(?i)$($aot.summary.nativeAotValidatedProjectCount)\s+of\s+(?:the\s+)?$($aot.summary.productionProjectCount)"
 $fullyRootedClaim = [string] $aot.summary.fullyRootedLibraryCount
-if ($aotClaimText -notmatch "(?i)(fully roots|fully rooted|libraries are fully rooted)\D{0,20}$fullyRootedClaim|$fullyRootedClaim\D{0,20}(fully rooted|library assemblies)") {
-    throw "Customer-facing NativeAOT claims do not mention the current $fullyRootedClaim fully rooted libraries."
+foreach ($relativeAotClaimPath in $aotClaimFiles) {
+    $aotClaimText = Get-Content -LiteralPath (Join-Path $siteRootPath $relativeAotClaimPath) -Raw
+    if ($aotClaimText -notmatch $validatedClaimPattern) {
+        throw "NativeAOT claim file '$relativeAotClaimPath' does not match the current '$validatedClaim' project matrix."
+    }
+    if ($aotClaimText -notmatch "(?i)(fully roots|fully rooted|libraries are fully rooted)\D{0,24}$fullyRootedClaim|$fullyRootedClaim\D{0,24}(fully rooted|library assemblies|production libraries)") {
+        throw "NativeAOT claim file '$relativeAotClaimPath' does not mention the current $fullyRootedClaim fully rooted libraries."
+    }
+}
+
+$solutionLayout = Get-Content -LiteralPath (Join-Path $siteRootPath 'themes\officeimo\layouts\solution.html') -Raw
+if (-not $solutionLayout.Contains('{{ if page.meta.powershell }}', [StringComparison]::Ordinal)) {
+    throw 'Solution pages must make the First-party PowerShell benefit conditional on route metadata.'
+}
+$googleWorkspaceSolution = Get-Content -LiteralPath (Join-Path $siteRootPath 'content\solutions\google-workspace-migration.md') -Raw
+if ($googleWorkspaceSolution.Contains('meta.powershell: true', [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'The Google Workspace migration route must not advertise an undocumented PSWriteOffice surface.'
 }
 
 $staticCatalogPath = Join-Path $siteRootPath 'static\data\office-capabilities.json'

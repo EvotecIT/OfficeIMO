@@ -123,6 +123,11 @@ $familyDefinitions = @(
                 File = 'excel-xlsb.json'
                 Label = 'XLSB (binary Open XML)'
                 Scope = 'Binary workbook lifecycle, preservation, and XLSB/XLSX conversion.'
+                OperationLabels = @{
+                    create = 'Create XLSB'
+                    modernToLegacy = 'XLSX to XLSB'
+                    legacyToModern = 'XLSB to XLSX'
+                }
             }
         )
         ProductUrl = '/products/excel/'
@@ -211,9 +216,14 @@ $families = foreach ($definition in $familyDefinitions) {
             Where-Object { $_.id -in $formatIds } |
             ForEach-Object extension)
         $contractOperations = @($operationDefinitions | ForEach-Object {
+            $operationLabel = $_.label
+            if ($contractDefinition.Contains('OperationLabels') -and
+                $contractDefinition.OperationLabels.ContainsKey($_.id)) {
+                $operationLabel = $contractDefinition.OperationLabels[$_.id]
+            }
             [ordered]@{
                 id = $_.id
-                label = $_.label
+                label = $operationLabel
                 states = @(Get-StateCounts -Capabilities $capabilities -Property $_.property)
             }
         })

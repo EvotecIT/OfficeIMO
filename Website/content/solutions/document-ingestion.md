@@ -5,6 +5,7 @@ meta.eyebrow: "Document ingestion"
 meta.outcome: "One inspectable read model across document families"
 meta.primary_label: "Start with OfficeIMO.Reader"
 meta.primary_url: "/docs/reader/"
+meta.powershell: true
 ---
 
 Search and AI systems usually do not need a full editable document model. They need reliable text, structure, metadata, tables, images, and source locations. `OfficeIMO.Reader` provides a normalized read-only layer over the focused OfficeIMO engines so ingestion code does not have to invent a separate parser for each file family.
