@@ -17,6 +17,12 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<double>? categoryXValues = null;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
+                if (HasExplicitNoFill(element.GetFirstChild<C.ChartShapeProperties>()) ||
+                    element.Elements<C.DataPoint>().Any(point =>
+                        HasExplicitNoFill(
+                            point.GetFirstChild<C.ChartShapeProperties>()))) {
+                    return null;
+                }
                 if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(),
                         allowNegative: true, out IReadOnlyList<double> xValues) ||
                     !TryReadStrictCachedNumbers(element.GetFirstChild<C.YValues>(),
@@ -64,6 +70,9 @@ namespace OfficeIMO.PowerPoint {
                 value.ToString(CultureInfo.InvariantCulture)).ToList();
             return new PowerPointChartData(categories, series);
         }
+
+        private static bool HasExplicitNoFill(C.ChartShapeProperties? properties) =>
+            properties?.GetFirstChild<NoFill>() != null;
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme) {

@@ -97,7 +97,8 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
-                    if (IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                    if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
+                        IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                             IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()))) {
                         snapshot = null!;
@@ -156,7 +157,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsBubble3DEnabled(C.Bubble3D? bubble3D) =>
-            bubble3D?.Val?.Value == true;
+            bubble3D != null && bubble3D.Val?.Value != false;
+
+        private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
+            varyColors != null && varyColors.Val?.Value != false;
 
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()

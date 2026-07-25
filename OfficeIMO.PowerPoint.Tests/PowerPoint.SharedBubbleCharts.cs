@@ -414,6 +414,66 @@ namespace OfficeIMO.Tests {
 
             nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = false;
             Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            nativeSeries.GetFirstChild<C.Bubble3D>()!.Val = null;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsExplicitNoFillStyles() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties seriesProperties =
+                nativeSeries.GetFirstChild<C.ChartShapeProperties>() ??
+                nativeSeries.AppendChild(new C.ChartShapeProperties());
+            seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+            seriesProperties.PrependChild(new DocumentFormat.OpenXml.Drawing.NoFill());
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
+            seriesProperties.PrependChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex {
+                    Val = "112233"
+                }));
+            nativeSeries.PrependChild(new C.DataPoint(
+                new C.Index { Val = 0U },
+                new C.ChartShapeProperties(
+                    new DocumentFormat.OpenXml.Drawing.NoFill())));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsNativeVaryColors() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.VaryColors varyColors = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChart>().Single()
+                .GetFirstChild<C.VaryColors>()!;
+
+            varyColors.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            varyColors.Val = null;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            varyColors.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         private static int CountOccurrences(string value, string marker) {
