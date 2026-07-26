@@ -955,6 +955,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void ResetStructuralMutationCaches() {
+            _excelDocument.ResetStructuralMutationCaches(_worksheetPart);
+        }
+
+        internal void ResetStructuralMutationCachesLocal() {
             _hasWorksheetMutations = true;
             _lastAccessedRow = null;
             _lastAccessedRowIndex = 0;

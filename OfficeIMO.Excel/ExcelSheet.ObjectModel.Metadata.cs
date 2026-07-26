@@ -60,11 +60,8 @@ namespace OfficeIMO.Excel {
             RemapShiftedWebPublishItems(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedConnectionParameters(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            bool definedNamesChanged = RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            bool tablesChanged = RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            if (definedNamesChanged || tablesChanged) {
-                InvalidateWorkbookChartCaches();
-            }
+            RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedWorksheetRangeMetadata(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotLocations(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -75,6 +72,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedSparklines(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedDrawingAnchors(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            InvalidateWorkbookChartCaches();
         }
 
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
@@ -82,11 +80,8 @@ namespace OfficeIMO.Excel {
             RemapShiftedWebPublishItems(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedConnectionParameters(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
-            bool definedNamesChanged = RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
-            bool tablesChanged = RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
-            if (definedNamesChanged || tablesChanged) {
-                InvalidateWorkbookChartCaches();
-            }
+            RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedWorksheetRangeMetadata(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotLocations(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -97,6 +92,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedSparklines(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedDrawingAnchors(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedChartReferences(firstDeletedRow, rowDelta, lastDeletedRow);
+            InvalidateWorkbookChartCaches();
         }
 
         private bool RemapShiftedDefinedNames(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {

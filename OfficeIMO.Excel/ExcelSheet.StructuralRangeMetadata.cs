@@ -536,12 +536,49 @@ namespace OfficeIMO.Excel {
                 }
 
                 string fallback = selection.ActiveCell?.Value ?? "A1";
+                List<string> finalReferences = remappedReferences.Count > 0
+                    ? remappedReferences
+                    : new List<string> { fallback };
                 selection.SequenceOfReferences = new ListValue<StringValue> {
-                    InnerText = remappedReferences.Count > 0
-                        ? string.Join(" ", remappedReferences)
-                        : fallback
+                    InnerText = string.Join(" ", finalReferences)
                 };
+                RemapSelectionActiveCellId(selection, finalReferences);
             }
+        }
+
+        private static void RemapSelectionActiveCellId(
+            Selection selection,
+            IReadOnlyList<string> references) {
+            if (selection.ActiveCellId == null || references.Count == 0) {
+                return;
+            }
+
+            string? activeCell = selection.ActiveCell?.Value;
+            if (!string.IsNullOrWhiteSpace(activeCell)
+                && A1.TryParseRange(
+                    activeCell!.Replace("$", string.Empty),
+                    out int activeRow,
+                    out int activeColumn,
+                    out _,
+                    out _)) {
+                for (int index = 0; index < references.Count; index++) {
+                    if (A1.TryParseRange(
+                            references[index].Replace("$", string.Empty),
+                            out int firstRow,
+                            out int firstColumn,
+                            out int lastRow,
+                            out int lastColumn)
+                        && activeRow >= firstRow
+                        && activeRow <= lastRow
+                        && activeColumn >= firstColumn
+                        && activeColumn <= lastColumn) {
+                        selection.ActiveCellId = (uint)index;
+                        return;
+                    }
+                }
+            }
+
+            selection.ActiveCellId = 0U;
         }
 
         private void RemapShiftedNamedSheetViewFilters(

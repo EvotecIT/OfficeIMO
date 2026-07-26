@@ -156,6 +156,7 @@ namespace OfficeIMO.Excel {
             _hasWorksheetMutations = excelDocument.IsPackageDirty && _worksheetPart.IsRootElementLoaded;
             _requiresSavePreparation = _hasWorksheetMutations;
             _id = sheet.SheetId!;
+            excelDocument.RegisterSheetWrapper(this);
             Interlocked.Increment(ref _instancesCreated);
         }
 
@@ -204,6 +205,7 @@ namespace OfficeIMO.Excel {
             this._worksheetPart = worksheetPart;
 
             excelDocument.id.Add(id);
+            excelDocument.RegisterSheetWrapper(this);
             Interlocked.Increment(ref _instancesCreated);
         }
 

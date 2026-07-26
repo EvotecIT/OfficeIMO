@@ -309,7 +309,13 @@ public sealed partial class HtmlRenderingTests {
         cancellation.CancelAfter(TimeSpan.FromMilliseconds(1D));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = 240D }, cancellation.Token));
+            HtmlRenderTestDriver.RenderAsync(
+                HtmlConversionDocument.Parse(html),
+                new HtmlRenderOptions {
+                    ViewportWidth = 240D,
+                    MaxSurfaceHeight = 1_000_000
+                },
+                cancellation.Token));
     }
 
     [Fact]
