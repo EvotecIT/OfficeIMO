@@ -232,6 +232,10 @@ namespace OfficeIMO.PowerPoint {
                     C.AxisPositionValues.Left) {
                 return true;
             }
+            if (!HasSupportedDefaultBubbleGridlines(
+                    horizontalAxis, verticalAxis)) {
+                return true;
+            }
             return new[] { horizontalAxis, verticalAxis }.Any(axis =>
                 (axis.GetFirstChild<C.Delete>() is C.Delete delete &&
                   delete.Val?.Value != false) ||
@@ -252,6 +256,33 @@ namespace OfficeIMO.PowerPoint {
                    scaling.GetFirstChild<C.MaxAxisValue>() != null ||
                    scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
                       C.OrientationValues.MaxMin)));
+        }
+
+        private static bool HasSupportedDefaultBubbleGridlines(
+            C.ValueAxis horizontalAxis, C.ValueAxis verticalAxis) {
+            if (horizontalAxis.GetFirstChild<C.MajorGridlines>() != null ||
+                horizontalAxis.GetFirstChild<C.MinorGridlines>() != null ||
+                verticalAxis.GetFirstChild<C.MinorGridlines>() != null) {
+                return false;
+            }
+
+            C.MajorGridlines? gridlines =
+                verticalAxis.GetFirstChild<C.MajorGridlines>();
+            C.ChartShapeProperties? properties =
+                gridlines?.GetFirstChild<C.ChartShapeProperties>();
+            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
+            if (gridlines == null || properties == null || outline == null ||
+                gridlines.ChildElements.Count != 1 ||
+                properties.ChildElements.Count != 1 ||
+                outline.ChildElements.Count != 1 ||
+                outline.Width?.Value !=
+                    PowerPointUnits.FromPoints(0.5D)) {
+                return false;
+            }
+
+            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                outline.GetFirstChild<A.SolidFill>(), colorScheme: null);
+            return color == OfficeChartStyle.Default.GridLineColor;
         }
 
         private static bool TryGetReferencedBubbleAxes(

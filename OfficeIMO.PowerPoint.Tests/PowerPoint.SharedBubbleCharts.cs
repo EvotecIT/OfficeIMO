@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
@@ -455,6 +456,70 @@ namespace OfficeIMO.Tests {
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.Contains("Risk", svg, StringComparison.Ordinal);
             Assert.Contains("Return", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void BubbleChart_MaterializesDefaultColorsAndGridlineFidelity() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart nativeChart =
+                plotArea.GetFirstChild<C.BubbleChart>()!;
+            C.BubbleChartSeries nativeSeries =
+                nativeChart.Elements<C.BubbleChartSeries>().Single();
+            OfficeColor defaultColor =
+                OfficeChartStyle.Default.GetSeriesColor(0);
+
+            Assert.Equal(defaultColor,
+                OfficeOpenXmlThemeColorResolver.ResolveColor(
+                    nativeSeries.GetFirstChild<C.ChartShapeProperties>()!
+                        .GetFirstChild<A.SolidFill>(), colorScheme: null));
+
+            uint[] axisIds = nativeChart.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            C.ValueAxis horizontalAxis = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
+            C.ValueAxis verticalAxis = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[1]);
+            Assert.Null(horizontalAxis.GetFirstChild<C.MajorGridlines>());
+            C.MajorGridlines majorGridlines =
+                verticalAxis.GetFirstChild<C.MajorGridlines>()!;
+            A.Outline gridlineOutline = majorGridlines
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Equal(PowerPointUnits.FromPoints(0.5D),
+                gridlineOutline.Width!.Value);
+            Assert.Equal(OfficeChartStyle.Default.GridLineColor,
+                OfficeOpenXmlThemeColorResolver.ResolveColor(
+                    gridlineOutline.GetFirstChild<A.SolidFill>(),
+                    colorScheme: null));
+
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            Assert.Equal(defaultColor,
+                Assert.Single(snapshot.Data.Series).Color);
+
+            horizontalAxis.AddChild(new C.MajorGridlines(), true);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            horizontalAxis.GetFirstChild<C.MajorGridlines>()!.Remove();
+
+            gridlineOutline.Width = checked((int)PowerPointUnits.FromPoints(1D));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            gridlineOutline.Width =
+                checked((int)PowerPointUnits.FromPoints(0.5D));
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            nativeSeries.GetFirstChild<C.ChartShapeProperties>()!
+                .RemoveAllChildren<A.SolidFill>();
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]

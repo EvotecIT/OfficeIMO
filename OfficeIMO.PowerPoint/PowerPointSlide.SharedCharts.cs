@@ -19,7 +19,9 @@ namespace OfficeIMO.PowerPoint {
                 byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(scatterData);
                 chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) => {
                     PowerPointUtils.PopulateChart(chartPart, embeddedRelId, scatterData, PowerPointChartKind.Scatter);
-                    PowerPointUtils.ApplySharedChartSeriesStyle(chartPart, data, chartKind);
+                    PowerPointUtils.ApplySharedChartSeriesStyle(
+                        chartPart, data, chartKind,
+                        materializeMissingBubbleColors: false);
                 }, left, top, width, height);
             } else if (chartKind == OfficeChartKind.Bubble) {
                 byte[] workbookBytes = PowerPointUtils.BuildBubbleChartWorkbook(data);

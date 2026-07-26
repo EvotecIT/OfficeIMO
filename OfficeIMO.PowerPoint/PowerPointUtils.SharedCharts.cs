@@ -157,7 +157,8 @@ namespace OfficeIMO.PowerPoint {
                 });
             }
             chartPart.ChartSpace = chartSpace;
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
+                materializeMissingBubbleColors: true);
         }
 
         internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
@@ -188,12 +189,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             UpdateSharedLegend(chart, data);
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
+                materializeMissingBubbleColors: false);
             chartSpace.Save();
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartKind defaultKind, bool materializeMissingBubbleColors) {
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
             if (plotArea == null) return;
             foreach (OpenXmlCompositeElement seriesElement in EnumerateSharedSeriesElements(plotArea)) {
@@ -201,7 +203,14 @@ namespace OfficeIMO.PowerPoint {
                 if (index < 0 || index >= data.Series.Count) continue;
                 OfficeChartSeries series = data.Series[index];
                 OfficeChartKind kind = series.RenderKind ?? defaultKind;
-                ApplySharedSeriesShapeStyle(seriesElement, series, kind);
+                OfficeColor? fallbackBubbleColor =
+                    materializeMissingBubbleColors &&
+                    kind == OfficeChartKind.Bubble &&
+                    !series.Color.HasValue
+                        ? OfficeChartStyle.Default.GetSeriesColor(index)
+                        : null;
+                ApplySharedSeriesShapeStyle(seriesElement, series, kind,
+                    fallbackBubbleColor);
                 ApplySharedSeriesMarker(seriesElement, series, kind);
                 ApplySharedPointColors(seriesElement, series);
             }
@@ -223,9 +232,13 @@ namespace OfficeIMO.PowerPoint {
                 uint yAxisId = PowerPointChartAxisIdGenerator.GetNextId();
                 plotArea.Append(CreateSharedBubbleChart(data, xAxisId, yAxisId));
                 plotArea.Append(CreateSharedValueAxis(xAxisId, yAxisId,
-                    C.AxisPositionValues.Bottom, secondary: false));
+                    C.AxisPositionValues.Bottom, secondary: false,
+                    showMajorGridlines: false,
+                    materializeDefaultGridlineStyle: false));
                 plotArea.Append(CreateSharedValueAxis(yAxisId, xAxisId,
-                    C.AxisPositionValues.Left, secondary: false));
+                    C.AxisPositionValues.Left, secondary: false,
+                    showMajorGridlines: true,
+                    materializeDefaultGridlineStyle: true));
                 return;
             }
 
@@ -265,13 +278,17 @@ namespace OfficeIMO.PowerPoint {
                 plotArea.Append(CreateSharedCategoryAxis(primaryCategoryId, primaryValueId,
                     categoryPosition, secondary: false));
                 plotArea.Append(CreateSharedValueAxis(primaryValueId, primaryCategoryId,
-                    valuePosition, secondary: false));
+                    valuePosition, secondary: false,
+                    showMajorGridlines: true,
+                    materializeDefaultGridlineStyle: false));
             }
             if (hasSecondary) {
                 plotArea.Append(CreateSharedCategoryAxis(secondaryCategoryId, secondaryValueId,
                     C.AxisPositionValues.Top, secondary: true));
                 plotArea.Append(CreateSharedValueAxis(secondaryValueId, secondaryCategoryId,
-                    C.AxisPositionValues.Right, secondary: true));
+                    C.AxisPositionValues.Right, secondary: true,
+                    showMajorGridlines: false,
+                    materializeDefaultGridlineStyle: false));
             }
         }
 
@@ -383,13 +400,29 @@ namespace OfficeIMO.PowerPoint {
             new C.NoMultiLevelLabels { Val = false });
 
         private static C.ValueAxis CreateSharedValueAxis(uint axisId, uint crossingAxisId,
-            C.AxisPositionValues position, bool secondary) {
+            C.AxisPositionValues position, bool secondary,
+            bool showMajorGridlines,
+            bool materializeDefaultGridlineStyle) {
             C.ValueAxis axis = new(
                 new C.AxisId { Val = axisId },
                 new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
                 new C.Delete { Val = false },
                 new C.AxisPosition { Val = position });
-            if (!secondary) axis.Append(new C.MajorGridlines());
+            if (showMajorGridlines) {
+                if (materializeDefaultGridlineStyle) {
+                    OfficeChartStyle style = OfficeChartStyle.Default;
+                    var outline = new A.Outline {
+                        Width = checked((int)PowerPointUnits.FromPoints(
+                            style.GridLineWidth ?? 0.5D))
+                    };
+                    outline.Append(new A.SolidFill(
+                        CreateSharedRgbColor(style.GridLineColor)));
+                    axis.Append(new C.MajorGridlines(
+                        new C.ChartShapeProperties(outline)));
+                } else {
+                    axis.Append(new C.MajorGridlines());
+                }
+            }
             axis.Append(new C.NumberingFormat { FormatCode = "General", SourceLinked = true });
             axis.Append(new C.MajorTickMark { Val = C.TickMarkValues.None });
             axis.Append(new C.MinorTickMark { Val = C.TickMarkValues.None });
@@ -447,10 +480,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind) {
+            OfficeChartSeries series, OfficeChartKind kind,
+            OfficeColor? fallbackFillColor) {
+            OfficeColor? fillColor = series.Color ?? fallbackFillColor;
             OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
-                ? series.MarkerOutlineColor ?? series.Color
-                : series.Color;
+                ? series.MarkerOutlineColor ?? fillColor
+                : fillColor;
             double? outlineWidth = kind == OfficeChartKind.Bubble
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
@@ -460,12 +495,12 @@ namespace OfficeIMO.PowerPoint {
             bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
                 series.ShowMarkerOutline &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
-            if (!series.Color.HasValue && !outlineColor.HasValue && outlineWidth == null &&
+            if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
                 (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
                 series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind)) &&
                 !reenableBubbleOutline) return;
-            if (series.Color.HasValue && IsFilledSharedKind(kind)) {
+            if (fillColor.HasValue && IsFilledSharedKind(kind)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
                 properties.RemoveAllChildren<A.GradientFill>();
@@ -473,7 +508,7 @@ namespace OfficeIMO.PowerPoint {
                 properties.RemoveAllChildren<A.BlipFill>();
                 properties.RemoveAllChildren<A.GroupFill>();
                 properties.PrependChild(new A.SolidFill(
-                    CreateSharedRgbColor(series.Color.Value)));
+                    CreateSharedRgbColor(fillColor.Value)));
             }
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             bool replaceOutlineFill = reenableBubbleOutline ||

@@ -126,7 +126,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
-            HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme) ||
+            !OfficeOpenXmlThemeColorResolver.ResolveColor(
+                properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue ||
             HasUnresolvedSolidFill(
                 properties?.GetFirstChild<Outline>()?.GetFirstChild<SolidFill>(),
                 colorScheme);
