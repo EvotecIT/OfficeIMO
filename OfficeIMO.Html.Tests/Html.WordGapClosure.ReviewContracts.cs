@@ -131,6 +131,47 @@ public partial class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void HtmlToWord_AncestorBackground_DoesNotOverrideNestedMarkHighlight() {
+        using WordDocument document = HtmlConversionDocument
+            .Parse("""<p><span style="background-color:#ff0000"><mark>Marked</mark></span></p>""")
+            .ToWordDocument();
+        WordParagraph run = Assert.Single(
+            document.Paragraphs[0].GetRuns(),
+            candidate => candidate.Text == "Marked");
+
+        Assert.Equal(HighlightColorValues.Yellow, run.Highlight);
+        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+    }
+
+    [Fact]
+    public void HtmlToWord_SupportedTableSpacing_PassesStrictDiagnostics() {
+        using WordDocument document = HtmlConversionDocument
+            .Parse("""<table style="margin:0 auto;padding:4px"><tr><td>Cell</td></tr></table>""")
+            .ToWordDocument(new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            });
+        WordTable table = Assert.Single(document.Tables);
+
+        Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+    }
+
+    [Fact]
+    public void HtmlToWord_ListItemContainerFrame_IncludesReusedNumberedParagraph() {
+        using WordDocument document = HtmlConversionDocument
+            .Parse("""<ol><li><div style="border:1px solid #123456;background-color:#abcdef">Framed</div></li></ol>""")
+            .ToWordDocument();
+        WordParagraph paragraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Framed");
+
+        Assert.True(paragraph.IsListItem);
+        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.BottomStyle);
+        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+    }
+
+    [Fact]
     public void HtmlToWord_NegativeLogicalBlockMargins_AreExplicitlyDiagnosed() {
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
             HtmlConversionDocument

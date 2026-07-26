@@ -85,6 +85,12 @@ namespace OfficeIMO.Word.Html {
             int startIndex) {
             List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
             if (paragraphs.Count == 0 &&
+                currentParagraph != null &&
+                GetParagraphsInScope(section, cell, headerFooter)
+                    .Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph))) {
+                paragraphs.Add(currentParagraph);
+            }
+            if (paragraphs.Count == 0 &&
                 currentParagraph == null &&
                 RequiresEmptyBlockParagraph(element)) {
                 AddParagraphInScope(section, cell, headerFooter);
@@ -585,6 +591,8 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Highlight = HighlightColorValues.Yellow;
+                            fmt.PreserveHighlightOverBackground = !string.IsNullOrEmpty(formatting.BackgroundColorHex);
+                            ApplySpanStyles(element, ref fmt);
                             int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);

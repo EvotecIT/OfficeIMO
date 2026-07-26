@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.Html {
             internal int? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
             internal string? BackgroundColorHex { get; set; }
+            internal bool PreserveHighlightOverBackground { get; set; }
             internal CapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
             internal TextTransform Transform { get; set; }
@@ -543,6 +544,7 @@ namespace OfficeIMO.Word.Html {
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
                 formatting.BackgroundColorHex = parsed.BackgroundColor;
+                formatting.PreserveHighlightOverBackground = false;
             }
             if (parsed.WhiteSpace.HasValue) {
                 formatting.WhiteSpace = parsed.WhiteSpace.Value;

@@ -62,6 +62,17 @@ namespace OfficeIMO.Word.Html {
             "padding-top",
         };
 
+        private static readonly HashSet<string> _tableSpacingCssDiagnosticProperties = new(StringComparer.OrdinalIgnoreCase) {
+            "margin",
+            "margin-left",
+            "margin-right",
+            "padding",
+            "padding-bottom",
+            "padding-left",
+            "padding-right",
+            "padding-top",
+        };
+
         private void ReportUnsupportedInlineCssDiagnostics(IElement element) {
             var style = element.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(style)) {
@@ -76,11 +87,20 @@ namespace OfficeIMO.Word.Html {
             }
 
             var hasRawFontShorthand = rawPropertyNames.Contains("font");
+            bool isTable = element.TagName.Equals("table", StringComparison.OrdinalIgnoreCase);
+            bool hasRawTableMarginShorthand = isTable && rawPropertyNames.Contains("margin");
+            bool hasRawTablePaddingShorthand = isTable && rawPropertyNames.Contains("padding");
             foreach (var property in ParseInlineDeclaration(style)) {
                 if (rawPropertyNames.Contains(property.Name)) {
                     continue;
                 }
                 if (hasRawFontShorthand && property.Name.StartsWith("font-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (hasRawTableMarginShorthand && property.Name.StartsWith("margin-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (hasRawTablePaddingShorthand && property.Name.StartsWith("padding-", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -129,7 +149,9 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) {
             if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
-                return IsBlockSpacingElement(elementName);
+                return IsBlockSpacingElement(elementName) ||
+                       elementName.Equals("table", StringComparison.OrdinalIgnoreCase) &&
+                       _tableSpacingCssDiagnosticProperties.Contains(propertyName);
             }
 
             return _supportedCssDiagnosticProperties.Contains(propertyName) ||
