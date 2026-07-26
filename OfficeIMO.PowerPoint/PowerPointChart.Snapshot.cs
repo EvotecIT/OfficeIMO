@@ -69,6 +69,11 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (HasUnsupportedChartGroupElements(plotArea)) {
+                    snapshot = null!;
+                    return false;
+                }
+
                 if (TryCreateMixedChartSnapshot(chart, plotArea, colorScheme, out snapshot)) {
                     return true;
                 }
@@ -226,6 +231,10 @@ namespace OfficeIMO.PowerPoint {
                  axis.GetFirstChild<C.MajorUnit>() != null ||
                  axis.GetFirstChild<C.MinorUnit>() != null ||
                  axis.GetFirstChild<C.CrossesAt>() != null ||
+                 (axis.GetFirstChild<C.TickLabelPosition>() is
+                      C.TickLabelPosition tickLabelPosition &&
+                  tickLabelPosition.Val?.Value !=
+                      C.TickLabelPositionValues.NextTo) ||
                  (axis.GetFirstChild<C.Crosses>() is C.Crosses crosses &&
                   crosses.Val?.Value != C.CrossesValues.AutoZero) ||
                  (axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
@@ -238,8 +247,11 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedBubbleLegend(C.Chart chart) {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            return legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value ==
-                C.LegendPositionValues.TopRight;
+            return legend != null &&
+                (legend.GetFirstChild<C.LegendPosition>()?.Val?.Value ==
+                     C.LegendPositionValues.TopRight ||
+                 legend.GetFirstChild<C.Layout>()?
+                     .GetFirstChild<C.ManualLayout>() != null);
         }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
@@ -265,6 +277,18 @@ namespace OfficeIMO.PowerPoint {
                 + plotArea.Elements<C.PieChart>().Count()
                 + plotArea.Elements<C.DoughnutChart>().Count();
         }
+
+        private static bool HasUnsupportedChartGroupElements(C.PlotArea plotArea) =>
+            plotArea.ChildElements.Any(element =>
+                element.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                element is not C.BarChart &&
+                element is not C.LineChart &&
+                element is not C.AreaChart &&
+                element is not C.RadarChart &&
+                element is not C.ScatterChart &&
+                element is not C.BubbleChart &&
+                element is not C.PieChart &&
+                element is not C.DoughnutChart);
 
         private bool TryCreateMixedChartSnapshot(C.Chart chart, C.PlotArea plotArea, A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
             snapshot = null!;

@@ -65,26 +65,33 @@ namespace OfficeIMO.PowerPoint {
                 IReadOnlyList<double> sharedX = data.Series.Any(series => series.XValues == null)
                     ? ParseScatterCategories(data.Categories)
                     : Array.Empty<double>();
-                for (int pointIndex = 0; pointIndex < maxPoints; pointIndex++) {
-                    uint rowIndex = (uint)(pointIndex + 2);
-                    var row = new S.Row {
-                        RowIndex = rowIndex,
-                        Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" }
-                    };
-                    for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                        OfficeChartSeries series = data.Series[seriesIndex];
-                        IReadOnlyList<double> xValues = series.XValues ?? sharedX;
-                        int xColumn = seriesIndex * 3 + 1;
-                        if (pointIndex < series.Values.Count) {
-                            row.Append(CreateNumberCell(
-                                $"{ColumnLetter(xColumn)}{rowIndex}", xValues[pointIndex]));
-                            row.Append(CreateNumberCell(
-                                $"{ColumnLetter(xColumn + 1)}{rowIndex}", series.Values[pointIndex]));
-                            row.Append(CreateNumberCell(
-                                $"{ColumnLetter(xColumn + 2)}{rowIndex}",
-                                series.BubbleSizes![pointIndex]));
-                        }
+                var rows = new S.Row[maxPoints];
+                for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+                    OfficeChartSeries series = data.Series[seriesIndex];
+                    IReadOnlyList<double> xValues = series.XValues ?? sharedX;
+                    int xColumn = seriesIndex * 3 + 1;
+                    for (int pointIndex = 0;
+                         pointIndex < series.Values.Count;
+                         pointIndex++) {
+                        uint rowIndex = (uint)(pointIndex + 2);
+                        S.Row row = rows[pointIndex] ??= new S.Row {
+                            RowIndex = rowIndex,
+                            Spans = new ListValue<StringValue> {
+                                InnerText = $"1:{totalColumns}"
+                            }
+                        };
+                        row.Append(CreateNumberCell(
+                            $"{ColumnLetter(xColumn)}{rowIndex}",
+                            xValues[pointIndex]));
+                        row.Append(CreateNumberCell(
+                            $"{ColumnLetter(xColumn + 1)}{rowIndex}",
+                            series.Values[pointIndex]));
+                        row.Append(CreateNumberCell(
+                            $"{ColumnLetter(xColumn + 2)}{rowIndex}",
+                            series.BubbleSizes![pointIndex]));
                     }
+                }
+                foreach (S.Row row in rows) {
                     sheetData.Append(row);
                 }
 

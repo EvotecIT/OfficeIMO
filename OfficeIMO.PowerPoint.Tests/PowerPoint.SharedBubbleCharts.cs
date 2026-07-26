@@ -379,6 +379,20 @@ namespace OfficeIMO.Tests {
 
             chart.SetLegend(C.LegendPositionValues.TopRight);
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetLegend(C.LegendPositionValues.Top, overlay: true);
+            C.Legend legend = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.Legend>()!;
+            C.Layout layout = legend.GetFirstChild<C.Layout>() ??
+                legend.PrependChild(new C.Layout());
+            layout.Append(new C.ManualLayout(
+                new C.LayoutTarget { Val = C.LayoutTargetValues.Inner },
+                new C.LeftMode { Val = C.LayoutModeValues.Factor },
+                new C.TopMode { Val = C.LayoutModeValues.Factor },
+                new C.Left { Val = 0.2D },
+                new C.Top { Val = 0.1D }));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
@@ -405,6 +419,12 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
             C.PlotArea linePlot = chartParts[2].ChartSpace!
                 .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.StockChart stockChart = bubblePlot.InsertBefore(
+                new C.StockChart(),
+                bubblePlot.GetFirstChild<C.ValueAxis>())!;
+            Assert.False(bubble.TryGetOfficeSnapshot(out _));
+            stockChart.Remove();
+
             bubblePlot.InsertBefore(
                 columnPlot.GetFirstChild<C.BarChart>()!.CloneNode(true),
                 bubblePlot.GetFirstChild<C.ValueAxis>());
@@ -537,6 +557,36 @@ namespace OfficeIMO.Tests {
                 PowerPointUtils.ValidateBubbleWorkbookDimensions(
                     seriesCount: 1,
                     maximumPoints: 100_001));
+        }
+
+        [Fact]
+        public void BubbleChart_WorkbookWritesOnlyExistingUnevenSeriesPoints() {
+            double[] longValues = Enumerable.Range(1, 500)
+                .Select(value => (double)value).ToArray();
+            OfficeChartSeries[] series = new[] {
+                OfficeChartSeries.CreateBubble(
+                    "Long", longValues, longValues, longValues)
+            }.Concat(Enumerable.Range(1, 100).Select(index =>
+                OfficeChartSeries.CreateBubble(
+                    "Short " + index,
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 3D }))).ToArray();
+            var data = new OfficeChartData(
+                longValues.Select(value => value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture)),
+                series);
+
+            using var stream = new MemoryStream(
+                PowerPointUtils.BuildBubbleChartWorkbook(data));
+            using SpreadsheetDocument workbook =
+                SpreadsheetDocument.Open(stream, false);
+            S.SheetData sheetData = workbook.WorkbookPart!.WorksheetParts
+                .Single().Worksheet.GetFirstChild<S.SheetData>()!;
+
+            Assert.Equal(501, sheetData.Elements<S.Row>().Count());
+            Assert.Equal(303 + 3 * (500 + 100),
+                sheetData.Descendants<S.Cell>().Count());
         }
 
         [Fact]
@@ -735,6 +785,20 @@ namespace OfficeIMO.Tests {
                 Assert.False(chart.TryGetOfficeSnapshot(out _));
 
                 crossesAt.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                C.TickLabelPosition tickLabels =
+                    axis.GetFirstChild<C.TickLabelPosition>()!;
+                tickLabels.Val = C.TickLabelPositionValues.None;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                tickLabels.Val = C.TickLabelPositionValues.High;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                tickLabels.Val = null;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                tickLabels.Val = C.TickLabelPositionValues.NextTo;
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
         }
@@ -1021,6 +1085,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_UpdateDataReplacesNonSolidSeriesOutlineFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            A.Outline outline = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.Append(new A.GradientFill());
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D },
+                new[] { 5D },
+                new[] { 16D },
+                seriesColor: OfficeColor.Parse("#445566"),
+                markerOutlineColor: OfficeColor.Parse("#778899"),
+                markerOutlineWidth: 1.5D));
+
+            outline = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Null(outline.GetFirstChild<A.GradientFill>());
+            Assert.Equal("778899", outline.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.Append(new A.GroupFill());
+            chart.UpdateData(CreateBubbleData(
+                new[] { 7D },
+                new[] { 11D },
+                new[] { 25D },
+                seriesColor: OfficeColor.Parse("#445566"),
+                showMarkerOutline: false));
+
+            outline = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Null(outline.GetFirstChild<A.GroupFill>());
+            Assert.NotNull(outline.GetFirstChild<A.NoFill>());
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
         public void BubbleChart_ResolvesThemeColorsInParameterlessSnapshots() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -1148,11 +1265,18 @@ namespace OfficeIMO.Tests {
 
         private static OfficeChartData CreateBubbleData(IReadOnlyList<double> xValues,
             IReadOnlyList<double> yValues, IReadOnlyList<double> sizes,
-            IReadOnlyList<OfficeColor?>? pointColors = null, OfficeColor? seriesColor = null) =>
+            IReadOnlyList<OfficeColor?>? pointColors = null,
+            OfficeColor? seriesColor = null,
+            OfficeColor? markerOutlineColor = null,
+            double? markerOutlineWidth = null,
+            bool showMarkerOutline = true) =>
             new(xValues.Select(value => value.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 new[] {
                     OfficeChartSeries.CreateBubble("Portfolio", xValues, yValues, sizes,
-                        seriesColor, pointColors)
+                        seriesColor, pointColors,
+                        markerOutlineColor: markerOutlineColor,
+                        markerOutlineWidth: markerOutlineWidth,
+                        showMarkerOutline: showMarkerOutline)
                 });
     }
 }

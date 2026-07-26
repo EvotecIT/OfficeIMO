@@ -470,6 +470,10 @@ namespace OfficeIMO.PowerPoint {
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
             outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+            outline.RemoveAllChildren<A.BlipFill>();
+            outline.RemoveAllChildren<A.GroupFill>();
             if (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) {
                 outline.Append(new A.NoFill());
             } else if (!series.ConnectLine && !IsFilledSharedKind(kind)) {
