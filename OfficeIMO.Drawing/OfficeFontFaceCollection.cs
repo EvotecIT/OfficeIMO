@@ -52,6 +52,53 @@ public sealed class OfficeFontFaceCollection {
     }
 
     /// <summary>
+    /// Adds another family name for all faces already registered under an existing family.
+    /// The alias reuses the immutable decoded font programs without decoding or copying them again.
+    /// </summary>
+    /// <param name="aliasFamilyName">Additional family name accepted by measurement and export.</param>
+    /// <param name="sourceFamilyName">Existing family whose faces and unicode ranges are reused.</param>
+    /// <returns>This collection for fluent configuration.</returns>
+    public OfficeFontFaceCollection AddAlias(string aliasFamilyName, string sourceFamilyName) {
+        if (string.IsNullOrWhiteSpace(aliasFamilyName)) {
+            throw new ArgumentException("A font alias family name is required.", nameof(aliasFamilyName));
+        }
+        if (string.IsNullOrWhiteSpace(sourceFamilyName)) {
+            throw new ArgumentException("A source font family name is required.", nameof(sourceFamilyName));
+        }
+
+        string normalizedAlias = aliasFamilyName.Trim();
+        string normalizedSource = sourceFamilyName.Trim();
+        var sourceFaces = new List<OfficeFontFace>();
+        foreach (OfficeFontFace face in _faces) {
+            if (string.Equals(face.FamilyName, normalizedSource, StringComparison.OrdinalIgnoreCase)) {
+                sourceFaces.Add(face);
+            }
+        }
+        if (sourceFaces.Count == 0) {
+            throw new ArgumentException(
+                $"The source font family '{normalizedSource}' is not registered.",
+                nameof(sourceFamilyName));
+        }
+        if (string.Equals(normalizedAlias, normalizedSource, StringComparison.OrdinalIgnoreCase)) {
+            return this;
+        }
+
+        for (int index = _faces.Count - 1; index >= 0; index--) {
+            if (string.Equals(_faces[index].FamilyName, normalizedAlias, StringComparison.OrdinalIgnoreCase)) {
+                _faces.RemoveAt(index);
+            }
+        }
+        foreach (OfficeFontFace sourceFace in sourceFaces) {
+            string resourceFamilyName = sourceFace.UnicodeRanges.IsAll
+                ? normalizedAlias
+                : CreateResourceFamilyName(normalizedAlias, sourceFace.Style, sourceFace.UnicodeRanges);
+            _faces.Add(sourceFace.CreateAlias(normalizedAlias, resourceFamilyName));
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Attempts to add or replace one unicode-range-constrained family/style face.
     /// A deterministic internal resource family is assigned when the range does not cover all Unicode scalars.
     /// </summary>
@@ -178,15 +225,21 @@ public sealed class OfficeFontFaceCollection {
         }
 
         foreach (OfficeFontFace face in fonts.Faces) {
-            TryAddCore(
-                face.FamilyName,
-                face.DataSnapshot,
-                face.Style,
-                face.UnicodeRanges,
-                face.ResourceFamilyName,
-                maximumDecodedBytes: null,
-                out _,
-                out _);
+            OfficeFontFace copy = face.Clone();
+            bool replaced = false;
+            for (int index = _faces.Count - 1; index >= 0; index--) {
+                OfficeFontFace existing = _faces[index];
+                if (existing.Style == copy.Style
+                    && string.Equals(existing.FamilyName, copy.FamilyName, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(existing.ResourceFamilyName, copy.ResourceFamilyName, StringComparison.OrdinalIgnoreCase)) {
+                    _faces[index] = copy;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced) {
+                _faces.Add(copy);
+            }
         }
 
         return this;

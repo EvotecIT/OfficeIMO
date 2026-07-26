@@ -3358,6 +3358,24 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeFontFaceCollectionAliasesReuseRegisteredFaces() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Portable Sans", fontData)
+            .AddAlias("Arial", "Portable Sans");
+
+        Assert.Equal(2, fonts.Faces.Count);
+        Assert.True(fonts.TryMeasureText(
+            char.ConvertFromUtf32(0x1F600),
+            1000D,
+            "Arial",
+            OfficeFontStyle.Regular,
+            out double aliasWidth));
+        Assert.Equal(500D, aliasWidth);
+        Assert.Throws<ArgumentException>(() => fonts.AddAlias("Missing Alias", "Missing Source"));
+    }
+
+    [Fact]
     public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
         var fonts = new OfficeFontFaceCollection()
             .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))

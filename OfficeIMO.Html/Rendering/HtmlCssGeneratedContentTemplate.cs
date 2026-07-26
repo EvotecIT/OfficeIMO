@@ -95,7 +95,7 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         const string prefix = "counter(";
         if (cursor + prefix.Length > value.Length
             || !string.Equals(value.Substring(cursor, prefix.Length), prefix, StringComparison.OrdinalIgnoreCase)) return false;
-        int close = value.IndexOf(')', cursor + prefix.Length);
+        int close = HtmlRenderCssValues.FindMatchingParenthesis(value, cursor + prefix.Length - 1);
         if (close < 0) return false;
         string name = value.Substring(cursor + prefix.Length, close - cursor - prefix.Length).Trim();
         if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) counter = CounterKind.Page;
@@ -111,7 +111,7 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         const string prefix = "string(";
         if (cursor + prefix.Length > value.Length
             || !string.Equals(value.Substring(cursor, prefix.Length), prefix, StringComparison.OrdinalIgnoreCase)) return false;
-        int close = value.IndexOf(')', cursor + prefix.Length);
+        int close = HtmlRenderCssValues.FindMatchingParenthesis(value, cursor + prefix.Length - 1);
         if (close < 0) return false;
         IReadOnlyList<string> arguments = HtmlRenderCssValues.SplitTopLevelCommas(value.Substring(cursor + prefix.Length, close - cursor - prefix.Length));
         if (arguments.Count is < 1 or > 2) return false;

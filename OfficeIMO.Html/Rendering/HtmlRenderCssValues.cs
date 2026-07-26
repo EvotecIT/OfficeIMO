@@ -200,6 +200,37 @@ internal static class HtmlRenderCssValues {
 
     internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) => SplitTopLevel(value, ',');
 
+    internal static int FindMatchingParenthesis(string text, int openIndex) {
+        if (openIndex < 0 || openIndex >= text.Length || text[openIndex] != '(') return -1;
+
+        int depth = 0;
+        char quote = '\0';
+        for (int index = openIndex; index < text.Length; index++) {
+            char current = text[index];
+            if (current == '\\') {
+                if (HtmlCssEscapeDecoder.TryDecodeEscape(text, index, out _, out int consumedCharacters)) {
+                    index += consumedCharacters - 1;
+                } else if (index + 1 < text.Length) {
+                    index++;
+                }
+                continue;
+            }
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')' && --depth == 0) {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
     internal static bool TrySplitTopLevelCommas(string? value, int maximumParts, out IReadOnlyList<string> parts) {
         parts = Array.Empty<string>();
         if (maximumParts <= 0 || string.IsNullOrWhiteSpace(value)) return false;
@@ -211,8 +242,16 @@ internal static class HtmlRenderCssValues {
         string text = value!;
         for (int index = 0; index < text.Length; index++) {
             char current = text[index];
+            if (current == '\\') {
+                if (HtmlCssEscapeDecoder.TryDecodeEscape(text, index, out _, out int consumedCharacters)) {
+                    index += consumedCharacters - 1;
+                } else if (index + 1 < text.Length) {
+                    index++;
+                }
+                continue;
+            }
             if (quote != '\0') {
-                if (current == quote && (index == 0 || text[index - 1] != '\\')) quote = '\0';
+                if (current == quote) quote = '\0';
                 continue;
             }
 
@@ -242,8 +281,16 @@ internal static class HtmlRenderCssValues {
         string text = value!;
         for (int index = 0; index < text.Length; index++) {
             char current = text[index];
+            if (current == '\\') {
+                if (HtmlCssEscapeDecoder.TryDecodeEscape(text, index, out _, out int consumedCharacters)) {
+                    index += consumedCharacters - 1;
+                } else if (index + 1 < text.Length) {
+                    index++;
+                }
+                continue;
+            }
             if (quote != '\0') {
-                if (current == quote && (index == 0 || text[index - 1] != '\\')) quote = '\0';
+                if (current == quote) quote = '\0';
                 continue;
             }
 

@@ -13,6 +13,22 @@ namespace OfficeIMO.Web.Converter.Services;
 /// Supplies the explicit, host-independent PDF font profile used by browser conversions.
 /// </summary>
 internal static class BrowserPortablePdfProfile {
+    private static readonly string[] PortableSansSerifAliases = [
+        "Arial",
+        "Helvetica",
+        "Calibri",
+        "Aptos",
+        "Segoe UI",
+        "Tahoma",
+        "Verdana",
+        "sans",
+        "sans-serif",
+        "ui-sans-serif",
+        "system-ui",
+        "-apple-system",
+        "BlinkMacSystemFont"
+    ];
+
     internal const string FontPackId = "officeimo-browser-compact-2026.07";
     internal const string DefaultFontFamily = "Carlito";
     internal const string ArabicFallbackFontFamily = "Noto Sans Arabic";
@@ -71,13 +87,7 @@ internal static class BrowserPortablePdfProfile {
         FontPackData data = Data.Value;
         return new HtmlPdfSaveOptions {
             DefaultFontFamily = DefaultLayoutFontFamilies,
-            Fonts = new OfficeFontFaceCollection()
-                .Add(DefaultFontFamily, data.CarlitoRegular, OfficeFontStyle.Regular)
-                .Add(DefaultFontFamily, data.CarlitoBold, OfficeFontStyle.Bold)
-                .Add(DefaultFontFamily, data.CarlitoItalic, OfficeFontStyle.Italic)
-                .Add(DefaultFontFamily, data.CarlitoBoldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic)
-                .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
-                .Add(SymbolFallbackFontFamily, data.NotoSansSymbols),
+            Fonts = CreateLayoutFonts(data),
             DocumentOptions = CreateOptions(profile),
             FontFamily = new PdfEmbeddedFontFamily(
                 DefaultFontFamily,
@@ -89,6 +99,20 @@ internal static class BrowserPortablePdfProfile {
             TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
+    }
+
+    private static OfficeFontFaceCollection CreateLayoutFonts(FontPackData data) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add(DefaultFontFamily, data.CarlitoRegular, OfficeFontStyle.Regular)
+            .Add(DefaultFontFamily, data.CarlitoBold, OfficeFontStyle.Bold)
+            .Add(DefaultFontFamily, data.CarlitoItalic, OfficeFontStyle.Italic)
+            .Add(DefaultFontFamily, data.CarlitoBoldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+        foreach (string alias in PortableSansSerifAliases) {
+            fonts.AddAlias(alias, DefaultFontFamily);
+        }
+        return fonts
+            .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
+            .Add(SymbolFallbackFontFamily, data.NotoSansSymbols);
     }
 
     private static FontPackData LoadFontPack() {

@@ -64,9 +64,24 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
         var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
+        string[] aliases = [
+            "Arial",
+            "Helvetica",
+            "Calibri",
+            "Aptos",
+            "Segoe UI",
+            "Tahoma",
+            "Verdana",
+            "sans",
+            "sans-serif",
+            "ui-sans-serif",
+            "system-ui",
+            "-apple-system",
+            "BlinkMacSystemFont"
+        ];
 
         Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
-        Assert.Equal(6, options.Fonts.Faces.Count);
+        Assert.Equal(6 + aliases.Length * 4, options.Fonts.Faces.Count);
         Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
@@ -81,8 +96,18 @@ public sealed class BrowserConversionServiceTests {
             16D,
             options.DefaultFontFamily,
             OfficeFontStyle.Regular,
-            out double width));
-        Assert.True(width > 0D);
+            out double defaultWidth));
+        Assert.True(defaultWidth > 0D);
+        foreach (string alias in aliases) {
+            Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == alias));
+            Assert.True(options.Fonts.TryMeasureText(
+                "Layout boundary",
+                16D,
+                alias,
+                OfficeFontStyle.Regular,
+                out double aliasWidth));
+            Assert.Equal(defaultWidth, aliasWidth, 10);
+        }
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
             "Latin العربية ⌚",
             options.DefaultFontFamily,

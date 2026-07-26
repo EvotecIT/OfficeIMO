@@ -117,6 +117,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Escaped identifier", margin.Text);
     }
 
+    [Theory]
+    [InlineData(@"sec\)tion")]
+    [InlineData(@"sec\,tion")]
+    public void HtmlRender_Paged_RunningStringLookupsPreserveEscapedDelimiters(string identifier) {
+        string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(
+            """
+            + identifier
+            + "); } }</style><h2 style=\"string-set:"
+            + identifier
+            + " 'Escaped delimiter'\">Body</h2>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Escaped delimiter", margin.Text);
+    }
+
     [Fact]
     public void HtmlRender_Paged_PreservesRunningStringFlowOrderAcrossColumns() {
         const string html = """
