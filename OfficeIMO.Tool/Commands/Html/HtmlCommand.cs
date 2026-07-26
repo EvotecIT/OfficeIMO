@@ -119,13 +119,18 @@ claim conformance without passing external validator evidence.
         PdfComplianceArtifact? complianceArtifact = complianceProfile.HasValue
             ? conversion.Value.CreateComplianceArtifact(complianceProfile.Value)
             : null;
-        await SaveAsync(
-            conversion,
-            complianceArtifact?.ToBytes(),
-            arguments.OutputPath!,
-            standardOutput,
-            arguments.Force,
-            cancellationToken).ConfigureAwait(false);
+        try {
+            await SaveAsync(
+                conversion,
+                complianceArtifact?.ToBytes(),
+                arguments.OutputPath!,
+                standardOutput,
+                arguments.Force,
+                cancellationToken).ConfigureAwait(false);
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            await standardError.WriteLineAsync("Output failed: " + exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OutputFailed;
+        }
         foreach (PdfConversionWarning warning in conversion.Report.Warnings) {
             await standardError.WriteLineAsync(
                 warning.Severity + " " + warning.Code + " [" + warning.Source + "]: " + warning.Message).ConfigureAwait(false);

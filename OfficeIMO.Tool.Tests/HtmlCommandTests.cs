@@ -197,5 +197,63 @@ public sealed class HtmlCommandTests {
         Assert.Contains("command", error.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, output.Length);
     }
+
+    [Fact]
+    public async Task HtmlTool_RejectsOutputSymlinkThatTargetsTheInputEvenWithForce() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-html-tool-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string inputPath = Path.Combine(directory, "source.html");
+        string outputPath = Path.Combine(directory, "alias.pdf");
+        const string source = "<html><body><p>Keep the source</p></body></html>";
+        await File.WriteAllTextAsync(inputPath, source);
+        File.CreateSymbolicLink(outputPath, inputPath);
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await HtmlCommand.RunAsync(
+                new[] { "convert", inputPath, "--output", outputPath, "--force" },
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("different", error.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(source, await File.ReadAllTextAsync(inputPath));
+        } finally {
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+            Directory.Delete(directory);
+        }
+    }
+
+    [Fact]
+    public async Task HtmlTool_ClassifiesDestinationIoFailuresAsOutputFailures() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-html-tool-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string inputPath = Path.Combine(directory, "source.html");
+        string outputPath = Path.Combine(directory, "destination");
+        await File.WriteAllTextAsync(inputPath, "<html><body><p>Output contract</p></body></html>");
+        Directory.CreateDirectory(outputPath);
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await HtmlCommand.RunAsync(
+                new[] { "convert", inputPath, "--output", outputPath, "--force" },
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
+            Assert.Contains("Output failed", error.ToString(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(outputPath);
+            File.Delete(inputPath);
+            Directory.Delete(directory);
+        }
+    }
 }
 #endif

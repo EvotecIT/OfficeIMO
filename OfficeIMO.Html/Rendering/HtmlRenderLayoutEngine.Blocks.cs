@@ -389,6 +389,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.StringSet,
             _options.MaxRunningStringCharacters,
             count => ChargeLayoutOperations(count, source),
+            (contentElement, maximumCharacters, chargeOperations) =>
+                ResolveRunningStringContentText(
+                    contentElement,
+                    style,
+                    maximumCharacters,
+                    chargeOperations),
             out bool limitExceeded);
         if (limitExceeded) {
             _diagnostics.Add(

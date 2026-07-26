@@ -138,7 +138,7 @@ internal sealed class HtmlArguments {
         if (string.IsNullOrWhiteSpace(OutputPath)) {
             OutputPath = InputPath == "-" ? "-" : Path.ChangeExtension(InputPath, ".pdf");
         }
-        if (InputPath != "-" && OutputPath != "-" && PathsEqual(InputPath!, OutputPath!)) {
+        if (InputPath != "-" && OutputPath != "-" && OfficeImoToolPathSafety.PathsEqual(InputPath!, OutputPath!)) {
             throw new HtmlUsageException("Input and output paths must be different.");
         }
         if (BaseUri != null && (!Uri.TryCreate(BaseUri, UriKind.Absolute, out Uri? uri)
@@ -190,10 +190,6 @@ internal sealed class HtmlArguments {
         }
         return parsed;
     }
-
-    private static bool PathsEqual(string first, string second) =>
-        string.Equals(Path.GetFullPath(first), Path.GetFullPath(second),
-            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
 }

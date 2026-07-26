@@ -312,6 +312,28 @@ public sealed partial class HtmlRenderingTests {
             text => text.SemanticRole == "page-margin" && text.Text == "Inline section");
     }
 
+    [Fact]
+    public void HtmlRender_Paged_RunningStringContentUsesVisibleTransformedText() {
+        const string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(section); } }
+              h2 { margin:0; font-size:12px; line-height:14px; text-transform:uppercase; }
+            </style>
+            <h2 style="string-set:section content()">Chapter<script>hidden</script>
+              <span style="text-transform:lowercase">LOUD</span>
+              <span style="display:none">ignored</span>
+            </h2>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "CHAPTER loud");
+    }
+
     [Theory]
     [InlineData("A <span style=\"string-set:section content()\"></span> B", "A B")]
     [InlineData("<span style=\"string-set:section 'Start'\"></span> A", "A")]

@@ -75,6 +75,7 @@ internal static class HtmlCssRunningStringParser {
         string? declaration,
         int maximumValueCharacters,
         Action<long> chargeOperations,
+        Func<IElement, int, Action<long>, string?> resolveContentText,
         out bool limitExceeded) {
         limitExceeded = false;
         if (string.IsNullOrWhiteSpace(declaration)) {
@@ -97,6 +98,7 @@ internal static class HtmlCssRunningStringParser {
                 ref cursor,
                 maximumValueCharacters,
                 chargeOperations,
+                resolveContentText,
                 out string value,
                 out bool itemLimitExceeded)) {
                 limitExceeded |= itemLimitExceeded;
@@ -118,6 +120,7 @@ internal static class HtmlCssRunningStringParser {
         ref int cursor,
         int maximumValueCharacters,
         Action<long> chargeOperations,
+        Func<IElement, int, Action<long>, string?> resolveContentText,
         out string value,
         out bool limitExceeded) {
         var result = new StringBuilder();
@@ -152,11 +155,11 @@ internal static class HtmlCssRunningStringParser {
                     value = string.Empty;
                     return false;
                 }
-                if (!TryAppendNormalizedElementText(
+                string? content = resolveContentText(
                     element,
-                    result,
-                    maximumValueCharacters,
-                    chargeOperations)) {
+                    maximumValueCharacters - result.Length,
+                    chargeOperations);
+                if (content == null || !TryAppendBounded(result, content, maximumValueCharacters)) {
                     value = string.Empty;
                     limitExceeded = true;
                     return false;
@@ -187,50 +190,6 @@ internal static class HtmlCssRunningStringParser {
 
         value = result.ToString();
         return found;
-    }
-
-    private static bool TryAppendNormalizedElementText(
-        IElement element,
-        StringBuilder result,
-        int maximumValueCharacters,
-        Action<long> chargeOperations) {
-        var pending = new Stack<INode>();
-        for (int index = element.ChildNodes.Length - 1; index >= 0; index--) {
-            pending.Push(element.ChildNodes[index]);
-        }
-        bool whitespace = false;
-        int pendingCharge = 0;
-        while (pending.Count > 0) {
-            INode node = pending.Pop();
-            chargeOperations(1L);
-            if (node is IText textNode) {
-                foreach (char current in textNode.Data) {
-                    pendingCharge++;
-                    if (pendingCharge == 256) {
-                        chargeOperations(pendingCharge);
-                        pendingCharge = 0;
-                    }
-                    if (char.IsWhiteSpace(current)) {
-                        whitespace = result.Length > 0;
-                        continue;
-                    }
-                    int required = whitespace ? 2 : 1;
-                    if (result.Length > maximumValueCharacters - required) {
-                        if (pendingCharge > 0) chargeOperations(pendingCharge);
-                        return false;
-                    }
-                    if (whitespace) result.Append(' ');
-                    result.Append(current);
-                    whitespace = false;
-                }
-            } else {
-                for (int index = node.ChildNodes.Length - 1; index >= 0; index--) {
-                    pending.Push(node.ChildNodes[index]);
-                }
-            }
-        }
-        if (pendingCharge > 0) chargeOperations(pendingCharge);
-        return true;
     }
 
     private static bool TryAppendBounded(StringBuilder result, string value, int maximumValueCharacters) {
