@@ -592,6 +592,10 @@ namespace OfficeIMO.Word.Html {
                         alpha,
                         formatting.BackgroundColorHex ?? formatting.BackgroundBackdropColorHex);
                     formatting.PreserveHighlightOverBackground = false;
+                } else {
+                    formatting.BackgroundColorHex = null;
+                    formatting.Highlight = HighlightColorValues.None;
+                    formatting.PreserveHighlightOverBackground = false;
                 }
             }
             if (parsed.WhiteSpace.HasValue) {

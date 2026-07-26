@@ -244,7 +244,7 @@ namespace OfficeIMO.Word.Html {
             ApplyContainerSpacingFromCss(element, paragraphs, tables);
         }
 
-        private static void ApplyTableContainerFrameFromCss(
+        private void ApplyTableContainerFrameFromCss(
             IElement element,
             WordTable table,
             bool applyTopBorder = true,
@@ -333,11 +333,32 @@ namespace OfficeIMO.Word.Html {
                 _ => false,
             };
 
-        private static string ResolveElementTextColor(IElement element) {
-            string styleText = element.GetAttribute("style") ?? string.Empty;
-            var declaration = ParseInlineDeclaration(styleText);
-            return NormalizeColor(GetInlinePropertyValue(declaration, styleText, "color")) ??
-                   SixColor.Black.ToRgbHex();
+        private string ResolveElementTextColor(IElement element) {
+            for (IElement? current = element; current != null; current = current.ParentElement) {
+                var declarations = CollectCssDeclarations(current, inheritedOnly: false);
+                if (!declarations.TryGetValue("color", out var declaration)) {
+                    continue;
+                }
+
+                string value = declaration.Value.Trim();
+                if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+                    value.Equals("unset", StringComparison.OrdinalIgnoreCase) ||
+                    value.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (value.Equals("initial", StringComparison.OrdinalIgnoreCase) ||
+                    value.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+                    value.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)) {
+                    return SixColor.Black.ToRgbHex();
+                }
+
+                string? normalized = NormalizeColor(value);
+                if (normalized != null) {
+                    return normalized;
+                }
+            }
+
+            return SixColor.Black.ToRgbHex();
         }
 
         private void ApplyBlockFrameFromCss(

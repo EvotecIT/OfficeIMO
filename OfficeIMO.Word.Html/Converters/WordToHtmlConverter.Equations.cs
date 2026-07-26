@@ -139,6 +139,9 @@ namespace OfficeIMO.Word.Html {
                 semanticNode = htmlDocument.CreateElement("ins");
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = htmlDocument.CreateElement("mark");
+                if (run.Highlight == HighlightColorValues.None) {
+                    semanticNode.SetAttribute("style", "background-color:transparent");
+                }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = htmlDocument.CreateElement("cite");
             } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {

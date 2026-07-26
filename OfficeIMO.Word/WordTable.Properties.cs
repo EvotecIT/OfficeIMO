@@ -228,11 +228,11 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Returns the estimated text area width (page width minus left/right margins) in DXA.
-        /// Uses the first section when the owning section can't be easily resolved.
+        /// Uses the section that contains the table when it can be resolved.
         /// </summary>
         private int EstimateContentAreaWidthInDxa() {
             try {
-                var section = _document.Sections.Count > 0 ? _document.Sections[0] : null;
+                var section = ResolveOwningSection();
                 if (section != null) {
                     var page = section.PageSettings;
                     var width = (int)(page.Width?.Value ?? WordPageSizes.A4.Width!.Value);
@@ -244,6 +244,35 @@ namespace OfficeIMO.Word {
             } catch { /* ignore */ }
             // Sensible default if anything fails
             return 9000; // ~6.25 inches
+        }
+
+        /// <summary>
+        /// Resolves the document section that owns this top-level table.
+        /// </summary>
+        private WordSection? ResolveOwningSection() {
+            var sections = _document.Sections;
+            if (sections.Count == 0) {
+                return null;
+            }
+
+            var body = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return sections[0];
+            }
+
+            int sectionIndex = 0;
+            foreach (var element in body.ChildElements) {
+                if (ReferenceEquals(element, _table)) {
+                    return sections[Math.Min(sectionIndex, sections.Count - 1)];
+                }
+                if (element is Paragraph paragraph &&
+                    paragraph.ParagraphProperties?.SectionProperties != null &&
+                    sectionIndex < sections.Count - 1) {
+                    sectionIndex++;
+                }
+            }
+
+            return sections[0];
         }
 
         /// <summary>
