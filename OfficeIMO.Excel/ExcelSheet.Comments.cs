@@ -716,24 +716,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool ShiftVmlAnchor(XElement? anchor, int rowDelta, int columnDelta) {
-            if (anchor?.Value is not string anchorText) {
+            if (!TryParseVmlAnchor(anchor, out int[] values)) {
                 return false;
-            }
-
-            string[] parts = anchorText.Split(',');
-            if (parts.Length != 8) {
-                return false;
-            }
-
-            var values = new int[parts.Length];
-            for (int index = 0; index < parts.Length; index++) {
-                if (!int.TryParse(
-                    parts[index].Trim(),
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out values[index])) {
-                    return false;
-                }
             }
 
             values[0] += columnDelta;
@@ -744,7 +728,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            anchor.Value = string.Join(
+            anchor!.Value = string.Join(
                 ", ",
                 values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
             return rowDelta != 0 || columnDelta != 0;
@@ -756,24 +740,8 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow,
             int columnDelta) {
-            if (anchor?.Value is not string anchorText) {
+            if (!TryParseVmlAnchor(anchor, out int[] values)) {
                 return false;
-            }
-
-            string[] parts = anchorText.Split(',');
-            if (parts.Length != 8) {
-                return false;
-            }
-
-            var values = new int[parts.Length];
-            for (int index = 0; index < parts.Length; index++) {
-                if (!int.TryParse(
-                    parts[index].Trim(),
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out values[index])) {
-                    return false;
-                }
             }
 
             int originalFromColumn = values[0];
@@ -817,9 +785,34 @@ namespace OfficeIMO.Excel {
             if (!changed) {
                 return false;
             }
-            anchor.Value = string.Join(
+            anchor!.Value = string.Join(
                 ", ",
                 values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
+            return true;
+        }
+
+        private static bool TryParseVmlAnchor(XElement? anchor, out int[] values) {
+            values = Array.Empty<int>();
+            if (anchor?.Value is not string anchorText) {
+                return false;
+            }
+
+            string[] parts = anchorText.Split(',');
+            if (parts.Length != 8) {
+                return false;
+            }
+
+            values = new int[parts.Length];
+            for (int index = 0; index < parts.Length; index++) {
+                if (!int.TryParse(
+                    parts[index].Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out values[index])) {
+                    values = Array.Empty<int>();
+                    return false;
+                }
+            }
             return true;
         }
 

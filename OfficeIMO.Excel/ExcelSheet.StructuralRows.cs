@@ -248,12 +248,12 @@ namespace OfficeIMO.Excel {
                         reference.Replace("$", string.Empty),
                         out int sourceFirstRow,
                         out _,
-                        out int sourceLastRow,
+                        out _,
                         out _)
-                    && firstDeletedRow <= sourceFirstRow
-                    && lastDeletedRow >= sourceLastRow) {
+                    && sourceFirstRow >= firstDeletedRow
+                    && sourceFirstRow <= lastDeletedRow) {
                     throw new InvalidOperationException(
-                        $"Cannot delete the complete source range '{reference}' of a pivot cache. Update or remove the pivot source first.");
+                        $"Cannot delete the header row of pivot cache source range '{reference}'. Update or remove the pivot source first.");
                 }
 
                 foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
@@ -287,6 +287,8 @@ namespace OfficeIMO.Excel {
                         $"Cannot delete rows through pivot table output range '{reference}'. Remove or move the pivot table first.");
                 }
             }
+
+            ValidateConnectionParameterDeletion(firstDeletedRow, lastDeletedRow);
         }
 
         private void ValidateRowInsertionAgainstPivotOutputs(int firstRow) {
@@ -503,6 +505,8 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("Inserting rows would move a drawing anchor beyond Excel's row limit.");
                 }
             }
+
+            ValidateCommentVmlAnchorCapacity(firstRow, count);
         }
 
         private void ValidatePivotReferenceCapacity(int firstRow, int count) {
@@ -545,11 +549,39 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void ValidateConnectionParameterDeletion(int firstDeletedRow, int lastDeletedRow) {
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections == null) {
+                return;
+            }
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            foreach (Connection connection in connections.Elements<Connection>()
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    if (parameter.Cell?.Value is not string reference
+                        || !TryParseReference(reference, out var bounds)
+                        || bounds.r1 < firstDeletedRow
+                        || bounds.r1 > lastDeletedRow) {
+                        continue;
+                    }
+
+                    throw new InvalidOperationException(
+                        $"Cannot delete cell-backed connection parameter reference '{reference}'. Update or remove the parameter first.");
+                }
+            }
+        }
+
         private void ValidateStructuralRowControlSafety() {
+            IEnumerable<VmlDrawingPart> workbookVmlParts =
+                WorkbookPartRoot.WorksheetParts.SelectMany(part => part.VmlDrawingParts)
+                    .Concat(WorkbookPartRoot.DialogsheetParts.SelectMany(part => part.VmlDrawingParts))
+                    .Concat(WorkbookPartRoot.ChartsheetParts.SelectMany(part => part.VmlDrawingParts))
+                    .Distinct();
             if (WorkbookPartRoot.WorksheetParts.Any(worksheetPart =>
                     worksheetPart.Worksheet?.Descendants<Controls>().Any() == true
-                    || worksheetPart.ControlPropertiesParts.Any()
-                    || ContainsUnsupportedVmlFormControl(worksheetPart))) {
+                    || worksheetPart.ControlPropertiesParts.Any())
+                || ContainsUnsupportedVmlFormControl(workbookVmlParts)) {
                 throw new InvalidOperationException(
                     "Cannot edit rows in a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
             }
@@ -573,9 +605,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool ContainsUnsupportedVmlFormControl(WorksheetPart worksheetPart) {
+        private bool ContainsUnsupportedVmlFormControl(IEnumerable<VmlDrawingPart> vmlParts) {
             XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
-            foreach (VmlDrawingPart vmlPart in worksheetPart.VmlDrawingParts) {
+            foreach (VmlDrawingPart vmlPart in vmlParts) {
                 XDocument document = LoadOrCreateVmlDocument(vmlPart);
                 foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")) {
                     string? objectType = clientData.Attribute("ObjectType")?.Value;
@@ -586,6 +618,36 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        private void ValidateCommentVmlAnchorCapacity(int firstRow, int count) {
+            XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+            foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {
+                XDocument document = LoadOrCreateVmlDocument(vmlPart);
+                foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")
+                    .Where(element => string.Equals(
+                        element.Attribute("ObjectType")?.Value,
+                        "Note",
+                        StringComparison.OrdinalIgnoreCase))) {
+                    if (!TryParseVmlAnchor(clientData.Element(excelNamespace + "Anchor"), out int[] values)) {
+                        continue;
+                    }
+
+                    int firstSpannedRow = values[2] + 1;
+                    int lastSpannedRow = values[6];
+                    if (lastSpannedRow >= firstSpannedRow
+                        && TryRemapShiftedReferenceRows(
+                            (firstSpannedRow, 1, lastSpannedRow, 1),
+                            firstRow,
+                            count,
+                            lastDeletedRow: null,
+                            out var remappedRows)
+                        && remappedRows == null) {
+                        throw new InvalidOperationException(
+                            "Inserting rows would move a comment note anchor beyond Excel's row limit.");
+                    }
+                }
+            }
         }
 
         private static bool DrawingMarkerMovesOnInsertion(
@@ -712,7 +774,7 @@ namespace OfficeIMO.Excel {
 
         private static void ValidateReferenceAttributesDoNotOverflow(OpenXmlElement root, int firstRow, int count) {
             foreach (OpenXmlElement element in root.Descendants().Prepend(root)) {
-                if (element is SheetDimension) {
+                if (element is SheetDimension || element is DataReference) {
                     continue;
                 }
                 foreach (OpenXmlAttribute attribute in element.GetAttributes()) {

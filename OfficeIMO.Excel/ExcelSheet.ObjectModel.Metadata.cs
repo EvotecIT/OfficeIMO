@@ -173,10 +173,21 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    parameter.Cell = remappedReferences.Count == 0
-                        ? "#REF!"
-                        : remappedReferences[0];
+                    if (remappedReferences.Count == 0) {
+                        parameter.Remove();
+                    } else {
+                        parameter.Cell = remappedReferences[0];
+                    }
                     changed = true;
+                }
+
+                foreach (Parameters parameters in connection.Elements<Parameters>().ToList()) {
+                    uint count = (uint)parameters.Elements<Parameter>().Count();
+                    if (count == 0U) {
+                        parameters.Remove();
+                    } else {
+                        parameters.Count = count;
+                    }
                 }
             }
 

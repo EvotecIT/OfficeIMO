@@ -352,11 +352,23 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (OpenXmlElement container in WorksheetRoot.Descendants()
-                .Where(element => string.Equals(element.LocalName, "smartTags", StringComparison.OrdinalIgnoreCase))
+                .Where(element => string.Equals(element.LocalName, "cellSmartTags", StringComparison.OrdinalIgnoreCase))
                 .ToList()) {
-                if (!container.ChildElements.Any(child =>
-                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
+                uint count = (uint)container.ChildElements.Count(child =>
+                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase));
+                if (count == 0U) {
                     container.Remove();
+                } else {
+                    OpenXmlAttribute countAttribute = container.GetAttributes()
+                        .FirstOrDefault(attribute => string.Equals(
+                            attribute.LocalName,
+                            "count",
+                            StringComparison.OrdinalIgnoreCase));
+                    container.SetAttribute(new OpenXmlAttribute(
+                        countAttribute.Prefix,
+                        "count",
+                        countAttribute.NamespaceUri,
+                        count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 }
             }
         }
