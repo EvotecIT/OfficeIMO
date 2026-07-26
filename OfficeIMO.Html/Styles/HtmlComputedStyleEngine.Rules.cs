@@ -30,7 +30,7 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            IReadOnlyDictionary<int, int> rawRuleClosures = BuildRawRuleClosures(css, budget);
+            IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, 1);
@@ -255,33 +255,6 @@ public static partial class HtmlComputedStyleEngine {
             else if (current == ';') return ~index;
         }
         return -1;
-    }
-
-    private static IReadOnlyDictionary<int, int> BuildRawRuleClosures(
-        string css,
-        HtmlCssProcessingBudget budget) {
-        var closures = new Dictionary<int, int>();
-        var opens = new Stack<int>();
-        char quote = '\0';
-        for (int index = 0; index < css.Length; index++) {
-            char current = css[index];
-            if (quote != '\0') {
-                if (current == quote && !IsEscaped(css, index)) quote = '\0';
-                continue;
-            }
-            if (current == '\'' || current == '"') quote = current;
-            else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
-                index = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
-                if (index < 0) break;
-                index++;
-            } else if (current == '{') {
-                opens.Push(index);
-                budget.RecordNestingDepth(opens.Count);
-            } else if (current == '}' && opens.Count > 0) {
-                closures[opens.Pop()] = index;
-            }
-        }
-        return closures;
     }
 
     private static void SkipRawWhitespaceAndComments(string css, ref int cursor, int end) {

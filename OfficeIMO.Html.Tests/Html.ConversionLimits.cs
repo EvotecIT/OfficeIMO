@@ -236,6 +236,43 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlResourcePipeline_EnforcesCssNestingDepthBeforeFontFaceParsing() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 4;
+        string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
+            + "@font-face{font-family:Nested;src:url('nested.woff2')}"
+            + new string('}', 1024);
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssNestingDepth), exception.LimitSource);
+    }
+
+    [Fact]
+    public void HtmlRender_EnforcesCssNestingDepthBeforeParsingAdditionalStylesheets() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 4;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p>Body</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+        var options = new HtmlRenderOptions();
+        options.AdditionalStylesheets.Add(
+            string.Concat(Enumerable.Repeat("@supports(display:block){", 1024))
+            + ".target{color:red}"
+            + new string('}', 1024));
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(document, options));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssNestingDepth), exception.LimitSource);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_LoadStopsAtTheSharedCharacterBudgetAndRestoresTheStream() {
         byte[] bytes = Encoding.UTF8.GetBytes("<p>stream content</p>");
         using var stream = new MemoryStream(bytes);

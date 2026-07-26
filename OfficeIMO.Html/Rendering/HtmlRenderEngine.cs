@@ -66,6 +66,7 @@ public static class HtmlRenderEngine {
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -92,6 +93,7 @@ public static class HtmlRenderEngine {
             cssBudget);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, cssBudget, diagnostics);
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         fonts.AddRange(resolved.Fonts);
@@ -159,6 +161,7 @@ public static class HtmlRenderEngine {
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -179,6 +182,7 @@ public static class HtmlRenderEngine {
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken, cssBudget).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, cssBudget, diagnostics);
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         fonts.AddRange(resolved.Fonts);

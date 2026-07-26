@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
@@ -837,52 +836,7 @@ public static class HtmlNormalizer {
     }
 
     private static string DecodeCssEscapes(string source) {
-        if (source.IndexOf('\\') < 0) {
-            return source;
-        }
-
-        var result = new StringBuilder(source.Length);
-        for (int i = 0; i < source.Length; i++) {
-            char current = source[i];
-            if (current != '\\' || i + 1 >= source.Length) {
-                result.Append(current);
-                continue;
-            }
-
-            int cursor = i + 1;
-            if (!IsHexDigit(source[cursor])) {
-                result.Append(source[cursor]);
-                i = cursor;
-                continue;
-            }
-
-            int hexStart = cursor;
-            while (cursor < source.Length && cursor - hexStart < 6 && IsHexDigit(source[cursor])) {
-                cursor++;
-            }
-
-            string hex = source.Substring(hexStart, cursor - hexStart);
-            if (int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int codePoint)
-                && codePoint > 0
-                && codePoint <= 0x10FFFF
-                && (codePoint < 0xD800 || codePoint > 0xDFFF)) {
-                result.Append(char.ConvertFromUtf32(codePoint));
-            }
-
-            if (cursor < source.Length && char.IsWhiteSpace(source[cursor])) {
-                cursor++;
-            }
-
-            i = cursor - 1;
-        }
-
-        return result.ToString();
-    }
-
-    private static bool IsHexDigit(char value) {
-        return (value >= '0' && value <= '9')
-            || (value >= 'a' && value <= 'f')
-            || (value >= 'A' && value <= 'F');
+        return HtmlCssEscapeDecoder.Decode(source);
     }
 
     private static bool IsInsideCssString(string css, int index) {

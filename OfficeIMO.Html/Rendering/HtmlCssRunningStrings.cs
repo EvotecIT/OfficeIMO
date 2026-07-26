@@ -262,14 +262,28 @@ internal static class HtmlCssRunningStringParser {
                 value = result.ToString();
                 return true;
             }
-            if (current == '\\' && cursor < text.Length) current = text[cursor++];
+            if (current == '\\') {
+                int backslashIndex = cursor - 1;
+                HtmlCssEscapeDecoder.TryDecodeEscape(
+                    text,
+                    backslashIndex,
+                    out string decoded,
+                    out int consumedCharacters);
+                cursor = backslashIndex + consumedCharacters;
+                chargeOperations(consumedCharacters);
+                if (!TryAppendBounded(result, decoded, maximumCharacters)) {
+                    value = string.Empty;
+                    limitExceeded = true;
+                    return false;
+                }
+                continue;
+            }
             chargeOperations(1L);
-            if (result.Length >= maximumCharacters) {
+            if (!TryAppendBounded(result, current.ToString(), maximumCharacters)) {
                 value = string.Empty;
                 limitExceeded = true;
                 return false;
             }
-            result.Append(current);
         }
         value = string.Empty;
         return false;

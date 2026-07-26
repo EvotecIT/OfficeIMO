@@ -39,6 +39,7 @@ public static partial class HtmlResourcePipeline {
             return definitions.AsReadOnly();
         }
 
+        HtmlCssRuleBlockScanner.ValidateStylesheet(css, options.Limits);
         var parser = new CssParser();
         ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
         foreach (ICssRule rule in stylesheet.Rules) {

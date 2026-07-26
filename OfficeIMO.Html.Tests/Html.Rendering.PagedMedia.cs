@@ -77,6 +77,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("\\41", "A")]
+    [InlineData("\\000041 ", "A")]
+    [InlineData("\\1F600", "\ud83d\ude00")]
+    public void HtmlRender_Paged_RunningStringLiteralsDecodeCssHexadecimalEscapes(
+        string literal,
+        string expected) {
+        string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(section); } }
+            </style>
+            """
+            + "<h2 style=\"string-set:section '" + literal + "'\">Body</h2>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal(expected, margin.Text);
+    }
+
+    [Theory]
     [InlineData("<div style='display:flex'><h2 style='string-set:section content()'>Flex section</h2></div>", "Flex section")]
     [InlineData("<div style='display:grid;grid-template-columns:1fr'><h2 style='string-set:section content()'>Grid section</h2></div>", "Grid section")]
     [InlineData("<div style='column-count:2'><h2 style='string-set:section content()'>Column section</h2><p>Body</p></div>", "Column section")]
