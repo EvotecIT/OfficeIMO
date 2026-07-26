@@ -8,6 +8,7 @@ $resolvedSiteRoot = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Sit
 $dataPath = Join-Path $resolvedSiteRoot 'data\benchmarks-excel.json'
 $pagePath = Join-Path $resolvedSiteRoot 'benchmarks\index.html'
 $scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
+$stylePath = Join-Path $PSScriptRoot '..\themes\officeimo\assets\app.css'
 
 if (-not (Test-Path -LiteralPath $dataPath -PathType Leaf)) {
     throw "Benchmark data JSON was not published to '$dataPath'."
@@ -19,6 +20,10 @@ if (-not (Test-Path -LiteralPath $pagePath -PathType Leaf)) {
 
 if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
     throw "Benchmark sort/filter script was not published to '$scriptPath'."
+}
+
+if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
+    throw "Benchmark layout styles were not found at '$stylePath'."
 }
 
 $data = Get-Content -LiteralPath $dataPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -63,6 +68,20 @@ if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or $pageHtml -notmatch
 $scriptText = Get-Content -LiteralPath $scriptPath -Raw -Encoding UTF8
 if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch 'sortBy' -or $scriptText -notmatch 'setFilter' -or $scriptText -notmatch 'setSortMetric' -or $scriptText -notmatch 'data-ratio-to-fastest') {
     throw "Benchmark sort/filter script does not expose the expected matrix behaviors."
+}
+
+$styleText = Get-Content -LiteralPath $stylePath -Raw -Encoding UTF8
+if ($styleText -notmatch '\.imo-benchmark-hub\{[^}]*grid-template-columns:minmax\(0,1fr\)') {
+    throw "Benchmark hub does not constrain wide children to a responsive grid track."
+}
+
+if ($styleText -notmatch '\.imo-benchmark-explorer\{[^}]*justify-self:center[^}]*width:min\(1600px,calc\(100vw - 3rem\)\)') {
+    throw "Benchmark explorer does not own the centered wide layout."
+}
+
+if ($styleText -notmatch '\.imo-benchmark-dashboard\{width:100%;margin:0 0 3rem\}' -or
+    $styleText -match '\.imo-benchmark-dashboard\{[^}]*100vw') {
+    throw "Benchmark dashboard can overflow and be clipped by its explorer."
 }
 
 if ($pageHtml -match 'Loading benchmark data') {
