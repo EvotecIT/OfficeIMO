@@ -24,8 +24,8 @@ public sealed class BrowserConversionService {
     internal const long MaxFullWorksheetCells = 50_000L;
     internal const int MaxPreviewRowsPerSheet = 250;
     internal const int MaxPackagePartCount = 5_000;
-    internal const long MaxPartUncompressedBytes = 256L * 1024L * 1024L;
-    internal const long MaxTotalUncompressedBytes = 512L * 1024L * 1024L;
+    internal const long MaxPartUncompressedBytes = 32L * 1024L * 1024L;
+    internal const long MaxTotalUncompressedBytes = 128L * 1024L * 1024L;
     internal const double MaxCompressionRatio = 200D;
 
     public ConversionResult ConvertFile(
