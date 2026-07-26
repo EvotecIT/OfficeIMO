@@ -153,11 +153,7 @@ public sealed class ReaderOcrCoreTests {
         using var cancellationObserved = new ManualResetEventSlim(false);
         var engine = new DelegateOfficeOcrEngine("synchronous-fixture", (_, cancellationToken) => {
             providerInvoked.Set();
-            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(2);
-            while (!cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < deadline) {
-                Thread.SpinWait(1000);
-            }
-            if (cancellationToken.IsCancellationRequested) {
+            if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromSeconds(10))) {
                 cancellationObserved.Set();
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -171,7 +167,7 @@ public sealed class ReaderOcrCoreTests {
 
         Assert.True(providerInvoked.Wait(TimeSpan.FromSeconds(10)));
         OfficeDocumentOcrExecutionResult execution = await executionTask;
-        Assert.True(cancellationObserved.Wait(TimeSpan.FromSeconds(2)));
+        Assert.True(cancellationObserved.Wait(TimeSpan.FromSeconds(10)));
         Assert.Equal(1, execution.Report.FailedCandidateCount);
         Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
     }

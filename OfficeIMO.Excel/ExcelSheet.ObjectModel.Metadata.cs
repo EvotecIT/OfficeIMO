@@ -757,7 +757,20 @@ namespace OfficeIMO.Excel {
             }
 
             if (remapped == null) {
-                return false;
+                if (!lastDeletedRow.HasValue) {
+                    return false;
+                }
+
+                int clampedZeroBasedRow = firstAffectedRow - 1;
+                if (clampedZeroBasedRow != fromZeroBasedRow) {
+                    anchor.FromMarker.RowId!.Text = clampedZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                    changed = true;
+                }
+                if (clampedZeroBasedRow != toZeroBasedRow) {
+                    anchor.ToMarker!.RowId!.Text = clampedZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                    changed = true;
+                }
+                return true;
             }
 
             int remappedFromZeroBasedRow = remapped.Value.r1 - 1;

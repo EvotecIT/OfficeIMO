@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RewriteWorkbookCellFormulaReferences(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var rewrittenExternalChartParts = new HashSet<ChartPart>();
             foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
                 if (sheetElement.Id?.Value is not string relationshipId
                     || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart
@@ -279,7 +280,7 @@ namespace OfficeIMO.Excel {
 
                 if (!isMutatedSheet && worksheetPart.DrawingsPart != null) {
                     foreach (ChartPart chartPart in worksheetPart.DrawingsPart.ChartParts) {
-                        if (chartPart.ChartSpace == null) {
+                        if (chartPart.ChartSpace == null || !rewrittenExternalChartParts.Add(chartPart)) {
                             continue;
                         }
 

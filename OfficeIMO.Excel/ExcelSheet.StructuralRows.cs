@@ -251,21 +251,27 @@ namespace OfficeIMO.Excel {
                         $"Cannot delete the header row of pivot cache source range '{reference}'. Update or remove the pivot source first.");
                 }
                 if (string.IsNullOrWhiteSpace(source?.Id?.Value)
-                    && source?.Name?.Value is string sourceName
-                    && TryResolveDefinedNameRange(
-                        sourceName,
-                        currentRow: null,
-                        out ExcelSheet sourceSheet,
-                        out int namedSourceFirstRow,
-                        out _,
-                        out _,
-                        out _)
-                    && (ReferenceEquals(sourceSheet._worksheetPart, _worksheetPart)
-                        || string.Equals(sourceSheet.Name, Name, StringComparison.OrdinalIgnoreCase))
-                    && namedSourceFirstRow >= firstDeletedRow
-                    && namedSourceFirstRow <= lastDeletedRow) {
-                    throw new InvalidOperationException(
-                        $"Cannot delete the header row of named pivot cache source '{sourceName}'. Update or remove the pivot source first.");
+                    && source?.Name?.Value is string sourceName) {
+                    bool deletesResolvedHeader = TryResolveDefinedNameRange(
+                            sourceName,
+                            currentRow: null,
+                            out ExcelSheet sourceSheet,
+                            out int namedSourceFirstRow,
+                            out _,
+                            out _,
+                            out _)
+                        && (ReferenceEquals(sourceSheet._worksheetPart, _worksheetPart)
+                            || string.Equals(sourceSheet.Name, Name, StringComparison.OrdinalIgnoreCase))
+                        && namedSourceFirstRow >= firstDeletedRow
+                        && namedSourceFirstRow <= lastDeletedRow;
+                    if (deletesResolvedHeader
+                        || UnresolvedNamedPivotSourceBecomesInvalid(
+                            sourceName,
+                            firstDeletedRow,
+                            lastDeletedRow)) {
+                        throw new InvalidOperationException(
+                            $"Cannot delete the header row of named pivot cache source '{sourceName}'. Update or remove the pivot source first.");
+                    }
                 }
 
                 foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
@@ -314,6 +320,29 @@ namespace OfficeIMO.Excel {
                         $"Cannot insert rows through pivot table output range '{reference}'. Insert before or after the pivot table.");
                 }
             }
+        }
+
+        private bool UnresolvedNamedPivotSourceBecomesInvalid(
+            string sourceName,
+            int firstDeletedRow,
+            int lastDeletedRow) {
+            int rowDelta = -(lastDeletedRow - firstDeletedRow + 1);
+            return WorkbookRoot.DefinedNames?.Elements<DefinedName>()
+                .Where(name => string.Equals(name.Name?.Value, sourceName, StringComparison.OrdinalIgnoreCase))
+                .Any(name => {
+                    string formula = name.Text ?? string.Empty;
+                    if (formula.Length == 0 || formula.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) {
+                        return false;
+                    }
+
+                    string rewritten = RewriteDeletedFormulaReferences(
+                        formula,
+                        firstDeletedRow,
+                        lastDeletedRow,
+                        rowDelta,
+                        Name);
+                    return rewritten.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0;
+                }) == true;
         }
 
         private void ValidateStructuralRowReferenceMode() {
