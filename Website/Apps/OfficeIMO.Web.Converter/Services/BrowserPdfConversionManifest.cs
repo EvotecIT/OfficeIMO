@@ -20,7 +20,6 @@ internal static class BrowserPdfConversionManifest {
         BrowserPdfProfile profile,
         long conversionMilliseconds,
         PdfSerializationReport serialization) {
-        PdfReadDocument readDocument = PdfReadDocument.Open(outputBytes);
         string sourceHash = Sha256(source.Bytes);
         string outputHash = Sha256(outputBytes);
         string engineVersion = GetEngineVersion();
@@ -51,8 +50,8 @@ internal static class BrowserPdfConversionManifest {
                 fileName = outputFileName,
                 byteCount = outputBytes.LongLength,
                 sha256 = outputHash,
-                pageCount = readDocument.Pages.Count,
-                tagged = readDocument.HasTaggedContent
+                pageCount = serialization.PageCount,
+                tagged = true
             },
             engine = new {
                 converter,

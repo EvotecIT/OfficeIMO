@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static ExcelCellStyleSnapshot?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, PdfCore.PdfStandardFont defaultFontFamily, VisibilityLayoutData? visibility = null) {
+        private static ExcelCellStyleSnapshot?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, ExcelSheetReader sheetReader, string normalizedRange, int rowCount, int columnCount, bool enabled, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead, VisibilityLayoutData? visibility = null) {
             if (!enabled || workbookSheet == null || rowCount == 0 || columnCount == 0) {
                 return null;
             }
@@ -105,11 +105,27 @@ namespace OfficeIMO.Excel.Pdf {
 
             ExcelCellStyleSnapshot?[,] styles = new ExcelCellStyleSnapshot?[rowCount, columnCount];
             bool hasAnyStyle = false;
+            uint?[,]? styleIndexes = boundedRead
+                ? sheetReader.ReadCellStyleIndexes(normalizedRange)
+                : null;
+            bool useStreamedStyleIndexes = boundedRead && styleIndexes != null;
             for (int row = 0; row < rowCount; row++) {
                 for (int column = 0; column < columnCount; column++) {
                     int sourceRow = visibility?.RowOffsets[row] ?? row;
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
-                    ExcelCellStyleSnapshot style = workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
+                    uint? styleIndex = useStreamedStyleIndexes &&
+                        styleIndexes != null &&
+                        sourceRow < styleIndexes.GetLength(0) &&
+                        sourceColumn < styleIndexes.GetLength(1)
+                            ? styleIndexes[sourceRow, sourceColumn]
+                            : null;
+                    if (useStreamedStyleIndexes && !styleIndex.HasValue) {
+                        continue;
+                    }
+
+                    ExcelCellStyleSnapshot style = useStreamedStyleIndexes
+                        ? workbookSheet.GetCellStyleByIndex(styleIndex!.Value)
+                        : workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
                     if (HasPdfExportStyle(style, defaultFontFamily)) {
                         styles[row, column] = style;
                         hasAnyStyle = true;

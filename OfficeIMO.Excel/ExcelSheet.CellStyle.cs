@@ -20,15 +20,19 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellStyleSnapshot();
             }
 
+            return GetCellStyleByIndex(cell.StyleIndex?.Value ?? 0U);
+        }
+
+        internal ExcelCellStyleSnapshot GetCellStyleByIndex(uint styleIndex) {
             WorkbookPart? workbookPart = _excelDocument.WorkbookPartRoot;
             Stylesheet? stylesheet = workbookPart?.WorkbookStylesPart?.Stylesheet;
             if (stylesheet == null) {
                 return new ExcelCellStyleSnapshot {
-                    StyleIndex = cell.StyleIndex?.Value ?? 0U
+                    StyleIndex = styleIndex
                 };
             }
 
-            CellFormat format = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+            CellFormat format = GetBaseCellFormat(stylesheet, styleIndex);
             Font? font = stylesheet.Fonts?.Elements<Font>().ElementAtOrDefault((int)(format.FontId?.Value ?? 0U));
             Fill? fill = stylesheet.Fills?.Elements<Fill>().ElementAtOrDefault((int)(format.FillId?.Value ?? 0U));
             Border? border = stylesheet.Borders?.Elements<Border>().ElementAtOrDefault((int)(format.BorderId?.Value ?? 0U));
@@ -37,7 +41,7 @@ namespace OfficeIMO.Excel {
             bool hasSimpleGradient = ExcelGradientFillResolver.TryResolveSimpleLinearGradient(fill, workbookPart, out ExcelGradientFillInfo gradient);
 
             return new ExcelCellStyleSnapshot {
-                StyleIndex = cell.StyleIndex?.Value ?? 0U,
+                StyleIndex = styleIndex,
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = numberFormatCode,
                 IsDateLike = IsBuiltInDate(numberFormatId) || ExcelNumberFormatClassifier.LooksLikeDateFormat(numberFormatCode),

@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel {
                     string name = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
                     string displayName = table.DisplayName?.Value ?? name;
                     string range = table.Reference?.Value ?? string.Empty;
+                    TableStyleInfo? styleInfo = table.TableStyleInfo;
                     List<ExcelTableColumnInfo>? columns = null;
                     var tableColumns = table.TableColumns;
                     if (tableColumns != null) {
@@ -69,10 +70,14 @@ namespace OfficeIMO.Excel {
                         range,
                         sheetName,
                         tableSheetIndex,
-                        table.TableStyleInfo?.Name?.Value,
+                        styleInfo?.Name?.Value,
                         (table.HeaderRowCount?.Value ?? 1U) > 0U,
                         (table.TotalsRowCount?.Value ?? 0U) > 0U,
                         table.GetFirstChild<AutoFilter>() != null,
+                        styleInfo?.ShowFirstColumn?.Value == true,
+                        styleInfo?.ShowLastColumn?.Value == true,
+                        styleInfo?.ShowRowStripes?.Value == true,
+                        styleInfo?.ShowColumnStripes?.Value == true,
                         columns));
                 }
             }

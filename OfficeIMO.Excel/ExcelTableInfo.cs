@@ -35,7 +35,21 @@ namespace OfficeIMO.Excel {
         /// <param name="sheetName">Sheet name containing the table.</param>
         /// <param name="sheetIndex">0-based sheet index; -1 when unknown.</param>
         public ExcelTableInfo(string name, string range, string sheetName, int sheetIndex)
-            : this(name, name, range, sheetName, sheetIndex, null, hasHeaderRow: true, totalsRowShown: false, hasAutoFilter: false, columns: null) {
+            : this(
+                name,
+                name,
+                range,
+                sheetName,
+                sheetIndex,
+                null,
+                hasHeaderRow: true,
+                totalsRowShown: false,
+                hasAutoFilter: false,
+                showFirstColumn: false,
+                showLastColumn: false,
+                showRowStripes: false,
+                showColumnStripes: false,
+                columns: null) {
         }
 
         internal ExcelTableInfo(
@@ -48,6 +62,10 @@ namespace OfficeIMO.Excel {
             bool hasHeaderRow,
             bool totalsRowShown,
             bool hasAutoFilter,
+            bool showFirstColumn,
+            bool showLastColumn,
+            bool showRowStripes,
+            bool showColumnStripes,
             IReadOnlyList<ExcelTableColumnInfo>? columns) {
             Name = name ?? string.Empty;
             DisplayName = displayName ?? string.Empty;
@@ -58,6 +76,10 @@ namespace OfficeIMO.Excel {
             HasHeaderRow = hasHeaderRow;
             TotalsRowShown = totalsRowShown;
             HasAutoFilter = hasAutoFilter;
+            ShowFirstColumn = showFirstColumn;
+            ShowLastColumn = showLastColumn;
+            ShowRowStripes = showRowStripes;
+            ShowColumnStripes = showColumnStripes;
             Columns = columns ?? System.Array.Empty<ExcelTableColumnInfo>();
         }
 
@@ -87,6 +109,18 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether the table has a table-scoped AutoFilter.</summary>
         public bool HasAutoFilter { get; }
+
+        /// <summary>Whether the table style emphasizes the first column.</summary>
+        public bool ShowFirstColumn { get; }
+
+        /// <summary>Whether the table style emphasizes the last column.</summary>
+        public bool ShowLastColumn { get; }
+
+        /// <summary>Whether the table style applies alternating row formatting.</summary>
+        public bool ShowRowStripes { get; }
+
+        /// <summary>Whether the table style applies alternating column formatting.</summary>
+        public bool ShowColumnStripes { get; }
 
         /// <summary>Table columns in display order.</summary>
         public IReadOnlyList<ExcelTableColumnInfo> Columns { get; }

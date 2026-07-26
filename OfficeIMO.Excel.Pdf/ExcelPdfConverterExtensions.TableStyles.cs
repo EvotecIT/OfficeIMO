@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
+        private static PdfCore.PdfTableStyle CreateTableStyle(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
             int exportedRows = rowIndexes.Count;
             int headerRows = Math.Min(headerRowCount, exportedRows);
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             ApplyFitToHeight(tableStyle, options, pageSetup, rowIndexes, rowHeights);
 
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateCellFills(styles, conditionalFills, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateCellFills(styles, conditionalFills, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
             if (cellFills != null) {
                 tableStyle.CellFills = cellFills;
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Pdf {
                 tableStyle.CellVerticalAlignments = cellVerticalAlignments;
             }
 
-            Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateCellBorders(styles, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateCellBorders(styles, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
             if (cellBorders != null) {
                 tableStyle.CellBorders = cellBorders;
             }
@@ -234,13 +234,32 @@ namespace OfficeIMO.Excel.Pdf {
             return hyperlinks[row, column];
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
-            if (styles == null && conditionalFills == null) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+            if (styles == null && conditionalFills == null && structuredTables.Count == 0) {
                 return null;
             }
 
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : int.MaxValue;
             Dictionary<(int Row, int Column), PdfCore.PdfColor>? fills = null;
+            if (cellReferences != null && structuredTables.Count > 0) {
+                int columns = Math.Min(columnEnd, cellReferences.GetLength(1));
+                for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
+                    int row = rowIndexes[localRow];
+                    if (row < 0 || row >= cellReferences.GetLength(0)) {
+                        continue;
+                    }
+
+                    for (int column = columnOffset; column < columns; column++) {
+                        StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
+                        PdfCore.PdfColor? fill = ToPdfColor(tableVisual?.Fill);
+                        if (fill.HasValue) {
+                            fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                            fills[(localRow, column - columnOffset)] = fill.Value;
+                        }
+                    }
+                }
+            }
+
             if (styles != null) {
                 int columns = Math.Min(columnEnd, styles.GetLength(1));
                 for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
@@ -406,25 +425,51 @@ namespace OfficeIMO.Excel.Pdf {
             return alignments;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateCellBorders(ExcelCellStyleSnapshot?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
-            if (styles == null) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateCellBorders(ExcelCellStyleSnapshot?[,]? styles, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+            if (styles == null && structuredTables.Count == 0) {
                 return null;
             }
 
-            int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : styles.GetLength(1);
-            int columns = Math.Min(columnEnd, styles.GetLength(1));
+            int referenceColumns = cellReferences?.GetLength(1) ?? 0;
+            int styleColumns = styles?.GetLength(1) ?? 0;
+            int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : Math.Max(referenceColumns, styleColumns);
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? borders = null;
-            for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
-                int row = rowIndexes[localRow];
-                if (row < 0 || row >= styles.GetLength(0)) {
-                    continue;
-                }
+            if (cellReferences != null && structuredTables.Count > 0) {
+                int columns = Math.Min(columnEnd, cellReferences.GetLength(1));
+                for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
+                    int row = rowIndexes[localRow];
+                    if (row < 0 || row >= cellReferences.GetLength(0)) {
+                        continue;
+                    }
 
-                for (int column = columnOffset; column < columns; column++) {
-                    PdfCore.PdfCellBorder? border = ToPdfCellBorder(styles[row, column]?.Border);
-                    if (border != null) {
-                        borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
-                        borders[(localRow, column - columnOffset)] = border;
+                    for (int column = columnOffset; column < columns; column++) {
+                        StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
+                        PdfCore.PdfColor? color = ToPdfColor(tableVisual?.Border);
+                        if (color.HasValue) {
+                            borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
+                            borders[(localRow, column - columnOffset)] = new PdfCore.PdfCellBorder {
+                                Color = color.Value,
+                                Width = 0.35D
+                            };
+                        }
+                    }
+                }
+            }
+
+            if (styles != null) {
+                int columns = Math.Min(columnEnd, styles.GetLength(1));
+                for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
+                    int row = rowIndexes[localRow];
+                    if (row < 0 || row >= styles.GetLength(0)) {
+                        continue;
+                    }
+
+                    for (int column = columnOffset; column < columns; column++) {
+                        PdfCore.PdfCellBorder? border = ToPdfCellBorder(styles[row, column]?.Border);
+                        if (border != null) {
+                            borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
+                            borders[(localRow, column - columnOffset)] = border;
+                        }
                     }
                 }
             }

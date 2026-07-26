@@ -51,7 +51,7 @@
                     <div class="ocx-input-actions">
                         <button type="button" class="ocx-text-action" @onclick="LoadSampleAsync">Try a sample</button>
                         @if (ActiveRoute.Id == "xlsx-pdf") {
-                            <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" /><span>Limit PDF to 250 rows per sheet</span></label>
+                            <label class="ocx-toggle"><input type="checkbox" @bind="LimitExcelRows" /><span>Browser-safe preview: up to 250 rows (skips sheet layout and media)</span></label>
                         }
                     </div>
                 } else {
@@ -154,7 +154,7 @@
 
     <section class="ocx-utility-rail" aria-label="Converter details">
         <div><span class="ocx-utility-icon ocx-utility-icon--private" aria-hidden="true">✓</span><span><strong>Browser-local</strong><small>Files stay in this tab</small></span></div>
-        <div><span class="ocx-utility-icon" aria-hidden="true">□</span><span><strong>Up to @FormatBytes(MaxUploadBytes)</strong><small>Per file</small></span></div>
+        <div><span class="ocx-utility-icon" aria-hidden="true">□</span><span><strong>Up to @FormatBytes(MaxUploadBytes)</strong><small>Per upload · huge sheets preview safely</small></span></div>
         <div><span class="ocx-utility-icon" aria-hidden="true">&lt;/&gt;</span><span><strong>OfficeIMO engine</strong><small>WebAssembly</small></span></div>
         <a href="/convert/guides/" target="_top"><strong>Need server or legacy formats?</strong><span>View conversion guides →</span></a>
     </section>

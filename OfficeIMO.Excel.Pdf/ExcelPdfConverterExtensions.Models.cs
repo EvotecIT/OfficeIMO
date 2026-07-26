@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, ConditionalFillData? conditionalFills = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -46,6 +46,7 @@ namespace OfficeIMO.Excel.Pdf {
                 RowHeights = rowHeights;
                 HeaderRowCount = headerRowCount;
                 FirstBodyRowNumber = firstBodyRowNumber;
+                StructuredTables = structuredTables;
                 ConditionalFills = conditionalFills;
             }
 
@@ -58,6 +59,7 @@ namespace OfficeIMO.Excel.Pdf {
             public RowLayoutData? RowHeights { get; }
             public int HeaderRowCount { get; }
             public int FirstBodyRowNumber { get; }
+            public IReadOnlyList<StructuredTableVisualData> StructuredTables { get; }
             public ConditionalFillData? ConditionalFills { get; }
         }
 
