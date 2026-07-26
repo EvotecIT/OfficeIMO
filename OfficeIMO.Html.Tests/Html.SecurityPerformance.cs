@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
@@ -13,7 +12,7 @@ public partial class Html {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
     [Fact]
-    public void HtmlToWord_SharedAncestorStylesAreParsedWithinBoundedTime() {
+    public async System.Threading.Tasks.Task HtmlToWord_SharedAncestorStylesAreParsedOncePerElement() {
         const int paragraphCount = 200;
         var ancestorStyle = new StringBuilder("background-color:#0000ff;");
         while (ancestorStyle.Length < 64 * 1024) {
@@ -27,23 +26,20 @@ public partial class Html {
         }
         html.Append("</div>");
         HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-        var stopwatch = Stopwatch.StartNew();
+        var converter = new HtmlToWordConverter();
 
-        using WordDocument document = HtmlConversionDocument.Parse(html.ToString())
-            .ToWordDocumentResult(options)
-            .RequireValue();
-        stopwatch.Stop();
+        using WordDocument document = await converter.ConvertAsync(
+            HtmlConversionDocument.Parse(html.ToString()).CreateDocumentForConversion(),
+            options);
 
         Assert.Equal(paragraphCount, document.Paragraphs.Count);
         Assert.All(document.Paragraphs, paragraph =>
             Assert.Equal("800080", paragraph.ShadingFillColorHex));
-        Assert.True(
-            stopwatch.Elapsed < TimeSpan.FromSeconds(15),
-            $"HTML conversion took {stopwatch.Elapsed}.");
+        Assert.Equal(3, converter.InlineStyleParseCount);
     }
 
     [Fact]
-    public void HtmlToWord_TableBackgroundAncestorsAreParsedWithinBoundedTime() {
+    public async System.Threading.Tasks.Task HtmlToWord_TableBackgroundIsParsedOncePerOwner() {
         const int cellCount = 200;
         var ancestorStyle = new StringBuilder("background-color:#0000ff;");
         while (ancestorStyle.Length < 64 * 1024) {
@@ -63,20 +59,17 @@ public partial class Html {
         }
         html.Append("</tr></table></div>");
         HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-        var stopwatch = Stopwatch.StartNew();
+        var converter = new HtmlToWordConverter();
 
-        using WordDocument document = HtmlConversionDocument.Parse(html.ToString())
-            .ToWordDocumentResult(options)
-            .RequireValue();
-        stopwatch.Stop();
+        using WordDocument document = await converter.ConvertAsync(
+            HtmlConversionDocument.Parse(html.ToString()).CreateDocumentForConversion(),
+            options);
 
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal(cellCount, table.Rows[0].Cells.Count);
         Assert.All(table.Rows[0].Cells, cell =>
             Assert.Equal("800080", cell.ShadingFillColorHex));
-        Assert.True(
-            stopwatch.Elapsed < TimeSpan.FromSeconds(15),
-            $"HTML conversion took {stopwatch.Elapsed}.");
+        Assert.Equal(1, converter.TableBackgroundParseCount);
     }
 
     [Fact]

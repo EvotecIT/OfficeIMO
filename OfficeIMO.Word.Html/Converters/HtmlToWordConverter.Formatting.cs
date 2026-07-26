@@ -377,6 +377,7 @@ namespace OfficeIMO.Word.Html {
 
             CssStyleMapper.CssProperties parsed = CssStyleMapper.ParseStyles(
                 element.GetAttribute("style"));
+            InlineStyleParseCount++;
             _inlineStyles[element] = parsed;
             return parsed;
         }

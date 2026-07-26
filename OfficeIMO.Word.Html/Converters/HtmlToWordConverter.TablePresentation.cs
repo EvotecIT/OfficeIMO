@@ -23,8 +23,10 @@ namespace OfficeIMO.Word.Html {
                     : cell.ShadingFillColorHex);
         }
 
-        private static CssStyleMapper.CssProperties ParseTableBackground(string value) =>
-            CssStyleMapper.ParseStyles("background-color:" + value);
+        private CssStyleMapper.CssProperties ParseTableBackground(string value) {
+            TableBackgroundParseCount++;
+            return CssStyleMapper.ParseStyles("background-color:" + value);
+        }
 
         private string? ResolveAncestorBlockBackground(AngleSharp.Dom.IElement element) {
             var lineage = new Stack<AngleSharp.Dom.IElement>();
