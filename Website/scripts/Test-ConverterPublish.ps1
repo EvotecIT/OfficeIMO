@@ -59,6 +59,17 @@ $canonicalLink = [regex]::Matches(
 if (-not $canonicalLink) {
     throw "The compatibility /playground/ route does not canonicalize to /convert/."
 }
+$robotsMeta = [regex]::Matches(
+    $playgroundPage,
+    '<meta\b[^>]*>',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+) | Where-Object {
+    $_.Value -match '\bname\s*=\s*(?:"robots"|''robots''|robots)(?:\s|/?>)' -and
+    $_.Value -match '\bcontent\s*=\s*(?:"[^"]*\bnoindex\b[^"]*"|''[^'']*\bnoindex\b[^'']*''|[^\s>]*\bnoindex\b[^\s>]*)(?:\s|/?>)'
+} | Select-Object -First 1
+if (-not $robotsMeta) {
+    throw "The compatibility /playground/ route is indexable instead of being a noindex alias."
+}
 
 $runtimeWasm = [System.Text.Encoding]::ASCII.GetString(
     [System.IO.File]::ReadAllBytes($runtimeWasmPath)

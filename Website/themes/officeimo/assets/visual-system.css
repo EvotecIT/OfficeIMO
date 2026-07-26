@@ -2191,7 +2191,7 @@ body.pf-api-docs {
   }
   .imo-converter-launch__frame {
     height: calc(100dvh - var(--imo-header-height));
-    min-height: 640px;
+    min-height: 0;
     border-radius: 0;
   }
   .imo-proof-card { grid-template-columns: 1fr; gap: 0.75rem; }
