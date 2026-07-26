@@ -692,14 +692,18 @@ namespace OfficeIMO.Excel {
                         }
 
                         XElement? anchor = clientData.Element(x + "Anchor");
-                        changed |= firstAffectedRow.HasValue
-                            ? RemapVmlAnchorRows(
+                        VmlAnchorPlacement placement = GetVmlAnchorPlacement(clientData, x);
+                        if (firstAffectedRow.HasValue) {
+                            changed |= RemapVmlAnchorRows(
                                 anchor,
                                 firstAffectedRow.Value,
                                 structuralRowDelta,
                                 lastDeletedRow,
-                                columnDelta)
-                            : ShiftVmlAnchor(anchor, commentRowDelta, columnDelta);
+                                columnDelta,
+                                placement);
+                        } else if (placement != VmlAnchorPlacement.Absolute) {
+                            changed |= ShiftVmlAnchor(anchor, commentRowDelta, columnDelta);
+                        }
                     }
 
                     if (changed) {
@@ -739,8 +743,12 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow,
-            int columnDelta) {
+            int columnDelta,
+            VmlAnchorPlacement placement) {
             if (!TryParseVmlAnchor(anchor, out int[] values)) {
+                return false;
+            }
+            if (placement == VmlAnchorPlacement.Absolute) {
                 return false;
             }
 
@@ -751,21 +759,36 @@ namespace OfficeIMO.Excel {
             values[0] += columnDelta;
             values[4] += columnDelta;
 
-            int firstSpannedRow = values[2] + 1;
-            int lastSpannedRow = values[6];
-            if (lastSpannedRow >= firstSpannedRow
-                && TryRemapShiftedReferenceRows(
-                    (firstSpannedRow, 1, lastSpannedRow, 1),
-                    firstAffectedRow,
-                    rowDelta,
-                    lastDeletedRow,
-                    out var remappedRows)) {
-                if (remappedRows == null) {
-                    values[2] = firstAffectedRow - 1;
-                    values[6] = firstAffectedRow - 1;
-                } else {
-                    values[2] = remappedRows.Value.r1 - 1;
-                    values[6] = remappedRows.Value.r2;
+            if (placement == VmlAnchorPlacement.OneCell) {
+                int oneBasedFromRow = values[2] + 1;
+                if (TryRemapShiftedReferenceRows(
+                        (oneBasedFromRow, 1, oneBasedFromRow, 1),
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out var remappedFrom)) {
+                    int newFromRow = remappedFrom?.r1 - 1 ?? firstAffectedRow - 1;
+                    int actualRowDelta = newFromRow - values[2];
+                    values[2] = newFromRow;
+                    values[6] += actualRowDelta;
+                }
+            } else {
+                int firstSpannedRow = values[2] + 1;
+                int lastSpannedRow = values[6];
+                if (lastSpannedRow >= firstSpannedRow
+                    && TryRemapShiftedReferenceRows(
+                        (firstSpannedRow, 1, lastSpannedRow, 1),
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out var remappedRows)) {
+                    if (remappedRows == null) {
+                        values[2] = firstAffectedRow - 1;
+                        values[6] = firstAffectedRow - 1;
+                    } else {
+                        values[2] = remappedRows.Value.r1 - 1;
+                        values[6] = remappedRows.Value.r2;
+                    }
                 }
             }
 
@@ -789,6 +812,25 @@ namespace OfficeIMO.Excel {
                 ", ",
                 values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
             return true;
+        }
+
+        private enum VmlAnchorPlacement {
+            Absolute,
+            OneCell,
+            TwoCell
+        }
+
+        private static VmlAnchorPlacement GetVmlAnchorPlacement(
+            XElement clientData,
+            XNamespace excelNamespace) {
+            bool movesWithCells = clientData.Element(excelNamespace + "MoveWithCells") != null;
+            bool sizesWithCells = clientData.Element(excelNamespace + "SizeWithCells") != null;
+            if (sizesWithCells) {
+                return VmlAnchorPlacement.TwoCell;
+            }
+            return movesWithCells
+                ? VmlAnchorPlacement.OneCell
+                : VmlAnchorPlacement.Absolute;
         }
 
         private static bool TryParseVmlAnchor(XElement? anchor, out int[] values) {

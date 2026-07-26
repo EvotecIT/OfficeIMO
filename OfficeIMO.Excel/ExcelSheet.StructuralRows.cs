@@ -631,7 +631,21 @@ namespace OfficeIMO.Excel {
                         element.Attribute("ObjectType")?.Value,
                         "Note",
                         StringComparison.OrdinalIgnoreCase))) {
+                    VmlAnchorPlacement placement = GetVmlAnchorPlacement(clientData, excelNamespace);
+                    if (placement == VmlAnchorPlacement.Absolute) {
+                        continue;
+                    }
                     if (!TryParseVmlAnchor(clientData.Element(excelNamespace + "Anchor"), out int[] values)) {
+                        continue;
+                    }
+
+                    if (placement == VmlAnchorPlacement.OneCell) {
+                        int oneBasedFromRow = values[2] + 1;
+                        if (oneBasedFromRow >= firstRow
+                            && (long)values[6] + count > A1.MaxRows) {
+                            throw new InvalidOperationException(
+                                "Inserting rows would move a comment note anchor beyond Excel's row limit.");
+                        }
                         continue;
                     }
 
