@@ -418,7 +418,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentWidth,
             contentHeight);
         if (_currentRunningStringPage != null) {
-            foreach (HtmlCssRunningStringAssignment assignment in _currentPageRunningStringAssignments.OrderBy(item => item.Offset)) {
+            foreach (HtmlCssRunningStringAssignment assignment in _currentPageRunningStringAssignments.OrderBy(item => item.OrderOffset)) {
                 _currentRunningStringPage.Assign(assignment, _runningStringValues);
             }
         }

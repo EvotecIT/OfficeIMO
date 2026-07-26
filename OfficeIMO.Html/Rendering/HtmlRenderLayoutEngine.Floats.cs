@@ -359,7 +359,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
             height,
             breakOffsets,
-            runningStringAssignments.OrderBy(assignment => assignment.Offset));
+            runningStringAssignments.OrderBy(assignment => assignment.OrderOffset));
     }
 
     private sealed class InlineFloatContext {

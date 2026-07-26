@@ -85,6 +85,40 @@ public sealed class DrawingFontUnicodeRangeTests {
     }
 
     [Fact]
+    public void FontCollection_PreservesExplicitRangeSelectionAfterArabicShaping() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont(
+            0x0627,
+            0x0628,
+            0xFE8D,
+            0xFE8F);
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss(
+            "U+0600-06FF",
+            out OfficeFontUnicodeRangeSet? arabic));
+        var fonts = new OfficeFontFaceCollection().Add(
+            "Scoped",
+            font,
+            OfficeFontStyle.Regular,
+            arabic!);
+        OfficeFontFallbackRun selected = Assert.Single(
+            fonts.PlanFallbackRuns("\u0627\u0628", "Scoped"));
+        string shaped = OfficeArabicTextShaper.Shape(selected.Text);
+
+        IReadOnlyList<OfficeFontFallbackRun> shapedRuns = fonts.PlanFallbackRuns(
+            shaped,
+            selected.FamilyName);
+
+        OfficeFontFallbackRun retained = Assert.Single(shapedRuns);
+        Assert.Equal(selected.FamilyName, retained.FamilyName);
+        Assert.True(fonts.TryMeasureText(
+            shaped,
+            12D,
+            selected.FamilyName,
+            OfficeFontStyle.Regular,
+            out double width));
+        Assert.True(width > 0D);
+    }
+
+    [Fact]
     public void FontCollection_MeasuresAndRasterizesMixedUnicodeRangeRuns() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));

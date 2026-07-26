@@ -115,8 +115,7 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         if (close < 0) return false;
         IReadOnlyList<string> arguments = HtmlRenderCssValues.SplitTopLevelCommas(value.Substring(cursor + prefix.Length, close - cursor - prefix.Length));
         if (arguments.Count is < 1 or > 2) return false;
-        name = arguments[0].Trim();
-        if (!IsIdentifier(name)) return false;
+        if (!HtmlCssIdentifierParser.TryParse(arguments[0].Trim(), out name)) return false;
         if (arguments.Count == 2) {
             string keyword = arguments[1].Trim().ToLowerInvariant();
             if (keyword == "start") position = HtmlCssRunningStringPosition.Start;
@@ -126,15 +125,6 @@ internal sealed class HtmlCssGeneratedContentTemplate {
             else return false;
         }
         cursor = close + 1;
-        return true;
-    }
-
-    private static bool IsIdentifier(string value) {
-        if (value.Length == 0 || !(char.IsLetter(value[0]) || value[0] == '_' || value[0] == '-')) return false;
-        for (int index = 1; index < value.Length; index++) {
-            char current = value[index];
-            if (!(char.IsLetterOrDigit(current) || current == '_' || current == '-')) return false;
-        }
         return true;
     }
 

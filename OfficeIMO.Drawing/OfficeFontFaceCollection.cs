@@ -253,6 +253,9 @@ public sealed class OfficeFontFaceCollection {
 
         string requestedFamilies = familyNames?.Trim() ?? string.Empty;
         IReadOnlyList<OfficeFontFace> candidates = ResolveFallbackCandidates(requestedFamilies, style);
+        var explicitlySelectedFaces = new HashSet<string>(
+            OfficeFontFamilyParser.Parse(requestedFamilies),
+            StringComparer.OrdinalIgnoreCase);
         var resolvedFamilies = new Dictionary<string, string>(StringComparer.Ordinal);
         var runs = new List<OfficeFontFallbackRun>();
         var currentText = new StringBuilder();
@@ -265,8 +268,10 @@ public sealed class OfficeFontFaceCollection {
                 if (!resolvedFamilies.TryGetValue(element, out string? resolvedFamily)) {
                     OfficeFontFace? face = null;
                     for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
-                        if (!candidates[candidateIndex].Covers(element)) continue;
-                        face = candidates[candidateIndex];
+                        OfficeFontFace candidate = candidates[candidateIndex];
+                        bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
+                        if (!(explicitlySelected ? candidate.HasGlyphs(element) : candidate.Covers(element))) continue;
+                        face = candidate;
                         break;
                     }
                     resolvedFamily = face?.ResourceFamilyName ?? requestedFamilies;
@@ -379,7 +384,9 @@ public sealed class OfficeFontFaceCollection {
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
                 OfficeFontFace face = _faces[index];
-                if (!MatchesFamily(face, family) || !CoversPlannedText(face, text)) continue;
+                bool explicitlySelected = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+                if (!MatchesFamily(face, family)
+                    || !CoversPlannedText(face, text, requireUnicodeRange: !explicitlySelected)) continue;
                 first ??= face;
                 if (face.Style == normalizedStyle) exact ??= face;
                 if (face.Style == OfficeFontStyle.Regular) regular ??= face;
@@ -401,12 +408,15 @@ public sealed class OfficeFontFaceCollection {
         return value.Length > 0;
     }
 
-    private static bool CoversPlannedText(OfficeFontFace face, string text) {
+    private static bool CoversPlannedText(
+        OfficeFontFace face,
+        string text,
+        bool requireUnicodeRange) {
         bool hasNonWhitespace = false;
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             if (IsWhitespace(element)) continue;
             hasNonWhitespace = true;
-            if (!face.Covers(element)) return false;
+            if (!(requireUnicodeRange ? face.Covers(element) : face.HasGlyphs(element))) return false;
         }
         return hasNonWhitespace || text.Length > 0;
     }

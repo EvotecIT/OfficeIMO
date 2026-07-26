@@ -364,7 +364,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.Offset));
+                .OrderBy(assignment => assignment.OrderOffset));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);

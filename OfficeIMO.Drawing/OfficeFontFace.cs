@@ -47,6 +47,8 @@ public sealed class OfficeFontFace {
 
     internal bool Covers(string text) => UnicodeRanges.ContainsText(text) && ParsedFont.HasGlyphs(text);
 
+    internal bool HasGlyphs(string text) => ParsedFont.HasGlyphs(text);
+
     internal static OfficeFontStyle NormalizeStyle(OfficeFontStyle style) =>
         style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
 }

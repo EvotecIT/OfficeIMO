@@ -24,10 +24,10 @@ internal static class HtmlCssRuleBlockScanner {
                 index = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (index < 0) break;
                 index++;
-            } else if (current == '{') {
+            } else if (current == '{' && !IsEscaped(css, index)) {
                 opens.Push(index);
                 budget.RecordNestingDepth(opens.Count);
-            } else if (current == '}' && opens.Count > 0) {
+            } else if (current == '}' && !IsEscaped(css, index) && opens.Count > 0) {
                 closures[opens.Pop()] = index;
             }
         }

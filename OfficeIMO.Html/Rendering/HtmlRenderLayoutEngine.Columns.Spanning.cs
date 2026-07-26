@@ -109,7 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentY))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.Offset));
+                .OrderBy(assignment => assignment.OrderOffset));
         return true;
     }
 

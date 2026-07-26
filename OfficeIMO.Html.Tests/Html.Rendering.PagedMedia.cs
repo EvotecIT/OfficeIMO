@@ -99,6 +99,57 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, margin.Text);
     }
 
+    [Fact]
+    public void HtmlRender_Paged_DecodesEscapedRunningStringIdentifiersOnAssignmentAndLookup() {
+        const string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(sec\74 ion); } }
+            </style>
+            <h2 style="string-set:sec\74 ion 'Escaped identifier'">Body</h2>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Escaped identifier", margin.Text);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_PreservesRunningStringFlowOrderAcrossColumns() {
+        const string html = """
+            <style>
+              @page {
+                size:4in 3in;
+                margin:24px;
+                @top-left { content:"first=" string(section, first); }
+                @top-right { content:"last=" string(section, last); }
+              }
+              h2 { margin:0; font-size:12px; line-height:14px; }
+            </style>
+            <div style="column-count:2;column-fill:auto;height:60px;width:220px">
+              <div style="height:40px"></div>
+              <h2 style="string-set:section 'First column'">First</h2>
+              <div style="height:20px"></div>
+              <h2 style="string-set:section 'Second column'">Second</h2>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        IReadOnlyList<string> margins = rendered.Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "page-margin")
+            .Select(text => text.Text)
+            .ToList();
+        Assert.Contains("first=First column", margins);
+        Assert.Contains("last=Second column", margins);
+    }
+
     [Theory]
     [InlineData("<div style='display:flex'><h2 style='string-set:section content()'>Flex section</h2></div>", "Flex section")]
     [InlineData("<div style='display:grid;grid-template-columns:1fr'><h2 style='string-set:section content()'>Grid section</h2></div>", "Grid section")]

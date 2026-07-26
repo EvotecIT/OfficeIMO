@@ -99,7 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName: style.PageName,
             runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.Offset));
+                .OrderBy(assignment => assignment.OrderOffset));
         return true;
     }
 
@@ -240,6 +240,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static IEnumerable<HtmlCssRunningStringAssignment> EnumerateMultiColumnRunningStringAssignments(
         MultiColumnPlan plan,
         double offsetY) {
+        double totalFlowHeight = plan.Fragments.Sum(fragment => fragment.Height);
+        double flowOffset = 0D;
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             bool finalFragment = fragment.End >= fragment.Block.Height - 0.0001D;
             foreach (HtmlCssRunningStringAssignment assignment in fragment.Block.RunningStringAssignments) {
@@ -248,8 +250,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || (!finalFragment && assignment.Offset >= fragment.End - 0.0001D)) {
                     continue;
                 }
-                yield return assignment.Translate(offsetY + fragment.Y - fragment.Start);
+                double visualOffset = assignment.Offset + offsetY + fragment.Y - fragment.Start;
+                double orderOffset = offsetY + (flowOffset + assignment.OrderOffset - fragment.Start)
+                    * plan.UsedHeight / Math.Max(0.01D, totalFlowHeight);
+                yield return assignment.Place(visualOffset, orderOffset);
             }
+            flowOffset += fragment.Height;
         }
     }
 
