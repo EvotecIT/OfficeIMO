@@ -16,6 +16,7 @@ namespace OfficeIMO.PowerPoint {
 
             var series = new List<PowerPointChartSeries>();
             IReadOnlyList<double>? categoryXValues = null;
+            long totalPointCount = 0L;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
                 if (!forDataUpdate &&
@@ -54,6 +55,10 @@ namespace OfficeIMO.PowerPoint {
 
                 int pointCount = xValues.Count;
                 if (pointCount == 0) continue;
+                totalPointCount += pointCount;
+                if (totalPointCount > PowerPointUtils.MaximumSharedChartPoints) {
+                    return null;
+                }
 
                 IReadOnlyList<double> normalizedY = NormalizeValues(yValues, pointCount);
                 IReadOnlyList<double> normalizedSizes = NormalizeValues(bubbleSizes, pointCount);

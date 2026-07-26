@@ -396,6 +396,110 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_PreservesAxisTitlesAndNumberFormats() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(
+                    OfficeChartKind.Bubble,
+                    CreateBubbleData(
+                        new[] { 1D, 2D },
+                        new[] { 2D, 4D },
+                        new[] { 4D, 9D }))
+                .SetScatterXAxisTitle("Risk")
+                .SetScatterYAxisTitle("Return")
+                .SetScatterXAxisNumberFormat("0.0x")
+                .SetScatterYAxisNumberFormat("0.0y");
+
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            Assert.Equal("Risk", snapshot.Layout.CategoryAxisTitle);
+            Assert.Equal("Return", snapshot.Layout.ValueAxisTitle);
+            Assert.Equal("0.0x",
+                snapshot.Layout.HorizontalAxisNumberFormat);
+            Assert.Equal("0.0y",
+                snapshot.Layout.VerticalAxisNumberFormat);
+
+            string svg = System.Text.Encoding.UTF8.GetString(
+                slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+            Assert.Contains("Risk", svg, StringComparison.Ordinal);
+            Assert.Contains("Return", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsNonDefaultAxisPositions() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart nativeChart =
+                plotArea.GetFirstChild<C.BubbleChart>()!;
+            uint[] axisIds = nativeChart.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            C.ValueAxis horizontal = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
+            C.ValueAxis vertical = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[1]);
+
+            horizontal.AxisPosition!.Val = C.AxisPositionValues.Top;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            horizontal.AxisPosition.Val = C.AxisPositionValues.Bottom;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            vertical.AxisPosition!.Val = C.AxisPositionValues.Right;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsManualPlotLayoutAndAreaStyles() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            ChartPart chartPart = presentation.Slides[0].SlidePart
+                .ChartParts.Single();
+            C.PlotArea plotArea = chartPart.ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.Layout layout = plotArea.GetFirstChild<C.Layout>()!;
+            C.ManualLayout manualLayout = layout.AppendChild(
+                new C.ManualLayout(
+                    new C.LayoutTarget {
+                        Val = C.LayoutTargetValues.Inner
+                    },
+                    new C.LeftMode { Val = C.LayoutModeValues.Factor },
+                    new C.TopMode { Val = C.LayoutModeValues.Factor },
+                    new C.Left { Val = 0.1D },
+                    new C.Top { Val = 0.1D }));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            manualLayout.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetChartAreaStyle(fillColor: "112233");
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            chartPart.ChartSpace!.GetFirstChild<C.ShapeProperties>()!.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetPlotAreaStyle(
+                fillColor: "445566", lineColor: "778899",
+                lineWidthPoints: 1.5D);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMixedSnapshotsThatWouldDropBubbleSeries() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -551,12 +655,37 @@ namespace OfficeIMO.Tests {
         public void BubbleChart_RejectsSharedSnapshotPointOverflow() {
             PowerPointUtils.ValidateBubbleWorkbookDimensions(
                 seriesCount: 1,
-                maximumPoints: 100_000);
+                maximumPoints: 100_000,
+                totalPoints: 100_000);
 
             Assert.Throws<ArgumentException>(() =>
                 PowerPointUtils.ValidateBubbleWorkbookDimensions(
                     seriesCount: 1,
-                    maximumPoints: 100_001));
+                    maximumPoints: 100_001,
+                    totalPoints: 100_001));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsAggregatePointOverflowBeforeMutatingSlide() {
+            double[] values = Enumerable.Repeat(1D, 50_001).ToArray();
+            var data = new OfficeChartData(
+                new[] { "1" },
+                new[] {
+                    OfficeChartSeries.CreateBubble(
+                        "First", values, values, values),
+                    OfficeChartSeries.CreateBubble(
+                        "Second", values, values, values)
+                });
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                slide.AddChart(OfficeChartKind.Bubble, data));
+
+            Assert.Contains("total point limit", exception.Message,
+                StringComparison.Ordinal);
+            Assert.Empty(slide.Charts);
         }
 
         [Fact]
@@ -594,7 +723,8 @@ namespace OfficeIMO.Tests {
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 PowerPointUtils.ValidateBubbleWorkbookDimensions(
                     seriesCount: 1,
-                    maximumPoints: 1_048_576));
+                    maximumPoints: 1_048_576,
+                    totalPoints: 1_048_576));
 
             Assert.Contains("worksheet row limit", exception.Message,
                 StringComparison.Ordinal);

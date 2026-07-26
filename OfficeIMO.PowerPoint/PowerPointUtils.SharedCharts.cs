@@ -35,7 +35,10 @@ namespace OfficeIMO.PowerPoint {
                     .Select(series => series.Values.Count)
                     .DefaultIfEmpty(0)
                     .Max();
-                ValidateBubbleWorkbookDimensions(data.Series.Count, maximumPoints);
+                long totalPoints = data.Series.Sum(series =>
+                    (long)series.Values.Count);
+                ValidateBubbleWorkbookDimensions(
+                    data.Series.Count, maximumPoints, totalPoints);
             }
             for (int index = 0; index < data.Series.Count; index++) {
                 OfficeChartSeries series = data.Series[index];
@@ -89,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void ValidateBubbleWorkbookDimensions(
-            int seriesCount, int maximumPoints) {
+            int seriesCount, int maximumPoints, long totalPoints) {
             if (seriesCount >
                 SpreadsheetMaximumColumns / BubbleWorkbookColumnsPerSeries) {
                 throw new ArgumentException(
@@ -104,6 +107,11 @@ namespace OfficeIMO.PowerPoint {
             if (maximumPoints > MaximumSharedChartPoints) {
                 throw new ArgumentException(
                     "Bubble chart data exceeds the shared chart snapshot point limit.",
+                    "data");
+            }
+            if (totalPoints > MaximumSharedChartPoints) {
+                throw new ArgumentException(
+                    "Bubble chart data exceeds the shared chart total point limit.",
                     "data");
             }
         }

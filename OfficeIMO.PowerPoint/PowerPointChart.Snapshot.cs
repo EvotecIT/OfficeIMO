@@ -149,6 +149,7 @@ namespace OfficeIMO.PowerPoint {
                              bubbleChart.GetFirstChild<C.Bubble3D>()) ||
                          HasUnsupportedBubbleAxes(plotArea, bubbleChart) ||
                          HasUnsupportedBubbleLegend(chart) ||
+                         HasUnsupportedBubbleAreaLayout(chartPart, plotArea) ||
                          HasEnabledBubbleDataLabels(bubbleChart) ||
                          bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                              IsBubble3DEnabled(
@@ -220,13 +221,19 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedBubbleAxes(
             C.PlotArea plotArea, C.BubbleChart chart) {
-            HashSet<uint> axisIds = new(chart.Elements<C.AxisId>()
-                .Where(axis => axis.Val?.Value != null)
-                .Select(axis => axis.Val!.Value));
-            return plotArea.Elements<C.ValueAxis>().Any(axis =>
-                axis.AxisId?.Val?.Value != null &&
-                axisIds.Contains(axis.AxisId.Val.Value) &&
-                ((axis.GetFirstChild<C.Delete>() is C.Delete delete &&
+            if (!TryGetReferencedBubbleAxes(
+                    plotArea, chart, out C.ValueAxis horizontalAxis,
+                    out C.ValueAxis verticalAxis)) {
+                return true;
+            }
+            if (horizontalAxis.AxisPosition?.Val?.Value !=
+                    C.AxisPositionValues.Bottom ||
+                verticalAxis.AxisPosition?.Val?.Value !=
+                    C.AxisPositionValues.Left) {
+                return true;
+            }
+            return new[] { horizontalAxis, verticalAxis }.Any(axis =>
+                (axis.GetFirstChild<C.Delete>() is C.Delete delete &&
                   delete.Val?.Value != false) ||
                  axis.GetFirstChild<C.MajorUnit>() != null ||
                  axis.GetFirstChild<C.MinorUnit>() != null ||
@@ -242,7 +249,33 @@ namespace OfficeIMO.PowerPoint {
                    scaling.GetFirstChild<C.MinAxisValue>() != null ||
                    scaling.GetFirstChild<C.MaxAxisValue>() != null ||
                    scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
-                      C.OrientationValues.MaxMin))));
+                      C.OrientationValues.MaxMin)));
+        }
+
+        private static bool TryGetReferencedBubbleAxes(
+            C.PlotArea plotArea, C.BubbleChart chart,
+            out C.ValueAxis horizontalAxis, out C.ValueAxis verticalAxis) {
+            horizontalAxis = null!;
+            verticalAxis = null!;
+            List<C.AxisId> references =
+                chart.Elements<C.AxisId>().ToList();
+            if (references.Count != 2 ||
+                references.Any(axis => axis.Val?.Value == null)) {
+                return false;
+            }
+            uint horizontalId = references[0].Val!.Value;
+            uint verticalId = references[1].Val!.Value;
+            if (horizontalId == verticalId) return false;
+            C.ValueAxis? horizontal = plotArea.Elements<C.ValueAxis>()
+                .FirstOrDefault(axis =>
+                    axis.AxisId?.Val?.Value == horizontalId);
+            C.ValueAxis? vertical = plotArea.Elements<C.ValueAxis>()
+                .FirstOrDefault(axis =>
+                    axis.AxisId?.Val?.Value == verticalId);
+            if (horizontal == null || vertical == null) return false;
+            horizontalAxis = horizontal;
+            verticalAxis = vertical;
+            return true;
         }
 
         private static bool HasUnsupportedBubbleLegend(C.Chart chart) {
@@ -253,6 +286,15 @@ namespace OfficeIMO.PowerPoint {
                  legend.GetFirstChild<C.Layout>()?
                      .GetFirstChild<C.ManualLayout>() != null);
         }
+
+        private static bool HasUnsupportedBubbleAreaLayout(
+            ChartPart chartPart, C.PlotArea plotArea) =>
+            plotArea.GetFirstChild<C.Layout>()?
+                .GetFirstChild<C.ManualLayout>() != null ||
+            chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()?
+                .ChildElements.Count > 0 ||
+            plotArea.GetFirstChild<C.ShapeProperties>()?
+                .ChildElements.Count > 0;
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
             chart.Descendants<C.ShowLegendKey>().Any(item => item.Val?.Value != false) ||
@@ -408,17 +450,14 @@ namespace OfficeIMO.PowerPoint {
                 HeightPoints,
                 bubbleSizeMode,
                 bubbleScalePercent,
-                ReadChartLayout(chart));
+                ReadChartLayout(chart, kind));
         }
 
-        private static OfficeChartLayout ReadChartLayout(C.Chart chart) {
+        private static OfficeChartLayout ReadChartLayout(
+            C.Chart chart, PowerPointChartSnapshotKind kind) {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            if (legend == null) {
-                return new OfficeChartLayout(showLegend: false);
-            }
-
             C.LegendPositionValues? nativePosition =
-                legend.GetFirstChild<C.LegendPosition>()?.Val?.Value;
+                legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
             OfficeChartLegendPosition position =
                 nativePosition == C.LegendPositionValues.Left
                     ? OfficeChartLegendPosition.Left
@@ -427,10 +466,44 @@ namespace OfficeIMO.PowerPoint {
                         : nativePosition == C.LegendPositionValues.Bottom
                             ? OfficeChartLegendPosition.Bottom
                             : OfficeChartLegendPosition.Right;
-            bool overlay = legend.GetFirstChild<C.Overlay>() is C.Overlay item &&
+            bool overlay = legend?.GetFirstChild<C.Overlay>() is C.Overlay item &&
                 item.Val?.Value != false;
+
+            string? horizontalAxisTitle = null;
+            string? verticalAxisTitle = null;
+            string? horizontalAxisNumberFormat = null;
+            string? verticalAxisNumberFormat = null;
+            if (kind == PowerPointChartSnapshotKind.Bubble &&
+                chart.GetFirstChild<C.PlotArea>() is C.PlotArea plotArea &&
+                plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubble &&
+                TryGetReferencedBubbleAxes(
+                    plotArea, bubble, out C.ValueAxis horizontalAxis,
+                    out C.ValueAxis verticalAxis)) {
+                horizontalAxisTitle = ReadAxisTitle(horizontalAxis);
+                verticalAxisTitle = ReadAxisTitle(verticalAxis);
+                horizontalAxisNumberFormat =
+                    ReadAxisNumberFormat(horizontalAxis);
+                verticalAxisNumberFormat =
+                    ReadAxisNumberFormat(verticalAxis);
+            }
+
             return new OfficeChartLayout(overlayLegend: overlay,
-                legendPosition: position);
+                showLegend: legend != null,
+                legendPosition: position,
+                categoryAxisTitle: horizontalAxisTitle,
+                valueAxisTitle: verticalAxisTitle,
+                horizontalAxisNumberFormat: horizontalAxisNumberFormat,
+                verticalAxisNumberFormat: verticalAxisNumberFormat);
+        }
+
+        private static string? ReadAxisTitle(C.ValueAxis axis) =>
+            ReadChartText(
+                axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>());
+
+        private static string? ReadAxisNumberFormat(C.ValueAxis axis) {
+            string? format = axis.GetFirstChild<C.NumberingFormat>()?
+                .FormatCode?.Value;
+            return string.IsNullOrWhiteSpace(format) ? null : format;
         }
 
         private static PowerPointChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {
@@ -630,7 +703,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string? ReadTitle(C.Chart chart) {
-            C.ChartText? chartText = chart.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
+            C.ChartText? chartText =
+                chart.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
+            return ReadChartText(chartText);
+        }
+
+        private static string? ReadChartText(C.ChartText? chartText) {
             if (chartText == null) {
                 return null;
             }
