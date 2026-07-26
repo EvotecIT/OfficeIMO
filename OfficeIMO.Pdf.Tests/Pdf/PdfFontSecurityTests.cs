@@ -18,6 +18,10 @@ public class PdfFontSecurityTests {
 
         Assert.Throws<InvalidOperationException>(() =>
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OverflowFont", new byte[] { 1 })));
+        Assert.False(options.TryRegisterNamedFontFamily(
+            new PdfEmbeddedFontFamily("OverflowFont", new byte[] { 1 })));
+        Assert.True(options.TryRegisterNamedFontFamily(
+            new PdfEmbeddedFontFamily("SecurityFont0", new byte[] { 2 })));
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("SecurityFont0", new byte[] { 2 }));
         Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
     }

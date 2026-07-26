@@ -51,8 +51,9 @@ internal static partial class HtmlPdfRenderedConverter {
 
         foreach (string family in orderedFamilies) {
             cancellationToken.ThrowIfCancellationRequested();
-            RegisterNamedFamily(pdf, family, byFamily[family], cancellationToken);
-            mappings[family] = MapStandardFont(family);
+            if (RegisterNamedFamily(pdf, family, byFamily[family], cancellationToken)) {
+                mappings[family] = MapStandardFont(family);
+            }
         }
 
         return new RegisteredWebFonts(mappings, faces);
@@ -93,7 +94,7 @@ internal static partial class HtmlPdfRenderedConverter {
             if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family)
                 || family == null) continue;
 
-            pdf.Options.RegisterNamedFontFamily(CreateCoverageSafeFontFamily(family, familyRuns));
+            if (!pdf.Options.TryRegisterNamedFontFamily(CreateCoverageSafeFontFamily(family, familyRuns))) break;
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyName)));
             loadedFamilyCount++;
         }
@@ -250,7 +251,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.AnalyzeWinAnsiText(text).Count != 0;
 
-    private static void RegisterNamedFamily(
+    private static bool RegisterNamedFamily(
         PdfCore.PdfDocument pdf,
         string family,
         IReadOnlyList<OfficeFontFace> faces,
@@ -260,7 +261,7 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
         OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
         cancellationToken.ThrowIfCancellationRequested();
-        pdf.Options.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+        return pdf.Options.TryRegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
             family,
             regular.Data,
             bold.Data,

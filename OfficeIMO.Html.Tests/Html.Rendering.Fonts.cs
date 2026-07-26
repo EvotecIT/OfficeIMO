@@ -467,6 +467,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
+    [Fact]
+    public void HtmlPdf_DirectRenderer_FallsBackWhenCallerFontsConsumeNamedFamilyBudget() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null ||
+            string.IsNullOrWhiteSpace(fontPath) ||
+            !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) return;
+        string encoded = Convert.ToBase64String(fontData);
+        string html = "<style>"
+            + "@font-face{font-family:WithinBudget;src:url('data:font/ttf;base64," + encoded + "')}"
+            + "@font-face{font-family:BeyondBudget;src:url('data:font/ttf;base64," + encoded + "')}"
+            + "</style><p style='font-family:WithinBudget'>Embedded text</p>"
+            + "<p style='font-family:BeyondBudget'>Fallback text</p>";
+        var options = new HtmlPdfSaveOptions {
+            TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
+        };
+        options.ResourcePolicy.AllowSystemFontEmbedding = false;
+        for (int index = 0; index < PdfCore.PdfOptions.MaximumNamedFontFamilies - 1; index++) {
+            options.DocumentOptions.RegisterNamedFontFamily(
+                new PdfCore.PdfEmbeddedFontFamily("Reserved" + index.ToString(), new byte[] { 0 }));
+        }
+
+        PdfCore.PdfDocumentConversionResult result =
+            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains("/BaseFont /WithinBudget-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /BeyondBudget-Regular", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("Embedded text", extracted, StringComparison.Ordinal);
+        Assert.Contains("Fallback text", extracted, StringComparison.Ordinal);
+    }
+
     private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600, short kerningAdjustment = 0) {
         byte[] cmap = CreateHtmlRenderFormat12Cmap(scalar);
         var tables = new List<(string Tag, byte[] Data)> {

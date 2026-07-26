@@ -106,12 +106,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
-        if (!string.IsNullOrWhiteSpace(style.StringSet)) {
-            runs.Add(new HtmlInlineRun(
-                element,
-                style,
-                HtmlRenderStyleResolver.DescribeSource(element)));
-        }
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -167,6 +161,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag != "img" && style.Display == "inline-grid") {
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(style.StringSet)) {
+            runs.Add(new HtmlInlineRun(
+                element,
+                style,
+                HtmlRenderStyleResolver.DescribeSource(element)));
         }
 
         ReportUnsupportedInlinePaintEffects(element, style);

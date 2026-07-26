@@ -222,9 +222,9 @@ public sealed class HtmlConversionLimitTests {
     public void HtmlConversionDocument_EnforcesCssNestingDepthBeforeRetainedDeclarationTraversal() {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssNestingDepth = 4;
-        string css = string.Concat(Enumerable.Repeat("@media all{", 5))
+        string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
             + ".target{string-set:chapter content()}"
-            + new string('}', 5);
+            + new string('}', 1024);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>" + css + "</style><p class='target'>x</p>",
             new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });

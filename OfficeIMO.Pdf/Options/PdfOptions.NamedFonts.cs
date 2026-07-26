@@ -29,16 +29,27 @@ public sealed partial class PdfOptions {
     /// consume Helvetica, Times, or Courier compatibility slots and may be used together on one page.
     /// </summary>
     public PdfOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        if (!TryRegisterNamedFontFamily(fontFamily)) {
+            throw new InvalidOperationException(
+                $"No more than {MaximumNamedFontFamilies} named font families can be registered.");
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Registers or replaces a named family without throwing when the distinct-family budget is exhausted.
+    /// </summary>
+    /// <returns>True when the family was registered or replaced; otherwise false.</returns>
+    internal bool TryRegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
         string key = NormalizeNamedFontFamilyKey(fontFamily.FamilyName);
         if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies
             && _namedFontFamilies?.ContainsKey(key) != true) {
-            throw new InvalidOperationException(
-                $"No more than {MaximumNamedFontFamilies} named font families can be registered.");
+            return false;
         }
         (_namedFontFamilies ??= new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal))[key] = fontFamily.Clone();
         RemoveNamedFontProgramCache(key);
-        return this;
+        return true;
     }
 
     /// <summary>
@@ -61,11 +72,7 @@ public sealed partial class PdfOptions {
             registeredFamilyName = registered.FamilyName;
             return true;
         }
-        if ((_namedFontFamilies?.Count ?? 0) >= MaximumNamedFontFamilies) {
-            return false;
-        }
-
-        RegisterNamedFontFamily(family);
+        if (!TryRegisterNamedFontFamily(family)) return false;
         registeredFamilyName = family.FamilyName;
         return true;
     }

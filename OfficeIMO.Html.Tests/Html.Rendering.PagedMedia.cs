@@ -119,6 +119,47 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_DoesNotRecordPositionedRunningStringAtStaticInlineAnchor() {
+        const string html = """
+            <style>
+              @page { size:3in 3in; margin:24px; @top-center { content:string(section, first); } }
+              p, h2 { margin:0; font-size:12px; line-height:14px; }
+            </style>
+            <p>Anchor <span style="position:absolute;top:100px;left:0;string-set:section 'Positioned'">Positioned</span></p>
+            <div style="height:48px"></div>
+            <h2 style="string-set:section 'Flow'">Flow</h2>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Flow");
+    }
+
+    [Theory]
+    [InlineData("string-set:section 'old';string-set:section 'new'", "new")]
+    [InlineData("string-set:section 'old' !important;string-set:section 'new'", "old")]
+    [InlineData("string-set:section 'old';string-set:section 'new' !important", "new")]
+    [InlineData("string-set:section 'old' !important;string-set:section 'new' !important", "new")]
+    public void HtmlRender_Paged_RetainedStringSetDeclarationsRespectSourceOrderAndImportance(
+        string declarations,
+        string expected) {
+        string html = "<style>@page{size:3in 2in;margin:24px;@top-center{content:string(section)}}"
+            + ".target{" + declarations + "}</style><p class='target'>Body</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == expected);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_CollectsRunningStringsFromInlineElements() {
         const string html = """
             <style>
