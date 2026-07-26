@@ -34,6 +34,14 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            ApplyContainerVerticalSpacingFromCss(element, paragraphs, tables);
+        }
+
+        private static void ApplyContainerVerticalSpacingFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            IReadOnlyList<WordTable> tables) {
+            CssStyleMapper.CssProperties box = ParseElementBoxStyles(element);
             OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
             int verticalStart = (box.MarginTop ?? 0) + (box.PaddingTop ?? 0);
             if (verticalStart != 0 && first != null) {

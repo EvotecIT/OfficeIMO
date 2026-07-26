@@ -9,12 +9,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            ApplyCssToElement(element);
-            string styleText = element.GetAttribute("style") ?? string.Empty;
-            var declaration = ParseInlineDeclaration(styleText);
-            string display = GetInlinePropertyValue(declaration, styleText, "display")
-                .Trim()
-                .ToLowerInvariant();
+            string display = GetEffectiveDisplay(element);
             return display is "block" or "flow-root" or "list-item" or "table" or "flex" or "grid" ||
                    !HasSurroundingInlineBodyContent(node);
         }
@@ -53,13 +48,15 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            ApplyCssToElement(element);
-            string styleText = element.GetAttribute("style") ?? string.Empty;
-            var declaration = ParseInlineDeclaration(styleText);
-            string display = GetInlinePropertyValue(declaration, styleText, "display")
-                .Trim()
-                .ToLowerInvariant();
+            string display = GetEffectiveDisplay(element);
             return display is "block" or "flow-root" or "list-item" or "table" or "flex" or "grid";
+        }
+
+        private string GetEffectiveDisplay(IElement element) {
+            var declarations = CollectCssDeclarations(element, inheritedOnly: false);
+            return declarations.TryGetValue("display", out var display)
+                ? display.Value.Trim().ToLowerInvariant()
+                : string.Empty;
         }
     }
 }

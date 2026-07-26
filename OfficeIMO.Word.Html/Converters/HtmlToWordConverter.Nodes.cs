@@ -333,17 +333,26 @@ namespace OfficeIMO.Word.Html {
                                     para.SetStyleId("Quote");
                                 }
                                 para.IndentationBefore = 720;
-                                ApplyParagraphStyleFromCss(para, element);
+                                ApplyParagraphStyleFromCss(
+                                    para,
+                                    element,
+                                    applyVerticalBoxSpacing: false);
                                 ApplyClassStyle(element, para, options);
                                 ApplyBidiIfPresent(element, para);
                                 if (para == firstPara) {
                                     AddBookmarkIfPresent(element, para);
                                 }
                             }
+                            List<WordParagraph> generatedBlockquoteParagraphs =
+                                blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList();
                             ApplyContainerFrameFromCss(
                                 element,
-                                blockquoteParagraphs.Skip(startIndex).Take(endIndex - startIndex).ToList(),
+                                generatedBlockquoteParagraphs,
                                 applyContainerSpacing: false);
+                            ApplyContainerVerticalSpacingFromCss(
+                                element,
+                                generatedBlockquoteParagraphs,
+                                Array.Empty<WordTable>());
                             if (!string.IsNullOrEmpty(cite)) {
                                 HtmlSemanticMetadata.SetBlockquoteCite(firstPara!, cite);
                                 var noteRef = AddNoteReference(firstPara!, cite ?? string.Empty, options);

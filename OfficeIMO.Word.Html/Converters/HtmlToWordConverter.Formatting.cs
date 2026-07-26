@@ -225,7 +225,10 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
+        private static CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(
+            WordParagraph paragraph,
+            IElement element,
+            bool applyVerticalBoxSpacing = true) {
             string? styleAttribute = element.GetAttribute("style");
             var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
             if (style.HasValue) {
@@ -308,13 +311,15 @@ namespace OfficeIMO.Word.Html {
             if (alignment.HasValue) {
                 paragraph.ParagraphAlignment = alignment;
             }
-            int before = (marginTop ?? 0) + (paddingTop ?? 0);
-            if (before > 0) {
-                paragraph.LineSpacingBefore = before;
-            }
-            int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
-            if (after > 0) {
-                paragraph.LineSpacingAfter = after;
+            if (applyVerticalBoxSpacing) {
+                int before = (marginTop ?? 0) + (paddingTop ?? 0);
+                if (before > 0) {
+                    paragraph.LineSpacingBefore = before;
+                }
+                int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
+                if (after > 0) {
+                    paragraph.LineSpacingAfter = after;
+                }
             }
             int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
             if (left != 0) {

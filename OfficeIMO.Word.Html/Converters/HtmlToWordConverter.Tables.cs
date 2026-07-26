@@ -539,9 +539,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (backgroundValue != null) {
+                string? ancestorBackdrop = ResolveAncestorBlockBackground(tableElem);
                 foreach (var row in wordTable.Rows) {
                     foreach (var cell in row.Cells) {
-                        ApplyTableBackground(cell, backgroundValue);
+                        ApplyTableBackground(cell, backgroundValue, ancestorBackdrop);
                     }
                 }
             }
@@ -721,7 +722,10 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var cell in row.Cells) {
                 if (backgroundValue != null) {
-                    ApplyTableBackground(cell, backgroundValue);
+                    ApplyTableBackground(
+                        cell,
+                        backgroundValue,
+                        ResolveAncestorBlockBackground(htmlRow));
                 }
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
@@ -812,7 +816,10 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             if (backgroundValue != null) {
-                ApplyTableBackground(cell, backgroundValue);
+                ApplyTableBackground(
+                    cell,
+                    backgroundValue,
+                    ResolveAncestorBlockBackground(htmlCell));
             }
 
             if (alignment == null && !string.IsNullOrWhiteSpace(alignAttr)) {

@@ -221,14 +221,31 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
-            ApplyContainerFrameFromCss(element, paragraphs, applyContainerSpacing: false);
+            OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
+            OpenXmlElement? last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
+            ApplyBlockFrameFromCss(
+                element,
+                paragraphs,
+                applyContainerSpacing: false,
+                applyTopBorder: paragraphs.Any(
+                    paragraph => ReferenceEquals(paragraph._paragraph, first)),
+                applyBottomBorder: paragraphs.Any(
+                    paragraph => ReferenceEquals(paragraph._paragraph, last)));
             foreach (WordTable table in tables) {
-                ApplyTableContainerFrameFromCss(element, table);
+                ApplyTableContainerFrameFromCss(
+                    element,
+                    table,
+                    applyTopBorder: ReferenceEquals(table._table, first),
+                    applyBottomBorder: ReferenceEquals(table._table, last));
             }
             ApplyContainerSpacingFromCss(element, paragraphs, tables);
         }
 
-        private static void ApplyTableContainerFrameFromCss(IElement element, WordTable table) {
+        private static void ApplyTableContainerFrameFromCss(
+            IElement element,
+            WordTable table,
+            bool applyTopBorder = true,
+            bool applyBottomBorder = true) {
             List<WordTableRow> rows = table.Rows;
             if (rows.Count == 0) {
                 return;
@@ -249,11 +266,15 @@ namespace OfficeIMO.Word.Html {
             BlockBorder? bottom = GetBlockBorder(sideBorders, BlockBorderSide.Bottom);
             string fallbackColor = ResolveElementTextColor(element);
 
-            foreach (WordTableCell cell in rows[0].Cells) {
-                ApplyTableCellBorder(cell, BlockBorderSide.Top, top, fallbackColor);
+            if (applyTopBorder) {
+                foreach (WordTableCell cell in rows[0].Cells) {
+                    ApplyTableCellBorder(cell, BlockBorderSide.Top, top, fallbackColor);
+                }
             }
-            foreach (WordTableCell cell in rows[rows.Count - 1].Cells) {
-                ApplyTableCellBorder(cell, BlockBorderSide.Bottom, bottom, fallbackColor);
+            if (applyBottomBorder) {
+                foreach (WordTableCell cell in rows[rows.Count - 1].Cells) {
+                    ApplyTableCellBorder(cell, BlockBorderSide.Bottom, bottom, fallbackColor);
+                }
             }
             foreach (WordTableRow row in rows) {
                 List<WordTableCell> cells = row.Cells;
@@ -319,7 +340,9 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyBlockFrameFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
-            bool applyContainerSpacing) {
+            bool applyContainerSpacing,
+            bool applyTopBorder = true,
+            bool applyBottomBorder = true) {
             string? styleText = element.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(styleText) || paragraphs.Count == 0) {
                 return;
@@ -345,10 +368,10 @@ namespace OfficeIMO.Word.Html {
                 WordParagraph paragraph = paragraphs[index];
                 ApplyParagraphBorder(paragraph, BlockBorderSide.Left, left, fallbackColor);
                 ApplyParagraphBorder(paragraph, BlockBorderSide.Right, right, fallbackColor);
-                if (index == 0) {
+                if (index == 0 && applyTopBorder) {
                     ApplyParagraphBorder(paragraph, BlockBorderSide.Top, top, fallbackColor);
                 }
-                if (index == paragraphs.Count - 1) {
+                if (index == paragraphs.Count - 1 && applyBottomBorder) {
                     ApplyParagraphBorder(paragraph, BlockBorderSide.Bottom, bottom, fallbackColor);
                 }
             }
