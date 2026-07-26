@@ -135,11 +135,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline != null &&
-            (outline.CompoundLineType?.Value is CompoundLineValues compoundLine &&
+            (outline.CapType?.Value is LineCapValues cap &&
+             cap != LineCapValues.Flat ||
+             outline.Alignment?.Value is PenAlignmentValues alignment &&
+             alignment != PenAlignmentValues.Center ||
+             outline.CompoundLineType?.Value is CompoundLineValues compoundLine &&
              compoundLine != CompoundLineValues.Single ||
              outline.ChildElements.Any(child =>
-                 child is GradientFill or PatternFill or BlipFill or GroupFill
-                     or PresetDash or CustomDash));
+                 child is not SolidFill and not NoFill));
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) {

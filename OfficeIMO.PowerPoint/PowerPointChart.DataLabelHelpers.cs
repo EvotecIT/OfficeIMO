@@ -300,6 +300,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 insertBefore = chartElement.GetFirstChild<C.GapWidth>();
                 insertBefore ??= chartElement.GetFirstChild<C.Overlap>();
+                insertBefore ??= chartElement.GetFirstChild<C.Bubble3D>();
                 insertBefore ??= chartElement.GetFirstChild<C.BubbleScale>();
                 insertBefore ??= chartElement.GetFirstChild<C.ShowNegativeBubbles>();
                 insertBefore ??= chartElement.GetFirstChild<C.SizeRepresents>();

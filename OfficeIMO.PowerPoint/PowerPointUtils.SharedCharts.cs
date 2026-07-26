@@ -590,6 +590,8 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeChartSeries series) {
             if (series.PointColors == null) return;
             OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
+                (OpenXmlElement?)seriesElement.GetFirstChild<C.Trendline>() ??
+                (OpenXmlElement?)seriesElement.GetFirstChild<C.ErrorBars>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.CategoryAxisData>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.XValues>() ?? seriesElement.GetFirstChild<C.YValues>();

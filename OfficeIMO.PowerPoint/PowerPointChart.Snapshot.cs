@@ -147,6 +147,7 @@ namespace OfficeIMO.PowerPoint {
                              bubbleChart.GetFirstChild<C.VaryColors>()) ||
                          IsBubble3DEnabled(
                              bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                         HasUnsupportedBubbleSourceVisibility(chartPart, chart) ||
                          HasUnsupportedBubbleAxes(plotArea, bubbleChart) ||
                          HasUnsupportedBubbleLegend(chart) ||
                          HasUnsupportedBubbleAreaLayout(chartPart, plotArea) ||
@@ -526,8 +527,11 @@ namespace OfficeIMO.PowerPoint {
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
                 PowerPointChartSeries series = data.Series[seriesIndex];
                 uint sourceIndex = series.SourceIndex ?? (uint)seriesIndex;
+                uint legendIndex = kind == PowerPointChartSnapshotKind.Bubble
+                    ? (uint)seriesIndex
+                    : sourceIndex;
                 series.ShowInLegend = hasLegend &&
-                    !hiddenLegendSeries.Contains(sourceIndex);
+                    !hiddenLegendSeries.Contains(legendIndex);
             }
 
             return new PowerPointChartSnapshot(
