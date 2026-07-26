@@ -157,6 +157,8 @@ namespace OfficeIMO.PowerPoint {
             var data = new OfficeChartData(powerPointSnapshot.Data.Categories, series);
             snapshot = new OfficeChartSnapshot(powerPointSnapshot.Name, powerPointSnapshot.Title, kind, data,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints,
+                style: null,
+                layout: powerPointSnapshot.Layout,
                 bubbleScalePercent: powerPointSnapshot.BubbleScalePercent,
                 bubbleSizeMode: powerPointSnapshot.BubbleSizeMode);
             return true;

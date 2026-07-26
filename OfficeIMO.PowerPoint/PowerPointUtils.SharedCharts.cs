@@ -460,6 +460,10 @@ namespace OfficeIMO.PowerPoint {
             if (series.Color.HasValue && IsFilledSharedKind(kind)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
+                properties.RemoveAllChildren<A.GradientFill>();
+                properties.RemoveAllChildren<A.PatternFill>();
+                properties.RemoveAllChildren<A.BlipFill>();
+                properties.RemoveAllChildren<A.GroupFill>();
                 properties.PrependChild(new A.SolidFill(
                     CreateSharedRgbColor(series.Color.Value)));
             }

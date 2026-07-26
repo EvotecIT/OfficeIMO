@@ -360,6 +360,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_PreservesLegendPlacementAndOverlay() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }))
+                .SetLegend(C.LegendPositionValues.Top, overlay: true);
+
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            Assert.Equal(OfficeChartLegendPosition.Top,
+                snapshot.Layout.LegendPosition);
+            Assert.True(snapshot.Layout.OverlayLegend);
+
+            chart.SetLegend(C.LegendPositionValues.TopRight);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMixedSnapshotsThatWouldDropBubbleSeries() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -700,6 +722,20 @@ namespace OfficeIMO.Tests {
 
                 minorUnit.Remove();
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                C.Crosses crosses = axis.GetFirstChild<C.Crosses>()!;
+                crosses.Val = C.CrossesValues.Maximum;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                crosses.Val = C.CrossesValues.AutoZero;
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                var crossesAt = new C.CrossesAt { Val = 1D };
+                axis.AddChild(crossesAt, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                crossesAt.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
         }
 
@@ -948,6 +984,40 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { 3D, 6D }, series.XValues);
             Assert.Equal(new[] { 5D, 10D }, series.Values);
             Assert.Equal(new[] { 16D, 25D }, series.BubbleSizes);
+        }
+
+        [Fact]
+        public void BubbleChart_UpdateDataReplacesNonSolidSeriesFill() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.ChartShapeProperties properties = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.PrependChild(new A.GradientFill());
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D },
+                new[] { 5D },
+                new[] { 16D },
+                seriesColor: OfficeColor.Parse("#445566")));
+
+            properties = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!;
+            Assert.Null(properties.GetFirstChild<A.GradientFill>());
+            Assert.Equal("445566", properties.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
         }
 
         [Fact]

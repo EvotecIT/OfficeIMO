@@ -66,7 +66,8 @@ namespace OfficeIMO.PowerPoint {
             double widthPoints, double heightPoints,
             OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode =
                 OfficeIMO.Drawing.OfficeChartBubbleSizeMode.Area,
-            double bubbleScalePercent = 100D) {
+            double bubbleScalePercent = 100D,
+            OfficeIMO.Drawing.OfficeChartLayout? layout = null) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -79,6 +80,7 @@ namespace OfficeIMO.PowerPoint {
             HeightPoints = heightPoints;
             BubbleSizeMode = bubbleSizeMode;
             BubbleScalePercent = bubbleScalePercent;
+            Layout = layout ?? OfficeIMO.Drawing.OfficeChartLayout.Default;
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -104,5 +106,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Bubble diameter scale as a percentage.</summary>
         public double BubbleScalePercent { get; }
+
+        /// <summary>Shared chart layout projected from native chart settings.</summary>
+        public OfficeIMO.Drawing.OfficeChartLayout Layout { get; }
     }
 }

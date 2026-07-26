@@ -454,6 +454,8 @@ public static partial class PowerPointHtmlConverterExtensions {
                 data,
                 Math.Max(1D, width),
                 Math.Max(1D, height),
+                style: null,
+                layout: snapshot.Layout,
                 bubbleScalePercent: snapshot.BubbleScalePercent,
                 bubbleSizeMode: snapshot.BubbleSizeMode);
             return true;

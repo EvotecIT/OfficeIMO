@@ -143,6 +143,7 @@ namespace OfficeIMO.PowerPoint {
                          IsBubble3DEnabled(
                              bubbleChart.GetFirstChild<C.Bubble3D>()) ||
                          HasUnsupportedBubbleAxes(plotArea, bubbleChart) ||
+                         HasUnsupportedBubbleLegend(chart) ||
                          HasEnabledBubbleDataLabels(bubbleChart) ||
                          bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                              IsBubble3DEnabled(
@@ -224,12 +225,21 @@ namespace OfficeIMO.PowerPoint {
                   delete.Val?.Value != false) ||
                  axis.GetFirstChild<C.MajorUnit>() != null ||
                  axis.GetFirstChild<C.MinorUnit>() != null ||
+                 axis.GetFirstChild<C.CrossesAt>() != null ||
+                 (axis.GetFirstChild<C.Crosses>() is C.Crosses crosses &&
+                  crosses.Val?.Value != C.CrossesValues.AutoZero) ||
                  (axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
                   (scaling.GetFirstChild<C.LogBase>() != null ||
                    scaling.GetFirstChild<C.MinAxisValue>() != null ||
                    scaling.GetFirstChild<C.MaxAxisValue>() != null ||
                    scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
                       C.OrientationValues.MaxMin))));
+        }
+
+        private static bool HasUnsupportedBubbleLegend(C.Chart chart) {
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            return legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value ==
+                C.LegendPositionValues.TopRight;
         }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
@@ -373,7 +383,30 @@ namespace OfficeIMO.PowerPoint {
                 WidthPoints,
                 HeightPoints,
                 bubbleSizeMode,
-                bubbleScalePercent);
+                bubbleScalePercent,
+                ReadChartLayout(chart));
+        }
+
+        private static OfficeChartLayout ReadChartLayout(C.Chart chart) {
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            if (legend == null) {
+                return new OfficeChartLayout(showLegend: false);
+            }
+
+            C.LegendPositionValues? nativePosition =
+                legend.GetFirstChild<C.LegendPosition>()?.Val?.Value;
+            OfficeChartLegendPosition position =
+                nativePosition == C.LegendPositionValues.Left
+                    ? OfficeChartLegendPosition.Left
+                    : nativePosition == C.LegendPositionValues.Top
+                        ? OfficeChartLegendPosition.Top
+                        : nativePosition == C.LegendPositionValues.Bottom
+                            ? OfficeChartLegendPosition.Bottom
+                            : OfficeChartLegendPosition.Right;
+            bool overlay = legend.GetFirstChild<C.Overlay>() is C.Overlay item &&
+                item.Val?.Value != false;
+            return new OfficeChartLayout(overlayLegend: overlay,
+                legendPosition: position);
         }
 
         private static PowerPointChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {

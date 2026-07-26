@@ -104,7 +104,7 @@ public static partial class PowerPointPdfConverterExtensions {
             width,
             height,
             options.ChartStyle,
-            options.ChartLayout,
+            options.ChartLayout ?? snapshot.Layout,
             bubbleScalePercent: snapshot.BubbleScalePercent,
             bubbleSizeMode: snapshot.BubbleSizeMode);
     }

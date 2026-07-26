@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -52,12 +53,33 @@ public static partial class OfficeChartDrawingRenderer {
             defaultDiameter * bubbleScalePercent / 100D);
     }
 
-    private static double GetBubblePlotPadding(OfficeChartSnapshot snapshot,
+    private static double GetBubbleMaximumDiameter(OfficeChartSnapshot snapshot,
         double plotWidth, double plotHeight) =>
         GetMaximumBubbleSize(snapshot.Data.Series) > 0D
             ? GetMaximumBubbleDiameter(plotWidth, plotHeight,
-                snapshot.BubbleScalePercent) / 2D
+                snapshot.BubbleScalePercent)
             : 0D;
+
+    private static double GetBubblePlotPadding(OfficeChartSnapshot snapshot,
+        double maximumBubbleDiameter) =>
+        maximumBubbleDiameter > 0D
+            ? maximumBubbleDiameter / 2D +
+              GetMaximumBubbleOutlineWidth(snapshot.Data.Series) / 2D
+            : 0D;
+
+    private static double GetMaximumBubbleOutlineWidth(
+        IReadOnlyList<OfficeChartSeries> series) {
+        double maximum = 0D;
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OfficeChartSeries item = series[seriesIndex];
+            if (!item.ShowMarkerOutline || item.BubbleSizes == null ||
+                !item.BubbleSizes.Any(size => size > 0D)) {
+                continue;
+            }
+            maximum = Math.Max(maximum, item.MarkerOutlineWidth ?? 1D);
+        }
+        return maximum;
+    }
 
     private static double GetMaximumBubbleSize(
         System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {

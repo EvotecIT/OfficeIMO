@@ -96,6 +96,61 @@ public class DrawingChartBubbleTests {
     }
 
     [Fact]
+    public void OfficeChartDrawingRenderer_InsetsBubbleOutlinesInsidePlotAxes() {
+        OfficeColor color = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            OfficeChartSeries.CreateBubble(
+                "Outlined",
+                new[] { 1D, 2D },
+                new[] { 1D, 2D },
+                new[] { 25D, 100D },
+                color,
+                markerOutlineColor: OfficeColor.Parse("#112233"),
+                markerOutlineWidth: 12D)
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot(
+                "Outlined bubbles",
+                null,
+                OfficeChartKind.Bubble,
+                data,
+                widthPoints: 420D,
+                heightPoints: 260D,
+                style: null,
+                layout: new OfficeChartLayout(showLegend: false),
+                bubbleScalePercent: 200D,
+                bubbleSizeMode: OfficeChartBubbleSizeMode.Area));
+        OfficeDrawingShape horizontalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width > 100D &&
+                            shape.Shape.Height == 0D)
+            .OrderByDescending(shape => shape.Shape.Width)
+            .First();
+        OfficeDrawingShape verticalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width == 0D &&
+                            shape.Shape.Height > 50D)
+            .OrderByDescending(shape => shape.Shape.Height)
+            .First();
+
+        Assert.All(GetBubbles(drawing), bubble => {
+            double halfStroke = bubble.Shape.StrokeWidth / 2D;
+            Assert.True(bubble.X - halfStroke >=
+                        horizontalAxis.X - 0.001D,
+                $"Left edge {bubble.X - halfStroke} is before axis {horizontalAxis.X}.");
+            Assert.True(bubble.X + bubble.Shape.Width + halfStroke <=
+                        horizontalAxis.X + horizontalAxis.Shape.Width + 0.001D,
+                $"Right edge {bubble.X + bubble.Shape.Width + halfStroke} exceeds axis {horizontalAxis.X + horizontalAxis.Shape.Width}.");
+            Assert.True(bubble.Y - halfStroke >=
+                        verticalAxis.Y - 0.001D,
+                $"Top edge {bubble.Y - halfStroke} is above axis {verticalAxis.Y}.");
+            Assert.True(bubble.Y + bubble.Shape.Height + halfStroke <=
+                        verticalAxis.Y + verticalAxis.Shape.Height + 0.001D,
+                $"Bottom edge {bubble.Y + bubble.Shape.Height + halfStroke} exceeds axis {verticalAxis.Y + verticalAxis.Shape.Height}.");
+        });
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_InsetsBubblesInMixedScatterCharts() {
         OfficeColor bubbleColor = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new OfficeChartSeries[] {

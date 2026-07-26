@@ -124,8 +124,11 @@ public static partial class OfficeChartDrawingRenderer {
         double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
         double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
         double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
-        double bubblePlotPadding = IsScatterChart(snapshot.ChartKind)
-            ? GetBubblePlotPadding(snapshot, plotWidth, plotHeight)
+        double maximumBubbleDiameter = IsScatterChart(snapshot.ChartKind)
+            ? GetBubbleMaximumDiameter(snapshot, plotWidth, plotHeight)
+            : 0D;
+        double bubblePlotPadding = maximumBubbleDiameter > 0D
+            ? GetBubblePlotPadding(snapshot, maximumBubbleDiameter)
             : 0D;
         double numericPlotLeft = plotLeft + bubblePlotPadding;
         double numericPlotTop = plotTop + bubblePlotPadding;
@@ -416,13 +419,13 @@ public static partial class OfficeChartDrawingRenderer {
             AddMixedCartesianSeries(drawing, snapshot, axisRange, secondaryAxisRange, hasSecondaryAxis,
                 plotLeft, plotTop, plotWidth, plotHeight,
                 numericPlotLeft, numericPlotTop, numericPlotWidth, numericPlotHeight,
-                style, layout, bubblePlotPadding * 2D);
+                style, layout, maximumBubbleDiameter);
         } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
             AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
                 numericPlotWidth, numericPlotHeight, style, layout,
-                maximumBubbleDiameterOverride: bubblePlotPadding * 2D);
+                maximumBubbleDiameterOverride: maximumBubbleDiameter);
         } else if (IsLineChart(snapshot.ChartKind)) {
             AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else {
