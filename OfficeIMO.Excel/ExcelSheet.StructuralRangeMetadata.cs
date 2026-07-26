@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
                     : new ListValue<StringValue> { InnerText = string.Join(" ", remappedResults) };
             }
 
-            foreach (Scenario scenario in scenarios.Elements<Scenario>()) {
+            foreach (Scenario scenario in scenarios.Elements<Scenario>().ToList()) {
                 foreach (InputCells input in scenario.Elements<InputCells>().ToList()) {
                     if (input.CellReference?.Value is not string reference
                         || !TryRemapShiftedReferenceListRows(
@@ -135,7 +135,16 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                scenario.Count = (uint)scenario.Elements<InputCells>().Count();
+                uint inputCount = (uint)scenario.Elements<InputCells>().Count();
+                if (inputCount == 0U) {
+                    scenario.Remove();
+                } else {
+                    scenario.Count = inputCount;
+                }
+            }
+
+            if (!scenarios.Elements<Scenario>().Any()) {
+                scenarios.Remove();
             }
         }
 
@@ -207,10 +216,98 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                foreach (DataReferences sources in worksheet.Descendants<DataReferences>()) {
-                    sources.Count = (uint)sources.Elements<DataReference>().Count();
+                foreach (DataReferences sources in worksheet.Descendants<DataReferences>().ToList()) {
+                    uint sourceCount = (uint)sources.Elements<DataReference>().Count();
+                    if (sourceCount == 0U) {
+                        sources.Remove();
+                    } else {
+                        sources.Count = sourceCount;
+                    }
                 }
                 worksheet.Save();
+            }
+        }
+
+        private void RemapShiftedWebPublishItems(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            WebPublishItems? items = WorkbookRoot.GetFirstChild<WebPublishItems>();
+            if (items == null) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (WebPublishItem item in items.Elements<WebPublishItem>().ToList()) {
+                if (item.SourceType?.Value != WebSourceValues.Range
+                    || !string.Equals(item.SourceObject?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                    || item.SourceRef?.Value is not string reference
+                    || !TryRemapShiftedReferenceListRows(
+                        reference,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remapped)) {
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    item.Remove();
+                } else {
+                    item.SourceRef = remapped[0];
+                }
+                changed = true;
+            }
+
+            if (!changed) {
+                return;
+            }
+            uint count = (uint)items.Elements<WebPublishItem>().Count();
+            if (count == 0U) {
+                items.Remove();
+            } else {
+                items.Count = count;
+            }
+            WorkbookRoot.Save();
+        }
+
+        private void RemapShiftedCellSmartTags(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            foreach (OpenXmlElement tag in WorksheetRoot.Descendants()
+                .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))
+                .ToList()) {
+                OpenXmlAttribute referenceAttribute = tag.GetAttributes()
+                    .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "r", StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrWhiteSpace(referenceAttribute.Value)
+                    || !TryRemapShiftedReferenceListRows(
+                        referenceAttribute.Value,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remapped)) {
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    tag.Remove();
+                } else {
+                    tag.SetAttribute(new OpenXmlAttribute(
+                        referenceAttribute.Prefix,
+                        referenceAttribute.LocalName,
+                        referenceAttribute.NamespaceUri,
+                        remapped[0]));
+                }
+            }
+
+            foreach (OpenXmlElement container in WorksheetRoot.Descendants()
+                .Where(element => string.Equals(element.LocalName, "smartTags", StringComparison.OrdinalIgnoreCase))
+                .ToList()) {
+                if (!container.ChildElements.Any(child =>
+                    string.Equals(child.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
+                    container.Remove();
+                }
             }
         }
 

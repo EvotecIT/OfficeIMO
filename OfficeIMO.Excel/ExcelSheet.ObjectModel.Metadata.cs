@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Excel {
@@ -56,6 +57,7 @@ namespace OfficeIMO.Excel {
         }
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedWebPublishItems(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
             bool definedNamesChanged = RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
             bool tablesChanged = RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -76,6 +78,7 @@ namespace OfficeIMO.Excel {
 
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedWebPublishItems(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
             bool definedNamesChanged = RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
             bool tablesChanged = RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -219,6 +222,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedIgnoredErrors(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedScenarios(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedCellWatches(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedCellSmartTags(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
@@ -250,9 +254,13 @@ namespace OfficeIMO.Excel {
             }
 
             uint breakCount = (uint)rowBreaks.Elements<Break>().Count();
-            rowBreaks.Count = breakCount;
-            rowBreaks.ManualBreakCount = (uint)rowBreaks.Elements<Break>()
-                .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
+            if (breakCount == 0U) {
+                rowBreaks.Remove();
+            } else {
+                rowBreaks.Count = breakCount;
+                rowBreaks.ManualBreakCount = (uint)rowBreaks.Elements<Break>()
+                    .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
+            }
         }
 
         private void RemapShiftedPivotLocations(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -485,7 +493,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapShiftedSparklines(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+            foreach (X14.Sparkline sparkline in WorksheetRoot.Descendants<X14.Sparkline>().ToList()) {
                 if (sparkline.ReferenceSequence?.Text is string location
                     && TryRemapShiftedReferenceListRows(location, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedLocations)) {
                     if (remappedLocations.Count == 0) {
@@ -512,6 +520,28 @@ namespace OfficeIMO.Excel {
                     if (!string.Equals(formula, rewritten, StringComparison.Ordinal)) {
                         sparkline.Formula.Text = rewritten;
                     }
+                }
+            }
+
+            foreach (X14.SparklineGroup group in WorksheetRoot.Descendants<X14.SparklineGroup>().ToList()) {
+                X14.Sparklines? sparklines = group.GetFirstChild<X14.Sparklines>();
+                if (sparklines == null || !sparklines.Elements<X14.Sparkline>().Any()) {
+                    group.Remove();
+                }
+            }
+            foreach (X14.SparklineGroups groups in WorksheetRoot.Descendants<X14.SparklineGroups>().ToList()) {
+                if (!groups.Elements<X14.SparklineGroup>().Any()) {
+                    groups.Remove();
+                }
+            }
+            foreach (Extension extension in WorksheetRoot.Descendants<Extension>().ToList()) {
+                if (!extension.ChildElements.Any()) {
+                    extension.Remove();
+                }
+            }
+            foreach (ExtensionList extensions in WorksheetRoot.Elements<ExtensionList>().ToList()) {
+                if (!extensions.Elements<Extension>().Any()) {
+                    extensions.Remove();
                 }
             }
         }

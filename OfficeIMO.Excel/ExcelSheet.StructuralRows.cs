@@ -360,6 +360,13 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                foreach (DataReference source in worksheet.Descendants<DataReference>()) {
+                    if (string.IsNullOrWhiteSpace(source.Id?.Value)
+                        && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
+                        ValidateReferenceListDoesNotOverflow(source.Reference?.Value, firstRow, count);
+                    }
+                }
+
                 foreach (var tablePart in worksheetPart.TableDefinitionParts) {
                     if (tablePart.Table == null) {
                         continue;
@@ -398,6 +405,18 @@ namespace OfficeIMO.Excel {
             }
             foreach (CellWatch cellWatch in WorksheetRoot.Descendants<CellWatch>()) {
                 ValidateReferenceListDoesNotOverflow(cellWatch.CellReference?.Value, firstRow, count);
+            }
+            foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
+                .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
+                OpenXmlAttribute referenceAttribute = smartTag.GetAttributes()
+                    .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "r", StringComparison.OrdinalIgnoreCase));
+                ValidateReferenceListDoesNotOverflow(referenceAttribute.Value, firstRow, count);
+            }
+            foreach (WebPublishItem item in WorkbookRoot.Descendants<WebPublishItem>()) {
+                if (item.SourceType?.Value == WebSourceValues.Range
+                    && string.Equals(item.SourceObject?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
+                    ValidateReferenceListDoesNotOverflow(item.SourceRef?.Value, firstRow, count);
+                }
             }
             foreach (var tablePart in _worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table != null) {
