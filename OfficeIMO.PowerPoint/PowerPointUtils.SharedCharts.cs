@@ -468,19 +468,27 @@ namespace OfficeIMO.PowerPoint {
                     CreateSharedRgbColor(series.Color.Value)));
             }
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
-            outline.RemoveAllChildren<A.SolidFill>();
-            outline.RemoveAllChildren<A.NoFill>();
-            outline.RemoveAllChildren<A.GradientFill>();
-            outline.RemoveAllChildren<A.PatternFill>();
-            outline.RemoveAllChildren<A.BlipFill>();
-            outline.RemoveAllChildren<A.GroupFill>();
-            if (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) {
-                outline.Append(new A.NoFill());
-            } else if (!series.ConnectLine && !IsFilledSharedKind(kind)) {
-                outline.Append(new A.NoFill());
-            } else if (outlineColor.HasValue) {
-                outline.Append(new A.SolidFill(
-                    CreateSharedRgbColor(outlineColor.Value)));
+            bool replaceOutlineFill = reenableBubbleOutline ||
+                (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) ||
+                (!series.ConnectLine && !IsFilledSharedKind(kind)) ||
+                outlineColor.HasValue;
+            if (replaceOutlineFill) {
+                outline.RemoveAllChildren<A.SolidFill>();
+                outline.RemoveAllChildren<A.NoFill>();
+                outline.RemoveAllChildren<A.GradientFill>();
+                outline.RemoveAllChildren<A.PatternFill>();
+                outline.RemoveAllChildren<A.BlipFill>();
+                outline.RemoveAllChildren<A.GroupFill>();
+                if (kind == OfficeChartKind.Bubble &&
+                    !series.ShowMarkerOutline) {
+                    outline.Append(new A.NoFill());
+                } else if (!series.ConnectLine &&
+                           !IsFilledSharedKind(kind)) {
+                    outline.Append(new A.NoFill());
+                } else if (outlineColor.HasValue) {
+                    outline.Append(new A.SolidFill(
+                        CreateSharedRgbColor(outlineColor.Value)));
+                }
             }
             if (outlineWidth.HasValue) {
                 outline.Width = (int)Math.Min(int.MaxValue,
@@ -528,7 +536,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeChartSeries series) {
             if (series.PointColors == null) return;
-            seriesElement.RemoveAllChildren<C.DataPoint>();
             OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.CategoryAxisData>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
@@ -536,11 +543,31 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 0; index < series.PointColors.Count; index++) {
                 OfficeColor? color = series.PointColors[index];
                 if (!color.HasValue) continue;
-                C.DataPoint point = new(new C.Index { Val = (uint)index },
-                    new C.ChartShapeProperties(new A.SolidFill(
-                        CreateSharedRgbColor(color.Value))));
-                if (insertBefore != null) seriesElement.InsertBefore(point, insertBefore);
-                else seriesElement.Append(point);
+                C.DataPoint? point = seriesElement.Elements<C.DataPoint>()
+                    .FirstOrDefault(item =>
+                        item.Index?.Val?.Value == (uint)index);
+                if (point == null) {
+                    point = new C.DataPoint(new C.Index { Val = (uint)index });
+                    if (insertBefore != null) {
+                        seriesElement.InsertBefore(point, insertBefore);
+                    } else {
+                        seriesElement.Append(point);
+                    }
+                }
+                C.ChartShapeProperties? properties =
+                    point.GetFirstChild<C.ChartShapeProperties>();
+                if (properties == null) {
+                    properties = new C.ChartShapeProperties();
+                    point.AddChild(properties, true);
+                }
+                properties.RemoveAllChildren<A.SolidFill>();
+                properties.RemoveAllChildren<A.NoFill>();
+                properties.RemoveAllChildren<A.GradientFill>();
+                properties.RemoveAllChildren<A.PatternFill>();
+                properties.RemoveAllChildren<A.BlipFill>();
+                properties.RemoveAllChildren<A.GroupFill>();
+                properties.PrependChild(new A.SolidFill(
+                    CreateSharedRgbColor(color.Value)));
             }
         }
 

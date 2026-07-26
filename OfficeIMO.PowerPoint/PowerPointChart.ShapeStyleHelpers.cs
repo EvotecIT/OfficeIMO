@@ -164,6 +164,8 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
+            props.RemoveAllChildren<A.BlipFill>();
+            props.RemoveAllChildren<A.GroupFill>();
             props.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }), true);
         }
 
@@ -171,6 +173,8 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.SolidFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
+            props.RemoveAllChildren<A.BlipFill>();
+            props.RemoveAllChildren<A.GroupFill>();
             props.RemoveAllChildren<A.NoFill>();
             props.AddChild(new A.NoFill(), true);
         }

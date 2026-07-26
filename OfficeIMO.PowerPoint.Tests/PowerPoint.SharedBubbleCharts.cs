@@ -888,6 +888,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_SetSeriesFillColorReplacesImageAndGroupFills() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+            C.ChartShapeProperties properties = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!;
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.PrependChild(new A.BlipFill());
+
+            chart.SetSeriesFillColor(0, "445566");
+
+            Assert.Null(properties.GetFirstChild<A.BlipFill>());
+            Assert.Equal("445566", properties.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.PrependChild(new A.GroupFill());
+            chart.SetSeriesFillColor(0, "778899");
+
+            Assert.Null(properties.GetFirstChild<A.GroupFill>());
+            Assert.Equal("778899", properties.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsUnsupportedSeriesOutlineFills() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -1051,6 +1086,96 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_UpdateDataPreservesNoncontiguousSeriesStyles() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            var initial = new OfficeChartData(new[] { "1" }, new[] {
+                OfficeChartSeries.CreateBubble(
+                    "First", new[] { 1D }, new[] { 2D }, new[] { 4D }),
+                OfficeChartSeries.CreateBubble(
+                    "Second", new[] { 3D }, new[] { 4D }, new[] { 9D })
+            });
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble, initial);
+            chart.SetSeriesTrendline(0, C.TrendlineValues.Linear);
+            C.BubbleChartSeries[] nativeSeries = presentation.Slides[0]
+                .SlidePart.ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().ToArray();
+            nativeSeries[0].Index!.Val = 5U;
+            nativeSeries[0].Order!.Val = 5U;
+            nativeSeries[1].Index!.Val = 9U;
+            nativeSeries[1].Order!.Val = 9U;
+            var updated = new OfficeChartData(new[] { "5" }, new[] {
+                OfficeChartSeries.CreateBubble(
+                    "First", new[] { 5D }, new[] { 6D }, new[] { 16D }),
+                OfficeChartSeries.CreateBubble(
+                    "Second", new[] { 7D }, new[] { 8D }, new[] { 25D })
+            });
+
+            chart.UpdateData(updated);
+
+            nativeSeries = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleChartSeries>().ToArray();
+            Assert.NotNull(nativeSeries[0].GetFirstChild<C.Trendline>());
+            Assert.Null(nativeSeries[1].GetFirstChild<C.Trendline>());
+            Assert.Equal(0U, nativeSeries[0].Index!.Val!.Value);
+            Assert.Equal(1U, nativeSeries[1].Index!.Val!.Value);
+            Assert.Equal("6", nativeSeries[0].GetFirstChild<C.YValues>()!
+                .NumberReference!
+                .NumberingCache!.Elements<C.NumericPoint>().Single()
+                .NumericValue!.Text);
+        }
+
+        [Fact]
+        public void BubbleChart_UpdateDataPreservesAxesByReferencedIdentity() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart nativeChart =
+                plotArea.GetFirstChild<C.BubbleChart>()!;
+            uint[] referencedIds = nativeChart.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            C.ValueAxis xAxis = plotArea.Elements<C.ValueAxis>().Single(axis =>
+                axis.AxisId!.Val!.Value == referencedIds[0]);
+            C.ValueAxis yAxis = plotArea.Elements<C.ValueAxis>().Single(axis =>
+                axis.AxisId!.Val!.Value == referencedIds[1]);
+            xAxis.NumberingFormat!.FormatCode = "0.00x";
+            yAxis.NumberingFormat!.FormatCode = "0.00y";
+            yAxis.Remove();
+            plotArea.InsertBefore(yAxis, xAxis);
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D },
+                new[] { 5D },
+                new[] { 16D }));
+
+            plotArea = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            nativeChart = plotArea.GetFirstChild<C.BubbleChart>()!;
+            referencedIds = nativeChart.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            xAxis = plotArea.Elements<C.ValueAxis>().Single(axis =>
+                axis.AxisId!.Val!.Value == referencedIds[0]);
+            yAxis = plotArea.Elements<C.ValueAxis>().Single(axis =>
+                axis.AxisId!.Val!.Value == referencedIds[1]);
+            Assert.Equal("0.00x", xAxis.NumberingFormat!.FormatCode!.Value);
+            Assert.Equal(C.AxisPositionValues.Bottom,
+                xAxis.AxisPosition!.Val!.Value);
+            Assert.Equal("0.00y", yAxis.NumberingFormat!.FormatCode!.Value);
+            Assert.Equal(C.AxisPositionValues.Left,
+                yAxis.AxisPosition!.Val!.Value);
+        }
+
+        [Fact]
         public void BubbleChart_UpdateDataReplacesNonSolidSeriesFill() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -1135,6 +1260,90 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(outline.GetFirstChild<A.NoFill>());
             Assert.Empty(new OpenXmlValidator().Validate(
                 presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
+        public void BubbleChart_UpdateDataPreservesOutlineColorForWidthOnlyChange() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D },
+                    seriesColor: OfficeColor.Parse("#112233")));
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D },
+                new[] { 5D },
+                new[] { 16D },
+                markerOutlineWidth: 2.5D));
+
+            A.Outline outline = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Equal("112233", outline.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Equal(PowerPointUnits.FromPoints(2.5D),
+                outline.Width!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
+        public void BubbleChart_UpdateDataPreservesNonFillPointFormatting() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            var nativePoint = new C.DataPoint(
+                new C.Index { Val = 0U },
+                new C.ChartShapeProperties(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = "112233" }),
+                    new A.Outline(
+                        new A.SolidFill(
+                            new A.RgbColorModelHex { Val = "AABBCC" })) {
+                        Width = (int)PowerPointUnits.FromPoints(1.25D)
+                    }));
+            nativeSeries.AddChild(nativePoint, true);
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D },
+                new[] { 5D },
+                new[] { 16D },
+                pointColors: new OfficeColor?[] {
+                    OfficeColor.Parse("#445566")
+                }));
+
+            C.DataPoint point = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .Elements<C.DataPoint>().Single();
+            C.ChartShapeProperties properties =
+                point.GetFirstChild<C.ChartShapeProperties>()!;
+            Assert.Equal("445566", properties.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            A.Outline outline = properties.GetFirstChild<A.Outline>()!;
+            Assert.Equal("AABBCC", outline.GetFirstChild<A.SolidFill>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Equal(PowerPointUnits.FromPoints(1.25D),
+                outline.Width!.Value);
+            List<ValidationErrorInfo> validation = new OpenXmlValidator()
+                .Validate(presentation.Slides[0].SlidePart.ChartParts.Single())
+                .ToList();
+            Assert.True(validation.Count == 0, string.Join(
+                Environment.NewLine, validation.Select(error =>
+                    (error.Path?.XPath ?? string.Empty) + ": " +
+                    error.Description)));
         }
 
         [Fact]

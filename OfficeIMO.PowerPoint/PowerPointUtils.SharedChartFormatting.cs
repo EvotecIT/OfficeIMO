@@ -69,16 +69,27 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlCompositeElement generated) {
             List<OpenXmlCompositeElement> oldSeries = preserved.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList();
+            var usedSeries = new HashSet<OpenXmlCompositeElement>();
             OpenXmlElement? insertionPoint = oldSeries.FirstOrDefault();
-            foreach (OpenXmlCompositeElement generatedSeries in generated.ChildElements
-                         .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement)) {
+            List<OpenXmlCompositeElement> generatedSeriesElements = generated.ChildElements
+                .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList();
+            for (int position = 0; position < generatedSeriesElements.Count; position++) {
+                OpenXmlCompositeElement generatedSeries =
+                    generatedSeriesElements[position];
                 uint? seriesIndex = generatedSeries.GetFirstChild<C.Index>()?.Val?.Value;
                 OpenXmlCompositeElement? sourceSeries = oldSeries.FirstOrDefault(series =>
+                    !usedSeries.Contains(series) &&
                     series.GetType() == generatedSeries.GetType() &&
                     series.GetFirstChild<C.Index>()?.Val?.Value == seriesIndex);
+                if (sourceSeries == null && position < oldSeries.Count &&
+                    !usedSeries.Contains(oldSeries[position]) &&
+                    oldSeries[position].GetType() == generatedSeries.GetType()) {
+                    sourceSeries = oldSeries[position];
+                }
                 OpenXmlCompositeElement updated = sourceSeries == null
                     ? (OpenXmlCompositeElement)generatedSeries.CloneNode(true)
                     : UpdateSharedSeriesData(sourceSeries, generatedSeries);
+                if (sourceSeries != null) usedSeries.Add(sourceSeries);
                 if (insertionPoint == null) preserved.AddChild(updated, true);
                 else preserved.InsertBefore(updated, insertionPoint);
             }
@@ -130,7 +141,46 @@ namespace OfficeIMO.PowerPoint {
         private static void PreserveSharedAxes(C.PlotArea source, C.PlotArea replacement) {
             if (UsesHorizontalSharedAxes(source) != UsesHorizontalSharedAxes(replacement)) return;
             PreserveSharedCategoryAxes(source, replacement);
-            PreserveSharedAxes<C.ValueAxis>(source, replacement);
+            if (!PreserveSharedBubbleAxes(source, replacement)) {
+                PreserveSharedAxes<C.ValueAxis>(source, replacement);
+            }
+        }
+
+        private static bool PreserveSharedBubbleAxes(
+            C.PlotArea source, C.PlotArea replacement) {
+            C.BubbleChart? sourceChart = source.GetFirstChild<C.BubbleChart>();
+            C.BubbleChart? replacementChart =
+                replacement.GetFirstChild<C.BubbleChart>();
+            if (sourceChart == null || replacementChart == null) return false;
+
+            List<C.AxisId> sourceReferences =
+                sourceChart.Elements<C.AxisId>().ToList();
+            List<C.AxisId> replacementReferences =
+                replacementChart.Elements<C.AxisId>().ToList();
+            if (sourceReferences.Count != replacementReferences.Count ||
+                sourceReferences.Count == 0) {
+                return false;
+            }
+
+            var axisPairs =
+                new List<(C.ValueAxis Source, C.ValueAxis Replacement)>();
+            for (int index = 0; index < sourceReferences.Count; index++) {
+                uint? sourceId = sourceReferences[index].Val?.Value;
+                uint? replacementId = replacementReferences[index].Val?.Value;
+                C.ValueAxis? sourceAxis = source.Elements<C.ValueAxis>()
+                    .FirstOrDefault(axis =>
+                        axis.AxisId?.Val?.Value == sourceId);
+                C.ValueAxis? replacementAxis =
+                    replacement.Elements<C.ValueAxis>().FirstOrDefault(axis =>
+                        axis.AxisId?.Val?.Value == replacementId);
+                if (sourceAxis == null || replacementAxis == null) return false;
+                axisPairs.Add((sourceAxis, replacementAxis));
+            }
+            foreach ((C.ValueAxis sourceAxis,
+                      C.ValueAxis replacementAxis) in axisPairs) {
+                ReplaceSharedAxis(replacement, sourceAxis, replacementAxis);
+            }
+            return true;
         }
 
         private static bool IsSharedCategoryAxis(OpenXmlCompositeElement axis) =>
