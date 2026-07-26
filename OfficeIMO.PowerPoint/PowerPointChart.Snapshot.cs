@@ -141,6 +141,7 @@ namespace OfficeIMO.PowerPoint {
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
                     if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
                         IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                        HasLogarithmicBubbleAxis(plotArea, bubbleChart) ||
                         (!ignoreBubbleDataLabels &&
                          HasEnabledBubbleDataLabels(bubbleChart)) ||
                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
@@ -208,6 +209,17 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
             varyColors != null && varyColors.Val?.Value != false;
+
+        private static bool HasLogarithmicBubbleAxis(
+            C.PlotArea plotArea, C.BubbleChart chart) {
+            HashSet<uint> axisIds = new(chart.Elements<C.AxisId>()
+                .Where(axis => axis.Val?.Value != null)
+                .Select(axis => axis.Val!.Value));
+            return plotArea.Elements<C.ValueAxis>().Any(axis =>
+                axis.AxisId?.Val?.Value != null &&
+                axisIds.Contains(axis.AxisId.Val.Value) &&
+                axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>() != null);
+        }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
             chart.Descendants<C.ShowLegendKey>().Any(item => item.Val?.Value != false) ||

@@ -593,6 +593,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_RejectsLogarithmicValueAxes() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+
+            foreach (C.ValueAxis axis in plotArea.Elements<C.ValueAxis>()) {
+                var logBase = new C.LogBase { Val = 10D };
+                axis.GetFirstChild<C.Scaling>()!.AddChild(logBase, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                logBase.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+            }
+        }
+
+        [Fact]
         public void BubbleChart_RejectsUnsupportedFillStyles() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
