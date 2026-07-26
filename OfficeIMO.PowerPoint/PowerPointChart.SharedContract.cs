@@ -22,9 +22,14 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.ValidateSharedChartData(data, chartKind);
 
             ChartPart chartPart = GetChartPart();
+            EmbeddedPackagePart? embedded = chartPart
+                .GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
+            if (chartKind == OfficeChartKind.Bubble && embedded == null) {
+                throw new NotSupportedException(
+                    "Bubble chart data cannot be updated without an embedded workbook.");
+            }
             PowerPointUtils.UpdateSharedChartData(chartPart, data, chartKind);
 
-            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
             if (embedded != null) {
                 byte[] workbookBytes = chartKind switch {
                     OfficeChartKind.Scatter =>

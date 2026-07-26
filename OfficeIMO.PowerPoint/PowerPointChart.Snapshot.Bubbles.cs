@@ -79,6 +79,11 @@ namespace OfficeIMO.PowerPoint {
                 IReadOnlyList<double> normalizedX = xValues.Take(pointCount).ToList();
                 categoryXValues ??= normalizedX;
                 string name = ReadSeriesName(element);
+                if (!forDataUpdate && string.IsNullOrWhiteSpace(name) &&
+                    element.GetFirstChild<C.SeriesText>()?
+                        .GetFirstChild<C.StringReference>() != null) {
+                    return null;
+                }
                 if (string.IsNullOrWhiteSpace(name)) {
                     name = "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture);
                 }
@@ -137,12 +142,22 @@ namespace OfficeIMO.PowerPoint {
                      or PresetDash or CustomDash));
 
         private static bool HasUnresolvedSeriesColor(
-            C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
-            !OfficeOpenXmlThemeColorResolver.ResolveColor(
-                properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue ||
-            HasUnresolvedSolidFill(
-                properties?.GetFirstChild<Outline>()?.GetFirstChild<SolidFill>(),
-                colorScheme);
+            C.ChartShapeProperties? properties, ColorScheme? colorScheme) {
+            if (!OfficeOpenXmlThemeColorResolver.ResolveColor(
+                    properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue) {
+                return true;
+            }
+
+            Outline? outline = properties?.GetFirstChild<Outline>();
+            if (outline == null ||
+                (outline.GetFirstChild<NoFill>() == null &&
+                 outline.GetFirstChild<SolidFill>() == null)) {
+                return true;
+            }
+
+            return HasUnresolvedSolidFill(
+                outline.GetFirstChild<SolidFill>(), colorScheme);
+        }
 
         private static bool HasUnresolvedPointColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>

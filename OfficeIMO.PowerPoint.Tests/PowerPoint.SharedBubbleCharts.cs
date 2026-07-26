@@ -1316,6 +1316,12 @@ namespace OfficeIMO.Tests {
 
             outline.CompoundLineType =
                 DocumentFormat.OpenXml.Drawing.CompoundLineValues.Single;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            outline.PrependChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex {
+                    Val = "445566"
+                }));
             Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 

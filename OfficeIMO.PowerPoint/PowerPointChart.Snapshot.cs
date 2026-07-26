@@ -900,13 +900,32 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            string text = string.Concat(chartText.Descendants<A.Text>().Select(item => item.Text));
+            C.RichText? richText = chartText.GetFirstChild<C.RichText>();
+            string text = richText != null
+                ? string.Join(Environment.NewLine,
+                    richText.Elements<A.Paragraph>().Select(ReadChartParagraphText))
+                : string.Concat(chartText.Descendants<A.Text>()
+                    .Select(item => item.Text));
             if (!string.IsNullOrWhiteSpace(text)) {
                 return text.Trim();
             }
 
             IReadOnlyList<string> cached = ReadCachedStrings(chartText);
             return cached.Count > 0 && !string.IsNullOrWhiteSpace(cached[0]) ? cached[0].Trim() : null;
+        }
+
+        private static string ReadChartParagraphText(A.Paragraph paragraph) {
+            var builder = new System.Text.StringBuilder();
+            foreach (OpenXmlElement child in paragraph.ChildElements) {
+                if (child is A.Break) {
+                    builder.Append(Environment.NewLine);
+                } else {
+                    foreach (A.Text text in child.Descendants<A.Text>()) {
+                        builder.Append(text.Text);
+                    }
+                }
+            }
+            return builder.ToString();
         }
 
         private static string ReadSeriesName(OpenXmlElement seriesElement) {
