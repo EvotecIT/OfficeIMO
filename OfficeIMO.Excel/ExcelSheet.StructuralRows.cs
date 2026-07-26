@@ -417,6 +417,11 @@ namespace OfficeIMO.Excel {
                     firstRow,
                     count,
                     rewriteUnqualifiedReferences: ReferenceEquals(worksheetPart, _worksheetPart));
+                ValidateDrawingShapeTextLinkCapacity(
+                    worksheetPart.DrawingsPart,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences: ReferenceEquals(worksheetPart, _worksheetPart));
             }
 
             ValidatePivotReferenceCapacity(firstRow, count);
@@ -424,6 +429,11 @@ namespace OfficeIMO.Excel {
 
             foreach (DocumentFormat.OpenXml.Packaging.ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
                 ValidateChartFormulaCapacity(
+                    chartsheetPart.DrawingsPart,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences: false);
+                ValidateDrawingShapeTextLinkCapacity(
                     chartsheetPart.DrawingsPart,
                     firstRow,
                     count,
@@ -455,6 +465,15 @@ namespace OfficeIMO.Excel {
             }
             foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
                 ValidateReferenceListDoesNotOverflow(selection.ActiveCell?.Value, firstRow, count);
+            }
+            foreach (SheetView view in WorksheetRoot.Descendants<SheetView>()) {
+                ValidateReferenceListDoesNotOverflow(view.TopLeftCell?.Value, firstRow, count);
+            }
+            foreach (CustomSheetView view in WorksheetRoot.Descendants<CustomSheetView>()) {
+                ValidateReferenceListDoesNotOverflow(view.TopLeftCell?.Value, firstRow, count);
+            }
+            foreach (Pane pane in WorksheetRoot.Descendants<Pane>()) {
+                ValidateReferenceListDoesNotOverflow(pane.TopLeftCell?.Value, firstRow, count);
             }
             foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
@@ -710,6 +729,22 @@ namespace OfficeIMO.Excel {
             foreach (DocumentFormat.OpenXml.Packaging.ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
                 ValidateChartRootFormulaCapacity(
                     chartPart.ChartSpace,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences);
+            }
+        }
+
+        private void ValidateDrawingShapeTextLinkCapacity(
+            DocumentFormat.OpenXml.Packaging.DrawingsPart? drawingsPart,
+            int firstRow,
+            int count,
+            bool rewriteUnqualifiedReferences) {
+            foreach (DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape shape
+                in drawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape>()
+                ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape>()) {
+                ThrowIfFormulaReferenceOverflows(
+                    shape.TextLink?.Value,
                     firstRow,
                     count,
                     rewriteUnqualifiedReferences);

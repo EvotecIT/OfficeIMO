@@ -456,6 +456,40 @@ namespace OfficeIMO.Excel {
             int firstAffectedRow,
             int rowDelta,
             int? lastDeletedRow) {
+            foreach (SheetView view in WorksheetRoot.Descendants<SheetView>()) {
+                string? current = view.TopLeftCell?.Value;
+                string? remapped = RemapShiftedViewTopLeftCell(
+                    current,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow);
+                if (!string.Equals(current, remapped, StringComparison.OrdinalIgnoreCase)) {
+                    view.TopLeftCell = remapped;
+                }
+            }
+            foreach (CustomSheetView view in WorksheetRoot.Descendants<CustomSheetView>()) {
+                string? current = view.TopLeftCell?.Value;
+                string? remapped = RemapShiftedViewTopLeftCell(
+                    current,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow);
+                if (!string.Equals(current, remapped, StringComparison.OrdinalIgnoreCase)) {
+                    view.TopLeftCell = remapped;
+                }
+            }
+            foreach (Pane pane in WorksheetRoot.Descendants<Pane>()) {
+                string? current = pane.TopLeftCell?.Value;
+                string? remapped = RemapShiftedViewTopLeftCell(
+                    current,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow);
+                if (!string.Equals(current, remapped, StringComparison.OrdinalIgnoreCase)) {
+                    pane.TopLeftCell = remapped;
+                }
+            }
+
             foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
                 string? activeCell = selection.ActiveCell?.Value;
                 if (!string.IsNullOrWhiteSpace(activeCell)
@@ -490,6 +524,28 @@ namespace OfficeIMO.Excel {
                         : fallback
                 };
             }
+        }
+
+        private static string? RemapShiftedViewTopLeftCell(
+            string? reference,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            if (string.IsNullOrWhiteSpace(reference)
+                || !TryRemapShiftedReferenceListRows(
+                    reference!,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out List<string> remapped)) {
+                return reference;
+            }
+
+            return remapped.Count > 0
+                ? remapped[0]
+                : lastDeletedRow.HasValue
+                    ? ClampDeletedSelectionReference(reference!, firstAffectedRow)
+                    : reference;
         }
 
         private static string ClampDeletedSelectionReference(

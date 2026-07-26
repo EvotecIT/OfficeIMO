@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xm = DocumentFormat.OpenXml.Office.Excel;
 
 namespace OfficeIMO.Excel {
@@ -303,6 +304,13 @@ namespace OfficeIMO.Excel {
                         }
                     }
                 }
+
+                RewriteDrawingShapeTextLinks(
+                    worksheetPart.DrawingsPart,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    rewriteUnqualifiedReferences: isMutatedSheet);
             }
 
             RewriteChartsheetAndExtendedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow);
@@ -403,6 +411,12 @@ namespace OfficeIMO.Excel {
                 if (drawingsPart == null) {
                     continue;
                 }
+                RewriteDrawingShapeTextLinks(
+                    drawingsPart,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    rewriteUnqualifiedReferences: false);
                 foreach (ChartPart chartPart in drawingsPart.ChartParts) {
                     RewriteChartRootReferences(
                         chartPart.ChartSpace,
@@ -434,6 +448,48 @@ namespace OfficeIMO.Excel {
                         lastDeletedRow,
                         rewriteUnqualifiedReferences);
                 }
+            }
+        }
+
+        private void RewriteDrawingShapeTextLinks(
+            DrawingsPart? drawingsPart,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow,
+            bool rewriteUnqualifiedReferences) {
+            Xdr.WorksheetDrawing? drawing = drawingsPart?.WorksheetDrawing;
+            if (drawing == null) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (Xdr.Shape shape in drawing.Descendants<Xdr.Shape>()) {
+                if (shape.TextLink?.Value is not string formula || formula.Length == 0) {
+                    continue;
+                }
+
+                string rewritten = lastDeletedRow.HasValue
+                    ? RewriteDeletedFormulaReferences(
+                        formula,
+                        firstAffectedRow,
+                        lastDeletedRow.Value,
+                        rowDelta,
+                        Name,
+                        rewriteUnqualifiedReferences)
+                    : RewriteShiftedFormulaReferences(
+                        formula,
+                        firstAffectedRow,
+                        rowDelta,
+                        Name,
+                        rewriteUnqualifiedReferences);
+                if (!string.Equals(formula, rewritten, StringComparison.Ordinal)) {
+                    shape.TextLink = rewritten;
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                drawing.Save();
             }
         }
 
