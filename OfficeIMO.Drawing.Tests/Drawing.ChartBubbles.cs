@@ -243,6 +243,25 @@ public class DrawingChartBubbleTests {
             heightPoints: 260D));
     }
 
+    [Fact]
+    public void OfficeChartSnapshot_RejectsBubbleSeriesOnCategoricalAxes() {
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            OfficeChartSeries.CreateBubble(
+                "Misplaced bubble",
+                new[] { 1D, 2D },
+                new[] { 3D, 4D },
+                new[] { 5D, 6D })
+        });
+
+        Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
+            "Categorical",
+            null,
+            OfficeChartKind.ColumnClustered,
+            data,
+            widthPoints: 420D,
+            heightPoints: 260D));
+    }
+
     [Theory]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]

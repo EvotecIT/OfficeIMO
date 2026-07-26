@@ -78,6 +78,13 @@ public sealed class OfficeChartSnapshot {
             OfficeChartSeries series = data.Series[seriesIndex];
             OfficeChartKind effectiveKind = series.RenderKind ?? chartKind;
             if (effectiveKind == OfficeChartKind.Bubble &&
+                chartKind != OfficeChartKind.Bubble &&
+                chartKind != OfficeChartKind.Scatter) {
+                throw new ArgumentException(
+                    "Bubble series require a bubble or scatter snapshot with numeric axes.",
+                    nameof(data));
+            }
+            if (effectiveKind == OfficeChartKind.Bubble &&
                 (series.XValues == null || series.BubbleSizes == null ||
                  series.XValues.Count != series.Values.Count ||
                  series.BubbleSizes.Count != series.Values.Count)) {

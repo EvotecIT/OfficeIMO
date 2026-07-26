@@ -189,6 +189,16 @@ public static partial class HtmlPowerPointConverterExtensions {
                 chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase) || isBubble,
                 isBubble,
                 out PptCore.PowerPointChartData? semanticData);
+            if (isBubble && !restoredFromSemanticData &&
+                item.QuerySelector("table.officeimo-chart-data") != null) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid semantic bubble data and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
             uint bubbleScale = 100U;
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area;
             if (isBubble && !TryReadBubbleSizing(item, out bubbleScale,
@@ -200,7 +210,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                     lossKind: HtmlConversionLossKind.Omission);
                 return;
             }
-            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
+            PptCore.PowerPointChartData data = semanticData ??
+                (isBubble
+                    ? CreatePlaceholderBubbleChartDataFromInventory(item)
+                    : CreatePlaceholderChartDataFromInventory(item));
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
@@ -252,6 +265,34 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static PptCore.PowerPointChartData CreatePlaceholderChartDataFromInventory(IElement item) {
         ReadChartShape(item, out int seriesCount, out int categoryCount);
         return CreatePlaceholderChartData(seriesCount, categoryCount);
+    }
+
+    private static PptCore.PowerPointChartData CreatePlaceholderBubbleChartDataFromInventory(
+        IElement item) {
+        ReadChartShape(item, out int seriesCount, out int categoryCount);
+        seriesCount = Math.Max(1, seriesCount);
+        categoryCount = Math.Max(1, categoryCount);
+        string[] categories = Enumerable.Range(1, categoryCount)
+            .Select(index => index.ToString(CultureInfo.InvariantCulture))
+            .ToArray();
+        PptCore.PowerPointChartSeries[] series =
+            Enumerable.Range(1, seriesCount)
+                .Select(seriesIndex => {
+                    double[] xValues = Enumerable.Range(1, categoryCount)
+                        .Select(index => (double)index)
+                        .ToArray();
+                    double[] values = xValues
+                        .Select(value => value * seriesIndex)
+                        .ToArray();
+                    return new PptCore.PowerPointChartSeries(
+                        "Series " +
+                        seriesIndex.ToString(CultureInfo.InvariantCulture),
+                        values, xValues) {
+                        BubbleSizes = xValues
+                    };
+                })
+                .ToArray();
+        return new PptCore.PowerPointChartData(categories, series);
     }
 
     private static void ReadChartDataDimensions(IElement item, out int series, out int categories) {

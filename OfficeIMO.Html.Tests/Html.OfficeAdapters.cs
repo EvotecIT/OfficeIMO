@@ -935,6 +935,40 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_CreatesBubblePlaceholderDataWithoutSemanticTable() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-charts">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Bubble inventory</span>
+                      <div class="officeimo-feature-meta">Type: Bubble; Series: 2; Categories: 3</div>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointChart chart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+        Assert.All(snapshot.Data.Series, series => {
+            Assert.Equal(3, series.XValues!.Count);
+            Assert.Equal(3, series.BubbleSizes!.Count);
+        });
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());

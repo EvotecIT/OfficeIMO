@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
@@ -22,15 +23,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ChartPart chartPart = GetChartPart();
-            C.BubbleChart? bubbleChart = chartPart.ChartSpace?
+            C.PlotArea? plotArea = chartPart.ChartSpace?
                 .GetFirstChild<C.Chart>()?
-                .GetFirstChild<C.PlotArea>()?
-                .GetFirstChild<C.BubbleChart>();
-            if (bubbleChart == null) {
+                .GetFirstChild<C.PlotArea>();
+            C.BubbleChart[] bubbleCharts = plotArea?
+                .Elements<C.BubbleChart>()
+                .ToArray() ?? Array.Empty<C.BubbleChart>();
+            if (bubbleCharts.Length == 0) {
                 throw new NotSupportedException(
                     "Bubble sizing can only be set on a bubble chart.");
             }
 
+            foreach (C.BubbleChart bubbleChart in bubbleCharts) {
+                ApplyBubbleSizing(bubbleChart, scalePercent, sizeMode);
+            }
+
+            Save();
+            return this;
+        }
+
+        private static void ApplyBubbleSizing(C.BubbleChart bubbleChart,
+            uint scalePercent, OfficeChartBubbleSizeMode sizeMode) {
             C.BubbleScale scale = bubbleChart.GetFirstChild<C.BubbleScale>() ??
                 new C.BubbleScale();
             scale.Val = scalePercent;
@@ -55,9 +68,6 @@ namespace OfficeIMO.PowerPoint {
                 if (insertBefore == null) bubbleChart.Append(represents);
                 else bubbleChart.InsertBefore(represents, insertBefore);
             }
-
-            Save();
-            return this;
         }
     }
 }

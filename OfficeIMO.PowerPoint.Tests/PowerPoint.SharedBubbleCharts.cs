@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsLogarithmicValueAxes() {
+        public void BubbleChart_RejectsUnsupportedValueAxisScaling() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -625,7 +625,53 @@ namespace OfficeIMO.Tests {
 
                 logBase.Remove();
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                var minimum = new C.MinAxisValue { Val = 0D };
+                axis.GetFirstChild<C.Scaling>()!.AddChild(minimum, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                minimum.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                var maximum = new C.MaxAxisValue { Val = 10D };
+                axis.GetFirstChild<C.Scaling>()!.AddChild(maximum, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                maximum.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
+        }
+
+        [Fact]
+        public void BubbleChart_SetBubbleSizingUpdatesEveryNativeBubbleGroup() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart original = plotArea.GetFirstChild<C.BubbleChart>()!;
+            C.BubbleChart secondary =
+                (C.BubbleChart)original.CloneNode(true);
+            secondary.GetFirstChild<C.BubbleScale>()!.Val = 75U;
+            secondary.GetFirstChild<C.SizeRepresents>()!.Val =
+                C.SizeRepresentsValues.Area;
+            plotArea.InsertAfter(secondary, original);
+
+            chart.SetBubbleSizing(180U, OfficeChartBubbleSizeMode.Width);
+
+            Assert.Equal(2, plotArea.Elements<C.BubbleChart>().Count());
+            Assert.All(plotArea.Elements<C.BubbleChart>(), bubble => {
+                Assert.Equal(180U,
+                    bubble.GetFirstChild<C.BubbleScale>()!.Val!.Value);
+                Assert.Equal(C.SizeRepresentsValues.Width,
+                    bubble.GetFirstChild<C.SizeRepresents>()!.Val!.Value);
+            });
         }
 
         [Fact]
