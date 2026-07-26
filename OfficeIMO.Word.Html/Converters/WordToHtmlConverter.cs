@@ -412,6 +412,7 @@ namespace OfficeIMO.Word.Html {
                         run,
                         run.Text ?? string.Empty,
                         node,
+                        options.IncludeRunHighlightStyles,
                         out bool handledHtmlStyle);
 
                     if (options.IncludeFontStyles) {
@@ -457,9 +458,15 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                         if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
-                            var highlightCss = GetHighlightCss(run.Highlight);
-                            if (!string.IsNullOrEmpty(highlightCss)) {
+                            string? normalizedRunBackground = NormalizeSixDigitHexColor(
+                                WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
+                            string? highlightCss = GetHighlightCss(
+                                WordDocumentImageRenderer.ResolveRunHighlight(run));
+                            if (!string.IsNullOrEmpty(highlightCss) &&
+                                (!isHtmlMarkedText || normalizedRunBackground != null)) {
                                 inlineStyles.Add($"background-color:{highlightCss}");
+                            } else if (normalizedRunBackground != null) {
+                                inlineStyles.Add($"background-color:#{normalizedRunBackground}");
                             }
                         }
                         if (inlineStyles.Count > 0) {

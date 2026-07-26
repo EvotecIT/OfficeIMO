@@ -17,6 +17,13 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
+        private enum CssDirectionResolution {
+            LeftToRight,
+            RightToLeft,
+            Inherit,
+            Revert
+        }
+
         private static void AddBookmarkIfPresent(IElement element, WordParagraph paragraph) {
             var id = element.GetAttribute("id");
             if (string.IsNullOrEmpty(id)) {
@@ -110,11 +117,17 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var firstParagraph = doc.Paragraphs.FirstOrDefault();
-            if (firstParagraph == null) {
+            Paragraph? firstParagraphElement = doc._wordprocessingDocument
+                .MainDocumentPart?
+                .Document?
+                .Body?
+                .Descendants<Paragraph>()
+                .FirstOrDefault();
+            if (firstParagraphElement == null) {
                 return;
             }
 
+            var firstParagraph = new WordParagraph(doc, firstParagraphElement);
             WordBookmark.AddBookmark(firstParagraph, "_top");
             _pendingTopBookmark = false;
         }
@@ -232,8 +245,24 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static bool? GetBidiFromDir(IElement element) {
+        private bool? GetBidiFromDir(IElement element) {
             for (IElement? current = element; current != null; current = current.ParentElement) {
+                if (_directionAttributeOverrides.TryGetValue(current, out bool attributeDirection)) {
+                    return attributeDirection;
+                }
+                var style = current.GetAttribute("style");
+                if (TryGetDirectionFromStyle(style, out CssDirectionResolution resolution)) {
+                    switch (resolution) {
+                        case CssDirectionResolution.LeftToRight:
+                            return false;
+                        case CssDirectionResolution.RightToLeft:
+                            return true;
+                        case CssDirectionResolution.Inherit:
+                            continue;
+                        case CssDirectionResolution.Revert:
+                            break;
+                    }
+                }
                 var dir = current.GetAttribute("dir");
                 if (!string.IsNullOrWhiteSpace(dir)) {
                     if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
@@ -243,42 +272,54 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
                 }
-                var style = current.GetAttribute("style");
-                if (TryGetDirectionFromStyle(style, out var bidi)) {
-                    return bidi;
-                }
             }
             return null;
         }
 
-        private static bool TryGetDirectionFromStyle(string? style, out bool bidi) {
-            bidi = false;
+        private static bool TryGetDirectionFromStyle(string? style, out CssDirectionResolution resolution) {
+            resolution = default;
             if (string.IsNullOrWhiteSpace(style)) {
                 return false;
             }
-            foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length != 2) {
-                    continue;
+
+            CssDirectionResolution? resolved = null;
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in style!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (!CssStyleMapper.TryParseDeclaration(
+                            part,
+                            out string name,
+                            out string value,
+                            out bool declarationIsImportant) ||
+                        declarationIsImportant != important ||
+                        !name.Equals("direction", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    if (value.Equals("rtl", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.RightToLeft;
+                    } else if (value.Equals("ltr", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("initial", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.LeftToRight;
+                    } else if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.Inherit;
+                    } else if (value.Equals("revert", StringComparison.OrdinalIgnoreCase) ||
+                               value.Equals("revert-layer", StringComparison.OrdinalIgnoreCase)) {
+                        resolved = CssDirectionResolution.Revert;
+                    }
                 }
-                if (!string.Equals(pieces[0].Trim(), "direction", StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-                var value = pieces[1].Trim();
-                if (string.Equals(value, "rtl", StringComparison.OrdinalIgnoreCase)) {
-                    bidi = true;
-                    return true;
-                }
-                if (string.Equals(value, "ltr", StringComparison.OrdinalIgnoreCase)) {
-                    bidi = false;
-                    return true;
-                }
+            }
+
+            if (!resolved.HasValue) {
                 return false;
             }
-            return false;
+
+            resolution = resolved.Value;
+            return true;
         }
 
-        private static void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
+        private void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
             var bidi = GetBidiFromDir(element);
             if (bidi.HasValue) {
                 paragraph.BiDi = bidi.Value;

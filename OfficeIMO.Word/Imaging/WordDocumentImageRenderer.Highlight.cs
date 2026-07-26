@@ -1,14 +1,36 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
-        private static bool HasRunHighlight(WordParagraph paragraph) =>
-            ResolveRunHighlightColor(ResolveRunHighlight(paragraph)).HasValue;
+        private static bool HasRunBackground(WordParagraph paragraph, A.ColorScheme? colorScheme) =>
+            ResolveRunBackgroundColor(paragraph, colorScheme).HasValue;
 
-        private static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
-            if (paragraph._runProperties?.Highlight != null) {
-                return paragraph._runProperties.Highlight.Val?.Value;
+        private static OfficeColor? ResolveRunBackgroundColor(
+            WordParagraph paragraph,
+            A.ColorScheme? colorScheme) {
+            OfficeColor? highlight = ResolveRunHighlightColor(ResolveRunHighlight(paragraph));
+            if (highlight.HasValue) {
+                return highlight;
+            }
+
+            return TryResolveShadingFillColor(ResolveRunShading(paragraph), colorScheme, out OfficeColor shading)
+                ? shading
+                : null;
+        }
+
+        internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
+            A.ColorScheme? colorScheme = GetDocumentColorScheme(paragraph._document);
+            return TryResolveShadingFillColor(ResolveRunShading(paragraph), colorScheme, out OfficeColor shading)
+                ? shading.ToRgbHex()
+                : null;
+        }
+
+        internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
+            RunProperties? directProperties = GetDirectRunProperties(paragraph);
+            if (directProperties?.Highlight != null) {
+                return directProperties.Highlight.Val?.Value;
             }
 
             foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
@@ -20,6 +42,27 @@ namespace OfficeIMO.Word {
 
             return null;
         }
+
+        private static Shading? ResolveRunShading(WordParagraph paragraph) {
+            RunProperties? directProperties = GetDirectRunProperties(paragraph);
+            if (directProperties?.Shading != null) {
+                return directProperties.Shading;
+            }
+
+            foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+                Shading? shading = properties.GetFirstChild<Shading>();
+                if (shading != null) {
+                    return shading;
+                }
+            }
+
+            return null;
+        }
+
+        private static RunProperties? GetDirectRunProperties(WordParagraph paragraph) =>
+            paragraph.IsHyperLink
+                ? paragraph.Hyperlink?._runProperties
+                : paragraph._runProperties;
 
         private static OfficeColor? ResolveRunHighlightColor(HighlightColorValues? highlight) {
             if (!highlight.HasValue || highlight.Value == HighlightColorValues.None) {

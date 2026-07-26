@@ -38,7 +38,7 @@ Do not treat “a file was written” as proof that the conversion preserved eve
 
 ## Browser-local routes
 
-The [browser converter](/playground/) exposes only routes that can execute safely inside the WebAssembly application. That is intentionally smaller than the managed server-side conversion surface. A missing browser route does not mean that no .NET adapter exists; consult the [complete component index](/docs/capabilities/packages/) and the adapter API.
+The [browser converter](/convert/) exposes only routes that can execute safely inside the WebAssembly application. That is intentionally smaller than the managed server-side conversion surface. A missing browser route does not mean that no .NET adapter exists; consult the [complete component index](/docs/capabilities/packages/) and the adapter API.
 
 ## Loss policy
 

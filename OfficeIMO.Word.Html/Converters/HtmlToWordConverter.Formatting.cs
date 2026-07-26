@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Html {
                 FontFamily = fontFamily;
                 FontSize = fontSize;
                 Highlight = highlight;
+                BackgroundColorHex = backgroundColorHex;
                 Caps = null;
                 LetterSpacing = letterSpacing;
                 Transform = transform;
@@ -48,6 +49,9 @@ namespace OfficeIMO.Word.Html {
             internal string? FontFamily { get; set; }
             internal int? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
+            internal string? BackgroundColorHex { get; set; }
+            internal string? BackgroundBackdropColorHex { get; set; }
+            internal bool PreserveHighlightOverBackground { get; set; }
             internal CapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
             internal TextTransform Transform { get; set; }
@@ -104,15 +108,24 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            foreach (var part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length == 2 && string.Equals(pieces[0].Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    value = pieces[1].Trim();
-                    return true;
+            bool found = false;
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (CssStyleMapper.TryParseDeclaration(
+                            part,
+                            out string name,
+                            out string candidate,
+                            out bool declarationIsImportant) &&
+                        declarationIsImportant == important &&
+                        string.Equals(name, propertyName, StringComparison.OrdinalIgnoreCase)) {
+                        value = candidate;
+                        found = true;
+                    }
                 }
             }
 
-            return false;
+            return found;
         }
 
         private static bool TryParseFontSize(string? text, out int size) {
@@ -212,14 +225,17 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(WordParagraph paragraph, IElement element) {
+        private CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(
+            WordParagraph paragraph,
+            IElement element,
+            bool applyVerticalBoxSpacing = true) {
             string? styleAttribute = element.GetAttribute("style");
             var style = CssStyleMapper.MapParagraphStyle(styleAttribute);
             if (style.HasValue) {
                 paragraph.Style = style.Value;
             }
 
-            var parsed = CssStyleMapper.ParseStyles(styleAttribute);
+            var parsed = ParseElementBoxStyles(element);
             var declaration = ParseInlineDeclaration(styleAttribute);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
             int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
@@ -230,11 +246,9 @@ namespace OfficeIMO.Word.Html {
                 paragraph.SetColorHex(colorVal);
             }
 
-            if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                var highlight = MapColorToHighlight(parsed.BackgroundColor);
-                if (highlight.HasValue) {
-                    paragraph.SetHighlight(highlight.Value);
-                }
+            string? paragraphBackground = ResolveParagraphBackground(element, parsed);
+            if (!string.IsNullOrEmpty(paragraphBackground)) {
+                paragraph.ShadingFillColorHex = paragraphBackground!;
             }
 
             if (parsed.LineHeight.HasValue) {
@@ -276,10 +290,10 @@ namespace OfficeIMO.Word.Html {
                 };
             }
 
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-left"), out int pl)) paddingLeft = pl;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-right"), out int pr)) paddingRight = pr;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-top"), out int pt)) paddingTop = pt;
-            if (TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-bottom"), out int pb)) paddingBottom = pb;
+            if (!paddingLeft.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-left"), out int pl)) paddingLeft = pl;
+            if (!paddingRight.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-right"), out int pr)) paddingRight = pr;
+            if (!paddingTop.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-top"), out int pt)) paddingTop = pt;
+            if (!paddingBottom.HasValue && TryConvertToTwip(GetInlinePropertyRawValue(declaration, styleAttribute, "padding-bottom"), out int pb)) paddingBottom = pb;
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "text-indent"), out int indent)) {
                 if (indent > 0) {
@@ -297,23 +311,60 @@ namespace OfficeIMO.Word.Html {
             if (alignment.HasValue) {
                 paragraph.ParagraphAlignment = alignment;
             }
-            int before = (marginTop ?? 0) + (paddingTop ?? 0);
-            if (before > 0) {
-                paragraph.LineSpacingBefore = before;
-            }
-            int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
-            if (after > 0) {
-                paragraph.LineSpacingAfter = after;
+            if (applyVerticalBoxSpacing) {
+                int before = (marginTop ?? 0) + (paddingTop ?? 0);
+                if (before > 0) {
+                    paragraph.LineSpacingBefore = before;
+                }
+                int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
+                if (after > 0) {
+                    paragraph.LineSpacingAfter = after;
+                }
             }
             int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
-            if (left > 0) {
+            if (left != 0) {
                 paragraph.IndentationBefore = left;
             }
             int right = (marginRight ?? 0) + (paddingRight ?? 0);
-            if (right > 0) {
+            if (right != 0) {
                 paragraph.IndentationAfter = right;
             }
             return parsed;
+        }
+
+        private static string? ResolveParagraphBackground(
+            IElement element,
+            CssStyleMapper.CssProperties parsed) {
+            if (string.IsNullOrEmpty(parsed.BackgroundColor)) {
+                return null;
+            }
+
+            double alpha = parsed.BackgroundColorAlpha ?? 1d;
+            if (alpha <= 0d) {
+                return null;
+            }
+
+            string? backdrop = null;
+            var ancestors = new Stack<IElement>();
+            for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+                ancestors.Push(ancestor);
+            }
+            while (ancestors.Count > 0) {
+                IElement ancestor = ancestors.Pop();
+                CssStyleMapper.CssProperties ancestorStyle = CssStyleMapper.ParseStyles(ancestor.GetAttribute("style"));
+                if (string.IsNullOrEmpty(ancestorStyle.BackgroundColor)) {
+                    continue;
+                }
+                double ancestorAlpha = ancestorStyle.BackgroundColorAlpha ?? 1d;
+                if (ancestorAlpha > 0d) {
+                    backdrop = ResolveOpaqueTextBackground(
+                        ancestorStyle.BackgroundColor!,
+                        ancestorAlpha,
+                        backdrop);
+                }
+            }
+
+            return ResolveOpaqueTextBackground(parsed.BackgroundColor!, alpha, backdrop);
         }
 
         private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
@@ -412,7 +463,7 @@ namespace OfficeIMO.Word.Html {
             return collapsed;
         }
 
-        private static void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
+        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline(GetUnderlineValue(formatting) ?? UnderlineValues.Single);
@@ -421,6 +472,7 @@ namespace OfficeIMO.Word.Html {
             if (formatting.Subscript) run.SetSubScript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
+            ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
             if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
@@ -533,14 +585,33 @@ namespace OfficeIMO.Word.Html {
                 formatting.Strike = parsed.Strike.Value;
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                var highlight = MapColorToHighlight(parsed.BackgroundColor);
-                if (highlight.HasValue) {
-                    formatting.Highlight = highlight.Value;
+                double alpha = parsed.BackgroundColorAlpha ?? 1d;
+                if (alpha > 0d) {
+                    formatting.BackgroundColorHex = ResolveOpaqueTextBackground(
+                        parsed.BackgroundColor!,
+                        alpha,
+                        formatting.BackgroundColorHex ?? formatting.BackgroundBackdropColorHex);
+                    formatting.PreserveHighlightOverBackground = false;
+                } else {
+                    formatting.BackgroundColorHex = null;
+                    formatting.Highlight = HighlightColorValues.None;
+                    formatting.PreserveHighlightOverBackground = false;
                 }
             }
             if (parsed.WhiteSpace.HasValue) {
                 formatting.WhiteSpace = parsed.WhiteSpace.Value;
             }
+        }
+
+        private static void PreserveBlockBackgroundAsTextBackdrop(
+            ref TextFormatting formatting,
+            TextFormatting inheritedFormatting) {
+            string? blockBackground = formatting.BackgroundColorHex;
+            formatting.BackgroundColorHex = inheritedFormatting.BackgroundColorHex;
+            formatting.BackgroundBackdropColorHex =
+                blockBackground ??
+                inheritedFormatting.BackgroundColorHex ??
+                inheritedFormatting.BackgroundBackdropColorHex;
         }
 
         private static void ApplyFontShorthand(string font, ref TextFormatting formatting) {
@@ -667,7 +738,9 @@ namespace OfficeIMO.Word.Html {
             var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
             var child = parser.ParseDeclaration(childStyle ?? string.Empty);
             foreach (var prop in parent) {
-                if (IsPageBreakProperty(prop.Name)) {
+                if (IsPageBreakProperty(prop.Name) ||
+                    IsContainerBoxProperty(prop.Name) ||
+                    prop.Name.Equals("direction", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
@@ -676,6 +749,13 @@ namespace OfficeIMO.Word.Html {
             }
             return child.CssText;
         }
+
+        private static bool IsContainerBoxProperty(string propertyName) =>
+            propertyName.Equals("background", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.Equals("background-color", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("border", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase);
 
         private static bool TryParseHsl(string text, out byte r, out byte g, out byte b) {
             r = g = b = 0;
@@ -747,48 +827,5 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new() {
-            { HighlightColorValues.Yellow, Color.Yellow },
-            { HighlightColorValues.Green, Color.Lime },
-            { HighlightColorValues.Cyan, Color.Cyan },
-            { HighlightColorValues.Magenta, Color.Magenta },
-            { HighlightColorValues.Blue, Color.Blue },
-            { HighlightColorValues.Red, Color.Red },
-            { HighlightColorValues.DarkBlue, Color.DarkBlue },
-            { HighlightColorValues.DarkCyan, Color.DarkCyan },
-            { HighlightColorValues.DarkGreen, Color.DarkGreen },
-            { HighlightColorValues.DarkMagenta, Color.DarkMagenta },
-            { HighlightColorValues.DarkRed, Color.DarkRed },
-            { HighlightColorValues.DarkYellow, Color.Parse("#808000") },
-            { HighlightColorValues.DarkGray, Color.DarkGray },
-            { HighlightColorValues.LightGray, Color.LightGray },
-            { HighlightColorValues.Black, Color.Black },
-            { HighlightColorValues.White, Color.White }
-        };
-
-        private static HighlightColorValues? MapColorToHighlight(string? hex) {
-            if (string.IsNullOrEmpty(hex)) {
-                return null;
-            }
-            try {
-                var target = Color.Parse("#" + hex);
-                var targetRgb = target;
-                HighlightColorValues? best = null;
-                int bestDistance = int.MaxValue;
-                foreach (var pair in _highlightColors) {
-                    var rgb = pair.Value;
-                    int distance = (rgb.R - targetRgb.R) * (rgb.R - targetRgb.R) +
-                                   (rgb.G - targetRgb.G) * (rgb.G - targetRgb.G) +
-                                   (rgb.B - targetRgb.B) * (rgb.B - targetRgb.B);
-                    if (distance < bestDistance) {
-                        bestDistance = distance;
-                        best = pair.Key;
-                    }
-                }
-                return best;
-            } catch {
-                return null;
-            }
-        }
     }
 }

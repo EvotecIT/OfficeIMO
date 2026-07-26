@@ -41,25 +41,9 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            var styleText = styleAttribute!;
-            foreach (var declaration in styleText.Split(';')) {
-                var separatorIndex = declaration.IndexOf(':');
-                if (separatorIndex < 0) {
-                    continue;
-                }
-
-                var name = declaration.Substring(0, separatorIndex).Trim();
-                if (!propertyNames.Any(propertyName => string.Equals(propertyName, name, StringComparison.OrdinalIgnoreCase))) {
-                    continue;
-                }
-
-                var value = declaration.Substring(separatorIndex + 1).Trim();
-                var importantIndex = value.IndexOf("!important", StringComparison.OrdinalIgnoreCase);
-                if (importantIndex >= 0) {
-                    value = value.Substring(0, importantIndex).Trim();
-                }
-
-                if (IsPageBreakValue(value)) {
+            foreach (string propertyName in propertyNames) {
+                if (TryGetInlineProperty(styleAttribute, propertyName, out string value) &&
+                    IsPageBreakValue(value)) {
                     return true;
                 }
             }

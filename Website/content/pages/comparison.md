@@ -86,4 +86,4 @@ Before standardizing on any library stack, it helps to answer a few concrete que
 
 If you need open-source, COM-free document automation with a friendly .NET and PowerShell story, OfficeIMO is a strong starting point. If you later discover that your workload needs broader format coverage, tighter vendor guarantees, or specialized rendering, a commercial library may still be the right complement.
 
-[Get started with OfficeIMO](/docs/getting-started/), [check format compatibility](/compatibility/), or [explore conversion routes](/convert/).
+[Get started with OfficeIMO](/docs/getting-started/), [check format compatibility](/compatibility/), or [explore conversion routes](/convert/guides/).

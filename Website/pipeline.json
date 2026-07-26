@@ -1141,7 +1141,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/compatibility/,/convert/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     },
     {
       "task": "doctor",
@@ -1156,7 +1156,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/convert/,/convert/guides/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     }
   ]
 }

@@ -72,7 +72,7 @@ That is usually a healthier architecture decision than picking the heaviest opti
 
 - [Comparison page](/comparison/) for the site-level summary of licensing, deployment, and package-shape tradeoffs.
 - [Compatibility dashboard](/compatibility/) for DOC, XLS, XLSB, PPT, and modern-format evidence.
-- [Conversion routes](/convert/) for task-specific examples and fidelity guidance.
+- [Conversion routes](/convert/guides/) for task-specific examples and fidelity guidance.
 - [Documentation hub](/docs/) for the actual package surface and installation guidance.
 - [Platform support](/docs/getting-started/platform-support/) if deployment shape is part of the decision.
 - [Downloads](/downloads/) to see the current package family and release flow in one place.

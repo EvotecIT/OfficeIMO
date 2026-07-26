@@ -175,6 +175,33 @@ document["Sales"].AppendDataTableToTable(rows, "SalesTable");
 document.Save();
 ```
 
+### Insert and delete worksheet rows
+
+```csharp
+using var document = ExcelDocument.Load("report.xlsx");
+var sheet = document["Data"];
+
+// Insert two blank rows immediately before row 5.
+sheet.InsertRows(firstRow: 5, count: 2);
+
+// Delete row 12 and shift following rows up.
+sheet.DeleteRows(firstRow: 12);
+
+document.Save();
+```
+
+Structural row edits update workbook-owned formulas and names, tables and
+filters, validations, conditional formatting, merges, links, comments,
+drawings, charts, sparklines, pivot sources, and print-related row metadata.
+Formula results are marked dirty and the workbook requests recalculation on
+open. Shared formulas are materialized into equivalent normal formulas before
+the edit so that each member can be rewritten independently.
+
+The operation rejects edits that would cross an array-formula boundary or
+PivotTable output, remove a table header or totals row, or move a dependent
+reference beyond Excel's row limit. Remove, move, or resize that owned structure
+first. Column and cell-shift mutations remain separate roadmap work.
+
 ### Validation lists and typed reads
 
 ```csharp

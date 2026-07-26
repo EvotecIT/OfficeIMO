@@ -14,7 +14,7 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 | Area | Status | Current behavior |
 | --- | --- | --- |
 | Document root | Supported | `html` and `body` are parsed through AngleSharp; document-level `lang` / `xml:lang` maps to `WordDocument.Settings.Language`; body-level inline and stylesheet CSS can flow into descendants. |
-| Basic blocks | Supported | `p`, `div`, `br`, and `hr` map to Word paragraphs, runs, line breaks, and horizontal-rule style paragraphs. |
+| Basic blocks | Supported | `p`, `div`, `br`, and `hr` map to Word paragraphs, runs, line breaks, and horizontal-rule style paragraphs. Block background, border, margin, and padding map to native paragraph shading, borders, spacing, and indentation; multi-paragraph containers keep one visual frame. |
 | Headings | Supported | `h1` through `h6` map to Word heading styles, with optional heading numbering. |
 | Structural sections | Supported | `section`, `article`, `aside`, `nav`, `header`, `footer`, and `main` preserve content; structural IDs can round-trip through bookmarks. |
 | Definition lists | Supported | `dl`, `dt`, and `dd` import as semantic term/description paragraphs, with `dd` indented and marker styles preserved for Word-to-HTML round-trip export. |
@@ -44,9 +44,9 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 | Cascade sources | Supported | Inline styles, embedded stylesheets, configured stylesheets, linked stylesheets, and body/ancestor inherited styles are applied. |
 | Selectors | Partial | Common selectors, classes, specificity, inheritance, and `!important` are handled for supported properties; full browser selector/layout behavior is not the target yet. |
 | Fonts | Supported | `font`, `font-family`, `font-size`, `font-style`, `font-variant`, `font-weight`, and legacy `font` attributes map to Word run formatting. |
-| Colors | Supported | Hex, named colors, `rgb()`, modern space-separated `rgb()`, percentage channels, slash alpha syntax, and background colors map to Word colors where possible. |
+| Colors | Supported | Hex, named colors, `rgb()`, modern space-separated `rgb()`, percentage channels, and slash alpha syntax map to Word colors. Inline text backgrounds use exact run shading by default; `HtmlTextBackgroundMode.NearestHighlight` provides an explicit palette approximation mode with diagnostics. |
 | Text decoration | Supported | Bold, italic, underline, CSS underline style variants, strike, highlight, superscript, subscript, small caps, uppercase transforms, and code font mapping are supported. `text-decoration:none` clears inherited underline/strike formatting. |
-| Paragraph alignment | Supported | Physical `text-align` values plus logical `start`/`end` values, direction/RTL, indentation, text indent, margins, line height, paragraph spacing, and white-space behavior map to Word paragraph formatting. |
+| Paragraph alignment | Supported | Physical `text-align` values plus logical `start`/`end` values, direction/RTL, indentation, text indent, physical and logical margin/padding properties, line height, paragraph spacing, and white-space behavior map to Word paragraph formatting. Logical inline start/end values resolve against inherited direction. |
 | Page breaks | Supported | `break-before`, `break-after`, and legacy page-break declarations map to Word page breaks. |
 | Tables | Supported | Table/cell width, borders, background color, horizontal and table-cell vertical alignment, padding, margins, `border-collapse`, `border-spacing`, captions, and colgroup widths are handled for common document tables. |
 | Lists | Supported | `list-style-type` maps to native Word list formats where OpenXML has a matching numbering style. |
@@ -62,7 +62,7 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 | External image links | Supported | `ImageProcessingMode.LinkExternal` can preserve external references when the source and dimensions are usable. |
 | Data URI images | Supported | Base64 data URI images are supported; SVG text data URIs are supported. |
 | Local and file URL images | Supported | Local paths and `file:` URLs resolve directly or relative to `HtmlToWordOptions.BasePath`. |
-| Remote images | Supported | HTTP/HTTPS images load through the configured or default HTTP pipeline with optional timeout. |
+| Remote images | Supported | HTTP/HTTPS images load through the configured or default HTTP pipeline with optional timeout and bounded concurrency through `MaxConcurrentResourceLoads`. Imports with an aggregate image budget load sequentially to preserve deterministic pre-read budget checks. |
 | SVG | Supported | Inline SVG, SVG files, remote SVG, and SVG data URIs can be embedded. |
 | Duplicate resources | Supported | Duplicate image sources are cached inside a conversion operation while preserving per-image `alt` and `title` metadata. |
 | Per-image byte limit | Supported | `MaxImageBytes` rejects oversized image resources with `ImageResourceTooLarge`. |
@@ -76,7 +76,7 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 | CSS aggregate byte budget | Supported | `MaxTotalCssBytes` rejects configured, embedded, local, and remote CSS that would exceed the conversion budget with `CssTotalSizeLimitExceeded`. |
 | Stylesheet parse cache | Supported | Parsed stylesheet rules are cached by CSS content hash, reusing identical CSS across conversions without reusing stale rules when a local path or remote URL returns changed content. |
 | Other non-image aggregate resource budgets | Planned | Non-CSS embedded media and future resource types do not yet share an aggregate byte-budget pipeline. |
-| Parallel prefetch | Planned | Resource loading is deterministic today; parallel prefetching remains a performance roadmap item. |
+| Parallel prefetch | Supported | Remote image candidates are deduplicated and prefetched with bounded concurrency while preserving deterministic projection order. |
 
 ## Table Conversion
 
@@ -128,7 +128,8 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 
 | Option surface | Status | Key controls |
 | --- | --- | --- |
-| `HtmlToWordOptions` | Supported | Named profiles through `CreateOfficeIMOProfile()`, `CreateUntrustedHtmlProfile()`, and `CreateTrustedDocumentProfile()`; cloneable reusable templates; font family, quote text, default page size/orientation, class styles, list styles, numbering continuation, heading numbering, base path, notes, raw HTML comment import and author metadata, image processing mode, `HttpClient`, resource timeout, image limits, HTML/CSS/table limits, image and stylesheet content-type validation, image and stylesheet URI policy, diagnostics, opt-in accessibility diagnostics, unsupported CSS handling, stylesheet paths/contents, pre rendering mode, caption placement, and section handling. |
+| `HtmlToWordOptions` | Supported | Named profiles through `CreateOfficeIMOProfile()`, `CreateUntrustedHtmlProfile()`, and `CreateTrustedDocumentProfile()`; cloneable reusable templates; font family, quote text, default page size/orientation, class styles, list styles, numbering continuation, heading numbering, base path, notes, raw HTML comment import and author metadata, image processing mode, `HttpClient`, resource timeout and concurrency, exact or highlight-palette text backgrounds, image limits, HTML/CSS/table limits, image and stylesheet content-type validation, image and stylesheet URI policy, diagnostics, opt-in accessibility diagnostics, unsupported CSS handling, stylesheet paths/contents, pre rendering mode, caption placement, and section handling. |
+| Existing-container insertion | Supported | Parsed HTML can be appended through typed APIs to a document body, section header/footer, or `WordTableCell`; table-cell insertion preserves nested paragraphs, lists, tables, images, and package relationships. |
 | `WordToHtmlOptions` | Supported | Font family, font styles, list styles, list definitions, paragraph/run classes, run color/highlight styles, paragraph spacing/indentation styles, footnote and endnote export, header/footer export, comment export, custom property metadata export, section metadata export, table column-group export, image embedding mode, additional meta/link tags, and default CSS. |
 | `ReaderHtmlOptions` | Supported | `OfficeIMO.Reader.Html` exposes named adapter profiles for OfficeIMO-default, portable, and bounded untrusted HTML ingestion; nested `HtmlToMarkdownOptions` pass-through for markdown writer profiles, input limits, transforms, custom element converters, and visual round-trip hints; and `Clone()` for reusable registration templates. |
 

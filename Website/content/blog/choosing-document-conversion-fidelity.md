@@ -76,4 +76,4 @@ Choose verification in proportion to the consequences of a wrong result.
 
 Commercial suites may cover more rendering and conversion cases. Open-source libraries may offer source visibility and more control over policy. Whichever library you use, ask for operation-level evidence and make the fallback decision part of the application.
 
-OfficeIMO's [compatibility page](/compatibility/) shows current tracked states for DOC, XLS, PPT, and modern formats. The [conversion hub](/convert/) turns those states into concrete .NET workflows.
+OfficeIMO's [compatibility page](/compatibility/) shows current tracked states for DOC, XLS, PPT, and modern formats. The [conversion guide hub](/convert/guides/) turns those states into concrete .NET workflows.

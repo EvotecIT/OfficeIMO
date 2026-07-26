@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Html {
             ValidateTableLimit(options, rows, cols);
             WordParagraph? captionParagraph = null;
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
-                captionParagraph = cell != null ? cell.AddParagraph("", true)
+                captionParagraph = cell != null ? AddParagraphInScope(section, cell, headerFooter)
                     : currentParagraph != null ? currentParagraph.AddParagraphAfterSelf()
                     : headerFooter != null ? headerFooter.AddParagraph("")
                     : section.AddParagraph("");
@@ -153,7 +153,13 @@ namespace OfficeIMO.Word.Html {
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Below) {
                 WordParagraph captionParagraphBelow;
                 if (cell != null) {
-                    captionParagraphBelow = cell.AddParagraph("", true);
+                    Paragraph? trailingParagraph = wordTable._table.NextSibling<Paragraph>();
+                    if (trailingParagraph != null) {
+                        ClearSyntheticTableTrailingSpacing(trailingParagraph);
+                    }
+                    captionParagraphBelow = trailingParagraph != null
+                        ? new WordParagraph(doc, trailingParagraph)
+                        : AddParagraphInScope(section, cell, headerFooter);
                 } else if (headerFooter != null) {
                     captionParagraphBelow = headerFooter.AddParagraph("");
                 } else {
@@ -370,7 +376,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            string? background = null;
+            string? backgroundValue = null;
             string? marginLeft = null;
             string? marginRight = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
@@ -412,10 +418,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             break;
                         case "background-color":
-                            var color = NormalizeColor(value);
-                            if (color != null) {
-                                background = color;
-                            }
+                            backgroundValue = value;
                             break;
                         case "border-collapse":
                             if (value.Equals("separate", StringComparison.OrdinalIgnoreCase)) {
@@ -535,10 +538,11 @@ namespace OfficeIMO.Word.Html {
                     rightColor: hasRight ? right.Color : null);
             }
 
-            if (background != null) {
+            if (backgroundValue != null) {
+                string? ancestorBackdrop = ResolveAncestorBlockBackground(tableElem);
                 foreach (var row in wordTable.Rows) {
                     foreach (var cell in row.Cells) {
-                        cell.ShadingFillColorHex = background;
+                        ApplyTableBackground(cell, backgroundValue, ancestorBackdrop);
                     }
                 }
             }
@@ -681,7 +685,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            string? background = null;
+            string? backgroundValue = null;
             BorderValues? borderStyle = null;
             UInt32Value? borderSize = null;
             SixColor borderColor = default;
@@ -696,8 +700,7 @@ namespace OfficeIMO.Word.Html {
                 var value = pieces[1].Trim();
                 switch (name) {
                     case "background-color":
-                        var color = NormalizeColor(value);
-                        if (color != null) background = color;
+                        backgroundValue = value;
                         break;
                     case "border":
                         if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
@@ -718,8 +721,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var cell in row.Cells) {
-                if (background != null) {
-                    cell.ShadingFillColorHex = background;
+                if (backgroundValue != null) {
+                    ApplyTableBackground(
+                        cell,
+                        backgroundValue,
+                        ResolveAncestorBlockBackground(htmlRow));
                 }
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
@@ -733,7 +739,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static JustificationValues? ApplyCellStyles(WordTableCell cell, IHtmlTableCellElement htmlCell) {
+        private JustificationValues? ApplyCellStyles(WordTableCell cell, IHtmlTableCellElement htmlCell) {
             if (htmlCell == null) {
                 return null;
             }
@@ -747,6 +753,7 @@ namespace OfficeIMO.Word.Html {
 
             JustificationValues? alignment = null;
             bool borderSet = false;
+            string? backgroundValue = null;
             if (TryMapTableCellVerticalAlignment(verticalAlignAttr, out var attrVerticalAlignment)) {
                 cell.VerticalAlignment = attrVerticalAlignment;
             }
@@ -762,8 +769,7 @@ namespace OfficeIMO.Word.Html {
                     var value = pieces[1].Trim();
                     switch (name) {
                         case "background-color":
-                            var color = NormalizeColor(value);
-                            if (color != null) cell.ShadingFillColorHex = color;
+                            backgroundValue = value;
                             break;
                         case "width":
                             if (TryParsePercentWidth(value, out int pctWidth)) {
@@ -808,6 +814,12 @@ namespace OfficeIMO.Word.Html {
                             break;
                     }
                 }
+            }
+            if (backgroundValue != null) {
+                ApplyTableBackground(
+                    cell,
+                    backgroundValue,
+                    ResolveAncestorBlockBackground(htmlCell));
             }
 
             if (alignment == null && !string.IsNullOrWhiteSpace(alignAttr)) {
@@ -903,17 +915,48 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryParseBorder(string value, out BorderValues style, out UInt32Value size, out SixColor color) {
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color) =>
+            TryParseBorder(value, out style, out size, out color, out _, out _);
+
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color,
+            out bool hasExplicitStyle) =>
+            TryParseBorder(value, out style, out size, out color, out hasExplicitStyle, out _);
+
+        private static bool TryParseBorder(
+            string value,
+            out BorderValues style,
+            out UInt32Value size,
+            out SixColor color,
+            out bool hasExplicitStyle,
+            out bool hasExplicitColor) {
             style = BorderValues.Single;
             size = 4U;
             color = SixColor.Black;
+            hasExplicitStyle = false;
             bool found = false;
-            foreach (var part in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            bool hasExplicitWidth = false;
+            hasExplicitColor = false;
+            foreach (var part in SplitBorderTokens(value)) {
                 var token = part.Trim().ToLowerInvariant();
                 if (TryParseBorderWidth(token, out var s)) {
+                    if (hasExplicitWidth) {
+                        return false;
+                    }
                     size = s;
+                    hasExplicitWidth = true;
                     found = true;
                 } else if (token == "solid" || token == "dotted" || token == "dashed" || token == "double" || token == "none") {
+                    if (hasExplicitStyle) {
+                        return false;
+                    }
                     style = token switch {
                         "dotted" => BorderValues.Dotted,
                         "dashed" => BorderValues.Dashed,
@@ -921,26 +964,65 @@ namespace OfficeIMO.Word.Html {
                         "none" => BorderValues.None,
                         _ => BorderValues.Single
                     };
+                    hasExplicitStyle = true;
                     found = true;
                 } else {
                     var hex = NormalizeColor(token);
-                    if (hex != null) {
-                        color = SixColor.Parse("#" + hex);
-                        found = true;
+                    if (hex == null || hasExplicitColor) {
+                        return false;
                     }
+                    color = SixColor.Parse("#" + hex);
+                    hasExplicitColor = true;
+                    found = true;
                 }
             }
             return found;
         }
 
+        private static IEnumerable<string> SplitBorderTokens(string value) {
+            int tokenStart = -1;
+            int parenthesisDepth = 0;
+            for (int index = 0; index < value.Length; index++) {
+                char character = value[index];
+                if (character == '(') {
+                    parenthesisDepth++;
+                } else if (character == ')' && parenthesisDepth > 0) {
+                    parenthesisDepth--;
+                }
+
+                if (char.IsWhiteSpace(character) && parenthesisDepth == 0) {
+                    if (tokenStart >= 0) {
+                        yield return value.Substring(tokenStart, index - tokenStart);
+                        tokenStart = -1;
+                    }
+                } else if (tokenStart < 0) {
+                    tokenStart = index;
+                }
+            }
+
+            if (tokenStart >= 0) {
+                yield return value.Substring(tokenStart);
+            }
+        }
+
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {
             size = 0;
             var raw = token.Trim().ToLowerInvariant();
-            if (raw.EndsWith("px") && double.TryParse(raw.Substring(0, raw.Length - 2), out double px)) {
+            if (raw.EndsWith("px") &&
+                double.TryParse(
+                    raw.Substring(0, raw.Length - 2),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double px)) {
                 size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));
                 return true;
             }
-            if (raw.EndsWith("pt") && double.TryParse(raw.Substring(0, raw.Length - 2), out double pt)) {
+            if (raw.EndsWith("pt") &&
+                double.TryParse(
+                    raw.Substring(0, raw.Length - 2),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double pt)) {
                 size = (UInt32Value)(uint)Math.Max(1, Math.Round(pt * 8));
                 return true;
             }

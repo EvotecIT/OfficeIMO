@@ -24,6 +24,7 @@ public partial class WordList : WordElement {
     private readonly bool _isToc;
 
     private WordParagraph? _wordParagraph;
+    private readonly bool _replaceInsertionAnchor;
     private readonly WordHeaderFooter? _headerFooter;
     private readonly TableCell? _tableCell;
 
@@ -322,10 +323,16 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Initializes a list that can append its first item directly to an empty table cell.
     /// </summary>
-    internal WordList(WordDocument wordDocument, TableCell tableCell) {
+    internal WordList(
+        WordDocument wordDocument,
+        TableCell tableCell,
+        WordParagraph? insertionAnchor = null,
+        bool replaceInsertionAnchor = false) {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         _tableCell = tableCell;
+        _wordParagraph = insertionAnchor;
+        _replaceInsertionAnchor = replaceInsertionAnchor;
     }
 
 }

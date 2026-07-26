@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("FF0000", paragraph.ColorHex);
             Assert.Equal(24, paragraph.FontSize);
-            Assert.Equal(HighlightColorValues.Yellow, paragraph.Highlight);
+            Assert.Equal("FFFF00", paragraph.ShadingFillColorHex);
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("FF0000", paragraph.ColorHex);
             Assert.Equal(20, paragraph.FontSize);
-            Assert.Equal(HighlightColorValues.Cyan, paragraph.Highlight);
+            Assert.Equal("00FFFF", paragraph.ShadingFillColorHex);
         }
     }
 }

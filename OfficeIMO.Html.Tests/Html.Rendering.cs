@@ -321,7 +321,7 @@ public sealed partial class HtmlRenderingTests {
                     document,
                     new HtmlRenderOptions {
                         ViewportWidth = 240D,
-                        MaxSurfaceHeight = int.MaxValue
+                        MaxSurfaceHeight = 1_000_000
                     },
                     cancellation.Token));
         } finally {
