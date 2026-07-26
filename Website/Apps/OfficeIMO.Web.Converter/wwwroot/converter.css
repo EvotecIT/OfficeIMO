@@ -618,6 +618,7 @@
 }
 
 .ocx-route-tab {
+  appearance: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -627,6 +628,7 @@
   padding: 0.7rem 0.8rem;
   border: 0;
   border-right: 1px solid var(--ocx-border);
+  border-radius: 0;
   background: transparent;
   color: var(--ocx-muted);
   font-family: inherit;

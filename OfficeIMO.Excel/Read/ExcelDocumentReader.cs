@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
 
         private readonly SpreadsheetDocument _doc;
         private readonly bool _owns;
+        private readonly bool _canStreamWorksheetParts;
         private readonly ExcelReadOptions _opt;
         private readonly ExcelDateSystem _dateSystem;
         private readonly SharedStringCache _sst;
@@ -30,6 +31,7 @@ namespace OfficeIMO.Excel {
         private ExcelDocumentReader(SpreadsheetDocument doc, ExcelReadOptions opt, bool owns, Package? ownedPackage = null, Stream? ownedStream = null) {
             _doc = doc;
             _owns = owns;
+            _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
             _opt = opt ?? new ExcelReadOptions();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
@@ -129,7 +131,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             if (TryGetSheetByNameXmlFast(name, out string? fastSheetName, out WorksheetPart? fastWorksheetPart)) {
-                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _owns);
+                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
             }
 
             var wb = WorkbookRoot;
@@ -147,7 +149,7 @@ namespace OfficeIMO.Excel {
                 throw new KeyNotFoundException($"Sheet '{name}' is not a worksheet.");
             }
 
-            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _owns);
+            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
         }
 
         private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {

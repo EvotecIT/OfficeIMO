@@ -21,9 +21,11 @@ namespace OfficeIMO.Web.Converter.Services;
 public sealed class BrowserConversionService {
     public const long MaxPackageBytes = 25L * 1024L * 1024L;
     public const int MaxTextInputChars = 500_000;
+    internal const long MaxFullWorksheetCells = 50_000L;
+    internal const int MaxPreviewRowsPerSheet = 250;
     internal const int MaxPackagePartCount = 5_000;
-    internal const long MaxPartUncompressedBytes = 32L * 1024L * 1024L;
-    internal const long MaxTotalUncompressedBytes = 128L * 1024L * 1024L;
+    internal const long MaxPartUncompressedBytes = 256L * 1024L * 1024L;
+    internal const long MaxTotalUncompressedBytes = 512L * 1024L * 1024L;
     internal const double MaxCompressionRatio = 200D;
 
     public ConversionResult ConvertFile(
@@ -138,20 +140,71 @@ public sealed class BrowserConversionService {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
+        ExcelBrowserReadPlan readPlan = CreateExcelBrowserReadPlan(document, limitRowsPerSheet);
         var options = new ExcelPdfSaveOptions {
-            MaxRowsPerSheet = limitRowsPerSheet ? 250 : null,
+            MaxRowsPerSheet = readPlan.MaxRowsPerSheet,
+            UseBoundedWorksheetRead = readPlan.UsesBoundedRead,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
             PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         var conversion = document.ToPdfDocumentResult(options);
+        if (readPlan.WasAutomaticallyBounded) {
+            conversion.Report.Add(new PdfConversionWarning(
+                "OfficeIMO.Web.Converter",
+                "BrowserWorksheetPreview",
+                file.Name,
+                $"The worksheet exceeded the browser-safe full-conversion budget of {MaxFullWorksheetCells:N0} cells. A preview of up to {readPlan.MaxRowsPerSheet:N0} rows per sheet was generated instead; use a server conversion for the complete workbook.",
+                PdfConversionWarningSeverity.Warning,
+                details: new Dictionary<string, string> {
+                    ["mode"] = "automatic-browser-preview",
+                    ["maximumFullWorksheetCells"] = MaxFullWorksheetCells.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["maximumRowsPerSheet"] = readPlan.MaxRowsPerSheet?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty
+                }));
+        }
         (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
         return new PdfConversionPayload(
             bytes,
             conversion.Report,
             serialization,
             "OfficeIMO.Excel.Pdf",
-            limitRowsPerSheet ? "maxRowsPerSheet=250" : "maxRowsPerSheet=unlimited");
+            readPlan.UsesBoundedRead
+                ? $"maxRowsPerSheet={readPlan.MaxRowsPerSheet};mode={(readPlan.WasAutomaticallyBounded ? "automatic-browser-preview" : "requested-browser-preview")}"
+                : "maxRowsPerSheet=unlimited");
+    }
+
+    internal static ExcelBrowserReadPlan CreateExcelBrowserReadPlan(
+        ExcelDocument document,
+        bool previewRequested) {
+        ArgumentNullException.ThrowIfNull(document);
+        int widestWorksheetColumns = 1;
+        bool exceedsFullConversionBudget = false;
+        using ExcelDocumentReader reader = ExcelDocumentReader.Wrap(document.OpenXmlDocument);
+        foreach (string sheetName in reader.GetSheetNames()) {
+            string usedRange = reader.GetSheet(sheetName).GetUsedRangeA1();
+            if (!A1.TryParseRange(usedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                continue;
+            }
+
+            int rows = Math.Max(1, lastRow - firstRow + 1);
+            int columns = Math.Max(1, lastColumn - firstColumn + 1);
+            widestWorksheetColumns = Math.Max(widestWorksheetColumns, columns);
+            if ((long)rows * columns > MaxFullWorksheetCells) {
+                exceedsFullConversionBudget = true;
+            }
+        }
+
+        bool boundedRead = previewRequested || exceedsFullConversionBudget;
+        if (!boundedRead) {
+            return new ExcelBrowserReadPlan(null, UsesBoundedRead: false, WasAutomaticallyBounded: false);
+        }
+
+        int rowsWithinCellBudget = Math.Max(1, (int)(MaxFullWorksheetCells / widestWorksheetColumns));
+        int maximumRows = Math.Min(MaxPreviewRowsPerSheet, rowsWithinCellBudget);
+        return new ExcelBrowserReadPlan(
+            maximumRows,
+            UsesBoundedRead: true,
+            WasAutomaticallyBounded: !previewRequested && exceedsFullConversionBudget);
     }
 
     private static PdfConversionPayload ConvertPowerPointToPdf(SelectedDocument file, BrowserPdfProfile profile) {
@@ -344,7 +397,7 @@ public sealed class BrowserConversionService {
     private static ConversionResult TextResult(string text, string fileName, string contentType, string? htmlPreview) =>
         new(Encoding.UTF8.GetBytes(text), fileName, contentType, text, htmlPreview, []);
 
-    private static OfficePackageSecurityOptions CreateBrowserPackageSecurity() {
+    internal static OfficePackageSecurityOptions CreateBrowserPackageSecurity() {
         OfficePackageSecurityOptions options = OfficePackageSecurityOptions.SecureDefaults;
         options.MaxPackageBytes = MaxPackageBytes;
         options.MaxPartCount = MaxPackagePartCount;
@@ -377,4 +430,9 @@ public sealed class BrowserConversionService {
         PdfSerializationReport Serialization,
         string Converter,
         string OptionProfile);
+
+    internal readonly record struct ExcelBrowserReadPlan(
+        int? MaxRowsPerSheet,
+        bool UsesBoundedRead,
+        bool WasAutomaticallyBounded);
 }

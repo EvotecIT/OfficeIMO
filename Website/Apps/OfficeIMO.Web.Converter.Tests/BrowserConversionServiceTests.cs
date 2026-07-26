@@ -177,6 +177,54 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
+    public void BrowserPackageSecurity_AllowsExpandedWorksheetWithinAdvertisedPackageLimit() {
+        byte[] bytes = CreateExpandedWorksheetPackage();
+
+        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Validate(
+            bytes,
+            BrowserConversionService.CreateBrowserPackageSecurity());
+
+        Assert.True(bytes.LongLength < BrowserConversionService.MaxPackageBytes);
+        Assert.True(report.TotalUncompressedBytes > 32L * 1024L * 1024L);
+        Assert.DoesNotContain(report.Findings, finding => finding.Severity == OfficePackageSecuritySeverity.Error);
+    }
+
+    [Fact]
+    public void ExcelBrowserReadPlan_AutomaticallyBoundsSparseWorksheetBeyondBrowserCellBudget() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "First");
+        sheet.CellValue(300, 200, "Last");
+
+        BrowserConversionService.ExcelBrowserReadPlan plan =
+            BrowserConversionService.CreateExcelBrowserReadPlan(document, previewRequested: false);
+
+        Assert.True(plan.UsesBoundedRead);
+        Assert.True(plan.WasAutomaticallyBounded);
+        Assert.Equal(250, plan.MaxRowsPerSheet);
+    }
+
+    [Fact]
+    public void ExcelBrowserReadPlan_LeavesNormalWorksheetUnboundedUnlessPreviewIsRequested() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Name");
+        sheet.CellValue(2, 2, "Value");
+
+        BrowserConversionService.ExcelBrowserReadPlan fullPlan =
+            BrowserConversionService.CreateExcelBrowserReadPlan(document, previewRequested: false);
+        BrowserConversionService.ExcelBrowserReadPlan previewPlan =
+            BrowserConversionService.CreateExcelBrowserReadPlan(document, previewRequested: true);
+
+        Assert.False(fullPlan.UsesBoundedRead);
+        Assert.False(fullPlan.WasAutomaticallyBounded);
+        Assert.Null(fullPlan.MaxRowsPerSheet);
+        Assert.True(previewPlan.UsesBoundedRead);
+        Assert.False(previewPlan.WasAutomaticallyBounded);
+        Assert.Equal(250, previewPlan.MaxRowsPerSheet);
+    }
+
+    [Fact]
     public void WordConversion_UsesFullBrowserShapingWithoutFalseDegradationWarnings() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("مرحبا");
@@ -512,7 +560,7 @@ public sealed class BrowserConversionServiceTests {
             "maxRowsPerSheet=unlimited",
             unlimitedManifest.RootElement.GetProperty("engine").GetProperty("optionProfile").GetString());
         Assert.Equal(
-            "maxRowsPerSheet=250",
+            "maxRowsPerSheet=250;mode=requested-browser-preview",
             limitedManifest.RootElement.GetProperty("engine").GetProperty("optionProfile").GetString());
     }
 
@@ -574,6 +622,29 @@ public sealed class BrowserConversionServiceTests {
             byte[] repeated = new byte[2 * 1024 * 1024];
             Array.Fill(repeated, (byte)'A');
             stream.Write(repeated);
+        }
+        return buffer.ToArray();
+    }
+
+    private static byte[] CreateExpandedWorksheetPackage() {
+        using var buffer = new MemoryStream();
+        using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true)) {
+            ZipArchiveEntry contentTypes = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
+            using (var writer = new StreamWriter(contentTypes.Open())) {
+                writer.Write("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\" />");
+            }
+
+            ZipArchiveEntry worksheet = archive.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Optimal);
+            using Stream stream = worksheet.Open();
+            var random = new Random(1729);
+            byte[] block = new byte[64 * 1024];
+            for (int blockIndex = 0; blockIndex < 640; blockIndex++) {
+                random.NextBytes(block);
+                for (int index = 0; index < block.Length; index++) {
+                    block[index] = (byte)('A' + (block[index] & 0x07));
+                }
+                stream.Write(block);
+            }
         }
         return buffer.ToArray();
     }

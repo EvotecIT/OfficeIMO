@@ -69,8 +69,8 @@ namespace OfficeIMO.Excel.Pdf {
                                 }
 
                                 item.Table(
-                                    CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily),
-                                    style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
+                                    CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily),
+                                    style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
                             }
                         }
                     }));

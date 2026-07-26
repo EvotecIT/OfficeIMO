@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         public ExcelSheetReader GetSheet(int index) {
             if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
             if (TryGetSheetByIndexXmlFast(index, out string fastSheetName, out WorksheetPart fastWorksheetPart)) {
-                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _owns);
+                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
             }
 
             var wb = WorkbookRoot;
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _owns);
+            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts);
         }
 
         /// <summary>

@@ -189,6 +189,13 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>
+        /// When true together with <see cref="MaxRowsPerSheet"/>, worksheet values and direct cell styles are read
+        /// only through the bounded worksheet range. Metadata stored after the worksheet cell stream, such as
+        /// print settings, merges, hyperlinks, and drawing anchors, is not materialized. Defaults to false.
+        /// </summary>
+        public bool UseBoundedWorksheetRead { get; set; }
+
+        /// <summary>
         /// Text used for empty worksheet cells in the exported PDF table. Defaults to an empty string.
         /// </summary>
         public string EmptyCellText { get; set; } = string.Empty;
