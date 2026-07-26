@@ -280,9 +280,10 @@ namespace OfficeIMO.Excel {
                 .ToList()) {
                 OpenXmlAttribute referenceAttribute = tag.GetAttributes()
                     .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "r", StringComparison.OrdinalIgnoreCase));
-                if (string.IsNullOrWhiteSpace(referenceAttribute.Value)
+                string? referenceValue = referenceAttribute.Value;
+                if (string.IsNullOrWhiteSpace(referenceValue)
                     || !TryRemapShiftedReferenceListRows(
-                        referenceAttribute.Value,
+                        referenceValue!,
                         firstAffectedRow,
                         rowDelta,
                         lastDeletedRow,

@@ -356,10 +356,20 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
                 foreach (ChartPart chartPart in drawingsPart.ChartParts) {
-                    RewriteChartRootReferences(chartPart.ChartSpace, firstAffectedRow, rowDelta, lastDeletedRow);
+                    RewriteChartRootReferences(
+                        chartPart.ChartSpace,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        rewriteUnqualifiedReferences: false);
                 }
                 foreach (ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
-                    RewriteChartRootReferences(chartPart.ChartSpace, firstAffectedRow, rowDelta, lastDeletedRow);
+                    RewriteChartRootReferences(
+                        chartPart.ChartSpace,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        rewriteUnqualifiedReferences: false);
                 }
             }
 
@@ -367,8 +377,14 @@ namespace OfficeIMO.Excel {
                 if (worksheetPart.DrawingsPart == null) {
                     continue;
                 }
+                bool rewriteUnqualifiedReferences = ReferenceEquals(worksheetPart, _worksheetPart);
                 foreach (ExtendedChartPart chartPart in worksheetPart.DrawingsPart.ExtendedChartParts) {
-                    RewriteChartRootReferences(chartPart.ChartSpace, firstAffectedRow, rowDelta, lastDeletedRow);
+                    RewriteChartRootReferences(
+                        chartPart.ChartSpace,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        rewriteUnqualifiedReferences);
                 }
             }
         }
@@ -377,7 +393,8 @@ namespace OfficeIMO.Excel {
             OpenXmlPartRootElement? chartRoot,
             int firstAffectedRow,
             int rowDelta,
-            int? lastDeletedRow) {
+            int? lastDeletedRow,
+            bool rewriteUnqualifiedReferences) {
             if (chartRoot == null) {
                 return;
             }
@@ -390,7 +407,7 @@ namespace OfficeIMO.Excel {
                     firstAffectedRow,
                     rowDelta,
                     lastDeletedRow,
-                    rewriteUnqualifiedReferences: false);
+                    rewriteUnqualifiedReferences);
                 changed |= formulaChanged;
                 if (formulaChanged) {
                     InvalidateChartFormulaCache(formula);

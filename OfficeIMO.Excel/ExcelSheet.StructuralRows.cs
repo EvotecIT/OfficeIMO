@@ -448,6 +448,12 @@ namespace OfficeIMO.Excel {
 
             foreach (DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType marker in
                 _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()
+                    .Where(candidate =>
+                        candidate.Ancestors<DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor>()
+                            .All(anchor =>
+                                (anchor.EditAs?.Value
+                                    ?? DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.TwoCell)
+                                != DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.Absolute))
                 ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()) {
                 if (int.TryParse(marker.RowId?.Text, out int zeroBasedRow)
                     && zeroBasedRow + 1 >= firstRow
