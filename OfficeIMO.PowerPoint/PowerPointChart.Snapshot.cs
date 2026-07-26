@@ -470,11 +470,23 @@ namespace OfficeIMO.PowerPoint {
                             : OfficeChartLegendPosition.Right;
             bool overlay = legend?.GetFirstChild<C.Overlay>() is C.Overlay item &&
                 item.Val?.Value != false;
+            bool overlayTitle =
+                chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>()
+                    is C.Overlay titleOverlay &&
+                titleOverlay.Val?.Value != false;
 
             string? horizontalAxisTitle = null;
             string? verticalAxisTitle = null;
             string? horizontalAxisNumberFormat = null;
             string? verticalAxisNumberFormat = null;
+            OfficeChartAxisTickMark horizontalMajorTickMark =
+                OfficeChartAxisTickMark.None;
+            OfficeChartAxisTickMark verticalMajorTickMark =
+                OfficeChartAxisTickMark.None;
+            OfficeChartAxisTickMark horizontalMinorTickMark =
+                OfficeChartAxisTickMark.None;
+            OfficeChartAxisTickMark verticalMinorTickMark =
+                OfficeChartAxisTickMark.None;
             if (kind == PowerPointChartSnapshotKind.Bubble &&
                 chart.GetFirstChild<C.PlotArea>() is C.PlotArea plotArea &&
                 plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubble &&
@@ -487,16 +499,43 @@ namespace OfficeIMO.PowerPoint {
                     ReadAxisNumberFormat(horizontalAxis);
                 verticalAxisNumberFormat =
                     ReadAxisNumberFormat(verticalAxis);
+                horizontalMajorTickMark = ReadAxisTickMark(
+                    horizontalAxis.GetFirstChild<C.MajorTickMark>()?
+                        .Val?.Value);
+                verticalMajorTickMark = ReadAxisTickMark(
+                    verticalAxis.GetFirstChild<C.MajorTickMark>()?
+                        .Val?.Value);
+                horizontalMinorTickMark = ReadAxisTickMark(
+                    horizontalAxis.GetFirstChild<C.MinorTickMark>()?
+                        .Val?.Value);
+                verticalMinorTickMark = ReadAxisTickMark(
+                    verticalAxis.GetFirstChild<C.MinorTickMark>()?
+                        .Val?.Value);
             }
 
             return new OfficeChartLayout(overlayLegend: overlay,
+                overlayTitle: overlayTitle,
                 showLegend: legend != null,
                 legendPosition: position,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
-                verticalAxisNumberFormat: verticalAxisNumberFormat);
+                verticalAxisNumberFormat: verticalAxisNumberFormat,
+                horizontalAxisMajorTickMark: horizontalMajorTickMark,
+                verticalAxisMajorTickMark: verticalMajorTickMark,
+                horizontalAxisMinorTickMark: horizontalMinorTickMark,
+                verticalAxisMinorTickMark: verticalMinorTickMark);
         }
+
+        private static OfficeChartAxisTickMark ReadAxisTickMark(
+            C.TickMarkValues? value) =>
+            value == C.TickMarkValues.Inside
+                ? OfficeChartAxisTickMark.Inside
+                : value == C.TickMarkValues.Outside
+                    ? OfficeChartAxisTickMark.Outside
+                    : value == C.TickMarkValues.Cross
+                        ? OfficeChartAxisTickMark.Cross
+                        : OfficeChartAxisTickMark.None;
 
         private static string? ReadAxisTitle(C.ValueAxis axis) =>
             ReadChartText(

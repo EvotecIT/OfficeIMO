@@ -406,19 +406,50 @@ namespace OfficeIMO.Tests {
                         new[] { 1D, 2D },
                         new[] { 2D, 4D },
                         new[] { 4D, 9D }))
+                .SetTitle("Risk and return")
                 .SetScatterXAxisTitle("Risk")
                 .SetScatterYAxisTitle("Return")
                 .SetScatterXAxisNumberFormat("0.0x")
                 .SetScatterYAxisNumberFormat("0.0y");
+            C.Chart nativeChart = slide.SlidePart.ChartParts.Single()
+                .ChartSpace!.GetFirstChild<C.Chart>()!;
+            nativeChart.GetFirstChild<C.Title>()!
+                .GetFirstChild<C.Overlay>()!.Val = true;
+            C.PlotArea plotArea = nativeChart.GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart bubble =
+                plotArea.GetFirstChild<C.BubbleChart>()!;
+            uint[] axisIds = bubble.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            C.ValueAxis horizontalAxis = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
+            C.ValueAxis verticalAxis = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[1]);
+            horizontalAxis.GetFirstChild<C.MajorTickMark>()!.Val =
+                C.TickMarkValues.Outside;
+            horizontalAxis.GetFirstChild<C.MinorTickMark>()!.Val =
+                C.TickMarkValues.Inside;
+            verticalAxis.GetFirstChild<C.MajorTickMark>()!.Val =
+                C.TickMarkValues.Cross;
+            verticalAxis.GetFirstChild<C.MinorTickMark>()!.Val =
+                C.TickMarkValues.Outside;
 
             Assert.True(chart.TryGetOfficeSnapshot(
                 out OfficeChartSnapshot snapshot));
+            Assert.True(snapshot.Layout.OverlayTitle);
             Assert.Equal("Risk", snapshot.Layout.CategoryAxisTitle);
             Assert.Equal("Return", snapshot.Layout.ValueAxisTitle);
             Assert.Equal("0.0x",
                 snapshot.Layout.HorizontalAxisNumberFormat);
             Assert.Equal("0.0y",
                 snapshot.Layout.VerticalAxisNumberFormat);
+            Assert.Equal(OfficeChartAxisTickMark.Outside,
+                snapshot.Layout.HorizontalAxisMajorTickMark);
+            Assert.Equal(OfficeChartAxisTickMark.Inside,
+                snapshot.Layout.HorizontalAxisMinorTickMark);
+            Assert.Equal(OfficeChartAxisTickMark.Cross,
+                snapshot.Layout.VerticalAxisMajorTickMark);
+            Assert.Equal(OfficeChartAxisTickMark.Outside,
+                snapshot.Layout.VerticalAxisMinorTickMark);
 
             string svg = System.Text.Encoding.UTF8.GetString(
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
@@ -604,6 +635,15 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BubbleChart_RejectsMissingOrInvalidSizesBeforeMutatingSlide() {
+            Assert.Throws<ArgumentNullException>(() =>
+                OfficeChartSeries.CreateBubble("Invalid",
+                    null!, new[] { 2D }, new[] { 5D }));
+            Assert.Throws<ArgumentNullException>(() =>
+                OfficeChartSeries.CreateBubble("Invalid",
+                    new[] { 1D }, null!, new[] { 5D }));
+            Assert.Throws<ArgumentNullException>(() =>
+                OfficeChartSeries.CreateBubble("Invalid",
+                    new[] { 1D }, new[] { 2D }, null!));
             Assert.Throws<ArgumentException>(() => OfficeChartSeries.CreateBubble("Invalid",
                 new[] { 1D, 2D }, new[] { 2D, 3D }, new[] { 5D }));
             Assert.Throws<ArgumentOutOfRangeException>(() => OfficeChartSeries.CreateBubble("Invalid",

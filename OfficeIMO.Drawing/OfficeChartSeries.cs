@@ -88,13 +88,18 @@ public sealed class OfficeChartSeries {
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
         OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
-        bool showMarkerOutline = true) =>
-        new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
+        bool showMarkerOutline = true) {
+        if (xValues == null) throw new ArgumentNullException(nameof(xValues));
+        if (yValues == null) throw new ArgumentNullException(nameof(yValues));
+        if (bubbleSizes == null) throw new ArgumentNullException(nameof(bubbleSizes));
+
+        return new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
             showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
             markerOutlineColor: markerOutlineColor ?? color, markerOutlineWidth, strokeWidth: null,
             strokeDashStyle: null, renderKind: OfficeChartKind.Bubble,
             axisGroup: OfficeChartAxisGroup.Primary,
             showMarkerOutline: showMarkerOutline);
+    }
 
     private OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
         IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
