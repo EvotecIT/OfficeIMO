@@ -1,12 +1,16 @@
+using AngleSharp.Css;
+using AngleSharp.Css.Dom;
 using AngleSharp.Css.Values;
 using AngleSharp.Dom;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static bool TryResolveRootFontSizePixels(string? text, out double pixels) {
-            return TryResolveFontSizePixels(
-                text,
+        private static bool TryResolveRootFontSizePixels(
+            IReadOnlyDictionary<string, (string Value, Priority Specificity, bool Important, int Order)> declarations,
+            out double pixels) {
+            return TryResolveDeclaredFontSizePixels(
+                GetWinningFontSizeDeclaration(declarations),
                 _renderDevice.FontSize,
                 _renderDevice.FontSize,
                 out pixels);
@@ -20,27 +24,18 @@ namespace OfficeIMO.Word.Html {
                 return cached;
             }
 
-            string? value = null;
-            if (_cssRules.Count == 0) {
-                if (TryGetInlineProperty(element.GetAttribute("style"), "font-size", out string inlineValue)) {
-                    value = inlineValue;
-                }
-            } else {
-                var declarations = CollectCssDeclarations(element, inheritedOnly: false);
-                if (declarations.TryGetValue("font-size", out var declaration)) {
-                    value = declaration.Value;
-                }
-            }
-
-            CacheComputedFontSizePixels(element, value);
+            CacheComputedFontSizePixels(
+                element,
+                CollectCssDeclarations(element, inheritedOnly: false));
             return _computedFontSizePixels[element];
         }
 
-        private void CacheComputedFontSizePixels(IElement element, string? value) {
+        private void CacheComputedFontSizePixels(
+            IElement element,
+            IReadOnlyDictionary<string, (string Value, Priority Specificity, bool Important, int Order)> declarations) {
             double inheritedFontSizePixels = ResolveComputedFontSizePixels(element.ParentElement);
-            if (string.IsNullOrWhiteSpace(value) ||
-                !TryResolveFontSizePixels(
-                    value,
+            if (!TryResolveDeclaredFontSizePixels(
+                    GetWinningFontSizeDeclaration(declarations),
                     inheritedFontSizePixels,
                     _rootFontSizePixels,
                     out double pixels)) {
@@ -48,6 +43,58 @@ namespace OfficeIMO.Word.Html {
             }
 
             _computedFontSizePixels[element] = pixels;
+        }
+
+        private static bool TryResolveDeclaredFontSizePixels(
+            string? declaration,
+            double inheritedFontSizePixels,
+            double rootFontSizePixels,
+            out double pixels) {
+            if (TryResolveFontSizePixels(
+                    declaration,
+                    inheritedFontSizePixels,
+                    rootFontSizePixels,
+                    out pixels)) {
+                return true;
+            }
+
+            foreach (string token in TokenizeFontShorthand(declaration ?? string.Empty)) {
+                string sizeToken = token;
+                int slashIndex = token.IndexOf('/');
+                if (slashIndex >= 0) {
+                    sizeToken = token.Substring(0, slashIndex);
+                }
+                if (TryResolveFontSizePixels(
+                        sizeToken,
+                        inheritedFontSizePixels,
+                        rootFontSizePixels,
+                        out pixels)) {
+                    return true;
+                }
+            }
+
+            pixels = 0d;
+            return false;
+        }
+
+        private static string? GetWinningFontSizeDeclaration(
+            IReadOnlyDictionary<string, (string Value, Priority Specificity, bool Important, int Order)> declarations) {
+            bool hasFontSize = declarations.TryGetValue("font-size", out var fontSize);
+            bool hasFont = declarations.TryGetValue("font", out var font);
+            if (!hasFontSize) {
+                return hasFont ? font.Value : null;
+            }
+            if (!hasFont) {
+                return fontSize.Value;
+            }
+
+            if (font.Important != fontSize.Important) {
+                return font.Important ? font.Value : fontSize.Value;
+            }
+            if (font.Specificity != fontSize.Specificity) {
+                return font.Specificity > fontSize.Specificity ? font.Value : fontSize.Value;
+            }
+            return font.Order >= fontSize.Order ? font.Value : fontSize.Value;
         }
 
         private static bool TryResolveFontSizePixels(

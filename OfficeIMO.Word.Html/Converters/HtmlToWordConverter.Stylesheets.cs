@@ -300,9 +300,7 @@ namespace OfficeIMO.Word.Html {
 
             var own = CollectCssDeclarations(element, inheritedOnly: false);
             if (!_computedFontSizePixels.ContainsKey(element)) {
-                CacheComputedFontSizePixels(
-                    element,
-                    own.TryGetValue("font-size", out var fontSize) ? fontSize.Value : null);
+                CacheComputedFontSizePixels(element, own);
             }
             foreach (var kvp in own) {
                 accumulated[kvp.Key] = kvp.Value;
@@ -338,8 +336,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var declarations = CollectCssDeclarations(root, inheritedOnly: false);
-            if (!declarations.TryGetValue("font-size", out var declaration) ||
-                !TryResolveRootFontSizePixels(declaration.Value, out double pixels)) {
+            if (!TryResolveRootFontSizePixels(declarations, out double pixels)) {
                 return _renderDevice.FontSize;
             }
 

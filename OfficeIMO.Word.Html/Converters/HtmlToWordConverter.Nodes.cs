@@ -70,7 +70,8 @@ namespace OfficeIMO.Word.Html {
                                 int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
                                 bool standaloneResource = ShouldStartBodyResourceParagraph(child);
                                 bool startsOwnParagraph = standaloneResource ||
-                                    child is IElement childElement && _blockTags.Contains(childElement.TagName);
+                                    child is IElement childElement &&
+                                    ShouldStartContainerChildParagraph(childElement);
                                 ProcessNode(child, doc, section, options, startsOwnParagraph ? null : para, listStack, fmt, cell, headerFooter, headingList);
                                 if (startsOwnParagraph) {
                                     para = null;

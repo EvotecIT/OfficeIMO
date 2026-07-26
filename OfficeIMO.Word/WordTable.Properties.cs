@@ -188,7 +188,7 @@ namespace OfficeIMO.Word {
         /// Estimates the effective table width in DXA (twips) based on
         /// Table.Width/WidthType and the section page width/margins.
         /// </summary>
-        private int EstimateTableWidthInDxa() {
+        internal int EstimateTableWidthInDxa() {
             // For nested tables, use the containing cell's width as the reference
             if (IsNestedTable) {
                 int container = EstimateContainingCellContentWidthInDxa();
@@ -216,6 +216,15 @@ namespace OfficeIMO.Word {
             // Auto or unspecified
             return contentWidth;
         }
+
+        /// <summary>
+        /// Estimates the width available to this table in its page or containing
+        /// table cell, before the table's own authored width is applied.
+        /// </summary>
+        internal int EstimateAvailableContainerWidthInDxa() =>
+            IsNestedTable
+                ? EstimateContainingCellContentWidthInDxa()
+                : EstimateContentAreaWidthInDxa();
 
         /// <summary>
         /// Returns the estimated text area width (page width minus left/right margins) in DXA.

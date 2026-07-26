@@ -32,9 +32,35 @@ namespace OfficeIMO.Word.Html {
                     indentation = Math.Max(short.MinValue, Math.Min(short.MaxValue, indentation));
                     styleDetails.TableIndentationWidth = checked((short)indentation);
                 }
+                ApplyTableContainerWidth(table, horizontalStart, horizontalEnd);
             }
 
             ApplyContainerVerticalSpacingFromCss(element, paragraphs, tables);
+        }
+
+        private static void ApplyTableContainerWidth(
+            WordTable table,
+            int horizontalStart,
+            int horizontalEnd) {
+            if (horizontalStart == 0 && horizontalEnd == 0) {
+                return;
+            }
+
+            int availableWidth = table.EstimateAvailableContainerWidthInDxa();
+            long constrainedWidth = (long)availableWidth - horizontalStart - horizontalEnd;
+            if (constrainedWidth <= 0) {
+                constrainedWidth = 1;
+            } else if (constrainedWidth > int.MaxValue) {
+                constrainedWidth = int.MaxValue;
+            }
+
+            int currentWidth = table.EstimateTableWidthInDxa();
+            if (currentWidth <= constrainedWidth) {
+                return;
+            }
+
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = (int)constrainedWidth;
         }
 
         private void ApplyContainerVerticalSpacingFromCss(
