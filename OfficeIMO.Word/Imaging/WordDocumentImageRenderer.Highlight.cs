@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
                 : null;
         }
 
-        private static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
+        internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
             if (paragraph._runProperties?.Highlight != null) {
                 return paragraph._runProperties.Highlight.Val?.Value;
             }

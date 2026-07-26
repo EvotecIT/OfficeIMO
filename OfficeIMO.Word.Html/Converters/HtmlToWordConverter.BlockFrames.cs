@@ -26,17 +26,24 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct BlockBorderState {
-            internal BlockBorderState(BorderValues style, UInt32Value size, SixColor? color) {
+            internal BlockBorderState(
+                BorderValues style,
+                UInt32Value size,
+                SixColor? color,
+                bool transparentColor = false) {
                 Style = style;
                 Size = size;
                 Color = color;
+                TransparentColor = transparentColor;
             }
 
             internal BorderValues? Style { get; set; }
             internal UInt32Value? Size { get; set; }
             internal SixColor? Color { get; set; }
+            internal bool TransparentColor { get; set; }
 
             internal BlockBorder? Materialize() =>
+                !TransparentColor &&
                 Style.HasValue &&
                 Style.Value != BorderValues.None &&
                 (Size == null || Size.Value > 0)
@@ -76,7 +83,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             CssStyleMapper.CssProperties box = ParseElementBoxStyles(element);
-            if ((box.PaddingTop ?? 0) != 0 ||
+            if ((box.MarginTop ?? 0) != 0 ||
+                (box.MarginBottom ?? 0) != 0 ||
+                (box.PaddingTop ?? 0) != 0 ||
                 (box.PaddingRight ?? 0) != 0 ||
                 (box.PaddingBottom ?? 0) != 0 ||
                 (box.PaddingLeft ?? 0) != 0) {
@@ -124,7 +133,7 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyDictionary<BlockBorderSide, BlockBorderState> inheritedBorders,
             out string? background,
             out Dictionary<BlockBorderSide, BlockBorderState> sideBorders) {
-            background = null;
+            background = ResolveBlockBackground(styleText, inheritedBackground);
             sideBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
             for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
                 bool important = priorityPass == 1;
@@ -139,24 +148,7 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (name == "background-color") {
-                        if (IsCssInheritanceValue(value)) {
-                            background = inheritedBackground;
-                        } else if (IsCssWideResetValue(value) ||
-                                   value.Equals("transparent", StringComparison.OrdinalIgnoreCase)) {
-                            background = null;
-                        } else {
-                            CssStyleMapper.CssProperties parsedBackground =
-                                CssStyleMapper.ParseStyles("background-color:" + value);
-                            if (!string.IsNullOrEmpty(parsedBackground.BackgroundColor)) {
-                                double alpha = parsedBackground.BackgroundColorAlpha ?? 1d;
-                                background = alpha <= 0d
-                                    ? null
-                                    : ResolveOpaqueTextBackground(
-                                        parsedBackground.BackgroundColor!,
-                                        alpha,
-                                        inheritedBackground);
-                            }
-                        }
+                        continue;
                     } else if (name == "border" && IsCssInheritanceValue(value)) {
                         CopyAllBlockBorders(inheritedBorders, sideBorders);
                     } else if (name == "border" && IsCssWideResetValue(value)) {
@@ -168,11 +160,14 @@ namespace OfficeIMO.Word.Html {
                                    out var borderSize,
                                    out var borderColor,
                                    out bool hasBorderStyle,
-                                   out bool hasBorderColor)) {
+                                   out bool hasBorderColor,
+                                   out bool hasTransparentBorderColor,
+                                   background ?? inheritedBackground)) {
                         var border = new BlockBorderState(
                             hasBorderStyle ? borderStyle : BorderValues.None,
                             borderSize,
-                            hasBorderColor ? borderColor : null);
+                            hasBorderColor ? borderColor : null,
+                            hasTransparentBorderColor);
                         sideBorders[BlockBorderSide.Left] = border;
                         sideBorders[BlockBorderSide.Right] = border;
                         sideBorders[BlockBorderSide.Top] = border;
@@ -190,18 +185,22 @@ namespace OfficeIMO.Word.Html {
                                    out var sideSize,
                                    out var sideColor,
                                    out bool hasSideStyle,
-                                   out bool hasSideColor)) {
+                                   out bool hasSideColor,
+                                   out bool hasTransparentSideColor,
+                                   background ?? inheritedBackground)) {
                         sideBorders[side] = new BlockBorderState(
                             hasSideStyle ? sideStyle : BorderValues.None,
                             sideSize,
-                            hasSideColor ? sideColor : null);
+                            hasSideColor ? sideColor : null,
+                            hasTransparentSideColor);
                     } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
                         ApplyBlockBorderLonghand(
                             sideBorders,
                             inheritedBorders,
                             side,
                             component,
-                            value);
+                            value,
+                            background ?? inheritedBackground);
                     }
                 }
             }
@@ -270,7 +269,7 @@ namespace OfficeIMO.Word.Html {
             BlockBorderSide side,
             BlockBorder? border,
             string fallbackColor) {
-            if (!border.HasValue) {
+            if (!border.HasValue || HasTableCellBorder(cell, side)) {
                 return;
             }
 
@@ -299,6 +298,15 @@ namespace OfficeIMO.Word.Html {
                     break;
             }
         }
+
+        private static bool HasTableCellBorder(WordTableCell cell, BlockBorderSide side) =>
+            side switch {
+                BlockBorderSide.Left => cell.Borders.LeftStyle.HasValue,
+                BlockBorderSide.Right => cell.Borders.RightStyle.HasValue,
+                BlockBorderSide.Top => cell.Borders.TopStyle.HasValue,
+                BlockBorderSide.Bottom => cell.Borders.BottomStyle.HasValue,
+                _ => false,
+            };
 
         private static string ResolveElementTextColor(IElement element) {
             string styleText = element.GetAttribute("style") ?? string.Empty;
@@ -392,7 +400,8 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyDictionary<BlockBorderSide, BlockBorderState> inheritedBorders,
             BlockBorderSide side,
             string component,
-            string value) {
+            string value,
+            string? backdrop) {
             BlockBorderState border = sideBorders.TryGetValue(side, out BlockBorderState existing)
                 ? existing
                 : default;
@@ -409,6 +418,7 @@ namespace OfficeIMO.Word.Html {
                         break;
                     case "color":
                         border.Color = inherited.Color;
+                        border.TransparentColor = inherited.TransparentColor;
                         break;
                     default:
                         return;
@@ -426,6 +436,7 @@ namespace OfficeIMO.Word.Html {
                         break;
                     case "color":
                         border.Color = null;
+                        border.TransparentColor = false;
                         break;
                     default:
                         return;
@@ -447,11 +458,15 @@ namespace OfficeIMO.Word.Html {
                     border.Size = size;
                     break;
                 case "color":
-                    string? color = NormalizeColor(value);
-                    if (color == null) {
+                    if (!TryResolveBlockBorderColor(
+                            value,
+                            backdrop,
+                            out SixColor color,
+                            out bool transparentColor)) {
                         return;
                     }
-                    border.Color = SixColor.Parse("#" + color);
+                    border.Color = transparentColor ? null : color;
+                    border.TransparentColor = transparentColor;
                     break;
                 default:
                     return;
@@ -496,7 +511,10 @@ namespace OfficeIMO.Word.Html {
             out UInt32Value size,
             out SixColor color,
             out bool hasExplicitStyle,
-            out bool hasExplicitColor) {
+            out bool hasExplicitColor,
+            out bool hasTransparentColor,
+            string? backdrop) {
+            hasTransparentColor = false;
             string[] tokens = SplitBorderTokens(value).ToArray();
             string normalized = string.Join(
                 " ",
@@ -513,13 +531,23 @@ namespace OfficeIMO.Word.Html {
 
             foreach (string token in tokens) {
                 if (!TryParseRawBlockBorderWidth(token, out double width)) {
-                    continue;
-                }
-                if (width < 0) {
-                    return false;
-                }
-                if (width == 0) {
-                    size = 0U;
+                    if (hasExplicitColor &&
+                        !TryParseBlockBorderStyle(token, out _) &&
+                        TryResolveBlockBorderColor(
+                            token,
+                            backdrop,
+                            out SixColor resolvedColor,
+                            out bool transparentColor)) {
+                        color = resolvedColor;
+                        hasTransparentColor = transparentColor;
+                    }
+                } else {
+                    if (width < 0) {
+                        return false;
+                    }
+                    if (width == 0) {
+                        size = 0U;
+                    }
                 }
             }
 
