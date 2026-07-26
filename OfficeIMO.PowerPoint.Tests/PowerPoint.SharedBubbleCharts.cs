@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -340,6 +341,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_PreservesMissingChartLegendAcrossSharedSnapshots() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.Chart nativeChart = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!;
+            nativeChart.GetFirstChild<C.Legend>()!.Remove();
+
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            Assert.False(Assert.Single(snapshot.Data.Series).ShowInLegend);
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMixedSnapshotsThatWouldDropBubbleSeries() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -659,6 +679,27 @@ namespace OfficeIMO.Tests {
 
                 orientation.Val = C.OrientationValues.MinMax;
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                C.Delete delete = axis.GetFirstChild<C.Delete>()!;
+                delete.Val = true;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                delete.Val = false;
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                var majorUnit = new C.MajorUnit { Val = 2D };
+                axis.AddChild(majorUnit, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                majorUnit.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                var minorUnit = new C.MinorUnit { Val = 1D };
+                axis.AddChild(minorUnit, true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                minorUnit.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
         }
 
@@ -882,6 +923,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_UpdateDataPreservesExportOnlyNativeStyles() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D, 2D },
+                    new[] { 2D, 4D },
+                    new[] { 4D, 9D }));
+            chart.SetSeriesTrendline(0, C.TrendlineValues.Linear);
+
+            chart.UpdateData(CreateBubbleData(
+                new[] { 3D, 6D },
+                new[] { 5D, 10D },
+                new[] { 16D, 25D }));
+
+            Assert.Single(presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.Trendline>());
+            chart.ClearSeriesTrendline(0);
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+            Assert.Equal(new[] { 3D, 6D }, series.XValues);
+            Assert.Equal(new[] { 5D, 10D }, series.Values);
+            Assert.Equal(new[] { 16D, 25D }, series.BubbleSizes);
+        }
+
+        [Fact]
         public void BubbleChart_ResolvesThemeColorsInParameterlessSnapshots() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -978,6 +1047,22 @@ namespace OfficeIMO.Tests {
                 new A.Glow(new A.RgbColorModelHex { Val = "445566" }) {
                     Radius = 12700L
                 }));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            properties.RemoveAllChildren<A.EffectList>();
+            var scene3D = new OpenXmlUnknownElement(
+                "a", "scene3d",
+                "http://schemas.openxmlformats.org/drawingml/2006/main");
+            properties.Append(scene3D);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            scene3D.Remove();
+            var shape3D = new OpenXmlUnknownElement(
+                "a", "sp3d",
+                "http://schemas.openxmlformats.org/drawingml/2006/main");
+            series.PrependChild(new C.DataPoint(
+                new C.Index { Val = 0U },
+                new C.ChartShapeProperties(shape3D)));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 

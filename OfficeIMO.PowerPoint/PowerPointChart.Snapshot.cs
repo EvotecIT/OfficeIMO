@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             TryGetSnapshot(GetOwnerColorScheme(), out snapshot);
 
         private bool TryGetSnapshotForUpdate(out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(GetOwnerColorScheme(), ignoreBubbleDataLabels: true,
+            TryGetSnapshot(GetOwnerColorScheme(), forDataUpdate: true,
                 out snapshot);
 
         private A.ColorScheme? GetOwnerColorScheme() {
@@ -56,10 +56,10 @@ namespace OfficeIMO.PowerPoint {
 
         internal bool TryGetSnapshot(A.ColorScheme? colorScheme,
             out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(colorScheme, ignoreBubbleDataLabels: false, out snapshot);
+            TryGetSnapshot(colorScheme, forDataUpdate: false, out snapshot);
 
         private bool TryGetSnapshot(A.ColorScheme? colorScheme,
-            bool ignoreBubbleDataLabels, out PowerPointChartSnapshot snapshot) {
+            bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
             try {
                 ChartPart chartPart = GetChartPart();
                 C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
@@ -137,21 +137,25 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
-                    if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
-                        IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
-                        HasUnsupportedBubbleAxisScaling(plotArea, bubbleChart) ||
-                        (!ignoreBubbleDataLabels &&
-                         HasEnabledBubbleDataLabels(bubbleChart)) ||
-                        bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
-                            IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
-                            series.Elements<C.DataPoint>().Any(point =>
-                                IsBubble3DEnabled(
-                                    point.GetFirstChild<C.Bubble3D>())))) {
+                    if (!forDataUpdate &&
+                        (IsVaryColorsEnabled(
+                             bubbleChart.GetFirstChild<C.VaryColors>()) ||
+                         IsBubble3DEnabled(
+                             bubbleChart.GetFirstChild<C.Bubble3D>()) ||
+                         HasUnsupportedBubbleAxes(plotArea, bubbleChart) ||
+                         HasEnabledBubbleDataLabels(bubbleChart) ||
+                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
+                             IsBubble3DEnabled(
+                                 series.GetFirstChild<C.Bubble3D>()) ||
+                             series.Elements<C.DataPoint>().Any(point =>
+                                 IsBubble3DEnabled(
+                                     point.GetFirstChild<C.Bubble3D>()))))) {
                         snapshot = null!;
                         return false;
                     }
                     PowerPointChartData? data = ReadBubbleSeriesData(
-                        bubbleChart.Elements<C.BubbleChartSeries>(), colorScheme);
+                        bubbleChart.Elements<C.BubbleChartSeries>(), colorScheme,
+                        forDataUpdate);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -208,7 +212,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
             varyColors != null && varyColors.Val?.Value != false;
 
-        private static bool HasUnsupportedBubbleAxisScaling(
+        private static bool HasUnsupportedBubbleAxes(
             C.PlotArea plotArea, C.BubbleChart chart) {
             HashSet<uint> axisIds = new(chart.Elements<C.AxisId>()
                 .Where(axis => axis.Val?.Value != null)
@@ -216,12 +220,16 @@ namespace OfficeIMO.PowerPoint {
             return plotArea.Elements<C.ValueAxis>().Any(axis =>
                 axis.AxisId?.Val?.Value != null &&
                 axisIds.Contains(axis.AxisId.Val.Value) &&
-                axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
-                (scaling.GetFirstChild<C.LogBase>() != null ||
-                 scaling.GetFirstChild<C.MinAxisValue>() != null ||
-                 scaling.GetFirstChild<C.MaxAxisValue>() != null ||
-                 scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
-                    C.OrientationValues.MaxMin));
+                ((axis.GetFirstChild<C.Delete>() is C.Delete delete &&
+                  delete.Val?.Value != false) ||
+                 axis.GetFirstChild<C.MajorUnit>() != null ||
+                 axis.GetFirstChild<C.MinorUnit>() != null ||
+                 (axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
+                  (scaling.GetFirstChild<C.LogBase>() != null ||
+                   scaling.GetFirstChild<C.MinAxisValue>() != null ||
+                   scaling.GetFirstChild<C.MaxAxisValue>() != null ||
+                   scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
+                      C.OrientationValues.MaxMin))));
         }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
@@ -349,10 +357,12 @@ namespace OfficeIMO.PowerPoint {
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
             double bubbleScalePercent = 100D) {
             HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes(chart);
+            bool hasLegend = chart.GetFirstChild<C.Legend>() != null;
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
                 PowerPointChartSeries series = data.Series[seriesIndex];
                 uint sourceIndex = series.SourceIndex ?? (uint)seriesIndex;
-                series.ShowInLegend = !hiddenLegendSeries.Contains(sourceIndex);
+                series.ShowInLegend = hasLegend &&
+                    !hiddenLegendSeries.Contains(sourceIndex);
             }
 
             return new PowerPointChartSnapshot(

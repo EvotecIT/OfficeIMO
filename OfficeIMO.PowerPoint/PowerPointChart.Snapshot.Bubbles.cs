@@ -9,7 +9,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
         private static PowerPointChartData? ReadBubbleSeriesData(
-            IEnumerable<C.BubbleChartSeries> seriesElements, ColorScheme? colorScheme = null) {
+            IEnumerable<C.BubbleChartSeries> seriesElements,
+            ColorScheme? colorScheme = null, bool forDataUpdate = false) {
             List<C.BubbleChartSeries> source = seriesElements.ToList();
             if (source.Count == 0) return null;
 
@@ -17,17 +18,19 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<double>? categoryXValues = null;
             for (int seriesIndex = 0; seriesIndex < source.Count; seriesIndex++) {
                 C.BubbleChartSeries element = source[seriesIndex];
-                if (element.Elements<C.Trendline>().Any() ||
-                    element.Elements<C.ErrorBars>().Any() ||
-                    HasUnsupportedSeriesStyle(
-                        element.GetFirstChild<C.ChartShapeProperties>()) ||
-                    HasUnresolvedSeriesColor(
-                        element.GetFirstChild<C.ChartShapeProperties>(), colorScheme) ||
-                    element.Elements<C.DataPoint>().Any(point =>
-                        HasUnsupportedPointStyle(
-                            point.GetFirstChild<C.ChartShapeProperties>()) ||
-                        HasUnresolvedPointColor(
-                            point.GetFirstChild<C.ChartShapeProperties>(), colorScheme))) {
+                if (!forDataUpdate &&
+                    (element.Elements<C.Trendline>().Any() ||
+                     element.Elements<C.ErrorBars>().Any() ||
+                     HasUnsupportedSeriesStyle(
+                         element.GetFirstChild<C.ChartShapeProperties>()) ||
+                     HasUnresolvedSeriesColor(
+                         element.GetFirstChild<C.ChartShapeProperties>(), colorScheme) ||
+                     element.Elements<C.DataPoint>().Any(point =>
+                         HasUnsupportedPointStyle(
+                             point.GetFirstChild<C.ChartShapeProperties>()) ||
+                         HasUnresolvedPointColor(
+                             point.GetFirstChild<C.ChartShapeProperties>(),
+                             colorScheme)))) {
                     return null;
                 }
                 if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(),
@@ -43,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 C.InvertIfNegative? invertIfNegative =
                     element.GetFirstChild<C.InvertIfNegative>();
-                if (yValues.Any(value => value < 0D) &&
+                if (!forDataUpdate && yValues.Any(value => value < 0D) &&
                     invertIfNegative != null &&
                     invertIfNegative.Val?.Value != false) {
                     return null;
@@ -91,7 +94,10 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedEffects(C.ChartShapeProperties? properties) =>
             properties?.GetFirstChild<EffectList>()?.ChildElements.Count > 0 ||
-            properties?.GetFirstChild<EffectDag>()?.ChildElements.Count > 0;
+            properties?.GetFirstChild<EffectDag>()?.ChildElements.Count > 0 ||
+            properties?.ChildElements.Any(child =>
+                child.LocalName == "scene3d" ||
+                child.LocalName == "sp3d") == true;
 
         private static bool HasUnsupportedSeriesStyle(
             C.ChartShapeProperties? properties) =>
