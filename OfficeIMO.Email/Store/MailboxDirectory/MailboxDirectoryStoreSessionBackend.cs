@@ -1,11 +1,13 @@
-using OfficeIMO.Email;
 using Microsoft.Win32.SafeHandles;
+using OfficeIMO.Email;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace OfficeIMO.Email.Store;
 
 internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
+    private static readonly byte[] FingerprintSeparator = new byte[] { 0 };
     private readonly string _root;
     private readonly string _unixOpenRoot;
     private readonly string _windowsOpenRoot;
@@ -99,6 +101,37 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     }
 
     public void Dispose() { }
+
+    internal string GetCatalogFingerprint(CancellationToken cancellationToken) {
+        using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (MailboxFile file in _files) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var info = new FileInfo(file.Path);
+            AppendFingerprint(fingerprint, file.RelativePath);
+            try {
+                info.Refresh();
+                AppendFingerprint(fingerprint, info.Exists
+                    ? info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : "missing");
+                AppendFingerprint(fingerprint, info.Exists
+                    ? info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : "missing");
+                AppendFingerprint(fingerprint, info.Exists &&
+                    (info.Attributes & FileAttributes.ReparsePoint) != 0
+                        ? "reparse"
+                        : "regular");
+            } catch (Exception exception) when (
+                exception is IOException || exception is UnauthorizedAccessException) {
+                AppendFingerprint(fingerprint, "unavailable");
+            }
+        }
+        return Convert.ToHexString(fingerprint.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    private static void AppendFingerprint(IncrementalHash fingerprint, string value) {
+        fingerprint.AppendData(Encoding.UTF8.GetBytes(value));
+        fingerprint.AppendData(FingerprintSeparator);
+    }
 
     private void Index(CancellationToken cancellationToken) {
         var candidates = new List<MailboxCandidate>();

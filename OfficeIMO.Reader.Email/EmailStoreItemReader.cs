@@ -34,6 +34,29 @@ public static class EmailStoreItemReader {
             ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions), cancellationToken));
     }
 
+    /// <summary>
+    /// Reads and projects one explicitly selected store item by its stable source identifier.
+    /// References are enumerated as lightweight rows until the requested identifier is found; unrelated
+    /// item bodies and attachment payloads are not materialized.
+    /// </summary>
+    public static ReaderEmailStoreItemResult ReadById(
+        OfficeDocumentReader reader,
+        string path,
+        string itemId,
+        ReaderOptions? readerOptions = null,
+        ReaderEmailStoreOptions? emailStoreOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (string.IsNullOrWhiteSpace(itemId)) throw new ArgumentException("Item id cannot be empty.", nameof(itemId));
+        return reader.Scope(ReadByIdCore(
+            path,
+            itemId,
+            readerOptions ?? new ReaderOptions(),
+            ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions),
+            cancellationToken)).Single();
+    }
+
     private static IEnumerable<ReaderEmailStoreItemResult> ReadCore(
         string path,
         ReaderOptions readerOptions,
@@ -73,56 +96,129 @@ public static class EmailStoreItemReader {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (attempted >= adapterOptions.MaxItems) yield break;
                 int itemIndex = attempted++;
-                string folderPath = folderPaths.TryGetValue(reference.FolderId, out string? value)
-                    ? value
-                    : "_unknown-folder";
-                string kind = reference.IsAssociated
-                    ? "associated"
-                    : reference.IsOrphaned ? "recovered" : "item";
-                string logicalPath = EmailStoreReaderProjection.BuildItemPath(
-                    path, folderPath, kind, itemIndex);
-                EmailStoreItemSummary? summary = reference.Summary;
-                ReaderEmailStoreItemResult result;
-                try {
-                    summary = summary ?? session.ReadSummary(reference, cancellationToken);
-                    EmailStoreItem item = session.ReadItem(reference,
-                        EmailStoreReaderProjection.GetItemReadOptions(adapterOptions), cancellationToken);
-                    var itemDiagnostics = new List<EmailDiagnostic>();
-                    AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
-                    IReadOnlyList<ReaderChunk> chunks =
-                        EmailReaderProjection.ProjectEmailDocumentToChunks(
-                            item.Document,
-                            logicalPath,
-                            itemDiagnostics,
-                            path,
-                            readerOptions,
-                            cursor,
-                            cancellationToken);
-                    result = new ReaderEmailStoreItemResult(
-                        reference, summary, logicalPath, chunks, itemDiagnostics,
-                        itemIndex == 0 ? openingDiagnostics : null);
-                } catch (Exception exception) when (
-                    adapterOptions.ContinueOnItemError &&
-                    (exception is InvalidDataException ||
-                     exception is NotSupportedException ||
-                     exception is KeyNotFoundException ||
-                     exception is EmailStoreLimitExceededException)) {
-                    var itemDiagnostics = new List<EmailDiagnostic>();
-                    AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
-                    itemDiagnostics.Add(new EmailDiagnostic(
-                        "EMAIL_STORE_READER_ITEM_SKIPPED",
-                        exception.Message,
-                        exception is EmailStoreLimitExceededException
-                            ? EmailDiagnosticSeverity.Warning
-                            : EmailDiagnosticSeverity.Error,
-                        string.Concat("item/", reference.Id)));
-                    result = new ReaderEmailStoreItemResult(
-                        reference, summary, logicalPath,
-                        Array.Empty<ReaderChunk>(), itemDiagnostics,
-                        itemIndex == 0 ? openingDiagnostics : null);
-                }
-                yield return result;
+                yield return ProjectReference(
+                    session,
+                    reference,
+                    itemIndex,
+                    path,
+                    readerOptions,
+                    adapterOptions,
+                    folderPaths,
+                    openingDiagnostics,
+                    cursor,
+                    ref diagnosticCursor,
+                    cancellationToken);
             }
+        }
+    }
+
+    private static IEnumerable<ReaderEmailStoreItemResult> ReadByIdCore(
+        string path,
+        string itemId,
+        ReaderOptions readerOptions,
+        ReaderEmailStoreOptions adapterOptions,
+        CancellationToken cancellationToken) {
+        EmailStoreReaderOptions effective = ReaderEmailStoreOptionsCloner.CreateEffective(
+            adapterOptions, readerOptions);
+        using (EmailStoreSession session = EmailStoreSession.Open(path, effective, cancellationToken)) {
+            var hierarchyDiagnostics = new List<EmailDiagnostic>();
+            IReadOnlyDictionary<string, string> folderPaths =
+                EmailStoreReaderProjection.BuildFolderPaths(
+                    session.Folders.Select(folder => new FolderPathNode(
+                        folder.Id, folder.ParentId, folder.Name)).ToArray(),
+                    hierarchyDiagnostics,
+                    cancellationToken);
+            EmailDiagnostic[] openingDiagnostics = hierarchyDiagnostics
+                .Concat(session.Diagnostics.Select(EmailStoreReaderProjection.MapDiagnostic))
+                .ToArray();
+            EmailStoreReaderOptions storeOptions =
+                EmailStoreReaderProjection.GetStoreOptions(adapterOptions);
+            EmailStoreItemReference? reference = session.EnumerateItems(
+                    new EmailStoreEnumerationOptions(
+                        includeAssociatedItems: storeOptions.IncludeAssociatedItems,
+                        includeOrphanedItems: storeOptions.IncludeOrphanedItems,
+                        maxItems: storeOptions.MaxItemCount),
+                    cancellationToken)
+                .FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, itemId, StringComparison.Ordinal));
+            if (reference == null) {
+                throw new KeyNotFoundException("Email-store item '" + itemId + "' was not found.");
+            }
+            var cursor = new EmailDocumentProjectionCursor();
+            int diagnosticCursor = session.Diagnostics.Count;
+            yield return ProjectReference(
+                session,
+                reference,
+                itemIndex: 0,
+                path,
+                readerOptions,
+                adapterOptions,
+                folderPaths,
+                openingDiagnostics,
+                cursor,
+                ref diagnosticCursor,
+                cancellationToken);
+        }
+    }
+
+    private static ReaderEmailStoreItemResult ProjectReference(
+        EmailStoreSession session,
+        EmailStoreItemReference reference,
+        int itemIndex,
+        string path,
+        ReaderOptions readerOptions,
+        ReaderEmailStoreOptions adapterOptions,
+        IReadOnlyDictionary<string, string> folderPaths,
+        IReadOnlyList<EmailDiagnostic> openingDiagnostics,
+        EmailDocumentProjectionCursor cursor,
+        ref int diagnosticCursor,
+        CancellationToken cancellationToken) {
+        string folderPath = folderPaths.TryGetValue(reference.FolderId, out string? value)
+            ? value
+            : "_unknown-folder";
+        string kind = reference.IsAssociated
+            ? "associated"
+            : reference.IsOrphaned ? "recovered" : "item";
+        string logicalPath = EmailStoreReaderProjection.BuildItemPath(
+            path, folderPath, kind, itemIndex);
+        EmailStoreItemSummary? summary = reference.Summary;
+        try {
+            summary = summary ?? session.ReadSummary(reference, cancellationToken);
+            EmailStoreItem item = session.ReadItem(reference,
+                EmailStoreReaderProjection.GetItemReadOptions(adapterOptions), cancellationToken);
+            var itemDiagnostics = new List<EmailDiagnostic>();
+            AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
+            IReadOnlyList<ReaderChunk> chunks =
+                EmailReaderProjection.ProjectEmailDocumentToChunks(
+                    item.Document,
+                    logicalPath,
+                    itemDiagnostics,
+                    path,
+                    readerOptions,
+                    cursor,
+                    cancellationToken);
+            return new ReaderEmailStoreItemResult(
+                reference, summary, logicalPath, chunks, itemDiagnostics,
+                itemIndex == 0 ? openingDiagnostics : null);
+        } catch (Exception exception) when (
+            adapterOptions.ContinueOnItemError &&
+            (exception is InvalidDataException ||
+             exception is NotSupportedException ||
+             exception is KeyNotFoundException ||
+             exception is EmailStoreLimitExceededException)) {
+            var itemDiagnostics = new List<EmailDiagnostic>();
+            AddNewStoreDiagnostics(session, itemDiagnostics, ref diagnosticCursor);
+            itemDiagnostics.Add(new EmailDiagnostic(
+                "EMAIL_STORE_READER_ITEM_SKIPPED",
+                exception.Message,
+                exception is EmailStoreLimitExceededException
+                    ? EmailDiagnosticSeverity.Warning
+                    : EmailDiagnosticSeverity.Error,
+                string.Concat("item/", reference.Id)));
+            return new ReaderEmailStoreItemResult(
+                reference, summary, logicalPath,
+                Array.Empty<ReaderChunk>(), itemDiagnostics,
+                itemIndex == 0 ? openingDiagnostics : null);
         }
     }
 

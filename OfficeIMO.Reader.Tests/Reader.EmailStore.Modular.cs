@@ -277,6 +277,36 @@ public sealed class ReaderEmailStoreModularTests {
     }
 
     [Fact]
+    public void Selected_item_reader_projects_only_the_requested_store_item() {
+        string folder = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-selected-item-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try {
+            File.WriteAllText(Path.Combine(folder, "01-first.eml"),
+                "Subject: First\r\n\r\nFirst selected body");
+            File.WriteAllText(Path.Combine(folder, "02-second.eml"),
+                "Subject: Second\r\n\r\nSecond unrelated body");
+            using EmailStoreSession session = EmailStoreSession.Open(folder);
+            EmailStoreItemReference selected = session.EnumerateItems()
+                .Single(reference => session.ReadSummary(reference).Subject == "First");
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddEmailStoreHandler()
+                .Build();
+
+            ReaderEmailStoreItemResult result = reader.ReadEmailStoreItem(
+                folder, selected.Id);
+
+            Assert.Equal(selected.Id, result.Reference.Id);
+            Assert.Contains(result.Chunks,
+                chunk => chunk.Text.Contains("First selected body", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Chunks,
+                chunk => chunk.Text.Contains("Second unrelated body", StringComparison.Ordinal));
+        } finally {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Item_success_is_not_negated_by_store_wide_diagnostics() {
         byte[] archive = CreateOlmArchive(new Dictionary<string, byte[]> {
             ["Local/com.microsoft.__Messages/Inbox/valid.xml"] = Encoding.UTF8.GetBytes(

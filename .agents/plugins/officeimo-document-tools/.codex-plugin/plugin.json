@@ -1,24 +1,45 @@
 {
   "name": "officeimo-document-tools",
-  "version": "0.1.0",
-  "description": "Codex skills for OfficeIMO document conversion, PDF retirement work, and the OfficeIMO.com browser conversion path.",
+  "version": "0.2.0+codex.20260726161342",
+  "description": "Compact local OfficeIMO document and mailbox MCP tools plus contributor workflows.",
   "author": {
     "name": "EvotecIT"
   },
+  "homepage": "https://officeimo.com/",
+  "repository": "https://github.com/EvotecIT/OfficeIMO",
+  "license": "MIT",
+  "keywords": [
+    "officeimo",
+    "documents",
+    "email",
+    "mailbox",
+    "mcp"
+  ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "OfficeIMO Document Tools",
-    "shortDescription": "Work on OfficeIMO conversion, PDF, WASM, and PSWriteOffice retirement tasks.",
-    "longDescription": "OfficeIMO Document Tools gives Codex a repo-owned operating surface for document conversion work. It keeps reusable behavior in OfficeIMO core, keeps website and PowerShell surfaces thin, and separates static browser conversion from local MCP automation.",
+    "shortDescription": "Inspect local documents and mailboxes with bounded OfficeIMO tools.",
+    "longDescription": "OfficeIMO Document Tools lets Codex inspect, search, selectively fetch, and convert local documents and mail stores through a compact STDIO MCP server. It also includes contributor workflows for conversion, PDF, website, build, and release work.",
     "developerName": "EvotecIT",
     "category": "DocumentAutomation",
     "capabilities": [
       "document-conversion",
+      "document-inspection",
+      "document-search",
+      "email",
+      "mailbox-search",
+      "mcp",
       "pdf",
       "blazor-wasm",
       "pswriteoffice-retirement",
       "skills"
     ],
-    "defaultPrompt": "Use the OfficeIMO document tools skills for conversion, PDF, website/WASM, and PSWriteOffice retirement work."
+    "websiteURL": "https://officeimo.com/",
+    "defaultPrompt": [
+      "Inspect and summarize this local document with OfficeIMO.",
+      "Search this PST or OST and fetch only the relevant messages.",
+      "Convert this local document to Markdown with OfficeIMO."
+    ]
   }
 }

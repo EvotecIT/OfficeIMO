@@ -584,8 +584,9 @@ _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no brows
 
 #### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
-- [x] One `officeimo` executable with explicit `html`, `reader`, and `markup` command areas
+- [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `agent`, and `mcp` command areas
 - [x] Bounded HTML/MHTML-to-PDF conversion, document extraction, capability discovery, Markup validation, code emission, and Office export
+- [x] Compact inspect/search/fetch operations for documents and mail stores, plus a local STDIO MCP server for Codex and other clients
 - [x] Shared help, exit-code, packaging, NativeAOT, and stream contracts without duplicating document logic from the owning libraries
 
 _Dependency footprint:_ the first-party HTML/PDF, Reader.All, and Markup exporter graphs; no browser process, hosted provider, or separate conversion engine.
@@ -1014,8 +1015,8 @@ dotnet add package OfficeIMO.OneNote.Html --version 3.0.0
 dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.0
 dotnet add package OfficeIMO.Reader.OneNote --version 3.0.0
 
-# Install the unified command surface for HTML, Reader, and Markup workflows.
-dotnet tool install --global OfficeIMO.Tool --version 3.0.0
+# Install the unified command surface for HTML, Reader, Markup, agent, and MCP workflows.
+dotnet tool install --global OfficeIMO.Tool --version 3.0.2
 ```
 
 All coordinated source packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.
