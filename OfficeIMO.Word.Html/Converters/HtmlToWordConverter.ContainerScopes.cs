@@ -52,7 +52,7 @@ namespace OfficeIMO.Word.Html {
         private static List<WordTable> GetGeneratedTables(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
             GetTablesInScope(section, cell, headerFooter).Skip(startIndex).ToList();
 
-        private static List<WordParagraph> GetMaterializedContainerParagraphs(
+        private List<WordParagraph> GetMaterializedContainerParagraphs(
             IElement element,
             WordSection section,
             WordTableCell? cell,

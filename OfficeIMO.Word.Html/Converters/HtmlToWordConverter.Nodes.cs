@@ -99,6 +99,7 @@ namespace OfficeIMO.Word.Html {
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                        ResolveComputedFontSizePixels(childElement);
                                         var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                         if (!string.IsNullOrEmpty(merged)) {
                                             childElement.SetAttribute("style", merged);
@@ -131,6 +132,7 @@ namespace OfficeIMO.Word.Html {
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                        ResolveComputedFontSizePixels(childElement);
                                         var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                         if (!string.IsNullOrEmpty(merged)) {
                                             childElement.SetAttribute("style", merged);
@@ -180,6 +182,7 @@ namespace OfficeIMO.Word.Html {
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    ResolveComputedFontSizePixels(childElement);
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                     if (!string.IsNullOrEmpty(merged)) {
                                         childElement.SetAttribute("style", merged);
@@ -400,6 +403,7 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    ResolveComputedFontSizePixels(childElement);
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                     if (!string.IsNullOrEmpty(merged)) {
                                         childElement.SetAttribute("style", merged);

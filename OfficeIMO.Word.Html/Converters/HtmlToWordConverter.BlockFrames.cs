@@ -51,11 +51,11 @@ namespace OfficeIMO.Word.Html {
                     : null;
         }
 
-        private static void ApplyParagraphFrameFromCss(WordParagraph paragraph, IElement element) {
+        private void ApplyParagraphFrameFromCss(WordParagraph paragraph, IElement element) {
             ApplyBlockFrameFromCss(element, new[] { paragraph }, applyContainerSpacing: false);
         }
 
-        private static CssStyleMapper.CssProperties ParseElementBoxStyles(IElement element) {
+        private CssStyleMapper.CssProperties ParseElementBoxStyles(IElement element) {
             var lineage = new Stack<IElement>();
             for (IElement? current = element; current != null; current = current.ParentElement) {
                 lineage.Push(current);
@@ -65,19 +65,22 @@ namespace OfficeIMO.Word.Html {
             bool inheritedRightToLeft = false;
             while (lineage.Count > 0) {
                 IElement current = lineage.Pop();
+                double elementFontSizePixels = ResolveComputedFontSizePixels(current);
                 bool rightToLeft = GetBidiFromDir(current) == true;
                 inheritedBox = CssStyleMapper.ParseStyles(
                     current.GetAttribute("style"),
                     rightToLeft,
                     inheritedBox,
-                    inheritedRightToLeft);
+                    inheritedRightToLeft,
+                    _rootFontSizePixels,
+                    elementFontSizePixels);
                 inheritedRightToLeft = rightToLeft;
             }
 
             return inheritedBox ?? new CssStyleMapper.CssProperties();
         }
 
-        private static bool RequiresEmptyBlockParagraph(IElement element) {
+        private bool RequiresEmptyBlockParagraph(IElement element) {
             if (StyleRequestsPageBreakBefore(element) || StyleRequestsPageBreakAfter(element)) {
                 return true;
             }
@@ -206,7 +209,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static void ApplyContainerFrameFromCss(
+        private void ApplyContainerFrameFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             bool applyContainerSpacing = true) {
@@ -217,7 +220,7 @@ namespace OfficeIMO.Word.Html {
             ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing);
         }
 
-        private static void ApplyContainerFrameFromCss(
+        private void ApplyContainerFrameFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
@@ -337,7 +340,7 @@ namespace OfficeIMO.Word.Html {
                    SixColor.Black.ToRgbHex();
         }
 
-        private static void ApplyBlockFrameFromCss(
+        private void ApplyBlockFrameFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             bool applyContainerSpacing,

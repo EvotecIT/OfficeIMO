@@ -35,6 +35,7 @@ namespace OfficeIMO.Word.Html {
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
         private readonly ConcurrentDictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
         private readonly ConcurrentDictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
@@ -51,6 +52,7 @@ namespace OfficeIMO.Word.Html {
         private long _imageBytesUsed;
         private long _remoteImageBytesFetched;
         private long _cssBytesUsed;
+        private double _rootFontSizePixels = 16d;
         private HtmlCssProcessingBudget _cssProcessingBudget = new HtmlCssProcessingBudget(null);
         private HtmlToWordOptions _options = new HtmlToWordOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
@@ -182,6 +184,7 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _computedFontSizePixels.Clear();
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
@@ -195,6 +198,8 @@ namespace OfficeIMO.Word.Html {
             await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
             await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            _rootFontSizePixels = ResolveRootFontSizePixels(document.DocumentElement);
+            _computedFontSizePixels[document.DocumentElement] = _rootFontSizePixels;
             await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);

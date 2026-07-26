@@ -271,6 +271,7 @@ namespace OfficeIMO.Word.Html {
 
         private void ApplyCssToElement(IElement element) {
             if (_cssRules.Count == 0) {
+                ResolveComputedFontSizePixels(element);
                 ReportUnsupportedInlineCssDiagnostics(element);
                 return;
             }
@@ -298,6 +299,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             var own = CollectCssDeclarations(element, inheritedOnly: false);
+            if (!_computedFontSizePixels.ContainsKey(element)) {
+                CacheComputedFontSizePixels(
+                    element,
+                    own.TryGetValue("font-size", out var fontSize) ? fontSize.Value : null);
+            }
             foreach (var kvp in own) {
                 accumulated[kvp.Key] = kvp.Value;
                 cascadeOrigins[kvp.Key] = cascadeOrigin;
@@ -324,6 +330,20 @@ namespace OfficeIMO.Word.Html {
                 }
                 element.SetAttribute("style", sb.ToString());
             }
+        }
+
+        private double ResolveRootFontSizePixels(IElement? root) {
+            if (root == null) {
+                return _renderDevice.FontSize;
+            }
+
+            var declarations = CollectCssDeclarations(root, inheritedOnly: false);
+            if (!declarations.TryGetValue("font-size", out var declaration) ||
+                !TryResolveRootFontSizePixels(declaration.Value, out double pixels)) {
+                return _renderDevice.FontSize;
+            }
+
+            return pixels;
         }
 
         private Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> CollectCssDeclarations(IElement element, bool inheritedOnly) {

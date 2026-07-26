@@ -2,15 +2,19 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal static partial class CssStyleMapper {
-        private static bool TryParseLength(string value, out int twips) {
+        private static bool TryParseLength(
+            string value,
+            double rootFontSizePixels,
+            double elementFontSizePixels,
+            out int twips) {
             twips = 0;
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
             }
 
             string normalized = value.Trim().ToLowerInvariant();
-            if (TryParseLengthUnit(normalized, "rem", 16d * 15d, out twips) ||
-                TryParseLengthUnit(normalized, "em", 16d * 15d, out twips) ||
+            if (TryParseLengthUnit(normalized, "rem", rootFontSizePixels * 15d, out twips) ||
+                TryParseLengthUnit(normalized, "em", elementFontSizePixels * 15d, out twips) ||
                 TryParseLengthUnit(normalized, "px", 15d, out twips) ||
                 TryParseLengthUnit(normalized, "pt", 20d, out twips) ||
                 TryParseLengthUnit(normalized, "pc", 240d, out twips) ||

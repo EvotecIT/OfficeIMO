@@ -225,7 +225,7 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(
+        private CssStyleMapper.CssProperties ApplyParagraphStyleFromCss(
             WordParagraph paragraph,
             IElement element,
             bool applyVerticalBoxSpacing = true) {

@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static void ApplyContainerSpacingFromCss(
+        private void ApplyContainerSpacingFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Html {
             ApplyContainerVerticalSpacingFromCss(element, paragraphs, tables);
         }
 
-        private static void ApplyContainerVerticalSpacingFromCss(
+        private void ApplyContainerVerticalSpacingFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
