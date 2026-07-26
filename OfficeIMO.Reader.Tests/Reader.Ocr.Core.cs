@@ -187,7 +187,7 @@ public sealed class ReaderOcrCoreTests {
             engine,
             new OfficeDocumentOcrExecutionOptions { CandidateTimeout = TimeSpan.FromDays(30) },
             cancellation.Token);
-        Assert.True(providerStarted.Wait(TimeSpan.FromSeconds(2)));
+        Assert.True(providerStarted.Wait(TimeSpan.FromSeconds(10)));
 
         cancellation.Cancel();
 

@@ -91,8 +91,10 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot,
         ValueRange primaryValueAxisRange, ValueRange secondaryValueAxisRange, bool hasSecondaryAxis,
-        double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style,
-        OfficeChartLayout layout) {
+        double plotLeft, double plotTop, double plotWidth, double plotHeight,
+        double numericPlotLeft, double numericPlotTop, double numericPlotWidth,
+        double numericPlotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        double maximumBubbleDiameter) {
         AddAxisGroupSeries(drawing, snapshot, primaryValueAxisRange, OfficeChartAxisGroup.Primary,
             plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         if (hasSecondaryAxis) {
@@ -100,11 +102,15 @@ public static partial class OfficeChartDrawingRenderer {
                 plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         }
         if (!HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
-            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
-                primaryValueAxisRange, OfficeChartAxisGroup.Primary);
+            AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
+                numericPlotWidth, numericPlotHeight, style, layout,
+                primaryValueAxisRange, OfficeChartAxisGroup.Primary,
+                maximumBubbleDiameter);
             if (hasSecondaryAxis) {
-                AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
-                    secondaryValueAxisRange, OfficeChartAxisGroup.Secondary);
+                AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
+                    numericPlotWidth, numericPlotHeight, style, layout,
+                    secondaryValueAxisRange, OfficeChartAxisGroup.Secondary,
+                    maximumBubbleDiameter);
             }
         }
     }

@@ -1,6 +1,8 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -354,6 +356,118 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(0, result.Charts);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void PowerPointHtml_BoundsBubbleRowsWiderThanSemanticHeaders() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul><li>
+                  <span class="officeimo-feature-label">Bubble</span>
+                  <span class="officeimo-feature-meta">Type: Bubble; Series: 1; Categories: 1</span>
+                  <table class="officeimo-chart-data">
+                    <thead><tr><th>Series</th><th>One</th></tr></thead>
+                    <tbody><tr><th>Portfolio</th>
+                      <td data-officeimo-x="1" data-officeimo-bubble-size="4">10</td>
+                      <td data-officeimo-x="2" data-officeimo-bubble-size="9">20</td>
+                      <td data-officeimo-x="3" data-officeimo-bubble-size="16">30</td>
+                    </tr></tbody>
+                  </table>
+                </li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxChartCategories = 2;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(
+                new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Empty(Assert.Single(presentation.Slides).Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
+    public void PowerPointHtml_BudgetsUnevenBubbleRowsByActualPoints() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul><li>
+                  <span class="officeimo-feature-label">Uneven bubble</span>
+                  <span class="officeimo-feature-meta">Type: Bubble; Series: 2; Categories: 3</span>
+                  <table class="officeimo-chart-data">
+                    <thead><tr><th>Series</th><th>One</th><th>Two</th><th>Three</th></tr></thead>
+                    <tbody>
+                      <tr><th>Wide</th>
+                        <td data-officeimo-x="1" data-officeimo-bubble-size="4">10</td>
+                        <td data-officeimo-x="2" data-officeimo-bubble-size="9">20</td>
+                        <td data-officeimo-x="3" data-officeimo-bubble-size="16">30</td>
+                      </tr>
+                      <tr><th>Narrow</th>
+                        <td data-officeimo-x="4" data-officeimo-bubble-size="25">40</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxChartPoints = 4;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(
+                new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(1, result.Charts);
+        PowerPointChart chart =
+            Assert.Single(Assert.Single(presentation.Slides).Charts);
+        Assert.True(chart.TryGetOfficeSnapshot(
+            out OfficeChartSnapshot snapshot));
+        Assert.Equal(
+            new[] { 3, 1 },
+            snapshot.Data.Series.Select(series => series.Values.Count));
+    }
+
+    [Fact]
+    public void PowerPointHtml_OmitsBubbleInventoryAboveSharedPointLimit() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul><li>
+                  <span class="officeimo-feature-label">Oversized bubble inventory</span>
+                  <span class="officeimo-feature-meta">Type: Bubble; Series: 101; Categories: 1000</span>
+                </li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxChartSeries = 101;
+        limits.MaxChartCategories = 1000;
+        limits.MaxChartPoints = 101_000;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(
+                new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Empty(Assert.Single(presentation.Slides).Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic =>
+                diagnostic.Code ==
+                    HtmlConversionDiagnosticCodes.TargetLimitExceeded &&
+                diagnostic.LossKind == HtmlConversionLossKind.Omission &&
+                diagnostic.Detail != null &&
+                diagnostic.Detail.Contains("Actual=101000",
+                    StringComparison.Ordinal));
     }
 
     [Fact]

@@ -855,6 +855,147 @@ public class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void PowerPointHtml_RoundTripsBubbleChartSizesInSemanticChartData() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
+        OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
+        var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1.5D, 2.5D },
+                new[] { 10D, 20D },
+                new[] { 4D, 9D },
+                seriesColor,
+                new OfficeColor?[] { pointColor, null },
+                showInLegend: false,
+                markerOutlineColor: outlineColor,
+                markerOutlineWidth: 1.5D),
+            OfficeChartSeries.CreateBubble("No outline",
+                new[] { 1.5D, 2.5D },
+                new[] { 8D, 16D },
+                new[] { 3D, 7D },
+                color: OfficeColor.Parse("#AABBCC"),
+                showMarkerOutline: false)
+        });
+        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
+            .SetTitle("Bubble")
+            .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+
+        Assert.Contains("data-officeimo-bubble-size=\"4\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-size=\"9\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-scale=\"145\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-bubble-size-mode=\"Width\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-show-in-legend=\"false\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-series-color=\"#11223380\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-point-color=\"#44556660\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-outline-color=\"#77889940\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-outline-width=\"1.5\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-show-outline=\"false\"", html,
+            StringComparison.Ordinal);
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+        OfficeChartSeries series = snapshot.Data.Series[0];
+        Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
+        Assert.Equal(new[] { 10D, 20D }, series.Values);
+        Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
+        Assert.False(series.ShowInLegend);
+        Assert.Equal(seriesColor, series.Color);
+        Assert.Equal(pointColor, series.PointColors![0]);
+        Assert.Null(series.PointColors[1]);
+        Assert.Equal(outlineColor, series.MarkerOutlineColor);
+        Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        Assert.True(series.ShowMarkerOutline);
+        Assert.False(snapshot.Data.Series[1].ShowMarkerOutline);
+        Assert.Equal(145D, snapshot.BubbleScalePercent);
+        Assert.Equal(OfficeChartBubbleSizeMode.Width, snapshot.BubbleSizeMode);
+        Assert.DoesNotContain(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted ||
+                          diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
+    public void PowerPointHtml_CreatesBubblePlaceholderDataWithoutSemanticTable() {
+        string html = """
+            <main>
+              <section class="officeimo-slide">
+                <section class="officeimo-feature officeimo-charts">
+                  <ul class="officeimo-feature-list">
+                    <li class="officeimo-feature-item">
+                      <span class="officeimo-feature-label">Bubble inventory</span>
+                      <div class="officeimo-feature-meta">Type: Bubble; Series: 2; Categories: 3</div>
+                    </li>
+                  </ul>
+                </section>
+              </section>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+        PowerPointChart chart = Assert.Single(imported.Slides[0].Charts);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+        Assert.All(snapshot.Data.Series, series => {
+            Assert.Equal(3, series.XValues!.Count);
+            Assert.Equal(3, series.BubbleSizes!.Count);
+        });
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.ContentApproximated);
+    }
+
+    [Fact]
+    public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
+        using PowerPointPresentation presentation =
+            PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
+            OfficeChartSeries.CreateBubble("Portfolio",
+                new[] { 1.5D, 2.5D },
+                new[] { 10D, 20D },
+                new[] { 4D, 9D })
+        });
+        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140);
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
+          .Replace(" data-officeimo-x=\"2.5\"", string.Empty);
+
+        HtmlToPowerPointResult result =
+            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Value;
+
+        Assert.Empty(imported.Slides[0].Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.ContentOmitted);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();

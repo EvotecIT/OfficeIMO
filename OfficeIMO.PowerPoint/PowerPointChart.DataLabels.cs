@@ -47,6 +47,9 @@ namespace OfficeIMO.PowerPoint {
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
                 ApplyDataLabels(scatterChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
             }
+            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
+                ApplyDataLabels(bubbleChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
+            }
 
             Save();
             return this;
@@ -85,6 +88,9 @@ namespace OfficeIMO.PowerPoint {
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
                 RemoveDataLabels(scatterChart);
             }
+            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
+                RemoveDataLabels(bubbleChart);
+            }
 
             Save();
             return this;
@@ -122,6 +128,9 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
                 SetDataLabelPosition(EnsureDataLabels(scatterChart), position);
+            }
+            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
+                SetDataLabelPosition(EnsureDataLabels(bubbleChart), position);
             }
 
             Save();
@@ -164,6 +173,9 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
                 SetDataLabelNumberFormat(EnsureDataLabels(scatterChart), formatCode, sourceLinked);
+            }
+            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
+                SetDataLabelNumberFormat(EnsureDataLabels(bubbleChart), formatCode, sourceLinked);
             }
 
             Save();

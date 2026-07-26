@@ -1,0 +1,103 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace OfficeIMO.Drawing;
+
+public static partial class OfficeChartDrawingRenderer {
+    private static void AddBubbleMarker(OfficeDrawing drawing, OfficeChartSeries series,
+        int pointIndex, OfficePoint center, double maximumBubbleSize,
+        double maximumDiameter, OfficeChartBubbleSizeMode sizeMode,
+        OfficeColor color) {
+        if (series.BubbleSizes == null || pointIndex < 0 ||
+            pointIndex >= series.BubbleSizes.Count) {
+            return;
+        }
+
+        double size = series.BubbleSizes[pointIndex];
+        if (size <= 0D) {
+            return;
+        }
+
+        double ratio = Math.Min(1D, size / maximumBubbleSize);
+        double sizeFactor = sizeMode == OfficeChartBubbleSizeMode.Width
+            ? ratio
+            : Math.Sqrt(ratio);
+        double diameter = maximumBubbleSize <= 0D
+            ? 0D
+            : maximumDiameter * sizeFactor;
+        if (diameter <= 0D) {
+            return;
+        }
+        double outlineWidth = series.ShowMarkerOutline
+            ? series.MarkerOutlineWidth ?? 1D
+            : 0D;
+        OfficeColor? outlineColor = series.ShowMarkerOutline
+            ? series.MarkerOutlineColor ?? color
+            : null;
+        AddShape(drawing, OfficeShape.Ellipse(diameter, diameter),
+            center.X - diameter / 2D, center.Y - diameter / 2D,
+            color, outlineColor, outlineWidth);
+    }
+
+    private static double GetMaximumBubbleDiameter(double plotWidth,
+        double plotHeight, double bubbleScalePercent) {
+        if (bubbleScalePercent <= 0D) {
+            return 0D;
+        }
+
+        double shortestSide = Math.Min(plotWidth, plotHeight);
+        double defaultDiameter = Math.Max(12D,
+            Math.Min(42D, shortestSide * 0.16D));
+        return Math.Min(shortestSide * 0.8D,
+            defaultDiameter * bubbleScalePercent / 100D);
+    }
+
+    private static double GetBubbleMaximumDiameter(OfficeChartSnapshot snapshot,
+        double plotWidth, double plotHeight) =>
+        GetMaximumBubbleSize(snapshot.Data.Series) > 0D
+            ? GetMaximumBubbleDiameter(plotWidth, plotHeight,
+                snapshot.BubbleScalePercent)
+            : 0D;
+
+    private static void GetBubblePlotPadding(
+        OfficeChartSnapshot snapshot, double maximumBubbleDiameter,
+        double plotWidth, double plotHeight,
+        out double horizontalPadding, out double verticalPadding) {
+        double requestedPadding = maximumBubbleDiameter > 0D
+            ? maximumBubbleDiameter / 2D +
+              GetMaximumBubbleOutlineWidth(snapshot.Data.Series) / 2D
+            : 0D;
+        horizontalPadding = Math.Min(
+            requestedPadding, Math.Max(0D, (plotWidth - 1D) / 2D));
+        verticalPadding = Math.Min(
+            requestedPadding, Math.Max(0D, (plotHeight - 1D) / 2D));
+    }
+
+    private static double GetMaximumBubbleOutlineWidth(
+        IReadOnlyList<OfficeChartSeries> series) {
+        double maximum = 0D;
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OfficeChartSeries item = series[seriesIndex];
+            if (!item.ShowMarkerOutline || item.BubbleSizes == null ||
+                !item.BubbleSizes.Any(size => size > 0D)) {
+                continue;
+            }
+            maximum = Math.Max(maximum, item.MarkerOutlineWidth ?? 1D);
+        }
+        return maximum;
+    }
+
+    private static double GetMaximumBubbleSize(
+        System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {
+        double maximum = 0D;
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            IReadOnlyList<double>? sizes = series[seriesIndex].BubbleSizes;
+            if (sizes == null) continue;
+            for (int pointIndex = 0; pointIndex < sizes.Count; pointIndex++) {
+                maximum = Math.Max(maximum, sizes[pointIndex]);
+            }
+        }
+        return maximum;
+    }
+}

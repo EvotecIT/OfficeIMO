@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PptCore = OfficeIMO.PowerPoint;
@@ -173,7 +174,26 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ReadChartDataDimensions(item, out int seriesCount, out int categoryCount);
-        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
+        string chartKind = ReadChartKind(item);
+        bool isBubble =
+            chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase);
+        IElement? semanticTable =
+            item.QuerySelector("table.officeimo-chart-data");
+        bool hasSemanticTable = semanticTable != null;
+        long? semanticPointCount = isBubble && semanticTable != null
+            ? semanticTable.QuerySelectorAll("tbody tr")
+                .Sum(row => (long)row.QuerySelectorAll("td").Length)
+            : null;
+        HtmlImportBudgetReservation reservation;
+        string chartLimit;
+        bool reserved = semanticPointCount.HasValue
+            ? budget.TryReserveChartWithShape(
+                seriesCount, categoryCount, semanticPointCount.Value,
+                out reservation, out chartLimit)
+            : budget.TryReserveChartWithShape(
+                seriesCount, categoryCount,
+                out reservation, out chartLimit);
+        if (!reserved) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: chartLimit);
@@ -181,12 +201,87 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         using (reservation) {
-            string chartKind = ReadChartKind(item);
+            if (isBubble && !hasSemanticTable &&
+                (long)seriesCount * categoryCount >
+                    PptCore.PowerPointUtils.MaximumSharedChartPoints) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' was omitted because its bubble point count exceeded the shared chart limit.",
+                    lossKind: HtmlConversionLossKind.Omission,
+                    detail: "BubblePoints: Actual=" +
+                        ((long)seriesCount * categoryCount)
+                            .ToString(CultureInfo.InvariantCulture) +
+                        "; Limit=" +
+                        PptCore.PowerPointUtils.MaximumSharedChartPoints
+                            .ToString(CultureInfo.InvariantCulture));
+                return;
+            }
             bool restoredFromSemanticData = TryReadChartData(
                 item,
-                chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase),
+                chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase) || isBubble,
+                isBubble,
                 out PptCore.PowerPointChartData? semanticData);
-            PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
+            if (isBubble && !restoredFromSemanticData &&
+                hasSemanticTable) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid semantic bubble data and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
+            uint bubbleScale = 100U;
+            OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area;
+            if (isBubble && !TryReadBubbleSizing(item, out bubbleScale,
+                    out bubbleSizeMode)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid bubble sizing metadata and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
+            bool showLegend = true;
+            OfficeChartLegendPosition legendPosition =
+                OfficeChartLegendPosition.Bottom;
+            bool overlayLegend = false;
+            if (isBubble && !TryReadBubbleLegend(
+                    item, out showLegend, out legendPosition,
+                    out overlayLegend)) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid bubble legend metadata and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
+            PptCore.PowerPointChartData data = semanticData ??
+                (isBubble
+                    ? CreatePlaceholderBubbleChartDataFromInventory(item)
+                    : CreatePlaceholderChartDataFromInventory(item));
+            if (isBubble) {
+                long bubblePointCount = data.Series.Sum(series =>
+                    (long)series.Values.Count);
+                if (bubblePointCount >
+                    PptCore.PowerPointUtils.MaximumSharedChartPoints) {
+                    AddImportDiagnostic(result,
+                        HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "Chart inventory item '" +
+                        (title.Length == 0 ? "Imported chart" : title) +
+                        "' was omitted because its bubble point count exceeded the shared chart limit.",
+                        lossKind: HtmlConversionLossKind.Omission,
+                        detail: "BubblePoints: Actual=" +
+                            bubblePointCount.ToString(CultureInfo.InvariantCulture) +
+                            "; Limit=" +
+                            PptCore.PowerPointUtils.MaximumSharedChartPoints
+                                .ToString(CultureInfo.InvariantCulture));
+                    return;
+                }
+            }
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
@@ -195,6 +290,16 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             reservation.Commit();
+            if (isBubble) {
+                chart.SetBubbleSizing(bubbleScale, bubbleSizeMode);
+                if (showLegend) {
+                    chart.SetLegend(
+                        ToPowerPointLegendPosition(legendPosition),
+                        overlayLegend);
+                } else {
+                    chart.HideLegend();
+                }
+            }
             chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
             ApplyShapeTransforms(item, chart, budget, result);
             result.Charts++;
@@ -237,6 +342,34 @@ public static partial class HtmlPowerPointConverterExtensions {
         return CreatePlaceholderChartData(seriesCount, categoryCount);
     }
 
+    private static PptCore.PowerPointChartData CreatePlaceholderBubbleChartDataFromInventory(
+        IElement item) {
+        ReadChartShape(item, out int seriesCount, out int categoryCount);
+        seriesCount = Math.Max(1, seriesCount);
+        categoryCount = Math.Max(1, categoryCount);
+        string[] categories = Enumerable.Range(1, categoryCount)
+            .Select(index => index.ToString(CultureInfo.InvariantCulture))
+            .ToArray();
+        PptCore.PowerPointChartSeries[] series =
+            Enumerable.Range(1, seriesCount)
+                .Select(seriesIndex => {
+                    double[] xValues = Enumerable.Range(1, categoryCount)
+                        .Select(index => (double)index)
+                        .ToArray();
+                    double[] values = xValues
+                        .Select(value => value * seriesIndex)
+                        .ToArray();
+                    return new PptCore.PowerPointChartSeries(
+                        "Series " +
+                        seriesIndex.ToString(CultureInfo.InvariantCulture),
+                        values, xValues) {
+                        BubbleSizes = xValues
+                    };
+                })
+                .ToArray();
+        return new PptCore.PowerPointChartData(categories, series);
+    }
+
     private static void ReadChartDataDimensions(IElement item, out int series, out int categories) {
         IElement? table = item.QuerySelector("table.officeimo-chart-data");
         if (table == null) {
@@ -245,7 +378,13 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         series = Math.Max(1, table.QuerySelectorAll("tbody tr").Length);
-        categories = Math.Max(1, table.QuerySelectorAll("thead tr th").Length - 1);
+        int headerCategories =
+            Math.Max(0, table.QuerySelectorAll("thead tr th").Length - 1);
+        int widestSeries = table.QuerySelectorAll("tbody tr")
+            .Select(row => row.QuerySelectorAll("td").Length)
+            .DefaultIfEmpty(0)
+            .Max();
+        categories = Math.Max(1, Math.Max(headerCategories, widestSeries));
     }
 
     private static PptCore.PowerPointChartData CreatePlaceholderChartData(int seriesCount, int categoryCount) {
@@ -262,7 +401,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         return new PptCore.PowerPointChartData(categories, series);
     }
 
-    private static bool TryReadChartData(IElement item, bool allowXValues, out PptCore.PowerPointChartData? data) {
+    private static bool TryReadChartData(IElement item, bool allowXValues, bool allowBubbleSizes,
+        out PptCore.PowerPointChartData? data) {
         data = null;
         IElement? table = item.QuerySelector("table.officeimo-chart-data");
         if (table == null) {
@@ -283,12 +423,62 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (name.Length == 0) {
                 name = "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
             }
+            bool showInLegend = !string.Equals(
+                row.GetAttribute("data-officeimo-show-in-legend"), "false",
+                StringComparison.OrdinalIgnoreCase);
+            OfficeColor? seriesColor = null;
+            string? rawSeriesColor =
+                row.GetAttribute("data-officeimo-series-color");
+            if (rawSeriesColor != null) {
+                if (!OfficeColor.TryParse(rawSeriesColor,
+                        out OfficeColor parsedSeriesColor)) {
+                    return false;
+                }
+                seriesColor = parsedSeriesColor;
+            }
+            OfficeColor? outlineColor = null;
+            string? rawOutlineColor =
+                row.GetAttribute("data-officeimo-outline-color");
+            if (rawOutlineColor != null) {
+                if (!OfficeColor.TryParse(rawOutlineColor,
+                        out OfficeColor parsedOutlineColor)) {
+                    return false;
+                }
+                outlineColor = parsedOutlineColor;
+            }
+            double? outlineWidth = null;
+            string? rawOutlineWidth =
+                row.GetAttribute("data-officeimo-outline-width");
+            if (rawOutlineWidth != null) {
+                if (!double.TryParse(rawOutlineWidth, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double parsedOutlineWidth) ||
+                    double.IsNaN(parsedOutlineWidth) ||
+                    double.IsInfinity(parsedOutlineWidth) ||
+                    parsedOutlineWidth <= 0D) {
+                    return false;
+                }
+                outlineWidth = parsedOutlineWidth;
+            }
+            bool showOutline = !string.Equals(
+                row.GetAttribute("data-officeimo-show-outline"), "false",
+                StringComparison.OrdinalIgnoreCase);
 
             List<IElement> valueCells = row.QuerySelectorAll("td").ToList();
             var values = new double[valueCells.Count];
             var xValues = new double[valueCells.Count];
+            var bubbleSizes = new double[valueCells.Count];
+            var pointColors = new OfficeColor?[valueCells.Count];
+            bool hasPointColors = false;
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
+            bool hasBubbleSizes = valueCells.Any(
+                cell => cell.GetAttribute("data-officeimo-bubble-size") != null);
             if (hasXValues && !allowXValues) {
+                return false;
+            }
+            if (hasBubbleSizes != allowBubbleSizes) {
+                return false;
+            }
+            if (hasBubbleSizes && !hasXValues) {
                 return false;
             }
 
@@ -308,19 +498,57 @@ public static partial class HtmlPowerPointConverterExtensions {
                         return false;
                     }
                 }
+                if (hasBubbleSizes) {
+                    string? rawBubbleSize = cell.GetAttribute("data-officeimo-bubble-size");
+                    if (rawBubbleSize == null
+                        || !double.TryParse(rawBubbleSize, NumberStyles.Float,
+                            CultureInfo.InvariantCulture, out bubbleSizes[i])
+                        || double.IsNaN(bubbleSizes[i]) || double.IsInfinity(bubbleSizes[i])
+                        || bubbleSizes[i] < 0D) {
+                        return false;
+                    }
+                    string? rawPointColor =
+                        cell.GetAttribute("data-officeimo-point-color");
+                    if (rawPointColor != null) {
+                        if (!OfficeColor.TryParse(rawPointColor,
+                                out OfficeColor parsedPointColor)) {
+                            return false;
+                        }
+                        pointColors[i] = parsedPointColor;
+                        hasPointColors = true;
+                    }
+                }
             }
 
             if (!hasXValues && values.Length != categories.Count) {
                 return false;
             }
 
-            series.Add(hasXValues
+            series.Add(hasBubbleSizes
                 ? new PptCore.PowerPointChartSeries(
                     name,
                     values,
                     xValues,
-                    PptCore.PowerPointChartSnapshotKind.Scatter)
-                : new PptCore.PowerPointChartSeries(name, values));
+                    PptCore.PowerPointChartSnapshotKind.Bubble,
+                    seriesColor,
+                    outlineWidth) {
+                    BubbleSizes = bubbleSizes,
+                    PointColors = hasPointColors ? pointColors : null,
+                    StrokeColor = outlineColor,
+                    ShowStroke = showOutline,
+                    ShowInLegend = showInLegend
+                }
+                : hasXValues
+                ? new PptCore.PowerPointChartSeries(
+                    name,
+                    values,
+                    xValues,
+                    PptCore.PowerPointChartSnapshotKind.Scatter) {
+                    ShowInLegend = showInLegend
+                }
+                : new PptCore.PowerPointChartSeries(name, values) {
+                    ShowInLegend = showInLegend
+                });
         }
 
         if (series.Count == 0) {
@@ -595,6 +823,17 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             chart = slide.AddScatterChartPoints(scatterData, left, top, width, height);
+            return true;
+        }
+
+        if (chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase)) {
+            if (!TryCreateBubbleChartData(data, out OfficeChartData? bubbleData) ||
+                bubbleData == null) {
+                return false;
+            }
+
+            chart = slide.AddChartPoints(OfficeChartKind.Bubble, bubbleData,
+                left, top, width, height);
             return true;
         }
 

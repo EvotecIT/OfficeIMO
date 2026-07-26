@@ -32,7 +32,8 @@ public static partial class OfficeChartDrawingRenderer {
         || kind == OfficeChartKind.AreaStacked
         || kind == OfficeChartKind.AreaStacked100;
 
-    private static bool IsScatterChart(OfficeChartKind kind) => kind == OfficeChartKind.Scatter;
+    private static bool IsScatterChart(OfficeChartKind kind) =>
+        kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Bubble;
 
     private static bool IsRadarChart(OfficeChartKind kind) => kind == OfficeChartKind.Radar;
 

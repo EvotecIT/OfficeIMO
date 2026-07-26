@@ -433,10 +433,18 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         try {
             var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                    pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
-                    renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
-                    axisGroup: item.AxisGroup))
+                .Select(item => item.BubbleSizes != null
+                    ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
+                        item.BubbleSizes, item.Color, item.PointColors,
+                        showInLegend: item.ShowInLegend,
+                        markerOutlineColor: item.StrokeColor ?? item.Color,
+                        markerOutlineWidth: item.StrokeWidth,
+                        showMarkerOutline: item.ShowStroke)
+                    : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                        pointColors: null, showMarkers: true,
+                        showInLegend: item.ShowInLegend, strokeWidth: item.StrokeWidth,
+                        renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
+                        axisGroup: item.AxisGroup))
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             officeSnapshot = new OfficeChartSnapshot(
@@ -445,7 +453,11 @@ public static partial class PowerPointHtmlConverterExtensions {
                 MapChartKind(snapshot.ChartKind),
                 data,
                 Math.Max(1D, width),
-                Math.Max(1D, height));
+                Math.Max(1D, height),
+                style: null,
+                layout: snapshot.Layout,
+                bubbleScalePercent: snapshot.BubbleScalePercent,
+                bubbleSizeMode: snapshot.BubbleSizeMode);
             return true;
         } catch (Exception ex) {
             warning = "Chart snapshot could not be mapped to the shared Drawing chart model: " + ex.Message;
@@ -483,6 +495,8 @@ public static partial class PowerPointHtmlConverterExtensions {
                 return OfficeChartKind.Radar;
             case PptCore.PowerPointChartSnapshotKind.Scatter:
                 return OfficeChartKind.Scatter;
+            case PptCore.PowerPointChartSnapshotKind.Bubble:
+                return OfficeChartKind.Bubble;
             case PptCore.PowerPointChartSnapshotKind.Pie:
                 return OfficeChartKind.Pie;
             case PptCore.PowerPointChartSnapshotKind.Doughnut:
@@ -510,7 +524,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append("; Categories: ")
                 .Append(snapshot.Data.Categories.Count.ToString(CultureInfo.InvariantCulture))
                 .Append("</div>");
-            AppendChartDataTable(body, snapshot.Data);
+            AppendChartDataTable(body, snapshot);
             return;
         }
 
@@ -519,8 +533,25 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("</span><div class=\"officeimo-diagnostic\">Chart snapshot unavailable.</div>");
     }
 
-    private static void AppendChartDataTable(StringBuilder body, PptCore.PowerPointChartData data) {
-        body.Append("<table class=\"officeimo-chart-data\"><thead><tr><th>Series</th>");
+    private static void AppendChartDataTable(
+        StringBuilder body, PptCore.PowerPointChartSnapshot snapshot) {
+        PptCore.PowerPointChartData data = snapshot.Data;
+        body.Append("<table class=\"officeimo-chart-data\"");
+        if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Bubble) {
+            body.Append(" data-officeimo-bubble-scale=\"")
+                .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))
+                .Append("\" data-officeimo-bubble-size-mode=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(snapshot.BubbleSizeMode.ToString()))
+                .Append("\" data-officeimo-show-legend=\"")
+                .Append(snapshot.Layout.ShowLegend ? "true" : "false")
+                .Append("\" data-officeimo-legend-position=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(
+                    snapshot.Layout.LegendPosition.ToString()))
+                .Append("\" data-officeimo-overlay-legend=\"")
+                .Append(snapshot.Layout.OverlayLegend ? "true" : "false")
+                .Append('"');
+        }
+        body.Append("><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
             body.Append("<th>")
                 .Append(OfficeHtmlText.Escape(category))
@@ -529,7 +560,34 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         body.Append("</tr></thead><tbody>");
         foreach (PptCore.PowerPointChartSeries series in data.Series) {
-            body.Append("<tr><th>")
+            body.Append("<tr");
+            if (!series.ShowInLegend) {
+                body.Append(" data-officeimo-show-in-legend=\"false\"");
+            }
+            if (series.BubbleSizes != null) {
+                if (series.Color.HasValue) {
+                    body.Append(" data-officeimo-series-color=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(
+                            series.Color.Value.ToString()))
+                        .Append('"');
+                }
+                if (series.StrokeColor.HasValue) {
+                    body.Append(" data-officeimo-outline-color=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(
+                            series.StrokeColor.Value.ToString()))
+                        .Append('"');
+                }
+                if (series.StrokeWidth.HasValue) {
+                    body.Append(" data-officeimo-outline-width=\"")
+                        .Append(series.StrokeWidth.Value.ToString(
+                            "G17", CultureInfo.InvariantCulture))
+                        .Append('"');
+                }
+                if (!series.ShowStroke) {
+                    body.Append(" data-officeimo-show-outline=\"false\"");
+                }
+            }
+            body.Append("><th>")
                 .Append(OfficeHtmlText.Escape(series.Name))
                 .Append("</th>");
             for (int i = 0; i < series.Values.Count; i++) {
@@ -538,6 +596,18 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" data-officeimo-x=\"")
                         .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
                         .Append('"');
+                }
+                if (series.BubbleSizes != null && i < series.BubbleSizes.Count) {
+                    body.Append(" data-officeimo-bubble-size=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(series.BubbleSizes[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append('"');
+                    if (series.PointColors != null && i < series.PointColors.Count &&
+                        series.PointColors[i].HasValue) {
+                        body.Append(" data-officeimo-point-color=\"")
+                            .Append(OfficeHtmlText.EscapeAttribute(
+                                series.PointColors[i]!.Value.ToString()))
+                            .Append('"');
+                    }
                 }
 
                 body.Append('>')

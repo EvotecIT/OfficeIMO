@@ -164,15 +164,19 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
-            props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            props.RemoveAllChildren<A.BlipFill>();
+            props.RemoveAllChildren<A.GroupFill>();
+            props.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }), true);
         }
 
         private static void ApplyNoFill(OpenXmlCompositeElement props) {
             props.RemoveAllChildren<A.SolidFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
+            props.RemoveAllChildren<A.BlipFill>();
+            props.RemoveAllChildren<A.GroupFill>();
             props.RemoveAllChildren<A.NoFill>();
-            props.Append(new A.NoFill());
+            props.AddChild(new A.NoFill(), true);
         }
 
         private static void ApplyNoLine(OpenXmlCompositeElement props) {
@@ -188,7 +192,14 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
-            outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+            outline.RemoveAllChildren<A.BlipFill>();
+            outline.RemoveAllChildren<A.GroupFill>();
+            outline.AddChild(
+                new A.SolidFill(
+                    new A.RgbColorModelHex { Val = color }), true);
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
             }
@@ -206,7 +217,9 @@ namespace OfficeIMO.PowerPoint {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (color != null) {
                 outline.RemoveAllChildren<A.SolidFill>();
-                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+                outline.AddChild(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = color }), true);
             }
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
@@ -330,7 +343,8 @@ namespace OfficeIMO.PowerPoint {
             return series is C.LineChartSeries
                    || series is C.BarChartSeries
                    || series is C.AreaChartSeries
-                   || series is C.ScatterChartSeries;
+                   || series is C.ScatterChartSeries
+                   || series is C.BubbleChartSeries;
         }
 
         private static void InsertTrendline(OpenXmlCompositeElement series, C.Trendline trendline) {

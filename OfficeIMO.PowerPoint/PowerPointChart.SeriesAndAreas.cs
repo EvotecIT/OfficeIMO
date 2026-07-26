@@ -195,6 +195,9 @@ namespace OfficeIMO.PowerPoint {
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
                 apply(EnsureDataLabels(scatterChart));
             }
+            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
+                apply(EnsureDataLabels(bubbleChart));
+            }
 
             Save();
             return this;

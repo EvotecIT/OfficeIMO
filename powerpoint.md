@@ -112,7 +112,6 @@ The comparison uses representative products rather than pretending every competi
 | [Syncfusion PowerPoint Library](https://help.syncfusion.com/document-processing/powerpoint/powerpoint-library/net/supported-and-unsupported-features) | Enterprise .NET baseline: create/edit, placeholders, SmartArt, merge/copy, encryption, properties, PDF/image conversion, and notes across common application models | Competitive on core creation and several automation workflows; behind on mature conversion and SmartArt breadth |
 | [GemBox.Presentation](https://www.gemboxsoftware.com/presentation) | Compact commercial .NET API with broad format, rendering, printing, comments, masters/layouts, media, HTML loading, and macro-preservation workflows | Behind on format and rendering breadth; differentiated by MIT licensing, feature preflight, and designer/markup layers |
 | [PptxGenJS](https://gitbrent.github.io/PptxGenJS/docs/introduction/) | Open-source authoring usability: browser support, code-defined masters, broad media/text support, HTML table conversion, and a large example surface | OfficeIMO has the stronger typed .NET editing model and designer layer; PptxGenJS is ahead on authoring ergonomics in several high-value workflows |
-| [ShapeCrawler](https://github.com/ShapeCrawler/ShapeCrawler) | Direct MIT .NET comparison for a clean Open XML object model and common slide, shape, table, image, and chart manipulation | OfficeIMO is broader and more productized, but must keep its public API and docs as approachable as this simpler alternative |
 
 Three PptxGenJS capabilities are especially relevant rather than merely impressive on a checklist:
 
@@ -132,7 +131,7 @@ Those are closer to OfficeIMO's intended generated-document workflow than obscur
 | Template and brand workflow | Partial | Existing master/layout selection, placeholder editing, theme color/font updates | No first-class create-from-template/brand-kit contract or code-defined master/layout model |
 | Content fit and pagination | Weak | Count-based plan diagnostics and PowerPoint auto-fit metadata | No measured preflight, collision detection, table/text auto-splitting, or repeated-header pagination |
 | Tables | Strong on one slide | Typed binding, formatting, merges, sizing, style metadata | No overflow-to-next-slide workflow; no reusable appendix/table-story component |
-| Charts | Strong shared authoring | All 16 `OfficeChartKind` families, categorical combo charts, secondary value axes, embedded data, accessibility summaries, and shared snapshots | Bubble, stock, surface, 3D, modern, and unusual extension families remain demand-driven gaps |
+| Charts | Strong shared authoring | All 17 `OfficeChartKind` families, including native bubble charts, categorical combo charts, secondary value axes, embedded data, accessibility summaries, and shared snapshots | Stock, surface, 3D, modern, and unusual extension families remain demand-driven gaps |
 | Media and visual assets | Partial | Pictures, crop, SVG input, audio/video, poster frames, logo images | No semantic asset pipeline, annotation/callout workflow, icon strategy, or content-aware crop/focal point |
 | SmartArt and diagrams | Partial | Editable Basic Process, Basic Hierarchy, and Basic Cycle semantic workflows; Mermaid adapter | Broader SmartArt gallery semantics and a general deck-plan diagram model remain demand-driven |
 | Transitions and motion | Partial | 19 transition values, Morph fallback, media timing, and typed timing-tree inspection | Shape/text/chart animation authoring remains preserve-only |
@@ -206,13 +205,13 @@ Each family needs multiple layout variants, real image or chart inputs, content-
 
 The public PowerPoint authoring surface provides clustered column/bar, line, scatter, pie, and doughnut helpers. At the same time:
 
-- `OfficeIMO.Drawing.OfficeChartKind` already defines 16 chart families, including stacked/100% column and bar, stacked/100% line, area variants, and radar;
+- `OfficeIMO.Drawing.OfficeChartKind` defines 17 chart families, including stacked/100% column and bar, stacked/100% line, area variants, radar, and bubble;
 - the PowerPoint chart snapshot reader already understands stacked bar/column/line, area, radar, scatter, pie, doughnut, and some mixed chart content;
 - `OfficeIMO.Excel` exposes a much broader chart family and combo/secondary-axis concepts.
 
 The right fix is to converge on shared chart semantics in `OfficeIMO.Drawing` while keeping PPTX serialization in `OfficeIMO.PowerPoint`. Do not add another PowerPoint-only enum and another parallel data model.
 
-The first parity slice should author every chart family already represented by `OfficeChartKind`, then add combo/secondary-axis support. Bubble, stock, surface, modern charts, 3D, and unusual PowerPoint chart extensions can follow demand and fixture proof.
+The shared chart surface now authors every family represented by `OfficeChartKind`, including bubble charts, and supports compatible combo/secondary-axis charts. Stock, surface, modern charts, 3D, and unusual PowerPoint chart extensions can follow demand and fixture proof.
 
 ### 5. Accessibility needs a real product contract
 
