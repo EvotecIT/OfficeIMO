@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Html {
                             var mergeSectionStyleIntoChildren = !IsExportedWordSectionElement(element);
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
-                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                                PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
                             if (options.SectionTagHandling == SectionTagHandling.WordSection && cell == null) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
@@ -173,7 +173,7 @@ namespace OfficeIMO.Word.Html {
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
-                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                                PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
                             int scopeStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
@@ -231,7 +231,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
-                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                            PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             ApplyClassStyle(element, paragraph, options);
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
-                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                            PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -269,7 +269,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
-                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                            PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -289,7 +289,7 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
-                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                            PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
@@ -313,7 +313,7 @@ namespace OfficeIMO.Word.Html {
                             var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                            PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, firstPara, listStack, fmt, cell, headerFooter, headingList);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Word.Html {
                             var divStyle = element.GetAttribute("style");
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
-                                fmt.BackgroundColorHex = formatting.BackgroundColorHex;
+                                PreserveBlockBackgroundAsTextBackdrop(ref fmt, formatting);
                             }
                             int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;

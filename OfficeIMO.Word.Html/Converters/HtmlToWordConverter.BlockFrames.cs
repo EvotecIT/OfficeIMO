@@ -221,10 +221,11 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
-            ApplyContainerFrameFromCss(element, paragraphs);
+            ApplyContainerFrameFromCss(element, paragraphs, applyContainerSpacing: false);
             foreach (WordTable table in tables) {
                 ApplyTableContainerFrameFromCss(element, table);
             }
+            ApplyContainerSpacingFromCss(element, paragraphs, tables);
         }
 
         private static void ApplyTableContainerFrameFromCss(IElement element, WordTable table) {

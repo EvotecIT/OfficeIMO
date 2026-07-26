@@ -154,6 +154,9 @@ namespace OfficeIMO.Word.Html {
                 WordParagraph captionParagraphBelow;
                 if (cell != null) {
                     Paragraph? trailingParagraph = wordTable._table.NextSibling<Paragraph>();
+                    if (trailingParagraph != null) {
+                        ClearSyntheticTableTrailingSpacing(trailingParagraph);
+                    }
                     captionParagraphBelow = trailingParagraph != null
                         ? new WordParagraph(doc, trailingParagraph)
                         : AddParagraphInScope(section, cell, headerFooter);
@@ -373,7 +376,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            string? background = null;
+            string? backgroundValue = null;
             string? marginLeft = null;
             string? marginRight = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
@@ -415,10 +418,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             break;
                         case "background-color":
-                            var color = NormalizeColor(value);
-                            if (color != null) {
-                                background = color;
-                            }
+                            backgroundValue = value;
                             break;
                         case "border-collapse":
                             if (value.Equals("separate", StringComparison.OrdinalIgnoreCase)) {
@@ -538,10 +538,10 @@ namespace OfficeIMO.Word.Html {
                     rightColor: hasRight ? right.Color : null);
             }
 
-            if (background != null) {
+            if (backgroundValue != null) {
                 foreach (var row in wordTable.Rows) {
                     foreach (var cell in row.Cells) {
-                        cell.ShadingFillColorHex = background;
+                        ApplyTableBackground(cell, backgroundValue);
                     }
                 }
             }
@@ -684,7 +684,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            string? background = null;
+            string? backgroundValue = null;
             BorderValues? borderStyle = null;
             UInt32Value? borderSize = null;
             SixColor borderColor = default;
@@ -699,8 +699,7 @@ namespace OfficeIMO.Word.Html {
                 var value = pieces[1].Trim();
                 switch (name) {
                     case "background-color":
-                        var color = NormalizeColor(value);
-                        if (color != null) background = color;
+                        backgroundValue = value;
                         break;
                     case "border":
                         if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
@@ -721,8 +720,8 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var cell in row.Cells) {
-                if (background != null) {
-                    cell.ShadingFillColorHex = background;
+                if (backgroundValue != null) {
+                    ApplyTableBackground(cell, backgroundValue);
                 }
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
@@ -750,6 +749,7 @@ namespace OfficeIMO.Word.Html {
 
             JustificationValues? alignment = null;
             bool borderSet = false;
+            string? backgroundValue = null;
             if (TryMapTableCellVerticalAlignment(verticalAlignAttr, out var attrVerticalAlignment)) {
                 cell.VerticalAlignment = attrVerticalAlignment;
             }
@@ -765,8 +765,7 @@ namespace OfficeIMO.Word.Html {
                     var value = pieces[1].Trim();
                     switch (name) {
                         case "background-color":
-                            var color = NormalizeColor(value);
-                            if (color != null) cell.ShadingFillColorHex = color;
+                            backgroundValue = value;
                             break;
                         case "width":
                             if (TryParsePercentWidth(value, out int pctWidth)) {
@@ -811,6 +810,9 @@ namespace OfficeIMO.Word.Html {
                             break;
                     }
                 }
+            }
+            if (backgroundValue != null) {
+                ApplyTableBackground(cell, backgroundValue);
             }
 
             if (alignment == null && !string.IsNullOrWhiteSpace(alignAttr)) {

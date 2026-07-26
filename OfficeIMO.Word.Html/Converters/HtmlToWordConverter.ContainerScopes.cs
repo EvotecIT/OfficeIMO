@@ -121,25 +121,71 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordTable> tables) {
             bool breakBefore = StyleRequestsPageBreakBefore(element);
             bool breakAfter = StyleRequestsPageBreakAfter(element);
-            if (paragraphs.Count > 0) {
-                if (breakBefore) {
-                    paragraphs[0].PageBreakBefore = true;
-                }
-                if (breakAfter) {
-                    AddPageBreakAfter(paragraphs[paragraphs.Count - 1]);
-                }
+            OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
+            OpenXmlElement? last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
+            if (first == null || last == null) {
                 return;
             }
 
-            if (tables.Count == 0) {
-                return;
-            }
             if (breakBefore) {
-                InsertPageBreakAdjacentToTable(tables[0], before: true);
+                WordParagraph? paragraph = paragraphs.FirstOrDefault(
+                    candidate => ReferenceEquals(candidate._paragraph, first));
+                if (paragraph != null) {
+                    paragraph.PageBreakBefore = true;
+                } else {
+                    WordTable? table = tables.FirstOrDefault(
+                        candidate => ReferenceEquals(candidate._table, first));
+                    if (table != null) {
+                        InsertPageBreakAdjacentToTable(table, before: true);
+                    }
+                }
             }
+
             if (breakAfter) {
-                InsertPageBreakAdjacentToTable(tables[tables.Count - 1], before: false);
+                WordParagraph? paragraph = paragraphs.FirstOrDefault(
+                    candidate => ReferenceEquals(candidate._paragraph, last));
+                if (paragraph != null) {
+                    AddPageBreakAfter(paragraph);
+                } else {
+                    WordTable? table = tables.FirstOrDefault(
+                        candidate => ReferenceEquals(candidate._table, last));
+                    if (table != null) {
+                        InsertPageBreakAdjacentToTable(table, before: false);
+                    }
+                }
             }
+        }
+
+        private static OpenXmlElement? GetGeneratedBlockBoundary(
+            IReadOnlyList<WordParagraph> paragraphs,
+            IReadOnlyList<WordTable> tables,
+            bool first) {
+            var candidates = new List<OpenXmlElement>(paragraphs.Count + tables.Count);
+            foreach (WordParagraph paragraph in paragraphs) {
+                if (!candidates.Any(candidate => ReferenceEquals(candidate, paragraph._paragraph))) {
+                    candidates.Add(paragraph._paragraph);
+                }
+            }
+            foreach (WordTable table in tables) {
+                if (!candidates.Any(candidate => ReferenceEquals(candidate, table._table))) {
+                    candidates.Add(table._table);
+                }
+            }
+            if (candidates.Count == 0) {
+                return null;
+            }
+
+            OpenXmlElement? parent = candidates[0].Parent;
+            if (parent == null) {
+                return first ? candidates[0] : candidates[candidates.Count - 1];
+            }
+
+            IEnumerable<OpenXmlElement> siblings = first
+                ? parent.ChildElements
+                : parent.ChildElements.Reverse();
+            return siblings.FirstOrDefault(
+                       sibling => candidates.Any(candidate => ReferenceEquals(candidate, sibling))) ??
+                   (first ? candidates[0] : candidates[candidates.Count - 1]);
         }
 
         private static void InsertPageBreakAdjacentToTable(WordTable table, bool before) {

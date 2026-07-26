@@ -150,6 +150,8 @@ namespace OfficeIMO.Word.Html {
         private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) {
             if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
                 return IsBlockSpacingElement(elementName) ||
+                       elementName.Equals("body", StringComparison.OrdinalIgnoreCase) &&
+                       IsPhysicalBlockSpacingProperty(propertyName) ||
                        elementName.Equals("table", StringComparison.OrdinalIgnoreCase) &&
                        _tableSpacingCssDiagnosticProperties.Contains(propertyName);
             }
@@ -451,7 +453,11 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsBlockSpacingElement(string elementName) =>
             IsBlockFrameElement(elementName) ||
-            elementName is "body" or "li" or "caption" or "figcaption";
+            elementName is "li" or "caption" or "figcaption";
+
+        private static bool IsPhysicalBlockSpacingProperty(string propertyName) =>
+            propertyName is "margin" or "margin-top" or "margin-right" or "margin-bottom" or "margin-left" or
+                "padding" or "padding-top" or "padding-right" or "padding-bottom" or "padding-left";
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;

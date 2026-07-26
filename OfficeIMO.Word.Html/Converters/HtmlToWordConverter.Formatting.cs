@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.Html {
             internal int? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
             internal string? BackgroundColorHex { get; set; }
+            internal string? BackgroundBackdropColorHex { get; set; }
             internal bool PreserveHighlightOverBackground { get; set; }
             internal CapsStyle? Caps { get; set; }
             internal int? LetterSpacing { get; set; }
@@ -584,13 +585,24 @@ namespace OfficeIMO.Word.Html {
                     formatting.BackgroundColorHex = ResolveOpaqueTextBackground(
                         parsed.BackgroundColor!,
                         alpha,
-                        formatting.BackgroundColorHex);
+                        formatting.BackgroundColorHex ?? formatting.BackgroundBackdropColorHex);
                     formatting.PreserveHighlightOverBackground = false;
                 }
             }
             if (parsed.WhiteSpace.HasValue) {
                 formatting.WhiteSpace = parsed.WhiteSpace.Value;
             }
+        }
+
+        private static void PreserveBlockBackgroundAsTextBackdrop(
+            ref TextFormatting formatting,
+            TextFormatting inheritedFormatting) {
+            string? blockBackground = formatting.BackgroundColorHex;
+            formatting.BackgroundColorHex = inheritedFormatting.BackgroundColorHex;
+            formatting.BackgroundBackdropColorHex =
+                blockBackground ??
+                inheritedFormatting.BackgroundColorHex ??
+                inheritedFormatting.BackgroundBackdropColorHex;
         }
 
         private static void ApplyFontShorthand(string font, ref TextFormatting formatting) {
