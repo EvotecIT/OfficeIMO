@@ -542,6 +542,13 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))
                 .Append("\" data-officeimo-bubble-size-mode=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(snapshot.BubbleSizeMode.ToString()))
+                .Append("\" data-officeimo-show-legend=\"")
+                .Append(snapshot.Layout.ShowLegend ? "true" : "false")
+                .Append("\" data-officeimo-legend-position=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(
+                    snapshot.Layout.LegendPosition.ToString()))
+                .Append("\" data-officeimo-overlay-legend=\"")
+                .Append(snapshot.Layout.OverlayLegend ? "true" : "false")
                 .Append('"');
         }
         body.Append("><thead><tr><th>Series</th>");

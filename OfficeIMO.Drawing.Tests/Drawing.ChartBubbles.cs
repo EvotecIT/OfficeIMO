@@ -151,6 +151,49 @@ public class DrawingChartBubbleTests {
     }
 
     [Fact]
+    public void OfficeChartDrawingRenderer_CapsExtremeBubbleOutlineInsets() {
+        OfficeColor color = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "1" }, new[] {
+            OfficeChartSeries.CreateBubble(
+                "Outlined", new[] { 1D }, new[] { 1D },
+                new[] { 100D }, color,
+                markerOutlineWidth: 1000D)
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot(
+                "Compact",
+                null,
+                OfficeChartKind.Bubble,
+                data,
+                widthPoints: 80D,
+                heightPoints: 60D,
+                layout: new OfficeChartLayout(showLegend: false)),
+            useMinimumCanvas: false);
+        OfficeDrawingShape horizontalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width > 10D &&
+                            shape.Shape.Height == 0D)
+            .OrderByDescending(shape => shape.Shape.Width)
+            .First();
+        OfficeDrawingShape verticalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width == 0D &&
+                            shape.Shape.Height > 10D)
+            .OrderByDescending(shape => shape.Shape.Height)
+            .First();
+        OfficeDrawingShape bubble = Assert.Single(GetBubbles(drawing));
+        double centerX = bubble.X + bubble.Shape.Width / 2D;
+        double centerY = bubble.Y + bubble.Shape.Height / 2D;
+
+        Assert.InRange(centerX, horizontalAxis.X,
+            horizontalAxis.X + horizontalAxis.Shape.Width);
+        Assert.InRange(centerY, verticalAxis.Y,
+            verticalAxis.Y + verticalAxis.Shape.Height);
+        Assert.InRange(centerX, 0D, drawing.Width);
+        Assert.InRange(centerY, 0D, drawing.Height);
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_InsetsBubblesInMixedScatterCharts() {
         OfficeColor bubbleColor = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new OfficeChartSeries[] {

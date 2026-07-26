@@ -244,6 +244,21 @@ public static partial class HtmlPowerPointConverterExtensions {
                     lossKind: HtmlConversionLossKind.Omission);
                 return;
             }
+            bool showLegend = true;
+            OfficeChartLegendPosition legendPosition =
+                OfficeChartLegendPosition.Bottom;
+            bool overlayLegend = false;
+            if (isBubble && !TryReadBubbleLegend(
+                    item, out showLegend, out legendPosition,
+                    out overlayLegend)) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' contained invalid bubble legend metadata and was not imported.",
+                    lossKind: HtmlConversionLossKind.Omission);
+                return;
+            }
             PptCore.PowerPointChartData data = semanticData ??
                 (isBubble
                     ? CreatePlaceholderBubbleChartDataFromInventory(item)
@@ -277,6 +292,13 @@ public static partial class HtmlPowerPointConverterExtensions {
             reservation.Commit();
             if (isBubble) {
                 chart.SetBubbleSizing(bubbleScale, bubbleSizeMode);
+                if (showLegend) {
+                    chart.SetLegend(
+                        ToPowerPointLegendPosition(legendPosition),
+                        overlayLegend);
+                } else {
+                    chart.HideLegend();
+                }
             }
             chart.SetTitle(title.Length == 0 ? "Imported chart" : title);
             ApplyShapeTransforms(item, chart, budget, result);
@@ -852,56 +874,6 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         scatterData = new PptCore.PowerPointScatterChartData(series);
         return true;
-    }
-
-    private static bool TryCreateBubbleChartData(PptCore.PowerPointChartData data,
-        out OfficeChartData? bubbleData) {
-        bubbleData = null;
-        var series = new List<OfficeChartSeries>();
-        foreach (PptCore.PowerPointChartSeries item in data.Series) {
-            if (item.XValues == null || item.BubbleSizes == null ||
-                item.XValues.Count != item.Values.Count ||
-                item.BubbleSizes.Count != item.Values.Count) {
-                return false;
-            }
-
-            series.Add(OfficeChartSeries.CreateBubble(
-                item.Name, item.XValues, item.Values, item.BubbleSizes,
-                item.Color, item.PointColors,
-                showInLegend: item.ShowInLegend,
-                markerOutlineColor: item.StrokeColor ?? item.Color,
-                markerOutlineWidth: item.StrokeWidth,
-                showMarkerOutline: item.ShowStroke));
-        }
-
-        if (series.Count == 0) {
-            return false;
-        }
-
-        bubbleData = new OfficeChartData(data.Categories, series);
-        return true;
-    }
-
-    private static bool TryReadBubbleSizing(IElement item, out uint scalePercent,
-        out OfficeChartBubbleSizeMode sizeMode) {
-        scalePercent = 100U;
-        sizeMode = OfficeChartBubbleSizeMode.Area;
-        IElement? table = item.QuerySelector("table.officeimo-chart-data");
-        if (table == null) {
-            return true;
-        }
-
-        string? rawScale = table.GetAttribute("data-officeimo-bubble-scale");
-        if (rawScale != null &&
-            (!uint.TryParse(rawScale, NumberStyles.None, CultureInfo.InvariantCulture,
-                out scalePercent) || scalePercent > 300U)) {
-            return false;
-        }
-
-        string? rawMode = table.GetAttribute("data-officeimo-bubble-size-mode");
-        return rawMode == null ||
-               Enum.TryParse(rawMode, ignoreCase: true, out sizeMode) &&
-               Enum.IsDefined(typeof(OfficeChartBubbleSizeMode), sizeMode);
     }
 
     private static string ReadChartKind(IElement item) {

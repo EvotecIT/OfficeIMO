@@ -127,13 +127,15 @@ public static partial class OfficeChartDrawingRenderer {
         double maximumBubbleDiameter = IsScatterChart(snapshot.ChartKind)
             ? GetBubbleMaximumDiameter(snapshot, plotWidth, plotHeight)
             : 0D;
-        double bubblePlotPadding = maximumBubbleDiameter > 0D
-            ? GetBubblePlotPadding(snapshot, maximumBubbleDiameter)
-            : 0D;
-        double numericPlotLeft = plotLeft + bubblePlotPadding;
-        double numericPlotTop = plotTop + bubblePlotPadding;
-        double numericPlotWidth = Math.Max(1D, plotWidth - bubblePlotPadding * 2D);
-        double numericPlotHeight = Math.Max(1D, plotHeight - bubblePlotPadding * 2D);
+        GetBubblePlotPadding(snapshot, maximumBubbleDiameter,
+            plotWidth, plotHeight, out double horizontalBubblePadding,
+            out double verticalBubblePadding);
+        double numericPlotLeft = plotLeft + horizontalBubblePadding;
+        double numericPlotTop = plotTop + verticalBubblePadding;
+        double numericPlotWidth = Math.Max(
+            1D, plotWidth - horizontalBubblePadding * 2D);
+        double numericPlotHeight = Math.Max(
+            1D, plotHeight - verticalBubblePadding * 2D);
         double plotBottomY = plotTop + plotHeight;
         double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
         double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;

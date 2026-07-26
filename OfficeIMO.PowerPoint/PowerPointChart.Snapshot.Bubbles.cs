@@ -13,6 +13,18 @@ namespace OfficeIMO.PowerPoint {
             ColorScheme? colorScheme = null, bool forDataUpdate = false) {
             List<C.BubbleChartSeries> source = seriesElements.ToList();
             if (source.Count == 0) return null;
+            if (!forDataUpdate) {
+                var orders = new HashSet<uint>();
+                foreach (C.BubbleChartSeries element in source) {
+                    uint? order =
+                        element.GetFirstChild<C.Order>()?.Val?.Value;
+                    if (!order.HasValue || !orders.Add(order.Value)) {
+                        return null;
+                    }
+                }
+                source = source.OrderBy(element =>
+                    element.GetFirstChild<C.Order>()!.Val!.Value).ToList();
+            }
 
             var series = new List<PowerPointChartSeries>();
             IReadOnlyList<double>? categoryXValues = null;

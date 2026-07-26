@@ -60,12 +60,19 @@ public static partial class OfficeChartDrawingRenderer {
                 snapshot.BubbleScalePercent)
             : 0D;
 
-    private static double GetBubblePlotPadding(OfficeChartSnapshot snapshot,
-        double maximumBubbleDiameter) =>
-        maximumBubbleDiameter > 0D
+    private static void GetBubblePlotPadding(
+        OfficeChartSnapshot snapshot, double maximumBubbleDiameter,
+        double plotWidth, double plotHeight,
+        out double horizontalPadding, out double verticalPadding) {
+        double requestedPadding = maximumBubbleDiameter > 0D
             ? maximumBubbleDiameter / 2D +
               GetMaximumBubbleOutlineWidth(snapshot.Data.Series) / 2D
             : 0D;
+        horizontalPadding = Math.Min(
+            requestedPadding, Math.Max(0D, (plotWidth - 1D) / 2D));
+        verticalPadding = Math.Min(
+            requestedPadding, Math.Max(0D, (plotHeight - 1D) / 2D));
+    }
 
     private static double GetMaximumBubbleOutlineWidth(
         IReadOnlyList<OfficeChartSeries> series) {
