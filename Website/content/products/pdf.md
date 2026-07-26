@@ -10,6 +10,12 @@ install: "dotnet add package OfficeIMO.Pdf"
 nuget: "OfficeIMO.Pdf"
 docs_url: "/docs/pdf/"
 api_url: "/api/pdf/"
+meta.software.name: "OfficeIMO.Pdf"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Pdf"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## One PDF model from creation to validation

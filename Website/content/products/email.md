@@ -10,6 +10,12 @@ install: "dotnet add package OfficeIMO.Email"
 nuget: "OfficeIMO.Email"
 docs_url: "/docs/email/"
 api_url: "/api/email/"
+meta.software.name: "OfficeIMO.Email"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Email"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## One managed API for email files and mailbox data

@@ -10,6 +10,12 @@ install: "dotnet add package OfficeIMO.OneNote"
 nuget: "OfficeIMO.OneNote"
 docs_url: "/docs/onenote/"
 api_url: "/api/onenote/"
+meta.software.name: "OfficeIMO.OneNote"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.OneNote"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Native OneNote files without Graph or OneNote

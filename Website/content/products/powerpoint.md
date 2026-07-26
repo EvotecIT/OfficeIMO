@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.PowerPoint"
-description: "Create and edit PPTX and PowerPoint 97-2003 presentations without PowerPoint automation."
+description: "Create, read, edit, and convert PPT, PPTX, PPTM, POT, and PPS presentations from .NET without Microsoft PowerPoint."
 layout: product
 product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
@@ -8,6 +8,13 @@ nuget: "OfficeIMO.PowerPoint"
 docs_url: "/docs/powerpoint/"
 api_url: "/api/powerpoint/"
 preview_id: "powerpoint"
+meta.software.name: "OfficeIMO.PowerPoint"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.version: "3.0.0"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.PowerPoint?
@@ -76,6 +83,25 @@ chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
 presentation.Save();
 ```
 
+## Convert PPT and PPTX
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+var analysis = PowerPointPresentation.AnalyzeConversion(
+    "archive-deck.ppt",
+    "archive-deck.pptx");
+
+if (!analysis.Compatibility.HasBlockedFeatures)
+{
+    PowerPointPresentation.Convert(
+        "archive-deck.ppt",
+        "archive-deck.pptx");
+}
+```
+
+The analysis reports whether slide content remains native, needs an editable approximation or visual fallback, is preserved for recovery, or must be blocked. The same conversion entry point handles PPTX-to-PPT when a customer or system still requires a binary presentation.
+
 ## Repeatable slide workflow
 
 1. Start with a small set of deck templates or layout conventions so generated presentations feel intentional, not improvised.
@@ -105,5 +131,6 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.
 | [Slides guide](/docs/powerpoint/slides/) | Build title slides, content slides, charts, and slide layouts. |
 | [Designer Decks](/docs/powerpoint/designer/) | Create visually structured, editable decks from briefs, recommendations, and semantic plans. |
 | [Capability matrix](/docs/powerpoint/capabilities/) | See what is authored, edited, preserved, rendered, or intentionally reported. |
+| [PPT and PPTX compatibility](/compatibility/#powerpoint) | Check formats, conversion directions, tracked behaviors, and fidelity states. |
 | [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
 | [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |

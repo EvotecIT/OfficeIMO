@@ -10,6 +10,12 @@ install: "dotnet add package OfficeIMO.OpenDocument"
 nuget: "OfficeIMO.OpenDocument"
 docs_url: "/docs/open-document/"
 api_url: "/api/open-document/"
+meta.software.name: "OfficeIMO.OpenDocument"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.OpenDocument"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## OpenDocument without LibreOffice

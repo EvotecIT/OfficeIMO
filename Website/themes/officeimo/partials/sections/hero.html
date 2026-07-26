@@ -6,7 +6,7 @@
       <div class="imo-hero__badge"><span class="imo-dot"></span>{{ data.hero.badge }}</div>
       {{ end }}
 
-      <h1 class="imo-hero__title">Office Documents <span>Without Office</span></h1>
+      <h1 class="imo-hero__title">{{ data.hero.title_lead ?? "Office documents" }} <span>{{ data.hero.title_accent ?? "without Office" }}</span></h1>
 
       {{ if data.hero.tagline }}
       <p class="imo-hero__desc">{{ data.hero.tagline }}</p>
@@ -35,7 +35,7 @@
 
     <div class="imo-hero-proof" aria-label="Examples of generated OfficeIMO documents">
       <article class="imo-proof-document imo-proof-document--word">
-        <div class="imo-proof-document__header"><span>DOCX</span><small>Generated report</small></div>
+        <div class="imo-proof-document__header"><span>DOC / DOCX</span><small>Create, edit, convert</small></div>
         <h2>Project Overview</h2>
         <h3>Executive summary</h3>
         <p>Structured document output with headings, paragraphs, tables, images, and metadata.</p>
@@ -44,7 +44,7 @@
       </article>
 
       <article class="imo-proof-sheet">
-        <div class="imo-proof-sheet__header"><span>XLSX</span><strong>Sales analytics</strong></div>
+        <div class="imo-proof-sheet__header"><span>XLS / XLSX</span><strong>Sales analytics</strong></div>
         <div class="imo-proof-sheet__table" aria-hidden="true">
           <span>Region</span><span>Revenue</span><span>Growth</span>
           <span>North America</span><span>$1.24M</span><span>12.4%</span>
@@ -55,17 +55,16 @@
       </article>
 
       <article class="imo-proof-slide">
-        <div class="imo-proof-slide__header"><span>PPTX</span><small>Quarterly results</small></div>
+        <div class="imo-proof-slide__header"><span>PPT / PPTX</span><small>Quarterly results</small></div>
         <div class="imo-proof-slide__chart" aria-hidden="true"><i></i></div>
         <p>Repeatable presentations from application data.</p>
       </article>
 
       <div class="imo-proof-code">
-        <div class="imo-proof-code__tabs"><span class="is-active">C#</span><span>OfficeIMO.Word</span></div>
-        <pre class="language-csharp" aria-label="C# Word document example"><code class="language-csharp">using var doc =
-    WordDocument.Create("report.docx");
-doc.AddParagraph("Quarterly report");
-doc.Save();</code></pre>
+        <div class="imo-proof-code__tabs"><span class="is-active">C#</span><span>DOC → DOCX</span></div>
+        <pre class="language-csharp" aria-label="C# legacy Word conversion example"><code class="language-csharp">using var doc =
+    WordDocument.Load("legacy.doc");
+doc.Save("modern.docx");</code></pre>
       </div>
     </div>
   </div>

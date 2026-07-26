@@ -9,6 +9,12 @@ product_label: "EPUB extraction engine"
 install: "dotnet add package OfficeIMO.Epub"
 nuget: "OfficeIMO.Epub"
 docs_url: "/docs/epub/"
+meta.software.name: "OfficeIMO.Epub"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Epub"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## EPUB ingestion without a browser engine

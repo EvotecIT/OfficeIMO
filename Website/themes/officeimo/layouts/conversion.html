@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--conversion">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main">
+    <section class="imo-intent-hero">
+      <div class="imo-container imo-intent-hero__inner">
+        <div>
+          <p class="imo-section__eyebrow">{{ page.meta.eyebrow ?? "Document conversion for .NET" }}</p>
+          <h1>{{ page.title }}</h1>
+          {{ if page.description }}<p class="imo-intent-hero__lead">{{ page.description }}</p>{{ end }}
+          <div class="imo-intent-hero__actions">
+            <a class="imo-btn imo-btn-primary" href="{{ page.meta.package_url ?? "/downloads/" }}">Get the package</a>
+            <a class="imo-btn imo-btn-ghost" href="/compatibility/">Check format support</a>
+          </div>
+        </div>
+        <aside class="imo-intent-proof" aria-label="Conversion route">
+          <span>{{ page.meta.source_format ?? "Source" }}</span>
+          <strong aria-hidden="true">→</strong>
+          <span>{{ page.meta.destination_format ?? "Destination" }}</span>
+          <small>{{ page.meta.runtime ?? ".NET and PowerShell" }}</small>
+        </aside>
+      </div>
+    </section>
+
+    <div class="imo-container imo-intent-layout">
+      <article class="imo-intent-content markdown-body">
+        {{ if page.meta.howto.steps }}
+        <section class="imo-howto" aria-labelledby="conversion-steps-title">
+          <p class="imo-section__eyebrow">Practical steps</p>
+          <h2 id="conversion-steps-title">{{ page.meta.howto.name ?? "Complete this conversion" }}</h2>
+          {{ if page.meta.howto.description }}<p>{{ page.meta.howto.description }}</p>{{ end }}
+          <ol>
+            {{ for step in page.meta.howto.steps }}
+            <li><strong>{{ step.name }}</strong><span>{{ step.text }}</span></li>
+            {{ end }}
+          </ol>
+        </section>
+        {{ end }}
+{{ content }}
+      </article>
+      <aside class="imo-intent-sidebar">
+        <h2>Route summary</h2>
+        <dl>
+          <div><dt>Package</dt><dd>{{ page.meta.package ?? "Focused OfficeIMO package" }}</dd></div>
+          <div><dt>Runs on</dt><dd>{{ page.meta.runtime ?? ".NET and PowerShell" }}</dd></div>
+          <div><dt>Microsoft Office</dt><dd>Not required</dd></div>
+          <div><dt>License</dt><dd>MIT</dd></div>
+        </dl>
+        <a href="/convert/">Browse all conversion routes</a>
+      </aside>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>
