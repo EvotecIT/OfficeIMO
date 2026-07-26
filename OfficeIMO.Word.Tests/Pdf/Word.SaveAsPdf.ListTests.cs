@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.IO;
 using System.Linq;
@@ -48,7 +49,6 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_UsesBodyFontForNormalizedLegacySymbolBullet() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.docx");
-            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLegacySymbolBullet.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordList bulletList = document.AddCustomList();
@@ -56,19 +56,34 @@ namespace OfficeIMO.Tests {
                 bulletList.AddItem("Normalized legacy bullet");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                var configured = new PdfOptions()
+                    .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                        "OfficeIMO Portable Symbols",
+                        ManagedTextShapingTestAssets.CreateFont('•')))
+                    .RegisterFontFamilySubstitution(
+                        "Symbol",
+                        "OfficeIMO Portable Symbols",
+                        PdfFontFamilySubstitutionImpact.LayoutSensitive);
+                PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica",
+                    PdfOptions = configured,
                     ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
                 });
+                byte[] bytes = result.ToBytes();
+
+                Assert.DoesNotContain(result.Warnings, warning =>
+                    warning.Code == "NativeFontFamilySubstituted" &&
+                    warning.Details.TryGetValue("fontFamily", out string? family) &&
+                    family == "Symbol");
+
+                using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+                var page = pdf.GetPage(1);
+                var markerLetter = Assert.Single(page.Letters, letter => letter.Value == "•" || letter.Value == "·");
+
+                Assert.Contains("Helvetica", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("Normalized legacy bullet", page.Text, StringComparison.Ordinal);
             }
-
-            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
-            var page = pdf.GetPage(1);
-            var markerLetter = Assert.Single(page.Letters, letter => letter.Value == "•" || letter.Value == "·");
-
-            Assert.Contains("Helvetica", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("Normalized legacy bullet", page.Text, StringComparison.Ordinal);
         }
 
         [Fact]

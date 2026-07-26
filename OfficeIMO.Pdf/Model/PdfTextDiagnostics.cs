@@ -169,29 +169,49 @@ internal static class PdfTextDiagnostics {
             }
 
             string runLocation = AppendRunLocation(location, runIndex);
+            PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
+            PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
             if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
                 if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                     namedFontProgram != null) {
-                    diagnostics.AddRange(AnalyzeEmbeddedFontText(
-                        run.Text,
-                        namedFontProgram,
-                        source,
-                        runLocation,
-                        runIndex,
-                        options.TextShapingModeSnapshot));
+                    diagnostics.AddRange(fallbackSet != null
+                        ? AnalyzeGeneratedTextWithFallback(
+                            run.Text,
+                            fallbackSet,
+                            source,
+                            runLocation,
+                            runIndex,
+                            shapingMode,
+                            (string value, int index, out int length) => TryGetCoveredTextLength(value, index, namedFontProgram, shapingMode, out length))
+                        : AnalyzeEmbeddedFontText(
+                            run.Text,
+                            namedFontProgram,
+                            source,
+                            runLocation,
+                            runIndex,
+                            shapingMode));
                     runIndex++;
                     continue;
                 }
 
                 if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                     namedCffFontProgram != null) {
-                    diagnostics.AddRange(AnalyzeEmbeddedFontText(
-                        run.Text,
-                        namedCffFontProgram,
-                        source,
-                        runLocation,
-                        runIndex,
-                        options.TextShapingModeSnapshot));
+                    diagnostics.AddRange(fallbackSet != null
+                        ? AnalyzeGeneratedTextWithFallback(
+                            run.Text,
+                            fallbackSet,
+                            source,
+                            runLocation,
+                            runIndex,
+                            shapingMode,
+                            (string value, int index, out int length) => TryGetCoveredTextLength(value, index, namedCffFontProgram, shapingMode, out length))
+                        : AnalyzeEmbeddedFontText(
+                            run.Text,
+                            namedCffFontProgram,
+                            source,
+                            runLocation,
+                            runIndex,
+                            shapingMode));
                     runIndex++;
                     continue;
                 }

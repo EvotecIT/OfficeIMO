@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -1104,6 +1105,29 @@ public class PdfFontFamilyTests {
                 TextRun.Italicized("Italic Łódź"),
                 TextRun.BoldItalic("Bold italic Łódź")
             },
+            options,
+            PdfStandardFont.Helvetica,
+            "body");
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public void PdfTextDiagnostics_UsesEmbeddedFallbacksForNamedFontRuns() {
+        const string primaryFamily = "OfficeIMO Named Primary";
+        var options = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                primaryFamily,
+                ManagedTextShapingTestAssets.CreateFont(' ', 'A')))
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate(
+                        "OfficeIMO Arabic Fallback",
+                        ManagedTextShapingTestAssets.CreateFont(0x0645))
+                }));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+            new[] { new TextRun("A\u0645", fontFamily: primaryFamily) },
             options,
             PdfStandardFont.Helvetica,
             "body");

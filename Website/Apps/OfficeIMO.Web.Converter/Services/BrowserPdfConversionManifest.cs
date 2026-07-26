@@ -70,7 +70,13 @@ internal static class BrowserPdfConversionManifest {
                 id = BrowserPortablePdfProfile.FontPackId,
                 fingerprint = BrowserPortablePdfProfile.FontPackFingerprint,
                 defaultFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-                coverage = new[] { "Latin", "Arabic glyphs", "common symbols" }
+                coverage = new[] { "Latin", "Arabic glyphs", "common symbols" },
+                substitutions = BrowserPortablePdfProfile.FontFamilySubstitutions.Select(
+                    static substitution => new {
+                        source = substitution.SourceFontFamily,
+                        target = substitution.TargetFontFamily,
+                        impact = substitution.Impact.ToString()
+                    }).ToArray()
             },
             policy = new {
                 resources = "portable-deterministic",
@@ -111,12 +117,13 @@ internal static class BrowserPdfConversionManifest {
                 pageNumber = TryReadPositiveInt(warning.Details, "pageNumber")
                     ?? TryReadPositiveInt(warning.Details, "page"),
                 canChangePagination =
-                    warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
-                    warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
-                    warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
-                    warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
-                        or PdfLayoutDiagnosticKind.ClippedContent
-                        or PdfLayoutDiagnosticKind.Overflow,
+                    warning.Severity != PdfConversionWarningSeverity.Information &&
+                    (warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
+                     warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
+                     warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
+                     warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
+                         or PdfLayoutDiagnosticKind.ClippedContent
+                         or PdfLayoutDiagnosticKind.Overflow),
                 details = warning.Details.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                     .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)
             }).ToArray()
