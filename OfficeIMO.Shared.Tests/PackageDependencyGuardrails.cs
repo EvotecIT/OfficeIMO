@@ -321,7 +321,6 @@ public sealed class PackageDependencyGuardrailTests {
 
     [Theory]
     [InlineData("OfficeIMO.Examples/OfficeIMO.Examples.csproj")]
-    [InlineData("OfficeIMO.Markup.Cli/OfficeIMO.Markup.Cli.csproj")]
     [InlineData("OfficeIMO.Excel.Benchmarks.LegacyEpPlus/OfficeIMO.Excel.Benchmarks.LegacyEpPlus.csproj")]
     public void RepositoryExecutablesAndBenchmarks_AreNotPublishedAsLibraryPackages(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);

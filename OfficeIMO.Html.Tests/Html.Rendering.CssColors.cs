@@ -1,0 +1,35 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRenderer_UsesSharedHslPaintAcrossTheSceneAndExporters() {
+        const string html = "<div id='css-color' style='width:30px;height:14px;"
+            + "background:hsl(210 100% 40%);border:2px solid hsl(30deg 100% 50% / 50%)'>Color</div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 60D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            options);
+        HtmlRenderShape fill = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#css-color" && item.Shape.FillColor.HasValue);
+        HtmlRenderShape border = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#css-color" && item.Shape.StrokeColor.HasValue);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+
+        Assert.Equal(OfficeColor.FromRgb(0, 102, 204), fill.Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgba(255, 128, 0, 128), border.Shape.StrokeColor);
+        Assert.Contains("#0066cc", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+    }
+}

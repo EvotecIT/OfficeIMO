@@ -135,6 +135,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (IsFormControlElement(tag)) {
+            if (!string.IsNullOrWhiteSpace(style.StringSet)) {
+                runs.Add(new HtmlInlineRun(
+                    element,
+                    style,
+                    HtmlRenderStyleResolver.DescribeSource(element)));
+            }
             ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double controlOffsetX, out double controlOffsetY);
             double outerWidth = ResolveFormControlOuterWidth(element, style, width);
             HtmlRenderFlowBlock control = LayoutFormControl(element, outerWidth, style);
@@ -161,6 +167,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag != "img" && style.Display == "inline-grid") {
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(style.StringSet)) {
+            runs.Add(new HtmlInlineRun(
+                element,
+                style,
+                HtmlRenderStyleResolver.DescribeSource(element)));
         }
 
         ReportUnsupportedInlinePaintEffects(element, style);
@@ -230,6 +243,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
         foreach (HtmlInlineRun run in runs) {
+            if (run.RunningStringElement != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                continue;
+            }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;
@@ -238,7 +255,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
                 double atomicWidth = run.AtomicBlock.Width;
-                if (line.Segments.Count > 0 && line.Width + atomicWidth > width) {
+                if (line.HasFlowContent && line.Width + atomicWidth > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -262,7 +279,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string normalizedToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : token;
                 string normalizedLogicalToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : logicalToken;
                 if (!paragraphStyle.PreserveWhitespace && whitespace) {
-                    if (line.Segments.Count == 0 || previousWasCollapsibleSpace) continue;
+                    if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
                 } else {
                     previousWasCollapsibleSpace = false;
@@ -274,7 +291,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (line.Segments.Count > 0 && line.Width + measured > width) {
+                if (line.HasFlowContent && line.Width + measured > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -321,7 +338,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
             double charWidth = MeasureText(value, run.Style.Font);
             if (part.Length > 0 && partWidth + charWidth > width) {
-                if (line.Segments.Count > 0) {
+                if (line.HasFlowContent) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -341,7 +358,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (part.Length > 0) {
-            if (line.Segments.Count > 0 && line.Width + partWidth > width) {
+            if (line.HasFlowContent && line.Width + partWidth > width) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -442,8 +459,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
 
     private static void TrimTrailingWhitespace(InlineLine line) {
-        while (line.Segments.Count > 0 && IsWhitespaceToken(line.Segments[line.Segments.Count - 1].Text)) {
-            line.RemoveLast();
+        for (int index = line.Segments.Count - 1; index >= 0; index--) {
+            InlineSegment segment = line.Segments[index];
+            if (segment.Run.RunningStringElement != null) continue;
+            if (!IsWhitespaceToken(segment.Text)) break;
+            line.RemoveAt(index);
         }
     }
 
@@ -454,8 +474,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineLine {
+        private int _flowContentCount;
+
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
+        internal bool HasFlowContent => _flowContentCount > 0;
         internal bool HasExplicitPlacement { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
@@ -471,15 +494,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void Add(InlineSegment segment) {
             Segments.Add(segment);
             Width += segment.Width;
+            if (segment.Run.RunningStringElement == null) _flowContentCount++;
         }
 
-        internal void RemoveLast() {
-            int index = Segments.Count - 1;
+        internal void RemoveAt(int index) {
+            if (Segments[index].Run.RunningStringElement == null) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
         }
 
         internal double ResolveLineHeight(double fallback) {
+            if (!HasFlowContent) return 0D;
             double height = fallback;
             for (int i = 0; i < Segments.Count; i++) {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);

@@ -120,6 +120,48 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_PictureSelectionUsesConfiguredMediaFeatures() {
+        byte[] darkImage = PdfPngTestImages.CreateRgbPng(8, 6);
+        var requested = new List<Uri>();
+        const string html = "<picture><source media='(prefers-color-scheme:dark)' srcset='https://assets.example.test/dark.png'><img src='https://assets.example.test/light.png' width='40' height='30' alt='candidate'></picture>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            MediaFeatures = new HtmlRenderMediaFeatures {
+                PreferredColorScheme = HtmlPreferredColorScheme.Dark
+            },
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceResolver = (request, _) => {
+                requested.Add(request.Uri);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(darkImage, "image/png"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(new[] { new Uri("https://assets.example.test/dark.png") }, requested);
+        Assert.Equal(darkImage, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).Bytes);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DefaultGeometryPreservesConfiguredMediaFeatures() {
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<link rel='stylesheet' href='https://assets.example.test/dark.css' media='(prefers-color-scheme:dark)'>",
+            new HtmlResourcePipelineOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+                MediaFeatures = new HtmlRenderMediaFeatures {
+                    PreferredColorScheme = HtmlPreferredColorScheme.Dark
+                }
+            });
+
+        HtmlResourceReference stylesheet = Assert.Single(
+            manifest.Resources,
+            resource => resource.Kind == HtmlResourceKind.Stylesheet);
+        Assert.Equal("https://assets.example.test/dark.css", stylesheet.Source);
+    }
+
+    [Fact]
     public void HtmlTable_PaintsRowGroupAndRowBackgroundsBehindTransparentCells() {
         const string html = "<table style='border-spacing:0'><tbody id='group' style='background:#0000ff'><tr id='row' style='background:#ff0000'><td style='background:transparent'>Cell</td></tr></tbody></table>";
 

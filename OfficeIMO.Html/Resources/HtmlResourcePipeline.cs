@@ -40,6 +40,7 @@ public static partial class HtmlResourcePipeline {
         HtmlConversionLimits limits = options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
         limits.Validate();
         HtmlConversionInputGuard.ValidateDocument(document, limits);
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
         foreach (IElement element in document.QuerySelectorAll(ResourceSelector)) {

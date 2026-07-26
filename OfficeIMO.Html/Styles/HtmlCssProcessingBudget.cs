@@ -42,6 +42,17 @@ internal sealed class HtmlCssProcessingBudget {
         }
     }
 
+    internal void RecordNestingDepth(int depth) {
+        int maximum = _limits.MaxCssNestingDepth ?? 256;
+        if (depth > maximum) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssNestingDepth),
+                depth,
+                maximum);
+        }
+    }
+
     private static HtmlDomLimitException Limit(string code, string source, long actual, long limit) =>
         new HtmlDomLimitException(code, "CSS processing exceeded the configured conversion complexity limit.", source, actual, limit);
 }

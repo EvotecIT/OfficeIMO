@@ -52,6 +52,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = ResolveBoxHeight(contentHeight, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -60,9 +62,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), contentHeight, source);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
@@ -79,7 +81,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.NonNegative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IReadOnlyList<double> breakOffsets = ResolveMultiColumnBreakOffsets(plan, contentY, outerHeight);
@@ -93,7 +96,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
+                .Concat(positionedRunningStringAssignments)
+                .OrderBy(assignment => assignment.OrderOffset));
         return true;
     }
 
@@ -229,6 +235,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         long key = (long)Math.Round(value * 10000D, MidpointRounding.AwayFromZero);
         offsets.Add(key);
         candidates.Add(key);
+    }
+
+    private static IEnumerable<HtmlCssRunningStringAssignment> EnumerateMultiColumnRunningStringAssignments(
+        MultiColumnPlan plan,
+        double offsetY) {
+        double totalFlowHeight = plan.Fragments.Sum(fragment => fragment.Height);
+        double flowOffset = 0D;
+        foreach (MultiColumnFragment fragment in plan.Fragments) {
+            bool finalFragment = fragment.End >= fragment.Block.Height - 0.0001D;
+            foreach (HtmlCssRunningStringAssignment assignment in fragment.Block.RunningStringAssignments) {
+                if (assignment.Offset < fragment.Start - 0.0001D
+                    || assignment.Offset > fragment.End + 0.0001D
+                    || (!finalFragment && assignment.Offset >= fragment.End - 0.0001D)) {
+                    continue;
+                }
+                double visualOffset = assignment.Offset + offsetY + fragment.Y - fragment.Start;
+                double orderOffset = offsetY + (flowOffset + assignment.OrderOffset - fragment.Start)
+                    * plan.UsedHeight / Math.Max(0.01D, totalFlowHeight);
+                yield return assignment.Place(visualOffset, orderOffset);
+            }
+            flowOffset += fragment.Height;
+        }
     }
 
     private void EnsureMultiColumnLimit(int count) {

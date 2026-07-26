@@ -6,17 +6,19 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlCssFontFaceDefinition {
-    internal HtmlCssFontFaceDefinition(string familyName, string source, string weight, string style) {
+    internal HtmlCssFontFaceDefinition(string familyName, string source, string weight, string style, string unicodeRange) {
         FamilyName = CleanFamilyName(familyName);
         Source = source ?? string.Empty;
         Weight = weight ?? string.Empty;
         Style = style ?? string.Empty;
+        UnicodeRange = unicodeRange ?? string.Empty;
     }
 
     internal string FamilyName { get; }
     internal string Source { get; }
     internal string Weight { get; }
     internal string Style { get; }
+    internal string UnicodeRange { get; }
 
     private static string CleanFamilyName(string value) {
         string family = (value ?? string.Empty).Trim();
@@ -37,6 +39,7 @@ public static partial class HtmlResourcePipeline {
             return definitions.AsReadOnly();
         }
 
+        HtmlCssRuleBlockScanner.ValidateStylesheet(css, options.Limits);
         var parser = new CssParser();
         ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
         foreach (ICssRule rule in stylesheet.Rules) {
@@ -122,7 +125,8 @@ public static partial class HtmlResourcePipeline {
                 fontFace.Family,
                 fontFace.Source,
                 fontFace.Weight,
-                fontFace.Style));
+                fontFace.Style,
+                fontFace.Range));
             return;
         }
 

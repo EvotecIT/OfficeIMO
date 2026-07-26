@@ -54,6 +54,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
+    private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly List<HtmlCssRunningStringAssignment> _currentPageRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+    private HtmlCssRunningStringPageContext? _currentRunningStringPage;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
@@ -66,9 +69,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _resources = resources ?? new HtmlResourceSession();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
-        string? language = document.DocumentElement?.GetAttribute("lang");
-        if (string.IsNullOrWhiteSpace(language)) language = document.DocumentElement?.GetAttribute("xml:lang");
-        _metadata = new HtmlRenderMetadata(document.Title, language, ResolveDocumentDirection(document, computedStyles));
+        _metadata = HtmlRenderMetadata.FromDocument(document, ResolveDocumentDirection(document, computedStyles));
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
     }
@@ -169,6 +170,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
+        _runningStringValues.Clear();
+        _currentPageRunningStringAssignments.Clear();
+        _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
         double pageWidth = _options.PageWidth;
         double pageHeight = _options.PageHeight;
         double contentHeight = pageHeight - _options.Margins.Top - _options.Margins.Bottom;
@@ -212,6 +216,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             if (block.Height <= pageHeight - _options.Margins.Bottom - y) {
                 AddTranslatedVisuals(visuals, block.Visuals, _options.Margins.Left, y, block);
+                RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
             } else {
                 double blockOffset = 0D;
@@ -309,6 +314,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd);
                     AddTranslatedVisuals(visuals, fragment, _options.Margins.Left, y, block);
+                    RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     if (repeatTrailing) {
@@ -404,8 +410,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PrepareGlobalPositionedRequests(includeRoot, width, height, contentWidth, contentHeight);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
+        CollectGlobalPositionedRunningStringAssignments(
+            _currentPageRunningStringAssignments,
+            includeRoot,
+            width,
+            height,
+            contentWidth,
+            contentHeight);
+        if (_currentRunningStringPage != null) {
+            foreach (HtmlCssRunningStringAssignment assignment in _currentPageRunningStringAssignments.OrderBy(item => item.OrderOffset)) {
+                _currentRunningStringPage.Assign(assignment, _runningStringValues);
+            }
+        }
         ApplyViewportOverflow(visuals, width, height);
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts));
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage));
+        _currentPageRunningStringAssignments.Clear();
+        _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
+    }
+
+    private void RecordRunningStringAssignments(HtmlRenderFlowBlock block, double start, double end, double pageOffset) {
+        if (_currentRunningStringPage == null || end <= start + 0.0001D) return;
+        bool finalFragment = end >= block.Height - 0.0001D;
+        foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
+            if (assignment.Offset < start - 0.0001D) continue;
+            if (assignment.Offset > end + 0.0001D) continue;
+            if (!finalFragment && assignment.Offset >= end - 0.0001D) continue;
+            _currentPageRunningStringAssignments.Add(assignment.Translate(pageOffset - start));
+        }
     }
 
     private void AddTranslatedVisuals(

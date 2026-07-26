@@ -111,7 +111,12 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static bool IsApplicablePrintMedia(string mediaText, HtmlRenderOptions options) =>
-        HtmlComputedStyleEngine.IsApplicableMedia(mediaText, HtmlCssMediaContext.Print, options.PageWidth, options.PageHeight);
+        HtmlComputedStyleEngine.IsApplicableMedia(
+            mediaText,
+            HtmlCssMediaContext.Print,
+            options.PageWidth,
+            options.PageHeight,
+            options.MediaFeatures);
 
     private static void ApplyRawPageRules(string css, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) =>
         ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules);

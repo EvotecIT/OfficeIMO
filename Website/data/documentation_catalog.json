@@ -3,18 +3,18 @@
   "format": "officeimo.documentation-catalog",
   "repository": {
     "projectCount": 148,
-    "productionComponentCount": 90,
-    "testProjectCount": 30,
+    "productionComponentCount": 89,
+    "testProjectCount": 31,
     "benchmarkProjectCount": 12,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 89,
-    "conceptualWordCount": 35605
+    "conceptualWordCount": 35793
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 28
+      "componentCount": 27
     },
     {
       "name": "Formats and interoperability",
@@ -22,7 +22,7 @@
     },
     {
       "name": "Foundations and integrations",
-      "componentCount": 12
+      "componentCount": 11
     },
     {
       "name": "Google Workspace",
@@ -39,6 +39,10 @@
     {
       "name": "Rendering surfaces",
       "componentCount": 3
+    },
+    {
+      "name": "Specialized components",
+      "componentCount": 1
     }
   ],
   "components": [
@@ -127,8 +131,8 @@
       "description": "Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
-      "sourceFileCount": 311,
-      "referencingTestProjectCount": 10,
+      "sourceFileCount": 318,
+      "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing"
@@ -322,8 +326,8 @@
       "description": "Shared HTML and MHTML parsing, resource policy, layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 314,
-      "referencingTestProjectCount": 5,
+      "sourceFileCount": 328,
+      "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html"
@@ -335,8 +339,8 @@
       "description": "Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 17,
-      "referencingTestProjectCount": 3,
+      "sourceFileCount": 18,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf"
@@ -472,19 +476,6 @@
       "packageUrl": null
     },
     {
-      "name": "OfficeIMO.Markup.Cli",
-      "packageId": "OfficeIMO.Markup.Cli",
-      "category": "Foundations and integrations",
-      "description": "Command-line tooling for OfficeIMO Markup parsing, validation, preview JSON, and code emission.",
-      "kind": "tool",
-      "projectPath": "OfficeIMO.Markup.Cli/OfficeIMO.Markup.Cli.csproj",
-      "sourceFileCount": 1,
-      "referencingTestProjectCount": 0,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": null
-    },
-    {
       "name": "OfficeIMO.Markup.Excel",
       "packageId": "OfficeIMO.Markup.Excel",
       "category": "Foundations and integrations",
@@ -608,8 +599,8 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 925,
-      "referencingTestProjectCount": 9,
+      "sourceFileCount": 928,
+      "referencingTestProjectCount": 10,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf"
@@ -713,7 +704,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
       "sourceFileCount": 111,
-      "referencingTestProjectCount": 4,
+      "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Core"
@@ -830,7 +821,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 1,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Markdown"
@@ -951,19 +942,6 @@
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
-    },
-    {
-      "name": "OfficeIMO.Reader.Tool",
-      "packageId": "OfficeIMO.Reader.Tool",
-      "category": "Extraction and ingestion",
-      "description": "Dependency-bounded command-line tool for OfficeIMO.Reader document extraction.",
-      "kind": "tool",
-      "projectPath": "OfficeIMO.Reader.Tool/OfficeIMO.Reader.Tool.csproj",
-      "sourceFileCount": 7,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/reader/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Tool"
     },
     {
       "name": "OfficeIMO.Reader.Visio",
@@ -1094,6 +1072,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
+    },
+    {
+      "name": "OfficeIMO.Tool",
+      "packageId": "OfficeIMO.Tool",
+      "category": "Specialized components",
+      "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
+      "kind": "tool",
+      "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
+      "sourceFileCount": 13,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Tool"
     },
     {
       "name": "OfficeIMO.Visio",

@@ -115,9 +115,16 @@ try {
         $metadata
     }
 
-    $toolPackageId = 'OfficeIMO.Reader.Tool'
+    $toolPackages = @(
+        [pscustomobject]@{
+            Id = 'OfficeIMO.Tool'
+            Executable = $(if ($IsWindows) { 'officeimo.exe' } else { 'officeimo' })
+            Arguments = @('reader', 'capabilities', '--format', 'json')
+        }
+    )
+    $toolPackageIds = @($toolPackages.Id)
     $libraryPackageIds = @($packageIds | Where-Object {
-            !$_.Equals($toolPackageId, [StringComparison]::OrdinalIgnoreCase)
+            $_ -notin $toolPackageIds
         })
     $projectPath = Join-Path $workingPath 'OfficeIMO.ReleaseConsumer.csproj'
     $programPath = Join-Path $workingPath 'Program.cs'
@@ -178,17 +185,14 @@ try {
     Invoke-DotNet restore $projectPath --configfile $nugetConfigPath --packages $packagesPath --no-cache --force-evaluate
     Invoke-DotNet build $projectPath --configuration Release --no-restore
     Invoke-DotNet run --project $projectPath --configuration Release --no-build
-    Invoke-DotNet tool install $toolPackageId --version $Version --tool-path $toolPath --configfile $nugetConfigPath --no-cache
-
-    $toolExecutableName = if ($IsWindows) {
-        'officeimo-reader.exe'
-    } else {
-        'officeimo-reader'
-    }
-    $toolExecutable = Join-Path $toolPath $toolExecutableName
-    & $toolExecutable capabilities --format json
-    if ($LASTEXITCODE -ne 0) {
-        throw "The packed $toolPackageId command failed with exit code $LASTEXITCODE."
+    foreach ($toolPackage in $toolPackages) {
+        Invoke-DotNet tool install $toolPackage.Id --version $Version --tool-path $toolPath --configfile $nugetConfigPath --no-cache
+        $toolExecutable = Join-Path $toolPath $toolPackage.Executable
+        $toolArguments = @($toolPackage.Arguments)
+        & $toolExecutable @toolArguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "The packed $($toolPackage.Id) command failed with exit code $LASTEXITCODE."
+        }
     }
 
     Write-Host "Validated $($packageMetadata.Count) coordinated packages at version $Version."

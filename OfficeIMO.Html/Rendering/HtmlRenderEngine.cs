@@ -65,6 +65,8 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -76,7 +78,8 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
+            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
@@ -86,12 +89,14 @@ public static class HtmlRenderEngine {
             manifest,
             resolved,
             diagnostics,
+            limits,
             cancellationToken,
             cssBudget);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, cssBudget, diagnostics);
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
@@ -156,6 +161,8 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -167,16 +174,18 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
+            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaFeatures = resolved.MediaFeatures.Clone()
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits);
-        HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken, cssBudget).ConfigureAwait(false);
+        HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, cssBudget, diagnostics);
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
+        HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();

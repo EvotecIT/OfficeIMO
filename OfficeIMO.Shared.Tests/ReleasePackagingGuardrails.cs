@@ -37,24 +37,24 @@ public sealed class ReleasePackagingGuardrails {
                 File.Exists(Path.Combine(repositoryRoot, match.Groups["path"].Value)),
                 "README project link is missing: " + match.Value));
         Assert.Equal(26, CountProjectHeadings(readme, "Native formats and shared foundations"));
-        Assert.Equal(28, CountProjectHeadings(readme, "Conversion and cloud bridges"));
-        Assert.Equal(28, CountProjectHeadings(readme, "Unified Reader family"));
-        Assert.Equal(11, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
-        Assert.Equal(93, projectHeadings.Count);
+        Assert.Equal(29, CountProjectHeadings(readme, "Conversion and cloud bridges"));
+        Assert.Equal(27, CountProjectHeadings(readme, "Unified Reader family"));
+        Assert.Equal(10, CountProjectHeadings(readme, "Markdown rendering and OfficeIMO Markup"));
+        Assert.Equal(92, projectHeadings.Count);
 
         Assert.Contains($"| Coordinated `3.0.x` release packages | {releasePackageCount} |", readme, StringComparison.Ordinal);
         Assert.Contains($"| Documented package, tool, and example projects below | {projectHeadings.Count} |", readme, StringComparison.Ordinal);
         Assert.Contains("| Native format, foundation, and shared-service packages | 26 |", readme, StringComparison.Ordinal);
-        Assert.Contains("| Conversion and cloud bridge packages | 28 |", readme, StringComparison.Ordinal);
-        Assert.Contains("| Unified Reader packages and tool | 28 |", readme, StringComparison.Ordinal);
-        Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 11 |", readme, StringComparison.Ordinal);
+        Assert.Contains("| Conversion and cloud bridge packages | 29 |", readme, StringComparison.Ordinal);
+        Assert.Contains("| Unified Reader packages | 27 |", readme, StringComparison.Ordinal);
+        Assert.Contains("| Markdown renderer and OfficeIMO Markup surfaces | 10 |", readme, StringComparison.Ordinal);
         Assert.Contains("NuGet publication is a separate release step.", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("All OfficeIMO .NET packages are published", readme, StringComparison.Ordinal);
         AssertDotNetInstallCommands(
             readme,
             releasePackageIds,
             expectedCount: 17,
-            toolPackageId: "OfficeIMO.Reader.Tool");
+            toolPackageIds: ["OfficeIMO.Tool"]);
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public sealed class ReleasePackagingGuardrails {
         string content,
         ISet<string> releasePackageIds,
         int expectedCount,
-        string? toolPackageId = null) {
+        IReadOnlyCollection<string>? toolPackageIds = null) {
         MatchCollection commands = Regex.Matches(
             content,
             @"^dotnet (?<verb>add package|tool install --global) (?<id>OfficeIMO\.[^\s]+)(?<arguments>[^\r\n]*)\r?$",
@@ -341,8 +341,7 @@ public sealed class ReleasePackagingGuardrails {
                     "Install command references an unknown package: " + match.Value);
                 Assert.Equal(" --version 3.0.0", match.Groups["arguments"].Value);
 
-                bool isTool = !string.IsNullOrWhiteSpace(toolPackageId) &&
-                    string.Equals(packageId, toolPackageId, StringComparison.OrdinalIgnoreCase);
+                bool isTool = toolPackageIds?.Contains(packageId, StringComparer.OrdinalIgnoreCase) == true;
                 Assert.Equal(
                     isTool ? "tool install --global" : "add package",
                     match.Groups["verb"].Value);

@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Small immutable RGBA color value used by OfficeIMO packages without external image dependencies.
 /// </summary>
-public readonly struct OfficeColor : IEquatable<OfficeColor> {
+public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
     private static readonly Dictionary<string, OfficeColor> NamedColors = new Dictionary<string, OfficeColor>(StringComparer.OrdinalIgnoreCase) {
         ["Transparent"] = Transparent,
         ["AliceBlue"] = AliceBlue,

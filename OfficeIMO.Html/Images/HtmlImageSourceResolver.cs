@@ -67,7 +67,12 @@ public static class HtmlImageSourceResolver {
             foreach (IElement child in picture.Children) {
                 if (ReferenceEquals(child, element)) break;
                 if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)
-                    || !HtmlComputedStyleEngine.IsApplicableMedia(child.GetAttribute("media") ?? string.Empty, options.MediaContext, mediaWidth, mediaHeight)
+                    || !HtmlComputedStyleEngine.IsApplicableMedia(
+                        child.GetAttribute("media") ?? string.Empty,
+                        options.MediaContext,
+                        mediaWidth,
+                        mediaHeight,
+                        options.MediaFeatures)
                     || !HtmlPictureSourceSupport.IsSupportedConversionContentType(child.GetAttribute("type"))) {
                     continue;
                 }

@@ -1,16 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <Description>Dependency-bounded command-line tool for OfficeIMO.Reader document extraction.</Description>
-    <AssemblyName>OfficeIMO.Reader.Tool</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Tool</AssemblyTitle>
+    <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.</Description>
+    <AssemblyName>OfficeIMO.Tool</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
     <VersionPrefix>3.0.0</VersionPrefix>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Tool</PackageId>
-    <PackageTags>reader;ingestion;markdown;json;cli;dotnet-tool;officeimo</PackageTags>
+    <PackageId>OfficeIMO.Tool</PackageId>
+    <PackageTags>office;documents;html;pdf;reader;markup;cli;dotnet-tool;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -18,13 +17,14 @@
     <PackageIcon>OfficeIMO.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>officeimo-reader</ToolCommandName>
+    <ToolCommandName>officeimo</ToolCommandName>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(AotValidation)' == 'true'">
@@ -37,6 +37,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.Excel\OfficeIMO.Markup.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.Word\OfficeIMO.Markup.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
   </ItemGroup>
 
@@ -46,6 +52,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
   </ItemGroup>
 </Project>

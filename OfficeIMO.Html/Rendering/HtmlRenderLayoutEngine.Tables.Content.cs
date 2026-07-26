@@ -28,6 +28,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         AppendFlowPaintLayers(visuals, paintLayers);
-        return new HtmlInlineLayout(visuals, height, breakOffsets);
+        return new HtmlInlineLayout(
+            visuals,
+            height,
+            breakOffsets,
+            paintLayers.SelectMany(layer =>
+                layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))));
     }
 }

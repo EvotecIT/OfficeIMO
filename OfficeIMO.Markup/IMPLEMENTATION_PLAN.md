@@ -73,7 +73,7 @@ This checklist is the working plan for the unified OfficeIMO Markup layer and ed
 
 ## CLI
 
-- [x] Create `OfficeIMO.Markup.Cli`.
+- [x] Add the namespaced `officeimo markup` command area to `OfficeIMO.Tool`.
 - [x] Add `parse` command with JSON output.
 - [x] Add `validate` command with JSON diagnostics.
 - [x] Add `preview` command with a preview-friendly JSON contract.
@@ -145,7 +145,7 @@ This checklist is the working plan for the unified OfficeIMO Markup layer and ed
 
 - [x] Build `OfficeIMO.Markup` for `net8.0`.
 - [x] Test markup parser unit tests.
-- [x] Build `OfficeIMO.Markup.Cli`.
+- [x] Build `OfficeIMO.Tool`.
 - [x] Smoke test CLI `parse`.
 - [x] Smoke test CLI `emit --target csharp`.
 - [x] Smoke test CLI `export --target pptx`.

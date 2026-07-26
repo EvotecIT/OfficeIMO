@@ -30,8 +30,12 @@ byte[] png = source.ToPng(new HtmlRenderOptions {
 - URL and media policy, node/depth/size limits, and image discovery.
 - Accessible structure for headings, code, quotes, footnotes, and EPUB semantics.
 - Continuous and paged layout with PNG, JPEG, TIFF, SVG, and WebP output.
+- Bounded CSS math, caller stylesheets, deterministic media preferences, running page strings, and Unicode-range-aware WOFF 1/OpenType fonts.
 - Reusable semantic mappings for Markdown, Word, RTF, Email, and PDF adapters.
+- An executable capability catalog shared by the API, generated support matrix, and command-line tool.
 
 Install only the adapter needed by the destination, such as `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, or `OfficeIMO.Html.Pdf`. See the [HTML API reference](/api/html/).
+
+Install `OfficeIMO.Tool` when a shell or build pipeline needs bounded HTML/MHTML-to-PDF conversion without hosting .NET code.
 
 Continue with [rendering and conversion examples](/docs/html/render-and-convert/) for image, PDF, Word, Markdown, and service-safe resource-policy patterns.

@@ -87,6 +87,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
         ApplyBreaks(computed, style);
+        style.StringSet = computed.GetValue("string-set").Trim();
         return style;
     }
 
@@ -753,7 +754,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             width = 5D;
             return true;
         }
-        return (normalized == "0" || HasSupportedColumnLengthUnit(normalized))
+        return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
             && HtmlRenderCssValues.TryLength(normalized, reference, fontSize, _options.DefaultFontSize, out width)
             && width >= 0D;
     }
@@ -773,20 +774,9 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private bool TryResolveColumnWidth(string value, double reference, double fontSize, out double width) {
         width = 0D;
-        return HasSupportedColumnLengthUnit(value)
+        return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: false)
             && HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out width)
             && width > 0D;
-    }
-
-    private static bool HasSupportedColumnLengthUnit(string value) {
-        string normalized = value.Trim().ToLowerInvariant();
-        int unitStart = 0;
-        while (unitStart < normalized.Length && (char.IsDigit(normalized[unitStart]) || normalized[unitStart] == '.' || normalized[unitStart] == '+' || normalized[unitStart] == '-')) unitStart++;
-        if (unitStart == 0 || unitStart == normalized.Length) return false;
-        if (!double.TryParse(normalized.Substring(0, unitStart), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || double.IsNaN(number) || double.IsInfinity(number)) return false;
-        string unit = normalized.Substring(unitStart);
-        return unit == "px" || unit == "pt" || unit == "pc" || unit == "in" || unit == "cm" || unit == "mm" || unit == "q" || unit == "em" || unit == "rem";
     }
 
     private static void ApplyGrid(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {

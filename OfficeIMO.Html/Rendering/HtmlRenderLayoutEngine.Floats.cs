@@ -85,6 +85,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 previousWasCollapsibleSpace = false;
                 continue;
             }
+            if (run.RunningStringElement != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                continue;
+            }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;
@@ -93,10 +97,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
                 double atomicWidth = run.AtomicBlock.Width;
-                if (line.Segments.Count == 0 && atomicWidth > line.AvailableWidth + 0.0001D) {
+                if (!line.HasFlowContent && atomicWidth > line.AvailableWidth + 0.0001D) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, atomicWidth);
                 }
-                if (line.Segments.Count > 0 && line.Width + atomicWidth > line.AvailableWidth) {
+                if (line.HasFlowContent && line.Width + atomicWidth > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                 }
                 line.Add(new InlineSegment(string.Empty, atomicWidth, run));
@@ -113,7 +117,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool whitespace = IsWhitespaceToken(token);
                 string normalizedToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : token;
                 if (!paragraphStyle.PreserveWhitespace && whitespace) {
-                    if (line.Segments.Count == 0 || previousWasCollapsibleSpace) continue;
+                    if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
                 } else {
                     previousWasCollapsibleSpace = false;
@@ -124,7 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, normalizedToken);
                     continue;
                 }
-                if (line.Segments.Count > 0 && line.Width + measured > line.AvailableWidth) {
+                if (line.HasFlowContent && line.Width + measured > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
                 }
@@ -147,7 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string token) {
         foreach (string value in OfficeTextElements.Enumerate(token)) {
             double elementWidth = MeasureText(value, run.Style.Font);
-            if (line.Segments.Count > 0 && line.Width + elementWidth > line.AvailableWidth) {
+            if (line.HasFlowContent && line.Width + elementWidth > line.AvailableWidth) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
             line.Add(new InlineSegment(value, elementWidth, run));
@@ -182,12 +186,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatContext context,
         double lineHeight,
         double requiredWidth) {
+        InlineSegment[] runningStringMarkers = line.Segments
+            .Where(segment => segment.Run.RunningStringElement != null)
+            .ToArray();
         double next = context.NextBottomAfter(y);
         while (next > y + 0.0001D) {
             y = next;
             InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
             line = new InlineLine();
             line.Place(band.Left, y, band.Width);
+            foreach (InlineSegment marker in runningStringMarkers) line.Add(marker);
             if (requiredWidth <= band.Width + 0.0001D) return;
             next = context.NextBottomAfter(y);
         }
@@ -204,12 +212,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
         var breakOffsets = new SortedSet<double>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
 
         if (floatPlacements != null) {
             foreach (InlineFloatPlacement placement in floatPlacements) {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
+                foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
+                    runningStringAssignments.Add(assignment.Translate(placement.Y));
+                }
                 if (run.Style.PaintVisible) {
                     foreach (HtmlRenderVisual visual in block.Visuals) {
                         AddInlineOwnedVisual(
@@ -249,13 +261,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
             foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
                 double x = rightToLeftLine ? cursor - segment.Width : cursor;
-                if (segment.Run.PositionedMarkerElement != null) {
+                if (segment.Run.RunningStringElement != null) {
+                    runningStringAssignments.AddRange(ResolveRunningStringAssignments(
+                        segment.Run.RunningStringElement,
+                        segment.Run.Style,
+                        lineY));
+                } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomic.Height);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
+                    foreach (HtmlCssRunningStringAssignment assignment in atomic.RunningStringAssignments) {
+                        runningStringAssignments.Add(assignment.Translate(atomicY));
+                    }
                     if (segment.Run.Style.PaintVisible) {
                         foreach (HtmlRenderVisual visual in atomic.Visuals) {
                             HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
@@ -330,7 +350,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);
-            breakOffsets.Add(lineY + lineHeight);
+            if (lineHeight > 0D) breakOffsets.Add(lineY + lineHeight);
         }
 
         double height = Math.Max(flowY, minimumHeight);
@@ -338,7 +358,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlInlineLayout(
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
             height,
-            breakOffsets);
+            breakOffsets,
+            runningStringAssignments.OrderBy(assignment => assignment.OrderOffset));
     }
 
     private sealed class InlineFloatContext {

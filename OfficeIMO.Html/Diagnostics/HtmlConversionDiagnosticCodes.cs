@@ -50,6 +50,8 @@ public static class HtmlConversionDiagnosticCodes {
 
     /// <summary>CSS declarations exceeded the configured complexity budget.</summary>
     public const string CssDeclarationLimitExceeded = "CssDeclarationLimitExceeded";
+    /// <summary>Nested CSS rule blocks exceeded the shared depth budget.</summary>
+    public const string CssNestingDepthLimitExceeded = "CssNestingDepthLimitExceeded";
 
     /// <summary>Selector matching exceeded the configured operation-wide evaluation budget.</summary>
     public const string CssSelectorEvaluationLimitExceeded = "CssSelectorEvaluationLimitExceeded";
@@ -86,6 +88,7 @@ public static class HtmlConversionDiagnosticCodes {
         CssTotalSizeLimitExceeded,
         CssRuleLimitExceeded,
         CssDeclarationLimitExceeded,
+        CssNestingDepthLimitExceeded,
         CssSelectorEvaluationLimitExceeded,
         SemanticMetadataLimitExceeded,
         SemanticSchemaUnsupported,

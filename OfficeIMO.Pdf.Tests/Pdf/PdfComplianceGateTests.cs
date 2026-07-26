@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -197,6 +199,50 @@ public class PdfComplianceGateTests {
         Assert.NotEmpty(result.GetDiagnosticText());
     }
 
+    [Fact]
+    public void HtmlPdfUa1Fixture_ContainsFormalAccessibilityPrimitivesAndEmbeddedFonts() {
+        byte[] bytes = CreateHtmlPdfUa1Fixture();
+        WriteProofPdf("officeimo-html-pdfua1.pdf", bytes);
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal("1.7", info.HeaderVersion);
+        Assert.True(info.HasXmpMetadata);
+        Assert.Equal("en-US", info.CatalogLanguage);
+        Assert.Contains("pdfuaid:part", raw, StringComparison.Ordinal);
+        Assert.Contains("/FontFile", raw, StringComparison.Ordinal);
+        Assert.Contains("H1", tagged.StructureTypes);
+        Assert.Contains("P", tagged.StructureTypes);
+        Assert.Contains("L", tagged.StructureTypes);
+        Assert.Contains("Table", tagged.StructureTypes);
+        Assert.Contains("TH", tagged.StructureTypes);
+        Assert.Contains("TD", tagged.StructureTypes);
+
+        PdfComplianceProofReport proof = PdfDocument.Open(bytes)
+            .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.ReadyForExternalValidation);
+    }
+
+    [Fact]
+    public void PdfUaValidatorGate_AcceptsFormalHtmlPdfUa1Fixture() {
+        byte[] fixture = CreateHtmlPdfUa1Fixture();
+        WriteProofPdf("officeimo-html-pdfua1.pdf", fixture);
+        PdfExternalValidator validator = PdfExternalValidator.PdfUa();
+        if (!validator.IsAvailable) {
+            WriteProofText("pdfua-html-pdfua1.txt", validator.GetNotConfiguredText());
+            PdfExternalValidator.SkipUnlessRequired(validator);
+            return;
+        }
+
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-html-pdfua1.pdf");
+        WriteProofText("pdfua-html-pdfua1.txt", result.GetDiagnosticText());
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotEmpty(result.GetDiagnosticText());
+    }
+
     [Theory]
     [InlineData(PdfComplianceProfile.PdfUa2, "PDF/UA identification XMP")]
     public void FormalProfiles_StillFailClosedUntilValidatorBackedGenerationExists(PdfComplianceProfile profile, string expectedRequirement) {
@@ -223,6 +269,7 @@ public class PdfComplianceGateTests {
             WriteProofPdf("officeimo-facturx.pdf", CreateElectronicInvoiceFixture(PdfComplianceProfile.FacturX));
             WriteProofPdf("officeimo-zugferd.pdf", CreateElectronicInvoiceFixture(PdfComplianceProfile.Zugferd));
             WriteProofPdf("officeimo-pdfua1.pdf", CreatePdfUa1Fixture());
+            WriteProofPdf("officeimo-html-pdfua1.pdf", CreateHtmlPdfUa1Fixture());
             WriteProfileProofContract();
             WriteProofText("verapdf-pdfa3b.txt", "validator diagnostic");
             WriteProofText("verapdf-facturx.txt", "validator diagnostic");
@@ -474,6 +521,36 @@ public class PdfComplianceGateTests {
 
     private static byte[] CreatePdfUa1Fixture() {
         return CreatePdfUa1Document().ToBytes();
+    }
+
+    private static byte[] CreateHtmlPdfUa1Fixture() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        const string html = """
+            <!doctype html>
+            <html lang="en-US">
+            <head><title>Accessible HTML PDF</title></head>
+            <body>
+              <main>
+                <h1>Accessible report</h1>
+                <p>Semantic HTML is preserved in the exact PDF artifact.</p>
+                <ul><li>Reading order</li><li>Document language</li></ul>
+                <table>
+                  <caption>Readiness</caption>
+                  <tr><th scope="col">Check</th><th scope="col">State</th></tr>
+                  <tr><td>Internal proof</td><td>Ready</td></tr>
+                </table>
+              </main>
+            </body>
+            </html>
+            """;
+        var options = new HtmlPdfSaveOptions {
+            DefaultFontFamily = "OfficeIMO Source Serif",
+            FontFamily = new PdfEmbeddedFontFamily("OfficeIMO Source Serif", fontData),
+            DocumentOptions = CreatePdfUa1Options()
+        };
+        return HtmlConversionDocument.Parse(html).ToPdf(options);
     }
 
     private static PdfDocument CreatePdfUa1Document() {

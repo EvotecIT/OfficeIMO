@@ -100,7 +100,7 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 - Word export belongs in `OfficeIMO.Markup.Word`.
 - Excel export belongs in `OfficeIMO.Markup.Excel`.
 - PowerPoint export belongs in `OfficeIMO.Markup.PowerPoint`.
-- CLI workflows belong in `OfficeIMO.Markup.Cli`.
+- CLI workflows belong in the `officeimo markup` command area in `OfficeIMO.Tool`.
 - VS Code authoring support belongs in `OfficeIMO.Markup.VSCode`.
 
 ## Related packages
@@ -110,7 +110,7 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 | [OfficeIMO.Markup.Word](../OfficeIMO.Markup.Word/README.md) | Export markup documents to Word. |
 | [OfficeIMO.Markup.Excel](../OfficeIMO.Markup.Excel/README.md) | Export markup workbooks to Excel. |
 | [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Export markup presentations to PowerPoint. |
-| [OfficeIMO.Markup.Cli](../OfficeIMO.Markup.Cli/README.md) | Parse, validate, emit, and export from the command line. |
+| [OfficeIMO.Tool](../OfficeIMO.Tool/README.md) | Parse, validate, emit, and export from the `officeimo markup` command area. |
 | [OfficeIMO.Markdown](../OfficeIMO.Markdown/README.md) | Markdown model used by the markup parser. |
 
 ## Targets and license

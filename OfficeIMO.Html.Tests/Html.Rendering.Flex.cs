@@ -257,7 +257,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexWrap_DiagnosesUnsupportedRowGapAndReverseOverflow() {
+    public void HtmlFlexWrap_ResolvesCalculatedRowGapAndDiagnosesReverseOverflow() {
         const string html = """
             <div style="display:flex;flex-wrap:wrap-reverse;width:100px;height:30px;row-gap:calc(2px + 1px)">
               <div id="overflow-a" style="width:100px;height:20px;background:#ff0000"></div>
@@ -270,8 +270,7 @@ public sealed partial class HtmlRenderingTests {
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported)
             .ToList();
 
-        Assert.Equal(2, diagnostics.Count);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Detail == "row-gap=calc(2px + 1px)");
+        Assert.Single(diagnostics);
         Assert.Contains(diagnostics, diagnostic => diagnostic.Detail == "flex-wrap=wrap-reverse; cross-size-overflow");
         Assert.True(FindFlexShape(rendered, "div#overflow-a").Y >= 0D);
         Assert.True(FindFlexShape(rendered, "div#overflow-b").Y >= 0D);
@@ -555,7 +554,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexRow_DiagnosesUnsupportedValuesWithoutDiscardingItems() {
+    public void HtmlFlexRow_ResolvesCalculatedGapAndBasisWhileDiagnosingUnsupportedAlignment() {
         const string html = """
             <div id="flex" style="display:flex;width:200px;gap:calc(4px + 2px);justify-content:safe center">
               <div id="item" style="flex-basis:calc(20px + 5px);height:20px;background:#ff0000">Item</div>
@@ -565,7 +564,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderFlex(html, 220D);
 
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
-        Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported));
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported);
+        HtmlRenderShape item = FindFlexShape(rendered, "div#item");
+        Assert.Equal(25D, item.Width, 3);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 

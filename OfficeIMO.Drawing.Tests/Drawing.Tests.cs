@@ -3358,6 +3358,70 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeFontFaceCollectionAliasesReuseRegisteredFaces() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Portable Sans", fontData)
+            .AddAlias("Arial", "Portable Sans");
+
+        Assert.Equal(2, fonts.Faces.Count);
+        Assert.True(fonts.TryMeasureText(
+            char.ConvertFromUtf32(0x1F600),
+            1000D,
+            "Arial",
+            OfficeFontStyle.Regular,
+            out double aliasWidth));
+        Assert.Equal(500D, aliasWidth);
+        Assert.Throws<ArgumentException>(() => fonts.AddAlias("Missing Alias", "Missing Source"));
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollectionFallbackFamiliesExtendAliasesAndSurviveCopies() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Portable Sans", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x0041)))
+            .AddAlias("Arial", "Portable Sans")
+            .Add("Emoji Fallback", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
+            .AddFallbackFamily("Emoji Fallback");
+
+        Assert.Equal(["Emoji Fallback"], fonts.FallbackFamilies);
+        Assert.Throws<ArgumentException>(() => fonts.AddFallbackFamily("Missing Fallback"));
+        Assert.Collection(
+            fonts.PlanFallbackRuns("A" + emoji, "Arial"),
+            run => {
+                Assert.Equal("A", run.Text);
+                Assert.Equal("Arial", run.FamilyName);
+            },
+            run => {
+                Assert.Equal(emoji, run.Text);
+                Assert.Equal("Emoji Fallback", run.FamilyName);
+            });
+
+        OfficeFontFaceCollection clone = fonts.Clone();
+        var combined = new OfficeFontFaceCollection().AddRange(fonts);
+        Assert.Equal(["Emoji Fallback"], clone.FallbackFamilies);
+        Assert.Equal(["Emoji Fallback"], combined.FallbackFamilies);
+        Assert.Contains(clone.PlanFallbackRuns(emoji, "Arial"), run => run.FamilyName == "Emoji Fallback");
+        Assert.Contains(combined.PlanFallbackRuns(emoji, "Arial"), run => run.FamilyName == "Emoji Fallback");
+    }
+
+    [Fact]
+    public void OfficeRasterCanvasUsesConfiguredFallbackForASingleResolvedRun() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Portable Sans", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x0041)))
+            .Add("Emoji Fallback", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
+            .AddFallbackFamily("Emoji Fallback");
+        var canvas = new OfficeRasterCanvas(
+            new OfficeRasterImage(1, 1, OfficeColor.Transparent),
+            fonts: fonts);
+
+        double measured = canvas.MeasureText(emoji, 1000D, "Portable Sans");
+
+        Assert.Equal(500D, measured);
+    }
+
+    [Fact]
     public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
         var fonts = new OfficeFontFaceCollection()
             .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))

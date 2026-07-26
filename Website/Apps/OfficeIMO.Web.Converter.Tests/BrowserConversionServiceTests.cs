@@ -17,7 +17,7 @@ public sealed class BrowserConversionServiceTests {
 
     [Fact]
     public void RouteCatalog_HasUniqueCustomerRoutes() {
-        Assert.Equal(6, ConversionRouteCatalog.All.Count);
+        Assert.Equal(7, ConversionRouteCatalog.All.Count);
         Assert.Equal(
             ConversionRouteCatalog.All.Count,
             ConversionRouteCatalog.All.Select(static route => route.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
@@ -26,6 +26,103 @@ public sealed class BrowserConversionServiceTests {
             Assert.False(string.IsNullOrWhiteSpace(route.Target));
             Assert.False(string.IsNullOrWhiteSpace(route.EnginePath));
         });
+    }
+
+    [Fact]
+    public void HtmlToPdf_UsesSharedRendererAndReturnsTaggedPortableArtifact() {
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            "<html lang='en-US'><head><title>Browser HTML</title></head><body><main><h1>Ready</h1><p>Local conversion</p><ul><li>One</li></ul><table><tr><th scope='col'>State</th></tr><tr><td>Green</td></tr></table></main></body></html>",
+            BrowserPdfProfileCatalog.Accessible);
+
+        Assert.Equal("application/pdf", result.ContentType);
+        Assert.Equal("officeimo-html.pdf", result.FileName);
+        PdfReadDocument readback = PdfReadDocument.Open(result.Bytes);
+        Assert.True(readback.HasTaggedContent);
+        Assert.Equal("en-US", readback.CatalogLanguage);
+        Assert.Contains("Ready", readback.ExtractText(), StringComparison.Ordinal);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(readback.TaggedContent);
+        Assert.Contains("H1", tagged.StructureTypes);
+        Assert.Contains("P", tagged.StructureTypes);
+        Assert.Contains("L", tagged.StructureTypes);
+        Assert.Contains("Table", tagged.StructureTypes);
+        Assert.Contains("TH", tagged.StructureTypes);
+        Assert.Contains("TD", tagged.StructureTypes);
+
+        PdfComplianceProofReport proof = PdfDocument.Open(result.Bytes)
+            .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
+        Assert.True(proof.HasArtifactEvidence);
+        Assert.Equal(result.Bytes.LongLength, proof.ArtifactSizeBytes);
+        Assert.True(proof.IsInternallyReady, string.Join(Environment.NewLine, proof.BlockingRequirements.Select(static item => item.Diagnostic)));
+        Assert.True(proof.ReadyForExternalValidation);
+        Assert.Equal("MissingExternalValidation", proof.ProofStatus);
+        Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, proof.MissingExternalValidators);
+        Assert.NotNull(result.CompanionReport);
+        Assert.Contains("OfficeIMO.Html.Pdf", Encoding.UTF8.GetString(result.CompanionReport!.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
+        var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
+        string[] aliases = [
+            "Arial",
+            "Helvetica",
+            "Calibri",
+            "Aptos",
+            "Segoe UI",
+            "Tahoma",
+            "Verdana",
+            "sans",
+            "sans-serif",
+            "ui-sans-serif",
+            "system-ui",
+            "-apple-system",
+            "BlinkMacSystemFont"
+        ];
+
+        Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
+        Assert.Equal(6 + aliases.Length * 4, options.Fonts.Faces.Count);
+        Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
+        Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+        Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
+        Assert.Equal(
+            [OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic],
+            options.Fonts.Faces
+                .Where(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily)
+                .Select(face => face.Style)
+                .ToArray());
+        Assert.True(options.Fonts.TryMeasureText(
+            "Layout boundary",
+            16D,
+            options.DefaultFontFamily,
+            OfficeFontStyle.Regular,
+            out double defaultWidth));
+        Assert.True(defaultWidth > 0D);
+        foreach (string alias in aliases) {
+            Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == alias));
+            Assert.True(options.Fonts.TryMeasureText(
+                "Layout boundary",
+                16D,
+                alias,
+                OfficeFontStyle.Regular,
+                out double aliasWidth));
+            Assert.Equal(defaultWidth, aliasWidth, 10);
+        }
+        IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
+            "Latin العربية ⌚",
+            options.DefaultFontFamily,
+            OfficeFontStyle.Regular);
+        Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+        Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
+        foreach (string alias in aliases) {
+            IReadOnlyList<OfficeFontFallbackRun> aliasFallbackRuns = options.Fonts.PlanFallbackRuns(
+                "Latin العربية ⌚",
+                alias,
+                OfficeFontStyle.Regular);
+            Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+            Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
+        }
+        Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.FontFamily?.FamilyName);
     }
 
     [Fact]
@@ -324,7 +421,7 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        BrowserConversionArtifact safe = _service.CreateSupportBundle(document, result);
+        BrowserConversionArtifact safe = _service.CreateSupportBundle(result);
         using var safeStream = new MemoryStream(safe.Bytes);
         using var safeArchive = new ZipArchive(safeStream, ZipArchiveMode.Read);
         Assert.Equal(["README.txt", "support-summary.json"], safeArchive.Entries.Select(static entry => entry.FullName).ToArray());
@@ -332,13 +429,36 @@ public sealed class BrowserConversionServiceTests {
         Assert.DoesNotContain("Private customer content marker", Encoding.UTF8.GetString(safe.Bytes), StringComparison.Ordinal);
 
         BrowserConversionArtifact explicitContent = _service.CreateSupportBundle(
-            document,
             result,
             includeDocumentContent: true);
         using var contentStream = new MemoryStream(explicitContent.Bytes);
         using var contentArchive = new ZipArchive(contentStream, ZipArchiveMode.Read);
         Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/source.docx");
         Assert.Contains(contentArchive.Entries, static entry => entry.FullName == "content/result.pdf");
+    }
+
+    [Fact]
+    public void SupportBundle_UsesTheExactTextSnapshotBoundToTheConversionResult() {
+        const string original = "<html lang='en'><body><p>Original snapshot marker</p></body></html>";
+        string editor = original;
+        ConversionResult result = _service.ConvertText(
+            ConversionRouteCatalog.Find("html-pdf"),
+            editor);
+        editor = "<html lang='en'><body><p>Edited after conversion</p></body></html>";
+
+        BrowserConversionArtifact bundle = _service.CreateSupportBundle(
+            result,
+            includeDocumentContent: true);
+        using var stream = new MemoryStream(bundle.Bytes);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        ZipArchiveEntry source = Assert.Single(
+            archive.Entries,
+            static entry => entry.FullName == "content/source.html");
+        using var reader = new StreamReader(source.Open(), Encoding.UTF8);
+        string bundledSource = reader.ReadToEnd();
+
+        Assert.Equal(original, bundledSource);
+        Assert.DoesNotContain(editor, bundledSource, StringComparison.Ordinal);
     }
 
     [Fact]

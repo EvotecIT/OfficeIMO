@@ -19,6 +19,7 @@ internal static class HtmlRenderStylesheetApplier {
         IHtmlDocument document,
         HtmlResourceSession resources,
         HtmlRenderOptions options,
+        HtmlConversionLimits limits,
         HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -62,6 +63,7 @@ internal static class HtmlRenderStylesheetApplier {
                     stylesheetUri,
                     resources,
                     options,
+                    limits,
                     diagnostics,
                     new HashSet<string>(StringComparer.OrdinalIgnoreCase),
                     reportedCycles,
@@ -105,6 +107,7 @@ internal static class HtmlRenderStylesheetApplier {
         Uri stylesheetUri,
         HtmlResourceSession resources,
         HtmlRenderOptions options,
+        HtmlConversionLimits limits,
         HtmlDiagnosticReport diagnostics,
         HashSet<string> activeStylesheets,
         HashSet<string> reportedCycles,
@@ -117,10 +120,12 @@ internal static class HtmlRenderStylesheetApplier {
 
         var resourceOptions = new HtmlResourcePipelineOptions {
             ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
+            Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaFeatures = options.MediaFeatures.Clone()
         };
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
         var builder = new System.Text.StringBuilder(analysis.Css);
@@ -138,7 +143,7 @@ internal static class HtmlRenderStylesheetApplier {
                 } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, out string importedCss)) {
                     if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
                         || TryReserveCss(cssBudget, importedCss, reference.Source, diagnostics)) {
-                        replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles, cssBudget);
+                        replacement = ExpandImports(importedCss, importedUri, resources, options, limits, diagnostics, activeStylesheets, reportedCycles, cssBudget);
                     }
                 } else {
                     diagnostics.Add(

@@ -136,8 +136,8 @@ $forbiddenClaims = @(
     'focused on COM-free Open XML workflows',
     'Are Open XML formats enough for the workload?',
     'Legacy binary Office formats.',
-    '88 of the 89 production projects',
-    '88 of 89 production projects',
+    '89 of the 90 production projects',
+    '89 of 90 production projects',
     '85 library assemblies',
     '117|Tracked behaviors'
 )

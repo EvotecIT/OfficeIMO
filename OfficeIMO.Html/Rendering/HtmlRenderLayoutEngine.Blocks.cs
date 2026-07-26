@@ -211,6 +211,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
@@ -260,6 +261,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlRenderTrailingGroup group in child.TrailingGroups) {
                     trailingGroups.Add(group.Translate(0D, childStart));
                 }
+                foreach (HtmlCssRunningStringAssignment assignment in child.RunningStringAssignments) {
+                    runningStringAssignments.Add(assignment.Translate(childStart));
+                }
 
                 contentBreakOffsets.Add(contentHeight);
             }
@@ -271,6 +275,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
             lineBreakOffsets.AddRange(inline.BreakOffsets);
+            runningStringAssignments.AddRange(inline.RunningStringAssignments);
         }
 
         if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && !style.HasBorderLayout) {
@@ -284,6 +289,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
+        var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -292,7 +298,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
-            overflowContent);
+            overflowContent,
+            positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
@@ -306,7 +313,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.MarginLeft + style.BorderLeftWidth,
                 style.MarginTop + style.BorderTopWidth,
                 PositionedPaintBand.NonNegative,
-                overflowContent);
+                overflowContent,
+                positionedRunningStringAssignments);
         }
         AppendOverflowContent(
             visuals,
@@ -352,14 +360,55 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedContinuationGroups,
             adjustedTrailingGroups,
             pageName: pageName,
-            unclampedHeight: unclampedOuterHeight);
+            unclampedHeight: unclampedOuterHeight,
+            runningStringAssignments: runningStringAssignments
+                .Select(assignment => assignment.Translate(contentYForBreaks))
+                .Concat(positionedRunningStringAssignments)
+                .OrderBy(assignment => assignment.OrderOffset));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
     }
 
-    private static HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) =>
-        block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+    private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
+        HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments =
+            ResolveRunningStringAssignments(element, style, 0D);
+        return ownAssignments.Count == 0
+            ? attached
+            : attached.WithRunningStringAssignments(ownAssignments.Concat(attached.RunningStringAssignments));
+    }
+
+    private IReadOnlyList<HtmlCssRunningStringAssignment> ResolveRunningStringAssignments(
+        IElement element,
+        HtmlRenderBoxStyle style,
+        double offset) {
+        string source = HtmlRenderStyleResolver.DescribeSource(element);
+        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments = HtmlCssRunningStringParser.ResolveAssignments(
+            element,
+            style.StringSet,
+            _options.MaxRunningStringCharacters,
+            count => ChargeLayoutOperations(count, source),
+            (contentElement, maximumCharacters, chargeOperations) =>
+                ResolveRunningStringContentText(
+                    contentElement,
+                    style,
+                    maximumCharacters,
+                    chargeOperations),
+            out bool limitExceeded);
+        if (limitExceeded) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.RunningStringLimitExceeded,
+                "A CSS running-string value exceeded the configured character limit and was omitted.",
+                HtmlDiagnosticSeverity.Warning,
+                source,
+                "limit=" + _options.MaxRunningStringCharacters);
+        }
+        return Math.Abs(offset) <= 0.0001D
+            ? ownAssignments
+            : ownAssignments.Select(assignment => assignment.Translate(offset)).ToList().AsReadOnly();
+    }
 
     private static bool CanCollapseParentMargin(HtmlRenderBoxStyle style, bool top) {
         if (style.Display != "block" && style.Display != "list-item") return false;
@@ -415,7 +464,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.BreakOffsets,
             style.Orphans,
             style.Widows,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: inline.RunningStringAssignments);
         blocks.Add(block);
         return block.Height;
     }

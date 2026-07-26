@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
@@ -31,6 +32,10 @@
     <EmbeddedResource Include="Assets\Fonts\font-pack.json" />
     <None Update="Assets\Fonts\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="Assets\Fonts\font-pack.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" />
   </ItemGroup>
 
 </Project>

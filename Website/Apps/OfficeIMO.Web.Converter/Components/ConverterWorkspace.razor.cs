@@ -85,7 +85,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     protected override void OnInitialized() {
         _interop = new ConverterInterop(JS);
         ActiveRoute = ConversionRouteCatalog.Find(GetQueryValue("route"));
-        TextInput = ActiveRoute.Id == "html-markdown" ? DefaultHtml : DefaultMarkdown;
+        TextInput = IsHtmlInputRoute(ActiveRoute) ? DefaultHtml : DefaultMarkdown;
     }
 
     private async Task SelectRouteAsync(ConversionRoute route) {
@@ -95,7 +95,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
         await ResetOutputAsync();
         ActiveRoute = route;
         SelectedFile = null;
-        TextInput = route.Id == "html-markdown" ? DefaultHtml : DefaultMarkdown;
+        TextInput = IsHtmlInputRoute(route) ? DefaultHtml : DefaultMarkdown;
         GenerateDebugOverlay = false;
         IncludeDocumentContentInSupportBundle = false;
         Diagnostics.Clear();
@@ -147,7 +147,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     private async Task LoadTextSampleAsync() {
         await ResetOutputAsync();
-        TextInput = ActiveRoute.Id == "html-markdown" ? DefaultHtml : DefaultMarkdown;
+        TextInput = IsHtmlInputRoute(ActiveRoute) ? DefaultHtml : DefaultMarkdown;
         Diagnostics.Clear();
         Diagnostics.Add(new("Sample ready", $"Sample {ActiveRoute.Source} is ready.", "ocx-dot--good"));
     }
@@ -172,7 +172,11 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     LimitExcelRows,
                     SelectedProfile,
                     GenerateDebugOverlay)
-                : ConversionService.ConvertText(ActiveRoute, TextInput);
+                : ConversionService.ConvertText(
+                    ActiveRoute,
+                    TextInput,
+                    SelectedProfile,
+                    GenerateDebugOverlay);
             stopwatch.Stop();
             ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             OutputFileName = Output.FileName;
@@ -201,8 +205,11 @@ This **Markdown** becomes a browser preview or an editable Word document.
         }
     }
 
+    private static bool IsHtmlInputRoute(ConversionRoute route) =>
+        route.Id is "html-markdown" or "html-pdf";
+
     private async Task PrepareSupportBundleAsync() {
-        if (_interop is null || SelectedFile is null || Output is null) {
+        if (_interop is null || Output is null) {
             return;
         }
 
@@ -210,7 +217,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
             await _interop.RevokeObjectUrlAsync(OutputSupportUrl);
         }
         BrowserConversionArtifact supportBundle = ConversionService.CreateSupportBundle(
-            SelectedFile,
             Output,
             IncludeDocumentContentInSupportBundle);
         OutputSupportFileName = supportBundle.FileName;

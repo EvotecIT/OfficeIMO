@@ -20,6 +20,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
     /// <summary>Layout exceeded the configured operation limit.</summary>
     public const string LayoutOperationLimitExceeded = "HtmlRenderLayoutOperationLimitExceeded";
+    /// <summary>A paged running-string value exceeded its configured character limit.</summary>
+    public const string RunningStringLimitExceeded = "HtmlRenderRunningStringLimitExceeded";
     /// <summary>The source HTML string exceeded the configured character limit.</summary>
     public const string InputCharacterLimitExceeded = "HtmlRenderInputCharacterLimitExceeded";
     /// <summary>The parsed HTML document exceeded the configured DOM node limit.</summary>
@@ -158,6 +160,7 @@ public static class HtmlRenderDiagnosticCodes {
         GradientStopLimitExceeded,
         DepthLimitExceeded,
         LayoutOperationLimitExceeded,
+        RunningStringLimitExceeded,
         InputCharacterLimitExceeded,
         NodeLimitExceeded,
         EmptyTable,

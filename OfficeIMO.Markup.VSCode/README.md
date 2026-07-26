@@ -71,7 +71,7 @@ npm run compile
 npm run package
 ```
 
-`npm run package` builds fresh `OfficeIMO.Markup.Cli` runtimes into the VSIX, compiles the extension JavaScript, and writes `dist/officeimo-markup-<version>.vsix`. The generated CLI binaries are removed after packaging and are not committed, so source and shipped tooling cannot drift apart. Use this command instead of raw `vsce package`.
+`npm run package` builds fresh `OfficeIMO.Tool` runtimes into the VSIX, compiles the extension JavaScript, and writes `dist/officeimo-markup-<version>.vsix`. The extension invokes the namespaced `officeimo markup` commands. Generated tool binaries are removed after packaging and are not committed, so source and shipped tooling cannot drift apart. Use this command instead of raw `vsce package`.
 
 For packaged Insiders installation:
 
@@ -94,7 +94,7 @@ CI packaging and publishing are handled by `.github/workflows/vscode-extension.y
 
 - Extension UI, packaging, and VS Code commands belong here.
 - Markup parsing and semantic behavior belongs in `OfficeIMO.Markup`.
-- Command-line parse/export behavior belongs in `OfficeIMO.Markup.Cli`.
+- Command-line parse/export behavior belongs in the `officeimo markup` command area in `OfficeIMO.Tool`.
 - Export fidelity belongs in the target exporter packages.
 
 Report bugs and feature requests in the [OfficeIMO issue tracker](https://github.com/EvotecIT/OfficeIMO/issues).
@@ -102,6 +102,6 @@ Report bugs and feature requests in the [OfficeIMO issue tracker](https://github
 ## Dependency footprint
 
 - **External:** VS Code. Mermaid CLI integration is optional.
-- **OfficeIMO:** The extension bundles the repository's self-contained Markup CLI for Windows, Linux, and macOS instead of depending on a separately installed document engine.
+- **OfficeIMO:** The extension bundles the repository's self-contained unified tool for Windows, Linux, and macOS and invokes only its Markup command area.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -518,7 +518,7 @@ public static partial class OfficeSvgDrawingReader {
         switch (name.Trim().ToLowerInvariant()) {
             case "color":
                 if (normalized.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) break;
-                if (!TrySvgColor(normalized, out OfficeColor currentColor)) unsupported++;
+                if (!OfficeColor.TryParseCss(normalized, out OfficeColor currentColor)) unsupported++;
                 else style.Color = currentColor;
                 break;
             case "fill":

@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
@@ -50,7 +51,11 @@ public sealed class BrowserConversionService {
             generateDebugOverlay || effectiveProfile.Kind == BrowserPdfProfileKind.Diagnostic);
     }
 
-    public ConversionResult ConvertText(ConversionRoute route, string input) {
+    public ConversionResult ConvertText(
+        ConversionRoute route,
+        string input,
+        BrowserPdfProfile? profile = null,
+        bool generateDebugOverlay = false) {
         ArgumentNullException.ThrowIfNull(input);
         if (input.Length > MaxTextInputChars) {
             throw new ArgumentOutOfRangeException(nameof(input),
@@ -58,6 +63,7 @@ public sealed class BrowserConversionService {
         }
 
         return route.Id switch {
+            "html-pdf" => ConvertHtmlToPdf(input, profile ?? BrowserPdfProfileCatalog.Faithful, generateDebugOverlay),
             "markdown-html" => ConvertMarkdownToHtml(input),
             "html-markdown" => ConvertHtmlToMarkdown(input),
             "markdown-docx" => ConvertMarkdownToWord(input),
@@ -65,11 +71,38 @@ public sealed class BrowserConversionService {
         };
     }
 
+    private static ConversionResult ConvertHtmlToPdf(
+        string input,
+        BrowserPdfProfile profile,
+        bool generateDebugOverlay) {
+        byte[] sourceBytes = Encoding.UTF8.GetBytes(input);
+        var source = new SelectedDocument("officeimo-html.html", ".html", "HTML", sourceBytes.LongLength, sourceBytes);
+        var stopwatch = Stopwatch.StartNew();
+        PdfDocumentConversionResult conversion = HtmlConversionDocument.Parse(input)
+            .ToPdfDocumentResult(BrowserPortablePdfProfile.CreateHtmlOptions(profile));
+        (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
+        stopwatch.Stop();
+        return PdfResult(
+            source,
+            new PdfConversionPayload(
+                bytes,
+                conversion.Report,
+                serialization,
+                "OfficeIMO.Html.Pdf",
+                "portable-deterministic"),
+            profile,
+            stopwatch.ElapsedMilliseconds,
+            generateDebugOverlay || profile.Kind == BrowserPdfProfileKind.Diagnostic);
+    }
+
     public BrowserConversionArtifact CreateSupportBundle(
-        SelectedDocument source,
         ConversionResult result,
-        bool includeDocumentContent = false) =>
-        BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
+        bool includeDocumentContent = false) {
+        ArgumentNullException.ThrowIfNull(result);
+        SelectedDocument source = result.SourceSnapshot
+            ?? throw new InvalidOperationException("The conversion result does not retain a source snapshot.");
+        return BrowserPdfSupportBundle.Create(source, result, includeDocumentContent);
+    }
 
     private static PdfConversionPayload ConvertWordToPdf(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
@@ -184,9 +217,18 @@ public sealed class BrowserConversionService {
                 payload.Serialization.PeakRetainedObjectBytes),
             PageCount = payload.Serialization.PageCount,
             ConversionMilliseconds = conversionMilliseconds,
-            Profile = profile
+            Profile = profile,
+            SourceSnapshot = Snapshot(file)
         };
     }
+
+    private static SelectedDocument Snapshot(SelectedDocument source) =>
+        new(
+            source.Name,
+            source.Extension,
+            source.FormatLabel,
+            source.Size,
+            (byte[])source.Bytes.Clone());
 
     private static (byte[] Bytes, PdfSerializationReport Serialization) SaveWithEvidence(
         PdfDocumentConversionResult conversion) {

@@ -3,14 +3,14 @@ using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Html;
 
-/// <summary>Generates a support matrix from the shared profile contracts and diagnostic catalog.</summary>
+/// <summary>Generates a support matrix from shared profile, target, renderer, and diagnostic contracts.</summary>
 public static class HtmlSupportMatrixWriter {
-    /// <summary>Generates deterministic Markdown describing the current profile contracts and diagnostic boundaries.</summary>
+    /// <summary>Generates deterministic Markdown describing the current executable compatibility contracts.</summary>
     public static string ToMarkdown() {
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO HTML support matrix");
         builder.AppendLine();
-        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, and `HtmlDiagnosticCatalog`. Profile and target entries are tested contracts; diagnostic entries describe bounded fallbacks, policy decisions, and safety limits.");
+        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
         builder.AppendLine();
         builder.AppendLine("## Conversion profiles");
 
@@ -56,6 +56,21 @@ public static class HtmlSupportMatrixWriter {
         }
 
         builder.AppendLine();
+        builder.AppendLine("## Direct renderer compatibility contracts");
+        builder.AppendLine();
+        builder.AppendLine("| Area | ID | Kind | Support | Features | Behavior | Diagnostics |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
+            builder.Append("| ").Append(EscapeCell(capability.Area)).Append(" | `")
+                .Append(EscapeCode(capability.Id)).Append("` | ")
+                .Append(capability.Kind).Append(" | ")
+                .Append(capability.SupportLevel).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", capability.Features))).Append(" | ")
+                .Append(EscapeCell(capability.Behavior)).Append(" | ")
+                .Append(EscapeCell(FormatCodes(capability.DiagnosticCodes))).AppendLine(" |");
+        }
+
+        builder.AppendLine();
         builder.AppendLine("## Diagnostic boundaries");
         builder.AppendLine();
         builder.AppendLine("| Category | Code | Severity | Meaning | Remediation |");
@@ -95,4 +110,7 @@ public static class HtmlSupportMatrixWriter {
 
     private static string FormatFeatures(IReadOnlyList<HtmlSemanticFeature> features) =>
         features.Count == 0 ? "None" : string.Join(", ", features);
+
+    private static string FormatCodes(IReadOnlyList<string> codes) =>
+        codes.Count == 0 ? "None" : string.Join(", ", codes.Select(code => "`" + code + "`"));
 }

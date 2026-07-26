@@ -64,8 +64,11 @@ var options = new HtmlPdfSaveOptions {
     Margins = HtmlRenderMargins.All(32),
     DefaultFontFamily = "Arial",
     BackgroundColor = OfficeColor.White,
-    Scale = 1.5
+    Scale = 1.5,
+    DocumentOptions = new OfficeIMO.Pdf.PdfOptions()
+        .EnableTaggedPdfCatalogMarkers()
 };
+options.AdditionalStylesheets.Add("@page { margin: 18mm }");
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 byte[] pdf = source.ToPdf(options);
@@ -109,6 +112,19 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 ```
 
 Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. The balanced default allows installed fonts plus bounded data URIs and MHTML package parts, but does not call local or remote resolvers. Portable deterministic mode disables installed-font discovery explicitly.
+
+## Command-line conversion
+
+Install `OfficeIMO.Tool` when a script or build pipeline is the desired surface:
+
+```powershell
+dotnet tool install --global OfficeIMO.Tool
+officeimo html convert report.html --output report.pdf
+officeimo html convert archive.mhtml --output archive.pdf
+officeimo html capabilities --format json
+```
+
+The command uses the same renderer and capability catalog as the .NET API. Local and remote resource reads are disabled by default; embedded data and bounded MHTML resources remain available. Standard input/output, caller stylesheets, page limits, atomic file replacement, and explicit embedded fonts for PDF/UA-ready artifacts are supported.
 
 ## Explicit document projections
 

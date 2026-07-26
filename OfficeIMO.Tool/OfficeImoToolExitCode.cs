@@ -1,11 +1,12 @@
-namespace OfficeIMO.Reader.Tool;
+namespace OfficeIMO.Tool;
 
-internal enum ReaderToolExitCode {
+internal enum OfficeImoToolExitCode {
     Success = 0,
+    ValidationFailed = 1,
     Usage = 2,
     InputNotFound = 3,
     UnsupportedInput = 4,
-    ReadFailed = 5,
+    OperationFailed = 5,
     OutputFailed = 6,
     Cancelled = 130
 }

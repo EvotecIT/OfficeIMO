@@ -305,17 +305,28 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_CancelsLargeRenderOperation() {
         string html = "<main>" + string.Concat(Enumerable.Repeat("<div><span>Cancellation marker</span></div>", 20000)) + "</main>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1D));
+        var cancellationThread = new Thread(() => {
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        }) {
+            IsBackground = true
+        };
+        cancellationThread.Start();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            HtmlRenderTestDriver.RenderAsync(
-                HtmlConversionDocument.Parse(html),
-                new HtmlRenderOptions {
-                    ViewportWidth = 240D,
-                    MaxSurfaceHeight = 1_000_000
-                },
-                cancellation.Token));
+        try {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                HtmlRenderTestDriver.RenderAsync(
+                    document,
+                    new HtmlRenderOptions {
+                        ViewportWidth = 240D,
+                        MaxSurfaceHeight = 1_000_000
+                    },
+                    cancellation.Token));
+        } finally {
+            Assert.True(cancellationThread.Join(TimeSpan.FromSeconds(5D)));
+        }
     }
 
     [Fact]
@@ -862,6 +873,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_PageRulesUseConfiguredMediaFeatures() {
+        string html = "<style>@media (prefers-color-scheme:dark) { @page { size: 5in 3in; } } @media (prefers-color-scheme:light) { @page { size: 2in 2in; } }</style><p>Dark page</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(12D),
+            MediaFeatures = new HtmlRenderMediaFeatures {
+                PreferredColorScheme = HtmlPreferredColorScheme.Dark
+            }
+        };
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages);
+
+        Assert.Equal(480D, page.Width, 3);
+        Assert.Equal(288D, page.Height, 3);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_FragmentsLongTextAndTablesAtStableLineAndRowBoundaries() {
         string paragraph = string.Join(" ", Enumerable.Range(0, 90).Select(index => "word" + index.ToString("D3")));
         string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index => "<tr><td>Row" + index.ToString("D2") + "</td><td>Value" + index.ToString("D2") + "</td></tr>"));
@@ -1322,7 +1351,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_DirectRenderer_MapsHeadingsAndParagraphsToTaggedStructure() {
-        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
+        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title><meta name='author' content='HTML Team'><meta name='description' content='Tagged document proof'><meta name='keywords' content='html, pdf, tagged'><meta name='generator' content='Report Builder'></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
 
@@ -1331,7 +1360,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Semantic document", rendered.Metadata.Title);
         Assert.Equal("pl-PL", rendered.Metadata.Language);
         Assert.Equal(HtmlRenderTextDirection.RightToLeft, rendered.Metadata.Direction);
+        Assert.Equal("HTML Team", rendered.Metadata.Author);
+        Assert.Equal("Tagged document proof", rendered.Metadata.Subject);
+        Assert.Equal("html, pdf, tagged", rendered.Metadata.Keywords);
+        Assert.Equal("Report Builder", rendered.Metadata.Creator);
         Assert.Equal("Semantic document", info.Metadata.Title);
+        Assert.Equal("HTML Team", info.Metadata.Author);
+        Assert.Equal("Tagged document proof", info.Metadata.Subject);
+        Assert.Equal("html, pdf, tagged", info.Metadata.Keywords);
         Assert.Equal("pl-PL", info.CatalogLanguage);
         PdfCore.PdfViewerPreferences viewerPreferences = Assert.IsType<PdfCore.PdfViewerPreferences>(info.ViewerPreferences);
         Assert.Equal("true", viewerPreferences.GetValue("DisplayDocTitle"));
@@ -1371,6 +1407,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, outline.Level);
         Assert.Equal("Nested detail", Assert.Single(outline.Children).Title);
         Assert.Contains("Semantic heading", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_DirectRenderer_PreservesExplicitUntaggedDocumentMode() {
+        var options = new HtmlPdfSaveOptions {
+            DocumentOptions = new PdfCore.PdfOptions {
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.None
+            }
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse("<p>Explicit untagged output</p>").ToPdf(options);
+
+        Assert.False(PdfCore.PdfReadDocument.Open(pdf).HasTaggedContent);
+    }
+
+    [Fact]
+    public void HtmlPdf_DirectRenderer_UsesXmlLanguageWhenHtmlLanguageIsEmpty() {
+        const string html = "<html lang='' xml:lang='fr-FR'><body><p>Langue</p></body></html>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+
+        Assert.Equal("fr-FR", rendered.Metadata.Language);
+        Assert.Equal("fr-FR", PdfCore.PdfReadDocument.Open(pdf).CatalogLanguage);
+    }
+
+    [Fact]
+    public void HtmlPdf_DirectRenderer_PreservesCallerDocumentLanguageOverHtmlMetadata() {
+        const string html = "<html lang='fr-FR'><body><p>Language precedence</p></body></html>";
+        var options = new HtmlPdfSaveOptions();
+        options.DocumentOptions.Language = "en-US";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal("en-US", PdfCore.PdfReadDocument.Open(pdf).CatalogLanguage);
     }
 
     [Fact]

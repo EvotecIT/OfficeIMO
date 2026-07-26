@@ -199,7 +199,7 @@
       "path": "/downloads/showcase/reader/design-brief.reader.json",
       "bytes": 226979,
       "sha256": "390b0327c1993b4ee0ca97079444b4e7007cc7471cc29958b982ee0b1b9c0bf7",
-      "generator": "OfficeIMO.Reader.Tool read - --name design-brief.pptx --format json",
+      "generator": "officeimo reader read - --name design-brief.pptx --format json",
       "evidence": "Schema-versioned Reader result generated from the downloadable PPTX."
     },
     {

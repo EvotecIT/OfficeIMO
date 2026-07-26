@@ -1,4 +1,4 @@
-using OfficeIMO.Reader.Tool;
+using OfficeIMO.Tool;
 
 using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, eventArgs) => {
@@ -6,9 +6,9 @@ Console.CancelKeyPress += (_, eventArgs) => {
     cancellation.Cancel();
 };
 
-return await ReaderToolApp.RunAsync(
+return await OfficeImoToolApp.RunAsync(
     args,
     Console.OpenStandardInput(),
-    Console.Out,
+    Console.OpenStandardOutput(),
     Console.Error,
     cancellation.Token).ConfigureAwait(false);

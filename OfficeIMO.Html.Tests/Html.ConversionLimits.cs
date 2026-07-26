@@ -208,6 +208,180 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlConversionDocument_CountsRetainedStringSetRuleOnce() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssRules = 1;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.target{string-set:chapter content()}</style><p class='target'>x</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        _ = document.StyleSummary;
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_EnforcesCssNestingDepthBeforeRetainedDeclarationTraversal() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 4;
+        string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
+            + ".target{string-set:chapter content()}"
+            + new string('}', 1024);
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>" + css + "</style><p class='target'>x</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssNestingDepth), exception.LimitSource);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_EnforcesCssNestingDepthBeforeFontFaceParsing() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 4;
+        string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
+            + "@font-face{font-family:Nested;src:url('nested.woff2')}"
+            + new string('}', 1024);
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssNestingDepth), exception.LimitSource);
+    }
+
+    [Fact]
+    public void HtmlRender_EnforcesCssNestingDepthBeforeParsingAdditionalStylesheets() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 4;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p>Body</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+        var options = new HtmlRenderOptions();
+        options.AdditionalStylesheets.Add(
+            string.Concat(Enumerable.Repeat("@supports(display:block){", 1024))
+            + ".target{color:red}"
+            + new string('}', 1024));
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(document, options));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssNestingDepth), exception.LimitSource);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_UsesDocumentCssNestingLimitsForExternalStylesheetAnalysis() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 72;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/deep.css'><p class='target'>Body</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        string css = string.Concat(Enumerable.Repeat("@media all{", 70))
+            + ".target{color:red}"
+            + new string('}', 70);
+        var options = new HtmlRenderOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceResolver = (request, _) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            visual => visual.Text.Contains("Body", StringComparison.Ordinal));
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, text.Color);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DoesNotCountEscapedBracesAsCssRuleBlocks() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 1;
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<style>.escaped\\{ { color:red }</style><p class='escaped{'>Body</p>",
+            new HtmlResourcePipelineOptions { Limits = limits });
+
+        Assert.Empty(manifest.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DoesNotLetEscapedClosingBracesHideCssNesting() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 2;
+        const string css = ".outer{--escaped:\\};@media all{.inner{color:red}}}";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DoesNotCountBracesInsideUnquotedUrlsAsCssRuleBlocks() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 1;
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<style>.target{background:url(image{{name}}.png);color:red}</style>",
+            new HtmlResourcePipelineOptions { Limits = limits });
+
+        Assert.Empty(manifest.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DoesNotLetClosingBracesInsideUnquotedUrlsHideCssNesting() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 2;
+        const string css = ".outer{background:url(image}}.png);@media all{.inner{color:red}}}";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\f")]
+    public void HtmlResourcePipeline_DoesNotLetMalformedStringsHideCssNesting(string newline) {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 2;
+        string css = ".outer{content:\"unterminated" + newline + ";@media all{.inner{color:red}}}";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+    }
+
+    [Theory]
+    [InlineData("\\\n")]
+    [InlineData("\\\r\n")]
+    [InlineData("\\\f")]
+    public void HtmlResourcePipeline_PreservesEscapedNewlinesInsideCssStrings(string escapedNewline) {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 1;
+        string css = ".target{content:\"line" + escapedNewline + "{{\";color:red}";
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<style>" + css + "</style>",
+            new HtmlResourcePipelineOptions { Limits = limits });
+
+        Assert.Empty(manifest.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_LoadStopsAtTheSharedCharacterBudgetAndRestoresTheStream() {
         byte[] bytes = Encoding.UTF8.GetBytes("<p>stream content</p>");
         using var stream = new MemoryStream(bytes);

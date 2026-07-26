@@ -1,17 +1,18 @@
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 
-namespace OfficeIMO.Reader.Tool;
+namespace OfficeIMO.Tool.Commands.Reader;
 
-internal static class ReaderToolApp {
+internal static class ReaderCommand {
     internal const string Usage = """
-OfficeIMO.Reader.Tool
+OfficeIMO.Tool - Reader
 
 Usage:
-  officeimo-reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>]
+  officeimo reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>]
                                 [--max-input-bytes <bytes>]
-  officeimo-reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>]
+  officeimo reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>]
                           [--max-files <count>] [--max-total-bytes <bytes>] [--max-input-bytes <bytes>] [--no-recursive]
-  officeimo-reader capabilities [--format text|json]
+  officeimo reader capabilities [--format text|json]
 
 The dependency-bounded tool does not configure OCR or hosted providers.
 """;
@@ -32,12 +33,12 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         } catch (ReaderToolUsageException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.Usage;
+            return (int)OfficeImoToolExitCode.Usage;
         }
 
         if (parsed.Command == ReaderToolCommand.Help) {
             await standardOutput.WriteLineAsync(Usage).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.Success;
+            return (int)OfficeImoToolExitCode.Success;
         }
 
         try {
@@ -53,27 +54,27 @@ The dependency-bounded tool does not configure OCR or hosted providers.
                     parsed, reader, standardError, cancellationToken).ConfigureAwait(false),
                 ReaderToolCommand.Capabilities => await RunCapabilitiesAsync(
                     parsed, reader, standardOutput).ConfigureAwait(false),
-                _ => (int)ReaderToolExitCode.Usage
+                _ => (int)OfficeImoToolExitCode.Usage
             };
         } catch (OperationCanceledException) {
             await standardError.WriteLineAsync("Operation cancelled.").ConfigureAwait(false);
-            return (int)ReaderToolExitCode.Cancelled;
+            return (int)OfficeImoToolExitCode.Cancelled;
         } catch (ReaderToolOutputException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.OutputFailed;
+            return (int)OfficeImoToolExitCode.OutputFailed;
         } catch (FileNotFoundException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.InputNotFound;
+            return (int)OfficeImoToolExitCode.InputNotFound;
         } catch (DirectoryNotFoundException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.InputNotFound;
+            return (int)OfficeImoToolExitCode.InputNotFound;
         } catch (NotSupportedException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.UnsupportedInput;
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (Exception exception) {
             await standardError.WriteLineAsync(
                 "Document read failed: " + exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.ReadFailed;
+            return (int)OfficeImoToolExitCode.OperationFailed;
         }
     }
 
@@ -111,7 +112,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         if (!string.IsNullOrWhiteSpace(options.AssetsPath)) {
             ReaderToolOutput.WriteAssets(document, options.AssetsPath!, cancellationToken);
         }
-        return (int)ReaderToolExitCode.Success;
+        return (int)OfficeImoToolExitCode.Success;
     }
 
     private static async Task<int> RunFolderAsync(
@@ -155,7 +156,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             options.Format,
             cancellationToken).ConfigureAwait(false);
         await standardError.WriteLineAsync("Converted " + paths.Count + " document(s).").ConfigureAwait(false);
-        return (int)ReaderToolExitCode.Success;
+        return (int)OfficeImoToolExitCode.Success;
     }
 
     private static async Task<int> RunCapabilitiesAsync(
@@ -164,13 +165,13 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         TextWriter standardOutput) {
         if (options.Format == ReaderToolOutputFormat.Json) {
             await standardOutput.WriteLineAsync(reader.GetCapabilityManifestJson(indented: true)).ConfigureAwait(false);
-            return (int)ReaderToolExitCode.Success;
+            return (int)OfficeImoToolExitCode.Success;
         }
 
         foreach (ReaderHandlerCapability capability in reader.GetCapabilities()) {
             await standardOutput.WriteLineAsync(
                 capability.Id + "\t" + capability.Origin + "\t" + string.Join(",", capability.Extensions)).ConfigureAwait(false);
         }
-        return (int)ReaderToolExitCode.Success;
+        return (int)OfficeImoToolExitCode.Success;
     }
 }

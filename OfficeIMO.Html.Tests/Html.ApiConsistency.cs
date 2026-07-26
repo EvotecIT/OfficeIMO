@@ -122,16 +122,25 @@ public sealed class HtmlApiConsistencyTests {
             TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar,
             FontFamily = fontFamily,
             TextShapingProvider = shapingProvider,
-            UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
+            UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            DocumentOptions = new PdfCore.PdfOptions {
+                ObjectSerializationMode = PdfCore.PdfObjectSerializationMode.ForwardOnly
+            }.UsePdfUa(PdfCore.PdfComplianceProfile.PdfUa1, "pl-PL")
         };
 
         var copied = new HtmlPdfSaveOptions(options);
+        options.DocumentOptions.Language = "en-US";
 
         Assert.Equal(PdfCore.PdfTextFallbackFeatures.None, copied.TextFallbacks);
         Assert.Equal(PdfCore.PdfTextShapingMode.UnicodeScalar, copied.TextShapingMode);
         Assert.Same(fontFamily, copied.FontFamily);
         Assert.Same(shapingProvider, copied.TextShapingProvider);
         Assert.False(copied.UrlPolicy.RestrictUrlSchemes);
+        Assert.Equal(PdfCore.PdfObjectSerializationMode.ForwardOnly, copied.DocumentOptions.ObjectSerializationMode);
+        Assert.Equal(PdfCore.PdfComplianceProfile.PdfUa1, copied.DocumentOptions.PdfUaIdentification?.Part == 1
+            ? PdfCore.PdfComplianceProfile.PdfUa1
+            : PdfCore.PdfComplianceProfile.None);
+        Assert.Equal("pl-PL", copied.DocumentOptions.Language);
     }
 
     [Fact]
