@@ -36,6 +36,8 @@ namespace OfficeIMO.Word.Html {
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<IElement, double> _computedFontSizePixels = new();
+        private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _computedBoxStyles = new();
+        private readonly Dictionary<IElement, CssStyleMapper.CssProperties> _inlineStyles = new();
         private readonly Dictionary<IElement, bool> _directionAttributeOverrides = new();
         private readonly Dictionary<Table, int> _tableContainerHorizontalSpacing = new();
         private readonly ConcurrentDictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
@@ -187,6 +189,8 @@ namespace OfficeIMO.Word.Html {
             _cssRules.Clear();
             _imageCache.Clear();
             _computedFontSizePixels.Clear();
+            _computedBoxStyles.Clear();
+            _inlineStyles.Clear();
             _remoteImageBytesCache.Clear();
             _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();

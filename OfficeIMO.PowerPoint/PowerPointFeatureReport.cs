@@ -1168,10 +1168,13 @@ namespace OfficeIMO.PowerPoint {
 
             try {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                byte[] workbookBytes = ReadChartWorkbookBytes(stream);
-                OfficePackageSecurityInspector.Validate(workbookBytes, CreateChartWorkbookSecurityOptions());
+                byte[] workbookBytes =
+                    PowerPointChartWorkbookSecurity.ReadAndValidate(stream);
                 using var workbookStream = new MemoryStream(workbookBytes, writable: false);
-                using SpreadsheetDocument workbook = SpreadsheetDocument.Open(workbookStream, false);
+                using SpreadsheetDocument workbook = SpreadsheetDocument.Open(
+                    workbookStream,
+                    false,
+                    PowerPointChartWorkbookSecurity.CreateOpenSettings());
                 return IsSafeGeneratedChartWorkbook(workbook);
             } catch (FileFormatException) {
                 return false;
@@ -1181,40 +1184,6 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             } catch (IOException) {
                 return false;
-            }
-        }
-
-        private static OfficePackageSecurityOptions CreateChartWorkbookSecurityOptions() =>
-            new OfficePackageSecurityOptions {
-                MaxPackageBytes = 8L * 1024L * 1024L,
-                MaxPartCount = 64,
-                MaxPartUncompressedBytes = 2L * 1024L * 1024L,
-                MaxTotalUncompressedBytes = 8L * 1024L * 1024L,
-                MaxCompressionRatio = 100D,
-                Macros = OfficePackageContentPolicy.Reject,
-                EmbeddedPayloads = OfficePackageContentPolicy.Reject,
-                ActiveX = OfficePackageContentPolicy.Reject,
-                ExternalRelationships = OfficePackageContentPolicy.Reject
-            };
-
-        private static byte[] ReadChartWorkbookBytes(Stream stream) {
-            const int maximumBytes = 8 * 1024 * 1024;
-            using var buffer = new MemoryStream();
-            var chunk = new byte[81920];
-            int totalBytes = 0;
-            while (true) {
-                int read = stream.Read(chunk, 0, Math.Min(chunk.Length, maximumBytes + 1 - totalBytes));
-                if (read == 0) {
-                    return buffer.ToArray();
-                }
-
-                totalBytes = checked(totalBytes + read);
-                if (totalBytes > maximumBytes) {
-                    throw new InvalidDataException(
-                        $"Embedded chart workbook exceeds the configured maximum of {maximumBytes} bytes.");
-                }
-
-                buffer.Write(chunk, 0, read);
             }
         }
 

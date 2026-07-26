@@ -651,7 +651,12 @@ namespace OfficeIMO.Excel {
             int structuralRowDelta = 0,
             int? lastDeletedRow = null) {
             var removedCells = new HashSet<(int Row, int Col)>(removed);
-            var movedCells = moved.ToDictionary(pair => pair.OldCell, pair => pair.NewCell);
+            var movedCells = new Dictionary<(int Row, int Col), (int Row, int Col)>();
+            foreach (var pair in moved) {
+                if (!movedCells.ContainsKey(pair.OldCell)) {
+                    movedCells.Add(pair.OldCell, pair.NewCell);
+                }
+            }
             var movedShapes = new HashSet<(int Row, int Col)>();
             VmlDrawingPart? vmlPart = TryGetCommentVmlPart();
             if (vmlPart != null) {

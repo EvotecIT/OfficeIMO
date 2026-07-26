@@ -332,7 +332,7 @@ namespace OfficeIMO.Word.Html {
             return parsed;
         }
 
-        private static string? ResolveParagraphBackground(
+        private string? ResolveParagraphBackground(
             IElement element,
             CssStyleMapper.CssProperties parsed) {
             if (string.IsNullOrEmpty(parsed.BackgroundColor)) {
@@ -351,7 +351,8 @@ namespace OfficeIMO.Word.Html {
             }
             while (ancestors.Count > 0) {
                 IElement ancestor = ancestors.Pop();
-                CssStyleMapper.CssProperties ancestorStyle = CssStyleMapper.ParseStyles(ancestor.GetAttribute("style"));
+                CssStyleMapper.CssProperties ancestorStyle =
+                    ParseInlineStyles(ancestor);
                 if (string.IsNullOrEmpty(ancestorStyle.BackgroundColor)) {
                     continue;
                 }
@@ -365,6 +366,19 @@ namespace OfficeIMO.Word.Html {
             }
 
             return ResolveOpaqueTextBackground(parsed.BackgroundColor!, alpha, backdrop);
+        }
+
+        private CssStyleMapper.CssProperties ParseInlineStyles(IElement element) {
+            if (_inlineStyles.TryGetValue(
+                    element,
+                    out CssStyleMapper.CssProperties? cached)) {
+                return cached;
+            }
+
+            CssStyleMapper.CssProperties parsed = CssStyleMapper.ParseStyles(
+                element.GetAttribute("style"));
+            _inlineStyles[element] = parsed;
+            return parsed;
         }
 
         private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {

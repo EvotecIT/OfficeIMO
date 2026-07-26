@@ -83,12 +83,32 @@ public sealed class OfficeChartSeries {
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
-    /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
-        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
-        bool showMarkerOutline = true) {
+        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null) =>
+        CreateBubble(name, xValues, yValues, bubbleSizes, color, pointColors,
+            showInLegend, markerOutlineColor, markerOutlineWidth,
+            showMarkerOutline: true);
+
+    /// <summary>
+    /// Creates a bubble-chart series with explicit control over whether bubble outlines are rendered.
+    /// </summary>
+    /// <param name="name">Display name for the series.</param>
+    /// <param name="xValues">Numeric X-axis values.</param>
+    /// <param name="yValues">Numeric Y-axis values.</param>
+    /// <param name="bubbleSizes">Non-negative bubble sizes aligned with the X/Y values.</param>
+    /// <param name="color">Optional source-defined series color.</param>
+    /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
+    /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
+    /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
+    /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
+    public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
+        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
+        IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
+        OfficeColor? markerOutlineColor, double? markerOutlineWidth,
+        bool showMarkerOutline) {
         if (xValues == null) throw new ArgumentNullException(nameof(xValues));
         if (yValues == null) throw new ArgumentNullException(nameof(yValues));
         if (bubbleSizes == null) throw new ArgumentNullException(nameof(bubbleSizes));
