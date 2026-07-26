@@ -145,6 +145,7 @@ Keep rendering scoped until the implementation path is proven.
 
 ## Source Notes
 
+- Detailed capability gap and closure plan: `Docs/officeimo.excel-capability-gap-plan.md`
 - Current package documentation: `OfficeIMO.Excel/README.md`
 - Current feature status: `OfficeIMO.Excel/COMPATIBILITY.md`
 - Large workbook guidance: `Docs/officeimo.excel.large-workbook-guidance.md`
