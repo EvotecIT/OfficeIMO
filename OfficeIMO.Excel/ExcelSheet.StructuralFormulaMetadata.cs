@@ -233,7 +233,9 @@ namespace OfficeIMO.Excel {
                         rowDelta,
                         lastDeletedRow,
                         out int calculatedColumnAnchorDelta,
-                        out int totalsRowAnchorDelta);
+                        out int totalsRowAnchorDelta,
+                        out int calculatedColumnAnchorRow,
+                        out int totalsRowAnchorRow);
                     foreach (CalculatedColumnFormula formula in tablePart.Table.Descendants<CalculatedColumnFormula>()) {
                         tableChanged |= isMutatedSheet
                             ? RewriteAnchoredFormulaText(
@@ -242,7 +244,8 @@ namespace OfficeIMO.Excel {
                                 rowDelta,
                                 lastDeletedRow,
                                 calculatedColumnAnchorDelta,
-                                relativeReferencesFollowAnchor: true)
+                                relativeReferencesFollowAnchor: true,
+                                relativeFormulaAnchorRow: calculatedColumnAnchorRow)
                             : RewriteStructuralFormulaText(
                                 formula,
                                 firstAffectedRow,
@@ -258,7 +261,8 @@ namespace OfficeIMO.Excel {
                                 rowDelta,
                                 lastDeletedRow,
                                 totalsRowAnchorDelta,
-                                relativeReferencesFollowAnchor: true)
+                                relativeReferencesFollowAnchor: true,
+                                relativeFormulaAnchorRow: totalsRowAnchorRow)
                             : RewriteStructuralFormulaText(
                                 formula,
                                 firstAffectedRow,
@@ -310,9 +314,13 @@ namespace OfficeIMO.Excel {
             int rowDelta,
             int? lastDeletedRow,
             out int calculatedColumnAnchorDelta,
-            out int totalsRowAnchorDelta) {
+            out int totalsRowAnchorDelta,
+            out int calculatedColumnAnchorRow,
+            out int totalsRowAnchorRow) {
             calculatedColumnAnchorDelta = 0;
             totalsRowAnchorDelta = 0;
+            calculatedColumnAnchorRow = 0;
+            totalsRowAnchorRow = 0;
             if (table.Reference?.Value is not string reference
                 || !A1.TryParseRange(
                     reference.Replace("$", string.Empty),
@@ -322,6 +330,10 @@ namespace OfficeIMO.Excel {
                     out _)) {
                 return;
             }
+
+            bool hasHeaderRow = (table.HeaderRowCount?.Value ?? 1U) > 0U;
+            calculatedColumnAnchorRow = oldFirstRow + (hasHeaderRow ? 1 : 0);
+            totalsRowAnchorRow = oldLastRow;
 
             int newFirstRow = oldFirstRow;
             int newLastRow = oldLastRow;

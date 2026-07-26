@@ -243,6 +243,7 @@ namespace OfficeIMO.Excel {
             foreach (var cachePart in pivotCaches) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 if (source?.Reference?.Value is string reference
+                    && string.IsNullOrWhiteSpace(source.Id?.Value)
                     && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                     && A1.TryParseRange(
                         reference.Replace("$", string.Empty),
@@ -514,6 +515,7 @@ namespace OfficeIMO.Excel {
                 in GetWorkbookPivotCacheDefinitionParts()) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 if (source != null
+                    && string.IsNullOrWhiteSpace(source.Id?.Value)
                     && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
                     ValidateReferenceListDoesNotOverflow(source.Reference?.Value, firstRow, count);
                 }

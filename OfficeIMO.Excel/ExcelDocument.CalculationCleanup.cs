@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             bool hasCellFormulas = workbookPart.WorksheetParts
                 .Any(worksheetPart => (worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null."))
                     .Descendants<CellFormula>()
-                    .Any(formula => !string.IsNullOrWhiteSpace(formula.Text)));
+                    .Any());
 
             var workbook = WorkbookRoot;
             var calculationProperties = workbook.Elements<CalculationProperties>().FirstOrDefault();

@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
             foreach (PivotTableCacheDefinitionPart cachePart in GetWorkbookPivotCacheDefinitionParts()) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 if (source != null
+                    && string.IsNullOrWhiteSpace(source.Id?.Value)
                     && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                     && source.Reference?.Value is string sourceReference
                     && TryRemapShiftedReferenceListRows(
@@ -31,7 +32,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (source?.Name?.Value is string sourceName
+                if (string.IsNullOrWhiteSpace(source?.Id?.Value)
+                    && source?.Name?.Value is string sourceName
                     && IsNamedPivotSourceAffected(sourceName, firstAffectedRow)) {
                     InvalidatePivotCacheAfterStructuralEdit(cachePart, recordCount: null);
                     continue;
