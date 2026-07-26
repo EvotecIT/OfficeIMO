@@ -125,14 +125,20 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<string> ResolveSharedFormulaTextsForStructuralValidation() {
+            List<Cell> sharedCells = WorksheetRoot.Descendants<Cell>()
+                .Where(candidate => candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
+                    && candidate.CellFormula.SharedIndex?.Value != null)
+                .ToList();
+            if (sharedCells.Count == 0) {
+                return Array.Empty<string>();
+            }
+
             IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
             IReadOnlyDictionary<uint, SharedFormulaDefinition> definitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
 
             var resolved = new List<string>();
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()
-                .Where(candidate => candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Shared
-                    && candidate.CellFormula.SharedIndex?.Value != null)) {
+            foreach (Cell cell in sharedCells) {
                 string text = ResolveCellFormulaText(cell, definitions, effectiveCoordinates);
                 if (string.IsNullOrWhiteSpace(text)) {
                     throw new InvalidOperationException(
@@ -223,7 +229,8 @@ namespace OfficeIMO.Excel {
                         out int explicitColumn)) {
                         coordinates[cell] = (explicitRow, explicitColumn);
                         effectiveColumn = explicitColumn;
-                    } else {
+                    } else if (effectiveRow <= (uint)A1.MaxRows
+                        && effectiveColumn <= A1.MaxColumns) {
                         coordinates[cell] = (checked((int)effectiveRow), effectiveColumn);
                     }
 

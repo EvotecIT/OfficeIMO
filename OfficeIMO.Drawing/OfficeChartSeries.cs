@@ -84,9 +84,9 @@ public sealed class OfficeChartSeries {
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
-        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
-        IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
-        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null) =>
+        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
+        IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
+        OfficeColor? markerOutlineColor, double? markerOutlineWidth) =>
         CreateBubble(name, xValues, yValues, bubbleSizes, color, pointColors,
             showInLegend, markerOutlineColor, markerOutlineWidth,
             showMarkerOutline: true);
@@ -105,10 +105,10 @@ public sealed class OfficeChartSeries {
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
     /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
-        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
-        IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
-        OfficeColor? markerOutlineColor, double? markerOutlineWidth,
-        bool showMarkerOutline) {
+        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
+        IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
+        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
+        bool showMarkerOutline = true) {
         if (xValues == null) throw new ArgumentNullException(nameof(xValues));
         if (yValues == null) throw new ArgumentNullException(nameof(yValues));
         if (bubbleSizes == null) throw new ArgumentNullException(nameof(bubbleSizes));

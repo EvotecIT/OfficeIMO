@@ -27,11 +27,6 @@ public class DrawingChartBubbleTests {
             .ShowMarkerOutline);
         Assert.False(OfficeChartSeries.CreateBubble(
             "Explicit", new[] { 1D }, new[] { 2D }, new[] { 3D },
-            color: null,
-            pointColors: null,
-            showInLegend: true,
-            markerOutlineColor: null,
-            markerOutlineWidth: null,
             showMarkerOutline: false).ShowMarkerOutline);
     }
 
