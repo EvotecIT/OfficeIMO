@@ -1891,6 +1891,7 @@ namespace OfficeIMO.Tests {
                 new[] {
                     OfficeChartSeries.CreateBubble("Portfolio", xValues, yValues, sizes,
                         seriesColor, pointColors,
+                        showInLegend: true,
                         markerOutlineColor: markerOutlineColor,
                         markerOutlineWidth: markerOutlineWidth,
                         showMarkerOutline: showMarkerOutline)

@@ -555,14 +555,14 @@ namespace OfficeIMO.Excel {
 
             string? activeCell = selection.ActiveCell?.Value;
             if (!string.IsNullOrWhiteSpace(activeCell)
-                && A1.TryParseRange(
+                && TryParseCellOrRange(
                     activeCell!.Replace("$", string.Empty),
                     out int activeRow,
                     out int activeColumn,
                     out _,
                     out _)) {
                 for (int index = 0; index < references.Count; index++) {
-                    if (A1.TryParseRange(
+                    if (TryParseCellOrRange(
                             references[index].Replace("$", string.Empty),
                             out int firstRow,
                             out int firstColumn,
@@ -579,6 +579,31 @@ namespace OfficeIMO.Excel {
             }
 
             selection.ActiveCellId = 0U;
+        }
+
+        private static bool TryParseCellOrRange(
+            string reference,
+            out int firstRow,
+            out int firstColumn,
+            out int lastRow,
+            out int lastColumn) {
+            if (A1.TryParseRange(
+                    reference,
+                    out firstRow,
+                    out firstColumn,
+                    out lastRow,
+                    out lastColumn)) {
+                return true;
+            }
+
+            if (A1.TryParseCellReferenceFast(reference, out firstRow, out firstColumn)) {
+                lastRow = firstRow;
+                lastColumn = firstColumn;
+                return true;
+            }
+
+            firstRow = firstColumn = lastRow = lastColumn = 0;
+            return false;
         }
 
         private void RemapShiftedNamedSheetViewFilters(

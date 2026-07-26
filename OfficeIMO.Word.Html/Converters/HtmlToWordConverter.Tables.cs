@@ -59,6 +59,8 @@ namespace OfficeIMO.Word.Html {
             }
             ApplyTableStyles(wordTable, tableElem);
             ApplyColumnGroup(wordTable, tableElem, cols);
+            Func<TableCell, int, int, int?> estimateCellContentWidth =
+                WordTable.CreateCellContentWidthEstimatorInDxa(doc, wordTable._table);
             var occupied = new bool[rows, cols];
             int rIndex = 0;
             bool useRawSpanAttributes = options.MaxTableCells.HasValue;
@@ -79,7 +81,23 @@ namespace OfficeIMO.Word.Html {
                         var htmlCell = htmlRow.Cells[c];
                         ApplyCssToElement(htmlCell);
                         var wordCell = wordRow.Cells[cIndex];
+                        int rowSpan = 1;
+                        int colSpan = 1;
+                        if (htmlCell is IHtmlTableCellElement htmlTableCell) {
+                            rowSpan = GetHtmlRowSpan(htmlTableCell, useRawSpanAttributes);
+                            colSpan = GetHtmlColumnSpan(htmlTableCell, useRawSpanAttributes);
+                            if (rowSpan == 0) {
+                                rowSpan = groupRowCount - localRowIndex;
+                            }
+                        }
+
+                        rowSpan = Math.Max(1, rowSpan);
+                        colSpan = Math.Max(1, colSpan);
+                        rowSpan = Math.Min(rowSpan, rows - rIndex);
+                        colSpan = Math.Min(colSpan, cols - cIndex);
                         var alignment = ApplyCellStyles(wordCell, htmlCell as IHtmlTableCellElement);
+                        _tableCellContentWidths[wordCell._tableCell] =
+                            estimateCellContentWidth(wordCell._tableCell, cIndex, colSpan);
                         if (wordCell.Paragraphs.Count == 1 && string.IsNullOrEmpty(wordCell.Paragraphs[0].Text)) {
                             wordCell.Paragraphs[0].Remove();
                         }
@@ -99,21 +117,6 @@ namespace OfficeIMO.Word.Html {
                                 p.ParagraphAlignment = alignment.Value;
                             }
                         }
-
-                        int rowSpan = 1;
-                        int colSpan = 1;
-                        if (htmlCell is IHtmlTableCellElement htmlTableCell) {
-                            rowSpan = GetHtmlRowSpan(htmlTableCell, useRawSpanAttributes);
-                            colSpan = GetHtmlColumnSpan(htmlTableCell, useRawSpanAttributes);
-                            if (rowSpan == 0) {
-                                rowSpan = groupRowCount - localRowIndex;
-                            }
-                        }
-
-                        rowSpan = Math.Max(1, rowSpan);
-                        colSpan = Math.Max(1, colSpan);
-                        rowSpan = Math.Min(rowSpan, rows - rIndex);
-                        colSpan = Math.Min(colSpan, cols - cIndex);
 
                         if (rowSpan > 1 || colSpan > 1) {
                             wordTable.MergeCells(rIndex, cIndex, rowSpan, colSpan);
@@ -367,7 +370,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static void ApplyTableStyles(WordTable wordTable, IHtmlTableElement tableElem) {
+        private void ApplyTableStyles(WordTable wordTable, IHtmlTableElement tableElem) {
             var style = tableElem.GetAttribute("style");
             var borderAttr = tableElem.GetAttribute("border");
             var alignAttr = tableElem.GetAttribute("align");
@@ -540,9 +543,11 @@ namespace OfficeIMO.Word.Html {
 
             if (backgroundValue != null) {
                 string? ancestorBackdrop = ResolveAncestorBlockBackground(tableElem);
+                CssStyleMapper.CssProperties parsedBackground =
+                    ParseTableBackground(backgroundValue);
                 foreach (var row in wordTable.Rows) {
                     foreach (var cell in row.Cells) {
-                        ApplyTableBackground(cell, backgroundValue, ancestorBackdrop);
+                        ApplyTableBackground(cell, parsedBackground, ancestorBackdrop);
                     }
                 }
             }
@@ -679,7 +684,7 @@ namespace OfficeIMO.Word.Html {
         private static bool IsCssAuto(string? value) =>
             string.Equals(value?.Trim(), "auto", StringComparison.OrdinalIgnoreCase);
 
-        private static void ApplyRowStyles(WordTableRow row, IHtmlTableRowElement htmlRow) {
+        private void ApplyRowStyles(WordTableRow row, IHtmlTableRowElement htmlRow) {
             var style = htmlRow.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(style)) {
                 return;
@@ -720,12 +725,18 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            string? ancestorBackdrop = backgroundValue == null
+                ? null
+                : ResolveAncestorBlockBackground(htmlRow);
+            CssStyleMapper.CssProperties? parsedBackground = backgroundValue == null
+                ? null
+                : ParseTableBackground(backgroundValue);
             foreach (var cell in row.Cells) {
-                if (backgroundValue != null) {
+                if (parsedBackground != null) {
                     ApplyTableBackground(
                         cell,
-                        backgroundValue,
-                        ResolveAncestorBlockBackground(htmlRow));
+                        parsedBackground,
+                        ancestorBackdrop);
                 }
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
@@ -818,7 +829,7 @@ namespace OfficeIMO.Word.Html {
             if (backgroundValue != null) {
                 ApplyTableBackground(
                     cell,
-                    backgroundValue,
+                    ParseTableBackground(backgroundValue),
                     ResolveAncestorBlockBackground(htmlCell));
             }
 

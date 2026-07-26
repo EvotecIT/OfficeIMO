@@ -311,64 +311,87 @@ namespace OfficeIMO.Word {
                     int spanThis = (int)(cell.TableCellProperties?
                         .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
                     spanThis = Math.Max(1, spanThis);
-
-                    var grid = parentTable.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableGrid>();
-                    if (grid != null) {
-                        var columns = grid.Elements<DocumentFormat.OpenXml.Wordprocessing.GridColumn>().ToList();
-                        int sum = 0;
-                        for (int i = 0; i < spanThis && gridIndex + i < columns.Count; i++) {
-                            if (int.TryParse(columns[gridIndex + i].Width?.Value ?? "0", out int width)) {
-                                sum += width;
-                            }
-                        }
-
-                        if (sum > 0) {
-                            int leftMargin = 0, rightMargin = 0;
-                            int leftBorder = 0, rightBorder = 0;
-                            var cellMargins = cell.TableCellProperties?.TableCellMargin;
-                            if (cellMargins?.LeftMargin?.Width?.Value != null) {
-                                int.TryParse(cellMargins.LeftMargin.Width.Value, out leftMargin);
-                            }
-                            if (cellMargins?.RightMargin?.Width?.Value != null) {
-                                int.TryParse(cellMargins.RightMargin.Width.Value, out rightMargin);
-                            }
-
-                            if (leftMargin == 0 || rightMargin == 0) {
-                                var tableProperties = parentTable
-                                    .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableProperties>();
-                                var defaults = tableProperties?.TableCellMarginDefault;
-                                if (leftMargin == 0 && defaults?.TableCellLeftMargin?.Width != null) {
-                                    leftMargin = defaults.TableCellLeftMargin.Width.Value;
-                                }
-                                if (rightMargin == 0 && defaults?.TableCellRightMargin?.Width != null) {
-                                    rightMargin = defaults.TableCellRightMargin.Width.Value;
-                                }
-                            }
-
-                            if (leftMargin == 0) leftMargin = 108;
-                            if (rightMargin == 0) rightMargin = 108;
-
-                            var cellBorders = cell.TableCellProperties?.TableCellBorders;
-                            if (cellBorders?.LeftBorder?.Size != null) {
-                                leftBorder = SizeUnitsToTwips(cellBorders.LeftBorder.Size.Value);
-                            }
-                            if (cellBorders?.RightBorder?.Size != null) {
-                                rightBorder = SizeUnitsToTwips(cellBorders.RightBorder.Size.Value);
-                            }
-                            if (leftBorder == 0) leftBorder = 10;
-                            if (rightBorder == 0) rightBorder = 10;
-
-                            return Math.Max(
-                                1,
-                                sum - leftMargin - rightMargin - leftBorder - rightBorder);
-                        }
-                    }
-
-                    var parent = new WordTable(document, parentTable, initializeChildren: false);
-                    return Math.Max(1, parent.EstimateTableWidthInDxa());
+                    return CreateCellContentWidthEstimatorInDxa(document, parentTable)(
+                        cell,
+                        gridIndex,
+                        spanThis);
                 }
             } catch { /* ignore */ }
             return null;
+        }
+
+        /// <summary>
+        /// Creates a table-scoped cell-width estimator that materializes grid widths and the
+        /// fallback table width once, then resolves cells by their known grid position.
+        /// </summary>
+        internal static Func<DocumentFormat.OpenXml.Wordprocessing.TableCell, int, int, int?>
+            CreateCellContentWidthEstimatorInDxa(
+                WordDocument document,
+                DocumentFormat.OpenXml.Wordprocessing.Table table) {
+            int[] gridWidths = table
+                .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableGrid>()?
+                .Elements<DocumentFormat.OpenXml.Wordprocessing.GridColumn>()
+                .Select(column => int.TryParse(column.Width?.Value ?? "0", out int width)
+                    ? width
+                    : 0)
+                .ToArray() ?? Array.Empty<int>();
+            int? fallbackWidth = null;
+            try {
+                var parent = new WordTable(document, table, initializeChildren: false);
+                fallbackWidth = Math.Max(1, parent.EstimateTableWidthInDxa());
+            } catch { /* ignore */ }
+
+            var tableProperties = table
+                .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableProperties>();
+            var defaultMargins = tableProperties?.TableCellMarginDefault;
+            return (cell, gridIndex, gridSpan) => {
+                try {
+                    int sum = 0;
+                    int normalizedSpan = Math.Max(1, gridSpan);
+                    for (int index = 0;
+                         index < normalizedSpan && gridIndex + index < gridWidths.Length;
+                         index++) {
+                        sum += gridWidths[gridIndex + index];
+                    }
+                    if (sum <= 0) {
+                        return fallbackWidth;
+                    }
+
+                    int leftMargin = 0, rightMargin = 0;
+                    int leftBorder = 0, rightBorder = 0;
+                    var cellMargins = cell.TableCellProperties?.TableCellMargin;
+                    if (cellMargins?.LeftMargin?.Width?.Value != null) {
+                        int.TryParse(cellMargins.LeftMargin.Width.Value, out leftMargin);
+                    }
+                    if (cellMargins?.RightMargin?.Width?.Value != null) {
+                        int.TryParse(cellMargins.RightMargin.Width.Value, out rightMargin);
+                    }
+                    if (leftMargin == 0 && defaultMargins?.TableCellLeftMargin?.Width != null) {
+                        leftMargin = defaultMargins.TableCellLeftMargin.Width.Value;
+                    }
+                    if (rightMargin == 0 && defaultMargins?.TableCellRightMargin?.Width != null) {
+                        rightMargin = defaultMargins.TableCellRightMargin.Width.Value;
+                    }
+                    if (leftMargin == 0) leftMargin = 108;
+                    if (rightMargin == 0) rightMargin = 108;
+
+                    var cellBorders = cell.TableCellProperties?.TableCellBorders;
+                    if (cellBorders?.LeftBorder?.Size != null) {
+                        leftBorder = SizeUnitsToTwips(cellBorders.LeftBorder.Size.Value);
+                    }
+                    if (cellBorders?.RightBorder?.Size != null) {
+                        rightBorder = SizeUnitsToTwips(cellBorders.RightBorder.Size.Value);
+                    }
+                    if (leftBorder == 0) leftBorder = 10;
+                    if (rightBorder == 0) rightBorder = 10;
+
+                    return Math.Max(
+                        1,
+                        sum - leftMargin - rightMargin - leftBorder - rightBorder);
+                } catch {
+                    return fallbackWidth;
+                }
+            };
         }
 
         private static int SizeUnitsToTwips(UInt32Value sizeUnits) {

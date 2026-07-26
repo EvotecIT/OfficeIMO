@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Html {
             HtmlToWordOptions options,
             WordParagraph? currentParagraph,
             WordHeaderFooter? headerFooter,
-            int? containerWidthTwips = null) {
+            Func<int?>? resolveContainerWidthTwips = null) {
             var src = ResolveWordImageSource(img, options);
             if (string.IsNullOrEmpty(src)) {
                 if (HasImageSourceCandidateAttribute(img)) {
@@ -57,14 +57,14 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (src.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter, containerWidthTwips);
+                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter, resolveContainerWidthTwips);
                 return;
             }
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
 
@@ -193,12 +193,12 @@ namespace OfficeIMO.Word.Html {
             HtmlToWordOptions options,
             WordParagraph? currentParagraph,
             WordHeaderFooter? headerFooter,
-            int? containerWidthTwips) {
+            Func<int?>? resolveContainerWidthTwips) {
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText;
@@ -308,10 +308,14 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static double? TryResolveImagePercentWidth(
+        /// <summary>
+        /// Resolves percentage image widths against a lazily supplied container width. The
+        /// supplier is intentionally not evaluated for fixed, missing, or invalid widths.
+        /// </summary>
+        internal static double? TryResolveImagePercentWidth(
             string? value,
             WordDocument doc,
-            int? containerWidthTwips) {
+            Func<int?>? resolveContainerWidthTwips) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
@@ -325,6 +329,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            int? containerWidthTwips = resolveContainerWidthTwips?.Invoke();
             double contentWidthTwips;
             if (containerWidthTwips.HasValue && containerWidthTwips.Value > 0) {
                 contentWidthTwips = containerWidthTwips.Value;

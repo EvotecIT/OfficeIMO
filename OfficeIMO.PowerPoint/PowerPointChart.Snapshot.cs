@@ -15,11 +15,28 @@ namespace OfficeIMO.PowerPoint {
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
         internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(GetOwnerColorScheme(), out snapshot);
+            TryGetSnapshotWithOwnerColorScheme(
+                forDataUpdate: false,
+                out snapshot);
 
         private bool TryGetSnapshotForUpdate(out PowerPointChartSnapshot snapshot) =>
-            TryGetSnapshot(GetOwnerColorScheme(), forDataUpdate: true,
+            TryGetSnapshotWithOwnerColorScheme(
+                forDataUpdate: true,
                 out snapshot);
+
+        private bool TryGetSnapshotWithOwnerColorScheme(
+            bool forDataUpdate,
+            out PowerPointChartSnapshot snapshot) {
+            try {
+                return TryGetSnapshot(
+                    GetOwnerColorScheme(),
+                    forDataUpdate,
+                    out snapshot);
+            } catch {
+                snapshot = null!;
+                return false;
+            }
+        }
 
         private A.ColorScheme? GetOwnerColorScheme() {
             if (_ownerPart is SlidePart slidePart) {

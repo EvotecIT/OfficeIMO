@@ -56,13 +56,25 @@ namespace OfficeIMO.Word.Html {
         }
 
         private CssStyleMapper.CssProperties ParseElementBoxStyles(IElement element) {
+            if (_computedBoxStyles.TryGetValue(element, out CssStyleMapper.CssProperties? cached)) {
+                return cached;
+            }
+
             var lineage = new Stack<IElement>();
-            for (IElement? current = element; current != null; current = current.ParentElement) {
+            CssStyleMapper.CssProperties? inheritedBox = null;
+            bool inheritedRightToLeft = false;
+            for (IElement? current = element;
+                 current != null;
+                 current = current.ParentElement) {
+                if (_computedBoxStyles.TryGetValue(
+                        current,
+                        out inheritedBox)) {
+                    inheritedRightToLeft = GetBidiFromDir(current) == true;
+                    break;
+                }
                 lineage.Push(current);
             }
 
-            CssStyleMapper.CssProperties? inheritedBox = null;
-            bool inheritedRightToLeft = false;
             while (lineage.Count > 0) {
                 IElement current = lineage.Pop();
                 double elementFontSizePixels = ResolveComputedFontSizePixels(current);
@@ -74,6 +86,7 @@ namespace OfficeIMO.Word.Html {
                     inheritedRightToLeft,
                     _rootFontSizePixels,
                     elementFontSizePixels);
+                _computedBoxStyles[current] = inheritedBox;
                 inheritedRightToLeft = rightToLeft;
             }
 

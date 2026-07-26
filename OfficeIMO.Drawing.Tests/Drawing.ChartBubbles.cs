@@ -6,6 +6,31 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartBubbleTests {
     [Fact]
+    public void OfficeChartSeries_CreateBubbleRetainsBinaryCompatibleFactory() {
+        Type[] legacyParameterTypes = {
+            typeof(string),
+            typeof(IEnumerable<double>),
+            typeof(IEnumerable<double>),
+            typeof(IEnumerable<double>),
+            typeof(OfficeColor?),
+            typeof(IEnumerable<OfficeColor?>),
+            typeof(bool),
+            typeof(OfficeColor?),
+            typeof(double?)
+        };
+
+        Assert.NotNull(typeof(OfficeChartSeries).GetMethod(
+            nameof(OfficeChartSeries.CreateBubble),
+            legacyParameterTypes));
+        Assert.True(OfficeChartSeries.CreateBubble(
+            "Legacy", new[] { 1D }, new[] { 2D }, new[] { 3D })
+            .ShowMarkerOutline);
+        Assert.False(OfficeChartSeries.CreateBubble(
+            "Explicit", new[] { 1D }, new[] { 2D }, new[] { 3D },
+            showMarkerOutline: false).ShowMarkerOutline);
+    }
+
+    [Fact]
     public void OfficeChartSnapshot_RetainsBinaryCompatibleConstructor() {
         Assert.NotNull(typeof(OfficeChartSnapshot).GetConstructor(new[] {
             typeof(string),
@@ -283,6 +308,10 @@ public class DrawingChartBubbleTests {
                 new[] { 2D },
                 new[] { 25D },
                 color,
+                pointColors: null,
+                showInLegend: true,
+                markerOutlineColor: null,
+                markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
 

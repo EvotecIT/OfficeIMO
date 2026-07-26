@@ -21,8 +21,14 @@ namespace OfficeIMO.PowerPoint {
             try {
                 using Stream stream = embedded.GetStream(
                     FileMode.Open, FileAccess.Read);
-                using SpreadsheetDocument workbook =
-                    SpreadsheetDocument.Open(stream, false);
+                byte[] workbookBytes =
+                    PowerPointChartWorkbookSecurity.ReadAndValidate(stream);
+                using var workbookStream =
+                    new MemoryStream(workbookBytes, writable: false);
+                using SpreadsheetDocument workbook = SpreadsheetDocument.Open(
+                    workbookStream,
+                    false,
+                    PowerPointChartWorkbookSecurity.CreateOpenSettings());
                 return workbook.WorkbookPart?.WorksheetParts.Any(part =>
                     part.Worksheet?.Descendants<S.Row>().Any(row =>
                         row.Hidden?.Value == true) == true ||

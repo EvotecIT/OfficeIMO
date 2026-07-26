@@ -877,6 +877,10 @@ public class HtmlOfficeAdapters {
                 new[] { 8D, 16D },
                 new[] { 3D, 7D },
                 color: OfficeColor.Parse("#AABBCC"),
+                pointColors: null,
+                showInLegend: true,
+                markerOutlineColor: null,
+                markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
         slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)

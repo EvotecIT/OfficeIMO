@@ -4,10 +4,8 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private static void ApplyTableBackground(
             WordTableCell cell,
-            string value,
+            CssStyleMapper.CssProperties parsed,
             string? ancestorBackdrop) {
-            CssStyleMapper.CssProperties parsed =
-                CssStyleMapper.ParseStyles("background-color:" + value);
             if (string.IsNullOrEmpty(parsed.BackgroundColor)) {
                 return;
             }
@@ -25,15 +23,24 @@ namespace OfficeIMO.Word.Html {
                     : cell.ShadingFillColorHex);
         }
 
-        private static string? ResolveAncestorBlockBackground(AngleSharp.Dom.IElement element) {
+        private CssStyleMapper.CssProperties ParseTableBackground(string value) {
+            TableBackgroundParseCount++;
+            return CssStyleMapper.ParseStyles("background-color:" + value);
+        }
+
+        private string? ResolveAncestorBlockBackground(AngleSharp.Dom.IElement element) {
             var lineage = new Stack<AngleSharp.Dom.IElement>();
+            string? backdrop = null;
             for (AngleSharp.Dom.IElement? current = element.ParentElement;
                  current != null;
                  current = current.ParentElement) {
+                if (_ancestorBlockBackgrounds.TryGetValue(current, out string? cached)) {
+                    backdrop = cached;
+                    break;
+                }
                 lineage.Push(current);
             }
 
-            string? backdrop = null;
             while (lineage.Count > 0) {
                 AngleSharp.Dom.IElement ancestor = lineage.Pop();
                 string? resolved = ResolveBlockBackground(
@@ -42,6 +49,7 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(resolved)) {
                     backdrop = resolved;
                 }
+                _ancestorBlockBackgrounds[ancestor] = backdrop;
             }
             return backdrop;
         }

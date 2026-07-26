@@ -252,23 +252,24 @@ namespace OfficeIMO.Excel {
                 }
                 if (string.IsNullOrWhiteSpace(source?.Id?.Value)
                     && source?.Name?.Value is string sourceName) {
-                    bool deletesResolvedHeader = TryResolveDefinedNameRange(
+                    bool resolvedNamedSource = TryResolveDefinedNameRange(
                             sourceName,
                             currentRow: null,
                             out ExcelSheet sourceSheet,
                             out int namedSourceFirstRow,
                             out _,
                             out _,
-                            out _)
+                            out _);
+                    bool deletesResolvedHeader = resolvedNamedSource
                         && (ReferenceEquals(sourceSheet._worksheetPart, _worksheetPart)
                             || string.Equals(sourceSheet.Name, Name, StringComparison.OrdinalIgnoreCase))
                         && namedSourceFirstRow >= firstDeletedRow
                         && namedSourceFirstRow <= lastDeletedRow;
                     if (deletesResolvedHeader
-                        || UnresolvedNamedPivotSourceBecomesInvalid(
+                        || (!resolvedNamedSource && UnresolvedNamedPivotSourceBecomesInvalid(
                             sourceName,
                             firstDeletedRow,
-                            lastDeletedRow)) {
+                            lastDeletedRow))) {
                         throw new InvalidOperationException(
                             $"Cannot delete the header row of named pivot cache source '{sourceName}'. Update or remove the pivot source first.");
                     }
@@ -326,23 +327,32 @@ namespace OfficeIMO.Excel {
             string sourceName,
             int firstDeletedRow,
             int lastDeletedRow) {
-            int rowDelta = -(lastDeletedRow - firstDeletedRow + 1);
-            return WorkbookRoot.DefinedNames?.Elements<DefinedName>()
-                .Where(name => string.Equals(name.Name?.Value, sourceName, StringComparison.OrdinalIgnoreCase))
-                .Any(name => {
-                    string formula = name.Text ?? string.Empty;
-                    if (formula.Length == 0 || formula.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) {
-                        return false;
-                    }
+            var catalog = new FormulaDefinedNameResolutionCatalog(this);
+            int? localSheetIndex = catalog.TryGetSheet(Name, out int sheetIndex, out _)
+                ? sheetIndex
+                : null;
+            if (!catalog.TryGetDefinedName(
+                    localSheetIndex,
+                    sourceName,
+                    allowGlobal: true,
+                    out DefinedName definedName,
+                    out _)) {
+                return false;
+            }
 
-                    string rewritten = RewriteDeletedFormulaReferences(
-                        formula,
-                        firstDeletedRow,
-                        lastDeletedRow,
-                        rowDelta,
-                        Name);
-                    return rewritten.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0;
-                }) == true;
+            int rowDelta = -(lastDeletedRow - firstDeletedRow + 1);
+            string formula = definedName.Text ?? string.Empty;
+            if (formula.Length == 0 || formula.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return false;
+            }
+
+            string rewritten = RewriteDeletedFormulaReferences(
+                formula,
+                firstDeletedRow,
+                lastDeletedRow,
+                rowDelta,
+                Name);
+            return rewritten.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void ValidateStructuralRowReferenceMode() {

@@ -351,26 +351,49 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string RewriteFormulaReferencesOutsideStrings(string formula, Func<string, string> rewriteSegment) {
+        /// <summary>
+        /// Rewrites non-literal formula segments in one pass while preserving escaped string
+        /// quotes and double quotes that occur inside single-quoted sheet qualifiers.
+        /// </summary>
+        internal static string RewriteFormulaReferencesOutsideStrings(string formula, Func<string, string> rewriteSegment) {
             var builder = new StringBuilder(formula.Length);
             int index = 0;
             while (index < formula.Length) {
-                int quote = formula.IndexOf('"', index);
-                while (quote >= 0
-                    && IsInsideSingleQuotedFormulaQualifier(formula, index, quote)) {
-                    quote = formula.IndexOf('"', quote + 1);
+                int segmentStart = index;
+                bool insideSingleQuotedQualifier = false;
+                while (index < formula.Length) {
+                    char character = formula[index];
+                    if (character == '\'') {
+                        if (insideSingleQuotedQualifier
+                            && index + 1 < formula.Length
+                            && formula[index + 1] == '\'') {
+                            index += 2;
+                            continue;
+                        }
+
+                        insideSingleQuotedQualifier = !insideSingleQuotedQualifier;
+                        index++;
+                        continue;
+                    }
+
+                    if (character == '"' && !insideSingleQuotedQualifier) {
+                        break;
+                    }
+
+                    index++;
                 }
-                if (quote < 0) {
-                    builder.Append(rewriteSegment(formula.Substring(index)));
+
+                if (index >= formula.Length) {
+                    builder.Append(rewriteSegment(formula.Substring(segmentStart)));
                     break;
                 }
 
-                if (quote > index) {
-                    builder.Append(rewriteSegment(formula.Substring(index, quote - index)));
+                if (index > segmentStart) {
+                    builder.Append(rewriteSegment(formula.Substring(segmentStart, index - segmentStart)));
                 }
 
-                int literalStart = quote;
-                index = quote + 1;
+                int literalStart = index;
+                index++;
                 while (index < formula.Length) {
                     if (formula[index] == '"') {
                         if (index + 1 < formula.Length && formula[index + 1] == '"') {
@@ -389,29 +412,6 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.ToString();
-        }
-
-        private static bool IsInsideSingleQuotedFormulaQualifier(
-            string formula,
-            int start,
-            int position) {
-            bool insideQualifier = false;
-            for (int index = start; index < position; index++) {
-                if (formula[index] != '\'') {
-                    continue;
-                }
-
-                if (insideQualifier
-                    && index + 1 < position
-                    && formula[index + 1] == '\'') {
-                    index++;
-                    continue;
-                }
-
-                insideQualifier = !insideQualifier;
-            }
-
-            return insideQualifier;
         }
 
         private string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {

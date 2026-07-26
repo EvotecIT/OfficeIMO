@@ -595,19 +595,25 @@ namespace OfficeIMO.PowerPoint {
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.CategoryAxisData>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.XValues>() ?? seriesElement.GetFirstChild<C.YValues>();
+            var pointsByIndex = new Dictionary<uint, C.DataPoint>();
+            foreach (C.DataPoint existingPoint in seriesElement.Elements<C.DataPoint>()) {
+                uint? existingIndex = existingPoint.Index?.Val?.Value;
+                if (existingIndex.HasValue && !pointsByIndex.ContainsKey(existingIndex.Value)) {
+                    pointsByIndex.Add(existingIndex.Value, existingPoint);
+                }
+            }
             for (int index = 0; index < series.PointColors.Count; index++) {
                 OfficeColor? color = series.PointColors[index];
                 if (!color.HasValue) continue;
-                C.DataPoint? point = seriesElement.Elements<C.DataPoint>()
-                    .FirstOrDefault(item =>
-                        item.Index?.Val?.Value == (uint)index);
-                if (point == null) {
+                uint pointIndex = (uint)index;
+                if (!pointsByIndex.TryGetValue(pointIndex, out C.DataPoint? point)) {
                     point = new C.DataPoint(new C.Index { Val = (uint)index });
                     if (insertBefore != null) {
                         seriesElement.InsertBefore(point, insertBefore);
                     } else {
                         seriesElement.Append(point);
                     }
+                    pointsByIndex.Add(pointIndex, point);
                 }
                 C.ChartShapeProperties? properties =
                     point.GetFirstChild<C.ChartShapeProperties>();
