@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"background-color:#ffff00\">Mark</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(HighlightColorValues.Yellow, paragraph.Highlight);
+            Assert.Equal("FFFF00", paragraph.ShadingFillColorHex);
         }
 
         [Fact]

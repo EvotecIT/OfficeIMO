@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             if (!currentParagraph.GetRuns().Any()) {
                 currentParagraph.AddText(string.Empty);
             }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             if (!currentParagraph.GetRuns().Any()) {
                 currentParagraph.AddText(string.Empty);
             }

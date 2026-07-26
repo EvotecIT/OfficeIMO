@@ -24,16 +24,6 @@ namespace OfficeIMO.Word.Html {
             "line-height",
             "list-style",
             "list-style-type",
-            "margin",
-            "margin-bottom",
-            "margin-left",
-            "margin-right",
-            "margin-top",
-            "padding",
-            "padding-bottom",
-            "padding-left",
-            "padding-right",
-            "padding-top",
             "page-break-after",
             "page-break-before",
             "text-align",
@@ -45,6 +35,42 @@ namespace OfficeIMO.Word.Html {
             "vertical-align",
             "white-space",
             "width",
+        };
+
+        private static readonly HashSet<string> _blockSpacingCssDiagnosticProperties = new(StringComparer.OrdinalIgnoreCase) {
+            "margin",
+            "margin-bottom",
+            "margin-block",
+            "margin-block-end",
+            "margin-block-start",
+            "margin-inline",
+            "margin-inline-end",
+            "margin-inline-start",
+            "margin-left",
+            "margin-right",
+            "margin-top",
+            "padding",
+            "padding-bottom",
+            "padding-block",
+            "padding-block-end",
+            "padding-block-start",
+            "padding-inline",
+            "padding-inline-end",
+            "padding-inline-start",
+            "padding-left",
+            "padding-right",
+            "padding-top",
+        };
+
+        private static readonly HashSet<string> _tableSpacingCssDiagnosticProperties = new(StringComparer.OrdinalIgnoreCase) {
+            "margin",
+            "margin-left",
+            "margin-right",
+            "padding",
+            "padding-bottom",
+            "padding-left",
+            "padding-right",
+            "padding-top",
         };
 
         private void ReportUnsupportedInlineCssDiagnostics(IElement element) {
@@ -61,11 +87,20 @@ namespace OfficeIMO.Word.Html {
             }
 
             var hasRawFontShorthand = rawPropertyNames.Contains("font");
+            bool isTable = element.TagName.Equals("table", StringComparison.OrdinalIgnoreCase);
+            bool hasRawTableMarginShorthand = isTable && rawPropertyNames.Contains("margin");
+            bool hasRawTablePaddingShorthand = isTable && rawPropertyNames.Contains("padding");
             foreach (var property in ParseInlineDeclaration(style)) {
                 if (rawPropertyNames.Contains(property.Name)) {
                     continue;
                 }
                 if (hasRawFontShorthand && property.Name.StartsWith("font-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (hasRawTableMarginShorthand && property.Name.StartsWith("margin-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (hasRawTablePaddingShorthand && property.Name.StartsWith("padding-", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -94,7 +129,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var elementName = element.TagName.ToLowerInvariant();
-                if (!IsSupportedCssDiagnosticProperty(propertyName)) {
+                if (!IsSupportedCssDiagnosticProperty(elementName, propertyName)) {
                     AddUnsupportedCssDiagnostic(
                         "UnsupportedCssDeclaration",
                         "CSS declaration is not currently mapped to Word output.",
@@ -112,9 +147,19 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsSupportedCssDiagnosticProperty(string propertyName) =>
-            _supportedCssDiagnosticProperties.Contains(propertyName) ||
-            IsSupportedBorderSideShorthand(propertyName);
+        private static bool IsSupportedCssDiagnosticProperty(string elementName, string propertyName) {
+            if (_blockSpacingCssDiagnosticProperties.Contains(propertyName)) {
+                return IsBlockSpacingElement(elementName) ||
+                       elementName.Equals("body", StringComparison.OrdinalIgnoreCase) &&
+                       IsPhysicalBlockSpacingProperty(propertyName) ||
+                       elementName.Equals("table", StringComparison.OrdinalIgnoreCase) &&
+                       _tableSpacingCssDiagnosticProperties.Contains(propertyName);
+            }
+
+            return _supportedCssDiagnosticProperties.Contains(propertyName) ||
+                   IsSupportedBorderSideShorthand(propertyName) ||
+                   (IsBlockFrameElement(elementName) && TryGetBlockBorderLonghand(propertyName, out _, out _));
+        }
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
@@ -147,6 +192,9 @@ namespace OfficeIMO.Word.Html {
                 case "color":
                     return TryUnsupportedColorValue(value, "color", out reason);
                 case "background-color":
+                    if (lower == "transparent") {
+                        return false;
+                    }
                     return TryUnsupportedColorValue(value, "background color", out reason);
                 case "font":
                     if (!IsSupportedFontShorthand(value)) {
@@ -293,11 +341,30 @@ namespace OfficeIMO.Word.Html {
                         reason = $"Unsupported {propertyName} value '{value}'.";
                         return true;
                     }
-                    return false;
+                return false;
+            }
+
+            if (IsBlockFrameElement(elementName) &&
+                TryGetBlockBorderLonghand(propertyName, out _, out string borderComponent)) {
+                bool supported = borderComponent switch {
+                    "style" => TryParseBlockBorderStyle(value, out _),
+                    "width" => TryParseBlockBorderWidth(value, out _),
+                    "color" => NormalizeColor(value) != null,
+                    _ => false,
+                };
+                if (!supported) {
+                    reason = $"Unsupported {propertyName} value '{value}'.";
+                    return true;
+                }
+                return false;
             }
 
             if (propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||
                 propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase)) {
+                if (HasNegativeBlockMargin(propertyName, value)) {
+                    reason = $"Unsupported {propertyName} value '{value}': negative vertical margins cannot be represented in Word paragraph spacing.";
+                    return true;
+                }
                 if (!IsSupportedBoxLengthList(value, allowAuto: propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase))) {
                     reason = $"Unsupported {propertyName} value '{value}'.";
                     return true;
@@ -378,6 +445,19 @@ namespace OfficeIMO.Word.Html {
             propertyName.Equals("border-right", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-top", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-bottom", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsBlockFrameElement(string elementName) =>
+            elementName is "p" or "div" or "address" or "dl" or "dt" or "dd" or "blockquote" or
+                "section" or "article" or "aside" or "nav" or "header" or "footer" or "main" or
+                "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+
+        private static bool IsBlockSpacingElement(string elementName) =>
+            IsBlockFrameElement(elementName) ||
+            elementName is "li" or "caption" or "figcaption";
+
+        private static bool IsPhysicalBlockSpacingProperty(string propertyName) =>
+            propertyName is "margin" or "margin-top" or "margin-right" or "margin-bottom" or "margin-left" or
+                "padding" or "padding-top" or "padding-right" or "padding-bottom" or "padding-left";
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;
@@ -467,6 +547,49 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
+        private static bool HasNegativeBlockMargin(string propertyName, string value) {
+            string normalizedProperty = propertyName.ToLowerInvariant();
+            string[] tokens = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0) {
+                return false;
+            }
+
+            if (normalizedProperty is "margin-top" or "margin-bottom" or
+                "margin-block" or "margin-block-start" or "margin-block-end") {
+                return tokens.Any(IsNegativeCssLengthLiteral);
+            }
+
+            if (normalizedProperty != "margin" || tokens.Length > 4) {
+                return false;
+            }
+
+            return tokens.Length switch {
+                1 => IsNegativeCssLengthLiteral(tokens[0]),
+                2 => IsNegativeCssLengthLiteral(tokens[0]),
+                3 => IsNegativeCssLengthLiteral(tokens[0]) || IsNegativeCssLengthLiteral(tokens[2]),
+                4 => IsNegativeCssLengthLiteral(tokens[0]) || IsNegativeCssLengthLiteral(tokens[2]),
+                _ => false,
+            };
+        }
+
+        private static bool IsNegativeCssLengthLiteral(string value) {
+            string lower = value.Trim().ToLowerInvariant();
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
+            foreach (string unit in units) {
+                if (!lower.EndsWith(unit, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                return double.TryParse(
+                    lower.Substring(0, lower.Length - unit.Length),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double number) && number < 0;
+            }
+
+            return false;
+        }
+
         private static bool IsSupportedCssLength(string value, bool allowNegative, bool allowPercent, bool allowAuto) {
             var lower = value.Trim().ToLowerInvariant();
             if (allowAuto && lower == "auto") {
@@ -492,7 +615,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsSupportedCssLengthLiteral(string value, bool allowNegative) {
-            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (var unit in units) {
                 if (!value.EndsWith(unit, StringComparison.Ordinal)) {
                     continue;
@@ -513,7 +636,7 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (var unit in units) {
                 if (value.EndsWith(unit, StringComparison.Ordinal) &&
                     double.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) {

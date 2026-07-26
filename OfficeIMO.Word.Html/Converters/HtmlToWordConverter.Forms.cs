@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             if (IsCheckboxInput(element)) {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Html {
                 selected = string.Empty;
             }
 
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetRadioGroupMetadata(group);
             var dropDown = currentParagraph.AddDropDownList(optionTexts, alias, tag);
             dropDown.SelectedValue = selected ?? string.Empty;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             if (element.HasAttribute("multiple")) {
                 var selectedValues = optionsList
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ProcessTextArea(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             currentParagraph.AddStructuredDocumentTag(NormalizeFormText(element.TextContent), alias, tag);
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ProcessValueElement(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             currentParagraph.AddStructuredDocumentTag(GetValueElementText(element), alias, tag);
 

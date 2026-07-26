@@ -785,21 +785,6 @@ namespace OfficeIMO.Word {
             return OfficeColor.White;
         }
 
-        private static bool TryResolveShadingFillColor(Shading? shading, A.ColorScheme? colorScheme, out OfficeColor fillColor) {
-            fillColor = OfficeColor.White;
-            string? resolvedThemeColor = ResolveThemeColor(
-                GetWordAttribute(shading, "themeFill"),
-                GetWordAttribute(shading, "themeFillTint"),
-                GetWordAttribute(shading, "themeFillShade"),
-                colorScheme);
-            if (TryParseOfficeColor(resolvedThemeColor, out OfficeColor themeFill)) {
-                fillColor = themeFill;
-                return true;
-            }
-
-            return TryParseOfficeColor(shading?.Fill?.Value, out fillColor);
-        }
-
         private static OfficeBorderBox ResolveCellBorders(WordTable table, WordTableCell cell, int rowIndex, int columnIndex, int rowSpan, int columnSpan, int rowCount, int columnCount, A.ColorScheme? colorScheme) {
             TableCellBorders? borders = cell._tableCellProperties?.TableCellBorders;
             if (borders != null) {

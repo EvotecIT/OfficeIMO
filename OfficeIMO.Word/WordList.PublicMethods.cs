@@ -55,8 +55,13 @@ namespace OfficeIMO.Word {
 
             if (insertionReference is not null) {
                 insertionReference.InsertAfterSelf(paragraph);
-            } else if (_isToc || IsToc) {
-                _document.AppendBlockToBody(paragraph);
+                if (_replaceInsertionAnchor &&
+                    ListItems.Count == 0 &&
+                    ReferenceEquals(insertionReference, _wordParagraph?._paragraph) &&
+                    insertionReference is Paragraph insertionParagraph &&
+                    !WordTableCell.HasMeaningfulParagraphContent(insertionParagraph)) {
+                    insertionReference.Remove();
+                }
             } else if (_headerFooter != null) {
                 if (_headerFooter._header is not null) {
                     _headerFooter._header.Append(paragraph);
@@ -77,6 +82,8 @@ namespace OfficeIMO.Word {
                 } else {
                     parent.Append(paragraph);
                 }
+            } else if (_isToc || IsToc) {
+                _document.AppendBlockToBody(paragraph);
             } else {
                 _document.AppendBlockToBody(paragraph);
             }

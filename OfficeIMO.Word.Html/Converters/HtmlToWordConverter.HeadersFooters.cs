@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Html {
             WordList? headingList = options.SupportsHeadingNumbering ? target.AddList(WordListStyle.Headings111) : null;
             foreach (var child in element.ChildNodes) {
                 if (!string.IsNullOrWhiteSpace(style) && child is IElement childElement) {
+                    ResolveComputedFontSizePixels(childElement);
                     var merged = MergeStyles(style, childElement.GetAttribute("style"));
                     if (!string.IsNullOrEmpty(merged)) {
                         childElement.SetAttribute("style", merged);

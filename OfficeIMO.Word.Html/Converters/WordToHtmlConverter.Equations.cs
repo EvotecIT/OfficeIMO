@@ -57,6 +57,7 @@ namespace OfficeIMO.Word.Html {
                 run,
                 text,
                 node,
+                options.IncludeRunHighlightStyles,
                 out bool handledHtmlStyle);
             if (options.IncludeFontStyles) {
                 string? font = run.FontFamily ?? options.FontFamily;
@@ -90,8 +91,16 @@ namespace OfficeIMO.Word.Html {
                     if (normalized != null) styles.Add($"color:#{normalized}");
                 }
                 if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
-                    string? highlight = GetHighlightCss(run.Highlight);
-                    if (!string.IsNullOrEmpty(highlight)) styles.Add($"background-color:{highlight}");
+                    string? normalizedRunBackground = NormalizeSixDigitHexColor(
+                        WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
+                    string? highlight = GetHighlightCss(
+                        WordDocumentImageRenderer.ResolveRunHighlight(run));
+                    if (!string.IsNullOrEmpty(highlight) &&
+                        (!isHtmlMarkedText || normalizedRunBackground != null)) {
+                        styles.Add($"background-color:{highlight}");
+                    } else if (normalizedRunBackground != null) {
+                        styles.Add($"background-color:#{normalizedRunBackground}");
+                    }
                 }
                 if (styles.Count > 0) {
                     var span = htmlDocument.CreateElement("span");
@@ -117,11 +126,12 @@ namespace OfficeIMO.Word.Html {
             return node;
         }
 
-        private static INode ApplyHtmlSemanticCharacterStyle(
+        private INode ApplyHtmlSemanticCharacterStyle(
             IHtmlDocument htmlDocument,
             WordParagraph run,
             string text,
             INode node,
+            bool includeRunHighlightStyles,
             out bool handled) {
             handled = true;
             IElement semanticNode;
@@ -131,6 +141,24 @@ namespace OfficeIMO.Word.Html {
                 semanticNode = htmlDocument.CreateElement("ins");
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = htmlDocument.CreateElement("mark");
+                string? normalizedRunBackground = includeRunHighlightStyles
+                    ? NormalizeSixDigitHexColor(WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run))
+                    : null;
+                string? highlightCss = includeRunHighlightStyles
+                    ? GetHighlightCss(WordDocumentImageRenderer.ResolveRunHighlight(run))
+                    : null;
+                bool isDefaultMarkHighlight = string.Equals(
+                    highlightCss,
+                    "#ffff00",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!string.IsNullOrEmpty(highlightCss) &&
+                    (normalizedRunBackground != null || !isDefaultMarkHighlight)) {
+                    semanticNode.SetAttribute("style", $"background-color:{highlightCss}");
+                } else if (normalizedRunBackground != null) {
+                    semanticNode.SetAttribute("style", $"background-color:#{normalizedRunBackground}");
+                } else if (run.Highlight == HighlightColorValues.None) {
+                    semanticNode.SetAttribute("style", "background-color:transparent");
+                }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = htmlDocument.CreateElement("cite");
             } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {

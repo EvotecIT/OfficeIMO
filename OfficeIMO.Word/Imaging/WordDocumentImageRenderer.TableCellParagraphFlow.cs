@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
                 context.ThrowIfCancellationRequested();
                 IReadOnlyList<WordParagraph> runs = paragraphRuns[i];
                 WordImageListMarker? listMarker = CreateTableCellListMarker(runs, listMarkers);
-                bool added = runs.Count == 1 && !HasRunHighlight(runs[0])
+                bool added = runs.Count == 1 && !HasRunBackground(runs[0], colorScheme)
                     ? AddTextRun(runs[0], context, diagnostics, listMarker, colorScheme)
                     : AddRichTextRuns(runs, context, diagnostics, listMarker, colorScheme);
                 if (!added || context.StoppedForPagination) {

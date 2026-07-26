@@ -15,7 +15,13 @@ namespace OfficeIMO.Word.Html {
         private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageSourceAttributes = { "src" };
 
-        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private void ProcessImage(
+            IHtmlImageElement img,
+            WordDocument doc,
+            HtmlToWordOptions options,
+            WordParagraph? currentParagraph,
+            WordHeaderFooter? headerFooter,
+            int? containerWidthTwips = null) {
             var src = ResolveWordImageSource(img, options);
             if (string.IsNullOrEmpty(src)) {
                 if (HasImageSourceCandidateAttribute(img)) {
@@ -51,14 +57,14 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (src.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter);
+                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter, containerWidthTwips);
                 return;
             }
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
 
@@ -180,12 +186,19 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessSvgImage(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private void ProcessSvgImage(
+            string src,
+            IHtmlImageElement img,
+            WordDocument doc,
+            HtmlToWordOptions options,
+            WordParagraph? currentParagraph,
+            WordHeaderFooter? headerFooter,
+            int? containerWidthTwips) {
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText;
@@ -295,7 +308,10 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static double? TryResolveImagePercentWidth(string? value, WordDocument doc) {
+        private static double? TryResolveImagePercentWidth(
+            string? value,
+            WordDocument doc,
+            int? containerWidthTwips) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
@@ -309,11 +325,16 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            var section = doc.Sections.Count > 0 ? doc.Sections[doc.Sections.Count - 1] : null;
-            var pageWidthTwips = section?.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value;
-            var leftMarginTwips = section?.Margins.Left?.Value ?? 1440U;
-            var rightMarginTwips = section?.Margins.Right?.Value ?? 1440U;
-            var contentWidthTwips = Math.Max(0D, pageWidthTwips - leftMarginTwips - rightMarginTwips);
+            double contentWidthTwips;
+            if (containerWidthTwips.HasValue && containerWidthTwips.Value > 0) {
+                contentWidthTwips = containerWidthTwips.Value;
+            } else {
+                var section = doc.Sections.Count > 0 ? doc.Sections[doc.Sections.Count - 1] : null;
+                var pageWidthTwips = section?.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value;
+                var leftMarginTwips = section?.Margins.Left?.Value ?? 1440U;
+                var rightMarginTwips = section?.Margins.Right?.Value ?? 1440U;
+                contentWidthTwips = Math.Max(0D, pageWidthTwips - leftMarginTwips - rightMarginTwips);
+            }
             if (contentWidthTwips <= 0) {
                 return null;
             }
@@ -817,6 +838,8 @@ namespace OfficeIMO.Word.Html {
             IHtmlDocument document,
             HtmlToWordOptions options,
             CancellationToken cancellationToken) {
+            var sources = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (IElement element in document.QuerySelectorAll("img")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!(element is IHtmlImageElement image)) {
@@ -836,7 +859,39 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     remoteCandidateProbeCount++;
-                    await PrefetchRemoteImageCandidateAsync(resolved, options, cancellationToken).ConfigureAwait(false);
+                    if (Uri.TryCreate(resolved, UriKind.Absolute, out Uri? canonicalUri) &&
+                        seen.Add(canonicalUri.AbsoluteUri)) {
+                        sources.Add(canonicalUri.AbsoluteUri);
+                    }
+                }
+            }
+
+            if (sources.Count == 0) {
+                return;
+            }
+
+            // A total byte budget requires deterministic, ordered reservations so a response whose
+            // declared length exceeds the remaining budget can be rejected before its body is read.
+            int concurrency = options.MaxTotalImageBytes.HasValue
+                ? 1
+                : Math.Min(options.MaxConcurrentResourceLoads, sources.Count);
+            int nextIndex = -1;
+            var workers = new Task[concurrency];
+            for (int workerIndex = 0; workerIndex < workers.Length; workerIndex++) {
+                workers[workerIndex] = PrefetchWorkerAsync();
+            }
+
+            await Task.WhenAll(workers).ConfigureAwait(false);
+
+            async Task PrefetchWorkerAsync() {
+                while (true) {
+                    int index = Interlocked.Increment(ref nextIndex);
+                    if (index >= sources.Count) {
+                        return;
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await PrefetchRemoteImageCandidateAsync(sources[index], options, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -878,7 +933,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
-                _remoteImageBytesFetched += bytes.LongLength;
+                Interlocked.Add(ref _remoteImageBytesFetched, bytes.LongLength);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             } catch (Exception ex) {
@@ -910,13 +965,13 @@ namespace OfficeIMO.Word.Html {
                 byte[] bytes = FetchBytes(uri, options);
                 reservedBytes = bytes.LongLength;
                 if (!IsEmbeddableImageData(bytes, out var detail)) {
-                    _remoteImageBytesCache.Remove(uri.AbsoluteUri);
+                    _remoteImageBytesCache.TryRemove(uri.AbsoluteUri, out _);
                     _remoteImageFailureCache[uri.AbsoluteUri] = new InvalidDataException(detail);
                     return false;
                 }
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
-                _remoteImageFailureCache.Remove(uri.AbsoluteUri);
+                _remoteImageFailureCache.TryRemove(uri.AbsoluteUri, out _);
                 return true;
             } catch (OperationCanceledException ex) when (!_cancellationToken.IsCancellationRequested) {
                 _remoteImageFailureCache[uri.AbsoluteUri] = ex;
@@ -1347,7 +1402,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = null;
             double? height = null;
             if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), out var w)) width = w;
@@ -1359,18 +1414,20 @@ namespace OfficeIMO.Word.Html {
                 var svgByteCount = Encoding.UTF8.GetByteCount(svg.OuterHtml);
                 if (options.MaxImageBytes.HasValue && svgByteCount > options.MaxImageBytes.Value) {
                     AddDiagnostic(options, "ImageResourceTooLarge", "Inline SVG exceeded the configured byte limit and was skipped.", "svg");
-                    return;
+                    return false;
                 }
                 if (!TryReserveImageBytes(svgByteCount, options, "svg")) {
-                    return;
+                    return false;
                 }
                 reservedBytes = svgByteCount;
 
                 SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
                 reservedBytes = 0;
+                return true;
             } catch (Exception ex) {
                 ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "InlineSvgEmbedFailed", "Inline SVG could not be embedded and was skipped.", "svg", ex);
+                return false;
             }
         }
     }

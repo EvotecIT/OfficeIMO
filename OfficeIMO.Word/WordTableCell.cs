@@ -896,7 +896,13 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        private static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+        internal static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+            ParagraphProperties? paragraphProperties = paragraph.ParagraphProperties;
+            if (paragraphProperties != null &&
+                (paragraphProperties.HasChildren || paragraphProperties.HasAttributes)) {
+                return true;
+            }
+
             foreach (var element in paragraph.Descendants()) {
                 if (element is Text text) {
                     if (!string.IsNullOrWhiteSpace(text.Text)) return true;
@@ -922,9 +928,15 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddList(WordListStyle style) {
             var paragraphs = this.Paragraphs;
-            WordList wordList = paragraphs.Count > 0
-                ? new WordList(this._document, paragraphs[paragraphs.Count - 1])
-                : new WordList(this._document, this._tableCell);
+            WordParagraph? insertionAnchor = paragraphs.Count > 0 ? paragraphs[paragraphs.Count - 1] : null;
+            bool replaceInsertionAnchor = paragraphs.Count == 1 &&
+                                          insertionAnchor != null &&
+                                          !HasMeaningfulParagraphContent(insertionAnchor._paragraph);
+            WordList wordList = new WordList(
+                this._document,
+                this._tableCell,
+                insertionAnchor,
+                replaceInsertionAnchor);
             wordList.AddList(style);
             return wordList;
         }
