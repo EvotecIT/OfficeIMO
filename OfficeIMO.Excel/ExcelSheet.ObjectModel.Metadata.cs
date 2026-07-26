@@ -646,6 +646,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (placement == Xdr.EditAsValues.OneCell) {
+                        int? oldFromRow = TryGetDrawingMarkerRow(twoCellAnchor.FromMarker);
                         bool fromKept = TryRemapDrawingMarkerRow(twoCellAnchor.FromMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool fromChanged);
                         if (!fromKept) {
                             twoCellAnchor.Remove();
@@ -655,7 +656,11 @@ namespace OfficeIMO.Excel {
 
                         changed |= fromChanged;
                         if (fromChanged) {
-                            if (!TryShiftDrawingMarkerRow(twoCellAnchor.ToMarker, rowDelta, out bool toShifted)) {
+                            int actualRowDelta = oldFromRow.HasValue
+                                && TryGetDrawingMarkerRow(twoCellAnchor.FromMarker) is int newFromRow
+                                ? newFromRow - oldFromRow.Value
+                                : rowDelta;
+                            if (!TryShiftDrawingMarkerRow(twoCellAnchor.ToMarker, actualRowDelta, out bool toShifted)) {
                                 twoCellAnchor.Remove();
                                 changed = true;
                                 continue;
@@ -728,7 +733,13 @@ namespace OfficeIMO.Excel {
             }
 
             int firstSpannedRow = fromZeroBasedRow + 1;
-            int lastSpannedRow = toZeroBasedRow;
+            bool toMarkerInsideRow = long.TryParse(
+                    anchor.ToMarker?.RowOffset?.Text,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out long toRowOffset)
+                && toRowOffset != 0L;
+            int lastSpannedRow = toZeroBasedRow + (toMarkerInsideRow ? 1 : 0);
             if (lastSpannedRow < firstSpannedRow) {
                 return true;
             }
@@ -742,7 +753,7 @@ namespace OfficeIMO.Excel {
             }
 
             int remappedFromZeroBasedRow = remapped.Value.r1 - 1;
-            int remappedToZeroBasedRow = remapped.Value.r2;
+            int remappedToZeroBasedRow = remapped.Value.r2 - (toMarkerInsideRow ? 1 : 0);
             if (remappedFromZeroBasedRow < 0 || remappedToZeroBasedRow < remappedFromZeroBasedRow || remappedToZeroBasedRow > A1.MaxRows) {
                 return false;
             }
@@ -753,11 +764,21 @@ namespace OfficeIMO.Excel {
             }
 
             if (remappedToZeroBasedRow != toZeroBasedRow) {
-                anchor.ToMarker.RowId!.Text = remappedToZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                anchor.ToMarker!.RowId!.Text = remappedToZeroBasedRow.ToString(CultureInfo.InvariantCulture);
                 changed = true;
             }
 
             return true;
+        }
+
+        private static int? TryGetDrawingMarkerRow(Xdr.MarkerType? marker) {
+            return int.TryParse(
+                marker?.RowId?.Text,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int row)
+                ? row
+                : (int?)null;
         }
 
         private static bool TryShiftDrawingMarkerRow(Xdr.MarkerType? marker, int rowDelta, out bool changed) {

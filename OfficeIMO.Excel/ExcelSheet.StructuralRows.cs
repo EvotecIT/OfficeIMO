@@ -242,15 +242,36 @@ namespace OfficeIMO.Excel {
                     .Distinct();
             foreach (var cachePart in pivotCaches) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
-                if (source?.Reference?.Value is not string reference
-                    || !string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
-                    || !A1.TryParseRange(reference.Replace("$", string.Empty), out int sourceFirstRow, out _, out int sourceLastRow, out _)) {
-                    continue;
-                }
-
-                if (firstDeletedRow <= sourceFirstRow && lastDeletedRow >= sourceLastRow) {
+                if (source?.Reference?.Value is string reference
+                    && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                    && A1.TryParseRange(
+                        reference.Replace("$", string.Empty),
+                        out int sourceFirstRow,
+                        out _,
+                        out int sourceLastRow,
+                        out _)
+                    && firstDeletedRow <= sourceFirstRow
+                    && lastDeletedRow >= sourceLastRow) {
                     throw new InvalidOperationException(
                         $"Cannot delete the complete source range '{reference}' of a pivot cache. Update or remove the pivot source first.");
+                }
+
+                foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
+                    .Consolidation?.RangeSets?.Elements<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
+                    if (string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                        && string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                        && rangeSet.Reference?.Value is string consolidationReference
+                        && A1.TryParseRange(
+                            consolidationReference.Replace("$", string.Empty),
+                            out int consolidationFirstRow,
+                            out _,
+                            out int consolidationLastRow,
+                            out _)
+                        && firstDeletedRow <= consolidationFirstRow
+                        && lastDeletedRow >= consolidationLastRow) {
+                        throw new InvalidOperationException(
+                            $"Cannot delete the complete consolidation source range '{consolidationReference}' of a pivot cache. Update or remove the pivot source first.");
+                    }
                 }
             }
 
