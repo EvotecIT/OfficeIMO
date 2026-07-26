@@ -237,6 +237,7 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
             return new[] { horizontalAxis, verticalAxis }.Any(axis =>
+                HasUnsupportedBubbleAxisPresentation(axis) ||
                 (axis.GetFirstChild<C.Delete>() is C.Delete delete &&
                   delete.Val?.Value != false) ||
                  axis.GetFirstChild<C.MajorUnit>() != null ||
@@ -257,6 +258,12 @@ namespace OfficeIMO.PowerPoint {
                    scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
                       C.OrientationValues.MaxMin)));
         }
+
+        private static bool HasUnsupportedBubbleAxisPresentation(
+            C.ValueAxis axis) =>
+            HasUnsupportedBubbleTitle(axis.GetFirstChild<C.Title>()) ||
+            HasUnsupportedBubbleTextStyle(axis) ||
+            HasUnsupportedBubbleShapeProperties(axis);
 
         private static bool HasSupportedDefaultBubbleGridlines(
             C.ValueAxis horizontalAxis, C.ValueAxis verticalAxis) {
@@ -317,20 +324,66 @@ namespace OfficeIMO.PowerPoint {
                 (legend.GetFirstChild<C.LegendPosition>()?.Val?.Value ==
                      C.LegendPositionValues.TopRight ||
                  legend.GetFirstChild<C.Layout>()?
-                     .GetFirstChild<C.ManualLayout>() != null);
+                     .GetFirstChild<C.ManualLayout>() != null ||
+                 HasUnsupportedBubbleTextStyle(legend) ||
+                 HasUnsupportedBubbleShapeProperties(legend));
         }
 
         private static bool HasUnsupportedBubbleAreaLayout(
             ChartPart chartPart, C.PlotArea plotArea) =>
-            chartPart.ChartSpace?.GetFirstChild<C.Chart>()?
-                .GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?
-                .GetFirstChild<C.ManualLayout>() != null ||
+            HasUnsupportedBubbleTitle(
+                chartPart.ChartSpace?.GetFirstChild<C.Chart>()?
+                    .GetFirstChild<C.Title>()) ||
             plotArea.GetFirstChild<C.Layout>()?
                 .GetFirstChild<C.ManualLayout>() != null ||
             chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()?
                 .ChildElements.Count > 0 ||
             plotArea.GetFirstChild<C.ShapeProperties>()?
                 .ChildElements.Count > 0;
+
+        private static bool HasUnsupportedBubbleTitle(C.Title? title) =>
+            title != null &&
+            (title.GetFirstChild<C.Layout>()?
+                 .GetFirstChild<C.ManualLayout>() != null ||
+             HasUnsupportedBubbleTextStyle(title) ||
+             HasUnsupportedBubbleShapeProperties(title));
+
+        private static bool HasUnsupportedBubbleTextStyle(
+            OpenXmlElement parent) =>
+            parent.Descendants<A.RunProperties>()
+                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
+            parent.Descendants<A.DefaultRunProperties>()
+                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
+            parent.Descendants<A.EndParagraphRunProperties>()
+                .Any(HasUnsupportedBubbleTextCharacterProperties) ||
+            parent.Descendants<A.BodyProperties>()
+                .Any(properties =>
+                    properties.HasAttributes ||
+                    properties.ChildElements.Count > 0) ||
+            parent.Descendants<A.ListStyle>()
+                .Any(style => style.ChildElements.Count > 0) ||
+            parent.Descendants<A.ParagraphProperties>()
+                .Any(properties =>
+                    properties.HasAttributes ||
+                    properties.ChildElements.Any(child =>
+                        child is not A.DefaultRunProperties));
+
+        private static bool HasUnsupportedBubbleTextCharacterProperties(
+            A.TextCharacterPropertiesType properties) =>
+            properties.ChildElements.Count > 0 ||
+            properties.GetAttributes().Any(attribute =>
+                !string.Equals(
+                    attribute.LocalName, "lang",
+                    StringComparison.Ordinal));
+
+        private static bool HasUnsupportedBubbleShapeProperties(
+            OpenXmlElement parent) {
+            C.ChartShapeProperties? properties =
+                parent.GetFirstChild<C.ChartShapeProperties>();
+            return properties != null &&
+                (properties.HasAttributes ||
+                 properties.ChildElements.Count > 0);
+        }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
             chart.Descendants<C.ShowLegendKey>().Any(item => item.Val?.Value != false) ||

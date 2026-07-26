@@ -394,6 +394,17 @@ namespace OfficeIMO.Tests {
                 new C.Left { Val = 0.2D },
                 new C.Top { Val = 0.1D }));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            layout.GetFirstChild<C.ManualLayout>()!.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetLegendTextStyle(
+                fontSizePoints: 10D, bold: true,
+                color: "445566", fontName: "Arial");
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            chart.ClearLegendTextStyle();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
@@ -456,6 +467,62 @@ namespace OfficeIMO.Tests {
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.Contains("Risk", svg, StringComparison.Ordinal);
             Assert.Contains("Return", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsUnprojectedAxisPresentation() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                    OfficeChartKind.Bubble,
+                    CreateBubbleData(
+                        new[] { 1D },
+                        new[] { 2D },
+                        new[] { 4D }))
+                .SetScatterXAxisTitle("Risk")
+                .SetScatterYAxisTitle("Return");
+            C.PlotArea plotArea = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.BubbleChart bubble =
+                plotArea.GetFirstChild<C.BubbleChart>()!;
+            uint[] axisIds = bubble.Elements<C.AxisId>()
+                .Select(axis => axis.Val!.Value).ToArray();
+            C.ValueAxis horizontal = plotArea.Elements<C.ValueAxis>()
+                .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
+
+            chart.SetScatterXAxisTitleTextStyle(
+                fontSizePoints: 11D, bold: true,
+                color: "445566", fontName: "Arial");
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            chart.ClearScatterXAxisTitleTextStyle();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetScatterXAxisLabelTextStyle(
+                fontSizePoints: 9D, italic: true,
+                color: "778899", fontName: "Calibri");
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            chart.ClearScatterXAxisLabelTextStyle();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            C.Title axisTitle = horizontal.GetFirstChild<C.Title>()!;
+            C.Layout titleLayout =
+                axisTitle.GetFirstChild<C.Layout>()!;
+            titleLayout.Append(new C.ManualLayout(
+                new C.LeftMode { Val = C.LayoutModeValues.Factor },
+                new C.Left { Val = 0.15D }));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            titleLayout.GetFirstChild<C.ManualLayout>()!.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            horizontal.AddChild(
+                new C.ChartShapeProperties(
+                    new A.Outline(
+                        new A.SolidFill(
+                            new A.RgbColorModelHex {
+                                Val = "AABBCC"
+                            }))), true);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]
@@ -581,6 +648,14 @@ namespace OfficeIMO.Tests {
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             titleManualLayout.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            chart.SetTitle("Styled title")
+                .SetTitleTextStyle(
+                    fontSizePoints: 14D, bold: true,
+                    color: "445566", fontName: "Arial");
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            chart.ClearTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             C.Layout layout = plotArea.GetFirstChild<C.Layout>()!;
