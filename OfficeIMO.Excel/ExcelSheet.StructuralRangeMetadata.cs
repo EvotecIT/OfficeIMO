@@ -453,6 +453,23 @@ namespace OfficeIMO.Excel {
             return changed;
         }
 
+        private void RemapShiftedQueryTableSortStates(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            foreach (QueryTablePart part in _worksheetPart.QueryTableParts) {
+                QueryTable? queryTable = part.QueryTable;
+                if (queryTable != null
+                    && RemapShiftedSortStateReferences(
+                        queryTable,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow)) {
+                    queryTable.Save();
+                }
+            }
+        }
+
         private void RemapShiftedSelections(
             int firstAffectedRow,
             int rowDelta,

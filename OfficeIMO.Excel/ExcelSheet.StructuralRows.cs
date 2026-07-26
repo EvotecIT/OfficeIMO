@@ -500,6 +500,11 @@ namespace OfficeIMO.Excel {
                     ValidateReferenceListDoesNotOverflow(filter.Ref?.Value, firstRow, count);
                 }
             }
+            foreach (QueryTablePart part in _worksheetPart.QueryTableParts) {
+                if (part.QueryTable != null) {
+                    ValidateReferenceAttributesDoNotOverflow(part.QueryTable, firstRow, count);
+                }
+            }
             foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
                 OpenXmlAttribute referenceAttribute = smartTag.GetAttributes()
@@ -546,7 +551,9 @@ namespace OfficeIMO.Excel {
                 ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()) {
                 if (int.TryParse(marker.RowId?.Text, out int zeroBasedRow)
                     && zeroBasedRow + 1 >= firstRow
-                    && (long)zeroBasedRow + 1L + count > A1.MaxRows) {
+                    && (long)zeroBasedRow
+                        + (IsZeroOffsetDrawingBoundary(marker) ? 0L : 1L)
+                        + count > A1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a drawing anchor beyond Excel's row limit.");
                 }
             }
@@ -733,6 +740,17 @@ namespace OfficeIMO.Excel {
 
             return int.TryParse(anchor.FromMarker?.RowId?.Text, out int fromZeroBasedRow)
                 && fromZeroBasedRow + 1 >= firstRow;
+        }
+
+        private static bool IsZeroOffsetDrawingBoundary(
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType marker) {
+            return marker is DocumentFormat.OpenXml.Drawing.Spreadsheet.ToMarker
+                && long.TryParse(
+                    marker.RowOffset?.Text,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long rowOffset)
+                && rowOffset == 0L;
         }
 
         private void ValidateChartFormulaCapacity(

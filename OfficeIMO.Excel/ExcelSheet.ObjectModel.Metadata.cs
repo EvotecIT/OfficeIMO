@@ -285,6 +285,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedCellWatches(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedCellSmartTags(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedQueryTableSortStates(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSelections(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedNamedSheetViewFilters(firstAffectedRow, rowDelta, lastDeletedRow);
 

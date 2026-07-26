@@ -406,14 +406,25 @@ namespace OfficeIMO.Excel {
         private static bool IsInsideFormulaStructuredReference(string formula, int index) {
             int bracketDepth = 0;
             for (int position = 0; position < index; position++) {
-                if (formula[position] == '[') {
+                if (formula[position] == '['
+                    && !IsEscapedStructuredReferenceBracket(formula, position)) {
                     bracketDepth++;
-                } else if (formula[position] == ']' && bracketDepth > 0) {
+                } else if (formula[position] == ']'
+                    && !IsEscapedStructuredReferenceBracket(formula, position)
+                    && bracketDepth > 0) {
                     bracketDepth--;
                 }
             }
 
             return bracketDepth > 0;
+        }
+
+        private static bool IsEscapedStructuredReferenceBracket(string formula, int position) {
+            int apostropheCount = 0;
+            for (int index = position - 1; index >= 0 && formula[index] == '\''; index--) {
+                apostropheCount++;
+            }
+            return (apostropheCount & 1) != 0;
         }
 
         private static bool IsFormulaAliasIdentifierCharacter(char character) {
