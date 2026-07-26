@@ -28,8 +28,9 @@ namespace OfficeIMO.Word {
         }
 
         internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
-            if (paragraph._runProperties?.Highlight != null) {
-                return paragraph._runProperties.Highlight.Val?.Value;
+            RunProperties? directProperties = GetDirectRunProperties(paragraph);
+            if (directProperties?.Highlight != null) {
+                return directProperties.Highlight.Val?.Value;
             }
 
             foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
@@ -43,8 +44,9 @@ namespace OfficeIMO.Word {
         }
 
         private static Shading? ResolveRunShading(WordParagraph paragraph) {
-            if (paragraph._runProperties?.Shading != null) {
-                return paragraph._runProperties.Shading;
+            RunProperties? directProperties = GetDirectRunProperties(paragraph);
+            if (directProperties?.Shading != null) {
+                return directProperties.Shading;
             }
 
             foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
@@ -56,6 +58,11 @@ namespace OfficeIMO.Word {
 
             return null;
         }
+
+        private static RunProperties? GetDirectRunProperties(WordParagraph paragraph) =>
+            paragraph.IsHyperLink
+                ? paragraph.Hyperlink?._runProperties
+                : paragraph._runProperties;
 
         private static OfficeColor? ResolveRunHighlightColor(HighlightColorValues? highlight) {
             if (!highlight.HasValue || highlight.Value == HighlightColorValues.None) {

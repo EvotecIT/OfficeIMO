@@ -61,6 +61,8 @@ namespace OfficeIMO.Word.Html {
             int paragraphStartIndex,
             int tableStartIndex) {
             List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
+            List<WordTable> tables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+            paragraphs.RemoveAll(paragraph => IsGeneratedNestedTableTrailingAnchor(paragraph, tables));
             if (paragraphs.Count == 0 &&
                 currentParagraph != null &&
                 GetParagraphsInScope(section, cell, headerFooter)
@@ -69,13 +71,31 @@ namespace OfficeIMO.Word.Html {
             }
             if (paragraphs.Count == 0 &&
                 currentParagraph == null &&
-                GetGeneratedTables(section, cell, headerFooter, tableStartIndex).Count == 0 &&
+                tables.Count == 0 &&
                 RequiresEmptyBlockParagraph(element)) {
                 AddParagraphInScope(section, cell, headerFooter);
                 paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, paragraphStartIndex);
             }
 
             return paragraphs;
+        }
+
+        private static bool IsGeneratedNestedTableTrailingAnchor(
+            WordParagraph paragraph,
+            IReadOnlyList<WordTable> generatedTables) {
+            if (!string.IsNullOrEmpty(paragraph._paragraph.InnerText) ||
+                paragraph._paragraph.PreviousSibling() is not Table previousTable ||
+                !generatedTables.Any(table => ReferenceEquals(table._table, previousTable))) {
+                return false;
+            }
+
+            ParagraphProperties? properties = paragraph._paragraph.ParagraphProperties;
+            SpacingBetweenLines? spacing = properties?.GetFirstChild<SpacingBetweenLines>();
+            return paragraph._paragraph.ChildElements.All(element => element is ParagraphProperties) &&
+                   properties?.ChildElements.Count == 1 &&
+                   spacing?.Before?.Value == "0" &&
+                   spacing.After?.Value == "0" &&
+                   spacing.Line?.Value == "0";
         }
 
         private static bool ShouldReuseInitialWordSection(IElement element, WordDocument doc, WordSection section) {
