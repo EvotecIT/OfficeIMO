@@ -316,13 +316,19 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (!changed) {
-                return;
+            if (changed) {
+                commentsPart.Comments.Save();
             }
 
-            commentsPart.Comments.Save();
-            RemapCommentVmlShapes(removed, moved);
-            CleanupCommentArtifacts();
+            RemapCommentVmlShapes(
+                removed,
+                moved,
+                firstAffectedRow,
+                structuralRowDelta: rowDelta,
+                lastDeletedRow);
+            if (changed) {
+                CleanupCommentArtifacts();
+            }
         }
 
         private void RemapShiftedThreadedComments(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -718,19 +724,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool changed = false;
-                foreach (var formula in chartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
-                    string? text = formula.Text;
-                    if (string.IsNullOrEmpty(text)) {
-                        continue;
-                    }
-
-                    string rewritten = lastDeletedRow.HasValue
-                        ? RewriteDeletedFormulaReferences(text, firstAffectedRow, lastDeletedRow.Value, rowDelta, Name)
-                        : RewriteShiftedFormulaReferences(text, firstAffectedRow, rowDelta, Name);
-                    if (!string.Equals(text, rewritten, StringComparison.Ordinal)) {
-                        formula.Text = rewritten;
+                foreach (OpenXmlLeafTextElement formula in chartSpace.Descendants<OpenXmlLeafTextElement>()
+                    .Where(element => string.Equals(element.LocalName, "f", StringComparison.Ordinal))) {
+                    bool formulaChanged = RewriteStructuralFormulaText(
+                        formula,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        rewriteUnqualifiedReferences: true);
+                    changed |= formulaChanged;
+                    if (formulaChanged) {
                         InvalidateChartFormulaCache(formula);
-                        changed = true;
                     }
                 }
 

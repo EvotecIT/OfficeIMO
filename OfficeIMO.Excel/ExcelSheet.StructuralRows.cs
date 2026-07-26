@@ -379,13 +379,21 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                ValidateChartFormulaCapacity(worksheetPart.DrawingsPart, firstRow, count);
+                ValidateChartFormulaCapacity(
+                    worksheetPart.DrawingsPart,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences: ReferenceEquals(worksheetPart, _worksheetPart));
             }
 
             ValidatePivotReferenceCapacity(firstRow, count);
 
             foreach (DocumentFormat.OpenXml.Packaging.ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
-                ValidateChartFormulaCapacity(chartsheetPart.DrawingsPart, firstRow, count);
+                ValidateChartFormulaCapacity(
+                    chartsheetPart.DrawingsPart,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences: false);
             }
 
             List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
@@ -453,12 +461,7 @@ namespace OfficeIMO.Excel {
 
             foreach (DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType marker in
                 _worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()
-                    .Where(candidate =>
-                        candidate.Ancestors<DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor>()
-                            .All(anchor =>
-                                (anchor.EditAs?.Value
-                                    ?? DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.TwoCell)
-                                != DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.Absolute))
+                    .Where(candidate => DrawingMarkerMovesOnInsertion(candidate, firstRow))
                 ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType>()) {
                 if (int.TryParse(marker.RowId?.Text, out int zeroBasedRow)
                     && zeroBasedRow + 1 >= firstRow
@@ -508,6 +511,15 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException(
                     "Cannot edit rows on a worksheet containing single-cell XML mappings because their mapped references cannot yet be remapped safely.");
             }
+            if (WorkbookPartRoot.MacroSheetParts.Any()
+                || WorkbookPartRoot.InternationalMacroSheetParts.Any()) {
+                throw new InvalidOperationException(
+                    "Cannot edit rows in a workbook containing Excel 4.0 macro sheets because their formulas cannot yet be remapped safely.");
+            }
+            if (WorkbookPartRoot.WorkbookRevisionHeaderPart != null) {
+                throw new InvalidOperationException(
+                    "Cannot edit rows while legacy workbook revision tracking is present because revision-log references cannot yet be remapped safely.");
+            }
         }
 
         private bool ContainsUnsupportedVmlFormControl() {
@@ -525,26 +537,61 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private static bool DrawingMarkerMovesOnInsertion(
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType marker,
+            int firstRow) {
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor? anchor =
+                marker.Ancestors<DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor>()
+                    .FirstOrDefault();
+            if (anchor == null) {
+                return true;
+            }
+
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues placement =
+                anchor.EditAs?.Value
+                ?? DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.TwoCell;
+            if (placement == DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.Absolute) {
+                return false;
+            }
+            if (placement != DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.OneCell
+                || !ReferenceEquals(marker, anchor.ToMarker)) {
+                return true;
+            }
+
+            return int.TryParse(anchor.FromMarker?.RowId?.Text, out int fromZeroBasedRow)
+                && fromZeroBasedRow + 1 >= firstRow;
+        }
+
         private void ValidateChartFormulaCapacity(
             DocumentFormat.OpenXml.Packaging.DrawingsPart? drawingsPart,
             int firstRow,
-            int count) {
+            int count,
+            bool rewriteUnqualifiedReferences) {
             if (drawingsPart == null) {
                 return;
             }
 
             foreach (DocumentFormat.OpenXml.Packaging.ChartPart chartPart in drawingsPart.ChartParts) {
-                ValidateChartRootFormulaCapacity(chartPart.ChartSpace, firstRow, count);
+                ValidateChartRootFormulaCapacity(
+                    chartPart.ChartSpace,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences);
             }
             foreach (DocumentFormat.OpenXml.Packaging.ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
-                ValidateChartRootFormulaCapacity(chartPart.ChartSpace, firstRow, count);
+                ValidateChartRootFormulaCapacity(
+                    chartPart.ChartSpace,
+                    firstRow,
+                    count,
+                    rewriteUnqualifiedReferences);
             }
         }
 
         private void ValidateChartRootFormulaCapacity(
             OpenXmlPartRootElement? chartRoot,
             int firstRow,
-            int count) {
+            int count,
+            bool rewriteUnqualifiedReferences) {
             if (chartRoot == null) {
                 return;
             }
@@ -555,7 +602,7 @@ namespace OfficeIMO.Excel {
                     formula.Text,
                     firstRow,
                     count,
-                    rewriteUnqualifiedReferences: false);
+                    rewriteUnqualifiedReferences);
             }
         }
 

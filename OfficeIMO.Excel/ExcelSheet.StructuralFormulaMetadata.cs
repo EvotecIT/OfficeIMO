@@ -181,6 +181,15 @@ namespace OfficeIMO.Excel {
                             rewriteUnqualifiedReferences: false);
                     }
                 }
+                foreach (X14.SparklineGroup group
+                    in worksheetPart.Worksheet.Descendants<X14.SparklineGroup>()) {
+                    changed |= RewriteStructuralFormulaText(
+                        group.Formula,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        rewriteUnqualifiedReferences: isMutatedSheet);
+                }
 
                 if (changed) {
                     worksheetPart.Worksheet.Save();

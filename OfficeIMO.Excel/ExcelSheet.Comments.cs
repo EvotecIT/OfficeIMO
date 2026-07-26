@@ -646,11 +646,10 @@ namespace OfficeIMO.Excel {
 
         private void RemapCommentVmlShapes(
             IReadOnlyCollection<(int Row, int Col)> removed,
-            IReadOnlyCollection<((int Row, int Col) OldCell, (int Row, int Col) NewCell)> moved) {
-            if (removed.Count == 0 && moved.Count == 0) {
-                return;
-            }
-
+            IReadOnlyCollection<((int Row, int Col) OldCell, (int Row, int Col) NewCell)> moved,
+            int? firstAffectedRow = null,
+            int structuralRowDelta = 0,
+            int? lastDeletedRow = null) {
             var removedCells = new HashSet<(int Row, int Col)>(removed);
             var movedCells = moved.ToDictionary(pair => pair.OldCell, pair => pair.NewCell);
             var movedShapes = new HashSet<(int Row, int Col)>();
@@ -677,22 +676,30 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        if (!movedCells.TryGetValue(oldCell, out var newCell)) {
-                            continue;
+                        int columnDelta = 0;
+                        int commentRowDelta = 0;
+                        if (movedCells.TryGetValue(oldCell, out var newCell)) {
+                            clientData.SetElementValue(
+                                x + "Row",
+                                (newCell.Row - 1).ToString(CultureInfo.InvariantCulture));
+                            clientData.SetElementValue(
+                                x + "Column",
+                                (newCell.Col - 1).ToString(CultureInfo.InvariantCulture));
+                            columnDelta = newCell.Col - oldCell.Col;
+                            commentRowDelta = newCell.Row - oldCell.Row;
+                            movedShapes.Add(oldCell);
+                            changed = true;
                         }
 
-                        clientData.SetElementValue(
-                            x + "Row",
-                            (newCell.Row - 1).ToString(CultureInfo.InvariantCulture));
-                        clientData.SetElementValue(
-                            x + "Column",
-                            (newCell.Col - 1).ToString(CultureInfo.InvariantCulture));
-                        ShiftVmlAnchor(
-                            clientData.Element(x + "Anchor"),
-                            newCell.Row - oldCell.Row,
-                            newCell.Col - oldCell.Col);
-                        movedShapes.Add(oldCell);
-                        changed = true;
+                        XElement? anchor = clientData.Element(x + "Anchor");
+                        changed |= firstAffectedRow.HasValue
+                            ? RemapVmlAnchorRows(
+                                anchor,
+                                firstAffectedRow.Value,
+                                structuralRowDelta,
+                                lastDeletedRow,
+                                columnDelta)
+                            : ShiftVmlAnchor(anchor, commentRowDelta, columnDelta);
                     }
 
                     if (changed) {
@@ -708,14 +715,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ShiftVmlAnchor(XElement? anchor, int rowDelta, int columnDelta) {
+        private static bool ShiftVmlAnchor(XElement? anchor, int rowDelta, int columnDelta) {
             if (anchor?.Value is not string anchorText) {
-                return;
+                return false;
             }
 
             string[] parts = anchorText.Split(',');
             if (parts.Length != 8) {
-                return;
+                return false;
             }
 
             var values = new int[parts.Length];
@@ -725,7 +732,7 @@ namespace OfficeIMO.Excel {
                     NumberStyles.Integer,
                     CultureInfo.InvariantCulture,
                     out values[index])) {
-                    return;
+                    return false;
                 }
             }
 
@@ -734,12 +741,86 @@ namespace OfficeIMO.Excel {
             values[4] += columnDelta;
             values[6] += rowDelta;
             if (values[0] < 0 || values[2] < 0 || values[4] < 0 || values[6] < 0) {
-                return;
+                return false;
             }
 
             anchor.Value = string.Join(
                 ", ",
                 values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
+            return rowDelta != 0 || columnDelta != 0;
+        }
+
+        private static bool RemapVmlAnchorRows(
+            XElement? anchor,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow,
+            int columnDelta) {
+            if (anchor?.Value is not string anchorText) {
+                return false;
+            }
+
+            string[] parts = anchorText.Split(',');
+            if (parts.Length != 8) {
+                return false;
+            }
+
+            var values = new int[parts.Length];
+            for (int index = 0; index < parts.Length; index++) {
+                if (!int.TryParse(
+                    parts[index].Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out values[index])) {
+                    return false;
+                }
+            }
+
+            int originalFromColumn = values[0];
+            int originalFromRow = values[2];
+            int originalToColumn = values[4];
+            int originalToRow = values[6];
+            values[0] += columnDelta;
+            values[4] += columnDelta;
+
+            int firstSpannedRow = values[2] + 1;
+            int lastSpannedRow = values[6];
+            if (lastSpannedRow >= firstSpannedRow
+                && TryRemapShiftedReferenceRows(
+                    (firstSpannedRow, 1, lastSpannedRow, 1),
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remappedRows)) {
+                if (remappedRows == null) {
+                    values[2] = firstAffectedRow - 1;
+                    values[6] = firstAffectedRow - 1;
+                } else {
+                    values[2] = remappedRows.Value.r1 - 1;
+                    values[6] = remappedRows.Value.r2;
+                }
+            }
+
+            if (values[0] < 0
+                || values[2] < 0
+                || values[4] < 0
+                || values[6] < 0
+                || values[2] > A1.MaxRows
+                || values[6] > A1.MaxRows) {
+                return false;
+            }
+
+            bool changed = values[0] != originalFromColumn
+                || values[2] != originalFromRow
+                || values[4] != originalToColumn
+                || values[6] != originalToRow;
+            if (!changed) {
+                return false;
+            }
+            anchor.Value = string.Join(
+                ", ",
+                values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
+            return true;
         }
 
         private static bool RemoveVmlShape(XElement root, int row, int column) {

@@ -356,6 +356,10 @@ namespace OfficeIMO.Excel {
             int index = 0;
             while (index < formula.Length) {
                 int quote = formula.IndexOf('"', index);
+                while (quote >= 0
+                    && IsInsideSingleQuotedFormulaQualifier(formula, index, quote)) {
+                    quote = formula.IndexOf('"', quote + 1);
+                }
                 if (quote < 0) {
                     builder.Append(rewriteSegment(formula.Substring(index)));
                     break;
@@ -385,6 +389,29 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.ToString();
+        }
+
+        private static bool IsInsideSingleQuotedFormulaQualifier(
+            string formula,
+            int start,
+            int position) {
+            bool insideQualifier = false;
+            for (int index = start; index < position; index++) {
+                if (formula[index] != '\'') {
+                    continue;
+                }
+
+                if (insideQualifier
+                    && index + 1 < position
+                    && formula[index + 1] == '\'') {
+                    index++;
+                    continue;
+                }
+
+                insideQualifier = !insideQualifier;
+            }
+
+            return insideQualifier;
         }
 
         private static string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
