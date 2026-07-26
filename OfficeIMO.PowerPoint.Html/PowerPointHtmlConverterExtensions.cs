@@ -555,6 +555,29 @@ public static partial class PowerPointHtmlConverterExtensions {
             if (!series.ShowInLegend) {
                 body.Append(" data-officeimo-show-in-legend=\"false\"");
             }
+            if (series.BubbleSizes != null) {
+                if (series.Color.HasValue) {
+                    body.Append(" data-officeimo-series-color=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(
+                            series.Color.Value.ToString()))
+                        .Append('"');
+                }
+                if (series.StrokeColor.HasValue) {
+                    body.Append(" data-officeimo-outline-color=\"")
+                        .Append(OfficeHtmlText.EscapeAttribute(
+                            series.StrokeColor.Value.ToString()))
+                        .Append('"');
+                }
+                if (series.StrokeWidth.HasValue) {
+                    body.Append(" data-officeimo-outline-width=\"")
+                        .Append(series.StrokeWidth.Value.ToString(
+                            "G17", CultureInfo.InvariantCulture))
+                        .Append('"');
+                }
+                if (!series.ShowStroke) {
+                    body.Append(" data-officeimo-show-outline=\"false\"");
+                }
+            }
             body.Append("><th>")
                 .Append(OfficeHtmlText.Escape(series.Name))
                 .Append("</th>");
@@ -569,6 +592,13 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" data-officeimo-bubble-size=\"")
                         .Append(OfficeHtmlText.EscapeAttribute(series.BubbleSizes[i].ToString("G17", CultureInfo.InvariantCulture)))
                         .Append('"');
+                    if (series.PointColors != null && i < series.PointColors.Count &&
+                        series.PointColors[i].HasValue) {
+                        body.Append(" data-officeimo-point-color=\"")
+                            .Append(OfficeHtmlText.EscapeAttribute(
+                                series.PointColors[i]!.Value.ToString()))
+                            .Append('"');
+                    }
                 }
 
                 body.Append('>')

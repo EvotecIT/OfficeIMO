@@ -304,11 +304,49 @@ public static partial class HtmlPowerPointConverterExtensions {
             bool showInLegend = !string.Equals(
                 row.GetAttribute("data-officeimo-show-in-legend"), "false",
                 StringComparison.OrdinalIgnoreCase);
+            OfficeColor? seriesColor = null;
+            string? rawSeriesColor =
+                row.GetAttribute("data-officeimo-series-color");
+            if (rawSeriesColor != null) {
+                if (!OfficeColor.TryParse(rawSeriesColor,
+                        out OfficeColor parsedSeriesColor)) {
+                    return false;
+                }
+                seriesColor = parsedSeriesColor;
+            }
+            OfficeColor? outlineColor = null;
+            string? rawOutlineColor =
+                row.GetAttribute("data-officeimo-outline-color");
+            if (rawOutlineColor != null) {
+                if (!OfficeColor.TryParse(rawOutlineColor,
+                        out OfficeColor parsedOutlineColor)) {
+                    return false;
+                }
+                outlineColor = parsedOutlineColor;
+            }
+            double? outlineWidth = null;
+            string? rawOutlineWidth =
+                row.GetAttribute("data-officeimo-outline-width");
+            if (rawOutlineWidth != null) {
+                if (!double.TryParse(rawOutlineWidth, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double parsedOutlineWidth) ||
+                    double.IsNaN(parsedOutlineWidth) ||
+                    double.IsInfinity(parsedOutlineWidth) ||
+                    parsedOutlineWidth <= 0D) {
+                    return false;
+                }
+                outlineWidth = parsedOutlineWidth;
+            }
+            bool showOutline = !string.Equals(
+                row.GetAttribute("data-officeimo-show-outline"), "false",
+                StringComparison.OrdinalIgnoreCase);
 
             List<IElement> valueCells = row.QuerySelectorAll("td").ToList();
             var values = new double[valueCells.Count];
             var xValues = new double[valueCells.Count];
             var bubbleSizes = new double[valueCells.Count];
+            var pointColors = new OfficeColor?[valueCells.Count];
+            bool hasPointColors = false;
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
             bool hasBubbleSizes = valueCells.Any(
                 cell => cell.GetAttribute("data-officeimo-bubble-size") != null);
@@ -347,6 +385,16 @@ public static partial class HtmlPowerPointConverterExtensions {
                         || bubbleSizes[i] < 0D) {
                         return false;
                     }
+                    string? rawPointColor =
+                        cell.GetAttribute("data-officeimo-point-color");
+                    if (rawPointColor != null) {
+                        if (!OfficeColor.TryParse(rawPointColor,
+                                out OfficeColor parsedPointColor)) {
+                            return false;
+                        }
+                        pointColors[i] = parsedPointColor;
+                        hasPointColors = true;
+                    }
                 }
             }
 
@@ -359,8 +407,13 @@ public static partial class HtmlPowerPointConverterExtensions {
                     name,
                     values,
                     xValues,
-                    PptCore.PowerPointChartSnapshotKind.Bubble) {
+                    PptCore.PowerPointChartSnapshotKind.Bubble,
+                    seriesColor,
+                    outlineWidth) {
                     BubbleSizes = bubbleSizes,
+                    PointColors = hasPointColors ? pointColors : null,
+                    StrokeColor = outlineColor,
+                    ShowStroke = showOutline,
                     ShowInLegend = showInLegend
                 }
                 : hasXValues
@@ -714,7 +767,11 @@ public static partial class HtmlPowerPointConverterExtensions {
 
             series.Add(OfficeChartSeries.CreateBubble(
                 item.Name, item.XValues, item.Values, item.BubbleSizes,
-                showInLegend: item.ShowInLegend));
+                item.Color, item.PointColors,
+                showInLegend: item.ShowInLegend,
+                markerOutlineColor: item.StrokeColor ?? item.Color,
+                markerOutlineWidth: item.StrokeWidth,
+                showMarkerOutline: item.ShowStroke));
         }
 
         if (series.Count == 0) {

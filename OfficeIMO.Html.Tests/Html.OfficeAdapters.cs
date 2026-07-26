@@ -859,12 +859,25 @@ public class HtmlOfficeAdapters {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
+        OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
+        OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
             OfficeChartSeries.CreateBubble("Portfolio",
                 new[] { 1.5D, 2.5D },
                 new[] { 10D, 20D },
                 new[] { 4D, 9D },
-                showInLegend: false)
+                seriesColor,
+                new OfficeColor?[] { pointColor, null },
+                showInLegend: false,
+                markerOutlineColor: outlineColor,
+                markerOutlineWidth: 1.5D),
+            OfficeChartSeries.CreateBubble("No outline",
+                new[] { 1.5D, 2.5D },
+                new[] { 8D, 16D },
+                new[] { 3D, 7D },
+                color: OfficeColor.Parse("#AABBCC"),
+                showMarkerOutline: false)
         });
         slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
             .SetTitle("Bubble")
@@ -884,6 +897,16 @@ public class HtmlOfficeAdapters {
             StringComparison.Ordinal);
         Assert.Contains("data-officeimo-show-in-legend=\"false\"", html,
             StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-series-color=\"#11223380\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-point-color=\"#44556660\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-outline-color=\"#77889940\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-outline-width=\"1.5\"", html,
+            StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-show-outline=\"false\"", html,
+            StringComparison.Ordinal);
 
         HtmlToPowerPointResult result =
             HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
@@ -891,11 +914,19 @@ public class HtmlOfficeAdapters {
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+        OfficeChartSeries series = snapshot.Data.Series[0];
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
         Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
         Assert.False(series.ShowInLegend);
+        Assert.Equal(seriesColor, series.Color);
+        Assert.Equal(pointColor, series.PointColors![0]);
+        Assert.Null(series.PointColors[1]);
+        Assert.Equal(outlineColor, series.MarkerOutlineColor);
+        Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        Assert.True(series.ShowMarkerOutline);
+        Assert.False(snapshot.Data.Series[1].ShowMarkerOutline);
         Assert.Equal(145D, snapshot.BubbleScalePercent);
         Assert.Equal(OfficeChartBubbleSizeMode.Width, snapshot.BubbleSizeMode);
         Assert.DoesNotContain(result.Report.Diagnostics,

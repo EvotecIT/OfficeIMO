@@ -414,12 +414,17 @@ namespace OfficeIMO.PowerPoint {
             double? outlineWidth = kind == OfficeChartKind.Bubble
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
+            C.ChartShapeProperties properties =
+                seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
+                new C.ChartShapeProperties();
+            bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
+                series.ShowMarkerOutline &&
+                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             if (!series.Color.HasValue && !outlineColor.HasValue && outlineWidth == null &&
                 (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
                 series.StrokeDashStyle == null &&
-                (series.ConnectLine || IsFilledSharedKind(kind))) return;
-            C.ChartShapeProperties properties = seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
-                new C.ChartShapeProperties();
+                (series.ConnectLine || IsFilledSharedKind(kind)) &&
+                !reenableBubbleOutline) return;
             if (series.Color.HasValue && IsFilledSharedKind(kind)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();

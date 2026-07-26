@@ -285,6 +285,18 @@ namespace OfficeIMO.Tests {
                 .RgbColorModelHex!.Val!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(
                 presentation.Slides[0].SlidePart.ChartParts.Single()));
+
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.Append(new A.NoFill());
+            chart.UpdateData(CreateBubbleData(
+                new[] { 2D }, new[] { 3D }, new[] { 5D }));
+            outline = presentation.Slides[0].SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
+                .GetFirstChild<C.ChartShapeProperties>()!
+                .GetFirstChild<A.Outline>()!;
+            Assert.Null(outline.GetFirstChild<A.NoFill>());
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
         }
 
         [Fact]
@@ -738,6 +750,23 @@ namespace OfficeIMO.Tests {
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             labels.GetFirstChild<C.ShowBubbleSize>()!.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+            var customLabel = new C.DataLabel(
+                new C.Index { Val = 0U },
+                new C.ChartText(
+                    new C.RichText(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(
+                            new A.Run(
+                                new A.RunProperties { Language = "en-US" },
+                                new A.Text { Text = "Custom" })))));
+            labels.PrependChild(customLabel);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            customLabel.InsertAfter(new C.Delete(),
+                customLabel.GetFirstChild<C.Index>());
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             C.BubbleChartSeries series =

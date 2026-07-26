@@ -215,7 +215,12 @@ namespace OfficeIMO.PowerPoint {
             chart.Descendants<C.ShowCategoryName>().Any(item => item.Val?.Value != false) ||
             chart.Descendants<C.ShowSeriesName>().Any(item => item.Val?.Value != false) ||
             chart.Descendants<C.ShowPercent>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowBubbleSize>().Any(item => item.Val?.Value != false);
+            chart.Descendants<C.ShowBubbleSize>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.DataLabel>().Any(label => {
+                C.Delete? delete = label.GetFirstChild<C.Delete>();
+                return label.GetFirstChild<C.ChartText>() != null &&
+                    (delete == null || delete.Val?.Value == false);
+            });
 
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()
