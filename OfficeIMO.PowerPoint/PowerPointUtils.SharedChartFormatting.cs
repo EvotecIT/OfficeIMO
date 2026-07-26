@@ -6,12 +6,17 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
-        private static void PreserveSharedChartFormatting(C.PlotArea source, C.PlotArea replacement) {
-            PreserveSharedChartLayers(source, replacement);
+        private static void PreserveSharedChartFormatting(
+            C.PlotArea source, C.PlotArea replacement,
+            ISet<uint> preservedSeriesIndexes) {
+            PreserveSharedChartLayers(
+                source, replacement, preservedSeriesIndexes);
             PreserveSharedAxes(source, replacement);
         }
 
-        private static void PreserveSharedChartLayers(C.PlotArea source, C.PlotArea replacement) {
+        private static void PreserveSharedChartLayers(
+            C.PlotArea source, C.PlotArea replacement,
+            ISet<uint> preservedSeriesIndexes) {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
@@ -24,7 +29,8 @@ namespace OfficeIMO.PowerPoint {
 
                 usedLayers.Add(match);
                 var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
-                ReplaceSharedSeriesData(preserved, generated);
+                ReplaceSharedSeriesData(
+                    preserved, generated, preservedSeriesIndexes);
                 ReplaceSharedAxisReferences(preserved, generated);
                 replacement.ReplaceChild(preserved, generated);
             }
@@ -65,8 +71,10 @@ namespace OfficeIMO.PowerPoint {
             return categoryAxis?.GetFirstChild<C.Delete>()?.Val?.Value == true;
         }
 
-        private static void ReplaceSharedSeriesData(OpenXmlCompositeElement preserved,
-            OpenXmlCompositeElement generated) {
+        private static void ReplaceSharedSeriesData(
+            OpenXmlCompositeElement preserved,
+            OpenXmlCompositeElement generated,
+            ISet<uint> preservedSeriesIndexes) {
             List<OpenXmlCompositeElement> oldSeries = preserved.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList();
             var usedSeries = new HashSet<OpenXmlCompositeElement>();
@@ -89,7 +97,12 @@ namespace OfficeIMO.PowerPoint {
                 OpenXmlCompositeElement updated = sourceSeries == null
                     ? (OpenXmlCompositeElement)generatedSeries.CloneNode(true)
                     : UpdateSharedSeriesData(sourceSeries, generatedSeries);
-                if (sourceSeries != null) usedSeries.Add(sourceSeries);
+                if (sourceSeries != null) {
+                    usedSeries.Add(sourceSeries);
+                    if (seriesIndex.HasValue) {
+                        preservedSeriesIndexes.Add(seriesIndex.Value);
+                    }
+                }
                 if (insertionPoint == null) preserved.AddChild(updated, true);
                 else preserved.InsertBefore(updated, insertionPoint);
             }

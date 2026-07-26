@@ -322,6 +322,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedBubbleAreaLayout(
             ChartPart chartPart, C.PlotArea plotArea) =>
+            chartPart.ChartSpace?.GetFirstChild<C.Chart>()?
+                .GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?
+                .GetFirstChild<C.ManualLayout>() != null ||
             plotArea.GetFirstChild<C.Layout>()?
                 .GetFirstChild<C.ManualLayout>() != null ||
             chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()?

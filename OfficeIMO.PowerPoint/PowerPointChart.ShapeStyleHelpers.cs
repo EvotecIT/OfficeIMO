@@ -197,7 +197,9 @@ namespace OfficeIMO.PowerPoint {
             outline.RemoveAllChildren<A.PatternFill>();
             outline.RemoveAllChildren<A.BlipFill>();
             outline.RemoveAllChildren<A.GroupFill>();
-            outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+            outline.AddChild(
+                new A.SolidFill(
+                    new A.RgbColorModelHex { Val = color }), true);
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
             }
@@ -215,7 +217,9 @@ namespace OfficeIMO.PowerPoint {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (color != null) {
                 outline.RemoveAllChildren<A.SolidFill>();
-                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+                outline.AddChild(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = color }), true);
             }
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);

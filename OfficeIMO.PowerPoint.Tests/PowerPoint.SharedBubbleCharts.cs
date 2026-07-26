@@ -568,6 +568,21 @@ namespace OfficeIMO.Tests {
                 .ChartParts.Single();
             C.PlotArea plotArea = chartPart.ChartSpace!
                 .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.Chart nativeChart = chartPart.ChartSpace!
+                .GetFirstChild<C.Chart>()!;
+            C.Title title = nativeChart.GetFirstChild<C.Title>() ??
+                nativeChart.PrependChild(new C.Title());
+            C.Layout titleLayout = title.GetFirstChild<C.Layout>() ??
+                title.AppendChild(new C.Layout());
+            C.ManualLayout titleManualLayout = titleLayout.AppendChild(
+                new C.ManualLayout(
+                    new C.LeftMode { Val = C.LayoutModeValues.Factor },
+                    new C.Left { Val = 0.2D }));
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            titleManualLayout.Remove();
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+
             C.Layout layout = plotArea.GetFirstChild<C.Layout>()!;
             C.ManualLayout manualLayout = layout.AppendChild(
                 new C.ManualLayout(
@@ -1266,6 +1281,56 @@ namespace OfficeIMO.Tests {
             Assert.Equal("778899",
                 outline.GetFirstChild<A.SolidFill>()!
                     .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+
+            outline.Append(new A.PresetDash {
+                Val = A.PresetLineDashValues.Dash
+            });
+            chart.SetSeriesLineColor(
+                0, "AABBCC", widthPoints: 2D);
+
+            List<OpenXmlElement> outlineChildren =
+                outline.ChildElements.ToList();
+            Assert.True(
+                outlineChildren.FindIndex(child => child is A.SolidFill) <
+                outlineChildren.FindIndex(child => child is A.PresetDash));
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
+        }
+
+        [Fact]
+        public void BubbleChart_UpdateDataMaterializesColorOnlyForNewSeries() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            var initial = new OfficeChartData(
+                new[] { "1" },
+                new[] {
+                    OfficeChartSeries.CreateBubble(
+                        "Existing", new[] { 1D }, new[] { 2D },
+                        new[] { 4D }, OfficeColor.Parse("#112233"))
+                });
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble, initial);
+            var updated = new OfficeChartData(
+                new[] { "1" },
+                new[] {
+                    OfficeChartSeries.CreateBubble(
+                        "Existing", new[] { 3D }, new[] { 5D },
+                        new[] { 9D }),
+                    OfficeChartSeries.CreateBubble(
+                        "Added", new[] { 7D }, new[] { 11D },
+                        new[] { 16D })
+                });
+
+            chart.UpdateData(updated);
+
+            Assert.True(chart.TryGetOfficeSnapshot(
+                out OfficeChartSnapshot snapshot));
+            Assert.Equal(
+                OfficeColor.Parse("#112233"),
+                snapshot.Data.Series[0].Color);
+            Assert.Equal(
+                OfficeChartStyle.Default.GetSeriesColor(1),
+                snapshot.Data.Series[1].Color);
             Assert.Empty(new OpenXmlValidator().Validate(
                 presentation.Slides[0].SlidePart.ChartParts.Single()));
         }

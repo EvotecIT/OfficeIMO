@@ -75,17 +75,40 @@ internal sealed class HtmlImportBudget {
         int series,
         int categories,
         out HtmlImportBudgetReservation reservation,
+        out string detail) =>
+        TryReserveChartWithShape(
+            series, categories, explicitPoints: null,
+            out reservation, out detail);
+
+    internal bool TryReserveChartWithShape(
+        int series,
+        int categories,
+        long points,
+        out HtmlImportBudgetReservation reservation,
+        out string detail) =>
+        TryReserveChartWithShape(
+            series, categories, explicitPoints: points,
+            out reservation, out detail);
+
+    private bool TryReserveChartWithShape(
+        int series,
+        int categories,
+        long? explicitPoints,
+        out HtmlImportBudgetReservation reservation,
         out string detail) {
         reservation = null!;
-        if (!CanReserveChart(series, categories, out long points, out detail)
+        if (!CanReserveChart(
+                series, categories, explicitPoints,
+                out long reservedPoints, out detail)
             || !CanIncrement(_shapes, _limits.MaxShapes, nameof(HtmlImportLimits.MaxShapes), out detail)) {
             return false;
         }
 
         _charts++;
-        _chartPoints += points;
+        _chartPoints += reservedPoints;
         _shapes++;
-        reservation = new HtmlImportBudgetReservation(() => ReleaseChartWithShape(points));
+        reservation = new HtmlImportBudgetReservation(
+            () => ReleaseChartWithShape(reservedPoints));
         detail = string.Empty;
         return true;
     }
@@ -96,7 +119,12 @@ internal sealed class HtmlImportBudget {
         _shapes--;
     }
 
-    private bool CanReserveChart(int series, int categories, out long points, out string detail) {
+    private bool CanReserveChart(
+        int series,
+        int categories,
+        long? explicitPoints,
+        out long points,
+        out string detail) {
         if (_charts >= _limits.MaxCharts) {
             points = 0L;
             detail = Detail(nameof(HtmlImportLimits.MaxCharts), _charts + 1L, _limits.MaxCharts);
@@ -115,7 +143,13 @@ internal sealed class HtmlImportBudget {
             return false;
         }
 
-        points = (long)series * categories;
+        points = explicitPoints ?? (long)series * categories;
+        if (points < 0L) {
+            detail = Detail(
+                nameof(HtmlImportLimits.MaxChartPoints),
+                points, _limits.MaxChartPoints);
+            return false;
+        }
         if (points > _limits.MaxChartPoints - _chartPoints) {
             detail = Detail(nameof(HtmlImportLimits.MaxChartPoints), _chartPoints + points, _limits.MaxChartPoints);
             return false;

@@ -173,13 +173,16 @@ namespace OfficeIMO.PowerPoint {
             C.PlotArea plotArea = chart.GetFirstChild<C.PlotArea>() ??
                 throw new InvalidOperationException("Chart plot area not found.");
 
+            ISet<uint>? preservedSeriesIndexes = null;
             if (defaultKind == OfficeChartKind.Scatter) {
                 UpdateChartData(chartPart, ToPowerPointScatterChartData(data));
             } else {
+                preservedSeriesIndexes = new HashSet<uint>();
                 var replacement = new C.PlotArea();
                 replacement.Append(plotArea.GetFirstChild<C.Layout>()?.CloneNode(true) ?? new C.Layout());
                 AppendSharedChartContent(replacement, data, defaultKind);
-                PreserveSharedChartFormatting(plotArea, replacement);
+                PreserveSharedChartFormatting(
+                    plotArea, replacement, preservedSeriesIndexes);
                 foreach (OpenXmlElement child in plotArea.ChildElements) {
                     if (child is C.DataTable || child is C.ChartShapeProperties || child is C.ExtensionList) {
                         replacement.Append(child.CloneNode(true));
@@ -190,21 +193,28 @@ namespace OfficeIMO.PowerPoint {
 
             UpdateSharedLegend(chart, data);
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
-                materializeMissingBubbleColors: false);
+                materializeMissingBubbleColors: false,
+                preservedSeriesIndexes);
             chartSpace.Save();
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind, bool materializeMissingBubbleColors) {
+            OfficeChartKind defaultKind, bool materializeMissingBubbleColors,
+            ISet<uint>? preservedSeriesIndexes = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
             if (plotArea == null) return;
             foreach (OpenXmlCompositeElement seriesElement in EnumerateSharedSeriesElements(plotArea)) {
-                int index = (int)(seriesElement.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue);
+                uint nativeIndex =
+                    seriesElement.GetFirstChild<C.Index>()?.Val?.Value ??
+                    uint.MaxValue;
+                int index = (int)nativeIndex;
                 if (index < 0 || index >= data.Series.Count) continue;
                 OfficeChartSeries series = data.Series[index];
                 OfficeChartKind kind = series.RenderKind ?? defaultKind;
                 OfficeColor? fallbackBubbleColor =
-                    materializeMissingBubbleColors &&
+                    (materializeMissingBubbleColors ||
+                     preservedSeriesIndexes != null &&
+                     !preservedSeriesIndexes.Contains(nativeIndex)) &&
                     kind == OfficeChartKind.Bubble &&
                     !series.Color.HasValue
                         ? OfficeChartStyle.Default.GetSeriesColor(index)

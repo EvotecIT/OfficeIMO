@@ -174,7 +174,26 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ReadChartDataDimensions(item, out int seriesCount, out int categoryCount);
-        if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
+        string chartKind = ReadChartKind(item);
+        bool isBubble =
+            chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase);
+        IElement? semanticTable =
+            item.QuerySelector("table.officeimo-chart-data");
+        bool hasSemanticTable = semanticTable != null;
+        long? semanticPointCount = isBubble && semanticTable != null
+            ? semanticTable.QuerySelectorAll("tbody tr")
+                .Sum(row => (long)row.QuerySelectorAll("td").Length)
+            : null;
+        HtmlImportBudgetReservation reservation;
+        string chartLimit;
+        bool reserved = semanticPointCount.HasValue
+            ? budget.TryReserveChartWithShape(
+                seriesCount, categoryCount, semanticPointCount.Value,
+                out reservation, out chartLimit)
+            : budget.TryReserveChartWithShape(
+                seriesCount, categoryCount,
+                out reservation, out chartLimit);
+        if (!reserved) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
                 lossKind: HtmlConversionLossKind.Omission, detail: chartLimit);
@@ -182,10 +201,6 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         using (reservation) {
-            string chartKind = ReadChartKind(item);
-            bool isBubble = chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase);
-            bool hasSemanticTable =
-                item.QuerySelector("table.officeimo-chart-data") != null;
             if (isBubble && !hasSemanticTable &&
                 (long)seriesCount * categoryCount >
                     PptCore.PowerPointUtils.MaximumSharedChartPoints) {
