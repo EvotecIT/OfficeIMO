@@ -1381,7 +1381,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = null;
             double? height = null;
             if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), out var w)) width = w;
@@ -1393,18 +1393,20 @@ namespace OfficeIMO.Word.Html {
                 var svgByteCount = Encoding.UTF8.GetByteCount(svg.OuterHtml);
                 if (options.MaxImageBytes.HasValue && svgByteCount > options.MaxImageBytes.Value) {
                     AddDiagnostic(options, "ImageResourceTooLarge", "Inline SVG exceeded the configured byte limit and was skipped.", "svg");
-                    return;
+                    return false;
                 }
                 if (!TryReserveImageBytes(svgByteCount, options, "svg")) {
-                    return;
+                    return false;
                 }
                 reservedBytes = svgByteCount;
 
                 SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
                 reservedBytes = 0;
+                return true;
             } catch (Exception ex) {
                 ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "InlineSvgEmbedFailed", "Inline SVG could not be embedded and was skipped.", "svg", ex);
+                return false;
             }
         }
     }

@@ -6,6 +6,24 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void RunShadingFillColor_ClearsThemeFillAttributes() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Themed");
+        paragraph.RunShadingFillColorHex = "FFFFFF";
+        paragraph._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
+        paragraph._runProperties.Shading.ThemeFillTint = "33";
+        paragraph._runProperties.Shading.ThemeFillShade = "66";
+
+        paragraph.RunShadingFillColorHex = "ABCDEF";
+
+        Assert.Equal("ABCDEF", paragraph.RunShadingFillColorHex);
+        Assert.Equal("ABCDEF", paragraph._runProperties.Shading.Fill?.Value);
+        Assert.Null(paragraph._runProperties.Shading.ThemeFill);
+        Assert.Null(paragraph._runProperties.Shading.ThemeFillTint);
+        Assert.Null(paragraph._runProperties.Shading.ThemeFillShade);
+    }
+
+    [Fact]
     public void RunShadingFillColor_DisabledPatternIgnoresStaleFill() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Disabled");

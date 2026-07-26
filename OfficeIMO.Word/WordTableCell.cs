@@ -897,6 +897,12 @@ namespace OfficeIMO.Word {
         }
 
         private static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+            ParagraphProperties? paragraphProperties = paragraph.ParagraphProperties;
+            if (paragraphProperties != null &&
+                (paragraphProperties.HasChildren || paragraphProperties.HasAttributes)) {
+                return true;
+            }
+
             foreach (var element in paragraph.Descendants()) {
                 if (element is Text text) {
                     if (!string.IsNullOrWhiteSpace(text.Text)) return true;

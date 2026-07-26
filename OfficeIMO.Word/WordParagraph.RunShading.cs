@@ -33,6 +33,9 @@ namespace OfficeIMO.Word {
                 if (!string.IsNullOrWhiteSpace(value)) {
                     runProperties.Shading ??= new Shading();
                     runProperties.Shading.Fill = value.Replace("#", string.Empty).ToUpperInvariant();
+                    runProperties.Shading.ThemeFill = null;
+                    runProperties.Shading.ThemeFillTint = null;
+                    runProperties.Shading.ThemeFillShade = null;
                     ShadingPatternValues? pattern = runProperties.Shading.Val?.Value;
                     if (!pattern.HasValue || pattern.Value == ShadingPatternValues.Nil) {
                         runProperties.Shading.Val = ShadingPatternValues.Clear;

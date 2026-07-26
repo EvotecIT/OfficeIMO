@@ -438,10 +438,18 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "svg": {
                             WordParagraph? svgParagraph = currentParagraph;
+                            int cellParagraphCount = cell?.Paragraphs.Count ?? 0;
+                            bool createdSvgParagraph = false;
                             if (svgParagraph == null && cell != null) {
                                 svgParagraph = AddParagraphInScope(section, cell, headerFooter);
+                                createdSvgParagraph = true;
                             }
-                            ProcessSvgElement(element, doc, section, options, svgParagraph, headerFooter);
+                            if (!ProcessSvgElement(element, doc, section, options, svgParagraph, headerFooter) &&
+                                createdSvgParagraph &&
+                                cell != null &&
+                                cell.Paragraphs.Count > cellParagraphCount) {
+                                svgParagraph!.Remove();
+                            }
                             break;
                         }
                     case "pre": {

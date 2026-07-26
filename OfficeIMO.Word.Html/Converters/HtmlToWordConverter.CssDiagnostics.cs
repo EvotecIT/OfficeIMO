@@ -314,7 +314,22 @@ namespace OfficeIMO.Word.Html {
                         reason = $"Unsupported {propertyName} value '{value}'.";
                         return true;
                     }
-                    return false;
+                return false;
+            }
+
+            if (IsBlockFrameElement(elementName) &&
+                TryGetBlockBorderLonghand(propertyName, out _, out string borderComponent)) {
+                bool supported = borderComponent switch {
+                    "style" => TryParseBlockBorderStyle(value, out _),
+                    "width" => TryParseBlockBorderWidth(value, out _),
+                    "color" => NormalizeColor(value) != null,
+                    _ => false,
+                };
+                if (!supported) {
+                    reason = $"Unsupported {propertyName} value '{value}'.";
+                    return true;
+                }
+                return false;
             }
 
             if (propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||

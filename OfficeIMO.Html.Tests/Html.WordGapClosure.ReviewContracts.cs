@@ -15,6 +15,60 @@ namespace OfficeIMO.Tests;
 
 public partial class HtmlWordGapClosure {
     [Fact]
+    public void WordTableCell_AddHtml_ListPreservesAFormattedEmptyParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].PageBreakBefore = true;
+
+        cell.AddHtml(HtmlConversionDocument.Parse("""<ul><li>First</li></ul>"""));
+
+        WordParagraph formatted = Assert.Single(
+            cell.Paragraphs,
+            paragraph => paragraph.PageBreakBefore && paragraph.Text == string.Empty);
+        WordParagraph item = Assert.Single(
+            cell.Paragraphs,
+            paragraph => paragraph.IsListItem && paragraph.Text == "First");
+        Assert.NotSame(formatted, item);
+    }
+
+    [Fact]
+    public void WordTableCell_AddHtml_RejectedInlineSvgDoesNotLeaveAnEmptyParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].Text = "Existing";
+        var options = new HtmlToWordOptions { MaxImageBytes = 1 };
+
+        cell.AddHtml(
+            HtmlConversionDocument.Parse(
+                """<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>"""),
+            options);
+
+        WordParagraph paragraph = Assert.Single(cell.Paragraphs);
+        Assert.Equal("Existing", paragraph.Text);
+    }
+
+    [Theory]
+    [InlineData("border-left-style", "groove")]
+    [InlineData("border-right-width", "-1px")]
+    [InlineData("border-top-color", "not-a-color")]
+    public void HtmlToWord_InvalidBlockBorderLonghands_CanStopConversion(
+        string propertyName,
+        string propertyValue) {
+        var options = new HtmlToWordOptions {
+            UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error,
+        };
+
+        HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+            HtmlConversionDocument
+                .Parse($"<p style=\"{propertyName}:{propertyValue}\">Text</p>")
+                .ToWordDocument(options));
+
+        Assert.Equal("UnsupportedCssValue", exception.Code);
+        Assert.Equal($"p:{propertyName}", exception.CssSource);
+        Assert.Contains(propertyValue, exception.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToWord_CssWideFrameValues_ResetEarlierDeclarations() {
         const string html = """
             <div style="background-color:red;background-color:initial">Background reset</div>

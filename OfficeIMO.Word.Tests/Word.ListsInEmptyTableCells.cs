@@ -9,6 +9,22 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void TableCell_AddList_PreservesAFormattedEmptyParagraph() {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        cell.Paragraphs[0].PageBreakBefore = true;
+
+        WordList list = cell.AddList(WordListStyle.Bulleted);
+        list.AddItem("First");
+
+        Assert.Equal(2, cell.Paragraphs.Count);
+        Assert.True(cell.Paragraphs[0].PageBreakBefore);
+        Assert.Equal(string.Empty, cell.Paragraphs[0].Text);
+        Assert.Equal("First", cell.Paragraphs[1].Text);
+        Assert.True(cell.Paragraphs[1].IsListItem);
+    }
+
+    [Fact]
     public void TableCell_HeadingList_KeepsSubsequentItemsInTheCell() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
