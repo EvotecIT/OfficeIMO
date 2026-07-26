@@ -189,6 +189,10 @@ namespace OfficeIMO.PowerPoint {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
             outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+            outline.RemoveAllChildren<A.BlipFill>();
+            outline.RemoveAllChildren<A.GroupFill>();
             outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
             if (widthPoints != null) {
                 outline.Width = (int)Math.Round(widthPoints.Value * 12700d);

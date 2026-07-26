@@ -11,6 +11,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
         private const int SpreadsheetMaximumColumns = 16_384;
+        private const int SpreadsheetMaximumRows = 1_048_576;
         private const int BubbleWorkbookColumnsPerSeries = 3;
 
         private sealed class SharedSeriesDescriptor {
@@ -28,12 +29,12 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartKind defaultKind) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            if (defaultKind == OfficeChartKind.Bubble &&
-                data.Series.Count >
-                SpreadsheetMaximumColumns / BubbleWorkbookColumnsPerSeries) {
-                throw new ArgumentException(
-                    "Bubble chart data exceeds the embedded worksheet column limit.",
-                    nameof(data));
+            if (defaultKind == OfficeChartKind.Bubble) {
+                int maximumPoints = data.Series
+                    .Select(series => series.Values.Count)
+                    .DefaultIfEmpty(0)
+                    .Max();
+                ValidateBubbleWorkbookDimensions(data.Series.Count, maximumPoints);
             }
             for (int index = 0; index < data.Series.Count; index++) {
                 OfficeChartSeries series = data.Series[index];
@@ -83,6 +84,21 @@ namespace OfficeIMO.PowerPoint {
                 item.Kind == OfficeChartKind.Doughnut || item.Kind == OfficeChartKind.Radar);
             if (hasStandalone && (descriptors.Select(item => item.Kind).Distinct().Count() > 1 || hasSecondary)) {
                 throw new NotSupportedException("Pie, doughnut, and radar charts cannot participate in combo or secondary-axis charts.");
+            }
+        }
+
+        internal static void ValidateBubbleWorkbookDimensions(
+            int seriesCount, int maximumPoints) {
+            if (seriesCount >
+                SpreadsheetMaximumColumns / BubbleWorkbookColumnsPerSeries) {
+                throw new ArgumentException(
+                    "Bubble chart data exceeds the embedded worksheet column limit.",
+                    "data");
+            }
+            if (maximumPoints > SpreadsheetMaximumRows - 1) {
+                throw new ArgumentException(
+                    "Bubble chart data exceeds the embedded worksheet row limit.",
+                    "data");
             }
         }
 

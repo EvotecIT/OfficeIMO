@@ -486,6 +486,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_RejectsWorkbookRowOverflow() {
+            PowerPointUtils.ValidateBubbleWorkbookDimensions(
+                seriesCount: 1,
+                maximumPoints: 1_048_575);
+
+            Assert.Throws<ArgumentException>(() =>
+                PowerPointUtils.ValidateBubbleWorkbookDimensions(
+                    seriesCount: 1,
+                    maximumPoints: 1_048_576));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMismatchedImportedCaches() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -711,6 +723,47 @@ namespace OfficeIMO.Tests {
             outline.CompoundLineType =
                 DocumentFormat.OpenXml.Drawing.CompoundLineValues.Single;
             Assert.True(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void BubbleChart_LineColorReplacesUnsupportedOutlineFills() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
+            C.ChartShapeProperties properties =
+                nativeSeries.GetFirstChild<C.ChartShapeProperties>() ??
+                nativeSeries.InsertAfter(
+                    new C.ChartShapeProperties(),
+                    nativeSeries.GetFirstChild<C.SeriesText>())!;
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ??
+                properties.AppendChild(new A.Outline());
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.Append(new A.GradientFill());
+
+            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+
+            Assert.Null(outline.GetFirstChild<A.GradientFill>());
+            Assert.Equal("445566",
+                outline.GetFirstChild<A.SolidFill>()!
+                    .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.Append(new A.PatternFill());
+            chart.SetSeriesLineColor(0, "778899", widthPoints: 1.5D);
+
+            Assert.Null(outline.GetFirstChild<A.PatternFill>());
+            Assert.Equal("778899",
+                outline.GetFirstChild<A.SolidFill>()!
+                    .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(
+                presentation.Slides[0].SlidePart.ChartParts.Single()));
         }
 
         [Fact]
