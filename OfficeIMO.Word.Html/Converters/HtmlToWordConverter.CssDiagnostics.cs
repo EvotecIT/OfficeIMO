@@ -190,7 +190,7 @@ namespace OfficeIMO.Word.Html {
                 case "color":
                     return TryUnsupportedColorValue(value, "color", out reason);
                 case "background-color":
-                    if (lower == "transparent" && IsBlockFrameElement(elementName)) {
+                    if (lower == "transparent") {
                         return false;
                     }
                     return TryUnsupportedColorValue(value, "background color", out reason);

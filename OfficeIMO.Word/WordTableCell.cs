@@ -896,7 +896,7 @@ namespace OfficeIMO.Word {
             return wordTable;
         }
 
-        private static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
+        internal static bool HasMeaningfulParagraphContent(Paragraph paragraph) {
             ParagraphProperties? paragraphProperties = paragraph.ParagraphProperties;
             if (paragraphProperties != null &&
                 (paragraphProperties.HasChildren || paragraphProperties.HasAttributes)) {

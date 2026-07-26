@@ -95,17 +95,39 @@ namespace OfficeIMO.Word.Html {
                    section.Paragraphs.All(paragraph => string.IsNullOrWhiteSpace(paragraph.Text) && !paragraph.GetRuns().Any());
         }
 
-        private static void ApplyContainerPageBreaksFromCss(IElement element, IReadOnlyList<WordParagraph> paragraphs) {
-            if (paragraphs.Count == 0) {
+        private static void ApplyContainerPageBreaksFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            IReadOnlyList<WordTable> tables) {
+            bool breakBefore = StyleRequestsPageBreakBefore(element);
+            bool breakAfter = StyleRequestsPageBreakAfter(element);
+            if (paragraphs.Count > 0) {
+                if (breakBefore) {
+                    paragraphs[0].PageBreakBefore = true;
+                }
+                if (breakAfter) {
+                    AddPageBreakAfter(paragraphs[paragraphs.Count - 1]);
+                }
                 return;
             }
 
-            if (StyleRequestsPageBreakBefore(element)) {
-                paragraphs[0].PageBreakBefore = true;
+            if (tables.Count == 0) {
+                return;
             }
+            if (breakBefore) {
+                InsertPageBreakAdjacentToTable(tables[0], before: true);
+            }
+            if (breakAfter) {
+                InsertPageBreakAdjacentToTable(tables[tables.Count - 1], before: false);
+            }
+        }
 
-            if (StyleRequestsPageBreakAfter(element)) {
-                AddPageBreakAfter(paragraphs[paragraphs.Count - 1]);
+        private static void InsertPageBreakAdjacentToTable(WordTable table, bool before) {
+            var paragraph = new Paragraph(new Run(new Break { Type = BreakValues.Page }));
+            if (before) {
+                table._table.InsertBeforeSelf(paragraph);
+            } else {
+                table._table.InsertAfterSelf(paragraph);
             }
         }
     }

@@ -57,7 +57,9 @@ namespace OfficeIMO.Word {
                 insertionReference.InsertAfterSelf(paragraph);
                 if (_replaceInsertionAnchor &&
                     ListItems.Count == 0 &&
-                    ReferenceEquals(insertionReference, _wordParagraph?._paragraph)) {
+                    ReferenceEquals(insertionReference, _wordParagraph?._paragraph) &&
+                    insertionReference is Paragraph insertionParagraph &&
+                    !WordTableCell.HasMeaningfulParagraphContent(insertionParagraph)) {
                     insertionReference.Remove();
                 }
             } else if (_headerFooter != null) {

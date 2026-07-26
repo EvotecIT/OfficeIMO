@@ -626,7 +626,7 @@ namespace OfficeIMO.Word.Html {
             WordParagraph paragraph,
             BlockBorderSide side,
             BlockBorder? border) {
-            if (!border.HasValue) {
+            if (!border.HasValue || HasParagraphBorder(paragraph, side)) {
                 return;
             }
 
@@ -655,6 +655,15 @@ namespace OfficeIMO.Word.Html {
                     break;
             }
         }
+
+        private static bool HasParagraphBorder(WordParagraph paragraph, BlockBorderSide side) =>
+            side switch {
+                BlockBorderSide.Left => paragraph.Borders.LeftStyle.HasValue,
+                BlockBorderSide.Right => paragraph.Borders.RightStyle.HasValue,
+                BlockBorderSide.Top => paragraph.Borders.TopStyle.HasValue,
+                BlockBorderSide.Bottom => paragraph.Borders.BottomStyle.HasValue,
+                _ => false,
+            };
 
         private static string ResolveParagraphTextColor(WordParagraph paragraph) {
             string? normalized = NormalizeColor(paragraph.ColorHex);

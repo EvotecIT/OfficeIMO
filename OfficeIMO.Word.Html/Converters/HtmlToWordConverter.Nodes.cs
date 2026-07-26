@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                                         tableStartIndex);
                                     List<WordTable> generatedTables = GetGeneratedTables(newSection, null, headerFooter, tableStartIndex);
                                     ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
-                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
+                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
@@ -150,7 +150,7 @@ namespace OfficeIMO.Word.Html {
                                         tableStartIndex);
                                     List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
                                     ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
-                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
+                                    ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word.Html {
                                 tableStartIndex);
                             List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
                             ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
-                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
+                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                             break;
                         }
                     case "h1":
@@ -429,7 +429,7 @@ namespace OfficeIMO.Word.Html {
                                 tableStartIndex);
                             List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
                             ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
-                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
+                            ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
                             break;
                         }
                     case "br": {
