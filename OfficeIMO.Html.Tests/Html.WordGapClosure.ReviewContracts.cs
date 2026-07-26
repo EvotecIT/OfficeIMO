@@ -14,6 +14,93 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class HtmlWordGapClosure {
+    [Fact]
+    public void HtmlToWord_CssWideFrameValues_ResetEarlierDeclarations() {
+        const string html = """
+            <div style="background-color:red;background-color:initial">Background reset</div>
+            <p style="border:1px solid red;border:unset">Border reset</p>
+            <p style="border-left:1px solid red;border-left:revert-layer">Side reset</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph background = Assert.Single(
+            document.Paragraphs,
+            paragraph => paragraph.Text == "Background reset");
+        WordParagraph border = Assert.Single(
+            document.Paragraphs,
+            paragraph => paragraph.Text == "Border reset");
+        WordParagraph side = Assert.Single(
+            document.Paragraphs,
+            paragraph => paragraph.Text == "Side reset");
+
+        Assert.True(string.IsNullOrEmpty(background.ShadingFillColorHex));
+        Assert.Null(border.Borders.TopStyle);
+        Assert.Null(border.Borders.LeftStyle);
+        Assert.Null(side.Borders.LeftStyle);
+    }
+
+    [Fact]
+    public void HtmlToWord_FrameValues_CanExplicitlyInheritFromTheParent() {
+        const string html = """
+            <div style="background-color:#abcdef;border:1px solid #123456">
+              <p style="background-color:inherit;border:inherit">Inherited frame</p>
+            </div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Inherited frame");
+
+        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(BorderValues.Single, paragraph.Borders.TopStyle);
+        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+    }
+
+    [Fact]
+    public void HtmlToWord_NegativeLogicalMargins_AreAppliedToParagraphIndentation() {
+        const string html = """
+            <p style="margin-inline-start:-10px">LTR start</p>
+            <p dir="rtl" style="margin-inline-start:-12px">RTL start</p>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph ltr = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "LTR start");
+        WordParagraph rtl = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "RTL start");
+
+        Assert.Equal(-150, ltr.IndentationBefore);
+        Assert.Null(ltr.IndentationAfter);
+        Assert.Null(rtl.IndentationBefore);
+        Assert.Equal(-180, rtl.IndentationAfter);
+    }
+
+    [Theory]
+    [InlineData("div")]
+    [InlineData("address")]
+    [InlineData("dl")]
+    public void HtmlToWord_MixedContainerTextFollowsItsLastBlockChild(string tagName) {
+        string html = $"<{tagName}><p>One</p><p>Two</p>tail</{tagName}>";
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+
+        Assert.Equal(
+            new[] { "One", "Two", "tail" },
+            document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+    }
+
+    [Fact]
+    public void HtmlToWord_EmptyBlock_UsesTheWinningPageBreakDeclaration() {
+        const string html = """
+            <div style="break-before:page;break-before:auto"></div>
+            <div style="break-before:page!important;break-before:auto"></div>
+            """;
+
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        WordParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.True(paragraph.PageBreakBefore);
+    }
+
     [Theory]
     [InlineData("section")]
     [InlineData("article")]

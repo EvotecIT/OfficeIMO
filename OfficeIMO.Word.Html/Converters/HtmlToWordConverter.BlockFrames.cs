@@ -83,17 +83,45 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            string? styleText = element.GetAttribute("style");
-            if (string.IsNullOrWhiteSpace(styleText)) {
+            if (string.IsNullOrWhiteSpace(element.GetAttribute("style"))) {
                 return false;
             }
 
-            ParseBlockFrameStyles(styleText!, out string? background, out var sideBorders);
+            ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
             return background != null || sideBorders.Values.Any(border => border.Materialize().HasValue);
+        }
+
+        private static void ParseElementBlockFrameStyles(
+            IElement element,
+            out string? background,
+            out Dictionary<BlockBorderSide, BlockBorderState> sideBorders) {
+            var lineage = new Stack<IElement>();
+            for (IElement? current = element; current != null; current = current.ParentElement) {
+                lineage.Push(current);
+            }
+
+            string? inheritedBackground = null;
+            var inheritedBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
+            while (lineage.Count > 0) {
+                IElement current = lineage.Pop();
+                ParseBlockFrameStyles(
+                    current.GetAttribute("style") ?? string.Empty,
+                    inheritedBackground,
+                    inheritedBorders,
+                    out background,
+                    out sideBorders);
+                inheritedBackground = background;
+                inheritedBorders = sideBorders;
+            }
+
+            background = inheritedBackground;
+            sideBorders = inheritedBorders;
         }
 
         private static void ParseBlockFrameStyles(
             string styleText,
+            string? inheritedBackground,
+            IReadOnlyDictionary<BlockBorderSide, BlockBorderState> inheritedBorders,
             out string? background,
             out Dictionary<BlockBorderSide, BlockBorderState> sideBorders) {
             background = null;
@@ -111,7 +139,10 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (name == "background-color") {
-                        if (value.Equals("transparent", StringComparison.OrdinalIgnoreCase)) {
+                        if (IsCssInheritanceValue(value)) {
+                            background = inheritedBackground;
+                        } else if (IsCssWideResetValue(value) ||
+                                   value.Equals("transparent", StringComparison.OrdinalIgnoreCase)) {
                             background = null;
                         } else {
                             string? normalizedBackground = NormalizeColor(value);
@@ -119,6 +150,10 @@ namespace OfficeIMO.Word.Html {
                                 background = normalizedBackground;
                             }
                         }
+                    } else if (name == "border" && IsCssInheritanceValue(value)) {
+                        CopyAllBlockBorders(inheritedBorders, sideBorders);
+                    } else if (name == "border" && IsCssWideResetValue(value)) {
+                        ResetAllBlockBorders(sideBorders);
                     } else if (name == "border" &&
                                TryParseBlockBorder(
                                    value,
@@ -136,6 +171,12 @@ namespace OfficeIMO.Word.Html {
                         sideBorders[BlockBorderSide.Top] = border;
                         sideBorders[BlockBorderSide.Bottom] = border;
                     } else if (TryGetBlockBorderSide(name, out BlockBorderSide side) &&
+                               IsCssInheritanceValue(value)) {
+                        CopyBlockBorder(inheritedBorders, sideBorders, side);
+                    } else if (TryGetBlockBorderSide(name, out side) &&
+                               IsCssWideResetValue(value)) {
+                        sideBorders[side] = default;
+                    } else if (TryGetBlockBorderSide(name, out side) &&
                                TryParseBlockBorder(
                                    value,
                                    out var sideStyle,
@@ -148,7 +189,12 @@ namespace OfficeIMO.Word.Html {
                             sideSize,
                             hasSideColor ? sideColor : null);
                     } else if (TryGetBlockBorderLonghand(name, out side, out string component)) {
-                        ApplyBlockBorderLonghand(sideBorders, side, component, value);
+                        ApplyBlockBorderLonghand(
+                            sideBorders,
+                            inheritedBorders,
+                            side,
+                            component,
+                            value);
                     }
                 }
             }
@@ -174,7 +220,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            ParseBlockFrameStyles(styleText!, out string? background, out var sideBorders);
+            ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
 
             if (!string.IsNullOrEmpty(background)) {
                 foreach (WordParagraph paragraph in paragraphs) {
@@ -234,12 +280,50 @@ namespace OfficeIMO.Word.Html {
 
         private static void ApplyBlockBorderLonghand(
             IDictionary<BlockBorderSide, BlockBorderState> sideBorders,
+            IReadOnlyDictionary<BlockBorderSide, BlockBorderState> inheritedBorders,
             BlockBorderSide side,
             string component,
             string value) {
             BlockBorderState border = sideBorders.TryGetValue(side, out BlockBorderState existing)
                 ? existing
                 : default;
+            if (IsCssInheritanceValue(value)) {
+                BlockBorderState inherited = inheritedBorders.TryGetValue(side, out BlockBorderState inheritedBorder)
+                    ? inheritedBorder
+                    : default;
+                switch (component) {
+                    case "style":
+                        border.Style = inherited.Style;
+                        break;
+                    case "width":
+                        border.Size = inherited.Size;
+                        break;
+                    case "color":
+                        border.Color = inherited.Color;
+                        break;
+                    default:
+                        return;
+                }
+                sideBorders[side] = border;
+                return;
+            }
+            if (IsCssWideResetValue(value)) {
+                switch (component) {
+                    case "style":
+                        border.Style = BorderValues.None;
+                        break;
+                    case "width":
+                        border.Size = null;
+                        break;
+                    case "color":
+                        border.Color = null;
+                        break;
+                    default:
+                        return;
+                }
+                sideBorders[side] = border;
+                return;
+            }
             switch (component) {
                 case "style":
                     if (!TryParseBlockBorderStyle(value, out BorderValues style)) {
@@ -264,6 +348,37 @@ namespace OfficeIMO.Word.Html {
                     return;
             }
             sideBorders[side] = border;
+        }
+
+        private static bool IsCssInheritanceValue(string value) =>
+            value.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsCssWideResetValue(string value) {
+            string normalized = value.Trim().ToLowerInvariant();
+            return normalized is "initial" or "unset" or "revert" or "revert-layer";
+        }
+
+        private static void CopyAllBlockBorders(
+            IReadOnlyDictionary<BlockBorderSide, BlockBorderState> source,
+            IDictionary<BlockBorderSide, BlockBorderState> destination) {
+            foreach (BlockBorderSide side in Enum.GetValues(typeof(BlockBorderSide))) {
+                CopyBlockBorder(source, destination, side);
+            }
+        }
+
+        private static void CopyBlockBorder(
+            IReadOnlyDictionary<BlockBorderSide, BlockBorderState> source,
+            IDictionary<BlockBorderSide, BlockBorderState> destination,
+            BlockBorderSide side) {
+            destination[side] = source.TryGetValue(side, out BlockBorderState inherited)
+                ? inherited
+                : default;
+        }
+
+        private static void ResetAllBlockBorders(IDictionary<BlockBorderSide, BlockBorderState> sideBorders) {
+            foreach (BlockBorderSide side in Enum.GetValues(typeof(BlockBorderSide))) {
+                sideBorders[side] = default;
+            }
         }
 
         private static bool TryParseBlockBorder(

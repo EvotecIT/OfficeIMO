@@ -106,15 +106,24 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            foreach (var part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-                var pieces = part.Split(new[] { ':' }, 2);
-                if (pieces.Length == 2 && string.Equals(pieces[0].Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    value = pieces[1].Trim();
-                    return true;
+            bool found = false;
+            for (int priorityPass = 0; priorityPass < 2; priorityPass++) {
+                bool important = priorityPass == 1;
+                foreach (string part in styleText!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    if (CssStyleMapper.TryParseDeclaration(
+                            part,
+                            out string name,
+                            out string candidate,
+                            out bool declarationIsImportant) &&
+                        declarationIsImportant == important &&
+                        string.Equals(name, propertyName, StringComparison.OrdinalIgnoreCase)) {
+                        value = candidate;
+                        found = true;
+                    }
                 }
             }
 
-            return false;
+            return found;
         }
 
         private static bool TryParseFontSize(string? text, out int size) {
@@ -305,11 +314,11 @@ namespace OfficeIMO.Word.Html {
                 paragraph.LineSpacingAfter = after;
             }
             int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
-            if (left > 0) {
+            if (left != 0) {
                 paragraph.IndentationBefore = left;
             }
             int right = (marginRight ?? 0) + (paddingRight ?? 0);
-            if (right > 0) {
+            if (right != 0) {
                 paragraph.IndentationAfter = right;
             }
             return parsed;

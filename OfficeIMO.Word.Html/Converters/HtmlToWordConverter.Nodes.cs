@@ -464,16 +464,32 @@ namespace OfficeIMO.Word.Html {
                             int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
+                                int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
+                                bool startsOwnParagraph =
+                                    child is IElement blockChild &&
+                                    _blockTags.Contains(blockChild.TagName);
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                     if (!string.IsNullOrEmpty(merged)) {
                                         childElement.SetAttribute("style", merged);
                                     }
                                 }
-                                ProcessNode(child, doc, section, options, para, listStack, fmt, cell, headerFooter, headingList);
-                                if (para == null) {
+                                ProcessNode(
+                                    child,
+                                    doc,
+                                    section,
+                                    options,
+                                    startsOwnParagraph ? null : para,
+                                    listStack,
+                                    fmt,
+                                    cell,
+                                    headerFooter,
+                                    headingList);
+                                if (startsOwnParagraph) {
+                                    para = null;
+                                } else if (para == null) {
                                     var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
-                                    if (scopedParagraphs.Count > startIndex) {
+                                    if (scopedParagraphs.Count > paragraphCount) {
                                         para = scopedParagraphs[scopedParagraphs.Count - 1];
                                     }
                                 }
