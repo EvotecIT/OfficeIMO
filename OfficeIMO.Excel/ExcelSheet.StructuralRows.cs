@@ -234,14 +234,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            IEnumerable<DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart> pivotCaches =
-                WorkbookPartRoot.WorksheetParts
-                    .SelectMany(part => part.PivotTableParts)
-                    .Select(part => part.PivotTableCacheDefinitionPart)
-                    .Where(part => part != null)
-                    .Cast<DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart>()
-                    .Distinct();
-            foreach (var cachePart in pivotCaches) {
+            foreach (var cachePart in GetWorkbookPivotCacheDefinitionParts()) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 if (source?.Reference?.Value is string reference
                     && string.IsNullOrWhiteSpace(source.Id?.Value)

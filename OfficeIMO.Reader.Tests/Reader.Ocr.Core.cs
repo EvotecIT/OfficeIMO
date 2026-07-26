@@ -149,13 +149,15 @@ public sealed class ReaderOcrCoreTests {
     [Fact]
     public async Task ApplyOcrAsync_ArmsTimeoutBeforeInvokingSynchronousProviderWork() {
         OfficeDocumentReadResult source = CreateDocument(1);
-        bool observedCancellation = false;
+        using var observedCancellation = new ManualResetEventSlim(false);
         var engine = new DelegateOfficeOcrEngine("synchronous-fixture", (_, cancellationToken) => {
             DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(2);
             while (!cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < deadline) {
                 Thread.SpinWait(1000);
             }
-            observedCancellation = cancellationToken.IsCancellationRequested;
+            if (cancellationToken.IsCancellationRequested) {
+                observedCancellation.Set();
+            }
             cancellationToken.ThrowIfCancellationRequested();
             return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult { Text = "late" });
         });
@@ -165,7 +167,7 @@ public sealed class ReaderOcrCoreTests {
             ContinueOnError = true,
         });
 
-        Assert.True(observedCancellation);
+        Assert.True(observedCancellation.Wait(TimeSpan.FromSeconds(2)));
         Assert.Equal(1, execution.Report.FailedCandidateCount);
         Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
     }
