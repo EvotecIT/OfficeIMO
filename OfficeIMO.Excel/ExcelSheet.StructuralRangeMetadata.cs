@@ -114,6 +114,10 @@ namespace OfficeIMO.Excel {
                 scenarios.SequenceOfReferences = remappedResults.Count == 0
                     ? null
                     : new ListValue<StringValue> { InnerText = string.Join(" ", remappedResults) };
+                if (remappedResults.Count == 0) {
+                    scenarios.Remove();
+                    return;
+                }
             }
 
             List<Scenario> originalScenarios = scenarios.Elements<Scenario>().ToList();

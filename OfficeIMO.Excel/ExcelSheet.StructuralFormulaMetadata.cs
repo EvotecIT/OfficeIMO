@@ -279,8 +279,9 @@ namespace OfficeIMO.Excel {
                         }
 
                         bool chartChanged = false;
-                        foreach (DocumentFormat.OpenXml.Drawing.Charts.Formula formula
-                            in chartPart.ChartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
+                        foreach (OpenXmlLeafTextElement formula in chartPart.ChartSpace
+                            .Descendants<OpenXmlLeafTextElement>()
+                            .Where(element => string.Equals(element.LocalName, "f", StringComparison.Ordinal))) {
                             bool formulaChanged = RewriteStructuralFormulaText(
                                 formula,
                                 firstAffectedRow,

@@ -525,11 +525,12 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateStructuralRowControlSafety() {
-            if (WorksheetRoot.Descendants<Controls>().Any()
-                || _worksheetPart.ControlPropertiesParts.Any()
-                || ContainsUnsupportedVmlFormControl()) {
+            if (WorkbookPartRoot.WorksheetParts.Any(worksheetPart =>
+                    worksheetPart.Worksheet?.Descendants<Controls>().Any() == true
+                    || worksheetPart.ControlPropertiesParts.Any()
+                    || ContainsUnsupportedVmlFormControl(worksheetPart))) {
                 throw new InvalidOperationException(
-                    "Cannot edit rows on a worksheet containing form controls because their anchors and linked cells cannot yet be remapped safely.");
+                    "Cannot edit rows in a workbook containing form controls because their anchors and cross-sheet links cannot yet be remapped safely.");
             }
             if (WorksheetRoot.Descendants<OleObjects>().Any()
                 || _worksheetPart.EmbeddedObjectParts.Any()) {
@@ -551,9 +552,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool ContainsUnsupportedVmlFormControl() {
+        private bool ContainsUnsupportedVmlFormControl(WorksheetPart worksheetPart) {
             XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
-            foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {
+            foreach (VmlDrawingPart vmlPart in worksheetPart.VmlDrawingParts) {
                 XDocument document = LoadOrCreateVmlDocument(vmlPart);
                 foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")) {
                     string? objectType = clientData.Attribute("ObjectType")?.Value;
