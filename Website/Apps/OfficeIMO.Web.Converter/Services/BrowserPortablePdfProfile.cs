@@ -15,6 +15,9 @@ namespace OfficeIMO.Web.Converter.Services;
 internal static class BrowserPortablePdfProfile {
     internal const string FontPackId = "officeimo-browser-compact-2026.07";
     internal const string DefaultFontFamily = "Carlito";
+    internal const string ArabicFallbackFontFamily = "Noto Sans Arabic";
+    internal const string SymbolFallbackFontFamily = "Noto Sans Symbols 2";
+    internal const string DefaultLayoutFontFamilies = "Carlito, 'Noto Sans Arabic', 'Noto Sans Symbols 2'";
     internal const string ExpectedFontPackFingerprint = "99fe9605fae25324712287bc2212236771b67515ec77dab263a35fc48079e72f";
 
     private static readonly Lazy<FontPackData> Data = new(LoadFontPack, isThreadSafe: true);
@@ -57,8 +60,8 @@ internal static class BrowserPortablePdfProfile {
                 data.CarlitoBoldItalic));
         options.RegisterEmbeddedFontFallbacks(
             new PdfEmbeddedFontFallbackSet([
-                new PdfEmbeddedFontFallbackCandidate("Noto Sans Arabic", data.NotoSansArabic),
-                new PdfEmbeddedFontFallbackCandidate("Noto Sans Symbols 2", data.NotoSansSymbols)
+                new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, data.NotoSansArabic),
+                new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, data.NotoSansSymbols)
             ]));
 
         return options;
@@ -67,12 +70,14 @@ internal static class BrowserPortablePdfProfile {
     internal static HtmlPdfSaveOptions CreateHtmlOptions(BrowserPdfProfile profile) {
         FontPackData data = Data.Value;
         return new HtmlPdfSaveOptions {
-            DefaultFontFamily = DefaultFontFamily,
+            DefaultFontFamily = DefaultLayoutFontFamilies,
             Fonts = new OfficeFontFaceCollection()
                 .Add(DefaultFontFamily, data.CarlitoRegular, OfficeFontStyle.Regular)
                 .Add(DefaultFontFamily, data.CarlitoBold, OfficeFontStyle.Bold)
                 .Add(DefaultFontFamily, data.CarlitoItalic, OfficeFontStyle.Italic)
-                .Add(DefaultFontFamily, data.CarlitoBoldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic),
+                .Add(DefaultFontFamily, data.CarlitoBoldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic)
+                .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
+                .Add(SymbolFallbackFontFamily, data.NotoSansSymbols),
             DocumentOptions = CreateOptions(profile),
             FontFamily = new PdfEmbeddedFontFamily(
                 DefaultFontFamily,

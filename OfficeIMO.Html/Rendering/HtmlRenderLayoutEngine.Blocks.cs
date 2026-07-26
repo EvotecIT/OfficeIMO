@@ -289,6 +289,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
+        var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -297,7 +298,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
-            overflowContent);
+            overflowContent,
+            positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
@@ -311,7 +313,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.MarginLeft + style.BorderLeftWidth,
                 style.MarginTop + style.BorderTopWidth,
                 PositionedPaintBand.NonNegative,
-                overflowContent);
+                overflowContent,
+                positionedRunningStringAssignments);
         }
         AppendOverflowContent(
             visuals,
@@ -358,7 +361,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedTrailingGroups,
             pageName: pageName,
             unclampedHeight: unclampedOuterHeight,
-            runningStringAssignments: runningStringAssignments.Select(assignment => assignment.Translate(contentYForBreaks)));
+            runningStringAssignments: runningStringAssignments
+                .Select(assignment => assignment.Translate(contentYForBreaks))
+                .Concat(positionedRunningStringAssignments)
+                .OrderBy(assignment => assignment.Offset));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);

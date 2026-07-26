@@ -22,9 +22,19 @@ public sealed class DrawingCssColorTests {
     [InlineData("rgb(1 2)")]
     [InlineData("rgb(calc(1) 2 3)")]
     [InlineData("lab(50% 0 0)")]
+    [InlineData("ff0000")]
+    [InlineData("fff")]
     public void OfficeColor_RejectsUnsupportedOrMalformedCssColorFunctions(string value) {
         Assert.False(OfficeColor.TryParseCss(value, out _));
         Assert.Throws<FormatException>(() => OfficeColor.ParseCss(value));
+    }
+
+    [Fact]
+    public void OfficeColor_CssHexRequiresTheCssHashPrefix() {
+        Assert.True(OfficeColor.TryParseCss("#ff0000", out OfficeColor hex));
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), hex);
+        Assert.True(OfficeColor.TryParseCss("red", out OfficeColor named));
+        Assert.Equal(hex, named);
     }
 
     [Fact]

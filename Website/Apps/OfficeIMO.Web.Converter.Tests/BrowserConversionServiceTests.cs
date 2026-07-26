@@ -65,19 +65,30 @@ public sealed class BrowserConversionServiceTests {
     public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
         var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
 
-        Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.DefaultFontFamily);
-        Assert.Equal(4, options.Fonts.Faces.Count);
-        Assert.All(options.Fonts.Faces, face => Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, face.FamilyName));
+        Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
+        Assert.Equal(6, options.Fonts.Faces.Count);
+        Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
+        Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+        Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
         Assert.Equal(
             [OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic],
-            options.Fonts.Faces.Select(face => face.Style).ToArray());
+            options.Fonts.Faces
+                .Where(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily)
+                .Select(face => face.Style)
+                .ToArray());
         Assert.True(options.Fonts.TryMeasureText(
             "Layout boundary",
             16D,
-            BrowserPortablePdfProfile.DefaultFontFamily,
+            options.DefaultFontFamily,
             OfficeFontStyle.Regular,
             out double width));
         Assert.True(width > 0D);
+        IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
+            "Latin العربية ⌚",
+            options.DefaultFontFamily,
+            OfficeFontStyle.Regular);
+        Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+        Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
         Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.FontFamily?.FamilyName);
     }
 

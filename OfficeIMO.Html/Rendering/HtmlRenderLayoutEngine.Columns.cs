@@ -52,6 +52,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = ResolveBoxHeight(contentHeight, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -60,9 +62,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), contentHeight, source);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
@@ -79,7 +81,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.NonNegative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IReadOnlyList<double> breakOffsets = ResolveMultiColumnBreakOffsets(plan, contentY, outerHeight);
@@ -94,7 +97,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             breakOffsets,
             pageName: style.PageName,
-            runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY));
+            runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
+                .Concat(positionedRunningStringAssignments)
+                .OrderBy(assignment => assignment.Offset));
         return true;
     }
 

@@ -71,6 +71,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
+        var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -79,7 +80,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         var itemPaintLayers = new List<FlowPaintLayer>();
@@ -104,7 +106,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderLeftWidth,
             style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.NonNegative,
-            visuals);
+            visuals,
+            positionedRunningStringAssignments);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IEnumerable<double>? breakOffsets = lines.Count != 1
@@ -125,7 +128,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets,
             pageName: style.PageName,
             runningStringAssignments: itemPaintLayers.SelectMany(layer =>
-                layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))));
+                    layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
+                .Concat(positionedRunningStringAssignments)
+                .OrderBy(assignment => assignment.Offset));
         return true;
     }
 

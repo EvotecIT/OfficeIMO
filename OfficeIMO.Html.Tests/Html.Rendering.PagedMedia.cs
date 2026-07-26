@@ -95,6 +95,29 @@ public sealed partial class HtmlRenderingTests {
             text => text.SemanticRole == "page-margin" && text.Text == expected);
     }
 
+    [Theory]
+    [InlineData("<h2 style='position:absolute;top:0;left:0;string-set:section content()'>Positioned section</h2>")]
+    [InlineData("<h2 style='position:fixed;top:0;left:0;string-set:section content()'>Positioned section</h2>")]
+    [InlineData("<div style='position:relative;height:40px'><h2 style='position:absolute;top:0;left:0;string-set:section content()'>Positioned section</h2></div>")]
+    public void HtmlRender_Paged_OrdersPositionedRunningStringsByResolvedPageOffset(string positionedBody) {
+        string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(section); } }
+              h2 { margin:0; font-size:12px; line-height:14px; }
+            </style>
+            """
+            + positionedBody
+            + "<div style='height:48px'></div><h2 style='string-set:section content()'>Flow section</h2>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Positioned section");
+    }
+
     [Fact]
     public void HtmlRender_Paged_CollectsRunningStringsFromInlineElements() {
         const string html = """

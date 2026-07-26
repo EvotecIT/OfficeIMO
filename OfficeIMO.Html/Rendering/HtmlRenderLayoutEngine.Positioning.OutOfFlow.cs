@@ -89,7 +89,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double originX,
         double originY,
         PositionedPaintBand band,
-        ICollection<HtmlRenderVisual> visuals) {
+        ICollection<HtmlRenderVisual> visuals,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
         foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
             bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
@@ -100,6 +101,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
             foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
                 visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
+            }
+            foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
+                runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
             }
         }
     }
@@ -128,6 +132,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         double contentHeight,
         PositionedPaintBand band) {
+        foreach (PositionedRequestPlacement placement in CreateGlobalPositionedPlacements(
+            includeRoot,
+            surfaceWidth,
+            surfaceHeight,
+            contentWidth,
+            contentHeight)
+            .Where(item => band == PositionedPaintBand.Negative ? item.Request.ZIndex < 0 : item.Request.ZIndex >= 0)
+            .OrderBy(item => item.Request.ZIndex)
+            .ThenBy(item => item.Request.SourceOrder)) {
+            AppendGlobalPositionedRequest(visuals, placement, band);
+        }
+    }
+
+    private IReadOnlyList<PositionedRequestPlacement> CreateGlobalPositionedPlacements(
+        bool includeRoot,
+        double surfaceWidth,
+        double surfaceHeight,
+        double contentWidth,
+        double contentHeight) {
         var placements = new List<PositionedRequestPlacement>();
         if (includeRoot) {
             placements.AddRange(_rootPositionedElements.Select(request => new PositionedRequestPlacement(
@@ -137,12 +160,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _options.Margins.Left,
                 _options.Margins.Top)));
         }
-        placements.AddRange(_fixedPositionedElements.Select(request => new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
-        foreach (PositionedRequestPlacement placement in placements
-            .Where(item => band == PositionedPaintBand.Negative ? item.Request.ZIndex < 0 : item.Request.ZIndex >= 0)
-            .OrderBy(item => item.Request.ZIndex)
-            .ThenBy(item => item.Request.SourceOrder)) {
-            AppendGlobalPositionedRequest(visuals, placement, band);
+        placements.AddRange(_fixedPositionedElements.Select(request =>
+            new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
+        return placements;
+    }
+
+    private void CollectGlobalPositionedRunningStringAssignments(
+        ICollection<HtmlCssRunningStringAssignment> target,
+        bool includeRoot,
+        double surfaceWidth,
+        double surfaceHeight,
+        double contentWidth,
+        double contentHeight) {
+        foreach (PositionedRequestPlacement placement in CreateGlobalPositionedPlacements(
+            includeRoot,
+            surfaceWidth,
+            surfaceHeight,
+            contentWidth,
+            contentHeight)) {
+            PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
+            foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
+                target.Add(assignment.Translate(placement.OriginY + layer.Y));
+            }
         }
     }
 
