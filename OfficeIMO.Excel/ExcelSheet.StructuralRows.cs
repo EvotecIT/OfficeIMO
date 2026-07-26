@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Xnsv = DocumentFormat.OpenXml.Office2021.Excel.NamedSheetViews;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -256,6 +257,23 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException(
                         $"Cannot delete the header row of pivot cache source range '{reference}'. Update or remove the pivot source first.");
                 }
+                if (string.IsNullOrWhiteSpace(source?.Id?.Value)
+                    && source?.Name?.Value is string sourceName
+                    && TryResolveDefinedNameRange(
+                        sourceName,
+                        currentRow: null,
+                        out ExcelSheet sourceSheet,
+                        out int namedSourceFirstRow,
+                        out _,
+                        out _,
+                        out _)
+                    && (ReferenceEquals(sourceSheet._worksheetPart, _worksheetPart)
+                        || string.Equals(sourceSheet.Name, Name, StringComparison.OrdinalIgnoreCase))
+                    && namedSourceFirstRow >= firstDeletedRow
+                    && namedSourceFirstRow <= lastDeletedRow) {
+                    throw new InvalidOperationException(
+                        $"Cannot delete the header row of named pivot cache source '{sourceName}'. Update or remove the pivot source first.");
+                }
 
                 foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
                     .Consolidation?.RangeSets?.Elements<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
@@ -474,6 +492,13 @@ namespace OfficeIMO.Excel {
             }
             foreach (Pane pane in WorksheetRoot.Descendants<Pane>()) {
                 ValidateReferenceListDoesNotOverflow(pane.TopLeftCell?.Value, firstRow, count);
+            }
+            foreach (NamedSheetViewsPart part in _worksheetPart.NamedSheetViewsParts) {
+                foreach (Xnsv.NsvFilter filter
+                    in part.NamedSheetViews?.Descendants<Xnsv.NsvFilter>()
+                    ?? Enumerable.Empty<Xnsv.NsvFilter>()) {
+                    ValidateReferenceListDoesNotOverflow(filter.Ref?.Value, firstRow, count);
+                }
             }
             foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {

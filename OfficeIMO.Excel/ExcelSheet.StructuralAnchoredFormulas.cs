@@ -183,7 +183,12 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: true);
             }
 
+            bool relativeRangeKeepsFirstDataRowOffsets = relativeReferencesFollowAnchor
+                && relativeFormulaAnchorRow.HasValue
+                && firstAffectedRow == relativeFormulaAnchorRow.Value
+                && (startRelative || endRelative);
             if (lastDeletedRow.HasValue
+                && !relativeRangeKeepsFirstDataRowOffsets
                 && startTargetsSheet
                 && endTargetsSheet
                 && TryMapAnchoredFormulaRangeRows(
@@ -277,7 +282,12 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: true);
             }
 
+            bool relativeRangeKeepsFirstDataRowOffsets = relativeReferencesFollowAnchor
+                && relativeFormulaAnchorRow.HasValue
+                && firstAffectedRow == relativeFormulaAnchorRow.Value
+                && (startRelative || endRelative);
             if (lastDeletedRow.HasValue
+                && !relativeRangeKeepsFirstDataRowOffsets
                 && startTargetsSheet
                 && endTargetsSheet
                 && TryMapAnchoredFormulaRangeRows(
@@ -341,9 +351,8 @@ namespace OfficeIMO.Excel {
             targetRow = row;
             if (relativeRow
                 && relativeReferencesFollowAnchor
-                && !lastDeletedRow.HasValue
                 && relativeFormulaAnchorRow.HasValue
-                && row == relativeFormulaAnchorRow.Value) {
+                && firstAffectedRow == relativeFormulaAnchorRow.Value) {
                 targetRow += anchorRowDelta;
             } else if (relativeRow
                 && relativeReferencesFollowAnchor

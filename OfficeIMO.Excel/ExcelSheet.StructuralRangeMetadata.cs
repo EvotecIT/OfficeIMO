@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using X14 = DocumentFormat.OpenXml.Office2010.Excel;
+using Xnsv = DocumentFormat.OpenXml.Office2021.Excel.NamedSheetViews;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -523,6 +524,42 @@ namespace OfficeIMO.Excel {
                         ? string.Join(" ", remappedReferences)
                         : fallback
                 };
+            }
+        }
+
+        private void RemapShiftedNamedSheetViewFilters(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            foreach (NamedSheetViewsPart part in _worksheetPart.NamedSheetViewsParts) {
+                Xnsv.NamedSheetViews? views = part.NamedSheetViews;
+                if (views == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                foreach (Xnsv.NsvFilter filter in views.Descendants<Xnsv.NsvFilter>().ToList()) {
+                    if (filter.Ref?.Value is not string reference
+                        || !TryRemapShiftedReferenceListRows(
+                            reference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remapped)) {
+                        continue;
+                    }
+
+                    if (remapped.Count == 0) {
+                        filter.Remove();
+                    } else {
+                        filter.Ref = remapped[0];
+                    }
+                    changed = true;
+                }
+
+                if (changed) {
+                    views.Save();
+                }
             }
         }
 

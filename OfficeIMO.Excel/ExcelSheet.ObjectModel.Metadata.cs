@@ -286,6 +286,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedCellSmartTags(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSelections(firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedNamedSheetViewFilters(firstAffectedRow, rowDelta, lastDeletedRow);
 
             foreach (RowBreaks rowBreaks in WorksheetRoot.Descendants<RowBreaks>().ToList()) {
                 foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
