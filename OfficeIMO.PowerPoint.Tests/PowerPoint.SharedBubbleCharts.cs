@@ -64,6 +64,10 @@ namespace OfficeIMO.Tests {
                     authoredChartPart.ChartSpace.Save();
 
                     chart.UpdateData(updated);
+                    Assert.False(chart.TryGetOfficeSnapshot(out _));
+                    chart.SetDataLabels(showValue: false)
+                        .SetSeriesDataLabels(0, showValue: false,
+                            numberFormat: "0.0");
                     Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot refreshed));
                     Assert.Equal(new[] { 3D, 6D, 9D },
                         Assert.Single(refreshed.Data.Series).XValues);
@@ -298,6 +302,10 @@ namespace OfficeIMO.Tests {
             });
             PowerPointChart chart = slide.AddChartPoints(
                 OfficeChartKind.Bubble, data, 30, 20, 420, 250);
+            C.Delete nativeDelete = presentation.Slides[0].SlidePart.ChartParts
+                .Single().ChartSpace!.Descendants<C.LegendEntry>().Single()
+                .GetFirstChild<C.Delete>()!;
+            nativeDelete.Val = null;
 
             Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
             Assert.False(Assert.Single(native.Data.Series).ShowInLegend);
@@ -722,6 +730,10 @@ namespace OfficeIMO.Tests {
             C.BubbleChart nativeChart = presentation.Slides[0].SlidePart
                 .ChartParts.Single().ChartSpace!.Descendants<C.BubbleChart>().Single();
             C.DataLabels labels = nativeChart.GetFirstChild<C.DataLabels>()!;
+            labels.GetFirstChild<C.ShowValue>()!.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            labels.GetFirstChild<C.ShowValue>()!.Val = false;
             labels.GetFirstChild<C.ShowBubbleSize>()!.Val = true;
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 

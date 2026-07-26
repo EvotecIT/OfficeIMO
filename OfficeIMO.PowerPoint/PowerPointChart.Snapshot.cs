@@ -19,6 +19,10 @@ namespace OfficeIMO.PowerPoint {
         internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
             TryGetSnapshot(GetOwnerColorScheme(), out snapshot);
 
+        private bool TryGetSnapshotForUpdate(out PowerPointChartSnapshot snapshot) =>
+            TryGetSnapshot(GetOwnerColorScheme(), ignoreBubbleDataLabels: true,
+                out snapshot);
+
         private A.ColorScheme? GetOwnerColorScheme() {
             if (_ownerPart is SlidePart slidePart) {
                 return slidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
@@ -52,7 +56,12 @@ namespace OfficeIMO.PowerPoint {
                 .ThemeElements?.ColorScheme;
         }
 
-        internal bool TryGetSnapshot(A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
+        internal bool TryGetSnapshot(A.ColorScheme? colorScheme,
+            out PowerPointChartSnapshot snapshot) =>
+            TryGetSnapshot(colorScheme, ignoreBubbleDataLabels: false, out snapshot);
+
+        private bool TryGetSnapshot(A.ColorScheme? colorScheme,
+            bool ignoreBubbleDataLabels, out PowerPointChartSnapshot snapshot) {
             try {
                 ChartPart chartPart = GetChartPart();
                 C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
@@ -132,8 +141,8 @@ namespace OfficeIMO.PowerPoint {
                 if (plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubbleChart) {
                     if (IsVaryColorsEnabled(bubbleChart.GetFirstChild<C.VaryColors>()) ||
                         IsBubble3DEnabled(bubbleChart.GetFirstChild<C.Bubble3D>()) ||
-                        bubbleChart.Descendants<C.ShowBubbleSize>().Any(
-                            IsShowBubbleSizeEnabled) ||
+                        (!ignoreBubbleDataLabels &&
+                         HasEnabledBubbleDataLabels(bubbleChart)) ||
                         bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                             IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
                             series.Elements<C.DataPoint>().Any(point =>
@@ -200,8 +209,13 @@ namespace OfficeIMO.PowerPoint {
         private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
             varyColors != null && varyColors.Val?.Value != false;
 
-        private static bool IsShowBubbleSizeEnabled(C.ShowBubbleSize showBubbleSize) =>
-            showBubbleSize.Val?.Value != false;
+        private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
+            chart.Descendants<C.ShowLegendKey>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.ShowValue>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.ShowCategoryName>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.ShowSeriesName>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.ShowPercent>().Any(item => item.Val?.Value != false) ||
+            chart.Descendants<C.ShowBubbleSize>().Any(item => item.Val?.Value != false);
 
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()

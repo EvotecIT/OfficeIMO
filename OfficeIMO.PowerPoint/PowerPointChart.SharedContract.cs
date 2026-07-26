@@ -14,11 +14,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Updates the native chart from the shared OfficeIMO chart contract.</summary>
         public PowerPointChart UpdateData(OfficeChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            if (!TryGetOfficeSnapshot(out OfficeChartSnapshot current)) {
+            if (!TryGetSnapshotForUpdate(out PowerPointChartSnapshot current)) {
                 throw new NotSupportedException(
                     "The current chart kind cannot be updated through the shared OfficeIMO chart contract.");
             }
-            OfficeChartKind chartKind = current.ChartKind;
+            OfficeChartKind chartKind = MapKind(current.ChartKind);
             PowerPointUtils.ValidateSharedChartData(data, chartKind);
 
             ChartPart chartPart = GetChartPart();
@@ -167,7 +167,8 @@ namespace OfficeIMO.PowerPoint {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             if (legend == null) return result;
             foreach (C.LegendEntry entry in legend.Elements<C.LegendEntry>()) {
-                if (entry.GetFirstChild<C.Delete>()?.Val?.Value == true &&
+                C.Delete? delete = entry.GetFirstChild<C.Delete>();
+                if (delete != null && delete.Val?.Value != false &&
                     entry.Index?.Val?.Value is uint seriesIndex) {
                     result.Add(seriesIndex);
                 }
