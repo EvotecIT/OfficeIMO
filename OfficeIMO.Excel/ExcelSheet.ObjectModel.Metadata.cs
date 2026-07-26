@@ -276,41 +276,38 @@ namespace OfficeIMO.Excel {
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSelections(firstAffectedRow, rowDelta, lastDeletedRow);
 
-            RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
-            if (rowBreaks == null) {
-                return;
-            }
+            foreach (RowBreaks rowBreaks in WorksheetRoot.Descendants<RowBreaks>().ToList()) {
+                foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
+                    if (pageBreak.Id?.Value is not uint rowId || rowId == 0U) {
+                        continue;
+                    }
 
-            foreach (Break pageBreak in rowBreaks.Elements<Break>().ToList()) {
-                if (pageBreak.Id?.Value is not uint rowId || rowId == 0U) {
-                    continue;
+                    int row = checked((int)rowId);
+                    if (lastDeletedRow.HasValue && row >= firstAffectedRow && row <= lastDeletedRow.Value) {
+                        pageBreak.Remove();
+                        continue;
+                    }
+
+                    if (row < firstAffectedRow) {
+                        continue;
+                    }
+
+                    int shiftedRow = row + rowDelta;
+                    if (shiftedRow <= 0 || shiftedRow > A1.MaxRows) {
+                        pageBreak.Remove();
+                    } else {
+                        pageBreak.Id = (uint)shiftedRow;
+                    }
                 }
 
-                int row = checked((int)rowId);
-                if (lastDeletedRow.HasValue && row >= firstAffectedRow && row <= lastDeletedRow.Value) {
-                    pageBreak.Remove();
-                    continue;
-                }
-
-                if (row < firstAffectedRow) {
-                    continue;
-                }
-
-                int shiftedRow = row + rowDelta;
-                if (shiftedRow <= 0 || shiftedRow > A1.MaxRows) {
-                    pageBreak.Remove();
+                uint breakCount = (uint)rowBreaks.Elements<Break>().Count();
+                if (breakCount == 0U) {
+                    rowBreaks.Remove();
                 } else {
-                    pageBreak.Id = (uint)shiftedRow;
+                    rowBreaks.Count = breakCount;
+                    rowBreaks.ManualBreakCount = (uint)rowBreaks.Elements<Break>()
+                        .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
                 }
-            }
-
-            uint breakCount = (uint)rowBreaks.Elements<Break>().Count();
-            if (breakCount == 0U) {
-                rowBreaks.Remove();
-            } else {
-                rowBreaks.Count = breakCount;
-                rowBreaks.ManualBreakCount = (uint)rowBreaks.Elements<Break>()
-                    .Count(pageBreak => pageBreak.ManualPageBreak?.Value == true);
             }
         }
 
@@ -630,7 +627,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool changed = false;
-            foreach (var anchor in drawing.ChildElements.ToList()) {
+            foreach (OpenXmlElement anchor in drawing.Descendants()
+                .Where(element => element is Xdr.OneCellAnchor || element is Xdr.TwoCellAnchor)
+                .ToList()) {
                 if (anchor is Xdr.OneCellAnchor oneCellAnchor) {
                     if (!TryRemapDrawingMarkerRow(oneCellAnchor.FromMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool markerChanged)) {
                         oneCellAnchor.Remove();

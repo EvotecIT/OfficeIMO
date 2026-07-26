@@ -487,7 +487,7 @@ namespace OfficeIMO.Excel {
                 ValidateReferenceListDoesNotOverflow(reference.Text, firstRow, count);
             }
 
-            foreach (Break pageBreak in WorksheetRoot.GetFirstChild<RowBreaks>()?.Elements<Break>() ?? Enumerable.Empty<Break>()) {
+            foreach (Break pageBreak in WorksheetRoot.Descendants<RowBreaks>().SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
                 if (pageBreak.Id?.Value is uint row && row >= firstRow && (long)row + count > A1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a page break beyond Excel's row limit.");
                 }

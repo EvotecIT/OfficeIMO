@@ -411,6 +411,30 @@ namespace OfficeIMO.Excel {
                         changed = true;
                     }
                 }
+
+                foreach (X14.SortCondition condition in sortState.Elements<X14.SortCondition>().ToList()) {
+                    if (condition.Reference?.Value is not string conditionReference
+                        || !TryRemapShiftedReferenceListRows(
+                            conditionReference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remappedConditionReferences)) {
+                        continue;
+                    }
+
+                    if (remappedConditionReferences.Count == 0) {
+                        condition.Remove();
+                        changed = true;
+                        continue;
+                    }
+
+                    string updatedReference = remappedConditionReferences[0];
+                    if (!string.Equals(conditionReference, updatedReference, StringComparison.OrdinalIgnoreCase)) {
+                        condition.Reference = updatedReference;
+                        changed = true;
+                    }
+                }
             }
 
             return changed;

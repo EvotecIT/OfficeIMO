@@ -466,6 +466,15 @@ namespace OfficeIMO.Excel {
                 cache.Remove();
                 changed = true;
             }
+            if (string.Equals(reference.LocalName, "numDim", StringComparison.Ordinal)
+                || string.Equals(reference.LocalName, "strDim", StringComparison.Ordinal)) {
+                foreach (OpenXmlElement level in reference.ChildElements
+                    .Where(element => string.Equals(element.LocalName, "lvl", StringComparison.Ordinal))
+                    .ToList()) {
+                    level.Remove();
+                    changed = true;
+                }
+            }
             return changed;
         }
 
