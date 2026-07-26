@@ -411,6 +411,41 @@ public partial class HtmlWordGapClosure {
     }
 
     [Fact]
+    public void WordToHtml_SolidRunShading_UsesForegroundColorInsteadOfFill() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph run = document.AddParagraph("Solid");
+        run.RunShadingFillColorHex = "0000FF";
+        run._runProperties!.Shading!.Val = ShadingPatternValues.Solid;
+        run._runProperties.Shading.Color = "FF0000";
+
+        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
+            snapshot.Drawing.Elements
+                .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
+                .SelectMany(richText => richText.Runs),
+            candidate => candidate.Text == "Solid");
+
+        Assert.Contains("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("background-color:#0000ff", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, renderedRun.BackgroundColor);
+    }
+
+    [Fact]
+    public void HtmlToWord_TransparentBlockBackground_PassesStrictDiagnosticsAndClearsFill() {
+        using WordDocument document = HtmlConversionDocument
+            .Parse("""<div style="background-color:#ff0000;background-color:transparent"><p>Cleared</p></div>""")
+            .ToWordDocument(new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            });
+        WordParagraph paragraph = Assert.Single(
+            document.Paragraphs,
+            candidate => candidate.Text == "Cleared");
+
+        Assert.True(string.IsNullOrEmpty(paragraph.ShadingFillColorHex));
+    }
+
+    [Fact]
     public void HtmlToWord_CssWideBoxValues_ResetEarlierPhysicalAndLogicalSpacing() {
         const string html = """
             <p style="margin-left:10px;margin-left:initial;padding-right:12px;padding-right:unset">Physical reset</p>
@@ -455,12 +490,17 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void WordToHtml_ExactTextBackground_ExportsBesideAnEquation() {
         using WordDocument document = WordDocument.Create();
+        A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        A.Accent1Color accent = scheme.GetFirstChild<A.Accent1Color>()!;
+        accent.RemoveAllChildren();
+        accent.Append(new A.RgbColorModelHex { Val = "123456" });
         WordParagraph paragraph = document.AddParagraph();
         paragraph._paragraph.Append(new Hyperlink(
             new Run(
                 new RunProperties(new Shading {
                     Val = ShadingPatternValues.Clear,
                     Fill = "ABCDEF",
+                    ThemeFill = ThemeColorValues.Accent1,
                 }),
                 new Text("shaded")),
             new M.OfficeMath(new M.Run(new M.Text("x")))) {
@@ -469,7 +509,8 @@ public partial class HtmlWordGapClosure {
 
         string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
 
-        Assert.Contains("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("background-color:#123456", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<math", html, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -791,6 +791,27 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            if (shading?.Val?.Value == ShadingPatternValues.Solid) {
+                string? resolvedThemeForeground = ResolveThemeColor(
+                    GetWordAttribute(shading, "themeColor"),
+                    GetWordAttribute(shading, "themeTint"),
+                    GetWordAttribute(shading, "themeShade"),
+                    colorScheme);
+                if (TryParseOfficeColor(resolvedThemeForeground, out OfficeColor themeForeground)) {
+                    fillColor = themeForeground;
+                    return true;
+                }
+                if (TryParseOfficeColor(shading.Color?.Value, out OfficeColor foreground)) {
+                    fillColor = foreground;
+                    return true;
+                }
+                if (string.Equals(shading.Color?.Value, "auto", StringComparison.OrdinalIgnoreCase)) {
+                    fillColor = OfficeColor.Black;
+                    return true;
+                }
+                return false;
+            }
+
             string? resolvedThemeColor = ResolveThemeColor(
                 GetWordAttribute(shading, "themeFill"),
                 GetWordAttribute(shading, "themeFillTint"),
