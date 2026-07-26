@@ -48,7 +48,15 @@ $playgroundPage = Get-Content -LiteralPath $playgroundPagePath -Raw
 if ($playgroundPage -notmatch $converterFramePattern) {
     throw "The compatibility /playground/ route does not host the browser converter."
 }
-if ($playgroundPage -notmatch '<link rel="canonical" href="https://officeimo\.com/convert/"') {
+$canonicalLink = [regex]::Matches(
+    $playgroundPage,
+    '<link\b[^>]*>',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+) | Where-Object {
+    $_.Value -match '\brel\s*=\s*(?:"canonical"|''canonical''|canonical)(?:\s|/?>)' -and
+    $_.Value -match '\bhref\s*=\s*(?:"https://officeimo\.com/convert/"|''https://officeimo\.com/convert/''|https://officeimo\.com/convert/)(?:\s|/?>)'
+} | Select-Object -First 1
+if (-not $canonicalLink) {
     throw "The compatibility /playground/ route does not canonicalize to /convert/."
 }
 
