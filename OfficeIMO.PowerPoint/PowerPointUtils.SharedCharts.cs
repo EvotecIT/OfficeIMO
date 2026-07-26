@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint {
         private const int SpreadsheetMaximumColumns = 16_384;
         private const int SpreadsheetMaximumRows = 1_048_576;
         private const int BubbleWorkbookColumnsPerSeries = 3;
+        internal const int MaximumSharedChartPoints = 100_000;
 
         private sealed class SharedSeriesDescriptor {
             internal SharedSeriesDescriptor(int index, OfficeChartSeries series, OfficeChartKind kind) {
@@ -98,6 +99,11 @@ namespace OfficeIMO.PowerPoint {
             if (maximumPoints > SpreadsheetMaximumRows - 1) {
                 throw new ArgumentException(
                     "Bubble chart data exceeds the embedded worksheet row limit.",
+                    "data");
+            }
+            if (maximumPoints > MaximumSharedChartPoints) {
+                throw new ArgumentException(
+                    "Bubble chart data exceeds the shared chart snapshot point limit.",
                     "data");
             }
         }

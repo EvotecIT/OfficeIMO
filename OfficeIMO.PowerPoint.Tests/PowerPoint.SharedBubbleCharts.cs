@@ -486,15 +486,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsWorkbookRowOverflow() {
+        public void BubbleChart_RejectsSharedSnapshotPointOverflow() {
             PowerPointUtils.ValidateBubbleWorkbookDimensions(
                 seriesCount: 1,
-                maximumPoints: 1_048_575);
+                maximumPoints: 100_000);
 
             Assert.Throws<ArgumentException>(() =>
                 PowerPointUtils.ValidateBubbleWorkbookDimensions(
                     seriesCount: 1,
+                    maximumPoints: 100_001));
+        }
+
+        [Fact]
+        public void BubbleChart_RejectsWorkbookRowOverflow() {
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                PowerPointUtils.ValidateBubbleWorkbookDimensions(
+                    seriesCount: 1,
                     maximumPoints: 1_048_576));
+
+            Assert.Contains("worksheet row limit", exception.Message,
+                StringComparison.Ordinal);
         }
 
         [Fact]
@@ -638,6 +649,15 @@ namespace OfficeIMO.Tests {
                 Assert.False(chart.TryGetOfficeSnapshot(out _));
 
                 maximum.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                C.Orientation orientation =
+                    axis.GetFirstChild<C.Scaling>()!
+                        .GetFirstChild<C.Orientation>()!;
+                orientation.Val = C.OrientationValues.MaxMin;
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                orientation.Val = C.OrientationValues.MinMax;
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
         }

@@ -11,8 +11,6 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
-        private const int MaxChartCachePoints = 100_000;
-
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
@@ -221,7 +219,9 @@ namespace OfficeIMO.PowerPoint {
                 axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
                 (scaling.GetFirstChild<C.LogBase>() != null ||
                  scaling.GetFirstChild<C.MinAxisValue>() != null ||
-                 scaling.GetFirstChild<C.MaxAxisValue>() != null));
+                 scaling.GetFirstChild<C.MaxAxisValue>() != null ||
+                 scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
+                    C.OrientationValues.MaxMin));
         }
 
         private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
@@ -673,22 +673,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static List<TPoint> GetBoundedCachedPoints<TPoint>(IEnumerable<TPoint> points) {
-            List<TPoint> boundedPoints = points.Take(MaxChartCachePoints + 1).ToList();
-            if (boundedPoints.Count > MaxChartCachePoints) {
-                throw new InvalidDataException($"The chart cache exceeds the supported limit of {MaxChartCachePoints} points.");
+            List<TPoint> boundedPoints = points
+                .Take(PowerPointUtils.MaximumSharedChartPoints + 1).ToList();
+            if (boundedPoints.Count > PowerPointUtils.MaximumSharedChartPoints) {
+                throw new InvalidDataException($"The chart cache exceeds the supported limit of {PowerPointUtils.MaximumSharedChartPoints} points.");
             }
 
             return boundedPoints;
         }
 
         private static int GetCachedPointLength<TPoint>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex) {
-            if (points.Count > MaxChartCachePoints) {
-                throw new InvalidDataException($"The chart cache exceeds the supported limit of {MaxChartCachePoints} points.");
+            if (points.Count > PowerPointUtils.MaximumSharedChartPoints) {
+                throw new InvalidDataException($"The chart cache exceeds the supported limit of {PowerPointUtils.MaximumSharedChartPoints} points.");
             }
 
             uint? pointCount = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
-            if (pointCount > MaxChartCachePoints) {
-                throw new InvalidDataException($"The chart cache declares more than the supported limit of {MaxChartCachePoints} points.");
+            if (pointCount > PowerPointUtils.MaximumSharedChartPoints) {
+                throw new InvalidDataException($"The chart cache declares more than the supported limit of {PowerPointUtils.MaximumSharedChartPoints} points.");
             }
 
             uint maxIndex = 0U;
@@ -699,8 +700,8 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
 
-                if (index.Value >= MaxChartCachePoints) {
-                    throw new InvalidDataException($"The chart cache point index exceeds the supported limit of {MaxChartCachePoints} points.");
+                if (index.Value >= PowerPointUtils.MaximumSharedChartPoints) {
+                    throw new InvalidDataException($"The chart cache point index exceeds the supported limit of {PowerPointUtils.MaximumSharedChartPoints} points.");
                 }
 
                 hasIndexedPoint = true;
