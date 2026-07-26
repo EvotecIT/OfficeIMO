@@ -392,6 +392,40 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void PowerPointHtml_OmitsBubbleInventoryAboveSharedPointLimit() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul><li>
+                  <span class="officeimo-feature-label">Oversized bubble inventory</span>
+                  <span class="officeimo-feature-meta">Type: Bubble; Series: 101; Categories: 1000</span>
+                </li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxChartSeries = 101;
+        limits.MaxChartCategories = 1000;
+        limits.MaxChartPoints = 101_000;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(
+                new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Empty(Assert.Single(presentation.Slides).Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic =>
+                diagnostic.Code ==
+                    HtmlConversionDiagnosticCodes.TargetLimitExceeded &&
+                diagnostic.LossKind == HtmlConversionLossKind.Omission &&
+                diagnostic.Detail != null &&
+                diagnostic.Detail.Contains("Actual=101000",
+                    StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectedChartDoesNotConsumeTheSharedShapeBudget() {
         const string html = """
             <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">

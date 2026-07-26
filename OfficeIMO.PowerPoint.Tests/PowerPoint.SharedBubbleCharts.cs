@@ -930,6 +930,33 @@ namespace OfficeIMO.Tests {
 
                 tickLabels.Val = C.TickLabelPositionValues.NextTo;
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                axis.AddChild(new C.DisplayUnits(
+                    new C.BuiltInUnit {
+                        Val = C.BuiltInUnitValues.Millions
+                    }), true);
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                axis.GetFirstChild<C.DisplayUnits>()!.Remove();
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                C.NumberingFormat numberingFormat =
+                    axis.GetFirstChild<C.NumberingFormat>()!;
+                string? originalFormat = numberingFormat.FormatCode?.Value;
+                numberingFormat.FormatCode = "0.00E+00";
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                numberingFormat.FormatCode = "m/d/yyyy";
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                numberingFormat.FormatCode = "# ?/?";
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+                numberingFormat.FormatCode = "\"E+00\"0.0x";
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+                numberingFormat.FormatCode = originalFormat;
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
             }
         }
 

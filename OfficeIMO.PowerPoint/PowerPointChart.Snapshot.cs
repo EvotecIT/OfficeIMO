@@ -237,7 +237,9 @@ namespace OfficeIMO.PowerPoint {
                   delete.Val?.Value != false) ||
                  axis.GetFirstChild<C.MajorUnit>() != null ||
                  axis.GetFirstChild<C.MinorUnit>() != null ||
+                 axis.GetFirstChild<C.DisplayUnits>() != null ||
                  axis.GetFirstChild<C.CrossesAt>() != null ||
+                 HasUnsupportedSharedAxisNumberFormat(axis) ||
                  (axis.GetFirstChild<C.TickLabelPosition>() is
                       C.TickLabelPosition tickLabelPosition &&
                   tickLabelPosition.Val?.Value !=
@@ -504,6 +506,65 @@ namespace OfficeIMO.PowerPoint {
             string? format = axis.GetFirstChild<C.NumberingFormat>()?
                 .FormatCode?.Value;
             return string.IsNullOrWhiteSpace(format) ? null : format;
+        }
+
+        private static bool HasUnsupportedSharedAxisNumberFormat(
+            C.ValueAxis axis) {
+            string? format = ReadAxisNumberFormat(axis);
+            if (string.IsNullOrWhiteSpace(format)) return false;
+            if (string.Equals(format, "General",
+                    StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            bool inQuotedLiteral = false;
+            bool escaped = false;
+            bool sectionHasPlaceholder = false;
+            for (int index = 0; index < format!.Length; index++) {
+                char value = format[index];
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (value == '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (value == '"') {
+                    inQuotedLiteral = !inQuotedLiteral;
+                    continue;
+                }
+                if (inQuotedLiteral) {
+                    continue;
+                }
+                if (value == '0' || value == '#' || value == '?') {
+                    sectionHasPlaceholder = true;
+                    continue;
+                }
+                if (value == ';') {
+                    if (!sectionHasPlaceholder) return true;
+                    sectionHasPlaceholder = false;
+                    continue;
+                }
+                if (value == '/' || value == '@' ||
+                    value == '[' || value == ']') {
+                    return true;
+                }
+                if (value != 'E' && value != 'e') continue;
+
+                int next = index + 1;
+                if (next < format.Length &&
+                    (format[next] == '+' || format[next] == '-')) {
+                    next++;
+                }
+                if (next < format.Length &&
+                    (format[next] == '0' || format[next] == '#' ||
+                     format[next] == '?')) {
+                    return true;
+                }
+            }
+
+            return inQuotedLiteral || escaped || !sectionHasPlaceholder;
         }
 
         private static PowerPointChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {

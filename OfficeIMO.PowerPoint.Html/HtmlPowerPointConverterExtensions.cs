@@ -184,13 +184,32 @@ public static partial class HtmlPowerPointConverterExtensions {
         using (reservation) {
             string chartKind = ReadChartKind(item);
             bool isBubble = chartKind.Equals("Bubble", StringComparison.OrdinalIgnoreCase);
+            bool hasSemanticTable =
+                item.QuerySelector("table.officeimo-chart-data") != null;
+            if (isBubble && !hasSemanticTable &&
+                (long)seriesCount * categoryCount >
+                    PptCore.PowerPointUtils.MaximumSharedChartPoints) {
+                AddImportDiagnostic(result,
+                    HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "Chart inventory item '" +
+                    (title.Length == 0 ? "Imported chart" : title) +
+                    "' was omitted because its bubble point count exceeded the shared chart limit.",
+                    lossKind: HtmlConversionLossKind.Omission,
+                    detail: "BubblePoints: Actual=" +
+                        ((long)seriesCount * categoryCount)
+                            .ToString(CultureInfo.InvariantCulture) +
+                        "; Limit=" +
+                        PptCore.PowerPointUtils.MaximumSharedChartPoints
+                            .ToString(CultureInfo.InvariantCulture));
+                return;
+            }
             bool restoredFromSemanticData = TryReadChartData(
                 item,
                 chartKind.Equals("Scatter", StringComparison.OrdinalIgnoreCase) || isBubble,
                 isBubble,
                 out PptCore.PowerPointChartData? semanticData);
             if (isBubble && !restoredFromSemanticData &&
-                item.QuerySelector("table.officeimo-chart-data") != null) {
+                hasSemanticTable) {
                 AddImportDiagnostic(result,
                     HtmlConversionDiagnosticCodes.ContentOmitted,
                     "Chart inventory item '" +
@@ -214,6 +233,25 @@ public static partial class HtmlPowerPointConverterExtensions {
                 (isBubble
                     ? CreatePlaceholderBubbleChartDataFromInventory(item)
                     : CreatePlaceholderChartDataFromInventory(item));
+            if (isBubble) {
+                long bubblePointCount = data.Series.Sum(series =>
+                    (long)series.Values.Count);
+                if (bubblePointCount >
+                    PptCore.PowerPointUtils.MaximumSharedChartPoints) {
+                    AddImportDiagnostic(result,
+                        HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "Chart inventory item '" +
+                        (title.Length == 0 ? "Imported chart" : title) +
+                        "' was omitted because its bubble point count exceeded the shared chart limit.",
+                        lossKind: HtmlConversionLossKind.Omission,
+                        detail: "BubblePoints: Actual=" +
+                            bubblePointCount.ToString(CultureInfo.InvariantCulture) +
+                            "; Limit=" +
+                            PptCore.PowerPointUtils.MaximumSharedChartPoints
+                                .ToString(CultureInfo.InvariantCulture));
+                    return;
+                }
+            }
             ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, budget, result, out double left, out double chartTop, out double width, out double height);
             if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
