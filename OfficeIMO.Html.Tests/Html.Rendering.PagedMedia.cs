@@ -215,6 +215,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<table><tr><td><h2 style='string-set:section content()'>Table section</h2></td></tr></table>", "Table section")]
     [InlineData("<table><tr><td style='string-set:section content()'>Cell section</td></tr></table>", "Cell section")]
     [InlineData("<table><tr><th style='string-set:section content()'>Header section</th></tr></table>", "Header section")]
+    [InlineData("<p><input value='Form section' style='string-set:section attr(value)'></p>", "Form section")]
     public void HtmlRender_Paged_PropagatesRunningStringsThroughSpecializedContainers(
         string body,
         string expected) {

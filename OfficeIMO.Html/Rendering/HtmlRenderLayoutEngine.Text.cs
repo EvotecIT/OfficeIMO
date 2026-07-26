@@ -135,6 +135,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (IsFormControlElement(tag)) {
+            if (!string.IsNullOrWhiteSpace(style.StringSet)) {
+                runs.Add(new HtmlInlineRun(
+                    element,
+                    style,
+                    HtmlRenderStyleResolver.DescribeSource(element)));
+            }
             ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double controlOffsetX, out double controlOffsetY);
             double outerWidth = ResolveFormControlOuterWidth(element, style, width);
             HtmlRenderFlowBlock control = LayoutFormControl(element, outerWidth, style);

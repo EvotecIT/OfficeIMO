@@ -348,6 +348,39 @@ public sealed class HtmlConversionLimitTests {
         Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
     }
 
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\f")]
+    public void HtmlResourcePipeline_DoesNotLetMalformedStringsHideCssNesting(string newline) {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 2;
+        string css = ".outer{content:\"unterminated" + newline + ";@media all{.inner{color:red}}}";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+    }
+
+    [Theory]
+    [InlineData("\\\n")]
+    [InlineData("\\\r\n")]
+    [InlineData("\\\f")]
+    public void HtmlResourcePipeline_PreservesEscapedNewlinesInsideCssStrings(string escapedNewline) {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 1;
+        string css = ".target{content:\"line" + escapedNewline + "{{\";color:red}";
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<style>" + css + "</style>",
+            new HtmlResourcePipelineOptions { Limits = limits });
+
+        Assert.Empty(manifest.Diagnostics);
+    }
+
     [Fact]
     public void HtmlConversionDocument_LoadStopsAtTheSharedCharacterBudgetAndRestoresTheStream() {
         byte[] bytes = Encoding.UTF8.GetBytes("<p>stream content</p>");

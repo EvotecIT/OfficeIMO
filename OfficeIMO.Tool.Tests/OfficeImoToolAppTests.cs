@@ -93,6 +93,33 @@ Body
     }
 
     [Fact]
+    public async Task MarkupInputLimitIsEnforcedForFileInput() {
+        string inputPath = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"),
+            "input.markup");
+        Directory.CreateDirectory(Path.GetDirectoryName(inputPath)!);
+        await File.WriteAllTextAsync(inputPath, "# Too long");
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(
+                ["markup", "validate", inputPath, "--max-input-bytes", "4"],
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, exitCode);
+            Assert.Contains("configured byte limit", error.ToString(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(Path.GetDirectoryName(inputPath)!, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task MarkupEmitClassifiesDestinationWriteFailuresAsOutputFailures() {
         string outputDirectory = Path.Combine(
             Path.GetTempPath(),

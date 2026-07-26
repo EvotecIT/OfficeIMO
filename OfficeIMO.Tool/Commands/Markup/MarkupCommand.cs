@@ -238,7 +238,14 @@ internal static class MarkupCommand {
                 if (info.Length > options.MaxInputBytes) {
                     throw new MarkupInputException("Input exceeds the configured byte limit.");
                 }
-                byte[] bytes = await File.ReadAllBytesAsync(inputPath, cancellationToken).ConfigureAwait(false);
+                await using var input = new FileStream(
+                    inputPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    bufferSize: 8192,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                byte[] bytes = await ReadBoundedAsync(input, options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
                 return DecodeUtf8(bytes);
             } catch (MarkupInputException) {
                 throw;

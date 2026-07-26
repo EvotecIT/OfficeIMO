@@ -19,7 +19,11 @@ internal static class HtmlCssRuleBlockScanner {
         for (int index = 0; index < css.Length; index++) {
             char current = css[index];
             if (quote != '\0') {
-                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                if (IsCssNewline(current) && !IsEscapedCssNewline(css, index)) {
+                    quote = '\0';
+                } else if (current == quote && !IsEscaped(css, index)) {
+                    quote = '\0';
+                }
                 continue;
             }
             if (current == '\'' || current == '"') {
@@ -96,6 +100,16 @@ internal static class HtmlCssRuleBlockScanner {
         }
         return (backslashes & 1) != 0;
     }
+
+    private static bool IsEscapedCssNewline(string text, int index) =>
+        IsEscaped(text, index)
+        || (text[index] == '\n'
+            && index > 0
+            && text[index - 1] == '\r'
+            && IsEscaped(text, index - 1));
+
+    private static bool IsCssNewline(char value) =>
+        value == '\n' || value == '\r' || value == '\f';
 
     private static bool IsIdentifierCharacter(char value) =>
         char.IsLetterOrDigit(value) || value == '_' || value == '-' || value >= 0x80;
