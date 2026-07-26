@@ -414,7 +414,9 @@ public static partial class OfficeChartDrawingRenderer {
 
         if (HasMixedCartesianSeriesKinds(snapshot) || hasSecondaryAxis) {
             AddMixedCartesianSeries(drawing, snapshot, axisRange, secondaryAxisRange, hasSecondaryAxis,
-                plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+                plotLeft, plotTop, plotWidth, plotHeight,
+                numericPlotLeft, numericPlotTop, numericPlotWidth, numericPlotHeight,
+                style, layout, bubblePlotPadding * 2D);
         } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {

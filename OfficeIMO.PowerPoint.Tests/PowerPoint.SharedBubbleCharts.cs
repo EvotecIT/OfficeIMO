@@ -506,6 +506,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_RejectsEnabledInvertIfNegativeForNegativeValues() {
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointChart chart = presentation.AddSlide().AddChart(
+                OfficeChartKind.Bubble,
+                CreateBubbleData(
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }));
+            C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+                .ChartParts.Single().ChartSpace!
+                .Descendants<C.BubbleChartSeries>().Single();
+            nativeSeries.GetFirstChild<C.YValues>()!.NumberReference!
+                .NumberingCache!.Elements<C.NumericPoint>().Single()
+                .NumericValue!.Text = "-2";
+            C.InvertIfNegative invertIfNegative = nativeSeries.InsertBefore(
+                new C.InvertIfNegative(),
+                nativeSeries.GetFirstChild<C.XValues>())!;
+
+            invertIfNegative.Val = true;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            invertIfNegative.Val = null;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            invertIfNegative.Val = false;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
         public void BubbleChart_RejectsEnabledThreeDimensionalRendering() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());
@@ -629,6 +659,15 @@ namespace OfficeIMO.Tests {
             outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.PresetDash>();
             outline.Append(new DocumentFormat.OpenXml.Drawing.CustomDash());
             Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            outline.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.CustomDash>();
+            outline.CompoundLineType =
+                DocumentFormat.OpenXml.Drawing.CompoundLineValues.Double;
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            outline.CompoundLineType =
+                DocumentFormat.OpenXml.Drawing.CompoundLineValues.Single;
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]

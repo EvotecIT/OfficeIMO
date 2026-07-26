@@ -357,6 +357,41 @@ public sealed class HtmlOfficeAdapterLimitTests {
     }
 
     [Fact]
+    public void PowerPointHtml_BoundsBubbleRowsWiderThanSemanticHeaders() {
+        const string html = """
+            <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">
+              <section class="officeimo-slide" data-officeimo-slide="1">
+                <section class="officeimo-charts"><ul><li>
+                  <span class="officeimo-feature-label">Bubble</span>
+                  <span class="officeimo-feature-meta">Type: Bubble; Series: 1; Categories: 1</span>
+                  <table class="officeimo-chart-data">
+                    <thead><tr><th>Series</th><th>One</th></tr></thead>
+                    <tbody><tr><th>Portfolio</th>
+                      <td data-officeimo-x="1" data-officeimo-bubble-size="4">10</td>
+                      <td data-officeimo-x="2" data-officeimo-bubble-size="9">20</td>
+                      <td data-officeimo-x="3" data-officeimo-bubble-size="16">30</td>
+                    </tr></tbody>
+                  </table>
+                </li></ul></section>
+              </section>
+            </main>
+            """;
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxChartCategories = 2;
+
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(
+                new HtmlToPowerPointOptions { Limits = limits });
+        using var presentation = result.Value;
+
+        Assert.Equal(0, result.Charts);
+        Assert.Empty(Assert.Single(presentation.Slides).Charts);
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Fact]
     public void PowerPointHtml_RejectedChartDoesNotConsumeTheSharedShapeBudget() {
         const string html = """
             <main class="officeimo-document" data-officeimo-source="powerpoint" data-officeimo-profile="PowerPointSemanticSlides" data-officeimo-schema-version="1">

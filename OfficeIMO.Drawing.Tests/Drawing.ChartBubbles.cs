@@ -96,6 +96,63 @@ public class DrawingChartBubbleTests {
     }
 
     [Fact]
+    public void OfficeChartDrawingRenderer_InsetsBubblesInMixedScatterCharts() {
+        OfficeColor bubbleColor = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "1", "2" }, new OfficeChartSeries[] {
+            new OfficeChartSeries(
+                "Scatter",
+                new[] { 1D, 2D },
+                new[] { 1D, 2D },
+                OfficeColor.Parse("#264653"),
+                pointColors: null,
+                showMarkers: true,
+                renderKind: OfficeChartKind.Scatter),
+            OfficeChartSeries.CreateBubble(
+                "Bubbles",
+                new[] { 1D, 2D },
+                new[] { 1D, 2D },
+                new[] { 25D, 100D },
+                bubbleColor)
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot(
+                "Mixed scatter",
+                null,
+                OfficeChartKind.Scatter,
+                data,
+                widthPoints: 420D,
+                heightPoints: 260D,
+                style: null,
+                layout: new OfficeChartLayout(showLegend: false),
+                bubbleScalePercent: 200D,
+                bubbleSizeMode: OfficeChartBubbleSizeMode.Area));
+        OfficeDrawingShape horizontalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width > 100D && shape.Shape.Height == 0D)
+            .OrderByDescending(shape => shape.Shape.Width)
+            .First();
+        OfficeDrawingShape verticalAxis = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.Width == 0D && shape.Shape.Height > 50D)
+            .OrderByDescending(shape => shape.Shape.Height)
+            .First();
+
+        OfficeDrawingShape[] bubbles = drawing.Shapes.Where(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+                shape.Shape.FillColor == bubbleColor)
+            .ToArray();
+        Assert.Equal(2, bubbles.Length);
+        Assert.All(bubbles, bubble => {
+            Assert.True(bubble.X >= horizontalAxis.X - 0.001D);
+            Assert.True(bubble.X + bubble.Shape.Width <=
+                        horizontalAxis.X + horizontalAxis.Shape.Width + 0.001D);
+            Assert.True(bubble.Y >= verticalAxis.Y - 0.001D);
+            Assert.True(bubble.Y + bubble.Shape.Height <=
+                        verticalAxis.Y + verticalAxis.Shape.Height + 0.001D);
+        });
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_RendersBubblesWhenScatterMarkersAreHidden() {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {

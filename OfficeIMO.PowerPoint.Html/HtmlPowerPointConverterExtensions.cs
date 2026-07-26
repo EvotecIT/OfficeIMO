@@ -262,7 +262,13 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         series = Math.Max(1, table.QuerySelectorAll("tbody tr").Length);
-        categories = Math.Max(1, table.QuerySelectorAll("thead tr th").Length - 1);
+        int headerCategories =
+            Math.Max(0, table.QuerySelectorAll("thead tr th").Length - 1);
+        int widestSeries = table.QuerySelectorAll("tbody tr")
+            .Select(row => row.QuerySelectorAll("td").Length)
+            .DefaultIfEmpty(0)
+            .Max();
+        categories = Math.Max(1, Math.Max(headerCategories, widestSeries));
     }
 
     private static PptCore.PowerPointChartData CreatePlaceholderChartData(int seriesCount, int categoryCount) {

@@ -41,6 +41,13 @@ namespace OfficeIMO.PowerPoint {
                 if (xValues.Count != yValues.Count || xValues.Count != bubbleSizes.Count) {
                     return null;
                 }
+                C.InvertIfNegative? invertIfNegative =
+                    element.GetFirstChild<C.InvertIfNegative>();
+                if (yValues.Any(value => value < 0D) &&
+                    invertIfNegative != null &&
+                    invertIfNegative.Val?.Value != false) {
+                    return null;
+                }
 
                 int pointCount = xValues.Count;
                 if (pointCount == 0) continue;
@@ -99,9 +106,12 @@ namespace OfficeIMO.PowerPoint {
             properties?.GetFirstChild<Outline>() != null;
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
-            outline?.ChildElements.Any(child =>
-                child is GradientFill or PatternFill or BlipFill or GroupFill
-                    or PresetDash or CustomDash) == true;
+            outline != null &&
+            (outline.CompoundLineType?.Value is CompoundLineValues compoundLine &&
+             compoundLine != CompoundLineValues.Single ||
+             outline.ChildElements.Any(child =>
+                 child is GradientFill or PatternFill or BlipFill or GroupFill
+                     or PresetDash or CustomDash));
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
