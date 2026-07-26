@@ -297,6 +297,10 @@ public sealed class ReaderOcrCoreTests {
         try {
             OfficeDocumentOcrExecutionResult first = await CreateDocument(1).ApplyOcrAsync(engine, timeoutOptions);
             Assert.Contains(first.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+            Task firstCallStarted = await Task.WhenAny(
+                engine.FirstCallStarted,
+                Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(engine.FirstCallStarted, firstCallStarted);
 
             Task<OfficeDocumentOcrExecutionResult> second = CreateDocument(1).ApplyOcrAsync(
                 engine,
@@ -305,7 +309,7 @@ public sealed class ReaderOcrCoreTests {
             Assert.NotSame(engine.SecondCallStarted, earlyStart);
 
             engine.CompleteFirstCall();
-            Task completed = await Task.WhenAny(second, Task.Delay(TimeSpan.FromSeconds(2)));
+            Task completed = await Task.WhenAny(second, Task.Delay(TimeSpan.FromSeconds(10)));
             Assert.Same(second, completed);
             await second;
 
@@ -344,13 +348,18 @@ public sealed class ReaderOcrCoreTests {
         var engine = new NonCooperativeConcurrentOcrEngine();
 
         try {
-            OfficeDocumentOcrExecutionResult execution = await CreateDocument(4).ApplyOcrAsync(
+            Task<OfficeDocumentOcrExecutionResult> executionTask = CreateDocument(4).ApplyOcrAsync(
                 engine,
                 new OfficeDocumentOcrExecutionOptions {
-                    CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                    CandidateTimeout = TimeSpan.FromSeconds(5),
                     ContinueOnError = true,
                     MaxDegreeOfParallelism = 2
                 });
+            Task twoCallsStarted = await Task.WhenAny(
+                engine.TwoCallsStarted,
+                Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(engine.TwoCallsStarted, twoCallsStarted);
+            OfficeDocumentOcrExecutionResult execution = await executionTask;
 
             Assert.Equal(2, engine.CallCount);
             Assert.Equal(2, engine.MaximumConcurrentCalls);
@@ -467,6 +476,7 @@ public sealed class ReaderOcrCoreTests {
 
     private sealed class NonCooperativeSerialOcrEngine : IOfficeOcrEngine {
         private readonly TaskCompletionSource<OfficeOcrEngineResult> _firstCall = new TaskCompletionSource<OfficeOcrEngineResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _firstCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource<object?> _secondCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _activeCalls;
         private int _callCount;
@@ -483,6 +493,8 @@ public sealed class ReaderOcrCoreTests {
 
         internal int CallCount => _callCount;
 
+        internal Task FirstCallStarted => _firstCallStarted.Task;
+
         internal Task SecondCallStarted => _secondCallStarted.Task;
 
         internal void CompleteFirstCall() {
@@ -497,7 +509,10 @@ public sealed class ReaderOcrCoreTests {
                 if (active <= current || Interlocked.CompareExchange(ref _maximumConcurrentCalls, active, current) == current) break;
             }
             try {
-                if (call == 1) return await _firstCall.Task.ConfigureAwait(false);
+                if (call == 1) {
+                    _firstCallStarted.TrySetResult(null);
+                    return await _firstCall.Task.ConfigureAwait(false);
+                }
                 _secondCallStarted.TrySetResult(null);
                 return new OfficeOcrEngineResult { Text = "second" };
             } finally {
@@ -508,6 +523,7 @@ public sealed class ReaderOcrCoreTests {
 
     private sealed class NonCooperativeConcurrentOcrEngine : IOfficeOcrEngine {
         private readonly TaskCompletionSource<OfficeOcrEngineResult> _completion = new TaskCompletionSource<OfficeOcrEngineResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _twoCallsStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _activeCalls;
         private int _callCount;
         private int _maximumConcurrentCalls;
@@ -523,12 +539,17 @@ public sealed class ReaderOcrCoreTests {
 
         internal int MaximumConcurrentCalls => _maximumConcurrentCalls;
 
+        internal Task TwoCallsStarted => _twoCallsStarted.Task;
+
         internal void CompleteCalls() {
             _completion.TrySetResult(new OfficeOcrEngineResult { Text = "late" });
         }
 
         public async ValueTask<OfficeOcrEngineResult> RecognizeAsync(OfficeOcrEngineRequest request, CancellationToken cancellationToken = default) {
-            Interlocked.Increment(ref _callCount);
+            int callCount = Interlocked.Increment(ref _callCount);
+            if (callCount >= 2) {
+                _twoCallsStarted.TrySetResult(null);
+            }
             int active = Interlocked.Increment(ref _activeCalls);
             while (true) {
                 int current = _maximumConcurrentCalls;
