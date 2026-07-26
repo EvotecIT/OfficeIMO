@@ -2,13 +2,14 @@ using AngleSharp.Dom;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static bool ShouldStartBodyResourceParagraph(INode node) {
+        private bool ShouldStartBodyResourceParagraph(INode node) {
             if (node is not IElement element ||
                 (!element.TagName.Equals("img", StringComparison.OrdinalIgnoreCase) &&
                  !element.TagName.Equals("svg", StringComparison.OrdinalIgnoreCase))) {
                 return false;
             }
 
+            ApplyCssToElement(element);
             string styleText = element.GetAttribute("style") ?? string.Empty;
             var declaration = ParseInlineDeclaration(styleText);
             string display = GetInlinePropertyValue(declaration, styleText, "display")

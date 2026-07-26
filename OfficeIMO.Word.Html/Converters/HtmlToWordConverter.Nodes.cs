@@ -34,103 +34,6 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static WordParagraph AddParagraphInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            if (cell != null) {
-                var paragraphs = cell.Paragraphs;
-                bool removeExisting = paragraphs.Count == 1 && IsReplaceableEmptyCellParagraph(paragraphs[0]);
-                return cell.AddParagraph("", removeExisting);
-            }
-
-            return headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-        }
-
-        private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) =>
-            !paragraph._paragraph.ChildElements.Any(IsMeaningfulCellParagraphChild);
-
-        private static bool IsMeaningfulCellParagraphChild(OpenXmlElement child) {
-            if (child is ParagraphProperties properties) {
-                return properties.HasChildren || properties.HasAttributes;
-            }
-
-            if (child is Run run) {
-                return run.ChildElements.Any(runChild =>
-                    runChild is not RunProperties &&
-                    (runChild is not Text text || !string.IsNullOrEmpty(text.Text)));
-            }
-
-            return true;
-        }
-
-        private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
-            cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
-
-        private static int GetGeneratedParagraphStartIndex(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            List<WordParagraph> paragraphs = GetParagraphsInScope(section, cell, headerFooter);
-            return cell != null &&
-                   paragraphs.Count == 1 &&
-                   IsReplaceableEmptyCellParagraph(paragraphs[0])
-                ? 0
-                : paragraphs.Count;
-        }
-
-        private static List<WordParagraph> GetGeneratedParagraphs(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
-            GetParagraphsInScope(section, cell, headerFooter).Skip(startIndex).ToList();
-
-        private static List<WordParagraph> GetMaterializedContainerParagraphs(
-            IElement element,
-            WordSection section,
-            WordTableCell? cell,
-            WordHeaderFooter? headerFooter,
-            WordParagraph? currentParagraph,
-            int startIndex) {
-            List<WordParagraph> paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
-            if (paragraphs.Count == 0 &&
-                currentParagraph != null &&
-                GetParagraphsInScope(section, cell, headerFooter)
-                    .Any(paragraph => ReferenceEquals(paragraph._paragraph, currentParagraph._paragraph))) {
-                paragraphs.Add(currentParagraph);
-            }
-            if (paragraphs.Count == 0 &&
-                currentParagraph == null &&
-                RequiresEmptyBlockParagraph(element)) {
-                AddParagraphInScope(section, cell, headerFooter);
-                paragraphs = GetGeneratedParagraphs(section, cell, headerFooter, startIndex);
-            }
-
-            return paragraphs;
-        }
-
-        private static bool ShouldReuseInitialWordSection(IElement element, WordDocument doc, WordSection section) {
-            if (!string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            if (!element.ClassList.Contains("word-section")) {
-                return false;
-            }
-
-            if (doc.Sections.Count != 1 || !ReferenceEquals(doc.Sections[0], section)) {
-                return false;
-            }
-
-            return section.Tables.Count == 0 &&
-                   section.Paragraphs.All(paragraph => string.IsNullOrWhiteSpace(paragraph.Text) && !paragraph.GetRuns().Any());
-        }
-
-        private static void ApplyContainerPageBreaksFromCss(IElement element, IReadOnlyList<WordParagraph> paragraphs) {
-            if (paragraphs.Count == 0) {
-                return;
-            }
-
-            if (StyleRequestsPageBreakBefore(element)) {
-                paragraphs[0].PageBreakBefore = true;
-            }
-
-            if (StyleRequestsPageBreakAfter(element)) {
-                AddPageBreakAfter(paragraphs[paragraphs.Count - 1]);
-            }
-        }
-
         private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
             if (node is IElement element) {
@@ -192,6 +95,7 @@ namespace OfficeIMO.Word.Html {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
                                 ApplyExportedSectionMetadata(element, newSection);
                                 int startIndex = newSection.Paragraphs.Count;
+                                int tableStartIndex = GetTablesInScope(newSection, null, headerFooter).Count;
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -210,8 +114,10 @@ namespace OfficeIMO.Word.Html {
                                         null,
                                         headerFooter,
                                         null,
-                                        startIndex);
-                                    ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                        startIndex,
+                                        tableStartIndex);
+                                    List<WordTable> generatedTables = GetGeneratedTables(newSection, null, headerFooter, tableStartIndex);
+                                    ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                                     ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                                 }
                                 var secId = element.GetAttribute("id");
@@ -221,6 +127,7 @@ namespace OfficeIMO.Word.Html {
                                 }
                             } else {
                                 int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
+                                int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
                                     if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -239,8 +146,10 @@ namespace OfficeIMO.Word.Html {
                                         cell,
                                         headerFooter,
                                         currentParagraph,
-                                        startIndex);
-                                    ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                        startIndex,
+                                        tableStartIndex);
+                                    List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                                    ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                                     ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                                 }
                                 var secId = element.GetAttribute("id");
@@ -267,6 +176,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
                             int scopeStartIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
+                            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
@@ -290,8 +200,10 @@ namespace OfficeIMO.Word.Html {
                                 cell,
                                 headerFooter,
                                 currentParagraph,
-                                scopeStartIndex);
-                            ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                scopeStartIndex,
+                                tableStartIndex);
+                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                            ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
                         }
@@ -474,6 +386,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.BackgroundColorHex = formatting.BackgroundColorHex;
                             }
                             int startIndex = GetGeneratedParagraphStartIndex(section, cell, headerFooter);
+                            int tableStartIndex = GetTablesInScope(section, cell, headerFooter).Count;
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
@@ -512,8 +425,10 @@ namespace OfficeIMO.Word.Html {
                                 cell,
                                 headerFooter,
                                 currentParagraph,
-                                startIndex);
-                            ApplyContainerFrameFromCss(element, generatedParagraphs);
+                                startIndex,
+                                tableStartIndex);
+                            List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, tableStartIndex);
+                            ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs);
                             break;
                         }

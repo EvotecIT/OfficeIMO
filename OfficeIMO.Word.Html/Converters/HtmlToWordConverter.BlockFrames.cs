@@ -211,6 +211,95 @@ namespace OfficeIMO.Word.Html {
             ApplyBlockFrameFromCss(element, paragraphs, applyContainerSpacing);
         }
 
+        private static void ApplyContainerFrameFromCss(
+            IElement element,
+            IReadOnlyList<WordParagraph> paragraphs,
+            IReadOnlyList<WordTable> tables) {
+            ApplyContainerFrameFromCss(element, paragraphs);
+            foreach (WordTable table in tables) {
+                ApplyTableContainerFrameFromCss(element, table);
+            }
+        }
+
+        private static void ApplyTableContainerFrameFromCss(IElement element, WordTable table) {
+            List<WordTableRow> rows = table.Rows;
+            if (rows.Count == 0) {
+                return;
+            }
+
+            ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
+            foreach (WordTableRow row in rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    if (!string.IsNullOrEmpty(background) && string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
+                        cell.ShadingFillColorHex = background!;
+                    }
+                }
+            }
+
+            BlockBorder? left = GetBlockBorder(sideBorders, BlockBorderSide.Left);
+            BlockBorder? right = GetBlockBorder(sideBorders, BlockBorderSide.Right);
+            BlockBorder? top = GetBlockBorder(sideBorders, BlockBorderSide.Top);
+            BlockBorder? bottom = GetBlockBorder(sideBorders, BlockBorderSide.Bottom);
+            string fallbackColor = ResolveElementTextColor(element);
+
+            foreach (WordTableCell cell in rows[0].Cells) {
+                ApplyTableCellBorder(cell, BlockBorderSide.Top, top, fallbackColor);
+            }
+            foreach (WordTableCell cell in rows[rows.Count - 1].Cells) {
+                ApplyTableCellBorder(cell, BlockBorderSide.Bottom, bottom, fallbackColor);
+            }
+            foreach (WordTableRow row in rows) {
+                List<WordTableCell> cells = row.Cells;
+                if (cells.Count == 0) {
+                    continue;
+                }
+                ApplyTableCellBorder(cells[0], BlockBorderSide.Left, left, fallbackColor);
+                ApplyTableCellBorder(cells[cells.Count - 1], BlockBorderSide.Right, right, fallbackColor);
+            }
+        }
+
+        private static void ApplyTableCellBorder(
+            WordTableCell cell,
+            BlockBorderSide side,
+            BlockBorder? border,
+            string fallbackColor) {
+            if (!border.HasValue) {
+                return;
+            }
+
+            BlockBorder value = border.Value;
+            string color = value.Color?.ToRgbHex() ?? fallbackColor;
+            switch (side) {
+                case BlockBorderSide.Left:
+                    cell.Borders.LeftStyle = value.Style;
+                    cell.Borders.LeftSize = value.Size;
+                    cell.Borders.LeftColorHex = color;
+                    break;
+                case BlockBorderSide.Right:
+                    cell.Borders.RightStyle = value.Style;
+                    cell.Borders.RightSize = value.Size;
+                    cell.Borders.RightColorHex = color;
+                    break;
+                case BlockBorderSide.Top:
+                    cell.Borders.TopStyle = value.Style;
+                    cell.Borders.TopSize = value.Size;
+                    cell.Borders.TopColorHex = color;
+                    break;
+                case BlockBorderSide.Bottom:
+                    cell.Borders.BottomStyle = value.Style;
+                    cell.Borders.BottomSize = value.Size;
+                    cell.Borders.BottomColorHex = color;
+                    break;
+            }
+        }
+
+        private static string ResolveElementTextColor(IElement element) {
+            string styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = ParseInlineDeclaration(styleText);
+            return NormalizeColor(GetInlinePropertyValue(declaration, styleText, "color")) ??
+                   SixColor.Black.ToRgbHex();
+        }
+
         private static void ApplyBlockFrameFromCss(
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
