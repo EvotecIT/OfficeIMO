@@ -305,11 +305,28 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_CancelsLargeRenderOperation() {
         string html = "<main>" + string.Concat(Enumerable.Repeat("<div><span>Cancellation marker</span></div>", 20000)) + "</main>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1D));
+        var cancellationThread = new Thread(() => {
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        }) {
+            IsBackground = true
+        };
+        cancellationThread.Start();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = 240D }, cancellation.Token));
+        try {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                HtmlRenderTestDriver.RenderAsync(
+                    document,
+                    new HtmlRenderOptions {
+                        ViewportWidth = 240D,
+                        MaxSurfaceHeight = int.MaxValue
+                    },
+                    cancellation.Token));
+        } finally {
+            Assert.True(cancellationThread.Join(TimeSpan.FromSeconds(5D)));
+        }
     }
 
     [Fact]
