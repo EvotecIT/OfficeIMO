@@ -1,4 +1,4 @@
-namespace OfficeIMO.Reader.Tool;
+namespace OfficeIMO.Tool.Commands.Reader;
 
 internal static class ReaderToolPathSafety {
     internal static void EnsureDistinctFile(string inputPath, string outputPath) {

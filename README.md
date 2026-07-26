@@ -54,12 +54,12 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 86 |
-| Documented package, tool, and example projects below | 94 |
+| Coordinated `3.0.x` release packages | 85 |
+| Documented package, tool, and example projects below | 92 |
 | Native format, foundation, and shared-service packages | 26 |
 | Conversion and cloud bridge packages | 29 |
-| Unified Reader packages and tool | 28 |
-| Markdown renderer and OfficeIMO Markup surfaces | 11 |
+| Unified Reader packages | 27 |
+| Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
@@ -582,13 +582,13 @@ _Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawi
 
 _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no browser process or native HTML renderer.
 
-#### [OfficeIMO.Html.Tool](OfficeIMO.Html.Tool/README.md)
+#### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
-- [x] HTML or MHTML files and standard input to PDF files or standard output
-- [x] Atomic output, explicit overwrite, bounded input/resources/pages, caller stylesheets, and portable resource defaults
-- [x] Machine-readable renderer capabilities and explicit embedded-font inputs for PDF/UA-ready output
+- [x] One `officeimo` executable with explicit `html`, `reader`, and `markup` command areas
+- [x] Bounded HTML/MHTML-to-PDF conversion, document extraction, capability discovery, Markup validation, code emission, and Office export
+- [x] Shared help, exit-code, packaging, NativeAOT, and stream contracts without duplicating document logic from the owning libraries
 
-_Dependency footprint:_ the same first-party HTML and PDF engines; no browser process or separate conversion engine.
+_Dependency footprint:_ the first-party HTML/PDF, Reader.All, and Markup exporter graphs; no browser process, hosted provider, or separate conversion engine.
 
 #### [OfficeIMO.Rtf.Markdown](OfficeIMO.Rtf.Markdown/README.md)
 
@@ -859,14 +859,6 @@ _Dependency footprint:_ YamlDotNet plus `OfficeIMO.Reader.Core`.
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and Zip.
 
-#### [OfficeIMO.Reader.Tool](OfficeIMO.Reader.Tool/README.md)
-
-- [x] Local `officeimo-reader` .NET tool for bounded file, standard-input, and folder conversion
-- [x] Markdown and stable v5 JSON output, embedded-asset materialization, deterministic folder ordering, and concurrency controls
-- [x] Capability discovery and explicit exit codes over the existing `OfficeIMO.Reader.All` adapter graph
-
-_Dependency footprint:_ only `OfficeIMO.Reader.All`; the tool adds no command framework, native binary, model, network client, or hosted provider.
-
 ### Markdown rendering and OfficeIMO Markup
 
 #### [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
@@ -934,21 +926,13 @@ _Dependency footprint:_ only OfficeIMO Markup and Excel; currently outside the c
 
 _Dependency footprint:_ only OfficeIMO Markup, PowerPoint, and Drawing; Mermaid CLI is optional and external.
 
-#### [OfficeIMO.Markup.Cli](OfficeIMO.Markup.Cli/README.md)
-
-- [x] Parse and validate OfficeIMO Markup files
-- [x] Emit C# and PowerShell starter code
-- [x] Export `.docx`, `.xlsx`, and `.pptx` artifacts
-
-_Dependency footprint:_ only the OfficeIMO Markup and exporter projects; this repository tool is not a NuGet package.
-
 #### [OfficeIMO.Markup.VSCode](OfficeIMO.Markup.VSCode/README.md)
 
 - [x] Syntax highlighting, snippets, inline validation, and live preview for `.omd` and `.office.md`
 - [x] Generate C# or PowerShell and export Word, Excel, and PowerPoint from the editor
 - [x] Bundled self-contained CLI builds for Windows, Linux, and macOS on x64 and arm64
 
-_Dependency footprint:_ VS Code plus the bundled OfficeIMO Markup CLI; Mermaid CLI integration is optional.
+_Dependency footprint:_ VS Code plus the bundled `officeimo markup` command; Mermaid CLI integration is optional.
 
 #### [OfficeIMO.Examples](OfficeIMO.Examples/README.md)
 
@@ -1030,11 +1014,8 @@ dotnet add package OfficeIMO.OneNote.Html --version 3.0.0
 dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.0
 dotnet add package OfficeIMO.Reader.OneNote --version 3.0.0
 
-# Install the broad local-reader command only when a CLI is the desired surface.
-dotnet tool install --global OfficeIMO.Reader.Tool --version 3.0.0
-
-# Install bounded HTML/MHTML-to-PDF conversion when a CLI is the desired surface.
-dotnet tool install --global OfficeIMO.Html.Tool --version 3.0.0
+# Install the unified command surface for HTML, Reader, and Markup workflows.
+dotnet tool install --global OfficeIMO.Tool --version 3.0.0
 ```
 
 All coordinated source packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.

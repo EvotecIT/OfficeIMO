@@ -44,10 +44,10 @@ The [generated output gallery](/showcase/) includes a runnable invoice workflow 
 ## Convert from the command line
 
 ```shell
-dotnet tool install --global OfficeIMO.Html.Tool
-officeimo-html convert report.html --output report.pdf
-officeimo-html convert archive.mhtml --output archive.pdf
-officeimo-html capabilities --format json
+dotnet tool install --global OfficeIMO.Tool
+officeimo html convert report.html --output report.pdf
+officeimo html convert archive.mhtml --output archive.pdf
+officeimo html capabilities --format json
 ```
 
 The tool accepts files or standard input, writes files atomically, and defaults to no local or remote resource reads. Embedded data and bounded MHTML resources remain available. Its capability output is generated from the same executable contract as the .NET API and checked-in support matrix.

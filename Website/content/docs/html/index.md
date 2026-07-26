@@ -36,6 +36,6 @@ byte[] png = source.ToPng(new HtmlRenderOptions {
 
 Install only the adapter needed by the destination, such as `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, or `OfficeIMO.Html.Pdf`. See the [HTML API reference](/api/html/).
 
-Install `OfficeIMO.Html.Tool` when a shell or build pipeline needs bounded HTML/MHTML-to-PDF conversion without hosting .NET code.
+Install `OfficeIMO.Tool` when a shell or build pipeline needs bounded HTML/MHTML-to-PDF conversion without hosting .NET code.
 
 Continue with [rendering and conversion examples](/docs/html/render-and-convert/) for image, PDF, Word, Markdown, and service-safe resource-policy patterns.

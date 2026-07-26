@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $examplesProject = Join-Path $repoRoot 'OfficeIMO.Examples\OfficeIMO.Examples.csproj'
-$readerProject = Join-Path $repoRoot 'OfficeIMO.Reader.Tool\OfficeIMO.Reader.Tool.csproj'
+$readerProject = Join-Path $repoRoot 'OfficeIMO.Tool\OfficeIMO.Tool.csproj'
 $documentsRoot = Join-Path $repoRoot "OfficeIMO.Examples\bin\Debug\$Framework\Documents"
 $downloadRoot = Join-Path $repoRoot 'Website\static\downloads\showcase'
 $manifestPath = Join-Path $downloadRoot 'manifest.json'
@@ -44,7 +44,7 @@ function New-ReaderProjection {
     )
 
     Invoke-DotNet @('build', $readerProject, '-f', $Framework, '--nologo')
-    $readerAssembly = Join-Path $repoRoot "OfficeIMO.Reader.Tool\bin\Debug\$Framework\OfficeIMO.Reader.Tool.dll"
+    $readerAssembly = Join-Path $repoRoot "OfficeIMO.Tool\bin\Debug\$Framework\OfficeIMO.Tool.dll"
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = 'dotnet'
     $startInfo.UseShellExecute = $false
@@ -52,7 +52,7 @@ function New-ReaderProjection {
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
     foreach ($argument in @(
-        $readerAssembly, 'read', '-', '--name', 'design-brief.pptx',
+        $readerAssembly, 'reader', 'read', '-', '--name', 'design-brief.pptx',
         '--format', 'json', '--output', $OutputPath
     )) {
         [void] $startInfo.ArgumentList.Add($argument)
@@ -65,7 +65,7 @@ function New-ReaderProjection {
         $process.StandardInput.Close()
         $process.WaitForExit()
         if ($process.ExitCode -ne 0) {
-            throw "OfficeIMO.Reader.Tool failed: $($process.StandardError.ReadToEnd())"
+            throw "OfficeIMO.Tool reader command failed: $($process.StandardError.ReadToEnd())"
         }
     } finally {
         $process.Dispose()
@@ -307,7 +307,7 @@ $artifacts = @(
         id = 'reader-output'
         source = $readerPath
         destination = 'reader/design-brief.reader.json'
-        generator = 'OfficeIMO.Reader.Tool read - --name design-brief.pptx --format json'
+        generator = 'officeimo reader read - --name design-brief.pptx --format json'
         evidence = 'Schema-versioned Reader result generated from the downloadable PPTX.'
     },
     [ordered]@{

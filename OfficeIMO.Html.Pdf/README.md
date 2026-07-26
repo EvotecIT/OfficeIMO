@@ -115,13 +115,13 @@ Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for l
 
 ## Command-line conversion
 
-Install `OfficeIMO.Html.Tool` when a script or build pipeline is the desired surface:
+Install `OfficeIMO.Tool` when a script or build pipeline is the desired surface:
 
 ```powershell
-dotnet tool install --global OfficeIMO.Html.Tool
-officeimo-html convert report.html --output report.pdf
-officeimo-html convert archive.mhtml --output archive.pdf
-officeimo-html capabilities --format json
+dotnet tool install --global OfficeIMO.Tool
+officeimo html convert report.html --output report.pdf
+officeimo html convert archive.mhtml --output archive.pdf
+officeimo html capabilities --format json
 ```
 
 The command uses the same renderer and capability catalog as the .NET API. Local and remote resource reads are disabled by default; embedded data and bounded MHTML resources remain available. Standard input/output, caller stylesheets, page limits, atomic file replacement, and explicit embedded fonts for PDF/UA-ready artifacts are supported.

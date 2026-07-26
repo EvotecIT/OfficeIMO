@@ -1,24 +1,25 @@
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
-namespace OfficeIMO.Html.Tool;
+namespace OfficeIMO.Tool.Commands.Html;
 
-internal static class HtmlPdfToolApp {
+internal static class HtmlCommand {
     internal const string Usage = """
-OfficeIMO.Html.Tool
+OfficeIMO.Tool - HTML
 
 Usage:
-  officeimo-html convert <input.html|input.mhtml|-> [--input-format html|mhtml] [--output <file|->]
+  officeimo html convert <input.html|input.mhtml|-> [--input-format html|mhtml] [--output <file|->]
                          [--stylesheet <file.css>] [--base-uri <absolute-uri>]
                          [--font-family <name> --font-regular <file.ttf>]
                          [--font-bold <file.ttf>] [--font-italic <file.ttf>]
                          [--font-bold-italic <file.ttf>]
                          [--max-input-bytes <bytes>] [--max-pages <count>]
                          [--pdf-ua-language <tag>] [--force]
-  officeimo-html capabilities [--format text|json]
+  officeimo html capabilities [--format text|json]
 
 Local and remote resource reads are disabled by default. Data URIs and bounded MHTML
 resources remain available. PDF/UA mode configures and analyzes groundwork; it does not
@@ -32,37 +33,37 @@ claim conformance without passing external validator evidence.
         TextWriter standardError,
         CancellationToken cancellationToken = default) {
         try {
-            HtmlPdfToolArguments parsed = HtmlPdfToolArguments.Parse(args);
-            if (parsed.Command == HtmlPdfToolCommand.Help) {
+            HtmlArguments parsed = HtmlArguments.Parse(args);
+            if (parsed.Command == HtmlCommandKind.Help) {
                 await WriteUtf8Async(standardOutput, Usage + Environment.NewLine, cancellationToken).ConfigureAwait(false);
-                return 0;
+                return (int)OfficeImoToolExitCode.Success;
             }
-            if (parsed.Command == HtmlPdfToolCommand.Capabilities) {
+            if (parsed.Command == HtmlCommandKind.Capabilities) {
                 await WriteCapabilitiesAsync(standardOutput, parsed.JsonCapabilities, cancellationToken).ConfigureAwait(false);
-                return 0;
+                return (int)OfficeImoToolExitCode.Success;
             }
             return await ConvertAsync(parsed, standardInput, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-        } catch (HtmlPdfToolUsageException exception) {
+        } catch (HtmlUsageException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
-            return 2;
+            return (int)OfficeImoToolExitCode.Usage;
         } catch (OperationCanceledException) {
             await standardError.WriteLineAsync("Conversion cancelled.").ConfigureAwait(false);
-            return 130;
+            return (int)OfficeImoToolExitCode.Cancelled;
         } catch (FileNotFoundException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
-            return 3;
+            return (int)OfficeImoToolExitCode.InputNotFound;
         } catch (IOException exception) {
             await standardError.WriteLineAsync("I/O failed: " + exception.Message).ConfigureAwait(false);
-            return 4;
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (Exception exception) {
             await standardError.WriteLineAsync("Conversion failed: " + exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
-            return 5;
+            return (int)OfficeImoToolExitCode.OperationFailed;
         }
     }
 
     private static async Task<int> ConvertAsync(
-        HtmlPdfToolArguments arguments,
+        HtmlArguments arguments,
         Stream standardInput,
         Stream standardOutput,
         TextWriter standardError,
@@ -74,11 +75,11 @@ claim conformance without passing external validator evidence.
         };
         if (arguments.BaseUri != null) options.BaseUri = new Uri(arguments.BaseUri, UriKind.Absolute);
         foreach (string stylesheetPath in arguments.StylesheetPaths) {
-            byte[] stylesheet = await ReadFileBoundedAsync(stylesheetPath, HtmlPdfToolArguments.MaxStylesheetBytes, cancellationToken).ConfigureAwait(false);
+            byte[] stylesheet = await ReadFileBoundedAsync(stylesheetPath, HtmlArguments.MaxStylesheetBytes, cancellationToken).ConfigureAwait(false);
             options.AdditionalStylesheets.Add(Encoding.UTF8.GetString(stylesheet));
         }
         if (arguments.RegularFontPath != null) {
-            byte[] regular = await ReadFileBoundedAsync(arguments.RegularFontPath, HtmlPdfToolArguments.MaxFontBytes, cancellationToken).ConfigureAwait(false);
+            byte[] regular = await ReadFileBoundedAsync(arguments.RegularFontPath, HtmlArguments.MaxFontBytes, cancellationToken).ConfigureAwait(false);
             byte[]? bold = await ReadOptionalFontAsync(arguments.BoldFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? italic = await ReadOptionalFontAsync(arguments.ItalicFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? boldItalic = await ReadOptionalFontAsync(arguments.BoldItalicFontPath, cancellationToken).ConfigureAwait(false);
@@ -98,7 +99,7 @@ claim conformance without passing external validator evidence.
 
         PdfDocumentConversionResult conversion;
         using var inputStream = new MemoryStream(input, writable: false);
-        if (arguments.ResolveInputFormat() == HtmlPdfToolInputFormat.Mhtml) {
+        if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
             MhtmlDocument document = await MhtmlDocument.LoadAsync(inputStream, cancellationToken: cancellationToken).ConfigureAwait(false);
             conversion = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
         } else {
@@ -139,7 +140,9 @@ claim conformance without passing external validator evidence.
                     "PDF/UA blocker " + requirement.Id + ": " + requirement.Diagnostic).ConfigureAwait(false);
             }
         }
-        return conversion.Report.Warnings.Any(warning => warning.Severity == PdfConversionWarningSeverity.Error) ? 6 : 0;
+        return conversion.Report.Warnings.Any(warning => warning.Severity == PdfConversionWarningSeverity.Error)
+            ? (int)OfficeImoToolExitCode.OutputFailed
+            : (int)OfficeImoToolExitCode.Success;
     }
 
     internal static void ConfigureFontFamily(
@@ -226,7 +229,7 @@ claim conformance without passing external validator evidence.
             : ReadOptionalFontCoreAsync(path, cancellationToken);
 
     private static async Task<byte[]?> ReadOptionalFontCoreAsync(string path, CancellationToken cancellationToken) =>
-        await ReadFileBoundedAsync(path, HtmlPdfToolArguments.MaxFontBytes, cancellationToken).ConfigureAwait(false);
+        await ReadFileBoundedAsync(path, HtmlArguments.MaxFontBytes, cancellationToken).ConfigureAwait(false);
 
     private static async Task<byte[]> ReadBoundedAsync(Stream stream, long maximumBytes, CancellationToken cancellationToken) {
         using var buffer = new MemoryStream();

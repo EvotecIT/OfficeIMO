@@ -1,6 +1,7 @@
 using System.Text;
+using OfficeIMO.Reader;
 
-namespace OfficeIMO.Reader.Tool;
+namespace OfficeIMO.Tool.Commands.Reader;
 
 internal static class ReaderToolOutput {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);

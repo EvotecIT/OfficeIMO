@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace OfficeIMO.Reader.Tool;
+namespace OfficeIMO.Tool.Commands.Reader;
 
 internal enum ReaderToolCommand {
     Help,

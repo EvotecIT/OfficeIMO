@@ -1,4 +1,6 @@
-namespace OfficeIMO.Reader.Tool;
+using OfficeIMO.Reader;
+
+namespace OfficeIMO.Tool.Commands.Reader;
 
 internal static class ReaderToolFileDiscovery {
     internal static IReadOnlyList<string> FindSupportedFiles(

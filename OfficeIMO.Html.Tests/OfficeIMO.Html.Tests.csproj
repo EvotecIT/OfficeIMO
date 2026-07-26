@@ -34,7 +34,6 @@
     <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Html.Tool\OfficeIMO.Html.Tool.csproj" Condition="'$(TargetFramework)' != 'net472'" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />

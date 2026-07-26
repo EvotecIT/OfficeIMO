@@ -76,6 +76,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Part IV: Maintenance", margin.Text);
     }
 
+    [Fact]
+    public void HtmlRender_Paged_RunningStringAttributesPreserveEscapedParentheses() {
+        const string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(section); } }
+            </style>
+            <h2 data)id="Escaped attribute" style="string-set:section attr(data\)id)">Body</h2>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Escaped attribute", margin.Text);
+    }
+
     [Theory]
     [InlineData("\\41", "A")]
     [InlineData("\\000041 ", "A")]

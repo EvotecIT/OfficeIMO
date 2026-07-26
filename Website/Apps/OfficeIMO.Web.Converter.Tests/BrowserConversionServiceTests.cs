@@ -114,6 +114,14 @@ public sealed class BrowserConversionServiceTests {
             OfficeFontStyle.Regular);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
+        foreach (string alias in aliases) {
+            IReadOnlyList<OfficeFontFallbackRun> aliasFallbackRuns = options.Fonts.PlanFallbackRuns(
+                "Latin العربية ⌚",
+                alias,
+                OfficeFontStyle.Regular);
+            Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
+            Assert.Contains(aliasFallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
+        }
         Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.FontFamily?.FamilyName);
     }
 

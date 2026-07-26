@@ -1,25 +1,26 @@
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Markdown;
-using OfficeIMO.Reader.Tool;
+using OfficeIMO.Tool.Commands.Reader;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace OfficeIMO.Reader.Tests;
+namespace OfficeIMO.Tool.Tests;
 
-public sealed class ReaderToolTests {
+public sealed class ReaderCommandTests {
     [Fact]
     public async Task ReadsStandardInputAsMarkdown() {
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes("# Tool heading\n\nBody"));
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", "-", "--name", "input.md" },
             input,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.Contains("# Tool heading", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -33,13 +34,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", "-", "--name", "input.txt", "--max-input-bytes", "16" },
             input,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
         Assert.Contains("MaxInputBytes", error.ToString(), StringComparison.Ordinal);
     }
 
@@ -49,14 +50,14 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", "-", "--name", "input.txt", "--format", "json" },
             input,
             output,
             error);
         OfficeDocumentReadResult document = OfficeDocumentReadResultJson.Deserialize(output.ToString());
 
-        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, document.SchemaVersion);
         Assert.Equal(OfficeDocumentReadResultSchema.Id, document.SchemaId);
     }
@@ -73,7 +74,7 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] {
                 "folder", inputRoot,
                 "--output", outputRoot,
@@ -84,7 +85,7 @@ public sealed class ReaderToolTests {
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.True(File.Exists(Path.Combine(outputRoot, "alpha.md.reader.json")));
         Assert.True(File.Exists(Path.Combine(outputRoot, "nested", "data.csv.reader.json")));
         Assert.Equal("Converted 2 document(s)." + Environment.NewLine, error.ToString());
@@ -103,7 +104,7 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] {
                 "folder", inputRoot,
                 "--output", outputRoot,
@@ -114,7 +115,7 @@ public sealed class ReaderToolTests {
             error);
 
         Assert.Equal(ReaderToolArguments.DefaultMaxInputBytes, defaults.MaxInputBytes);
-        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
         Assert.Contains("MaxInputBytes", error.ToString(), StringComparison.Ordinal);
         Assert.False(Directory.Exists(outputRoot));
     }
@@ -128,13 +129,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", inputPath, "--output", inputPath },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
         Assert.Contains("different from the input", error.ToString(), StringComparison.Ordinal);
         Assert.Equal(original, await File.ReadAllTextAsync(inputPath));
     }
@@ -151,13 +152,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", inputPath, "--output", outputPath },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
         Assert.Contains("different from the input", error.ToString(), StringComparison.Ordinal);
         Assert.Equal(original, await File.ReadAllTextAsync(inputPath));
     }
@@ -167,13 +168,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "capabilities" },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         Assert.Contains("officeimo.reader.epub", output.ToString(), StringComparison.Ordinal);
         Assert.DoesNotContain("ocr", output.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("provider", output.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -184,13 +185,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "folder", "missing-output" },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.Usage, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
         Assert.Contains("requires --output", error.ToString(), StringComparison.Ordinal);
     }
 
@@ -199,13 +200,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.md") },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.InputNotFound, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.InputNotFound, exitCode);
     }
 
     [Fact]
@@ -216,13 +217,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", path },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
     }
 
     [Fact]
@@ -231,13 +232,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "read", "-", "--name", "input.txt" },
             input,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.UnsupportedInput, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, exitCode);
     }
 
     [Fact]
@@ -247,13 +248,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "folder", temporary.Path, "--output", outputPath },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
         Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
     }
 
@@ -270,13 +271,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "folder", inputRoot, "--output", linkedOutput },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
         Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
         Assert.Empty(Directory.EnumerateFiles(convertedRoot));
     }
@@ -294,13 +295,13 @@ public sealed class ReaderToolTests {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        int exitCode = await ReaderToolApp.RunAsync(
+        int exitCode = await ReaderCommand.RunAsync(
             new[] { "folder", linkedInput, "--output", outputRoot },
             Stream.Null,
             output,
             error);
 
-        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
         Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
         Assert.False(Directory.Exists(outputRoot));
     }
@@ -363,7 +364,7 @@ public sealed class ReaderToolTests {
 
 internal sealed class ReaderToolTemporaryDirectory : IDisposable {
     internal ReaderToolTemporaryDirectory() {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "OfficeIMO.Reader.Tool.Tests", Guid.NewGuid().ToString("N"));
+        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "OfficeIMO.Tool.Tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path);
     }
 

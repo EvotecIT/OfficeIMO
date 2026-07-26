@@ -22,7 +22,7 @@ Require-Command -Name 'dotnet'
 
 Write-Host "OfficeIMO Markup VS Code build - $Configuration" -ForegroundColor Green
 
-dotnet build ..\OfficeIMO.Markup.Cli\OfficeIMO.Markup.Cli.csproj -c $Configuration --framework net8.0 --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false --nologo --verbosity minimal
+dotnet build ..\OfficeIMO.Tool\OfficeIMO.Tool.csproj -c $Configuration --framework net8.0 --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false --nologo --verbosity minimal
 
 try {
     npm ci

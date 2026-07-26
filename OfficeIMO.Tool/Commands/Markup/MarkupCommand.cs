@@ -12,21 +12,33 @@ using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
 using OfficeIMO.Excel;
 
-internal static class Program {
-    public static async Task<int> Main(string[] args) {
+namespace OfficeIMO.Tool.Commands.Markup;
+
+internal static class MarkupCommand {
+    internal static async Task<int> RunAsync(
+        string[] args,
+        TextReader standardInput,
+        TextWriter standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken = default) {
         try {
-            var options = CliOptions.Parse(args);
+            ArgumentNullException.ThrowIfNull(args);
+            ArgumentNullException.ThrowIfNull(standardInput);
+            ArgumentNullException.ThrowIfNull(standardOutput);
+            ArgumentNullException.ThrowIfNull(standardError);
+
+            var options = MarkupArguments.Parse(args);
             if (options.ShowHelp) {
-                WriteHelp();
-                return 0;
+                await WriteHelpAsync(standardOutput).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Success;
             }
 
             if (string.IsNullOrWhiteSpace(options.Command)) {
-                WriteHelp();
-                return 1;
+                await WriteHelpAsync(standardOutput).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Usage;
             }
 
-            var markup = await ReadMarkupAsync(options).ConfigureAwait(false);
+            var markup = await ReadMarkupAsync(options, standardInput, cancellationToken).ConfigureAwait(false);
             var result = OfficeMarkupParser.Parse(markup, new OfficeMarkupParserOptions {
                 Profile = options.Profile
             });
@@ -34,35 +46,43 @@ internal static class Program {
             switch (options.Command.ToLowerInvariant()) {
                 case "parse":
                 case "preview":
-                    WriteJson(new MarkupEnvelope(ToDocumentDto(result.Document), result.Diagnostics.Select(ToDiagnosticDto).ToList()), MarkupCliJsonSerializerContext.Default.MarkupEnvelope);
-                    return 0;
+                    await WriteJsonAsync(new MarkupEnvelope(ToDocumentDto(result.Document), result.Diagnostics.Select(ToDiagnosticDto).ToList()), MarkupJsonSerializerContext.Default.MarkupEnvelope, standardOutput).ConfigureAwait(false);
+                    return (int)OfficeImoToolExitCode.Success;
                 case "validate":
-                    WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), result.HasErrors), MarkupCliJsonSerializerContext.Default.ValidationEnvelope);
-                    return result.HasErrors ? 1 : 0;
+                    await WriteJsonAsync(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), result.HasErrors), MarkupJsonSerializerContext.Default.ValidationEnvelope, standardOutput).ConfigureAwait(false);
+                    return result.HasErrors
+                        ? (int)OfficeImoToolExitCode.ValidationFailed
+                        : (int)OfficeImoToolExitCode.Success;
                 case "emit":
-                    return await EmitAsync(result, options).ConfigureAwait(false);
+                    return await EmitAsync(result, options, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
                 case "export":
-                    return Export(result, options);
+                    return await ExportAsync(result, options, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
                 default:
-                    Console.Error.WriteLine($"Unknown command '{options.Command}'.");
-                    WriteHelp();
-                    return 1;
+                    await standardError.WriteLineAsync($"Unknown command '{options.Command}'.").ConfigureAwait(false);
+                    await WriteHelpAsync(standardError).ConfigureAwait(false);
+                    return (int)OfficeImoToolExitCode.Usage;
             }
+        } catch (OperationCanceledException) {
+            await standardError.WriteLineAsync("Operation cancelled.").ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Cancelled;
+        } catch (FileNotFoundException ex) {
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.InputNotFound;
         } catch (IOException ex) {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (UnauthorizedAccessException ex) {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OutputFailed;
         } catch (JsonException ex) {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OperationFailed;
         } catch (InvalidOperationException ex) {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OperationFailed;
         } catch (ArgumentException ex) {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Usage;
         } catch (Exception ex) when (ex is not OutOfMemoryException
                                      and not StackOverflowException
                                      and not AccessViolationException
@@ -70,15 +90,23 @@ internal static class Program {
                                      and not BadImageFormatException
                                      and not CannotUnloadAppDomainException
                                      and not InvalidProgramException) {
-            Console.Error.WriteLine(ex.ToString());
-            return 1;
+            await standardError.WriteLineAsync(ex.ToString()).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OperationFailed;
         }
     }
 
-    private static async Task<int> EmitAsync(OfficeMarkupParseResult result, CliOptions options) {
+    private static async Task<int> EmitAsync(
+        OfficeMarkupParseResult result,
+        MarkupArguments options,
+        TextWriter standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
         if (result.HasErrors) {
-            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), MarkupCliJsonSerializerContext.Default.ValidationEnvelope, Console.Error);
-            return 1;
+            await WriteJsonAsync(
+                new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true),
+                MarkupJsonSerializerContext.Default.ValidationEnvelope,
+                standardError).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.ValidationFailed;
         }
 
         var target = (options.Target ?? "csharp").ToLowerInvariant();
@@ -90,20 +118,29 @@ internal static class Program {
 
         if (!string.IsNullOrWhiteSpace(options.OutputPath)) {
             var outputPath = NormalizeWritableFilePath(options.OutputPath!);
-            await File.WriteAllTextAsync(outputPath, text).ConfigureAwait(false);
+            await File.WriteAllTextAsync(outputPath, text, cancellationToken).ConfigureAwait(false);
         } else {
-            Console.WriteLine(text);
+            await standardOutput.WriteLineAsync(text).ConfigureAwait(false);
         }
 
-        return 0;
+        return (int)OfficeImoToolExitCode.Success;
     }
 
-    private static int Export(OfficeMarkupParseResult result, CliOptions options) {
+    private static async Task<int> ExportAsync(
+        OfficeMarkupParseResult result,
+        MarkupArguments options,
+        TextWriter standardOutput,
+        TextWriter standardError,
+        CancellationToken cancellationToken) {
         if (result.HasErrors) {
-            WriteJson(new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true), MarkupCliJsonSerializerContext.Default.ValidationEnvelope, Console.Error);
-            return 1;
+            await WriteJsonAsync(
+                new ValidationEnvelope(result.Diagnostics.Select(ToDiagnosticDto).ToList(), true),
+                MarkupJsonSerializerContext.Default.ValidationEnvelope,
+                standardError).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.ValidationFailed;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var target = (options.Target ?? "pptx").ToLowerInvariant();
         switch (target) {
             case "pptx":
@@ -124,8 +161,11 @@ internal static class Program {
                     MermaidRendererPath = options.MermaidRendererPath,
                     RenderMermaidDiagrams = options.RenderMermaidDiagrams
                 });
-                WriteJson(new ExportEnvelope(outputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
-                return 0;
+                await WriteJsonAsync(
+                    new ExportEnvelope(outputPath!, target),
+                    MarkupJsonSerializerContext.Default.ExportEnvelope,
+                    standardOutput).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Success;
             case "xlsx":
             case "excel":
             case "workbook":
@@ -141,8 +181,11 @@ internal static class Program {
                     ValidateOpenXml = options.WorkbookValidateOpenXml,
                     SafeRepairDefinedNames = options.WorkbookRepairDefinedNames
                 });
-                WriteJson(new ExportEnvelope(workbookOutputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
-                return 0;
+                await WriteJsonAsync(
+                    new ExportEnvelope(workbookOutputPath!, target),
+                    MarkupJsonSerializerContext.Default.ExportEnvelope,
+                    standardOutput).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Success;
             case "docx":
             case "word":
             case "document":
@@ -159,31 +202,37 @@ internal static class Program {
                         ? Environment.CurrentDirectory
                         : Path.GetDirectoryName(documentInputPath)
                 });
-                WriteJson(new ExportEnvelope(documentOutputPath!, target), MarkupCliJsonSerializerContext.Default.ExportEnvelope);
-                return 0;
+                await WriteJsonAsync(
+                    new ExportEnvelope(documentOutputPath!, target),
+                    MarkupJsonSerializerContext.Default.ExportEnvelope,
+                    standardOutput).ConfigureAwait(false);
+                return (int)OfficeImoToolExitCode.Success;
             default:
                 throw new InvalidOperationException($"Unsupported export target '{options.Target}'.");
         }
     }
 
-    private static async Task<string> ReadMarkupAsync(CliOptions options) {
+    private static async Task<string> ReadMarkupAsync(
+        MarkupArguments options,
+        TextReader standardInput,
+        CancellationToken cancellationToken) {
         if (options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)) {
-            return await Console.In.ReadToEndAsync().ConfigureAwait(false);
+            return await ReadBoundedAsync(standardInput, options.MaxInputCharacters, cancellationToken).ConfigureAwait(false);
         }
 
         if (!string.IsNullOrWhiteSpace(options.InputPath)) {
             var inputPath = NormalizeExistingFilePath(options.InputPath!);
-            return await File.ReadAllTextAsync(inputPath).ConfigureAwait(false);
-        }
-
-        if (Console.IsInputRedirected) {
-            return await Console.In.ReadToEndAsync().ConfigureAwait(false);
+            var info = new FileInfo(inputPath);
+            if (info.Length > options.MaxInputBytes) {
+                throw new IOException("Input exceeds the configured byte limit.");
+            }
+            return await File.ReadAllTextAsync(inputPath, cancellationToken).ConfigureAwait(false);
         }
 
         throw new InvalidOperationException("Input path is required. Use '-' or --stdin to read from standard input.");
     }
 
-    private static string? ResolveInputFilePath(CliOptions options) {
+    private static string? ResolveInputFilePath(MarkupArguments options) {
         if (options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)) {
             return null;
         }
@@ -215,9 +264,24 @@ internal static class Program {
         return fullPath;
     }
 
-    private static void WriteJson<T>(T value, JsonTypeInfo<T> typeInfo, TextWriter? writer = null) {
-        writer ??= Console.Out;
-        writer.WriteLine(JsonSerializer.Serialize(value, typeInfo));
+    private static async Task<string> ReadBoundedAsync(
+        TextReader input,
+        int maximumCharacters,
+        CancellationToken cancellationToken) {
+        var buffer = new char[8192];
+        var text = new System.Text.StringBuilder(Math.Min(maximumCharacters, 64 * 1024));
+        while (true) {
+            int read = await input.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+            if (read == 0) return text.ToString();
+            if (text.Length > maximumCharacters - read) {
+                throw new IOException("Input exceeds the configured byte limit.");
+            }
+            text.Append(buffer, 0, read);
+        }
+    }
+
+    private static Task WriteJsonAsync<T>(T value, JsonTypeInfo<T> typeInfo, TextWriter writer) {
+        return writer.WriteLineAsync(JsonSerializer.Serialize(value, typeInfo));
     }
 
     private static OfficeMarkupDocumentDto ToDocumentDto(OfficeMarkupDocument document) {
@@ -414,245 +478,27 @@ internal static class Program {
                 TextAlign = style.TextAlign
             };
 
-    private static void WriteHelp() {
-        Console.WriteLine("OfficeIMO Markup CLI");
-        Console.WriteLine();
-        Console.WriteLine("Usage:");
-        Console.WriteLine("  officeimo-markup parse <file> [--profile presentation|document|workbook|common]");
-        Console.WriteLine("  officeimo-markup validate <file> [--profile presentation|document|workbook|common]");
-        Console.WriteLine("  officeimo-markup preview <file> [--profile presentation|document|workbook|common]");
-        Console.WriteLine("  officeimo-markup emit <file> --target csharp|powershell [--output <file>]");
-        Console.WriteLine("  officeimo-markup export <file> --target pptx --output <file.pptx>");
-        Console.WriteLine("  officeimo-markup export <file> --target xlsx --output <file.xlsx>");
-        Console.WriteLine("  officeimo-markup export <file> --target xlsx --output <file.xlsx> [--no-safe-preflight] [--no-defined-name-repair] [--no-openxml-validation]");
-        Console.WriteLine("  officeimo-markup export <file> --target docx --output <file.docx>");
-        Console.WriteLine("  officeimo-markup export <file> --target pptx --output <file.pptx> [--mermaid-renderer <mmdc>] [--no-mermaid]");
-        Console.WriteLine("  officeimo-markup preview --stdin --profile presentation");
-    }
-}
+    private const string Usage = """
+OfficeIMO.Tool - Markup
 
-internal sealed class CliOptions {
-    public string Command { get; private set; } = string.Empty;
-    public string? InputPath { get; private set; }
-    public string? OutputPath { get; private set; }
-    public string? Target { get; private set; }
-    public OfficeMarkupProfile Profile { get; private set; } = OfficeMarkupProfile.Document;
-    public bool UseStdin { get; private set; }
-    public bool ShowHelp { get; private set; }
-    public string? MermaidRendererPath { get; private set; }
-    public bool RenderMermaidDiagrams { get; private set; } = true;
-    public bool WorkbookSafePreflight { get; private set; } = true;
-    public bool WorkbookValidateOpenXml { get; private set; } = true;
-    public bool WorkbookRepairDefinedNames { get; private set; } = true;
+Usage:
+  officeimo markup parse <file|-> [--profile presentation|document|workbook|common]
+  officeimo markup validate <file|-> [--profile presentation|document|workbook|common]
+  officeimo markup preview <file|-> [--profile presentation|document|workbook|common]
+  officeimo markup emit <file|-> --target csharp|powershell [--output <file>]
+  officeimo markup export <file|-> --target pptx --output <file.pptx>
+  officeimo markup export <file|-> --target xlsx --output <file.xlsx>
+  officeimo markup export <file|-> --target docx --output <file.docx>
 
-    public static CliOptions Parse(string[] args) {
-        var options = new CliOptions();
-        var positionals = new List<string>();
-        for (int i = 0; i < args.Length; i++) {
-            var arg = args[i];
-            switch (arg) {
-                case "-h":
-                case "--help":
-                    options.ShowHelp = true;
-                    break;
-                case "--stdin":
-                    options.UseStdin = true;
-                    break;
-                case "--profile":
-                    options.Profile = ParseProfile(ReadValue(args, ref i, arg));
-                    break;
-                case "--target":
-                    options.Target = ReadValue(args, ref i, arg);
-                    break;
-                case "--output":
-                case "-o":
-                    options.OutputPath = ReadValue(args, ref i, arg);
-                    break;
-                case "--mermaid-renderer":
-                    options.MermaidRendererPath = ReadValue(args, ref i, arg);
-                    break;
-                case "--no-mermaid":
-                    options.RenderMermaidDiagrams = false;
-                    break;
-                case "--no-safe-preflight":
-                    options.WorkbookSafePreflight = false;
-                    break;
-                case "--no-openxml-validation":
-                    options.WorkbookValidateOpenXml = false;
-                    break;
-                case "--no-defined-name-repair":
-                    options.WorkbookRepairDefinedNames = false;
-                    break;
-                case "--format":
-                    _ = ReadValue(args, ref i, arg);
-                    break;
-                default:
-                    positionals.Add(arg);
-                    break;
-            }
-        }
+Options:
+  --stdin                       Read markup from standard input.
+  --max-input-bytes <bytes>     Bound input size (default: 67108864).
+  --no-safe-preflight           Disable Excel safe preflight.
+  --no-defined-name-repair      Disable Excel defined-name repair.
+  --no-openxml-validation       Disable Excel Open XML validation.
+  --mermaid-renderer <mmdc>     Configure the Mermaid renderer for PowerPoint.
+  --no-mermaid                  Disable Mermaid rendering.
+""";
 
-        if (positionals.Count > 0) {
-            options.Command = positionals[0];
-        }
-
-        if (positionals.Count > 1) {
-            options.InputPath = positionals[1];
-        }
-
-        return options;
-    }
-
-    private static string ReadValue(string[] args, ref int index, string option) {
-        if (index + 1 >= args.Length) {
-            throw new InvalidOperationException($"Option '{option}' requires a value.");
-        }
-
-        index++;
-        return args[index];
-    }
-
-    private static OfficeMarkupProfile ParseProfile(string value) {
-        if (Enum.TryParse<OfficeMarkupProfile>(value, true, out var profile)) {
-            return profile;
-        }
-
-        throw new InvalidOperationException($"Unsupported profile '{value}'.");
-    }
-}
-
-internal sealed class MarkupEnvelope {
-    public MarkupEnvelope(OfficeMarkupDocumentDto document, IReadOnlyList<OfficeMarkupDiagnosticDto> diagnostics) {
-        Document = document;
-        Diagnostics = diagnostics;
-    }
-
-    public OfficeMarkupDocumentDto Document { get; }
-    public IReadOnlyList<OfficeMarkupDiagnosticDto> Diagnostics { get; }
-}
-
-internal sealed class ValidationEnvelope {
-    public ValidationEnvelope(IReadOnlyList<OfficeMarkupDiagnosticDto> diagnostics, bool hasErrors) {
-        Diagnostics = diagnostics;
-        HasErrors = hasErrors;
-    }
-
-    public IReadOnlyList<OfficeMarkupDiagnosticDto> Diagnostics { get; }
-    public bool HasErrors { get; }
-}
-
-internal sealed class ExportEnvelope {
-    public ExportEnvelope(string outputPath, string target) {
-        OutputPath = outputPath;
-        Target = target;
-    }
-
-    public string OutputPath { get; }
-    public string Target { get; }
-}
-
-internal sealed class OfficeMarkupDocumentDto {
-    public string Profile { get; set; } = string.Empty;
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    public List<OfficeMarkupBlockDto> Blocks { get; set; } = new List<OfficeMarkupBlockDto>();
-}
-
-internal sealed class OfficeMarkupBlockDto {
-    public string Kind { get; set; } = string.Empty;
-    public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    public string? SourceText { get; set; }
-    public string? Text { get; set; }
-    public int? Level { get; set; }
-    public bool? Ordered { get; set; }
-    public int? Start { get; set; }
-    public List<OfficeMarkupListItemDto>? Items { get; set; }
-    public string? Language { get; set; }
-    public string? Content { get; set; }
-    public string? Source { get; set; }
-    public string? Alt { get; set; }
-    public string? Title { get; set; }
-    public double? Width { get; set; }
-    public double? Height { get; set; }
-    public List<string>? Headers { get; set; }
-    public List<List<string>>? Rows { get; set; }
-    public bool? RenderAsImage { get; set; }
-    public string? Layout { get; set; }
-    public string? Section { get; set; }
-    public string? Transition { get; set; }
-    public string? Background { get; set; }
-    public string? Notes { get; set; }
-    public string? Placement { get; set; }
-    public int? Columns { get; set; }
-    public List<OfficeMarkupBlockDto>? Blocks { get; set; }
-    public string? Name { get; set; }
-    public string? PageSize { get; set; }
-    public string? Orientation { get; set; }
-    public int? MinLevel { get; set; }
-    public int? MaxLevel { get; set; }
-    public string? Address { get; set; }
-    public string? Sheet { get; set; }
-    public string? Cell { get; set; }
-    public string? Expression { get; set; }
-    public string? Range { get; set; }
-    public bool? HasHeader { get; set; }
-    public string? ChartType { get; set; }
-    public string? Target { get; set; }
-    public string? Style { get; set; }
-    public string? NumberFormat { get; set; }
-    public string? Gap { get; set; }
-    public string? ColumnKind { get; set; }
-    public string? WidthText { get; set; }
-    public OfficeMarkupPlacementDto? Position { get; set; }
-    public OfficeMarkupResolvedStyleDto? ResolvedStyle { get; set; }
-    public OfficeMarkupTransitionDto? TransitionDetails { get; set; }
-    public string? Command { get; set; }
-    public string? Body { get; set; }
-    public string? Markdown { get; set; }
-}
-
-internal sealed class OfficeMarkupTransitionDto {
-    public string? RawText { get; set; }
-    public string? Effect { get; set; }
-    public string? ResolvedIdentifier { get; set; }
-    public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-}
-
-internal sealed class OfficeMarkupResolvedStyleDto {
-    public string? Name { get; set; }
-    public string? FontName { get; set; }
-    public int? FontSize { get; set; }
-    public bool? Bold { get; set; }
-    public bool? Italic { get; set; }
-    public string? TextColor { get; set; }
-    public string? FillColor { get; set; }
-    public string? BorderColor { get; set; }
-    public string? TextAlign { get; set; }
-}
-
-internal sealed class OfficeMarkupPlacementDto {
-    public string? X { get; set; }
-    public string? Y { get; set; }
-    public string? Width { get; set; }
-    public string? Height { get; set; }
-}
-
-internal sealed class OfficeMarkupListItemDto {
-    public string Text { get; set; } = string.Empty;
-    public bool IsTask { get; set; }
-    public bool IsChecked { get; set; }
-    public List<OfficeMarkupBlockDto> Blocks { get; set; } = new List<OfficeMarkupBlockDto>();
-}
-
-internal sealed class OfficeMarkupDiagnosticDto {
-    public string Severity { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-    public string? NodeKind { get; set; }
-    public string? NodeSourceText { get; set; }
-}
-
-[JsonSourceGenerationOptions(WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-[JsonSerializable(typeof(MarkupEnvelope))]
-[JsonSerializable(typeof(ValidationEnvelope))]
-[JsonSerializable(typeof(ExportEnvelope))]
-internal sealed partial class MarkupCliJsonSerializerContext : JsonSerializerContext {
+    private static Task WriteHelpAsync(TextWriter writer) => writer.WriteLineAsync(Usage);
 }

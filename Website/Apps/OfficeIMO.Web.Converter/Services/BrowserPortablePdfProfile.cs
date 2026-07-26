@@ -112,7 +112,9 @@ internal static class BrowserPortablePdfProfile {
         }
         return fonts
             .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
-            .Add(SymbolFallbackFontFamily, data.NotoSansSymbols);
+            .Add(SymbolFallbackFontFamily, data.NotoSansSymbols)
+            .AddFallbackFamily(ArabicFallbackFontFamily)
+            .AddFallbackFamily(SymbolFallbackFontFamily);
     }
 
     private static FontPackData LoadFontPack() {

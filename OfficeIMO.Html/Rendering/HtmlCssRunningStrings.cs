@@ -245,15 +245,14 @@ internal static class HtmlCssRunningStringParser {
         if (cursor + name.Length + 2 > text.Length
             || !string.Equals(text.Substring(cursor, name.Length), name, StringComparison.OrdinalIgnoreCase)
             || text[cursor + name.Length] != '(') return false;
-        cursor += name.Length + 1;
-        int argumentStart = cursor;
-        while (cursor < text.Length && text[cursor] != ')') cursor++;
-        if (cursor >= text.Length) {
+        int open = cursor + name.Length;
+        int close = HtmlRenderCssValues.FindMatchingParenthesis(text, open);
+        if (close < 0) {
             cursor = start;
             return false;
         }
-        argument = text.Substring(argumentStart, cursor - argumentStart);
-        cursor++;
+        argument = text.Substring(open + 1, close - open - 1);
+        cursor = close + 1;
         return true;
     }
 

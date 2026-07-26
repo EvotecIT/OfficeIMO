@@ -4,10 +4,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const allowedCliArtifactNames = new Set([
-  'officeimo.markup.cli',
-  'officeimo.markup.cli.csproj',
-  'officeimo.markup.cli.dll',
-  'officeimo.markup.cli.exe'
+  'officeimo',
+  'officeimo.exe',
+  'officeimo.tool',
+  'officeimo.tool.csproj',
+  'officeimo.tool.dll',
+  'officeimo.tool.exe'
 ]);
 
 let warnedAboutInvalidCliPath = false;
@@ -1067,7 +1069,7 @@ function localMermaidInstallRoot(context: vscode.ExtensionContext): string {
 function resolveCliInvocation(context: vscode.ExtensionContext, command: string, args: string[]): { executable: string; args: string[] } {
   const configPath = vscode.workspace.getConfiguration('officeimoMarkup').get<string>('cliPath', '').trim();
   const cliPath = resolveConfiguredCliPath(configPath) ?? resolveDefaultCliPath(context);
-  const commandArgs = [command, ...args];
+  const commandArgs = ['markup', command, ...args];
 
   if (cliPath.endsWith('.csproj')) {
     const builtDll = findBuiltCliDll(cliPath);
@@ -1102,7 +1104,7 @@ function resolveConfiguredCliPath(configPath: string): string | undefined {
   if (!warnedAboutInvalidCliPath) {
     warnedAboutInvalidCliPath = true;
     void vscode.window.showWarningMessage(
-      'officeimoMarkup.cliPath must point to an OfficeIMO.Markup.Cli executable, DLL, or csproj. Falling back to the bundled CLI.'
+      'officeimoMarkup.cliPath must point to an OfficeIMO.Tool executable, DLL, or csproj. Falling back to the bundled tool.'
     );
   }
 
@@ -1111,17 +1113,17 @@ function resolveConfiguredCliPath(configPath: string): string | undefined {
 
 function resolveDefaultCliPath(context: vscode.ExtensionContext): string {
   const extensionPath = resolveRealPath(context.extensionUri.fsPath);
-  const bundledRoot = path.join(extensionPath, 'tools', 'OfficeIMO.Markup.Cli');
+  const bundledRoot = path.join(extensionPath, 'tools', 'OfficeIMO.Tool');
   const bundledExecutable = findBundledCliExecutable(bundledRoot);
   if (bundledExecutable) {
     return bundledExecutable;
   }
 
-  const bundledDll = path.join(bundledRoot, 'OfficeIMO.Markup.Cli.dll');
+  const bundledDll = path.join(bundledRoot, 'OfficeIMO.Tool.dll');
   const candidates = [
     bundledDll,
-    path.join(workspaceRoot(context), 'OfficeIMO.Markup.Cli', 'OfficeIMO.Markup.Cli.csproj'),
-    path.resolve(extensionPath, '..', 'OfficeIMO.Markup.Cli', 'OfficeIMO.Markup.Cli.csproj')
+    path.join(workspaceRoot(context), 'OfficeIMO.Tool', 'OfficeIMO.Tool.csproj'),
+    path.resolve(extensionPath, '..', 'OfficeIMO.Tool', 'OfficeIMO.Tool.csproj')
   ];
 
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? bundledDll;
@@ -1131,7 +1133,7 @@ function findBundledCliExecutable(bundledRoot: string): string | undefined {
   const runtimeIdentifiers = currentPlatformRuntimeIdentifiers();
   const candidates = runtimeIdentifiers.map((rid) => path.join(bundledRoot, rid));
 
-  const executableName = process.platform === 'win32' ? 'OfficeIMO.Markup.Cli.exe' : 'OfficeIMO.Markup.Cli';
+  const executableName = process.platform === 'win32' ? 'OfficeIMO.Tool.exe' : 'OfficeIMO.Tool';
   for (const candidateRoot of candidates) {
     const executable = path.join(candidateRoot, executableName);
     if (fs.existsSync(executable)) {
@@ -1187,8 +1189,8 @@ function ensureExecutable(filePath: string): void {
 function findBuiltCliDll(csprojPath: string): string | undefined {
   const projectDirectory = path.dirname(csprojPath);
   const candidates = [
-    path.join(projectDirectory, 'bin', 'Release', 'net8.0', 'OfficeIMO.Markup.Cli.dll'),
-    path.join(projectDirectory, 'bin', 'Debug', 'net8.0', 'OfficeIMO.Markup.Cli.dll')
+    path.join(projectDirectory, 'bin', 'Release', 'net8.0', 'OfficeIMO.Tool.dll'),
+    path.join(projectDirectory, 'bin', 'Debug', 'net8.0', 'OfficeIMO.Tool.dll')
   ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));

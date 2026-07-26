@@ -44,7 +44,7 @@ result.Document.SaveAsPowerPoint("quarterly-review.pptx", new MarkupToPowerPoint
 
 ## Mermaid rendering
 
-Set `MermaidRendererPath` in `MarkupToPowerPointOptions`, pass `--mermaid-renderer <path-to-mmdc>` through `OfficeIMO.Markup.Cli`, or set `OFFICEIMO_MARKUP_MERMAID_CLI`.
+Set `MermaidRendererPath` in `MarkupToPowerPointOptions`, pass `--mermaid-renderer <path-to-mmdc>` through `officeimo markup export`, or set `OFFICEIMO_MARKUP_MERMAID_CLI`.
 
 ## Boundaries
 

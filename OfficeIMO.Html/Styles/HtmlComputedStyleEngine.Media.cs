@@ -390,6 +390,13 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
         if (!hasDigit) return false;
+        if (cursor < value.Length && (value[cursor] == 'e' || value[cursor] == 'E')) {
+            cursor++;
+            if (cursor < value.Length && (value[cursor] == '+' || value[cursor] == '-')) cursor++;
+            int exponentStart = cursor;
+            while (cursor < value.Length && char.IsDigit(value[cursor])) cursor++;
+            if (cursor == exponentStart) return false;
+        }
 
         string number = value.Substring(0, cursor);
         string unit = value.Substring(cursor).Trim().ToLowerInvariant();

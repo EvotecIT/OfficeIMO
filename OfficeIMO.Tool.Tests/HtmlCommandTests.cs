@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
-using OfficeIMO.Html.Tool;
+using OfficeIMO.Tool.Commands.Html;
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Tool.Tests;
 
-public sealed class HtmlPdfToolTests {
+public sealed class HtmlCommandTests {
     [Fact]
     public async Task HtmlTool_ConvertsStandardInputToPdfStandardOutput() {
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes(
@@ -18,7 +18,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(
+        int exitCode = await HtmlCommand.RunAsync(
             new[] { "convert", "-", "--input-format", "html", "--output", "-" },
             input,
             output,
@@ -45,7 +45,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(
+        int exitCode = await HtmlCommand.RunAsync(
             new[] { "convert", "-", "--input-format", "mhtml", "--output", "-" },
             input,
             output,
@@ -65,7 +65,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(
+        int exitCode = await HtmlCommand.RunAsync(
             new[] { "capabilities", "--format", "json" },
             input,
             output,
@@ -85,7 +85,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(
+        int exitCode = await HtmlCommand.RunAsync(
             new[] { "capabilities", "--format", "text" },
             input,
             output,
@@ -109,7 +109,7 @@ public sealed class HtmlPdfToolTests {
         using var error = new StringWriter();
 
         try {
-            int exitCode = await HtmlPdfToolApp.RunAsync(
+            int exitCode = await HtmlCommand.RunAsync(
                 new[] {
                     "convert", "-", "--input-format", "html", "--output", "-",
                     "--pdf-ua-language", "en-US",
@@ -143,7 +143,7 @@ public sealed class HtmlPdfToolTests {
         byte[] boldItalic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
         var options = new HtmlPdfSaveOptions();
 
-        HtmlPdfToolApp.ConfigureFontFamily(
+        HtmlCommand.ConfigureFontFamily(
             options,
             "Tool Layout Contract",
             regular,
@@ -172,7 +172,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(
+        int exitCode = await HtmlCommand.RunAsync(
             new[] { "convert", "-", "--output", "-" },
             input,
             output,
@@ -191,7 +191,7 @@ public sealed class HtmlPdfToolTests {
         await using var output = new MemoryStream();
         using var error = new StringWriter();
 
-        int exitCode = await HtmlPdfToolApp.RunAsync(arguments, input, output, error);
+        int exitCode = await HtmlCommand.RunAsync(arguments, input, output, error);
 
         Assert.Equal(2, exitCode);
         Assert.Contains("command", error.ToString(), StringComparison.OrdinalIgnoreCase);

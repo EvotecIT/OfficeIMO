@@ -149,6 +149,22 @@ public sealed partial class HtmlRenderingTests {
                 features));
     }
 
+    [Theory]
+    [InlineData("(max-width:4e2px)", true)]
+    [InlineData("(width:4.0E+2px)", true)]
+    [InlineData("(min-height:2e2px)", true)]
+    [InlineData("(max-width:3.99e2px)", false)]
+    [InlineData("(width:4e+px)", false)]
+    public void HtmlRender_MediaLengthsHonorExponentNotation(string mediaQuery, bool expected) {
+        Assert.Equal(
+            expected,
+            HtmlComputedStyleEngine.IsApplicableMedia(
+                mediaQuery,
+                HtmlCssMediaContext.Screen,
+                400D,
+                200D));
+    }
+
     [Fact]
     public void HtmlRender_AdditionalStylesheetsParticipateInTheBoundedAuthorCascade() {
         var options = new HtmlRenderOptions {

@@ -163,14 +163,14 @@ const options = parseArgs(process.argv.slice(2));
 const extensionRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(extensionRoot, '..');
 const packagePath = path.join(extensionRoot, 'package.json');
-const cliProject = path.join(repoRoot, 'OfficeIMO.Markup.Cli', 'OfficeIMO.Markup.Cli.csproj');
+const cliProject = path.join(repoRoot, 'OfficeIMO.Tool', 'OfficeIMO.Tool.csproj');
 
 if (!fs.existsSync(packagePath)) {
   throw new Error(`package.json not found at ${packagePath}.`);
 }
 
 if (!fs.existsSync(cliProject)) {
-  throw new Error(`OfficeIMO.Markup.Cli project not found at ${cliProject}.`);
+  throw new Error(`OfficeIMO.Tool project not found at ${cliProject}.`);
 }
 
 if (!options.skipNpmCi) {
@@ -187,7 +187,7 @@ const publishRoot = assertChildPath(path.join(extensionRoot, '.tmp', 'cli-publis
 removeDirectory(publishRoot);
 fs.mkdirSync(publishRoot, { recursive: true });
 
-const bundledCli = assertChildPath(path.join(extensionRoot, 'tools', 'OfficeIMO.Markup.Cli'), extensionRoot);
+const bundledCli = assertChildPath(path.join(extensionRoot, 'tools', 'OfficeIMO.Tool'), extensionRoot);
 removeDirectory(bundledCli);
 fs.mkdirSync(bundledCli, { recursive: true });
 process.once('exit', () => removeDirectory(bundledCli));
@@ -212,7 +212,7 @@ if (options.skipRestore) {
 
 const portablePublishRoot = assertChildPath(path.join(publishRoot, 'portable'), publishRoot);
 fs.mkdirSync(portablePublishRoot, { recursive: true });
-console.log(`Publishing OfficeIMO.Markup.Cli (${options.configuration}, ${options.framework}, portable fallback)...`);
+console.log(`Publishing OfficeIMO.Tool (${options.configuration}, ${options.framework}, portable fallback)...`);
 run('dotnet', [...commonDotnetArgs, '-p:UseAppHost=false', '-o', portablePublishRoot], { cwd: extensionRoot });
 copyDirectoryContents(portablePublishRoot, bundledCli);
 
@@ -220,7 +220,7 @@ for (const rid of options.runtimeIdentifiers) {
   const ridPublishRoot = assertChildPath(path.join(publishRoot, rid), publishRoot);
   fs.mkdirSync(ridPublishRoot, { recursive: true });
 
-  console.log(`Publishing OfficeIMO.Markup.Cli (${options.configuration}, ${options.framework}, ${rid}, self-contained)...`);
+  console.log(`Publishing OfficeIMO.Tool (${options.configuration}, ${options.framework}, ${rid}, self-contained)...`);
   run('dotnet', [
     ...commonDotnetArgs,
     '-r', rid,
