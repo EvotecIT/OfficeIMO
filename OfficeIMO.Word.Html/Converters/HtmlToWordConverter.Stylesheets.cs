@@ -307,15 +307,12 @@ namespace OfficeIMO.Word.Html {
                 cascadeOrigins[kvp.Key] = cascadeOrigin;
             }
             string? directionAttribute = element.GetAttribute("dir");
-            if (!own.ContainsKey("direction") &&
-                (directionAttribute?.Equals("ltr", StringComparison.OrdinalIgnoreCase) == true ||
-                 directionAttribute?.Equals("rtl", StringComparison.OrdinalIgnoreCase) == true)) {
-                accumulated["direction"] = (
-                    directionAttribute!.ToLowerInvariant(),
-                    default,
-                    false,
-                    int.MaxValue);
-                cascadeOrigins["direction"] = cascadeOrigin;
+            if (!own.ContainsKey("direction")) {
+                if (directionAttribute?.Equals("ltr", StringComparison.OrdinalIgnoreCase) == true) {
+                    _directionAttributeOverrides[element] = false;
+                } else if (directionAttribute?.Equals("rtl", StringComparison.OrdinalIgnoreCase) == true) {
+                    _directionAttributeOverrides[element] = true;
+                }
             }
 
             if (accumulated.Count > 0) {

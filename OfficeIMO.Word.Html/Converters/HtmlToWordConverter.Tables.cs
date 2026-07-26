@@ -739,7 +739,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static JustificationValues? ApplyCellStyles(WordTableCell cell, IHtmlTableCellElement htmlCell) {
+        private JustificationValues? ApplyCellStyles(WordTableCell cell, IHtmlTableCellElement htmlCell) {
             if (htmlCell == null) {
                 return null;
             }

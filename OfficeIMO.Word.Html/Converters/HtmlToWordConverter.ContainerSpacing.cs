@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Html {
             ApplyContainerVerticalSpacingFromCss(element, paragraphs, tables);
         }
 
-        private static void ApplyTableContainerWidth(
+        private void ApplyTableContainerWidth(
             WordTable table,
             int horizontalStart,
             int horizontalEnd) {
@@ -46,8 +46,14 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            int accumulatedSpacing = horizontalStart + horizontalEnd;
+            if (_tableContainerHorizontalSpacing.TryGetValue(table._table, out int priorSpacing)) {
+                accumulatedSpacing += priorSpacing;
+            }
+            _tableContainerHorizontalSpacing[table._table] = accumulatedSpacing;
+
             int availableWidth = table.EstimateAvailableContainerWidthInDxa();
-            long constrainedWidth = (long)availableWidth - horizontalStart - horizontalEnd;
+            long constrainedWidth = (long)availableWidth - accumulatedSpacing;
             if (constrainedWidth <= 0) {
                 constrainedWidth = 1;
             } else if (constrainedWidth > int.MaxValue) {

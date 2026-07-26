@@ -412,6 +412,7 @@ namespace OfficeIMO.Word.Html {
                         run,
                         run.Text ?? string.Empty,
                         node,
+                        options.IncludeRunHighlightStyles,
                         out bool handledHtmlStyle);
 
                     if (options.IncludeFontStyles) {
@@ -456,7 +457,7 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                         }
-                        if (options.IncludeRunHighlightStyles) {
+                        if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                             string? normalizedRunBackground = NormalizeSixDigitHexColor(
                                 WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
                             string? highlightCss = GetHighlightCss(

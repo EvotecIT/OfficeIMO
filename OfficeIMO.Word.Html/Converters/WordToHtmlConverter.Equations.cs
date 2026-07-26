@@ -57,6 +57,7 @@ namespace OfficeIMO.Word.Html {
                 run,
                 text,
                 node,
+                options.IncludeRunHighlightStyles,
                 out bool handledHtmlStyle);
             if (options.IncludeFontStyles) {
                 string? font = run.FontFamily ?? options.FontFamily;
@@ -89,7 +90,7 @@ namespace OfficeIMO.Word.Html {
                     string? normalized = NormalizeSixDigitHexColor(run.ColorHex);
                     if (normalized != null) styles.Add($"color:#{normalized}");
                 }
-                if (options.IncludeRunHighlightStyles) {
+                if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                     string? normalizedRunBackground = NormalizeSixDigitHexColor(
                         WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
                     string? highlight = GetHighlightCss(
@@ -125,11 +126,12 @@ namespace OfficeIMO.Word.Html {
             return node;
         }
 
-        private static INode ApplyHtmlSemanticCharacterStyle(
+        private INode ApplyHtmlSemanticCharacterStyle(
             IHtmlDocument htmlDocument,
             WordParagraph run,
             string text,
             INode node,
+            bool includeRunHighlightStyles,
             out bool handled) {
             handled = true;
             IElement semanticNode;
@@ -139,7 +141,17 @@ namespace OfficeIMO.Word.Html {
                 semanticNode = htmlDocument.CreateElement("ins");
             } else if (string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase)) {
                 semanticNode = htmlDocument.CreateElement("mark");
-                if (run.Highlight == HighlightColorValues.None) {
+                string? normalizedRunBackground = includeRunHighlightStyles
+                    ? NormalizeSixDigitHexColor(WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run))
+                    : null;
+                string? highlightCss = includeRunHighlightStyles
+                    ? GetHighlightCss(WordDocumentImageRenderer.ResolveRunHighlight(run))
+                    : null;
+                if (!string.IsNullOrEmpty(highlightCss) && normalizedRunBackground != null) {
+                    semanticNode.SetAttribute("style", $"background-color:{highlightCss}");
+                } else if (normalizedRunBackground != null) {
+                    semanticNode.SetAttribute("style", $"background-color:#{normalizedRunBackground}");
+                } else if (run.Highlight == HighlightColorValues.None) {
                     semanticNode.SetAttribute("style", "background-color:transparent");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {

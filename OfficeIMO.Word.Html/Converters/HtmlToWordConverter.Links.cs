@@ -245,8 +245,11 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static bool? GetBidiFromDir(IElement element) {
+        private bool? GetBidiFromDir(IElement element) {
             for (IElement? current = element; current != null; current = current.ParentElement) {
+                if (_directionAttributeOverrides.TryGetValue(current, out bool attributeDirection)) {
+                    return attributeDirection;
+                }
                 var style = current.GetAttribute("style");
                 if (TryGetDirectionFromStyle(style, out CssDirectionResolution resolution)) {
                     switch (resolution) {
@@ -316,7 +319,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
+        private void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
             var bidi = GetBidiFromDir(element);
             if (bidi.HasValue) {
                 paragraph.BiDi = bidi.Value;
