@@ -10,6 +10,9 @@ public static partial class HtmlComputedStyleEngine {
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget) {
         var rules = new List<StyleRule>();
+        // Raw recovery supplements declarations AngleSharp cannot retain. Match each
+        // parsed author rule once so recovery neither duplicates it nor charges it twice.
+        var parsedRuleMatches = new Dictionary<string, int>(StringComparer.Ordinal);
         var parser = new CssParser(new CssParserOptions {
             IsIncludingUnknownDeclarations = true
         });
@@ -29,10 +32,10 @@ public static partial class HtmlComputedStyleEngine {
 
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, environment, budget, 1);
+                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, 1);
             }
             IReadOnlyDictionary<int, int> rawRuleClosures = BuildRawRuleClosures(css, budget);
-            AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, environment, budget);
+            AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget);
         }
 
         return rules;
@@ -65,13 +68,14 @@ public static partial class HtmlComputedStyleEngine {
     private static void AddStyleRules(
         AngleSharp.Css.Dom.ICssRule rule,
         ICollection<StyleRule> rules,
+        IDictionary<string, int> parsedRuleMatches,
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget,
         int depth) {
         budget.RecordNestingDepth(depth);
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
-            AddStyleRule(styleRule, rules, budget);
+            AddStyleRule(styleRule, rules, parsedRuleMatches, budget);
             return;
         }
 
@@ -90,19 +94,23 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, environment, budget, depth + 1);
+            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, depth + 1);
         }
     }
 
     private static void AddStyleRule(
         AngleSharp.Css.Dom.ICssStyleRule styleRule,
         ICollection<StyleRule> rules,
+        IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget) {
         string[] selectors = SplitSelectorList(styleRule.SelectorText)
             .Select(selector => selector.Trim())
             .Where(selector => selector.Length > 0)
             .ToArray();
-        foreach (string _ in selectors) budget.RecordRule(styleRule.Style.Length);
+        foreach (string selector in selectors) {
+            budget.RecordRule(styleRule.Style.Length);
+            RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
+        }
 
         var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < styleRule.Style.Length; i++) {
@@ -131,6 +139,9 @@ public static partial class HtmlComputedStyleEngine {
         foreach (string selector in selectors) {
             if (declarations.Count > 0) {
                 rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
+                if (declarations.ContainsKey("string-set")) {
+                    RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector));
+                }
             }
         }
     }
@@ -141,6 +152,7 @@ public static partial class HtmlComputedStyleEngine {
         int end,
         IReadOnlyDictionary<int, int> closures,
         ICollection<StyleRule> rules,
+        IDictionary<string, int> parsedRuleMatches,
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget) {
         int cursor = start;
@@ -161,15 +173,15 @@ public static partial class HtmlComputedStyleEngine {
             if (prelude.StartsWith("@media", StringComparison.OrdinalIgnoreCase)) {
                 string condition = prelude.Substring(6).Trim();
                 if (IsApplicableMedia(condition, environment)) {
-                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, environment, budget);
+                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget);
                 }
             } else if (prelude.StartsWith("@supports", StringComparison.OrdinalIgnoreCase)) {
                 string condition = prelude.Substring(9).Trim();
                 if (IsApplicableSupports(condition)) {
-                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, environment, budget);
+                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget);
                 }
             } else if (!prelude.StartsWith("@", StringComparison.Ordinal)) {
-                AddRawRetainedStyleRule(prelude, css.Substring(open + 1, close - open - 1), rules, budget);
+                AddRawRetainedStyleRule(prelude, css.Substring(open + 1, close - open - 1), rules, parsedRuleMatches, budget);
             }
             cursor = close + 1;
         }
@@ -179,6 +191,7 @@ public static partial class HtmlComputedStyleEngine {
         string selectorText,
         string body,
         ICollection<StyleRule> rules,
+        IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget) {
         var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
         foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(body))) {
@@ -197,11 +210,33 @@ public static partial class HtmlComputedStyleEngine {
             .Select(selector => selector.Trim())
             .Where(selector => selector.Length > 0)
             .ToArray();
-        foreach (string _ in selectors) budget.RecordRule(declarations.Count);
         foreach (string selector in selectors) {
+            bool parsedRule = TryConsumeParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
+            if (TryConsumeParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector))) continue;
+            if (!parsedRule) budget.RecordRule(declarations.Count);
             rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
         }
     }
+
+    private static void RecordParsedRule(
+        IDictionary<string, int> parsedRuleMatches,
+        string key) {
+        parsedRuleMatches.TryGetValue(key, out int count);
+        parsedRuleMatches[key] = count + 1;
+    }
+
+    private static bool TryConsumeParsedRule(
+        IDictionary<string, int> parsedRuleMatches,
+        string key) {
+        if (!parsedRuleMatches.TryGetValue(key, out int count) || count <= 0) return false;
+        if (count == 1) parsedRuleMatches.Remove(key);
+        else parsedRuleMatches[key] = count - 1;
+        return true;
+    }
+
+    private static string ParsedRuleKey(string selector) => "rule\u001f" + selector.Trim();
+
+    private static string ParsedRetainedRuleKey(string selector) => "retained\u001f" + selector.Trim();
 
     private static int FindRawRuleOpen(string css, int start, int end) {
         char quote = '\0';

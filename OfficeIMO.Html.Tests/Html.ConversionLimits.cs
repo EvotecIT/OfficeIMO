@@ -208,6 +208,17 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlConversionDocument_CountsRetainedStringSetRuleOnce() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssRules = 1;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.target{string-set:chapter content()}</style><p class='target'>x</p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        _ = document.StyleSummary;
+    }
+
+    [Fact]
     public void HtmlConversionDocument_EnforcesCssNestingDepthBeforeRetainedDeclarationTraversal() {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssNestingDepth = 4;

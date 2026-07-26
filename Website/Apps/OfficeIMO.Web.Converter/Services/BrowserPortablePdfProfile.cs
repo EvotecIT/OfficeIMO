@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
@@ -67,6 +68,11 @@ internal static class BrowserPortablePdfProfile {
         FontPackData data = Data.Value;
         return new HtmlPdfSaveOptions {
             DefaultFontFamily = DefaultFontFamily,
+            Fonts = new OfficeFontFaceCollection()
+                .Add(DefaultFontFamily, data.CarlitoRegular, OfficeFontStyle.Regular)
+                .Add(DefaultFontFamily, data.CarlitoBold, OfficeFontStyle.Bold)
+                .Add(DefaultFontFamily, data.CarlitoItalic, OfficeFontStyle.Italic)
+                .Add(DefaultFontFamily, data.CarlitoBoldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic),
             DocumentOptions = CreateOptions(profile),
             FontFamily = new PdfEmbeddedFontFamily(
                 DefaultFontFamily,

@@ -241,23 +241,15 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool IsPositiveCssLength(string value) {
-        int unitStart = 0;
-        while (unitStart < value.Length && (char.IsDigit(value[unitStart]) || value[unitStart] == '.' || value[unitStart] == '+' || value[unitStart] == '-')) unitStart++;
-        if (unitStart == 0 || unitStart == value.Length) return false;
-        if (!double.TryParse(value.Substring(0, unitStart), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double length)
-            || length <= 0D || double.IsNaN(length) || double.IsInfinity(length)) return false;
-        string unit = value.Substring(unitStart);
-        return IsKnownKeyword(unit, "px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem");
+        return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: false)
+            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && length > 0D;
     }
 
     private static bool IsNonNegativeCssLength(string value) {
-        if (value == "0") return true;
-        int unitStart = 0;
-        while (unitStart < value.Length && (char.IsDigit(value[unitStart]) || value[unitStart] == '.' || value[unitStart] == '+' || value[unitStart] == '-')) unitStart++;
-        if (unitStart == 0 || unitStart == value.Length) return false;
-        if (!double.TryParse(value.Substring(0, unitStart), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double length)
-            || length < 0D || double.IsNaN(length) || double.IsInfinity(length)) return false;
-        return IsKnownKeyword(value.Substring(unitStart), "px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem");
+        return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: true)
+            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && length >= 0D;
     }
 
     private static bool IsSupportedDeclarationValue(string propertyName, string value) {

@@ -77,6 +77,21 @@ internal static class HtmlRenderCssValues {
         }
     }
 
+    internal static bool HasExplicitLengthSyntax(string? value, bool allowPercentage, bool allowUnitlessZero) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+
+        string normalized = value!.Trim().ToLowerInvariant();
+        if (normalized == "0") return allowUnitlessZero;
+        if (!allowPercentage && normalized.IndexOf('%') >= 0) return false;
+        if (normalized.IndexOf('(') >= 0) return true;
+
+        int unitStart = normalized.Length;
+        while (unitStart > 0 && (char.IsLetter(normalized[unitStart - 1]) || normalized[unitStart - 1] == '%')) {
+            unitStart--;
+        }
+        return unitStart > 0 && unitStart < normalized.Length;
+    }
+
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left) {

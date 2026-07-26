@@ -149,6 +149,12 @@ public static partial class HtmlComputedStyleEngine {
         if (TryEvaluateResolutionFeature(feature, environment.Features.ResolutionDpi, out bool resolutionApplies)) {
             return resolutionApplies;
         }
+        if (feature == "prefers-color-scheme") {
+            return true;
+        }
+        if (feature == "prefers-reduced-motion") {
+            return environment.Features.ReducedMotion == HtmlReducedMotionPreference.Reduce;
+        }
         if (TryReadMediaFeatureValue(feature, "prefers-color-scheme", out string colorScheme)) {
             return string.Equals(
                 colorScheme,

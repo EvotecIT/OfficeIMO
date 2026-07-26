@@ -85,6 +85,18 @@ public sealed partial class HtmlRenderingTests {
             400D,
             200D,
             options.MediaFeatures));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(prefers-color-scheme) and (prefers-reduced-motion)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            options.MediaFeatures));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableMedia(
+            "(prefers-reduced-motion)",
+            HtmlCssMediaContext.Screen,
+            400D,
+            200D,
+            new HtmlRenderMediaFeatures()));
     }
 
     [Fact]

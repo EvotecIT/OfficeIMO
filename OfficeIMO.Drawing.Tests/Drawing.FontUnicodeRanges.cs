@@ -60,6 +60,31 @@ public sealed class DrawingFontUnicodeRangeTests {
     }
 
     [Fact]
+    public void FontCollection_UsesRegularRangeFallbackAfterExactStyleCandidates() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0590-05FF", out OfficeFontUnicodeRangeSet? hebrew));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", font, OfficeFontStyle.Bold, latin!)
+            .Add("Scoped", font, OfficeFontStyle.Regular, hebrew!);
+        string boldFamily = Assert.Single(fonts.Faces, face => face.Style == OfficeFontStyle.Bold).ResourceFamilyName;
+        string regularFamily = Assert.Single(fonts.Faces, face => face.Style == OfficeFontStyle.Regular).ResourceFamilyName;
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns("A\u05D0", "Scoped", OfficeFontStyle.Bold);
+
+        Assert.Collection(
+            runs,
+            run => {
+                Assert.Equal("A", run.Text);
+                Assert.Equal(boldFamily, run.FamilyName);
+            },
+            run => {
+                Assert.Equal("\u05D0", run.Text);
+                Assert.Equal(regularFamily, run.FamilyName);
+            });
+    }
+
+    [Fact]
     public void FontCollection_MeasuresAndRasterizesMixedUnicodeRangeRuns() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 0x05D0);
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0000-007F", out OfficeFontUnicodeRangeSet? latin));

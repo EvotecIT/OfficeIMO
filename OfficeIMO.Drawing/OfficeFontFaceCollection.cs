@@ -304,12 +304,13 @@ public sealed class OfficeFontFaceCollection {
                 if (face.Style == normalizedStyle) exact.Add(face);
                 if (face.Style == OfficeFontStyle.Regular) regular.Add(face);
             }
-            IReadOnlyList<OfficeFontFace> preferred = exact.Count > 0
-                ? exact
-                : regular.Count > 0
-                    ? regular
-                    : available;
-            foreach (OfficeFontFace face in preferred) {
+            foreach (OfficeFontFace face in exact) {
+                if (added.Add(face)) result.Add(face);
+            }
+            foreach (OfficeFontFace face in regular) {
+                if (added.Add(face)) result.Add(face);
+            }
+            foreach (OfficeFontFace face in available) {
                 if (added.Add(face)) result.Add(face);
             }
         }

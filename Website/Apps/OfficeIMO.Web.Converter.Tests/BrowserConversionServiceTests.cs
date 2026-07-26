@@ -62,6 +62,26 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
+    public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
+        var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
+
+        Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.DefaultFontFamily);
+        Assert.Equal(4, options.Fonts.Faces.Count);
+        Assert.All(options.Fonts.Faces, face => Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, face.FamilyName));
+        Assert.Equal(
+            [OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic],
+            options.Fonts.Faces.Select(face => face.Style).ToArray());
+        Assert.True(options.Fonts.TryMeasureText(
+            "Layout boundary",
+            16D,
+            BrowserPortablePdfProfile.DefaultFontFamily,
+            OfficeFontStyle.Regular,
+            out double width));
+        Assert.True(width > 0D);
+        Assert.Equal(BrowserPortablePdfProfile.DefaultFontFamily, options.FontFamily?.FamilyName);
+    }
+
+    [Fact]
     public void MarkdownToHtml_ReturnsPreviewAndDownload() {
         var route = ConversionRouteCatalog.Find("markdown-html");
         var result = _service.ConvertText(route, "# Status\n\n**Ready**");
