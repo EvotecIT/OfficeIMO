@@ -36,10 +36,11 @@ namespace OfficeIMO.Word {
                     runProperties.Shading.ThemeFill = null;
                     runProperties.Shading.ThemeFillTint = null;
                     runProperties.Shading.ThemeFillShade = null;
-                    ShadingPatternValues? pattern = runProperties.Shading.Val?.Value;
-                    if (!pattern.HasValue || pattern.Value == ShadingPatternValues.Nil) {
-                        runProperties.Shading.Val = ShadingPatternValues.Clear;
-                    }
+                    runProperties.Shading.Color = null;
+                    runProperties.Shading.ThemeColor = null;
+                    runProperties.Shading.ThemeTint = null;
+                    runProperties.Shading.ThemeShade = null;
+                    runProperties.Shading.Val = ShadingPatternValues.Clear;
                 } else {
                     runProperties.Shading?.Remove();
                 }

@@ -145,9 +145,16 @@ namespace OfficeIMO.Word.Html {
                                    value.Equals("transparent", StringComparison.OrdinalIgnoreCase)) {
                             background = null;
                         } else {
-                            string? normalizedBackground = NormalizeColor(value);
-                            if (normalizedBackground != null) {
-                                background = normalizedBackground;
+                            CssStyleMapper.CssProperties parsedBackground =
+                                CssStyleMapper.ParseStyles("background-color:" + value);
+                            if (!string.IsNullOrEmpty(parsedBackground.BackgroundColor)) {
+                                double alpha = parsedBackground.BackgroundColorAlpha ?? 1d;
+                                background = alpha <= 0d
+                                    ? null
+                                    : ResolveOpaqueTextBackground(
+                                        parsedBackground.BackgroundColor!,
+                                        alpha,
+                                        inheritedBackground);
                             }
                         }
                     } else if (name == "border" && IsCssInheritanceValue(value)) {
@@ -309,6 +316,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            paragraphs = DistinctPhysicalParagraphs(paragraphs);
             ParseElementBlockFrameStyles(element, out string? background, out var sideBorders);
 
             if (!string.IsNullOrEmpty(background)) {
@@ -323,15 +331,16 @@ namespace OfficeIMO.Word.Html {
             BlockBorder? right = GetBlockBorder(sideBorders, BlockBorderSide.Right);
             BlockBorder? top = GetBlockBorder(sideBorders, BlockBorderSide.Top);
             BlockBorder? bottom = GetBlockBorder(sideBorders, BlockBorderSide.Bottom);
+            string fallbackColor = ResolveElementTextColor(element);
             for (int index = 0; index < paragraphs.Count; index++) {
                 WordParagraph paragraph = paragraphs[index];
-                ApplyParagraphBorder(paragraph, BlockBorderSide.Left, left);
-                ApplyParagraphBorder(paragraph, BlockBorderSide.Right, right);
+                ApplyParagraphBorder(paragraph, BlockBorderSide.Left, left, fallbackColor);
+                ApplyParagraphBorder(paragraph, BlockBorderSide.Right, right, fallbackColor);
                 if (index == 0) {
-                    ApplyParagraphBorder(paragraph, BlockBorderSide.Top, top);
+                    ApplyParagraphBorder(paragraph, BlockBorderSide.Top, top, fallbackColor);
                 }
                 if (index == paragraphs.Count - 1) {
-                    ApplyParagraphBorder(paragraph, BlockBorderSide.Bottom, bottom);
+                    ApplyParagraphBorder(paragraph, BlockBorderSide.Bottom, bottom, fallbackColor);
                 }
             }
 
@@ -360,6 +369,17 @@ namespace OfficeIMO.Word.Html {
                 WordParagraph last = paragraphs[paragraphs.Count - 1];
                 last.LineSpacingAfter = (last.LineSpacingAfter ?? 0) + verticalEnd;
             }
+        }
+
+        private static IReadOnlyList<WordParagraph> DistinctPhysicalParagraphs(
+            IReadOnlyList<WordParagraph> paragraphs) {
+            var result = new List<WordParagraph>(paragraphs.Count);
+            foreach (WordParagraph paragraph in paragraphs) {
+                if (!result.Any(existing => ReferenceEquals(existing._paragraph, paragraph._paragraph))) {
+                    result.Add(paragraph);
+                }
+            }
+            return result;
         }
 
         private static BlockBorder? GetBlockBorder(
@@ -625,13 +645,14 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyParagraphBorder(
             WordParagraph paragraph,
             BlockBorderSide side,
-            BlockBorder? border) {
+            BlockBorder? border,
+            string fallbackColor) {
             if (!border.HasValue || HasParagraphBorder(paragraph, side)) {
                 return;
             }
 
             BlockBorder value = border.Value;
-            string color = value.Color?.ToRgbHex() ?? ResolveParagraphTextColor(paragraph);
+            string color = value.Color?.ToRgbHex() ?? fallbackColor;
             switch (side) {
                 case BlockBorderSide.Left:
                     paragraph.Borders.LeftStyle = value.Style;
@@ -665,9 +686,5 @@ namespace OfficeIMO.Word.Html {
                 _ => false,
             };
 
-        private static string ResolveParagraphTextColor(WordParagraph paragraph) {
-            string? normalized = NormalizeColor(paragraph.ColorHex);
-            return normalized ?? SixColor.Black.ToRgbHex();
-        }
     }
 }

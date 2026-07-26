@@ -44,5 +44,22 @@ namespace OfficeIMO.Word.Html {
 
             return false;
         }
+
+        private bool ShouldStartContainerChildParagraph(IElement element) {
+            if (!_blockTags.Contains(element.TagName)) {
+                return false;
+            }
+            if (!element.TagName.Equals("code", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            ApplyCssToElement(element);
+            string styleText = element.GetAttribute("style") ?? string.Empty;
+            var declaration = ParseInlineDeclaration(styleText);
+            string display = GetInlinePropertyValue(declaration, styleText, "display")
+                .Trim()
+                .ToLowerInvariant();
+            return display is "block" or "flow-root" or "list-item" or "table" or "flex" or "grid";
+        }
     }
 }

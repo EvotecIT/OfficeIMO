@@ -390,15 +390,15 @@ namespace OfficeIMO.Word.Html {
                             WordParagraph? para = currentParagraph;
                             foreach (var child in element.ChildNodes) {
                                 int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
-                                bool startsOwnParagraph =
-                                    child is IElement blockChild &&
-                                    _blockTags.Contains(blockChild.TagName);
                                 if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                     var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                     if (!string.IsNullOrEmpty(merged)) {
                                         childElement.SetAttribute("style", merged);
                                     }
                                 }
+                                bool startsOwnParagraph =
+                                    child is IElement blockChild &&
+                                    ShouldStartContainerChildParagraph(blockChild);
                                 ProcessNode(
                                     child,
                                     doc,

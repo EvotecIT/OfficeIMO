@@ -242,8 +242,9 @@ namespace OfficeIMO.Word.Html {
                 paragraph.SetColorHex(colorVal);
             }
 
-            if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                paragraph.ShadingFillColorHex = parsed.BackgroundColor!;
+            string? paragraphBackground = ResolveParagraphBackground(element, parsed);
+            if (!string.IsNullOrEmpty(paragraphBackground)) {
+                paragraph.ShadingFillColorHex = paragraphBackground!;
             }
 
             if (parsed.LineHeight.HasValue) {
@@ -323,6 +324,41 @@ namespace OfficeIMO.Word.Html {
                 paragraph.IndentationAfter = right;
             }
             return parsed;
+        }
+
+        private static string? ResolveParagraphBackground(
+            IElement element,
+            CssStyleMapper.CssProperties parsed) {
+            if (string.IsNullOrEmpty(parsed.BackgroundColor)) {
+                return null;
+            }
+
+            double alpha = parsed.BackgroundColorAlpha ?? 1d;
+            if (alpha <= 0d) {
+                return null;
+            }
+
+            string? backdrop = null;
+            var ancestors = new Stack<IElement>();
+            for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+                ancestors.Push(ancestor);
+            }
+            while (ancestors.Count > 0) {
+                IElement ancestor = ancestors.Pop();
+                CssStyleMapper.CssProperties ancestorStyle = CssStyleMapper.ParseStyles(ancestor.GetAttribute("style"));
+                if (string.IsNullOrEmpty(ancestorStyle.BackgroundColor)) {
+                    continue;
+                }
+                double ancestorAlpha = ancestorStyle.BackgroundColorAlpha ?? 1d;
+                if (ancestorAlpha > 0d) {
+                    backdrop = ResolveOpaqueTextBackground(
+                        ancestorStyle.BackgroundColor!,
+                        ancestorAlpha,
+                        backdrop);
+                }
+            }
+
+            return ResolveOpaqueTextBackground(parsed.BackgroundColor!, alpha, backdrop);
         }
 
         private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
