@@ -4,7 +4,7 @@ description: "Build a governed .NET migration for Word DOC, Excel XLS and XLSB, 
 meta.eyebrow: "Legacy Office modernization"
 meta.outcome: "A migration you can explain file by file"
 meta.primary_label: "Browse conversion routes"
-meta.primary_url: "/convert/"
+meta.primary_url: "/convert/guides/"
 ---
 
 Legacy Office archives are rarely uniform. A folder may contain ordinary reports, macro-enabled templates, embedded objects, damaged files, hand-built charts, and documents that only ever opened correctly in one desktop Office version. A reliable migration therefore needs more than a loop that changes extensions.

@@ -15,11 +15,41 @@ $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'Offi
 $runtimeWasmPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'dotnet.native*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
     Select-Object -First 1 -ExpandProperty FullName
+$convertPagePath = Join-Path $SiteRoot 'convert/index.html'
+$conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
+$playgroundPagePath = Join-Path $SiteRoot 'playground/index.html'
 
-foreach ($path in @($indexPath, $modulePath, $appAssemblyPath, $runtimeWasmPath)) {
+foreach ($path in @(
+        $indexPath,
+        $modulePath,
+        $appAssemblyPath,
+        $runtimeWasmPath,
+        $convertPagePath,
+        $conversionGuidesPath,
+        $playgroundPagePath
+    )) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Converter publish is missing '$path'."
     }
+}
+
+$converterFramePattern = 'src="/apps/officeimo-converter/\?embedded=1"'
+$convertPage = Get-Content -LiteralPath $convertPagePath -Raw
+if ($convertPage -notmatch $converterFramePattern) {
+    throw "The primary /convert/ route does not host the browser converter."
+}
+
+$conversionGuides = Get-Content -LiteralPath $conversionGuidesPath -Raw
+if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>') {
+    throw "The /convert/guides/ route does not contain the conversion guide."
+}
+
+$playgroundPage = Get-Content -LiteralPath $playgroundPagePath -Raw
+if ($playgroundPage -notmatch $converterFramePattern) {
+    throw "The compatibility /playground/ route does not host the browser converter."
+}
+if ($playgroundPage -notmatch '<link rel="canonical" href="https://officeimo\.com/convert/"') {
+    throw "The compatibility /playground/ route does not canonicalize to /convert/."
 }
 
 $runtimeWasm = [System.Text.Encoding]::ASCII.GetString(

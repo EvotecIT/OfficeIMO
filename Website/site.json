@@ -439,7 +439,7 @@
                 "Title": "By deployment",
                 "Items": [
                   { "Title": "Cross-platform .NET", "Url": "/docs/getting-started/platform-support/", "Description": "Choose packages for services, apps, and AOT" },
-                  { "Title": "Browser conversion", "Url": "/playground/", "Description": "Run supported routes locally with WebAssembly" },
+                  { "Title": "Browser conversion", "Url": "/convert/", "Description": "Run supported routes locally with WebAssembly" },
                   { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" }
                 ]
               }
@@ -562,9 +562,9 @@
           { "Title": "Changelog", "Url": "/changelog/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
           { "Title": "Compatibility", "Url": "/compatibility/" },
-          { "Title": "Conversions", "Url": "/convert/" },
+          { "Title": "Conversion guides", "Url": "/convert/guides/" },
           { "Title": "Comparison", "Url": "/comparison/" },
-          { "Title": "Playground", "Url": "/playground/" },
+          { "Title": "Browser converter", "Url": "/convert/" },
           { "Title": "Support", "Url": "/pricing/" },
           { "Title": "Showcase", "Url": "/showcase/" },
           { "Title": "Blog", "Url": "/blog/" }

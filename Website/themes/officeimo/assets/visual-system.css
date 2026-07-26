@@ -1438,6 +1438,7 @@ body.pf-api-docs {
 .imo-converter-launch__frame {
   display: block;
   width: 100%;
+  height: auto;
   min-height: 720px;
   border: 0;
   background: var(--imo-bg);

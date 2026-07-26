@@ -37,4 +37,4 @@ Translate Word, Excel, and PowerPoint content to and from Docs, Sheets, and Slid
 
 OfficeIMO runs as libraries and tools in your application boundary. Files do not need to be uploaded to a third-party conversion service. You choose where documents are stored, which credentials are used, how findings are logged, and whether a conversion should continue.
 
-Start with [format support](/compatibility/) when file fidelity is the first concern, the [conversion routes](/convert/) when input and output are already known, or the [package catalog](/downloads/) when you are ready to assemble a deployment.
+Start with [format support](/compatibility/) when file fidelity is the first concern, the [conversion routes](/convert/guides/) when input and output are already known, or the [package catalog](/downloads/) when you are ready to assemble a deployment.
