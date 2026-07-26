@@ -9,9 +9,6 @@
         "mcp",
         "serve",
         "--stdio"
-      ],
-      "tools": [
-        "*"
       ]
     }
   }

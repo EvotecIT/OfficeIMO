@@ -29,6 +29,33 @@ public sealed class ReleasePackagingGuardrails {
     }
 
     [Fact]
+    public void CodexPlugin_McpConfigurationUsesSupportedServerSchema() {
+        string repositoryRoot = GetRepositoryRoot();
+        string mcpPath = Path.Combine(
+            repositoryRoot,
+            ".agents",
+            "plugins",
+            "officeimo-document-tools",
+            ".mcp.json");
+        using JsonDocument mcp = JsonDocument.Parse(File.ReadAllText(mcpPath));
+        JsonElement officeImo = mcp.RootElement
+            .GetProperty("mcpServers")
+            .GetProperty("officeimo");
+
+        Assert.Equal("stdio", officeImo.GetProperty("type").GetString());
+        Assert.Equal("dotnet", officeImo.GetProperty("command").GetString());
+        Assert.Equal(
+            ["dnx", "OfficeIMO.Tool@3.0.2", "mcp", "serve", "--stdio"],
+            officeImo.GetProperty("args").EnumerateArray()
+                .Select(static value => value.GetString() ?? string.Empty)
+                .ToArray());
+        Assert.False(
+            officeImo.TryGetProperty("tools", out JsonElement tools) &&
+            tools.ValueKind == JsonValueKind.Array,
+            "Codex MCP tool configuration is a map when present, not an array allowlist.");
+    }
+
+    [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
         string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);

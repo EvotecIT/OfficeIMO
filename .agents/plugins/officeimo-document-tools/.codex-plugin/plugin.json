@@ -1,6 +1,6 @@
 {
   "name": "officeimo-document-tools",
-  "version": "0.2.0+codex.20260726161342",
+  "version": "0.2.1",
   "description": "Compact local OfficeIMO document and mailbox MCP tools plus contributor workflows.",
   "author": {
     "name": "EvotecIT"
