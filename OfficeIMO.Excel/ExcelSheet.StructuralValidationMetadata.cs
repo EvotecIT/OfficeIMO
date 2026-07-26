@@ -58,7 +58,11 @@ namespace OfficeIMO.Excel {
                     count++;
                 }
 
-                validations.Count = count;
+                if (count == 0U) {
+                    validations.Remove();
+                } else {
+                    validations.Count = count;
+                }
             }
 
             RemapShiftedOffice2010DataValidations(firstAffectedRow, rowDelta, lastDeletedRow);

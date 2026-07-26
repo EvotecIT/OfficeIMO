@@ -401,15 +401,56 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void InvalidateChartFormulaCache(OpenXmlLeafTextElement formula) {
+        private static bool InvalidateChartFormulaCache(OpenXmlLeafTextElement formula) {
             OpenXmlElement? reference = formula.Parent;
             if (reference == null) {
-                return;
+                return false;
             }
+            bool changed = false;
             foreach (OpenXmlElement cache in reference.ChildElements
                 .Where(element => element.LocalName.EndsWith("Cache", StringComparison.OrdinalIgnoreCase))
                 .ToList()) {
                 cache.Remove();
+                changed = true;
+            }
+            return changed;
+        }
+
+        private void InvalidateWorkbookChartCaches() {
+            IEnumerable<OpenXmlPartRootElement> chartRoots =
+                WorkbookPartRoot.WorksheetParts
+                    .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())
+                    .Select(part => part.ChartSpace)
+                    .Where(root => root != null)
+                    .Cast<OpenXmlPartRootElement>()
+                .Concat(
+                    WorkbookPartRoot.WorksheetParts
+                        .SelectMany(part => part.DrawingsPart?.ExtendedChartParts ?? Enumerable.Empty<ExtendedChartPart>())
+                        .Select(part => part.ChartSpace)
+                        .Where(root => root != null)
+                        .Cast<OpenXmlPartRootElement>())
+                .Concat(
+                    WorkbookPartRoot.ChartsheetParts
+                        .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())
+                        .Select(part => part.ChartSpace)
+                        .Where(root => root != null)
+                        .Cast<OpenXmlPartRootElement>())
+                .Concat(
+                    WorkbookPartRoot.ChartsheetParts
+                        .SelectMany(part => part.DrawingsPart?.ExtendedChartParts ?? Enumerable.Empty<ExtendedChartPart>())
+                        .Select(part => part.ChartSpace)
+                        .Where(root => root != null)
+                        .Cast<OpenXmlPartRootElement>());
+
+            foreach (OpenXmlPartRootElement chartRoot in chartRoots.Distinct()) {
+                bool changed = false;
+                foreach (OpenXmlLeafTextElement formula in chartRoot.Descendants<OpenXmlLeafTextElement>()
+                    .Where(element => string.Equals(element.LocalName, "f", StringComparison.Ordinal))) {
+                    changed |= InvalidateChartFormulaCache(formula);
+                }
+                if (changed) {
+                    chartRoot.Save();
+                }
             }
         }
 

@@ -57,8 +57,11 @@ namespace OfficeIMO.Excel {
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
-            RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            bool definedNamesChanged = RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            bool tablesChanged = RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            if (definedNamesChanged || tablesChanged) {
+                InvalidateWorkbookChartCaches();
+            }
             RemapShiftedWorksheetRangeMetadata(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotLocations(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -74,8 +77,11 @@ namespace OfficeIMO.Excel {
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
-            RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
-            RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
+            bool definedNamesChanged = RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
+            bool tablesChanged = RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
+            if (definedNamesChanged || tablesChanged) {
+                InvalidateWorkbookChartCaches();
+            }
             RemapShiftedWorksheetRangeMetadata(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotLocations(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -88,10 +94,10 @@ namespace OfficeIMO.Excel {
             RemapShiftedChartReferences(firstDeletedRow, rowDelta, lastDeletedRow);
         }
 
-        private void RemapShiftedDefinedNames(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+        private bool RemapShiftedDefinedNames(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
             var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) {
-                return;
+                return false;
             }
 
             List<Sheet> workbookSheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
@@ -130,9 +136,11 @@ namespace OfficeIMO.Excel {
             if (changed) {
                 WorkbookRoot.Save();
             }
+            return changed;
         }
 
-        private void RemapShiftedTables(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+        private bool RemapShiftedTables(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            bool anyChanged = false;
             foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
                 var table = tableDefinitionPart.Table;
                 if (table == null) {
@@ -169,8 +177,10 @@ namespace OfficeIMO.Excel {
 
                 if (changed) {
                     table.Save();
+                    anyChanged = true;
                 }
             }
+            return anyChanged;
         }
 
         private void RemapShiftedWorksheetRangeMetadata(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -421,6 +431,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (!hyperlinks.Elements<Hyperlink>().Any()) {
+                hyperlinks.Remove();
+            }
         }
 
         private void RemapShiftedConditionalFormatting(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -576,7 +589,16 @@ namespace OfficeIMO.Excel {
             }
 
             if (remapped == null) {
-                return false;
+                if (!lastDeletedRow.HasValue) {
+                    return false;
+                }
+
+                int clampedZeroBasedRow = firstAffectedRow - 1;
+                if (clampedZeroBasedRow != zeroBasedRow) {
+                    marker.RowId.Text = clampedZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                    changed = true;
+                }
+                return true;
             }
 
             int remappedZeroBasedRow = remapped.Value.r1 - 1;
@@ -686,7 +708,6 @@ namespace OfficeIMO.Excel {
                 }
             }
         }
-
 
         private bool ClearHyperlinksInRange(Worksheet ws, (int r1, int c1, int r2, int c2) bounds) {
             var hyperlinks = ws.GetFirstChild<Hyperlinks>();

@@ -396,6 +396,9 @@ namespace OfficeIMO.Excel {
                 ValidateReferenceListDoesNotOverflow(dataTableFormula.R1?.Value, firstRow, count);
                 ValidateReferenceListDoesNotOverflow(dataTableFormula.R2?.Value, firstRow, count);
             }
+            foreach (CellWatch cellWatch in WorksheetRoot.Descendants<CellWatch>()) {
+                ValidateReferenceListDoesNotOverflow(cellWatch.CellReference?.Value, firstRow, count);
+            }
             foreach (var tablePart in _worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table != null) {
                     ValidateReferenceAttributesDoNotOverflow(tablePart.Table, firstRow, count);
