@@ -50,16 +50,20 @@ public static partial class OfficeDrawingSvgExporter {
 
         sb.Append("<defs><style type=\"text/css\">");
         foreach (OfficeFontFace face in fonts.Faces) {
-            AppendEmbeddedFontFace(sb, face, face.ResourceFamilyName);
+            AppendEmbeddedFontFace(sb, face, face.ResourceFamilyName, includeUnicodeRange: false);
             if (!string.Equals(face.ResourceFamilyName, face.FamilyName, StringComparison.Ordinal)) {
-                AppendEmbeddedFontFace(sb, face, face.FamilyName);
+                AppendEmbeddedFontFace(sb, face, face.FamilyName, includeUnicodeRange: true);
             }
         }
 
         sb.Append("</style></defs>");
     }
 
-    private static void AppendEmbeddedFontFace(StringBuilder sb, OfficeFontFace face, string familyName) {
+    private static void AppendEmbeddedFontFace(
+        StringBuilder sb,
+        OfficeFontFace face,
+        string familyName,
+        bool includeUnicodeRange) {
         sb.Append("@font-face{font-family:\"")
             .Append(EscapeCssString(familyName))
             .Append("\";src:url(data:font/ttf;base64,")
@@ -68,7 +72,7 @@ public static partial class OfficeDrawingSvgExporter {
             .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
             .Append(";font-style:")
             .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal");
-        if (!face.UnicodeRanges.IsAll) {
+        if (includeUnicodeRange && !face.UnicodeRanges.IsAll) {
             sb.Append(";unicode-range:");
             for (int index = 0; index < face.UnicodeRanges.Ranges.Count; index++) {
                 if (index > 0) sb.Append(',');

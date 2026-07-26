@@ -76,6 +76,68 @@ Body
         Assert.Contains("configured byte limit", error.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task MarkupInputLimitCountsUtf8BytesInsteadOfDecodedCharacters() {
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes("é"));
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(
+            ["markup", "validate", "-", "--max-input-bytes", "1"],
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, exitCode);
+        Assert.Contains("configured byte limit", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MarkupEmitClassifiesDestinationWriteFailuresAsOutputFailures() {
+        string outputDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outputDirectory);
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes("# Heading"));
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        try {
+            int exitCode = await OfficeImoToolApp.RunAsync(
+                ["markup", "emit", "-", "--output", outputDirectory],
+                input,
+                output,
+                error);
+
+            Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, exitCode);
+            Assert.NotEqual(string.Empty, error.ToString());
+        } finally {
+            Directory.Delete(outputDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task MarkupMissingFileRetainsInputNotFoundClassification() {
+        string missing = Path.Combine(
+            Path.GetTempPath(),
+            "OfficeIMO.Tool.Tests",
+            Guid.NewGuid().ToString("N"),
+            "missing.markup");
+        await using var input = new MemoryStream();
+        await using var output = new MemoryStream();
+        using var error = new StringWriter();
+
+        int exitCode = await OfficeImoToolApp.RunAsync(
+            ["markup", "validate", missing],
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)OfficeImoToolExitCode.InputNotFound, exitCode);
+        Assert.NotEqual(string.Empty, error.ToString());
+    }
+
     [Theory]
     [InlineData("html", "read")]
     [InlineData("reader", "convert")]

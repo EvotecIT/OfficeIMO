@@ -183,11 +183,22 @@ public static partial class HtmlComputedStyleEngine {
 
             foundFeature = true;
             string feature = mediaQuery.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
-            if (!IsMediaFeatureApplicable(feature, environment)) return false;
+            bool negated = IsTrailingMediaNotOperator(mediaQuery, index, open);
+            if (IsMediaFeatureApplicable(feature, environment) == negated) return false;
             index = close + 1;
         }
 
         return foundFeature || !HasMediaFeatureConstraint(mediaQuery);
+    }
+
+    private static bool IsTrailingMediaNotOperator(string mediaQuery, int start, int end) {
+        int cursor = end - 1;
+        while (cursor >= start && char.IsWhiteSpace(mediaQuery[cursor])) cursor--;
+        int tokenEnd = cursor + 1;
+        while (cursor >= start && IsIdentifierCharacter(mediaQuery[cursor])) cursor--;
+        int tokenStart = cursor + 1;
+        return tokenEnd - tokenStart == 3
+            && IsMediaLogicalOperatorAt(mediaQuery, tokenStart, "not");
     }
 
     private static bool IsMediaFeatureApplicable(string feature, MediaEnvironment environment) {

@@ -18,8 +18,6 @@ internal sealed class MarkupArguments {
     internal bool WorkbookValidateOpenXml { get; private set; } = true;
     internal bool WorkbookRepairDefinedNames { get; private set; } = true;
     internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
-    internal int MaxInputCharacters => (int)Math.Min(MaxInputBytes, int.MaxValue);
-
     internal static MarkupArguments Parse(string[] args) {
         var options = new MarkupArguments();
         var positionals = new List<string>();

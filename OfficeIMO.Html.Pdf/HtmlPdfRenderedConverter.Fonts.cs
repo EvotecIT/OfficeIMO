@@ -10,11 +10,14 @@ namespace OfficeIMO.Html.Pdf;
 internal static partial class HtmlPdfRenderedConverter {
     private static PdfCore.PdfStandardFont MapFont(
         string familyName,
+        string text,
+        OfficeFontStyle style,
         RegisteredWebFonts webFonts) {
-        foreach (string candidate in EnumerateFamilies(familyName)) {
-            if (webFonts.Slots.TryGetValue(candidate, out PdfCore.PdfStandardFont embedded)) {
-                return embedded;
-            }
+        IReadOnlyList<OfficeFontFallbackRun> planned = webFonts.Faces.PlanFallbackRuns(text, familyName, style);
+        if (planned.Count == 1
+            && string.Equals(planned[0].Text, text, StringComparison.Ordinal)
+            && webFonts.Slots.TryGetValue(planned[0].FamilyName, out PdfCore.PdfStandardFont embedded)) {
+            return embedded;
         }
 
         return MapStandardFont(familyName);

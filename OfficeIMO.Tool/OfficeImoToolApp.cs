@@ -49,19 +49,13 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                         commandArguments, standardInput, readerOutput, standardError, cancellationToken).ConfigureAwait(false);
                 }
             case "markup":
-                using (var markupInput = new StreamReader(
-                           standardInput,
-                           Encoding.UTF8,
-                           detectEncodingFromByteOrderMarks: true,
-                           bufferSize: 1024,
-                           leaveOpen: true))
                 using (var markupOutput = new StreamWriter(
                            standardOutput,
                            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                            bufferSize: 1024,
                            leaveOpen: true) { AutoFlush = true }) {
                     return await MarkupCommand.RunAsync(
-                        commandArguments, markupInput, markupOutput, standardError, cancellationToken).ConfigureAwait(false);
+                        commandArguments, standardInput, markupOutput, standardError, cancellationToken).ConfigureAwait(false);
                 }
             default:
                 await standardError.WriteLineAsync("Unknown command area '" + args[0] + "'.").ConfigureAwait(false);

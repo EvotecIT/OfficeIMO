@@ -313,6 +313,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_UsesFallbackFontWhenRegisteredFaceDoesNotCoverRun() {
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
+        string html = "<style>@font-face{font-family:Scoped;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "');unicode-range:U+0020,U+0041}p{font-family:Scoped,serif}</style><p>A</p><p>B</p>";
+        var options = new HtmlPdfSaveOptions {
+            TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
+        };
+        options.ResourcePolicy.AllowSystemFontEmbedding = false;
+        options.DocumentOptions.CompressContentStreams = false;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/BaseFont /Scoped", rawPdf, StringComparison.Ordinal);
+        Assert.True(
+            rawPdf.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal)
+            || rawPdf.Contains("/BaseFont /Helvetica", StringComparison.Ordinal),
+            "The uncovered run must use a standard fallback rather than the constrained embedded face.");
+        Assert.Contains("B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRender_ChargesDecodedWoffFacesToTheOperationWideResourceBudget() {
         byte[] firstOpenType = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] secondOpenType = ManagedTextShapingTestAssets.CreateFont('B');

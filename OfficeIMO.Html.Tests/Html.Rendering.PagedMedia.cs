@@ -195,6 +195,8 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<div style='display:grid;grid-template-columns:1fr'><h2 style='string-set:section content()'>Grid section</h2></div>", "Grid section")]
     [InlineData("<div style='column-count:2'><h2 style='string-set:section content()'>Column section</h2><p>Body</p></div>", "Column section")]
     [InlineData("<table><tr><td><h2 style='string-set:section content()'>Table section</h2></td></tr></table>", "Table section")]
+    [InlineData("<table><tr><td style='string-set:section content()'>Cell section</td></tr></table>", "Cell section")]
+    [InlineData("<table><tr><th style='string-set:section content()'>Header section</th></tr></table>", "Header section")]
     public void HtmlRender_Paged_PropagatesRunningStringsThroughSpecializedContainers(
         string body,
         string expected) {

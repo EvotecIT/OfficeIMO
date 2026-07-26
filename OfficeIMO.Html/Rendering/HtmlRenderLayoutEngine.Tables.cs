@@ -201,6 +201,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
                 }
+                runningStringAssignments.AddRange(ResolveRunningStringAssignments(
+                    cell.Element,
+                    cell.Style,
+                    textY));
                 foreach (HtmlCssRunningStringAssignment assignment in cell.Inline.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(textY));
                 }

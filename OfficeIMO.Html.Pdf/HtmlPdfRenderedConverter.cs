@@ -114,18 +114,18 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
         if (options.FontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+        RegisteredWebFonts webFonts = RegisterWebFonts(
+            pdf,
+            rendered,
+            cancellationToken);
         var activeWebFontFamilies = new HashSet<string>(
-            rendered.Fonts.Faces.Select(face => face.ResourceFamilyName),
+            webFonts.Slots.Keys,
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
-        RegisteredWebFonts webFonts = RegisterWebFonts(
-            pdf,
-            rendered,
-            cancellationToken);
         foreach (PdfCore.PdfStandardFont slot in webFonts.Slots.Values) {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
@@ -380,7 +380,12 @@ internal static partial class HtmlPdfRenderedConverter {
             italic: visual.Font.IsItalic,
             strike: visual.Font.IsStrikethrough,
             fontSize: visual.Font.Size * PointsPerCssPixel,
-            font: MapFont(visual.Font.FamilyName, webFonts),
+            font: MapFont(
+                visual.Font.FamilyName,
+                visual.Text,
+                (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+                | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular),
+                webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
             fontFamily: visual.Font.FamilyName);
@@ -515,7 +520,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         italic: text.Font.IsItalic,
                         strike: text.Font.IsStrikethrough,
                         fontSize: fontSize,
-                        font: MapFont(run.FamilyName, webFonts),
+                        font: MapFont(run.FamilyName, run.Text, text.Font.Style, webFonts),
                         linkUri: visual.LinkUri,
                         linkContents: visual.LinkUri == null ? null : run.Text,
                         fontFamily: run.FamilyName))

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,7 +18,7 @@ namespace OfficeIMO.Tool.Commands.Markup;
 internal static class MarkupCommand {
     internal static async Task<int> RunAsync(
         string[] args,
-        TextReader standardInput,
+        Stream standardInput,
         TextWriter standardOutput,
         TextWriter standardError,
         CancellationToken cancellationToken = default) {
@@ -68,9 +69,12 @@ internal static class MarkupCommand {
         } catch (FileNotFoundException ex) {
             await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.InputNotFound;
-        } catch (IOException ex) {
+        } catch (MarkupInputException ex) {
             await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.UnsupportedInput;
+        } catch (IOException ex) {
+            await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.OutputFailed;
         } catch (UnauthorizedAccessException ex) {
             await standardError.WriteLineAsync(ex.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OutputFailed;
@@ -214,19 +218,39 @@ internal static class MarkupCommand {
 
     private static async Task<string> ReadMarkupAsync(
         MarkupArguments options,
-        TextReader standardInput,
+        Stream standardInput,
         CancellationToken cancellationToken) {
         if (options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)) {
-            return await ReadBoundedAsync(standardInput, options.MaxInputCharacters, cancellationToken).ConfigureAwait(false);
+            try {
+                byte[] bytes = await ReadBoundedAsync(standardInput, options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+                return DecodeUtf8(bytes);
+            } catch (IOException ex) {
+                throw new MarkupInputException(ex.Message, ex);
+            } catch (DecoderFallbackException ex) {
+                throw new MarkupInputException("Input is not valid UTF-8.", ex);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(options.InputPath)) {
-            var inputPath = NormalizeExistingFilePath(options.InputPath!);
-            var info = new FileInfo(inputPath);
-            if (info.Length > options.MaxInputBytes) {
-                throw new IOException("Input exceeds the configured byte limit.");
+            try {
+                var inputPath = NormalizeExistingFilePath(options.InputPath!);
+                var info = new FileInfo(inputPath);
+                if (info.Length > options.MaxInputBytes) {
+                    throw new MarkupInputException("Input exceeds the configured byte limit.");
+                }
+                byte[] bytes = await File.ReadAllBytesAsync(inputPath, cancellationToken).ConfigureAwait(false);
+                return DecodeUtf8(bytes);
+            } catch (MarkupInputException) {
+                throw;
+            } catch (FileNotFoundException) {
+                throw;
+            } catch (IOException ex) {
+                throw new MarkupInputException(ex.Message, ex);
+            } catch (UnauthorizedAccessException ex) {
+                throw new MarkupInputException(ex.Message, ex);
+            } catch (DecoderFallbackException ex) {
+                throw new MarkupInputException("Input is not valid UTF-8.", ex);
             }
-            return await File.ReadAllTextAsync(inputPath, cancellationToken).ConfigureAwait(false);
         }
 
         throw new InvalidOperationException("Input path is required. Use '-' or --stdin to read from standard input.");
@@ -264,19 +288,37 @@ internal static class MarkupCommand {
         return fullPath;
     }
 
-    private static async Task<string> ReadBoundedAsync(
-        TextReader input,
-        int maximumCharacters,
+    private static async Task<byte[]> ReadBoundedAsync(
+        Stream input,
+        long maximumBytes,
         CancellationToken cancellationToken) {
-        var buffer = new char[8192];
-        var text = new System.Text.StringBuilder(Math.Min(maximumCharacters, 64 * 1024));
+        var buffer = new byte[8192];
+        using var output = new MemoryStream((int)Math.Min(maximumBytes, 64 * 1024));
         while (true) {
             int read = await input.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
-            if (read == 0) return text.ToString();
-            if (text.Length > maximumCharacters - read) {
+            if (read == 0) return output.ToArray();
+            if (output.Length > maximumBytes - read) {
                 throw new IOException("Input exceeds the configured byte limit.");
             }
-            text.Append(buffer, 0, read);
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static string DecodeUtf8(byte[] bytes) {
+        var encoding = new UTF8Encoding(
+            encoderShouldEmitUTF8Identifier: false,
+            throwOnInvalidBytes: true);
+        string text = encoding.GetString(bytes);
+        return text.Length > 0 && text[0] == '\uFEFF' ? text.Substring(1) : text;
+    }
+
+    private sealed class MarkupInputException : IOException {
+        internal MarkupInputException(string message)
+            : base(message) {
+        }
+
+        internal MarkupInputException(string message, Exception innerException)
+            : base(message, innerException) {
         }
     }
 

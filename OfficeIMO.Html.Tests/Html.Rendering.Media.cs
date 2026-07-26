@@ -132,6 +132,8 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("(max-resolution:1e2dpi)", true)]
     [InlineData("(resolution:9.6E1dpi)", true)]
     [InlineData("(min-resolution:9.7e1dpi)", false)]
+    [InlineData("(color) and not (hover)", true)]
+    [InlineData("(color) and not (hover:none)", false)]
     public void HtmlRender_MediaQueriesHonorLogicalOrAndResolutionExponents(
         string mediaQuery,
         bool expected) {
