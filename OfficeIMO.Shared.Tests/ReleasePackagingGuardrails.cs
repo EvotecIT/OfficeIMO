@@ -9,6 +9,7 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
+        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string readme = File.ReadAllText(Path.Combine(repositoryRoot, "README.md"));
         using JsonDocument buildDocument = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(repositoryRoot, "Build", "project.build.json")));
@@ -54,12 +55,14 @@ public sealed class ReleasePackagingGuardrails {
             readme,
             releasePackageIds,
             expectedCount: 17,
+            expectedVersion: coordinatedVersion,
             toolPackageIds: ["OfficeIMO.Tool"]);
     }
 
     [Fact]
     public void PackageLocks_DoNotRetainOlderOfficeIMOReleaseLines() {
         string repositoryRoot = GetRepositoryRoot();
+        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string[] lockFiles = Directory
             .EnumerateFiles(repositoryRoot, "packages.lock.json", SearchOption.AllDirectories)
             .Where(static path => !ContainsBuildOutput(path))
@@ -73,7 +76,10 @@ public sealed class ReleasePackagingGuardrails {
                 content,
                 "\"OfficeIMO\\.[^\"]+\"\\s*:\\s*\"\\[(?<version>\\d+\\.\\d+\\.\\d+),",
                 RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)) {
-                if (!string.Equals(match.Groups["version"].Value, "3.0.0", StringComparison.Ordinal)) {
+                if (!string.Equals(
+                    match.Groups["version"].Value,
+                    coordinatedVersion,
+                    StringComparison.Ordinal)) {
                     staleDependencies.Add(
                         GetRepositoryRelativePath(repositoryRoot, lockFile)
                         + " -> "
@@ -187,6 +193,7 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void PublicReleaseDocs_UseCurrentPackageVersionsDependenciesAndMigrationNames() {
         string repositoryRoot = GetRepositoryRoot();
+        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string installation = File.ReadAllText(Path.Combine(
             repositoryRoot,
             "Website",
@@ -221,7 +228,8 @@ public sealed class ReleasePackagingGuardrails {
         string[] installationCommandIds = AssertDotNetInstallCommands(
             installation,
             releasePackageIds,
-            expectedCount: 9);
+            expectedCount: 9,
+            expectedVersion: coordinatedVersion);
         string[] packageReferenceIds = documentedPackages
             .Cast<Match>()
             .Select(static match => match.Groups["id"].Value)
@@ -230,7 +238,11 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Equal(
             packageReferenceIds,
             installationCommandIds.OrderBy(static packageId => packageId, StringComparer.OrdinalIgnoreCase).ToArray());
-        AssertPackageManagerInstallCommands(installation, releasePackageIds, expectedCount: 4);
+        AssertPackageManagerInstallCommands(
+            installation,
+            releasePackageIds,
+            expectedCount: 4,
+            expectedVersion: coordinatedVersion);
 
         string openXmlVersion = ReadPackageReferenceVersion(
             repositoryRoot,
@@ -325,6 +337,7 @@ public sealed class ReleasePackagingGuardrails {
         string content,
         ISet<string> releasePackageIds,
         int expectedCount,
+        string expectedVersion,
         IReadOnlyCollection<string>? toolPackageIds = null) {
         MatchCollection commands = Regex.Matches(
             content,
@@ -339,7 +352,7 @@ public sealed class ReleasePackagingGuardrails {
                 Assert.True(
                     releasePackageIds.Contains(packageId),
                     "Install command references an unknown package: " + match.Value);
-                Assert.Equal(" --version 3.0.0", match.Groups["arguments"].Value);
+                Assert.Equal($" --version {expectedVersion}", match.Groups["arguments"].Value);
 
                 bool isTool = toolPackageIds?.Contains(packageId, StringComparer.OrdinalIgnoreCase) == true;
                 Assert.Equal(
@@ -358,7 +371,8 @@ public sealed class ReleasePackagingGuardrails {
     private static void AssertPackageManagerInstallCommands(
         string content,
         ISet<string> releasePackageIds,
-        int expectedCount) {
+        int expectedCount,
+        string expectedVersion) {
         MatchCollection commands = Regex.Matches(
             content,
             @"^Install-Package (?<id>OfficeIMO\.[^\s]+)(?<arguments>[^\r\n]*)\r?$",
@@ -372,7 +386,7 @@ public sealed class ReleasePackagingGuardrails {
                 Assert.True(
                     releasePackageIds.Contains(packageId),
                     "Package Manager command references an unknown package: " + match.Value);
-                Assert.Equal(" -Version 3.0.0", match.Groups["arguments"].Value);
+                Assert.Equal($" -Version {expectedVersion}", match.Groups["arguments"].Value);
                 return packageId;
             })
             .ToArray();
@@ -418,6 +432,18 @@ public sealed class ReleasePackagingGuardrails {
         return (string?)packageReference.Attribute("Version")
             ?? throw new InvalidDataException(
                 $"Package reference '{packageId}' in '{relativeProjectPath}' does not declare a Version attribute.");
+    }
+
+    private static string ReadCoordinatedReleaseVersion(string repositoryRoot) {
+        string[] versions = Directory
+            .EnumerateFiles(repositoryRoot, "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !ContainsBuildOutput(path))
+            .Select(ReadPackageProject)
+            .Where(static project => project is not null)
+            .Select(static project => project!.Version)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Assert.Single(versions);
     }
 
     private static void AssertVersionMatchesReleaseBand(PackageProject project, string expectedBand) {
