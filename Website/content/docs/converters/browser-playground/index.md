@@ -17,7 +17,9 @@ The [browser converter](/convert/) is a static Blazor WebAssembly application. S
 | HTML | Markdown | `OfficeIMO.Markdown.Html` |
 | Markdown | DOCX | `OfficeIMO.Word.Markdown` |
 
-The app includes sample inputs for every route. Uploads are limited to 25 MB so the browser tab remains responsive. Conversion warnings stay visible with the result instead of being hidden behind a successful download.
+The app includes sample inputs for every route. Files are limited to 25 MiB. Before a DOCX, XLSX, or PPTX file is parsed, the app also rejects packages with more than 5,000 parts, an individual expanded part over 32 MiB, more than 128 MiB expanded in total, or a part compression ratio over 200:1.
+
+Excel workbooks that pass those package checks are converted in full while every sheet's used range stays within 50,000 cells. If a sheet exceeds that budget, the app automatically generates a preview of up to 250 rows per sheet. Conversion warnings stay visible with the result instead of being hidden behind a successful download.
 
 ## Privacy and hosting
 

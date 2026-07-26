@@ -177,16 +177,17 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
-    public void BrowserPackageSecurity_AllowsExpandedWorksheetWithinAdvertisedPackageLimit() {
+    public void BrowserPackageSecurity_RejectsExpandedWorksheetBeyondBrowserPartLimit() {
         byte[] bytes = CreateExpandedWorksheetPackage();
+        OfficePackageSecurityOptions options = BrowserConversionService.CreateBrowserPackageSecurity();
 
-        OfficePackageSecurityReport report = OfficePackageSecurityInspector.Validate(
-            bytes,
-            BrowserConversionService.CreateBrowserPackageSecurity());
+        OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(() =>
+            OfficePackageSecurityInspector.Validate(bytes, options));
 
         Assert.True(bytes.LongLength < BrowserConversionService.MaxPackageBytes);
-        Assert.True(report.TotalUncompressedBytes > 32L * 1024L * 1024L);
-        Assert.DoesNotContain(report.Findings, finding => finding.Severity == OfficePackageSecuritySeverity.Error);
+        Assert.Equal(32L * 1024L * 1024L, options.MaxPartUncompressedBytes);
+        Assert.Equal(128L * 1024L * 1024L, options.MaxTotalUncompressedBytes);
+        Assert.Equal(OfficePackageSecurityRule.PartSize, exception.Rule);
     }
 
     [Fact]
