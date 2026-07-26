@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
@@ -81,8 +82,8 @@ claim conformance without passing external validator evidence.
             byte[]? bold = await ReadOptionalFontAsync(arguments.BoldFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? italic = await ReadOptionalFontAsync(arguments.ItalicFontPath, cancellationToken).ConfigureAwait(false);
             byte[]? boldItalic = await ReadOptionalFontAsync(arguments.BoldItalicFontPath, cancellationToken).ConfigureAwait(false);
-            options.DefaultFontFamily = arguments.FontFamilyName!;
-            options.FontFamily = new PdfEmbeddedFontFamily(
+            ConfigureFontFamily(
+                options,
                 arguments.FontFamilyName!,
                 regular,
                 bold,
@@ -139,6 +140,31 @@ claim conformance without passing external validator evidence.
             }
         }
         return conversion.Report.Warnings.Any(warning => warning.Severity == PdfConversionWarningSeverity.Error) ? 6 : 0;
+    }
+
+    internal static void ConfigureFontFamily(
+        HtmlPdfSaveOptions options,
+        string familyName,
+        byte[] regular,
+        byte[]? bold,
+        byte[]? italic,
+        byte[]? boldItalic) {
+        options.DefaultFontFamily = familyName;
+        options.Fonts.Add(familyName, regular, OfficeFontStyle.Regular);
+        if (bold != null) options.Fonts.Add(familyName, bold, OfficeFontStyle.Bold);
+        if (italic != null) options.Fonts.Add(familyName, italic, OfficeFontStyle.Italic);
+        if (boldItalic != null) {
+            options.Fonts.Add(
+                familyName,
+                boldItalic,
+                OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+        }
+        options.FontFamily = new PdfEmbeddedFontFamily(
+            familyName,
+            regular,
+            bold,
+            italic,
+            boldItalic);
     }
 
     private static async Task SaveAsync(

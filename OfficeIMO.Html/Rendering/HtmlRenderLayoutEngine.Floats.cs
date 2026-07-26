@@ -85,6 +85,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 previousWasCollapsibleSpace = false;
                 continue;
             }
+            if (run.RunningStringElement != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                continue;
+            }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;
@@ -211,6 +215,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
+                foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
+                    runningStringAssignments.Add(assignment.Translate(placement.Y));
+                }
                 if (run.Style.PaintVisible) {
                     foreach (HtmlRenderVisual visual in block.Visuals) {
                         AddInlineOwnedVisual(
@@ -262,6 +269,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomic.Height);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
+                    foreach (HtmlCssRunningStringAssignment assignment in atomic.RunningStringAssignments) {
+                        runningStringAssignments.Add(assignment.Translate(atomicY));
+                    }
                     if (segment.Run.Style.PaintVisible) {
                         foreach (HtmlRenderVisual visual in atomic.Visuals) {
                             HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
@@ -345,7 +355,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer),
             height,
             breakOffsets,
-            runningStringAssignments);
+            runningStringAssignments.OrderBy(assignment => assignment.Offset));
     }
 
     private sealed class InlineFloatContext {

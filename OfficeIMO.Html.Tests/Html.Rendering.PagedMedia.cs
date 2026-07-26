@@ -138,6 +138,44 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_InlineRunningStringMarkersRemainTransparentToWhitespaceCollapsing() {
+        const string html = """
+            <p style="margin:0;font-size:12px;line-height:14px">A <span style="string-set:section content()"></span> B</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        string text = string.Concat(rendered.Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .Where(visual => visual.SemanticRole != "page-margin")
+            .Select(visual => visual.Text));
+        Assert.Equal("A B", text);
+    }
+
+    [Theory]
+    [InlineData("<div style='float:left'><span style='string-set:section content()'>Float section</span></div><p>Body</p>", "Float section")]
+    [InlineData("<p><span style='display:inline-block'><span style='string-set:section content()'>Inline block section</span></span></p>", "Inline block section")]
+    [InlineData("<p><span style='display:inline-flex'><span style='string-set:section content()'>Inline flex section</span></span></p>", "Inline flex section")]
+    [InlineData("<p><span style='display:inline-grid'><span style='string-set:section content()'>Inline grid section</span></span></p>", "Inline grid section")]
+    public void HtmlRender_Paged_PropagatesRunningStringsThroughFloatsAndInlineAtomicBoxes(
+        string body,
+        string expected) {
+        string html = "<style>@page{size:3in 2in;margin:24px;@top-center{content:string(section)}}"
+            + "p,div,span{margin:0;font-size:12px;line-height:14px}</style>"
+            + body;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == expected);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_OmitsRunningStringsBeyondTheConfiguredCharacterLimit() {
         const string html = """
             <style>

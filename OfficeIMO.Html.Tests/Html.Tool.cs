@@ -2,7 +2,9 @@
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Html.Tool;
 using Xunit;
 
@@ -131,6 +133,37 @@ public sealed class HtmlPdfToolTests {
         } finally {
             File.Delete(fontPath);
         }
+    }
+
+    [Fact]
+    public void HtmlTool_RegistersExplicitFacesForLayoutAndPdfPainting() {
+        byte[] regular = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
+        byte[] bold = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
+        byte[] italic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
+        byte[] boldItalic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
+        var options = new HtmlPdfSaveOptions();
+
+        HtmlPdfToolApp.ConfigureFontFamily(
+            options,
+            "Tool Layout Contract",
+            regular,
+            bold,
+            italic,
+            boldItalic);
+
+        Assert.Equal("Tool Layout Contract", options.DefaultFontFamily);
+        Assert.Equal(4, options.Fonts.Faces.Count);
+        Assert.Equal(
+            [OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic],
+            options.Fonts.Faces.Select(face => face.Style).ToArray());
+        Assert.True(options.Fonts.TryMeasureText(
+            "AB",
+            16D,
+            options.DefaultFontFamily,
+            OfficeFontStyle.Regular,
+            out double width));
+        Assert.True(width > 0D);
+        Assert.Equal("Tool Layout Contract", options.FontFamily?.FamilyName);
     }
 
     [Fact]

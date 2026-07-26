@@ -238,7 +238,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlInlineRun run in runs) {
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
-                previousWasCollapsibleSpace = false;
                 continue;
             }
             if (run.PositionedMarkerElement != null) {

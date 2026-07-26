@@ -458,7 +458,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.BreakOffsets,
             style.Orphans,
             style.Widows,
-            pageName: style.PageName);
+            pageName: style.PageName,
+            runningStringAssignments: inline.RunningStringAssignments);
         blocks.Add(block);
         return block.Height;
     }
