@@ -116,7 +116,10 @@ namespace OfficeIMO.Excel {
                     : new ListValue<StringValue> { InnerText = string.Join(" ", remappedResults) };
             }
 
-            foreach (Scenario scenario in scenarios.Elements<Scenario>().ToList()) {
+            List<Scenario> originalScenarios = scenarios.Elements<Scenario>().ToList();
+            var removedScenarioIndices = new HashSet<int>();
+            for (int scenarioIndex = 0; scenarioIndex < originalScenarios.Count; scenarioIndex++) {
+                Scenario scenario = originalScenarios[scenarioIndex];
                 foreach (InputCells input in scenario.Elements<InputCells>().ToList()) {
                     if (input.CellReference?.Value is not string reference
                         || !TryRemapShiftedReferenceListRows(
@@ -138,14 +141,56 @@ namespace OfficeIMO.Excel {
                 uint inputCount = (uint)scenario.Elements<InputCells>().Count();
                 if (inputCount == 0U) {
                     scenario.Remove();
+                    removedScenarioIndices.Add(scenarioIndex);
                 } else {
                     scenario.Count = inputCount;
                 }
             }
 
-            if (!scenarios.Elements<Scenario>().Any()) {
+            int survivingScenarioCount = originalScenarios.Count - removedScenarioIndices.Count;
+            if (survivingScenarioCount == 0) {
                 scenarios.Remove();
+                return;
             }
+
+            if (removedScenarioIndices.Count > 0) {
+                if (scenarios.Current?.Value is uint current) {
+                    scenarios.Current = RemapScenarioIndex(
+                        current,
+                        originalScenarios.Count,
+                        removedScenarioIndices);
+                }
+                if (scenarios.Show?.Value is uint shown) {
+                    scenarios.Show = RemapScenarioIndex(
+                        shown,
+                        originalScenarios.Count,
+                        removedScenarioIndices);
+                }
+            }
+        }
+
+        private static uint RemapScenarioIndex(
+            uint index,
+            int originalCount,
+            ISet<int> removedIndices) {
+            int oldIndex = index >= (uint)originalCount
+                ? originalCount - 1
+                : (int)index;
+            int newIndex = 0;
+            int lastSurvivingNewIndex = 0;
+            for (int candidate = 0; candidate < originalCount; candidate++) {
+                if (removedIndices.Contains(candidate)) {
+                    continue;
+                }
+
+                lastSurvivingNewIndex = newIndex;
+                if (candidate >= oldIndex) {
+                    return (uint)newIndex;
+                }
+                newIndex++;
+            }
+
+            return (uint)lastSurvivingNewIndex;
         }
 
         private void RemapShiftedCellWatches(
@@ -365,6 +410,54 @@ namespace OfficeIMO.Excel {
             }
 
             return changed;
+        }
+
+        private void RemapShiftedSelections(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
+                string? activeCell = selection.ActiveCell?.Value;
+                if (!string.IsNullOrWhiteSpace(activeCell)
+                    && TryRemapShiftedReferenceListRows(
+                        activeCell!,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remappedActiveCell)) {
+                    selection.ActiveCell = remappedActiveCell.Count > 0
+                        ? remappedActiveCell[0]
+                        : lastDeletedRow.HasValue
+                            ? ClampDeletedSelectionReference(activeCell!, firstAffectedRow)
+                            : activeCell;
+                }
+
+                string? references = selection.SequenceOfReferences?.InnerText;
+                if (string.IsNullOrWhiteSpace(references)
+                    || !TryRemapShiftedReferenceListRows(
+                        references!,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        out List<string> remappedReferences)) {
+                    continue;
+                }
+
+                string fallback = selection.ActiveCell?.Value ?? "A1";
+                selection.SequenceOfReferences = new ListValue<StringValue> {
+                    InnerText = remappedReferences.Count > 0
+                        ? string.Join(" ", remappedReferences)
+                        : fallback
+                };
+            }
+        }
+
+        private static string ClampDeletedSelectionReference(
+            string reference,
+            int firstDeletedRow) {
+            return TryParseReference(reference, out var bounds)
+                ? A1.CellReference(firstDeletedRow, bounds.c1)
+                : "A1";
         }
     }
 }

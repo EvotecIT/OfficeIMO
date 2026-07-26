@@ -224,6 +224,7 @@ namespace OfficeIMO.Excel {
             RemapShiftedCellWatches(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedCellSmartTags(firstAffectedRow, rowDelta, lastDeletedRow);
             RemapShiftedSortStateReferences(WorksheetRoot, firstAffectedRow, rowDelta, lastDeletedRow);
+            RemapShiftedSelections(firstAffectedRow, rowDelta, lastDeletedRow);
 
             RowBreaks? rowBreaks = WorksheetRoot.GetFirstChild<RowBreaks>();
             if (rowBreaks == null) {

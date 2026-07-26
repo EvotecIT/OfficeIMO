@@ -176,6 +176,23 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: true);
             }
 
+            if (lastDeletedRow.HasValue
+                && startTargetsSheet
+                && endTargetsSheet
+                && TryMapAnchoredFormulaRangeRows(
+                    startRow,
+                    startRelative,
+                    endRow,
+                    endRelative,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow.Value,
+                    relativeFormulaSourceRowDelta,
+                    out int survivingStart,
+                    out int survivingEnd)) {
+                return BuildAnchoredFormulaRange(match, survivingStart, survivingEnd);
+            }
+
             int targetStart = startRow;
             int targetEnd = endRow;
             bool startMapped = !startTargetsSheet
@@ -250,6 +267,23 @@ namespace OfficeIMO.Excel {
                         rewriteUnqualifiedReferences: true);
             }
 
+            if (lastDeletedRow.HasValue
+                && startTargetsSheet
+                && endTargetsSheet
+                && TryMapAnchoredFormulaRangeRows(
+                    startRow,
+                    startRelative,
+                    endRow,
+                    endRelative,
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow.Value,
+                    relativeFormulaSourceRowDelta,
+                    out int survivingStart,
+                    out int survivingEnd)) {
+                return BuildFormulaRowRange(match, survivingStart, survivingEnd);
+            }
+
             int targetStart = startRow;
             int targetEnd = endRow;
             bool startMapped = !startTargetsSheet
@@ -292,7 +326,11 @@ namespace OfficeIMO.Excel {
             int relativeFormulaSourceRowDelta,
             out int targetRow) {
             targetRow = row;
-            if (relativeRow && relativeReferencesFollowAnchor) {
+            if (relativeRow
+                && relativeReferencesFollowAnchor
+                && lastDeletedRow.HasValue
+                && row >= firstAffectedRow
+                && row <= lastDeletedRow.Value) {
                 targetRow += anchorRowDelta;
             } else {
                 int sourceRow = relativeRow
@@ -312,6 +350,55 @@ namespace OfficeIMO.Excel {
             }
 
             return targetRow > 0 && targetRow <= A1.MaxRows;
+        }
+
+        private static bool TryMapAnchoredFormulaRangeRows(
+            int startRow,
+            bool startRelative,
+            int endRow,
+            bool endRelative,
+            int firstDeletedRow,
+            int rowDelta,
+            int lastDeletedRow,
+            int relativeFormulaSourceRowDelta,
+            out int targetStart,
+            out int targetEnd) {
+            int sourceStart = startRelative
+                ? startRow + relativeFormulaSourceRowDelta
+                : startRow;
+            int sourceEnd = endRelative
+                ? endRow + relativeFormulaSourceRowDelta
+                : endRow;
+            targetStart = sourceStart;
+            targetEnd = sourceEnd;
+            if (sourceStart <= 0
+                || sourceStart > A1.MaxRows
+                || sourceEnd <= 0
+                || sourceEnd > A1.MaxRows) {
+                return false;
+            }
+
+            bool reversed = sourceStart > sourceEnd;
+            int firstSourceRow = Math.Min(sourceStart, sourceEnd);
+            int lastSourceRow = Math.Max(sourceStart, sourceEnd);
+            if (!TryRemapShiftedReferenceRows(
+                    (firstSourceRow, 1, lastSourceRow, 1),
+                    firstDeletedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remapped)) {
+                return relativeFormulaSourceRowDelta != 0;
+            }
+
+            if (remapped == null) {
+                targetStart = 0;
+                targetEnd = 0;
+                return false;
+            }
+
+            targetStart = reversed ? remapped.Value.r2 : remapped.Value.r1;
+            targetEnd = reversed ? remapped.Value.r1 : remapped.Value.r2;
+            return true;
         }
 
         private static int GetRelativeFormulaSourceRowDelta(

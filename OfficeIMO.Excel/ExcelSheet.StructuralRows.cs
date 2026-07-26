@@ -1,4 +1,6 @@
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -406,6 +408,9 @@ namespace OfficeIMO.Excel {
             foreach (CellWatch cellWatch in WorksheetRoot.Descendants<CellWatch>()) {
                 ValidateReferenceListDoesNotOverflow(cellWatch.CellReference?.Value, firstRow, count);
             }
+            foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
+                ValidateReferenceListDoesNotOverflow(selection.ActiveCell?.Value, firstRow, count);
+            }
             foreach (OpenXmlElement smartTag in WorksheetRoot.Descendants()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase))) {
                 OpenXmlAttribute referenceAttribute = smartTag.GetAttributes()
@@ -489,7 +494,8 @@ namespace OfficeIMO.Excel {
 
         private void ValidateStructuralRowControlSafety() {
             if (WorksheetRoot.Descendants<Controls>().Any()
-                || _worksheetPart.ControlPropertiesParts.Any()) {
+                || _worksheetPart.ControlPropertiesParts.Any()
+                || ContainsUnsupportedVmlFormControl()) {
                 throw new InvalidOperationException(
                     "Cannot edit rows on a worksheet containing form controls because their anchors and linked cells cannot yet be remapped safely.");
             }
@@ -502,6 +508,21 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException(
                     "Cannot edit rows on a worksheet containing single-cell XML mappings because their mapped references cannot yet be remapped safely.");
             }
+        }
+
+        private bool ContainsUnsupportedVmlFormControl() {
+            XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+            foreach (VmlDrawingPart vmlPart in _worksheetPart.VmlDrawingParts) {
+                XDocument document = LoadOrCreateVmlDocument(vmlPart);
+                foreach (XElement clientData in document.Descendants(excelNamespace + "ClientData")) {
+                    string? objectType = clientData.Attribute("ObjectType")?.Value;
+                    if (!string.Equals(objectType, "Note", StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void ValidateChartFormulaCapacity(
