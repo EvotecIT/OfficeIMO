@@ -58,7 +58,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private bool PreviewOutput { get; set; } = true;
     private bool IsBusy { get; set; }
     private long ElapsedMilliseconds { get; set; }
-    private List<ConversionDiagnostic> Diagnostics { get; } = [ReadyDiagnostic()];
+    private List<ConversionDiagnostic> Diagnostics { get; } = [];
 
     private static IReadOnlyList<ConversionRoute> Routes => ConversionRouteCatalog.All;
     private static IReadOnlyList<BrowserPdfProfile> PdfProfiles => BrowserPdfProfileCatalog.All;
@@ -99,7 +99,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         GenerateDebugOverlay = false;
         IncludeDocumentContentInSupportBundle = false;
         Diagnostics.Clear();
-        Diagnostics.Add(ReadyDiagnostic());
         Navigation.NavigateTo($"?route={Uri.EscapeDataString(route.Id)}", replace: true);
     }
 
@@ -284,9 +283,6 @@ This **Markdown** becomes a browser preview or an editable Word document.
         ex.GetType().Name.Contains("PdfTextEncodingPreflightException", StringComparison.Ordinal)
             ? "This document uses text that needs an embedded font not available to the browser conversion. " + ex.Message
             : ex.Message;
-
-    private static ConversionDiagnostic ReadyDiagnostic() =>
-        new("Ready", "Choose a source and run the conversion. Nothing is uploaded.", "ocx-dot--good");
 
     private static IEnumerable<IGrouping<string, ConversionWarningView>> GroupWarnings(
         IEnumerable<ConversionWarningView> warnings) =>

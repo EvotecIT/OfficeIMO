@@ -4,7 +4,7 @@ description: Run supported OfficeIMO conversions locally through the WebAssembly
 order: 90
 ---
 
-The [browser converter](/playground/) is a static Blazor WebAssembly application. Supported conversions execute inside the current tab; selected files are not uploaded to OfficeIMO.
+The [browser converter](/convert/) is a static Blazor WebAssembly application. Supported conversions execute inside the current tab; selected files are not uploaded to OfficeIMO.
 
 ## Supported browser routes
 

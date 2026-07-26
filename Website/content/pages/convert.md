@@ -1,53 +1,16 @@
 ---
-title: "Document Conversion for .NET"
-description: "Choose .NET routes for DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, PDF, and web formats, with documented PSWriteOffice routes called out separately."
-layout: solution
-meta.eyebrow: "Conversion workflows"
-meta.outcome: "Move documents without hiding fidelity decisions"
-meta.primary_label: "Check format support"
-meta.primary_url: "/compatibility/"
-meta.social_card_badge: "Office conversion"
+title: "Browser Converter"
+description: "Convert supported Office, Markdown, and HTML content locally in your browser with OfficeIMO WebAssembly."
+layout: playground
+meta.seo_title: "Browser document converter | OfficeIMO"
+meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/convert/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/convert/" />'
 ---
 
-OfficeIMO conversion is built for .NET applications that need more than a file-extension switch. Each focused package owns a document family, while adapters add PDF, HTML, Markdown, OpenDocument, Google Workspace, and normalized extraction only when the workflow needs them.
-
-## Start with the route you need
-
-| Input and output | Best starting point | What you can inspect |
-|---|---|---|
-| [DOC and DOCX](/convert/doc-docx/) | `OfficeIMO.Word` | Feature-level compatibility, preservation, and conversion diagnostics |
-| [XLS and XLSX](/convert/xls-xlsx/) | `OfficeIMO.Excel` | Worksheets, formulas, styles, charts, and legacy BIFF decisions |
-| [XLSB and XLSX](/convert/xlsb-xlsx/) | `OfficeIMO.Excel` | Native binary-workbook parsing and write diagnostics |
-| [PPT and PPTX](/convert/ppt-pptx/) | `OfficeIMO.PowerPoint` | Slides, shapes, text, media, notes, charts, and fallback decisions |
-| [Word to PDF](/convert/word-to-pdf/) | `OfficeIMO.Word.Pdf` | Publishing warnings, fonts, images, tables, sections, and output status |
-| [Excel to PDF](/convert/excel-to-pdf/) | `OfficeIMO.Excel.Pdf` | Worksheet selection, pagination, page setup, styles, and export warnings |
-
-For HTML, Markdown, RTF, OpenDocument, Google Docs, Sheets, and Slides, use the focused adapter shown in the [package catalog](/downloads/). This keeps dependencies and deployment behavior explicit.
-
-## PowerShell routes are documented separately
-
-PSWriteOffice exposes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and a much broader set of authoring, inspection, validation, and publishing commands. It does not imply that every .NET conversion route in the table is available as a cmdlet. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
-
-## Conversion is a policy decision
-
-A document can be readable even when every source feature is not editable in the destination. OfficeIMO distinguishes:
-
-- **Native** content represented directly by the destination format.
-- **Editable approximation** when the closest destination feature is still useful.
-- **Visual fallback** when appearance matters more than editability.
-- **Preserved source** when recovery is safer than pretending a conversion was complete.
-- **Blocked output** when continuing would silently misrepresent the result.
-
-The [format compatibility page](/compatibility/) exposes those states from the same contracts used by the libraries. For governed migrations, analyze first, decide which states your workflow accepts, then write the output.
-
-## Browser, server, and desktop choices
-
-The browser playground intentionally supports a smaller modern-format route set because files stay in the browser. Legacy DOC, XLS, and PPT migration belongs in a .NET service, desktop application, or CLI. PSWriteOffice additionally provides the documented DOC/DOCX and XLS/XLSX cmdlet routes described above. That boundary is explicit so a browser demo—or the .NET package matrix—is never mistaken for the PowerShell command surface.
-
-## Need a broader workflow?
-
-- [Browse all solution guides](/solutions/)
-- [Modernize a legacy Office archive](/solutions/legacy-office-modernization/)
-- [Publish Office content to PDF and web formats](/solutions/document-publishing/)
-- [Normalize documents for search and AI](/solutions/document-ingestion/)
-- [Automate recurring document jobs with PowerShell](/solutions/powershell-document-automation/)
+<section class="imo-converter-launch">
+  <div class="imo-container imo-converter-launch__intro">
+    <div><p class="imo-converter-launch__eyebrow">Local WebAssembly converter</p><h1>Convert documents<br><span>without uploading them.</span></h1><p>Use the interactive converter for Word, Excel, and PowerPoint to PDF, Markdown to HTML or Word, and HTML to Markdown. The current browser routes run in this tab. Need a server-side or legacy route? <a href="/convert/guides/">Browse the .NET conversion guides</a>.</p></div>
+    <aside><strong>Privacy boundary</strong><p>Files remain in the browser session. OfficeIMO does not receive or retain them.</p></aside>
+  </div>
+  <div class="imo-container imo-converter-launch__frame-shell"><iframe class="imo-converter-launch__frame" src="/apps/officeimo-converter/?embedded=1" title="OfficeIMO browser converter" loading="lazy"></iframe></div>
+  <noscript><div class="imo-container"><p><a href="/apps/officeimo-converter/">Open the converter application</a></p></div></noscript>
+</section>

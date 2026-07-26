@@ -5,7 +5,7 @@
   "tagline": "Use typed .NET packages for the full DOC, XLS, XLSB, PPT, and modern Office surface. Use PSWriteOffice for its documented PowerShell authoring, inspection, and conversion workflows — all without Microsoft Office.",
   "ctas": [
     { "label": "Check format support", "href": "/compatibility/", "style": "primary" },
-    { "label": "Explore conversions", "href": "/convert/", "style": "ghost" }
+    { "label": "Try the converter", "href": "/convert/", "style": "ghost" }
   ],
   "install": {
     "dotnet": "dotnet add package OfficeIMO.Word",

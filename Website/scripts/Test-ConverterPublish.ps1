@@ -15,11 +15,60 @@ $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'Offi
 $runtimeWasmPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'dotnet.native*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
     Select-Object -First 1 -ExpandProperty FullName
+$convertPagePath = Join-Path $SiteRoot 'convert/index.html'
+$conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
+$playgroundPagePath = Join-Path $SiteRoot 'playground/index.html'
 
-foreach ($path in @($indexPath, $modulePath, $appAssemblyPath, $runtimeWasmPath)) {
+foreach ($path in @(
+        $indexPath,
+        $modulePath,
+        $appAssemblyPath,
+        $runtimeWasmPath,
+        $convertPagePath,
+        $conversionGuidesPath,
+        $playgroundPagePath
+    )) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Converter publish is missing '$path'."
     }
+}
+
+$converterFramePattern = 'src="/apps/officeimo-converter/\?embedded=1"'
+$convertPage = Get-Content -LiteralPath $convertPagePath -Raw
+if ($convertPage -notmatch $converterFramePattern) {
+    throw "The primary /convert/ route does not host the browser converter."
+}
+
+$conversionGuides = Get-Content -LiteralPath $conversionGuidesPath -Raw
+if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>') {
+    throw "The /convert/guides/ route does not contain the conversion guide."
+}
+
+$playgroundPage = Get-Content -LiteralPath $playgroundPagePath -Raw
+if ($playgroundPage -notmatch $converterFramePattern) {
+    throw "The compatibility /playground/ route does not host the browser converter."
+}
+$canonicalLink = [regex]::Matches(
+    $playgroundPage,
+    '<link\b[^>]*>',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+) | Where-Object {
+    $_.Value -match '\brel\s*=\s*(?:"canonical"|''canonical''|canonical)(?:\s|/?>)' -and
+    $_.Value -match '\bhref\s*=\s*(?:"https://officeimo\.com/convert/"|''https://officeimo\.com/convert/''|https://officeimo\.com/convert/)(?:\s|/?>)'
+} | Select-Object -First 1
+if (-not $canonicalLink) {
+    throw "The compatibility /playground/ route does not canonicalize to /convert/."
+}
+$robotsMeta = [regex]::Matches(
+    $playgroundPage,
+    '<meta\b[^>]*>',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+) | Where-Object {
+    $_.Value -match '\bname\s*=\s*(?:"robots"|''robots''|robots)(?:\s|/?>)' -and
+    $_.Value -match '\bcontent\s*=\s*(?:"[^"]*\bnoindex\b[^"]*"|''[^'']*\bnoindex\b[^'']*''|[^\s>]*\bnoindex\b[^\s>]*)(?:\s|/?>)'
+} | Select-Object -First 1
+if (-not $robotsMeta) {
+    throw "The compatibility /playground/ route is indexable instead of being a noindex alias."
 }
 
 $runtimeWasm = [System.Text.Encoding]::ASCII.GetString(

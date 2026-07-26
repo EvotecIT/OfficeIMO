@@ -328,6 +328,7 @@
     if (!frame) return;
 
     var observer = null;
+    var compactViewport = window.matchMedia('(max-width: 760px)');
 
     function syncTheme() {
       try {
@@ -342,6 +343,11 @@
     }
 
     function syncHeight() {
+      if (compactViewport.matches) {
+        frame.style.removeProperty('height');
+        return;
+      }
+
       try {
         var frameDocument = frame.contentDocument;
         if (!frameDocument) return;
@@ -353,6 +359,12 @@
       } catch (error) {
         // The converter is same-origin in production. Keep the CSS fallback if a preview host changes that.
       }
+    }
+
+    if (typeof compactViewport.addEventListener === 'function') {
+      compactViewport.addEventListener('change', syncHeight);
+    } else if (typeof compactViewport.addListener === 'function') {
+      compactViewport.addListener(syncHeight);
     }
 
     function observeFrame() {

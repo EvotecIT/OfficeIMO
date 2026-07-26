@@ -1438,6 +1438,7 @@ body.pf-api-docs {
 .imo-converter-launch__frame {
   display: block;
   width: 100%;
+  height: auto;
   min-height: 720px;
   border: 0;
   background: var(--imo-bg);
@@ -2136,6 +2137,9 @@ body.pf-api-docs {
 }
 
 @media (max-width: 760px) {
+  html:has(.imo-body--playground),
+  .imo-body--playground { overflow: hidden; }
+  .imo-body--playground .imo-footer { display: none; }
   .imo-container { padding-inline: 1rem; }
   .imo-header__actions .nav-cta { display: none; }
   .imo-hero { min-height: 0; padding: 3rem 0 2.25rem; }
@@ -2181,7 +2185,15 @@ body.pf-api-docs {
   .imo-api-component-row nav { justify-content: flex-start; }
   .imo-blog-featured__copy { padding: 1.3rem; }
   .imo-footer__grid { grid-template-columns: 1fr 1fr; }
-  .imo-converter-launch__frame { min-height: 900px; }
+  .imo-converter-launch__frame-shell {
+    width: 100%;
+    padding-inline: 0;
+  }
+  .imo-converter-launch__frame {
+    height: calc(100dvh - var(--imo-header-height));
+    min-height: 0;
+    border-radius: 0;
+  }
   .imo-proof-card { grid-template-columns: 1fr; gap: 0.75rem; }
   .imo-proof-card__format { align-items: center; }
   .imo-proof-card__format span { padding-top: 0; }
