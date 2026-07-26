@@ -12,6 +12,7 @@ public partial class Html {
     [InlineData("clamp(20px, 40%, 60px)", 60D)]
     [InlineData("calc((8px + 2px) * 3)", 30D)]
     [InlineData("calc(90px / 3)", 30D)]
+    [InlineData("calc((10px / 2px) * 5px)", 25D)]
     public void HtmlCssLengthMath_ResolvesAcrossSharedLayoutConsumers(string width, double expected) {
         string html = "<div id='math' style='width:" + width + ";height:10px;margin:0;background:#ff0000'></div>";
 

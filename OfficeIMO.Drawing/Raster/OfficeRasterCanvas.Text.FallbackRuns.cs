@@ -19,7 +19,7 @@ public sealed partial class OfficeRasterCanvas {
         double? textAdvanceWidth) {
         if (_fonts == null) return false;
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
-        if (runs.Count <= 1) return false;
+        if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
 
         string value = text;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
@@ -37,7 +37,7 @@ public sealed partial class OfficeRasterCanvas {
                 value += "...";
                 measured = MeasureText(value, size, fontFamily, style);
                 runs = _fonts.PlanFallbackRuns(value, fontFamily, style);
-                if (runs.Count <= 1) {
+                if (!ShouldUseFallbackRuns(runs, fontFamily)) {
                     DrawTextCore(
                         value,
                         x,
@@ -104,7 +104,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
-        if (runs.Count <= 1) return false;
+        if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
 
         double width = MeasureText(text, fontHeight, fontFamily, style);
         double cursor = ResolveAnchoredTextX(anchorX, width, alignment);
@@ -149,7 +149,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, style);
-        if (runs.Count <= 1) return false;
+        if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
 
         double width = MeasureText(text, fontHeight, fontFamily, style);
         double cursor = ResolveAnchoredTextX(anchorX, width, alignment);
@@ -171,5 +171,16 @@ public sealed partial class OfficeRasterCanvas {
             cursor += runWidth;
         }
         return true;
+    }
+
+    private static bool ShouldUseFallbackRuns(
+        IReadOnlyList<OfficeFontFallbackRun> runs,
+        string? requestedFamilies) {
+        if (runs.Count > 1) return true;
+        if (runs.Count == 0) return false;
+        return !string.Equals(
+            runs[0].FamilyName,
+            requestedFamilies?.Trim() ?? string.Empty,
+            StringComparison.OrdinalIgnoreCase);
     }
 }

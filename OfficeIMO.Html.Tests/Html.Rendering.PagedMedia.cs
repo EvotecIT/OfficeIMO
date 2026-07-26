@@ -158,6 +158,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_RetainsEscapedSemicolonsInRunningStringAssignmentNames() {
+        const string html = """
+            <style>
+              @page { size:3in 2in; margin:24px; @top-center { content:string(sec\;tion); } }
+              .target { string-set:sec\;tion 'Escaped semicolon'; }
+            </style>
+            <p class="target">Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Escaped semicolon");
+    }
+
+    [Fact]
     public void HtmlRender_Paged_PreservesRunningStringFlowOrderAcrossColumns() {
         const string html = """
             <style>

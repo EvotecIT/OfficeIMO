@@ -111,6 +111,16 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
+            if (current == '\\'
+                && HtmlCssEscapeDecoder.TryDecodeEscape(
+                    styleText,
+                    i,
+                    out _,
+                    out int consumedCharacters)) {
+                i += consumedCharacters - 1;
+                continue;
+            }
+
             if (current == '(') {
                 depth++;
                 continue;

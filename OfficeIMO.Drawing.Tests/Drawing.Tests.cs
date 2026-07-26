@@ -3406,6 +3406,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeRasterCanvasUsesConfiguredFallbackForASingleResolvedRun() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Portable Sans", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x0041)))
+            .Add("Emoji Fallback", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
+            .AddFallbackFamily("Emoji Fallback");
+        var canvas = new OfficeRasterCanvas(
+            new OfficeRasterImage(1, 1, OfficeColor.Transparent),
+            fonts: fonts);
+
+        double measured = canvas.MeasureText(emoji, 1000D, "Portable Sans");
+
+        Assert.Equal(500D, measured);
+    }
+
+    [Fact]
     public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
         var fonts = new OfficeFontFaceCollection()
             .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))

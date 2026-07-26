@@ -323,6 +323,32 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public void HtmlResourcePipeline_DoesNotCountBracesInsideUnquotedUrlsAsCssRuleBlocks() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 1;
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<style>.target{background:url(image{{name}}.png);color:red}</style>",
+            new HtmlResourcePipelineOptions { Limits = limits });
+
+        Assert.Empty(manifest.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlResourcePipeline_DoesNotLetClosingBracesInsideUnquotedUrlsHideCssNesting() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 2;
+        const string css = ".outer{background:url(image}}.png);@media all{.inner{color:red}}}";
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlResourcePipeline.BuildManifest(
+                "<style>" + css + "</style>",
+                new HtmlResourcePipelineOptions { Limits = limits }));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded, exception.Code);
+    }
+
+    [Fact]
     public void HtmlConversionDocument_LoadStopsAtTheSharedCharacterBudgetAndRestoresTheStream() {
         byte[] bytes = Encoding.UTF8.GetBytes("<p>stream content</p>");
         using var stream = new MemoryStream(bytes);

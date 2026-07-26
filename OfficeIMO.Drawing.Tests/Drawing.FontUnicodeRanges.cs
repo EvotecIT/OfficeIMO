@@ -172,7 +172,7 @@ public sealed class DrawingFontUnicodeRangeTests {
         Assert.Contains("font-family=\"Scoped\"", svg, StringComparison.Ordinal);
         foreach (OfficeFontFace face in drawing.Fonts.Faces) {
             string declaration = Assert.Single(
-                svg.Split("@font-face{", StringSplitOptions.RemoveEmptyEntries),
+                svg.Split(new[] { "@font-face{" }, StringSplitOptions.RemoveEmptyEntries),
                 value => value.StartsWith("font-family:\"" + face.ResourceFamilyName + "\"", StringComparison.Ordinal));
             Assert.DoesNotContain("unicode-range:", declaration.Split('}')[0], StringComparison.Ordinal);
         }

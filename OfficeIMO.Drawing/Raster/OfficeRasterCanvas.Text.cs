@@ -35,7 +35,7 @@ public sealed partial class OfficeRasterCanvas {
         if (_fonts != null) {
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns =
                 _fonts.PlanFallbackRuns(text, fontFamily, style);
-            if (fallbackRuns.Count > 1) {
+            if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
                 foreach (OfficeFontFallbackRun run in fallbackRuns) {
                     aggregate += MeasureText(run.Text, size, run.FamilyName, style);

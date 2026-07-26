@@ -266,10 +266,19 @@ internal sealed class HtmlCssLengthMathEvaluator {
         out CssNumeric result) {
         result = default;
         if (operation == '/') {
-            if (right.Dimension != CssNumericDimension.Number || right.Value == 0D) return false;
+            if (right.Value == 0D) return false;
+            CssNumericDimension quotientDimension;
+            if (right.Dimension == CssNumericDimension.Number) {
+                quotientDimension = left.Dimension;
+            } else if (left.Dimension == CssNumericDimension.Length
+                && right.Dimension == CssNumericDimension.Length) {
+                quotientDimension = CssNumericDimension.Number;
+            } else {
+                return false;
+            }
             double quotient = left.Value / right.Value;
             if (!IsFinite(quotient)) return false;
-            result = new CssNumeric(quotient, left.Dimension);
+            result = new CssNumeric(quotient, quotientDimension);
             return true;
         }
 

@@ -13,22 +13,48 @@ internal static class HtmlCssRuleBlockScanner {
         var closures = new Dictionary<int, int>();
         var opens = new Stack<int>();
         char quote = '\0';
+        bool insideUrl = false;
+        int identifierLength = 0;
+        bool identifierMatchesUrl = true;
         for (int index = 0; index < css.Length; index++) {
             char current = css[index];
             if (quote != '\0') {
                 if (current == quote && !IsEscaped(css, index)) quote = '\0';
                 continue;
             }
-            if (current == '\'' || current == '"') quote = current;
-            else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+            if (current == '\'' || current == '"') {
+                quote = current;
+                ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
+            } else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
                 index = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (index < 0) break;
                 index++;
-            } else if (current == '{' && !IsEscaped(css, index)) {
+            } else if (current == '\\'
+                && HtmlCssEscapeDecoder.TryDecodeEscape(
+                    css,
+                    index,
+                    out string decoded,
+                    out int consumedCharacters)) {
+                if (!insideUrl) {
+                    AppendIdentifier(decoded, ref identifierLength, ref identifierMatchesUrl);
+                }
+                index += consumedCharacters - 1;
+            } else if (insideUrl) {
+                if (current == ')') insideUrl = false;
+            } else if (IsIdentifierCharacter(current)) {
+                AppendIdentifier(current.ToString(), ref identifierLength, ref identifierMatchesUrl);
+            } else if (current == '(') {
+                insideUrl = identifierMatchesUrl && identifierLength == 3;
+                ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
+            } else if (current == '{') {
+                ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
                 opens.Push(index);
                 budget.RecordNestingDepth(opens.Count);
-            } else if (current == '}' && !IsEscaped(css, index) && opens.Count > 0) {
-                closures[opens.Pop()] = index;
+            } else {
+                ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
+                if (current == '}' && opens.Count > 0) {
+                    closures[opens.Pop()] = index;
+                }
             }
         }
         return closures;
@@ -69,5 +95,29 @@ internal static class HtmlCssRuleBlockScanner {
             backslashes++;
         }
         return (backslashes & 1) != 0;
+    }
+
+    private static bool IsIdentifierCharacter(char value) =>
+        char.IsLetterOrDigit(value) || value == '_' || value == '-' || value >= 0x80;
+
+    private static void AppendIdentifier(
+        string value,
+        ref int identifierLength,
+        ref bool identifierMatchesUrl) {
+        const string Url = "url";
+        for (int index = 0; index < value.Length; index++) {
+            if (identifierLength >= Url.Length
+                || char.ToLowerInvariant(value[index]) != Url[identifierLength]) {
+                identifierMatchesUrl = false;
+            }
+            identifierLength++;
+        }
+    }
+
+    private static void ResetIdentifier(
+        ref int identifierLength,
+        ref bool identifierMatchesUrl) {
+        identifierLength = 0;
+        identifierMatchesUrl = true;
     }
 }
