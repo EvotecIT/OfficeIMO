@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--product">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--product">
+    <section class="imo-capability-hero">
+      <div class="imo-container">
+        {{ include "breadcrumbs" }}
+        <p class="imo-section__eyebrow">Format and fidelity evidence</p>
+        <h1>{{ page.title }}</h1>
+        <p class="imo-capability-hero__lead">{{ page.description }}</p>
+        {{ if data.office_capabilities }}
+        <div class="imo-capability-summary" aria-label="Compatibility catalog summary">
+          <span><strong>{{ data.office_capabilities.summary.familyCount }}</strong> Office families</span>
+          <span><strong>{{ data.office_capabilities.summary.formatCount }}</strong> file variants</span>
+          <span><strong>{{ data.office_capabilities.summary.capabilityCount }}</strong> tracked behaviors</span>
+        </div>
+        {{ end }}
+      </div>
+    </section>
+
+    {{ if data.office_capabilities }}
+    <section class="imo-capability-catalog">
+      <div class="imo-container">
+        <div class="imo-capability-grid">
+          {{ for family in data.office_capabilities.families }}
+          <article id="{{ family.id }}" class="imo-capability-card" style="--capability-color: {{ family.color }};">
+            <div class="imo-capability-card__header">
+              <div>
+                <p class="imo-capability-card__package">{{ family.package }}</p>
+                <h2>{{ family.title }}</h2>
+              </div>
+              <span class="imo-capability-card__count">{{ family.contract.capabilityCount }} tracked behaviors</span>
+            </div>
+
+            <div class="imo-capability-format-groups">
+              <div>
+                <h3>Legacy binary</h3>
+                <div class="imo-capability-chips">
+                  {{ for extension in family.legacyFormats }}<span>{{ string.upcase extension }}</span>{{ end }}
+                </div>
+              </div>
+              <div>
+                <h3>Modern</h3>
+                <div class="imo-capability-chips">
+                  {{ for extension in family.modernFormats }}<span>{{ string.upcase extension }}</span>{{ end }}
+                </div>
+              </div>
+            </div>
+
+            <div class="imo-capability-contracts">
+              {{ for contract in family.contracts }}
+              <section class="imo-capability-contract">
+                <div class="imo-capability-contract__heading">
+                  <div>
+                    <h3>{{ contract.label }}</h3>
+                    <p>{{ contract.scope }}</p>
+                  </div>
+                  <span>{{ contract.capabilityCount }} behaviors</span>
+                </div>
+                {{ if contract.hasUnimplementedCoverage }}
+                <p class="imo-capability-contract__notice"><strong>Coverage is still incomplete.</strong> Rows marked “Not implemented” are explicit product gaps, not supported behavior.</p>
+                {{ end }}
+                <div class="imo-capability-operations">
+                  {{ for operation in contract.operations }}
+                  <div class="imo-capability-operation">
+                    <strong>{{ operation.label }}</strong>
+                    <div>
+                      {{ for state in operation.states }}
+                      <span title="{{ state.description }}">{{ state.label }} <b>{{ state.count }}</b></span>
+                      {{ end }}
+                    </div>
+                  </div>
+                  {{ end }}
+                </div>
+              </section>
+              {{ end }}
+            </div>
+
+            <div class="imo-capability-card__actions">
+              <a href="{{ family.productUrl }}">Explore {{ family.package }}</a>
+              <a href="{{ family.docsUrl }}">Read the {{ family.title }} guide</a>
+              <a href="{{ family.apiUrl }}">Open the {{ family.title }} API reference</a>
+            </div>
+          </article>
+          {{ end }}
+        </div>
+      </div>
+    </section>
+
+    <section class="imo-capability-legend">
+      <div class="imo-container">
+        <p class="imo-section__eyebrow">What the states mean</p>
+        <h2>Compatibility is an outcome, not a badge.</h2>
+        <p>OfficeIMO reports whether content remains native and editable, becomes an approximation or visual fallback, is preserved for recovery, or is blocked to prevent silent loss.</p>
+        <div class="imo-capability-legend__grid">
+          {{ for state in data.office_capabilities.fidelityStates }}
+          <div><strong>{{ state.label }}</strong><span>{{ state.description }}</span></div>
+          {{ end }}
+        </div>
+      </div>
+    </section>
+    {{ end }}
+
+    <div class="imo-container">
+      <div class="imo-product__content imo-prose">
+{{ content }}
+      </div>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

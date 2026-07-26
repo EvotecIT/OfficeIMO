@@ -119,6 +119,46 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_Reports_Configured_Substitution_For_Used_Theme_Font() {
+        const string sourceFamily = "OfficeIMO Theme Body Source";
+        const string targetFamily = "OfficeIMO Portable Theme";
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeLatinFonts("OfficeIMO Theme Heading Source", sourceFamily);
+        presentation.AddSlide().AddTextBoxPoints("Theme font marker", 20, 24, 180, 40);
+
+        var configured = new PdfCore.PdfOptions();
+        configured
+            .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                targetFamily,
+                OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
+            .RegisterFontFamilySubstitution(
+                sourceFamily,
+                targetFamily,
+                PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
+
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(new PowerPointPdfSaveOptions {
+            PdfOptions = configured,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        byte[] bytes = result.ToBytes();
+
+        PdfCore.PdfConversionWarning diagnostic = Assert.Single(result.Warnings, item =>
+            item.Code == "font-family-substitution" &&
+            item.Details.TryGetValue("fontFamily", out string? family) &&
+            family == sourceFamily);
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, diagnostic.Severity);
+        Assert.Equal(targetFamily, diagnostic.Details["resolvedFontFamily"]);
+        Assert.Equal(bool.TrueString, diagnostic.Details["plannedSubstitution"]);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains(
+            pdf.GetPage(1).Letters,
+            letter => letter.FontName?.Contains(targetFamily.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase) == true ||
+                      letter.FontName?.Contains("OfficeIMO", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTextRunHyperlinks() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

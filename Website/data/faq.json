@@ -5,7 +5,11 @@
       "items": [
         {
           "question": "Does OfficeIMO require Microsoft Office to be installed?",
-          "answer": "<p>No. OfficeIMO works entirely with Open XML standards and does not require Microsoft Office, COM automation, or any Office interop assemblies. It runs on any platform where .NET is available.</p>"
+          "answer": "<p>No. OfficeIMO uses managed, first-party document engines and does not require Microsoft Office, COM automation, or Office interop assemblies at runtime. That includes supported Word 97–2003 DOC, Excel XLS/XLSB, PowerPoint PPT/POT/PPS, modern Office, PDF, OpenDocument, email, and publishing workflows. Optional desktop Office checks are validation oracles, not runtime dependencies.</p>"
+        },
+        {
+          "question": "Does OfficeIMO support DOC, XLS, XLSB, and PPT as well as DOCX, XLSX, and PPTX?",
+          "answer": "<p>Yes. OfficeIMO classifies and reads modern and legacy Word, Excel, and PowerPoint families, writes documented native subsets, and supports bidirectional conversions. Coverage is reported by operation and fidelity rather than by extension alone. Check the <a href='/compatibility/'>compatibility dashboard</a> for current formats, tracked behaviors, fallbacks, and deliberate blocks.</p>"
         },
         {
           "question": "What .NET versions are supported?",
@@ -17,7 +21,7 @@
         },
         {
           "question": "How does OfficeIMO compare to Aspose or GemBox?",
-          "answer": "<p>OfficeIMO is an open-source MIT-licensed option focused on COM-free Open XML workflows, while products like Aspose or GemBox are commercial suites with broader vendor support and different format coverage. Pricing, editions, and support terms change over time, so verify current details with each vendor directly. Our <a href='/comparison/'>comparison page</a> focuses on trade-offs rather than fixed price claims.</p>"
+          "answer": "<p>OfficeIMO is an MIT-licensed, source-available document platform for .NET and PowerShell with modern and legacy Office support, focused packages, explicit conversion-fidelity policies, and no runtime royalty. Commercial suites can provide broader portfolio coverage, more mature rendering for some workloads, formal support, and procurement SLAs. Compare the exact formats, operations, fidelity, deployment model, and support obligations your application needs on our <a href='/comparison/'>evaluation page</a>.</p>"
         },
         {
           "question": "Can I use OfficeIMO in a Docker container or CI/CD pipeline?",
@@ -33,7 +37,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>Yes, for <strong>88 of the 89 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 85 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts both production CLI tools on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
+          "answer": "<p>Yes, for <strong>89 of the 90 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 86 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts both production CLI tools on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
         }
       ]
     },

@@ -13,9 +13,9 @@ layout: api-home
   </header>
 
   <section class="imo-api-family" aria-labelledby="api-create"><div class="imo-api-family__heading"><p>Document models</p><h2 id="api-create">Create, edit, and inspect</h2></div><div class="imo-api-catalog-grid">
-    <a class="imo-api-catalog-card" href="/api/word/"><strong>OfficeIMO.Word</strong><span>DOCX documents, content, formatting, templates, and review</span><small>Open reference →</small></a>
-    <a class="imo-api-catalog-card" href="/api/excel/"><strong>OfficeIMO.Excel</strong><span>XLSX workbooks, worksheets, tables, formulas, and charts</span><small>Open reference →</small></a>
-    <a class="imo-api-catalog-card" href="/api/powerpoint/"><strong>OfficeIMO.PowerPoint</strong><span>PPTX presentations, slides, layouts, shapes, and notes</span><small>Open reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/word/"><strong>OfficeIMO.Word</strong><span>DOC, DOCX, templates, content, formatting, review, and conversion</span><small>Open reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/excel/"><strong>OfficeIMO.Excel</strong><span>XLS, XLSX, XLSB, worksheets, formulas, charts, and conversion</span><small>Open reference →</small></a>
+    <a class="imo-api-catalog-card" href="/api/powerpoint/"><strong>OfficeIMO.PowerPoint</strong><span>PPT, PPTX, PPS, POT, slides, layouts, notes, and conversion</span><small>Open reference →</small></a>
     <a class="imo-api-catalog-card" href="/api/pdf/"><strong>OfficeIMO.Pdf</strong><span>PDF authoring, inspection, page operations, rendering, and security</span><small>Open reference →</small></a>
     <a class="imo-api-catalog-card" href="/api/onenote/"><strong>OfficeIMO.OneNote</strong><span>Native OneNote sections, notebooks, revisions, and packages</span><small>Open reference →</small></a>
   </div></section>

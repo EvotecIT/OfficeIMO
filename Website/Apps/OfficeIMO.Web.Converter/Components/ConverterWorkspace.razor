@@ -64,10 +64,10 @@
 
             <section class="ocx-output-panel" aria-labelledby="output-title">
                 <div class="ocx-panel-heading ocx-panel-heading--output"><div><p>Result</p><h2 id="output-title">@OutputHeading</h2></div></div>
-                @if (Output?.StructuredWarnings.Count > 0) {
+                @if (ReviewWarnings.Count > 0) {
                     <div class="ocx-warning-summary" role="status">
-                        <strong>Review @Output.StructuredWarnings.Count conversion warning@(Output.StructuredWarnings.Count == 1 ? null : "s") before download</strong>
-                        <span>@(Output.StructuredWarnings.Any(static warning => warning.CanChangePagination) ? "At least one warning can change text fit or pagination." : "The output is usable, but one or more constructs were substituted or approximated.")</span>
+                        <strong>Review @ReviewWarnings.Count conversion warning@(ReviewWarnings.Count == 1 ? null : "s") before download</strong>
+                        <span>@(ReviewWarnings.Any(static warning => warning.CanChangePagination) ? "At least one warning can change text fit or pagination." : "The output is usable, but one or more constructs were substituted or approximated.")</span>
                     </div>
                 }
                 <div class="ocx-output-actions">
@@ -102,6 +102,14 @@
                             <strong>@group.Key</strong>
                             @foreach (ConversionWarningView warning in group) {
                                 <div class="ocx-diagnostic ocx-diagnostic--warning"><span class="ocx-dot ocx-dot--warn"></span><div><strong>@warning.Construct · @warning.Code</strong><span>@warning.Message@(warning.CanChangePagination ? " May affect text fit or pagination." : null)</span></div></div>
+                            }
+                        </div>
+                    }
+                    @foreach (IGrouping<string, ConversionWarningView> group in InformationGroups) {
+                        <div class="ocx-diagnostic-group">
+                            <strong>@group.Key</strong>
+                            @foreach (ConversionWarningView information in group) {
+                                <div class="ocx-diagnostic"><span class="ocx-dot ocx-dot--good"></span><div><strong>@information.Construct · @information.Code</strong><span>@information.Message</span></div></div>
                             }
                         </div>
                     }

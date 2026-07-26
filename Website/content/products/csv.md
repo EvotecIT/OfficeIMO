@@ -7,6 +7,12 @@ install: "dotnet add package OfficeIMO.CSV"
 nuget: "OfficeIMO.CSV"
 docs_url: "/docs/csv/"
 api_url: "/api/csv/"
+meta.software.name: "OfficeIMO.CSV"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.CSV"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.CSV?

@@ -1,17 +1,26 @@
 ---
 title: "OfficeIMO.Excel"
-description: "Read and write Excel workbooks with tables, charts, and formatting. No Excel installation required."
+description: "Create, read, edit, and convert XLS, XLSX, XLSB, XLSM, and Excel templates from .NET without Microsoft Excel."
 layout: product
 product_color: "#059669"
 install: "dotnet add package OfficeIMO.Excel"
 nuget: "OfficeIMO.Excel"
 docs_url: "/docs/excel/"
 api_url: "/api/excel/"
+meta.software.name: "OfficeIMO.Excel"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.version: "3.0.0"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Excel"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Why OfficeIMO.Excel?
 
-OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed code. Generate dashboards, data exports, financial models, and bulk reports without ever touching COM or requiring an Office license. The API is designed for real-world scenarios — from one-off scripts to high-throughput server pipelines.
+OfficeIMO.Excel lets you build and consume modern `.xlsx` workbooks, BIFF8 `.xls` files, and binary Open XML `.xlsb` workbooks entirely in managed code. Generate dashboards, data exports, financial models, bulk reports, or archive-modernization pipelines without COM or Microsoft Excel.
+
+XLS and XLSB use first-party readers and writers with explicit preservation and loss diagnostics. Supported content projects into the normal workbook model. Before a cross-generation save, an application can inspect whether formulas, charts, drawings, macros, or other workbook features remain native, become an approximation or visual fallback, are retained for recovery, or must be blocked.
 
 ## Features
 
@@ -26,6 +35,8 @@ OfficeIMO.Excel lets you build and consume `.xlsx` workbooks entirely in managed
 - **Images & hyperlinks** — embed images in cells and attach hyperlinks to cells or shapes
 - **AutoFit columns** — automatically size columns to fit content width
 - **Headers, footers & print setup** — page headers, footers, margins, orientation, and print area
+- **XLS and XLSB workflows** — load, inspect, edit, save, and convert legacy and binary workbooks through the normal document lifecycle
+- **Compatibility policies** — choose native-only, editable, visual, best-effort, or source-preserving conversion behavior
 
 ## Quick start
 
@@ -76,6 +87,21 @@ sheet.AutoFitColumns();
 workbook.Save();
 ```
 
+## Convert XLS, XLSX, and XLSB
+
+```csharp
+using OfficeIMO.Excel;
+
+using ExcelDocument legacy = ExcelDocument.Load("finance.xls");
+legacy.Save("finance-modernized.xlsx");
+
+ExcelDocument.Convert("finance.xls", "finance.xlsx");
+ExcelDocument.Convert("finance.xlsx", "finance.xls");
+ExcelDocument.Convert("model.xlsb", "model.xlsx");
+```
+
+The destination extension selects the writer. XLS bytes are never disguised as XLSX, and XLSB output is written through its own binary workbook path. Use conversion analysis when your service needs a no-loss gate.
+
 ## Compatibility
 
 | Target Framework  | Supported |
@@ -85,7 +111,7 @@ workbook.Save();
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Excel runs on Windows, Linux, and macOS. It generates standard `.xlsx` workbooks intended for Excel and other OOXML-capable spreadsheet tools.
+OfficeIMO.Excel runs on Windows, Linux, and macOS. It creates and edits modern workbooks and supports first-party XLS/XLSB import, native writing for the documented subsets, and bidirectional conversion. The [format compatibility dashboard](/compatibility/#excel) summarizes the current evidence without pretending every workbook feature has identical representation across generations.
 
 ## Related guides
 
@@ -94,6 +120,7 @@ OfficeIMO.Excel runs on Windows, Linux, and macOS. It generates standard `.xlsx`
 | [Excel documentation](/docs/excel/) | Start with workbook concepts, lifecycle, and execution model. |
 | [Worksheets guide](/docs/excel/worksheets/) | Create sheets, write values, and work with formulas. |
 | [Tables and ranges](/docs/excel/tables-ranges/) | Add structured tables, validation, and conditional formatting. |
+| [XLS, XLSX, and XLSB compatibility](/compatibility/#excel) | Check formats, conversion directions, tracked behaviors, and fidelity states. |
 | [PSWriteOffice Excel cmdlets](/docs/pswriteoffice/excel/) | Generate workbooks from PowerShell automation. |
 
 ## Related packages

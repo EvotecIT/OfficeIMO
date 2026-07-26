@@ -5,6 +5,11 @@ on:
     branches: [master]
     paths:
       - "Website/**"
+      - "Docs/Compatibility/generated/**"
+      - "Build/CompatibilityCatalog/**"
+      - "OfficeIMO.Word/OfficeIMO.Word.csproj"
+      - "OfficeIMO.Excel/OfficeIMO.Excel.csproj"
+      - "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj"
       - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 

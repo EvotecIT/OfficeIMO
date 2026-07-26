@@ -222,12 +222,13 @@ public sealed class BrowserConversionService {
                     ? feature
                     : warning.Code);
         bool canChangePagination =
-            warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
-            warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
-            warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
-            warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
-                or PdfLayoutDiagnosticKind.ClippedContent
-                or PdfLayoutDiagnosticKind.Overflow;
+            warning.Severity != PdfConversionWarningSeverity.Information &&
+            (warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
+             warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
+             warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
+             warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
+                 or PdfLayoutDiagnosticKind.ClippedContent
+                 or PdfLayoutDiagnosticKind.Overflow);
         return new ConversionWarningView(
             warning.Code,
             warning.Source,

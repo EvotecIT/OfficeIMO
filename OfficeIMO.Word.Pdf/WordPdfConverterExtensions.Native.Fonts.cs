@@ -140,30 +140,23 @@ namespace OfficeIMO.Word.Pdf {
                     details: details));
             }
 
-            public void ReportFontSubstitution(string familyName, PdfCore.PdfStandardFont fallbackSlot, string? resolvedFontFamily = null) {
+            public void ReportFontSubstitution(
+                PdfCore.PdfOptions options,
+                string familyName,
+                PdfCore.PdfStandardFont? fallbackSlot,
+                string? resolvedFontFamily = null) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
                 }
 
-                PdfCore.PdfStandardFont normalizedSlot = PdfCore.PdfStandardFontMapper.GetFontFamily(fallbackSlot);
-                string message = string.IsNullOrWhiteSpace(resolvedFontFamily)
-                    ? "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the mapped PDF family " + normalizedSlot + "."
-                    : "The source font family '" + familyName + "' was unavailable or could not be embedded; generated text uses the embedded family '" + resolvedFontFamily + "' through the logical " + normalizedSlot + " PDF slot.";
-                var details = new Dictionary<string, string> {
-                    ["fontFamily"] = familyName,
-                    ["fallbackSlot"] = normalizedSlot.ToString()
-                };
-                if (!string.IsNullOrWhiteSpace(resolvedFontFamily)) {
-                    details["resolvedFontFamily"] = resolvedFontFamily!;
-                }
-
-                _report.Add(new PdfCore.PdfConversionWarning(
+                _report.Add(options.CreateFontFamilySubstitutionWarning(
                     "OfficeIMO.Word.Pdf",
                     "NativeFontFamilySubstituted",
                     "word:font[" + familyName + "]",
-                    message,
-                    details: details));
+                    familyName,
+                    fallbackSlot,
+                    resolvedFontFamily));
             }
         }
 

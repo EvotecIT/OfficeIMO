@@ -158,6 +158,93 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.True(configuredClone.HasExplicitFooterFont);
     }
 
+    [Fact]
+    public void PdfOptionsExposeAndClonePlannedFontFamilySubstitutions() {
+        var options = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Portable Latin", [1]))
+            .RegisterFontFamilySubstitution(
+                "Source Sans",
+                "Portable Latin",
+                PdfFontFamilySubstitutionImpact.Compatible);
+
+        PdfOptions clone = options.Clone();
+        PdfFontFamilySubstitution substitution = Assert.Single(options.FontFamilySubstitutions);
+        PdfFontFamilySubstitution clonedSubstitution = Assert.Single(clone.FontFamilySubstitutions);
+
+        Assert.Equal("Source Sans", substitution.SourceFontFamily);
+        Assert.Equal("Portable Latin", substitution.TargetFontFamily);
+        Assert.Equal(PdfFontFamilySubstitutionImpact.Compatible, substitution.Impact);
+        Assert.True(options.HasNamedFontFamily("Source Sans"));
+        Assert.True(clone.HasNamedFontFamily("Source Sans"));
+        Assert.Equal(substitution.SourceFontFamily, clonedSubstitution.SourceFontFamily);
+        Assert.Equal(substitution.TargetFontFamily, clonedSubstitution.TargetFontFamily);
+        Assert.Equal(substitution.Impact, clonedSubstitution.Impact);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            options.RegisterFontFamilySubstitution(
+                "Unknown impact source",
+                "Portable Latin",
+                (PdfFontFamilySubstitutionImpact)999));
+
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Source Sans", [2]));
+        Assert.True(options.TryResolveNamedFontFace("Source Sans", bold: false, italic: false, out PdfNamedFontFace face));
+        Assert.Equal("Portable Latin", face.FamilyName);
+    }
+
+    [Fact]
+    public void UnresolvedFontFamilySubstitutionRemainsAWarning() {
+        var options = new PdfOptions()
+            .RegisterFontFamilySubstitution(
+                "Source Sans",
+                "Missing Portable Latin",
+                PdfFontFamilySubstitutionImpact.Compatible);
+
+        PdfConversionWarning warning = options.CreateFontFamilySubstitutionWarning(
+            "OfficeIMO.Tests",
+            "FontFamilySubstituted",
+            "document",
+            "Source Sans",
+            PdfStandardFont.Helvetica,
+            resolvedFontFamily: null);
+
+        Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.False(warning.Details.ContainsKey("plannedSubstitution"));
+        Assert.DoesNotContain("Missing Portable Latin", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResolvedFallbackListSubstitutionUsesItsOwnImpactClassification() {
+        const string resolvedFamily = "Portable Calibri";
+        var options = new PdfOptions()
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(resolvedFamily, [1]))
+            .RegisterFontFamilySubstitution(
+                "Primary",
+                "Missing Primary",
+                PdfFontFamilySubstitutionImpact.LayoutSensitive)
+            .RegisterFontFamilySubstitution(
+                "Calibri",
+                resolvedFamily,
+                PdfFontFamilySubstitutionImpact.Compatible);
+
+        Assert.True(options.TryResolveFontFamilySubstitution(
+            "Primary, Calibri",
+            out PdfFontFamilySubstitution? substitution));
+        Assert.Equal("Calibri", substitution!.SourceFontFamily);
+
+        PdfConversionWarning warning = options.CreateFontFamilySubstitutionWarning(
+            "OfficeIMO.Tests",
+            "FontFamilySubstituted",
+            "document",
+            "Primary, Calibri",
+            fallbackSlot: null,
+            resolvedFontFamily: resolvedFamily);
+
+        Assert.Equal(PdfConversionWarningSeverity.Information, warning.Severity);
+        Assert.Equal(bool.TrueString, warning.Details["plannedSubstitution"]);
+        Assert.Equal(PdfFontFamilySubstitutionImpact.Compatible.ToString(), warning.Details["substitutionImpact"]);
+        Assert.Contains(resolvedFamily, warning.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Missing Primary", warning.Message, StringComparison.Ordinal);
+    }
+
     private static void AssertPortable(PdfResourcePolicy policy) {
         Assert.False(policy.AllowSystemFontEmbedding);
         Assert.False(policy.AllowDocumentFontEmbedding);

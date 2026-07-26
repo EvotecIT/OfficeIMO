@@ -9,6 +9,12 @@ product_label: "Rich Text Format engine"
 install: "dotnet add package OfficeIMO.Rtf"
 nuget: "OfficeIMO.Rtf"
 docs_url: "/docs/rtf/"
+meta.software.name: "OfficeIMO.Rtf"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.Rtf"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## One engine for normalized and source-preserving RTF work
