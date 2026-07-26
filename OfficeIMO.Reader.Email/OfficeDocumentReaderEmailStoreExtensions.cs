@@ -13,4 +13,18 @@ public static class OfficeDocumentReaderEmailStoreExtensions {
         ReaderEmailStoreOptions? emailStoreOptions = null,
         CancellationToken cancellationToken = default) =>
         EmailStoreItemReader.Read(reader, path, readerOptions, emailStoreOptions, cancellationToken);
+
+    /// <summary>
+    /// Reads and projects one selected email-store item by the stable identifier returned from a store search
+    /// or item enumeration. Unrelated item bodies and attachment payloads are not materialized.
+    /// </summary>
+    public static ReaderEmailStoreItemResult ReadEmailStoreItem(
+        this OfficeDocumentReader reader,
+        string path,
+        string itemId,
+        ReaderOptions? readerOptions = null,
+        ReaderEmailStoreOptions? emailStoreOptions = null,
+        CancellationToken cancellationToken = default) =>
+        EmailStoreItemReader.ReadById(
+            reader, path, itemId, readerOptions, emailStoreOptions, cancellationToken);
 }

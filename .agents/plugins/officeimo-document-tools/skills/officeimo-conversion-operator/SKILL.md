@@ -1,6 +1,6 @@
 ---
 name: officeimo-conversion-operator
-description: Use when changing or validating OfficeIMO document conversion behavior, especially DOCX/XLSX/PPTX/HTML/Markdown/PDF byte and stream conversions, browser-safe conversion paths, or fidelity diagnostics. Prefer OfficeIMO core APIs first and keep hosts, websites, cmdlets, MCP tools, and demos thin.
+description: Use when contributing code that changes or validates OfficeIMO conversion behavior, especially DOCX/XLSX/PPTX/HTML/Markdown/PDF byte and stream APIs, browser-safe paths, or fidelity diagnostics. Prefer OfficeIMO core APIs first and keep hosts, websites, cmdlets, MCP tools, and demos thin.
 ---
 
 # OfficeIMO Conversion Operator

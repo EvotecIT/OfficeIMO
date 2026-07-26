@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)]
     [string] $FeedPath,
 
-    [string] $Version = '3.0.0',
+    [string] $Version = '3.0.2',
 
     [switch] $KeepWorkingDirectory
 )

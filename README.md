@@ -14,7 +14,7 @@ This is not one facade over a collection of unrelated document libraries. Office
 
 The current source and packaging line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [2.x to 3.0 migration guide](Docs/officeimo-3.0-migration.md).
 
-NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.0.0`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
+NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.0.2`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
 
@@ -584,8 +584,9 @@ _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no brows
 
 #### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
-- [x] One `officeimo` executable with explicit `html`, `reader`, and `markup` command areas
+- [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `agent`, and `mcp` command areas
 - [x] Bounded HTML/MHTML-to-PDF conversion, document extraction, capability discovery, Markup validation, code emission, and Office export
+- [x] Compact inspect/search/fetch operations for documents and mail stores, plus a local STDIO MCP server for Codex and other clients
 - [x] Shared help, exit-code, packaging, NativeAOT, and stream contracts without duplicating document logic from the owning libraries
 
 _Dependency footprint:_ the first-party HTML/PDF, Reader.All, and Markup exporter graphs; no browser process, hosted provider, or separate conversion engine.
@@ -987,35 +988,35 @@ Fixed-layout PDF import is necessarily semantic rather than visually lossless. R
 
 ## Install
 
-Install only the native packages and adapters an application needs. The commands below deliberately request `3.0.0`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
+Install only the native packages and adapters an application needs. The commands below deliberately request `3.0.2`; they work against NuGet.org after each package ID is published, or against the clean local feed produced by `Build/Build-Project.ps1` before publication.
 
 ```powershell
-dotnet add package OfficeIMO.Word --version 3.0.0
-dotnet add package OfficeIMO.Word.Pdf --version 3.0.0
+dotnet add package OfficeIMO.Word --version 3.0.2
+dotnet add package OfficeIMO.Word.Pdf --version 3.0.2
 
-dotnet add package OfficeIMO.Excel --version 3.0.0
-dotnet add package OfficeIMO.Excel.Html --version 3.0.0
-dotnet add package OfficeIMO.Excel.Pdf --version 3.0.0
+dotnet add package OfficeIMO.Excel --version 3.0.2
+dotnet add package OfficeIMO.Excel.Html --version 3.0.2
+dotnet add package OfficeIMO.Excel.Pdf --version 3.0.2
 
-dotnet add package OfficeIMO.Epub --version 3.0.0
-dotnet add package OfficeIMO.Epub.Image --version 3.0.0
+dotnet add package OfficeIMO.Epub --version 3.0.2
+dotnet add package OfficeIMO.Epub.Image --version 3.0.2
 
-dotnet add package OfficeIMO.Adf --version 3.0.0
-dotnet add package OfficeIMO.Confluence --version 3.0.0
+dotnet add package OfficeIMO.Adf --version 3.0.2
+dotnet add package OfficeIMO.Confluence --version 3.0.2
 
-dotnet add package OfficeIMO.Reader.Pdf --version 3.0.0
+dotnet add package OfficeIMO.Reader.Pdf --version 3.0.2
 
 # Add every Reader adapter only when a broad ingestion host genuinely needs all formats.
-dotnet add package OfficeIMO.Reader.All --version 3.0.0
+dotnet add package OfficeIMO.Reader.All --version 3.0.2
 
-dotnet add package OfficeIMO.OneNote --version 3.0.0
-dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.0
-dotnet add package OfficeIMO.OneNote.Html --version 3.0.0
-dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.0
-dotnet add package OfficeIMO.Reader.OneNote --version 3.0.0
+dotnet add package OfficeIMO.OneNote --version 3.0.2
+dotnet add package OfficeIMO.OneNote.Markdown --version 3.0.2
+dotnet add package OfficeIMO.OneNote.Html --version 3.0.2
+dotnet add package OfficeIMO.OneNote.Pdf --version 3.0.2
+dotnet add package OfficeIMO.Reader.OneNote --version 3.0.2
 
-# Install the unified command surface for HTML, Reader, and Markup workflows.
-dotnet tool install --global OfficeIMO.Tool --version 3.0.0
+# Install the unified command surface for HTML, Reader, Markup, agent, and MCP workflows.
+dotnet tool install --global OfficeIMO.Tool --version 3.0.2
 ```
 
 All coordinated source packages use the same `3.0.x` compatibility line. Avoid mixing OfficeIMO `2.x` and `3.x` packages in one application.

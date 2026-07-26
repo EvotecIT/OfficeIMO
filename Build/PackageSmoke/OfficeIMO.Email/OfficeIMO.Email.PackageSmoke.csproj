@@ -4,10 +4,10 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
-    <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">3.0.0</OfficeIMOEmailPackageVersion>
-    <OfficeIMOReaderCorePackageVersion Condition="'$(OfficeIMOReaderCorePackageVersion)' == ''">3.0.0</OfficeIMOReaderCorePackageVersion>
-    <OfficeIMOReaderEmailPackageVersion Condition="'$(OfficeIMOReaderEmailPackageVersion)' == ''">3.0.0</OfficeIMOReaderEmailPackageVersion>
-    <OfficeIMOReaderImagePackageVersion Condition="'$(OfficeIMOReaderImagePackageVersion)' == ''">3.0.0</OfficeIMOReaderImagePackageVersion>
+    <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">3.0.2</OfficeIMOEmailPackageVersion>
+    <OfficeIMOReaderCorePackageVersion Condition="'$(OfficeIMOReaderCorePackageVersion)' == ''">3.0.2</OfficeIMOReaderCorePackageVersion>
+    <OfficeIMOReaderEmailPackageVersion Condition="'$(OfficeIMOReaderEmailPackageVersion)' == ''">3.0.2</OfficeIMOReaderEmailPackageVersion>
+    <OfficeIMOReaderImagePackageVersion Condition="'$(OfficeIMOReaderImagePackageVersion)' == ''">3.0.2</OfficeIMOReaderImagePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>

@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "officeimo": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "dnx",
+        "OfficeIMO.Tool@3.0.2",
+        "mcp",
+        "serve",
+        "--stdio"
+      ],
+      "tools": [
+        "*"
+      ]
+    }
+  }
+}

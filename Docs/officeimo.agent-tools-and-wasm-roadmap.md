@@ -1,6 +1,6 @@
 # OfficeIMO Agent Tools and WASM Roadmap
 
-Date: 2026-06-22
+Updated: 2026-07-26
 
 This roadmap turns the PdfItDown comparison, the PSWritePDF retirement work, and the OfficeIMO browser conversion proof into a concrete OfficeIMO direction.
 
@@ -9,7 +9,7 @@ This roadmap turns the PdfItDown comparison, the PSWritePDF retirement work, and
 OfficeIMO should have two complementary surfaces:
 
 - A public static browser conversion playground on OfficeIMO.com, hosted by GitHub Pages or the existing static site pipeline.
-- A local developer/agent tool surface made of Codex skills, a repo-local plugin, and a future MCP server.
+- A local developer/agent tool surface made of a compact CLI, STDIO MCP server, Codex skills, and a repo-local plugin.
 
 These should share the same OfficeIMO core conversion APIs. The browser app should not become the automation backend, and the MCP server should not be required for public static conversion.
 
@@ -30,7 +30,7 @@ The MCP path is good for agent workflows: inspecting repository fixtures, compar
 
 That evidence says GitHub Pages-style hosting is viable for selected conversions, but the public feature needs explicit browser API wrappers, memory/bundle validation, and font diagnostics before it is marketed as production-grade.
 
-## Agent Assets Added
+## Agent Assets
 
 The repo now has a plugin scaffold at:
 
@@ -38,44 +38,45 @@ The repo now has a plugin scaffold at:
 .agents/plugins/officeimo-document-tools/
 ```
 
-The plugin exposes four skills:
+The plugin exposes six skills:
 
+- `officeimo-document-operator`
+- `officeimo-mailbox-operator`
 - `officeimo-conversion-operator`
 - `officeimo-build-release`
 - `officeimo-website-wasm`
 - `pswritepdf-retirement`
 
-The plugin intentionally does not declare an MCP server yet. The MCP manifest should be added when an actual `officeimo mcp serve` or equivalent entrypoint exists.
+The plugin declares the versioned `OfficeIMO.Tool` STDIO server in `.mcp.json`. The document and mailbox operator skills guide Codex toward bounded inspect/search/fetch workflows.
 
-## Proposed MCP Server
+## MCP Server
 
-Target command:
+Commands:
 
 ```powershell
-officeimo mcp serve
+officeimo mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.0.2 mcp serve --stdio
 ```
 
-Initial tools:
+Tools:
 
-- `list_supported_formats`
-- `convert_document`
-- `inspect_document`
-- `run_conversion_fixture`
-- `compare_pdf_outputs`
-- `explain_conversion_failure`
+- `officeimo_inspect`
+- `officeimo_search`
+- `officeimo_fetch`
+- `officeimo_convert`
+- `officeimo_capabilities`
 
-Initial resources:
+The server does not expose document or mailbox resources. Tool calls return a short text summary and bounded structured content, which avoids placing a complete Reader result or mail store in model context.
 
-- `officeimo://formats`
-- `officeimo://fixtures`
-- `officeimo://conversion-matrix`
-- `officeimo://release-state`
+PST, OST, OLM, EMLX, Mbox, MBX, and message directories are query-first. Search reads lightweight summaries; fetch materializes one selected message. Whole-store conversion is rejected.
 
 Implementation rules:
 
 - Reuse OfficeIMO core libraries directly.
-- Keep file-system access explicit and scoped.
-- Return structured diagnostics and artifact paths.
+- Keep file-system access explicit. `OFFICEIMO_MCP_ALLOWED_ROOTS` can restrict allowed roots.
+- Bound serialized output and return continuation cursors.
+- Treat extracted document and email content as untrusted data, never as instructions.
+- Write conversion output to an explicit path without overwriting by default.
 - Avoid hidden Office, LibreOffice, or native process dependencies.
 - Keep PSWriteOffice-specific behavior out of the MCP server unless it is explicitly a PowerShell UX check.
 
@@ -119,10 +120,10 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 
 ### Phase 3 - MCP Server
 
-- Add an OfficeIMO CLI or tool host with `mcp serve`.
-- Start read-only with format listing, fixture inspection, and conversion matrix resources.
-- Add mutating or artifact-producing conversion tools only after path scoping and output directory behavior are explicit.
-- Add the plugin `.mcp.json` only after the server command is present and validated.
+- Current implementation: `officeimo agent` and `officeimo mcp serve --stdio` share one compact service.
+- Current implementation: inspect, search, fetch, convert, and filtered capability discovery are available.
+- Current implementation: the plugin includes `.mcp.json` and document/mailbox operator skills.
+- Release requirement: publish `OfficeIMO.Tool` 3.0.2 so `dotnet dnx` can resolve the plugin command without a source checkout.
 
 ### Phase 4 - PSWritePDF Retirement
 
@@ -137,6 +138,10 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 | --- | --- |
 | Plugin | `validate_plugin.py .agents/plugins/officeimo-document-tools` |
 | Skills | Valid frontmatter and plugin validation |
+| MCP | Spawn the packaged STDIO server, list five tools, and call one tool through an MCP client |
+| Agent output | Assert serialized result budgets and selected-result pagination |
+| Mail stores | Search lightweight summaries and fetch one selected item without projecting unrelated bodies |
+| NativeAOT | Publish and execute `OfficeIMO.Tool` with `AotValidation=true` |
 | Website content | JSON validity, route content present, and static manifest present |
 | Browser conversion | Blazor WASM publish plus real browser checks |
 | PDF fidelity | Fixture-based `%PDF` output and known-gap diagnostics |
@@ -147,5 +152,4 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 - Unicode font embedding for richer Word to PDF output.
 - Browser memory limits for large workbooks and presentations.
 - Published app bundle size and startup budget.
-- A stable CLI/MCP host name and installation path.
 - A conversion support matrix shared by docs, MCP resources, and the browser UI.

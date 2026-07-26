@@ -4,6 +4,7 @@ This folder contains repo-owned agent assets.
 
 - `plugins/marketplace.json` is the local marketplace entry for Codex plugin installation.
 - `plugins/officeimo-document-tools/` is the self-contained plugin bundle.
-- Plugin skills are the canonical reusable instructions for OfficeIMO conversion, PDF, WASM website, build, release, and PSWritePDF retirement work.
+- The plugin contributes a compact local STDIO MCP server for document/mailbox inspection, search, selected fetch, conversion, and capability discovery.
+- Plugin skills are the canonical reusable instructions for using those tools and for OfficeIMO conversion, PDF, WASM website, build, release, and PSWritePDF retirement work.
 
-The plugin mirrors the DesktopManager pattern, but keeps MCP disabled until an OfficeIMO CLI or server entrypoint exists.
+The MCP server is provided by the versioned `OfficeIMO.Tool` .NET tool package.

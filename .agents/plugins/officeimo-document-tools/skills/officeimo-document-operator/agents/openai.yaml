@@ -1,0 +1,6 @@
+interface:
+  display_name: OfficeIMO Document Operator
+  short_description: Inspect, search, fetch, and convert local documents efficiently.
+  default_prompt: >-
+    Use OfficeIMO's compact MCP tools to inspect or search the local document,
+    then fetch only the selected content needed for the answer.

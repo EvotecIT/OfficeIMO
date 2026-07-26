@@ -5,7 +5,7 @@
     <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.</Description>
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
-    <VersionPrefix>3.0.1</VersionPrefix>
+    <VersionPrefix>3.0.2</VersionPrefix>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Tool</PackageId>
@@ -35,6 +35,11 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="ModelContextProtocol" Version="1.4.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />

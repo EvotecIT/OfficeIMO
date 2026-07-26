@@ -1,5 +1,5 @@
-using System.Text;
 using OfficeIMO.Reader;
+using System.Text;
 
 namespace OfficeIMO.Tool.Commands.Reader;
 
@@ -35,7 +35,7 @@ internal static class ReaderToolOutput {
             return;
         }
 
-        await WriteFileAsync(outputPath!, content, cancellationToken).ConfigureAwait(false);
+        await WriteFileAsync(outputPath!, content, overwrite: true, cancellationToken).ConfigureAwait(false);
     }
 
     internal static async Task WriteFolderAsync(
@@ -65,7 +65,11 @@ internal static class ReaderToolOutput {
             string suffix = format == ReaderToolOutputFormat.Json ? ".reader.json" : ".md";
             string outputPath = Path.Combine(outputRoot, relativePath + suffix);
             ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, outputPath);
-            await WriteFileAsync(outputPath, FormatDocument(documents[index], format), cancellationToken)
+            await WriteFileAsync(
+                    outputPath,
+                    FormatDocument(documents[index], format),
+                    overwrite: true,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
             if (!string.IsNullOrWhiteSpace(assetsRoot) && documents[index].Assets.Count > 0) {
@@ -94,7 +98,11 @@ internal static class ReaderToolOutput {
         }
     }
 
-    private static async Task WriteFileAsync(string path, string content, CancellationToken cancellationToken) {
+    internal static async Task WriteFileAsync(
+        string path,
+        string content,
+        bool overwrite,
+        CancellationToken cancellationToken) {
         string? temporaryPath = null;
         try {
             string fullPath = Path.GetFullPath(path);
@@ -107,7 +115,7 @@ internal static class ReaderToolOutput {
                 outputDirectory,
                 "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
             await File.WriteAllTextAsync(temporaryPath, content, Utf8WithoutBom, cancellationToken).ConfigureAwait(false);
-            File.Move(temporaryPath, fullPath, overwrite: true);
+            File.Move(temporaryPath, fullPath, overwrite);
             temporaryPath = null;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             throw new ReaderToolOutputException("Could not write output file '" + path + "'.", exception);

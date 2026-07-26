@@ -1,0 +1,6 @@
+interface:
+  display_name: OfficeIMO Mailbox Operator
+  short_description: Query local mailboxes and fetch only selected messages.
+  default_prompt: >-
+    Inspect the local mailbox with OfficeIMO, search it with narrow filters,
+    and fetch only the messages needed for the answer.
