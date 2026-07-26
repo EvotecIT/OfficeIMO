@@ -1393,6 +1393,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_DirectRenderer_PreservesExplicitUntaggedDocumentMode() {
+        var options = new HtmlPdfSaveOptions {
+            DocumentOptions = new PdfCore.PdfOptions {
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.None
+            }
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse("<p>Explicit untagged output</p>").ToPdf(options);
+
+        Assert.False(PdfCore.PdfReadDocument.Open(pdf).HasTaggedContent);
+    }
+
+    [Fact]
     public void HtmlPdf_DirectRenderer_UsesXmlLanguageWhenHtmlLanguageIsEmpty() {
         const string html = "<html lang='' xml:lang='fr-FR'><body><p>Langue</p></body></html>";
 

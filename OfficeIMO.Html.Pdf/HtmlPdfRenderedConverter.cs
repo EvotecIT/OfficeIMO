@@ -85,9 +85,6 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var conversionReport = new PdfCore.PdfConversionReport();
         PdfCore.PdfOptions documentOptions = options.DocumentOptions.Clone();
-        if (documentOptions.TaggedStructureMode == PdfCore.PdfTaggedStructureMode.None) {
-            documentOptions.EnableTaggedPdfCatalogMarkers();
-        }
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");
         if (rendered.Metadata.Title != null

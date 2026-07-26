@@ -137,11 +137,14 @@ public sealed partial class HtmlRenderingTests {
             text => text.SemanticRole == "page-margin" && text.Text == "Inline section");
     }
 
-    [Fact]
-    public void HtmlRender_InlineRunningStringMarkersRemainTransparentToWhitespaceCollapsing() {
-        const string html = """
-            <p style="margin:0;font-size:12px;line-height:14px">A <span style="string-set:section content()"></span> B</p>
-            """;
+    [Theory]
+    [InlineData("A <span style=\"string-set:section content()\"></span> B", "A B")]
+    [InlineData("<span style=\"string-set:section 'Start'\"></span> A", "A")]
+    [InlineData("A <span style=\"string-set:section 'End'\"></span>", "A")]
+    public void HtmlRender_InlineRunningStringMarkersRemainTransparentToWhitespaceCollapsing(
+        string body,
+        string expected) {
+        string html = "<p style=\"margin:0;font-size:12px;line-height:14px\">" + body + "</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
@@ -151,7 +154,35 @@ public sealed partial class HtmlRenderingTests {
             .OfType<HtmlRenderText>()
             .Where(visual => visual.SemanticRole != "page-margin")
             .Select(visual => visual.Text));
-        Assert.Equal("A B", text);
+        Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineRunningStringMarkersDoNotCreateLineOccupancy() {
+        const string html = """
+            <style>
+            @page { size:3in 2in; margin:24px; @top-center { content:string(section) } }
+            div { margin:0; font-size:12px; line-height:14px }
+            </style>
+            <div>Before</div>
+            <div><span style="string-set:section 'Marker only'"></span></div>
+            <div>After</div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText before = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Before");
+        HtmlRenderText after = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "After");
+        Assert.InRange(after.Y - before.Y, 14D, 14.02D);
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Marker only");
     }
 
     [Theory]
