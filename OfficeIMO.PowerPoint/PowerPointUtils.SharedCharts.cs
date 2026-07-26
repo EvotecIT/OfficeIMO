@@ -10,6 +10,9 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
+        private const int SpreadsheetMaximumColumns = 16_384;
+        private const int BubbleWorkbookColumnsPerSeries = 3;
+
         private sealed class SharedSeriesDescriptor {
             internal SharedSeriesDescriptor(int index, OfficeChartSeries series, OfficeChartKind kind) {
                 Index = index;
@@ -25,6 +28,13 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartKind defaultKind) {
             if (data == null) throw new ArgumentNullException(nameof(data));
+            if (defaultKind == OfficeChartKind.Bubble &&
+                data.Series.Count >
+                SpreadsheetMaximumColumns / BubbleWorkbookColumnsPerSeries) {
+                throw new ArgumentException(
+                    "Bubble chart data exceeds the embedded worksheet column limit.",
+                    nameof(data));
+            }
             for (int index = 0; index < data.Series.Count; index++) {
                 OfficeChartSeries series = data.Series[index];
                 if (series.Values.Count == 0) {

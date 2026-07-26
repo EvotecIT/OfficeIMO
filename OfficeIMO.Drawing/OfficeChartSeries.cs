@@ -109,8 +109,12 @@ public sealed class OfficeChartSeries {
         if (markerSize is <= 0) {
             throw new ArgumentOutOfRangeException(nameof(markerSize), "Marker size must be greater than zero.");
         }
-        if (markerOutlineWidth is <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(markerOutlineWidth), "Marker outline width must be greater than zero.");
+        if (markerOutlineWidth.HasValue &&
+            (double.IsNaN(markerOutlineWidth.Value) ||
+             double.IsInfinity(markerOutlineWidth.Value) ||
+             markerOutlineWidth.Value <= 0D)) {
+            throw new ArgumentOutOfRangeException(nameof(markerOutlineWidth),
+                "Marker outline width must be finite and greater than zero.");
         }
         if (strokeWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(strokeWidth), "Series stroke width must be greater than zero.");

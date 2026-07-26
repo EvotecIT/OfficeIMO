@@ -467,6 +467,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BubbleChart_RejectsWorkbookColumnOverflowBeforeMutatingSlide() {
+            OfficeChartSeries[] series = Enumerable.Range(1, 5_462)
+                .Select(index => OfficeChartSeries.CreateBubble(
+                    "Series " + index,
+                    new[] { 1D },
+                    new[] { 2D },
+                    new[] { 4D }))
+                .ToArray();
+            var data = new OfficeChartData(new[] { "1" }, series);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create(new MemoryStream());
+            PowerPointSlide slide = presentation.AddSlide();
+
+            Assert.Throws<ArgumentException>(() =>
+                slide.AddChart(OfficeChartKind.Bubble, data));
+            Assert.Empty(slide.Charts);
+        }
+
+        [Fact]
         public void BubbleChart_RejectsMismatchedImportedCaches() {
             using PowerPointPresentation presentation =
                 PowerPointPresentation.Create(new MemoryStream());

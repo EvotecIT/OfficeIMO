@@ -221,6 +221,43 @@ public class DrawingChartBubbleTests {
             heightPoints: 260D));
     }
 
+    [Fact]
+    public void OfficeChartSnapshot_RejectsMixedBubbleSeriesWithoutSizes() {
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries(
+                "Incomplete bubble",
+                new[] { 2D, 4D },
+                new[] { 1D, 2D },
+                color: null,
+                pointColors: null,
+                showMarkers: true,
+                renderKind: OfficeChartKind.Bubble)
+        });
+
+        Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
+            "Malformed mixed scatter",
+            null,
+            OfficeChartKind.Scatter,
+            data,
+            widthPoints: 420D,
+            heightPoints: 260D));
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void OfficeChartSeries_RejectsNonFiniteBubbleOutlineWidths(
+        double outlineWidth) {
+        Assert.Throws<System.ArgumentOutOfRangeException>(() =>
+            OfficeChartSeries.CreateBubble(
+                "Invalid outline",
+                new[] { 1D },
+                new[] { 2D },
+                new[] { 4D },
+                markerOutlineWidth: outlineWidth));
+    }
+
     private static OfficeDrawing RenderBubbles(double scale,
         OfficeChartBubbleSizeMode sizeMode) {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
