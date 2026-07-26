@@ -3,11 +3,13 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using A = DocumentFormat.OpenXml.Drawing;
 using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
@@ -126,6 +128,38 @@ public partial class HtmlWordGapClosure {
         Assert.Null(ltr.IndentationAfter);
         Assert.Null(rtl.IndentationBefore);
         Assert.Equal(-180, rtl.IndentationAfter);
+    }
+
+    [Fact]
+    public void HtmlToWord_NegativeLogicalBlockMargins_AreExplicitlyDiagnosed() {
+        HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+            HtmlConversionDocument
+                .Parse("""<p style="margin-block-start:-10px">Unsupported vertical overlap</p>""")
+                .ToWordDocument(new HtmlToWordOptions {
+                    UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+                }));
+
+        Assert.Equal("UnsupportedCssValue", exception.Code);
+        Assert.Equal("p:margin-block-start", exception.CssSource);
+        Assert.Contains("negative vertical margins", exception.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToWord_FractionalBlockBorderWidth_UsesInvariantCulture() {
+        CultureInfo previousCulture = CultureInfo.CurrentCulture;
+        try {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+            using WordDocument document = HtmlConversionDocument
+                .Parse("""<p style="border:1.5px solid #123456">Fractional</p>""")
+                .ToWordDocument();
+            WordParagraph paragraph = Assert.Single(document.Paragraphs);
+
+            Assert.Equal((uint)9, paragraph.Borders.TopSize?.Value);
+            Assert.Equal((uint)9, paragraph.Borders.LeftSize?.Value);
+        } finally {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
     }
 
     [Theory]
@@ -314,6 +348,25 @@ public partial class HtmlWordGapClosure {
 
         Assert.Contains("background-color:#00ffff", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void WordToHtml_ThemeRunShading_UsesResolvedThemeColorInsteadOfFallbackFill() {
+        using WordDocument document = WordDocument.Create();
+        A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        A.Accent1Color accent = scheme.GetFirstChild<A.Accent1Color>()!;
+        accent.RemoveAllChildren();
+        accent.Append(new A.RgbColorModelHex { Val = "000000" });
+
+        WordParagraph run = document.AddParagraph("Themed");
+        run.RunShadingFillColorHex = "FFFFFF";
+        run._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
+        run._runProperties.Shading.ThemeFillTint = "80";
+
+        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+
+        Assert.Contains("background-color:#7f7f7f", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("background-color:#ffffff", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

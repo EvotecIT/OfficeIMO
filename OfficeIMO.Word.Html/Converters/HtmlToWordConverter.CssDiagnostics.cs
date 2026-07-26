@@ -334,6 +334,10 @@ namespace OfficeIMO.Word.Html {
 
             if (propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||
                 propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase)) {
+                if (HasNegativeBlockMargin(propertyName, value)) {
+                    reason = $"Unsupported {propertyName} value '{value}': negative vertical margins cannot be represented in Word paragraph spacing.";
+                    return true;
+                }
                 if (!IsSupportedBoxLengthList(value, allowAuto: propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase))) {
                     reason = $"Unsupported {propertyName} value '{value}'.";
                     return true;
@@ -510,6 +514,49 @@ namespace OfficeIMO.Word.Html {
             }
 
             return true;
+        }
+
+        private static bool HasNegativeBlockMargin(string propertyName, string value) {
+            string normalizedProperty = propertyName.ToLowerInvariant();
+            string[] tokens = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0) {
+                return false;
+            }
+
+            if (normalizedProperty is "margin-top" or "margin-bottom" or
+                "margin-block" or "margin-block-start" or "margin-block-end") {
+                return tokens.Any(IsNegativeCssLengthLiteral);
+            }
+
+            if (normalizedProperty != "margin" || tokens.Length > 4) {
+                return false;
+            }
+
+            return tokens.Length switch {
+                1 => IsNegativeCssLengthLiteral(tokens[0]),
+                2 => IsNegativeCssLengthLiteral(tokens[0]),
+                3 => IsNegativeCssLengthLiteral(tokens[0]) || IsNegativeCssLengthLiteral(tokens[2]),
+                4 => IsNegativeCssLengthLiteral(tokens[0]) || IsNegativeCssLengthLiteral(tokens[2]),
+                _ => false,
+            };
+        }
+
+        private static bool IsNegativeCssLengthLiteral(string value) {
+            string lower = value.Trim().ToLowerInvariant();
+            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            foreach (string unit in units) {
+                if (!lower.EndsWith(unit, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                return double.TryParse(
+                    lower.Substring(0, lower.Length - unit.Length),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double number) && number < 0;
+            }
+
+            return false;
         }
 
         private static bool IsSupportedCssLength(string value, bool allowNegative, bool allowPercent, bool allowAuto) {

@@ -20,6 +20,13 @@ namespace OfficeIMO.Word {
                 : null;
         }
 
+        internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
+            A.ColorScheme? colorScheme = GetDocumentColorScheme(paragraph._document);
+            return TryResolveShadingFillColor(ResolveRunShading(paragraph), colorScheme, out OfficeColor shading)
+                ? shading.ToRgbHex()
+                : null;
+        }
+
         private static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
             if (paragraph._runProperties?.Highlight != null) {
                 return paragraph._runProperties.Highlight.Val?.Value;

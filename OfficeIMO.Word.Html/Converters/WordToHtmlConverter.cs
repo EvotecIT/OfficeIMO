@@ -457,7 +457,8 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                         if (options.IncludeRunHighlightStyles) {
-                            string? normalizedRunBackground = NormalizeSixDigitHexColor(run.RunShadingFillColorHex);
+                            string? normalizedRunBackground = NormalizeSixDigitHexColor(
+                                WordDocumentImageRenderer.ResolveRunShadingFillColorHex(run));
                             string? highlightCss = GetHighlightCss(run.Highlight);
                             if (!string.IsNullOrEmpty(highlightCss) &&
                                 (!isHtmlMarkedText || normalizedRunBackground != null)) {

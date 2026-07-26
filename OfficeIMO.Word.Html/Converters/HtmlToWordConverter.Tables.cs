@@ -999,11 +999,21 @@ namespace OfficeIMO.Word.Html {
         private static bool TryParseBorderWidth(string token, out UInt32Value size) {
             size = 0;
             var raw = token.Trim().ToLowerInvariant();
-            if (raw.EndsWith("px") && double.TryParse(raw.Substring(0, raw.Length - 2), out double px)) {
+            if (raw.EndsWith("px") &&
+                double.TryParse(
+                    raw.Substring(0, raw.Length - 2),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double px)) {
                 size = (UInt32Value)(uint)Math.Max(1, Math.Round(px * 6));
                 return true;
             }
-            if (raw.EndsWith("pt") && double.TryParse(raw.Substring(0, raw.Length - 2), out double pt)) {
+            if (raw.EndsWith("pt") &&
+                double.TryParse(
+                    raw.Substring(0, raw.Length - 2),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out double pt)) {
                 size = (UInt32Value)(uint)Math.Max(1, Math.Round(pt * 8));
                 return true;
             }

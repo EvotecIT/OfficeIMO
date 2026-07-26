@@ -787,6 +787,10 @@ namespace OfficeIMO.Word {
 
         private static bool TryResolveShadingFillColor(Shading? shading, A.ColorScheme? colorScheme, out OfficeColor fillColor) {
             fillColor = OfficeColor.White;
+            if (shading?.Val?.Value == ShadingPatternValues.Nil) {
+                return false;
+            }
+
             string? resolvedThemeColor = ResolveThemeColor(
                 GetWordAttribute(shading, "themeFill"),
                 GetWordAttribute(shading, "themeFillTint"),
