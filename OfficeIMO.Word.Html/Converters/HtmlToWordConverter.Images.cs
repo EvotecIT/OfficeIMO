@@ -15,7 +15,13 @@ namespace OfficeIMO.Word.Html {
         private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageSourceAttributes = { "src" };
 
-        private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private void ProcessImage(
+            IHtmlImageElement img,
+            WordDocument doc,
+            HtmlToWordOptions options,
+            WordParagraph? currentParagraph,
+            WordHeaderFooter? headerFooter,
+            int? containerWidthTwips = null) {
             var src = ResolveWordImageSource(img, options);
             if (string.IsNullOrEmpty(src)) {
                 if (HasImageSourceCandidateAttribute(img)) {
@@ -51,14 +57,14 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (src.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter);
+                ProcessSvgImage(src, img, doc, options, currentParagraph, headerFooter, containerWidthTwips);
                 return;
             }
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
 
@@ -180,12 +186,19 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessSvgImage(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private void ProcessSvgImage(
+            string src,
+            IHtmlImageElement img,
+            WordDocument doc,
+            HtmlToWordOptions options,
+            WordParagraph? currentParagraph,
+            WordHeaderFooter? headerFooter,
+            int? containerWidthTwips) {
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
-            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc);
-            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc);
+            width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, containerWidthTwips);
+            width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, containerWidthTwips);
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText;
@@ -295,7 +308,10 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static double? TryResolveImagePercentWidth(string? value, WordDocument doc) {
+        private static double? TryResolveImagePercentWidth(
+            string? value,
+            WordDocument doc,
+            int? containerWidthTwips) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
@@ -309,11 +325,16 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            var section = doc.Sections.Count > 0 ? doc.Sections[doc.Sections.Count - 1] : null;
-            var pageWidthTwips = section?.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value;
-            var leftMarginTwips = section?.Margins.Left?.Value ?? 1440U;
-            var rightMarginTwips = section?.Margins.Right?.Value ?? 1440U;
-            var contentWidthTwips = Math.Max(0D, pageWidthTwips - leftMarginTwips - rightMarginTwips);
+            double contentWidthTwips;
+            if (containerWidthTwips.HasValue && containerWidthTwips.Value > 0) {
+                contentWidthTwips = containerWidthTwips.Value;
+            } else {
+                var section = doc.Sections.Count > 0 ? doc.Sections[doc.Sections.Count - 1] : null;
+                var pageWidthTwips = section?.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value;
+                var leftMarginTwips = section?.Margins.Left?.Value ?? 1440U;
+                var rightMarginTwips = section?.Margins.Right?.Value ?? 1440U;
+                contentWidthTwips = Math.Max(0D, pageWidthTwips - leftMarginTwips - rightMarginTwips);
+            }
             if (contentWidthTwips <= 0) {
                 return null;
             }

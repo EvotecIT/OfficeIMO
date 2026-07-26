@@ -147,7 +147,12 @@ namespace OfficeIMO.Word.Html {
                 string? highlightCss = includeRunHighlightStyles
                     ? GetHighlightCss(WordDocumentImageRenderer.ResolveRunHighlight(run))
                     : null;
-                if (!string.IsNullOrEmpty(highlightCss) && normalizedRunBackground != null) {
+                bool isDefaultMarkHighlight = string.Equals(
+                    highlightCss,
+                    "#ffff00",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!string.IsNullOrEmpty(highlightCss) &&
+                    (normalizedRunBackground != null || !isDefaultMarkHighlight)) {
                     semanticNode.SetAttribute("style", $"background-color:{highlightCss}");
                 } else if (normalizedRunBackground != null) {
                     semanticNode.SetAttribute("style", $"background-color:#{normalizedRunBackground}");

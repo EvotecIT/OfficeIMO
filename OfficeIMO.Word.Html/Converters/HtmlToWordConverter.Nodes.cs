@@ -902,7 +902,16 @@ namespace OfficeIMO.Word.Html {
                                 imageParagraph = AddParagraphInScope(section, cell, headerFooter);
                                 createdCellParagraph = true;
                             }
-                            ProcessImage((IHtmlImageElement)element, doc, options, imageParagraph, headerFooter);
+                            int? imageContainerWidthTwips = cell == null
+                                ? null
+                                : WordTable.EstimateCellContentWidthInDxa(doc, cell._tableCell);
+                            ProcessImage(
+                                (IHtmlImageElement)element,
+                                doc,
+                                options,
+                                imageParagraph,
+                                headerFooter,
+                                imageContainerWidthTwips);
                             if (createdCellParagraph &&
                                 imageParagraph != null &&
                                 cell!.Paragraphs.Count > 1 &&

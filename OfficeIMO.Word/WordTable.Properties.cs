@@ -280,76 +280,95 @@ namespace OfficeIMO.Word {
         /// Falls back to page content width when structure cannot be determined.
         /// </summary>
         private int EstimateContainingCellContentWidthInDxa() {
+            if (_table.Parent is DocumentFormat.OpenXml.Wordprocessing.TableCell cell) {
+                int? estimated = EstimateCellContentWidthInDxa(_document, cell);
+                if (estimated.HasValue) {
+                    return estimated.Value;
+                }
+            }
+
+            return EstimateContentAreaWidthInDxa();
+        }
+
+        /// <summary>
+        /// Estimates the usable content width of a specific table cell in DXA (twips).
+        /// </summary>
+        internal static int? EstimateCellContentWidthInDxa(
+            WordDocument document,
+            DocumentFormat.OpenXml.Wordprocessing.TableCell cell) {
             try {
-                // We expect the table parent to be a TableCell when nested.
-                if (_table.Parent is DocumentFormat.OpenXml.Wordprocessing.TableCell cell) {
-                    // Parent row and table
-                    var row = cell.Parent as DocumentFormat.OpenXml.Wordprocessing.TableRow;
-                    var parentTable = row?.Parent as DocumentFormat.OpenXml.Wordprocessing.Table;
-                    if (row != null && parentTable != null) {
-                        // Determine the starting grid index of this cell by iterating row cells and
-                        // accumulating gridSpan for cells before our target.
-                        int gridIndex = 0;
-                        foreach (var c in row.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>()) {
-                            if (object.ReferenceEquals(c, cell)) break;
-                            int span = (int)(c.TableCellProperties?.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
-                            gridIndex += Math.Max(1, span);
-                        }
-
-                        int spanThis = (int)(cell.TableCellProperties?.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
-                        spanThis = Math.Max(1, spanThis);
-
-                        var grid = parentTable.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableGrid>();
-                        if (grid != null) {
-                            var cols = grid.Elements<DocumentFormat.OpenXml.Wordprocessing.GridColumn>().ToList();
-                            int sum = 0;
-                            for (int i = 0; i < spanThis && (gridIndex + i) < cols.Count; i++) {
-                                if (int.TryParse(cols[gridIndex + i].Width?.Value ?? "0", out int w)) sum += w;
-                            }
-                            if (sum > 0) {
-                                // Subtract cell left/right margins and borders to get usable inner width
-                                int leftMargin = 0, rightMargin = 0;
-                                int leftBorder = 0, rightBorder = 0;
-
-                                // Margins: prefer explicit cell margins; fall back to table defaults; else Word default 108 twips
-                                var cellMar = cell.TableCellProperties?.TableCellMargin;
-                                if (cellMar?.LeftMargin?.Width?.Value != null) {
-                                    int.TryParse(cellMar.LeftMargin.Width.Value, out leftMargin);
-                                }
-                                if (cellMar?.RightMargin?.Width?.Value != null) {
-                                    int.TryParse(cellMar.RightMargin.Width.Value, out rightMargin);
-                                }
-
-                                if (leftMargin == 0 || rightMargin == 0) {
-                                    var ptProps = parentTable.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableProperties>();
-                                    // TableCellMarginDefault stores left/right in twips (DXA) as Int16
-                                    var dflt = ptProps?.TableCellMarginDefault;
-                                    if (leftMargin == 0 && dflt?.TableCellLeftMargin?.Width != null) leftMargin = dflt.TableCellLeftMargin.Width.Value;
-                                    if (rightMargin == 0 && dflt?.TableCellRightMargin?.Width != null) rightMargin = dflt.TableCellRightMargin.Width.Value;
-                                }
-
-                                if (leftMargin == 0) leftMargin = 108; // Word default ~0.075"
-                                if (rightMargin == 0) rightMargin = 108;
-
-                                // Borders: check explicit cell borders first; else assume style default ~10 twips per side (size=4 → 0.5pt)
-                                var cellBorders = cell.TableCellProperties?.TableCellBorders;
-                                if (cellBorders?.LeftBorder?.Size != null) leftBorder = SizeUnitsToTwips(cellBorders.LeftBorder.Size.Value);
-                                if (cellBorders?.RightBorder?.Size != null) rightBorder = SizeUnitsToTwips(cellBorders.RightBorder.Size.Value);
-                                if (leftBorder == 0) leftBorder = 10;
-                                if (rightBorder == 0) rightBorder = 10;
-
-                                int usable = Math.Max(1, sum - leftMargin - rightMargin - leftBorder - rightBorder);
-                                return usable;
-                            }
-                        }
-
-                        // Fallback to parent table estimated width when grid is unavailable
-                        var parent = new WordTable(_document, parentTable, initializeChildren: false);
-                        return Math.Max(1, parent.EstimateTableWidthInDxa());
+                var row = cell.Parent as DocumentFormat.OpenXml.Wordprocessing.TableRow;
+                var parentTable = row?.Parent as DocumentFormat.OpenXml.Wordprocessing.Table;
+                if (row != null && parentTable != null) {
+                    int gridIndex = 0;
+                    foreach (var candidate in row.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>()) {
+                        if (ReferenceEquals(candidate, cell)) break;
+                        int span = (int)(candidate.TableCellProperties?
+                            .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
+                        gridIndex += Math.Max(1, span);
                     }
+
+                    int spanThis = (int)(cell.TableCellProperties?
+                        .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
+                    spanThis = Math.Max(1, spanThis);
+
+                    var grid = parentTable.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableGrid>();
+                    if (grid != null) {
+                        var columns = grid.Elements<DocumentFormat.OpenXml.Wordprocessing.GridColumn>().ToList();
+                        int sum = 0;
+                        for (int i = 0; i < spanThis && gridIndex + i < columns.Count; i++) {
+                            if (int.TryParse(columns[gridIndex + i].Width?.Value ?? "0", out int width)) {
+                                sum += width;
+                            }
+                        }
+
+                        if (sum > 0) {
+                            int leftMargin = 0, rightMargin = 0;
+                            int leftBorder = 0, rightBorder = 0;
+                            var cellMargins = cell.TableCellProperties?.TableCellMargin;
+                            if (cellMargins?.LeftMargin?.Width?.Value != null) {
+                                int.TryParse(cellMargins.LeftMargin.Width.Value, out leftMargin);
+                            }
+                            if (cellMargins?.RightMargin?.Width?.Value != null) {
+                                int.TryParse(cellMargins.RightMargin.Width.Value, out rightMargin);
+                            }
+
+                            if (leftMargin == 0 || rightMargin == 0) {
+                                var tableProperties = parentTable
+                                    .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TableProperties>();
+                                var defaults = tableProperties?.TableCellMarginDefault;
+                                if (leftMargin == 0 && defaults?.TableCellLeftMargin?.Width != null) {
+                                    leftMargin = defaults.TableCellLeftMargin.Width.Value;
+                                }
+                                if (rightMargin == 0 && defaults?.TableCellRightMargin?.Width != null) {
+                                    rightMargin = defaults.TableCellRightMargin.Width.Value;
+                                }
+                            }
+
+                            if (leftMargin == 0) leftMargin = 108;
+                            if (rightMargin == 0) rightMargin = 108;
+
+                            var cellBorders = cell.TableCellProperties?.TableCellBorders;
+                            if (cellBorders?.LeftBorder?.Size != null) {
+                                leftBorder = SizeUnitsToTwips(cellBorders.LeftBorder.Size.Value);
+                            }
+                            if (cellBorders?.RightBorder?.Size != null) {
+                                rightBorder = SizeUnitsToTwips(cellBorders.RightBorder.Size.Value);
+                            }
+                            if (leftBorder == 0) leftBorder = 10;
+                            if (rightBorder == 0) rightBorder = 10;
+
+                            return Math.Max(
+                                1,
+                                sum - leftMargin - rightMargin - leftBorder - rightBorder);
+                        }
+                    }
+
+                    var parent = new WordTable(document, parentTable, initializeChildren: false);
+                    return Math.Max(1, parent.EstimateTableWidthInDxa());
                 }
             } catch { /* ignore */ }
-            return EstimateContentAreaWidthInDxa();
+            return null;
         }
 
         private static int SizeUnitsToTwips(UInt32Value sizeUnits) {

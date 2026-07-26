@@ -672,18 +672,10 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
             if (value.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
-                int start = value.IndexOf('(');
-                int end = value.IndexOf(')');
-                if (start >= 0 && end > start) {
-                    var parts = value.Substring(start + 1, end - start - 1).Split(',');
-                    if (parts.Length >= 3 &&
-                        byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
-                        byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
-                        byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
-                        TryParseFunctionalColorAlpha(value, out alpha);
-                        var color = Color.FromRgb(r, g, b);
-                        return color.ToRgbHex();
-                    }
+                if (TryParseRgbColor(value, out byte r, out byte g, out byte b)) {
+                    TryParseFunctionalColorAlpha(value, out alpha);
+                    var color = Color.FromRgb(r, g, b);
+                    return color.ToRgbHex();
                 }
                 return null;
             }
@@ -703,6 +695,49 @@ namespace OfficeIMO.Word.Html {
                 }
                 return null;
             }
+        }
+
+        internal static bool TryParseRgbColor(string text, out byte r, out byte g, out byte b) {
+            r = g = b = 0;
+            int start = text.IndexOf('(');
+            int end = text.LastIndexOf(')');
+            if (start < 0 || end <= start) {
+                return false;
+            }
+
+            string content = text.Substring(start + 1, end - start - 1);
+            int slashIndex = content.IndexOf('/');
+            if (slashIndex >= 0) {
+                content = content.Substring(0, slashIndex);
+            }
+
+            string[] parts = content.IndexOf(',') >= 0
+                ? content.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                : content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 3 &&
+                   TryParseRgbChannel(parts[0], out r) &&
+                   TryParseRgbChannel(parts[1], out g) &&
+                   TryParseRgbChannel(parts[2], out b);
+        }
+
+        private static bool TryParseRgbChannel(string text, out byte value) {
+            value = 0;
+            string token = text.Trim();
+            double parsed;
+            if (token.EndsWith("%", StringComparison.Ordinal)) {
+                token = token.Substring(0, token.Length - 1);
+                if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)) {
+                    return false;
+                }
+
+                parsed = parsed * 255d / 100d;
+            } else if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed)) {
+                return false;
+            }
+
+            parsed = parsed < 0 ? 0 : parsed > 255 ? 255 : parsed;
+            value = (byte)Math.Round(parsed);
+            return true;
         }
 
         private static bool TryParseFunctionalColorAlpha(string value, out double alpha) {

@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Html {
                 Style.HasValue &&
                 Style.Value != BorderValues.None &&
                 (Size == null || Size.Value > 0)
-                    ? new BlockBorder(Style.Value, Size ?? 4U, Color)
+                    ? new BlockBorder(Style.Value, Size ?? 18U, Color)
                     : null;
         }
 
@@ -112,21 +112,24 @@ namespace OfficeIMO.Word.Html {
                 lineage.Push(current);
             }
 
-            string? inheritedBackground = null;
+            string? effectiveBackdrop = null;
+            string? currentBackground = null;
             var inheritedBorders = new Dictionary<BlockBorderSide, BlockBorderState>();
             while (lineage.Count > 0) {
                 IElement current = lineage.Pop();
                 ParseBlockFrameStyles(
                     current.GetAttribute("style") ?? string.Empty,
-                    inheritedBackground,
+                    effectiveBackdrop,
                     inheritedBorders,
-                    out background,
+                    out currentBackground,
                     out sideBorders);
-                inheritedBackground = background;
+                if (currentBackground != null) {
+                    effectiveBackdrop = currentBackground;
+                }
                 inheritedBorders = sideBorders;
             }
 
-            background = inheritedBackground;
+            background = currentBackground;
             sideBorders = inheritedBorders;
         }
 
@@ -577,6 +580,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
+            bool hasExplicitWidth = false;
             foreach (string token in tokens) {
                 if (!TryParseRawBlockBorderWidth(token, out double width)) {
                     if (hasExplicitColor &&
@@ -590,6 +594,7 @@ namespace OfficeIMO.Word.Html {
                         hasTransparentColor = transparentColor;
                     }
                 } else {
+                    hasExplicitWidth = true;
                     if (width < 0) {
                         return false;
                     }
@@ -599,6 +604,9 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (!hasExplicitWidth) {
+                size = 18U;
+            }
             return true;
         }
 
