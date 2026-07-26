@@ -165,9 +165,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             foreach (var child in element.ChildNodes) {
                                 int paragraphCount = GetParagraphsInScope(section, cell, headerFooter).Count;
-                                bool standaloneResource = child is IElement resourceElement &&
-                                    (resourceElement.TagName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
-                                     resourceElement.TagName.Equals("svg", StringComparison.OrdinalIgnoreCase));
+                                bool standaloneResource = ShouldStartBodyResourceParagraph(child);
                                 bool startsOwnParagraph = standaloneResource ||
                                     child is IElement childElement && _blockTags.Contains(childElement.TagName);
                                 ProcessNode(child, doc, section, options, startsOwnParagraph ? null : para, listStack, fmt, cell, headerFooter, headingList);

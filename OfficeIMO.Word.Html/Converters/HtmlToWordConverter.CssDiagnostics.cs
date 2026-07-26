@@ -568,7 +568,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsNegativeCssLengthLiteral(string value) {
             string lower = value.Trim().ToLowerInvariant();
-            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (string unit in units) {
                 if (!lower.EndsWith(unit, StringComparison.Ordinal)) {
                     continue;
@@ -609,7 +609,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsSupportedCssLengthLiteral(string value, bool allowNegative) {
-            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (var unit in units) {
                 if (!value.EndsWith(unit, StringComparison.Ordinal)) {
                     continue;
@@ -630,7 +630,7 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (var unit in units) {
                 if (value.EndsWith(unit, StringComparison.Ordinal) &&
                     double.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) {

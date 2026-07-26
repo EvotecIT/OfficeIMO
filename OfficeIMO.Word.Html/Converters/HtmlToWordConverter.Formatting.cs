@@ -543,8 +543,14 @@ namespace OfficeIMO.Word.Html {
                 formatting.Strike = parsed.Strike.Value;
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
-                formatting.BackgroundColorHex = parsed.BackgroundColor;
-                formatting.PreserveHighlightOverBackground = false;
+                double alpha = parsed.BackgroundColorAlpha ?? 1d;
+                if (alpha > 0d) {
+                    formatting.BackgroundColorHex = ResolveOpaqueTextBackground(
+                        parsed.BackgroundColor!,
+                        alpha,
+                        formatting.BackgroundColorHex);
+                    formatting.PreserveHighlightOverBackground = false;
+                }
             }
             if (parsed.WhiteSpace.HasValue) {
                 formatting.WhiteSpace = parsed.WhiteSpace.Value;

@@ -785,46 +785,6 @@ namespace OfficeIMO.Word {
             return OfficeColor.White;
         }
 
-        private static bool TryResolveShadingFillColor(Shading? shading, A.ColorScheme? colorScheme, out OfficeColor fillColor) {
-            fillColor = OfficeColor.White;
-            if (shading?.Val?.Value == ShadingPatternValues.Nil) {
-                return false;
-            }
-
-            if (shading?.Val?.Value == ShadingPatternValues.Solid) {
-                string? resolvedThemeForeground = ResolveThemeColor(
-                    GetWordAttribute(shading, "themeColor"),
-                    GetWordAttribute(shading, "themeTint"),
-                    GetWordAttribute(shading, "themeShade"),
-                    colorScheme);
-                if (TryParseOfficeColor(resolvedThemeForeground, out OfficeColor themeForeground)) {
-                    fillColor = themeForeground;
-                    return true;
-                }
-                if (TryParseOfficeColor(shading.Color?.Value, out OfficeColor foreground)) {
-                    fillColor = foreground;
-                    return true;
-                }
-                if (string.Equals(shading.Color?.Value, "auto", StringComparison.OrdinalIgnoreCase)) {
-                    fillColor = OfficeColor.Black;
-                    return true;
-                }
-                return false;
-            }
-
-            string? resolvedThemeColor = ResolveThemeColor(
-                GetWordAttribute(shading, "themeFill"),
-                GetWordAttribute(shading, "themeFillTint"),
-                GetWordAttribute(shading, "themeFillShade"),
-                colorScheme);
-            if (TryParseOfficeColor(resolvedThemeColor, out OfficeColor themeFill)) {
-                fillColor = themeFill;
-                return true;
-            }
-
-            return TryParseOfficeColor(shading?.Fill?.Value, out fillColor);
-        }
-
         private static OfficeBorderBox ResolveCellBorders(WordTable table, WordTableCell cell, int rowIndex, int columnIndex, int rowSpan, int columnSpan, int rowCount, int columnCount, A.ColorScheme? colorScheme) {
             TableCellBorders? borders = cell._tableCellProperties?.TableCellBorders;
             if (borders != null) {

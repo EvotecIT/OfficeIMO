@@ -57,6 +57,33 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static string ResolveOpaqueTextBackground(
+            string foregroundHex,
+            double alpha,
+            string? inheritedBackgroundHex) {
+            if (alpha >= 1d) {
+                return foregroundHex;
+            }
+
+            Color foreground = Color.Parse("#" + foregroundHex);
+            Color background;
+            try {
+                background = string.IsNullOrEmpty(inheritedBackgroundHex)
+                    ? Color.White
+                    : Color.Parse("#" + inheritedBackgroundHex);
+            } catch {
+                background = Color.White;
+            }
+
+            double foregroundRatio = Math.Max(0d, Math.Min(1d, alpha));
+            double backgroundRatio = 1d - foregroundRatio;
+            return Color.FromRgb(
+                (byte)Math.Round(foreground.R * foregroundRatio + background.R * backgroundRatio),
+                (byte)Math.Round(foreground.G * foregroundRatio + background.G * backgroundRatio),
+                (byte)Math.Round(foreground.B * foregroundRatio + background.B * backgroundRatio))
+                .ToRgbHex();
+        }
+
         private static HighlightColorValues? MapColorToHighlight(string? hex, out bool exact) {
             exact = false;
             if (string.IsNullOrEmpty(hex)) {

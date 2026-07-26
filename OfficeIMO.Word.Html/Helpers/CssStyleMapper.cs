@@ -24,6 +24,7 @@ namespace OfficeIMO.Word.Html {
             internal UnderlineValues? UnderlineStyle { get; set; }
             internal bool? Strike { get; set; }
             internal string? BackgroundColor { get; set; }
+            internal double? BackgroundColorAlpha { get; set; }
             internal int? LineHeight { get; set; }
             internal LineSpacingRuleValues? LineHeightRule { get; set; }
             internal WhiteSpaceMode? WhiteSpace { get; set; }
@@ -92,7 +93,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (properties.TryGetValue("background-color", out string? bg)) {
-                result.BackgroundColor = NormalizeColor(bg);
+                result.BackgroundColor = NormalizeColor(bg, out double alpha);
+                if (result.BackgroundColor != null) {
+                    result.BackgroundColorAlpha = alpha;
+                }
             }
 
             if (properties.TryGetValue("line-height", out string? lh) && TryParseLineHeight(lh, out int line, out LineSpacingRuleValues rule)) {
@@ -490,31 +494,6 @@ namespace OfficeIMO.Word.Html {
             return size > 0;
         }
 
-        private static bool TryParseLength(string value, out int twips) {
-            twips = 0;
-            if (string.IsNullOrWhiteSpace(value)) {
-                return false;
-            }
-            value = value.Trim().ToLowerInvariant();
-            if (value.EndsWith("pt") && double.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double pt)) {
-                twips = (int)Math.Round(pt * 20);
-                return true;
-            }
-            if (value.EndsWith("px") && double.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double px)) {
-                twips = (int)Math.Round(px * 15);
-                return true;
-            }
-            if (value.EndsWith("em") && double.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double em)) {
-                twips = (int)Math.Round(em * 16 * 15);
-                return true;
-            }
-            if (double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double number)) {
-                twips = (int)Math.Round(number * 15);
-                return true;
-            }
-            return false;
-        }
-
         private static bool TryParsePaddingLength(string value, out int twips) =>
             TryParseLength(value, out twips) && twips >= 0;
 
@@ -635,13 +614,15 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static string? NormalizeColor(string value) {
+        private static string? NormalizeColor(string value, out double alpha) {
+            alpha = 1d;
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
             value = value.Trim();
             if (value.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseHsl(value, out byte hr, out byte hg, out byte hb)) {
+                    TryParseFunctionalColorAlpha(value, out alpha);
                     var color = Color.FromRgb(hr, hg, hb);
                     return color.ToRgbHex();
                 }
@@ -656,6 +637,7 @@ namespace OfficeIMO.Word.Html {
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
                         byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
+                        TryParseFunctionalColorAlpha(value, out alpha);
                         var color = Color.FromRgb(r, g, b);
                         return color.ToRgbHex();
                     }
@@ -664,11 +646,13 @@ namespace OfficeIMO.Word.Html {
             }
             try {
                 var parsed = Color.Parse(value);
+                alpha = parsed.A / (double)byte.MaxValue;
                 return parsed.ToRgbHex();
             } catch {
                 if (!value.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsed = Color.Parse("#" + value);
+                        alpha = parsed.A / (double)byte.MaxValue;
                         return parsed.ToRgbHex();
                     } catch {
                         return null;
@@ -676,6 +660,42 @@ namespace OfficeIMO.Word.Html {
                 }
                 return null;
             }
+        }
+
+        private static bool TryParseFunctionalColorAlpha(string value, out double alpha) {
+            alpha = 1d;
+            int start = value.IndexOf('(');
+            int end = value.LastIndexOf(')');
+            if (start < 0 || end <= start) {
+                return false;
+            }
+
+            string content = value.Substring(start + 1, end - start - 1);
+            string? alphaToken = null;
+            int slashIndex = content.LastIndexOf('/');
+            if (slashIndex >= 0) {
+                alphaToken = content.Substring(slashIndex + 1).Trim();
+            } else {
+                string[] commaParts = content.Split(',');
+                if (commaParts.Length >= 4) {
+                    alphaToken = commaParts[3].Trim();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(alphaToken)) {
+                return false;
+            }
+
+            bool percent = alphaToken!.EndsWith("%", StringComparison.Ordinal);
+            string number = percent ? alphaToken.Substring(0, alphaToken.Length - 1) : alphaToken;
+            if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+                return false;
+            }
+
+            double normalized = percent ? parsed / 100d : parsed;
+            normalized = Math.Max(0d, Math.Min(1d, normalized));
+            alpha = normalized;
+            return true;
         }
 
         private static bool TryParseHsl(string text, out byte r, out byte g, out byte b) {
