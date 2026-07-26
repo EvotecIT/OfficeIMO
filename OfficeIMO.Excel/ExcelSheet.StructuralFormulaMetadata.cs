@@ -129,6 +129,32 @@ namespace OfficeIMO.Excel {
                                 lastDeletedRow,
                                 rewriteUnqualifiedReferences: false);
                         }
+                        foreach (ConditionalFormatValueObject threshold in rule
+                            .Descendants<ConditionalFormatValueObject>()
+                            .Where(item => item.Type?.Value == ConditionalFormatValueObjectValues.Formula)) {
+                            if (threshold.Val?.Value is not string formulaText || formulaText.Length == 0) {
+                                continue;
+                            }
+
+                            string rewritten = lastDeletedRow.HasValue
+                                ? RewriteDeletedFormulaReferences(
+                                    formulaText,
+                                    firstAffectedRow,
+                                    lastDeletedRow.Value,
+                                    rowDelta,
+                                    Name,
+                                    rewriteUnqualifiedReferences: false)
+                                : RewriteShiftedFormulaReferences(
+                                    formulaText,
+                                    firstAffectedRow,
+                                    rowDelta,
+                                    Name,
+                                    rewriteUnqualifiedReferences: false);
+                            if (!string.Equals(formulaText, rewritten, StringComparison.Ordinal)) {
+                                threshold.Val = rewritten;
+                                changed = true;
+                            }
+                        }
                     }
 
                     foreach (Xm.Formula formula in worksheetPart.Worksheet

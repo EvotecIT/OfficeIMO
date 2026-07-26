@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel {
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedWebPublishItems(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedConnectionParameters(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedPivotSources(firstAffectedRow, rowDelta, lastDeletedRow: null);
             bool definedNamesChanged = RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
             bool tablesChanged = RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel {
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
             RemapShiftedDataConsolidationReferences(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedWebPublishItems(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedConnectionParameters(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedPivotSources(firstDeletedRow, rowDelta, lastDeletedRow);
             bool definedNamesChanged = RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
             bool tablesChanged = RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
@@ -140,6 +142,54 @@ namespace OfficeIMO.Excel {
                 WorkbookRoot.Save();
             }
             return changed;
+        }
+
+        private void RemapShiftedConnectionParameters(
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            ConnectionsPart? connectionsPart = WorkbookPartRoot.ConnectionsPart;
+            Connections? connections = connectionsPart?.Connections;
+            if (connections == null) {
+                return;
+            }
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            if (connectionIds.Count == 0) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (Connection connection in connections.Elements<Connection>()
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    if (parameter.Cell?.Value is not string reference
+                        || !TryRemapShiftedReferenceListRows(
+                            reference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remappedReferences)) {
+                        continue;
+                    }
+
+                    parameter.Cell = remappedReferences.Count == 0
+                        ? "#REF!"
+                        : remappedReferences[0];
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                connections.Save();
+            }
+        }
+
+        private static HashSet<uint> GetWorksheetQueryConnectionIds(WorksheetPart worksheetPart) {
+            return new HashSet<uint>(worksheetPart.QueryTableParts
+                .Select(part => part.QueryTable?.ConnectionId?.Value)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value));
         }
 
         private bool RemapShiftedTables(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -493,6 +543,26 @@ namespace OfficeIMO.Excel {
                         lastDeletedRow,
                         anchorRowDelta,
                         relativeFormulaSourceRowDelta: relativeFormulaSourceRowDelta);
+                }
+                foreach (ConditionalFormatValueObject threshold in conditional
+                    .Descendants<ConditionalFormatValueObject>()
+                    .Where(item => item.Type?.Value == ConditionalFormatValueObjectValues.Formula)) {
+                    if (threshold.Val?.Value is not string formulaText || formulaText.Length == 0) {
+                        continue;
+                    }
+
+                    string rewritten = RewriteAnchoredFormulaReferences(
+                        formulaText,
+                        firstAffectedRow,
+                        rowDelta,
+                        lastDeletedRow,
+                        Name,
+                        anchorRowDelta,
+                        relativeReferencesFollowAnchor: false,
+                        relativeFormulaSourceRowDelta);
+                    if (!string.Equals(formulaText, rewritten, StringComparison.Ordinal)) {
+                        threshold.Val = rewritten;
+                    }
                 }
             }
 

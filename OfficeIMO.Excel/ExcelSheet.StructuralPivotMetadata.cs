@@ -4,20 +4,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private void RemapShiftedPivotSources(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
-            IEnumerable<PivotTableCacheDefinitionPart> cacheParts = WorkbookPartRoot.WorksheetParts
-                .SelectMany(worksheetPart => worksheetPart.PivotTableParts)
-                .Select(pivotPart => pivotPart.PivotTableCacheDefinitionPart)
-                .Where(cachePart => cachePart != null)
-                .Cast<PivotTableCacheDefinitionPart>()
-                .Distinct();
-
-            foreach (PivotTableCacheDefinitionPart cachePart in cacheParts) {
+            foreach (PivotTableCacheDefinitionPart cachePart in GetWorkbookPivotCacheDefinitionParts()) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
-                if (source == null) {
-                    continue;
-                }
-
-                if (string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                if (source != null
+                    && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                     && source.Reference?.Value is string sourceReference
                     && TryRemapShiftedReferenceListRows(
                         sourceReference,
@@ -41,11 +31,47 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (source.Name?.Value is string sourceName
+                if (source?.Name?.Value is string sourceName
                     && IsNamedPivotSourceAffected(sourceName, firstAffectedRow)) {
+                    InvalidatePivotCacheAfterStructuralEdit(cachePart, recordCount: null);
+                    continue;
+                }
+
+                bool consolidationChanged = false;
+                foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
+                    .Consolidation?.RangeSets?.Elements<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
+                    if (!string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                        || !string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                        || rangeSet.Reference?.Value is not string reference
+                        || !TryRemapShiftedReferenceListRows(
+                            reference,
+                            firstAffectedRow,
+                            rowDelta,
+                            lastDeletedRow,
+                            out List<string> remappedReferences)) {
+                        continue;
+                    }
+
+                    rangeSet.Reference = remappedReferences.Count == 0
+                        ? "#REF!"
+                        : remappedReferences[0];
+                    consolidationChanged = true;
+                }
+
+                if (consolidationChanged) {
                     InvalidatePivotCacheAfterStructuralEdit(cachePart, recordCount: null);
                 }
             }
+        }
+
+        private IEnumerable<PivotTableCacheDefinitionPart> GetWorkbookPivotCacheDefinitionParts() {
+            return WorkbookPartRoot.WorksheetParts
+                .SelectMany(worksheetPart => worksheetPart.PivotTableParts)
+                .Select(pivotPart => pivotPart.PivotTableCacheDefinitionPart)
+                .Where(cachePart => cachePart != null)
+                .Cast<PivotTableCacheDefinitionPart>()
+                .Concat(WorkbookPartRoot.PivotTableCacheDefinitionParts)
+                .Distinct();
         }
 
         private bool IsNamedPivotSourceAffected(string sourceName, int firstAffectedRow) {

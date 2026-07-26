@@ -355,6 +355,15 @@ namespace OfficeIMO.Excel {
                         || string.Equals(element.LocalName, "f", StringComparison.Ordinal))) {
                     ThrowIfFormulaReferenceOverflows(formula.Text, firstRow, count, rewriteUnqualified);
                 }
+                foreach (ConditionalFormatValueObject threshold in worksheet
+                    .Descendants<ConditionalFormatValueObject>()
+                    .Where(item => item.Type?.Value == ConditionalFormatValueObjectValues.Formula)) {
+                    ThrowIfFormulaReferenceOverflows(
+                        threshold.Val?.Value,
+                        firstRow,
+                        count,
+                        rewriteUnqualified);
+                }
 
                 foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
                     if (string.IsNullOrWhiteSpace(hyperlink.Id?.Value)) {
@@ -387,6 +396,7 @@ namespace OfficeIMO.Excel {
             }
 
             ValidatePivotReferenceCapacity(firstRow, count);
+            ValidateConnectionParameterCapacity(firstRow, count);
 
             foreach (DocumentFormat.OpenXml.Packaging.ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
                 ValidateChartFormulaCapacity(
@@ -415,6 +425,9 @@ namespace OfficeIMO.Excel {
             }
             foreach (CellWatch cellWatch in WorksheetRoot.Descendants<CellWatch>()) {
                 ValidateReferenceListDoesNotOverflow(cellWatch.CellReference?.Value, firstRow, count);
+            }
+            foreach (InputCells input in WorksheetRoot.Descendants<InputCells>()) {
+                ValidateReferenceListDoesNotOverflow(input.CellReference?.Value, firstRow, count);
             }
             foreach (Selection selection in WorksheetRoot.Descendants<Selection>()) {
                 ValidateReferenceListDoesNotOverflow(selection.ActiveCell?.Value, firstRow, count);
@@ -472,18 +485,19 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidatePivotReferenceCapacity(int firstRow, int count) {
-            IEnumerable<DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart> cacheParts =
-                WorkbookPartRoot.WorksheetParts
-                    .SelectMany(worksheetPart => worksheetPart.PivotTableParts)
-                    .Select(pivotPart => pivotPart.PivotTableCacheDefinitionPart)
-                    .Where(cachePart => cachePart != null)
-                    .Cast<DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart>()
-                    .Distinct();
-            foreach (DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart cachePart in cacheParts) {
+            foreach (DocumentFormat.OpenXml.Packaging.PivotTableCacheDefinitionPart cachePart
+                in GetWorkbookPivotCacheDefinitionParts()) {
                 WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 if (source != null
                     && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
                     ValidateReferenceListDoesNotOverflow(source.Reference?.Value, firstRow, count);
+                }
+                foreach (RangeSet rangeSet in cachePart.PivotCacheDefinition?.CacheSource?
+                    .Consolidation?.RangeSets?.Elements<RangeSet>() ?? Enumerable.Empty<RangeSet>()) {
+                    if (string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                        && string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)) {
+                        ValidateReferenceListDoesNotOverflow(rangeSet.Reference?.Value, firstRow, count);
+                    }
                 }
             }
 
@@ -492,6 +506,21 @@ namespace OfficeIMO.Excel {
                     pivotPart.PivotTableDefinition?.Location?.Reference?.Value,
                     firstRow,
                     count);
+            }
+        }
+
+        private void ValidateConnectionParameterCapacity(int firstRow, int count) {
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections == null) {
+                return;
+            }
+
+            HashSet<uint> connectionIds = GetWorksheetQueryConnectionIds(_worksheetPart);
+            foreach (Connection connection in connections.Elements<Connection>()
+                .Where(connection => connection.Id?.Value is uint id && connectionIds.Contains(id))) {
+                foreach (Parameter parameter in connection.Descendants<Parameter>()) {
+                    ValidateReferenceListDoesNotOverflow(parameter.Cell?.Value, firstRow, count);
+                }
             }
         }
 

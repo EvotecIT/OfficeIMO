@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static string RewriteAnchoredFormulaReferences(
+        private string RewriteAnchoredFormulaReferences(
             string formula,
             int firstAffectedRow,
             int rowDelta,

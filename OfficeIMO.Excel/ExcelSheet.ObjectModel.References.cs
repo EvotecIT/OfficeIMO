@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static string RewriteCopiedFormulaReferences(string formula, int rowOffset, string? sheetName) {
+        private string RewriteCopiedFormulaReferences(string formula, int rowOffset, string? sheetName) {
             if (rowOffset == 0 || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel {
             }));
         }
 
-        private static string RewriteShiftedFormulaReferences(
+        private string RewriteShiftedFormulaReferences(
             string formula,
             int firstAffectedRow,
             int rowDelta,
@@ -270,7 +270,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string RewriteDeletedFormulaReferences(
+        private string RewriteDeletedFormulaReferences(
             string formula,
             int firstDeletedRow,
             int lastDeletedRow,
@@ -414,18 +414,19 @@ namespace OfficeIMO.Excel {
             return insideQualifier;
         }
 
-        private static string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
+        private string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
                 @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
                 match => IsInsideFormulaStructuredReference(segment, match.Index)
+                    || IsFormulaFunctionReferenceToken(segment, match)
                     ? match.Value
                     : evaluator(match),
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
+        private string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
                 @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
@@ -436,7 +437,7 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static string ReplaceFormulaRowRanges(string segment, MatchEvaluator evaluator) {
+        private string ReplaceFormulaRowRanges(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
                 segment,
                 @"(?<![\p{L}\p{N}_\.\]:!])(?:(?<sheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?:(?<endSheet>'(?:[^']|'')+'|[\p{L}_][\p{L}\p{N}_\.]*)!)?(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<>%# \t\r\n]|$)",
@@ -445,6 +446,28 @@ namespace OfficeIMO.Excel {
                     : evaluator(match),
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
+        }
+
+        private bool IsFormulaFunctionReferenceToken(string formula, Match match) {
+            if (match.Groups["sheet"].Success
+                || match.Groups["colAbs"].Value.Length > 0
+                || match.Groups["rowAbs"].Value.Length > 0) {
+                return false;
+            }
+
+            int cursor = match.Index + match.Length;
+            int whitespaceStart = cursor;
+            while (cursor < formula.Length && char.IsWhiteSpace(formula[cursor])) {
+                cursor++;
+            }
+
+            if (cursor == whitespaceStart || cursor >= formula.Length || formula[cursor] != '(') {
+                return false;
+            }
+
+            string token = match.Groups["col"].Value + match.Groups["row"].Value;
+            return ExcelFormulaCapabilities.IsBuiltInFunction(token)
+                || _excelDocument.Calculation.TryGetCustomFunction(token, out _);
         }
 
         private static string RewriteDeletedFormulaRangeReference(
