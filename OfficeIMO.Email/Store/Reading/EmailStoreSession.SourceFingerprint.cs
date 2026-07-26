@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace OfficeIMO.Email.Store;
 
 public sealed partial class EmailStoreSession {
@@ -21,7 +18,6 @@ public sealed partial class EmailStoreSession {
             SourceLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
             DisplayName ?? string.Empty,
             Folders.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))
-            .ToLowerInvariant();
+        return EmailHashing.ComputeSha256HexLower(value);
     }
 }

@@ -125,7 +125,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 AppendFingerprint(fingerprint, "unavailable");
             }
         }
-        return Convert.ToHexString(fingerprint.GetHashAndReset()).ToLowerInvariant();
+        return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
     }
 
     private static void AppendFingerprint(IncrementalHash fingerprint, string value) {
