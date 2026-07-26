@@ -43,8 +43,21 @@
     },
     {
       "task": "exec",
-      "id": "build-aot-project-matrix",
+      "id": "build-capability-catalog",
       "dependsOn": ["build-documentation-catalog"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-CapabilityCatalog.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "build-aot-project-matrix",
+      "dependsOn": ["build-capability-catalog"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -58,8 +71,21 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "test-capability-claims",
       "dependsOn": ["build-aot-project-matrix"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-CapabilityClaims.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": ["test-capability-claims"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1115,7 +1141,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/compatibility/,/convert/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     },
     {
       "task": "doctor",

@@ -1,18 +1,19 @@
 {
   "badge": "Open source document automation for .NET and PowerShell",
-  "title": "Office Documents Without Office",
-  "tagline": "Build, convert, inspect, and automate Word, Excel, PowerPoint, PDF, OpenDocument, email, Markdown, and more from .NET or PowerShell.",
+  "title_lead": "Modern and legacy",
+  "title_accent": "Office files",
+  "tagline": "Use typed .NET packages for the full DOC, XLS, XLSB, PPT, and modern Office surface. Use PSWriteOffice for its documented PowerShell authoring, inspection, and conversion workflows — all without Microsoft Office.",
   "ctas": [
-    { "label": "Get Started", "href": "/docs/getting-started/", "style": "primary" },
-    { "label": "Explore Conversions", "href": "/playground/", "style": "ghost" }
+    { "label": "Check format support", "href": "/compatibility/", "style": "primary" },
+    { "label": "Explore conversions", "href": "/convert/", "style": "ghost" }
   ],
   "install": {
     "dotnet": "dotnet add package OfficeIMO.Word",
     "powershell": "Install-Module PSWriteOffice"
   },
   "badges": [
+    { "label": "DOC, XLS, PPT + modern formats" },
     { "label": "MIT licensed" },
-    { "label": "No COM" },
-    { "label": "Cross-platform" }
+    { "label": ".NET formats + PowerShell automation" }
   ]
 }

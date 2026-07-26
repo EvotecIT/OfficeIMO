@@ -9,7 +9,7 @@
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 89,
-    "conceptualWordCount": 35770
+    "conceptualWordCount": 35793
   },
   "categories": [
     {
@@ -206,7 +206,7 @@
       "name": "OfficeIMO.Excel",
       "packageId": "OfficeIMO.Excel",
       "category": "Office documents",
-      "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Excel documents.",
+      "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
       "sourceFileCount": 876,
@@ -599,7 +599,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 925,
+      "sourceFileCount": 928,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -609,7 +609,7 @@
       "name": "OfficeIMO.PowerPoint",
       "packageId": "OfficeIMO.PowerPoint",
       "category": "Office documents",
-      "description": "An Open Source cross-platform .NET library for creating, reading, editing,\n            and writing Microsoft PowerPoint PPTX/PPTM and PPT/POT/PPS presentations.",
+      "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
       "sourceFileCount": 434,
@@ -1103,7 +1103,7 @@
       "name": "OfficeIMO.Word",
       "packageId": "OfficeIMO.Word",
       "category": "Office documents",
-      "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Word (DocX) documents.",
+      "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
       "sourceFileCount": 612,

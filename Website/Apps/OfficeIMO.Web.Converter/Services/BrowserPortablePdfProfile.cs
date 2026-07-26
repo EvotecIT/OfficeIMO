@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Html.Pdf;
@@ -29,16 +30,18 @@ internal static class BrowserPortablePdfProfile {
         "BlinkMacSystemFont"
     ];
 
-    internal const string FontPackId = "officeimo-browser-compact-2026.07";
     internal const string DefaultFontFamily = "Carlito";
     internal const string ArabicFallbackFontFamily = "Noto Sans Arabic";
     internal const string SymbolFallbackFontFamily = "Noto Sans Symbols 2";
     internal const string DefaultLayoutFontFamilies = "Carlito, 'Noto Sans Arabic', 'Noto Sans Symbols 2'";
-    internal const string ExpectedFontPackFingerprint = "99fe9605fae25324712287bc2212236771b67515ec77dab263a35fc48079e72f";
+    internal const string ExpectedFontPackFingerprint = "58d48fe49e16ffa209a594a905260e81c7bcd5fb10aaced1e76601d2f18cea68";
 
     private static readonly Lazy<FontPackData> Data = new(LoadFontPack, isThreadSafe: true);
 
+    internal static string FontPackId => Data.Value.Id;
     internal static string FontPackFingerprint => Data.Value.Fingerprint;
+    internal static IReadOnlyList<PdfFontFamilySubstitution> FontFamilySubstitutions =>
+        Data.Value.Substitutions;
 
     internal static PdfOptions CreateOptions(BrowserPdfProfile profile) {
         ArgumentNullException.ThrowIfNull(profile);
@@ -79,6 +82,12 @@ internal static class BrowserPortablePdfProfile {
                 new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, data.NotoSansArabic),
                 new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, data.NotoSansSymbols)
             ]));
+        foreach (PdfFontFamilySubstitution substitution in data.Substitutions) {
+            options.RegisterFontFamilySubstitution(
+                substitution.SourceFontFamily,
+                substitution.TargetFontFamily,
+                substitution.Impact);
+        }
 
         return options;
     }
@@ -118,6 +127,11 @@ internal static class BrowserPortablePdfProfile {
     }
 
     private static FontPackData LoadFontPack() {
+        byte[] manifestBytes = ReadResource("font-pack.json");
+        FontPackManifest manifest = JsonSerializer.Deserialize<FontPackManifest>(
+            manifestBytes,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("The embedded browser PDF font pack manifest is invalid.");
         byte[] carlitoRegular = ReadResource("Carlito-Regular.ttf");
         byte[] carlitoBold = ReadResource("Carlito-Bold.ttf");
         byte[] carlitoItalic = ReadResource("Carlito-Italic.ttf");
@@ -125,15 +139,21 @@ internal static class BrowserPortablePdfProfile {
         byte[] notoSansArabic = ReadResource("NotoSansArabic-Regular.ttf");
         byte[] notoSansSymbols = ReadResource("NotoSansSymbols2-Regular.ttf");
 
+        byte[] normalizedManifestBytes = Encoding.UTF8.GetBytes(
+            Encoding.UTF8.GetString(manifestBytes)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace("\r", "\n", StringComparison.Ordinal));
         var assets = new Dictionary<string, byte[]>(StringComparer.Ordinal) {
             ["Carlito-Bold.ttf"] = carlitoBold,
             ["Carlito-BoldItalic.ttf"] = carlitoBoldItalic,
             ["Carlito-Italic.ttf"] = carlitoItalic,
             ["Carlito-Regular.ttf"] = carlitoRegular,
             ["NotoSansArabic-Regular.ttf"] = notoSansArabic,
-            ["NotoSansSymbols2-Regular.ttf"] = notoSansSymbols
+            ["NotoSansSymbols2-Regular.ttf"] = notoSansSymbols,
+            ["font-pack.json"] = normalizedManifestBytes
         };
 
+        IReadOnlyList<PdfFontFamilySubstitution> substitutions = ValidateManifest(manifest);
         string fingerprint = ComputeFingerprint(assets);
         if (!string.Equals(fingerprint, ExpectedFontPackFingerprint, StringComparison.Ordinal)) {
             throw new InvalidOperationException(
@@ -141,13 +161,57 @@ internal static class BrowserPortablePdfProfile {
         }
 
         return new FontPackData(
+            manifest.Id,
             carlitoRegular,
             carlitoBold,
             carlitoItalic,
             carlitoBoldItalic,
             notoSansArabic,
             notoSansSymbols,
+            substitutions,
             fingerprint);
+    }
+
+    private static IReadOnlyList<PdfFontFamilySubstitution> ValidateManifest(FontPackManifest manifest) {
+        if (string.IsNullOrWhiteSpace(manifest.Id)) {
+            throw new InvalidOperationException("The embedded browser PDF font pack manifest has no id.");
+        }
+
+        var targetFamilies = new HashSet<string>(
+            manifest.Fonts
+                .Where(static font => !string.IsNullOrWhiteSpace(font.Family))
+                .Select(static font => font.Family.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        var sourceFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var substitutions = new List<PdfFontFamilySubstitution>();
+        foreach (FontPackSubstitution declared in manifest.Substitutions) {
+            if (string.IsNullOrWhiteSpace(declared.Source) ||
+                string.IsNullOrWhiteSpace(declared.Target) ||
+                !targetFamilies.Contains(declared.Target.Trim())) {
+                throw new InvalidOperationException(
+                    "The embedded browser PDF font pack contains an invalid substitution declaration.");
+            }
+            if (!sourceFamilies.Add(declared.Source.Trim())) {
+                throw new InvalidOperationException(
+                    "The embedded browser PDF font pack contains duplicate substitution sources.");
+            }
+            if (!Enum.TryParse(
+                    declared.Impact,
+                    ignoreCase: true,
+                    out PdfFontFamilySubstitutionImpact impact) ||
+                (impact != PdfFontFamilySubstitutionImpact.Compatible &&
+                 impact != PdfFontFamilySubstitutionImpact.LayoutSensitive)) {
+                throw new InvalidOperationException(
+                    "The embedded browser PDF font pack contains an invalid substitution impact.");
+            }
+
+            substitutions.Add(new PdfFontFamilySubstitution(
+                declared.Source,
+                declared.Target,
+                impact));
+        }
+
+        return substitutions.AsReadOnly();
     }
 
     private static byte[] ReadResource(string fileName) {
@@ -174,11 +238,22 @@ internal static class BrowserPortablePdfProfile {
     }
 
     private sealed record FontPackData(
+        string Id,
         byte[] CarlitoRegular,
         byte[] CarlitoBold,
         byte[] CarlitoItalic,
         byte[] CarlitoBoldItalic,
         byte[] NotoSansArabic,
         byte[] NotoSansSymbols,
+        IReadOnlyList<PdfFontFamilySubstitution> Substitutions,
         string Fingerprint);
+
+    private sealed record FontPackManifest(
+        string Id,
+        IReadOnlyList<FontPackFont> Fonts,
+        IReadOnlyList<FontPackSubstitution> Substitutions);
+
+    private sealed record FontPackFont(string Family);
+
+    private sealed record FontPackSubstitution(string Source, string Target, string Impact);
 }

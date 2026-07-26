@@ -5,7 +5,6 @@
     {
       "family": "Carlito",
       "purpose": "Default Latin Office document family and metric-compatible substitute for Calibri.",
-      "aliases": [ "Calibri", "Calibri Light", "Aptos", "Aptos Display" ],
       "license": "SIL Open Font License 1.1",
       "sourceRepository": "https://github.com/google/fonts",
       "sourceCommit": "9fab8b6cc7b2f20376914fd765d918c698c66d75",
@@ -35,6 +34,33 @@
       "files": [
         { "name": "NotoSansSymbols2-Regular.ttf", "sha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21" }
       ]
+    }
+  ],
+  "substitutions": [
+    {
+      "source": "Calibri",
+      "target": "Carlito",
+      "impact": "Compatible"
+    },
+    {
+      "source": "Calibri Light",
+      "target": "Carlito",
+      "impact": "Compatible"
+    },
+    {
+      "source": "Aptos",
+      "target": "Carlito",
+      "impact": "LayoutSensitive"
+    },
+    {
+      "source": "Aptos Display",
+      "target": "Carlito",
+      "impact": "LayoutSensitive"
+    },
+    {
+      "source": "Symbol",
+      "target": "Noto Sans Symbols 2",
+      "impact": "LayoutSensitive"
     }
   ]
 }

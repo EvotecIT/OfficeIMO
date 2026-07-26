@@ -58,6 +58,22 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "conversions",
+      "Input": "content/conversions",
+      "Output": "/convert",
+      "DefaultLayout": "conversion",
+      "UseToc": false,
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
+      "Name": "solutions",
+      "Input": "content/solutions",
+      "Output": "/solutions",
+      "DefaultLayout": "solution",
+      "UseToc": false,
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "blog",
       "Preset": "blog",
       "Input": "content/blog",
@@ -122,22 +138,30 @@
     "GeneratedCardHeight": 630,
     "GeneratedCardStyle": "default",
     "GeneratedCardVariant": "standard",
-    "GeneratedCardStylesByCollection": {
-      "pages": "default",
-      "docs": "docs",
-      "blog": "editorial",
-      "products": "default"
-    },
+      "GeneratedCardStylesByCollection": {
+        "pages": "default",
+        "docs": "docs",
+        "blog": "editorial",
+        "products": "default",
+        "conversions": "default",
+        "solutions": "default"
+      },
     "GeneratedCardVariantsByCollection": {
       "pages": "hero",
       "docs": "compact",
-      "blog": "compact",
-      "products": "hero"
+        "blog": "compact",
+        "products": "hero",
+        "conversions": "hero",
+        "solutions": "hero"
     }
   },
   "StructuredData": {
     "Enabled": true,
     "Breadcrumbs": true,
+    "Article": true,
+    "FaqPage": true,
+    "HowTo": true,
+    "SoftwareApplication": true,
     "OrganizationLegalName": "Evotec Services sp. z o.o.",
     "OrganizationDescription": "Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.",
     "OrganizationLogo": "https://officeimo.com/favicon.svg",
@@ -264,6 +288,9 @@
     "RouteBundles": [
       { "Match": "/", "Bundles": ["global", "home", "experience"] },
       { "Match": "/products/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/compatibility/", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
       { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
@@ -363,9 +390,9 @@
               {
                 "Title": "Create and edit",
                 "Items": [
-                  { "Title": "Word", "Url": "/products/word/", "Description": "DOCX documents, templates, and review" },
-                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLSX workbooks, tables, and charts" },
-                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPTX presentations and data-driven decks" },
+                  { "Title": "Word", "Url": "/products/word/", "Description": "DOC, DOCX, DOCM, templates, and review" },
+                  { "Title": "Excel", "Url": "/products/excel/", "Description": "XLS, XLSX, XLSB, formulas, and charts" },
+                  { "Title": "PowerPoint", "Url": "/products/powerpoint/", "Description": "PPT, PPTX, PPS, POT, and data-driven decks" },
                   { "Title": "PDF", "Url": "/products/pdf/", "Description": "Author, inspect, transform, and sign PDF" },
                   { "Title": "OneNote", "Url": "/products/onenote/", "Description": "Native offline OneNote files and notebooks" }
                 ]
@@ -395,16 +422,17 @@
           },
           {
             "Title": "Solutions",
-            "Url": "/docs/",
+            "Url": "/solutions/",
             "Sections": [
               {
                 "Title": "By task",
                 "Items": [
-                  { "Title": "Find a workflow", "Url": "/docs/workflows/", "Description": "Choose a route by input, output, and deployment" },
-                  { "Title": "Build reports", "Url": "/docs/workflows/database-reporting/", "Description": "Create Excel, CSV, Word, PowerPoint, and PDF output" },
-                  { "Title": "Convert documents", "Url": "/docs/workflows/content-publishing/", "Description": "Move between Office, PDF, HTML, Markdown, RTF, and open formats" },
-                  { "Title": "Extract content", "Url": "/docs/reader/", "Description": "Normalize documents for search and AI workflows" },
-                  { "Title": "Automate with PowerShell", "Url": "/docs/pswriteoffice/", "Description": "Build repeatable document jobs from scripts" }
+                  { "Title": "Check format support", "Url": "/compatibility/", "Description": "See DOC, XLS, PPT, modern formats, fidelity, and limits" },
+                  { "Title": "Modernize legacy Office files", "Url": "/solutions/legacy-office-modernization/", "Description": "Move DOC, XLS, and PPT archives into governed modern workflows" },
+                  { "Title": "Publish documents", "Url": "/solutions/document-publishing/", "Description": "Create Office, PDF, HTML, Markdown, and open-format output" },
+                  { "Title": "Extract content", "Url": "/solutions/document-ingestion/", "Description": "Normalize documents for search, review, and AI workflows" },
+                  { "Title": "Automate with PowerShell", "Url": "/solutions/powershell-document-automation/", "Description": "Build repeatable document jobs from scripts and pipelines" },
+                  { "Title": "Migrate Google Workspace", "Url": "/solutions/google-workspace-migration/", "Description": "Translate Docs, Sheets, Slides, Drive, and Office content" }
                 ]
               },
               {
@@ -417,7 +445,7 @@
               }
             ]
           },
-          { "Title": "Convert", "Url": "/playground/" },
+          { "Title": "Convert", "Url": "/convert/" },
           { "Title": "Docs", "Url": "/docs/" },
           {
             "Title": "API",
@@ -533,6 +561,8 @@
           { "Title": "Downloads", "Url": "/downloads/" },
           { "Title": "Changelog", "Url": "/changelog/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
+          { "Title": "Compatibility", "Url": "/compatibility/" },
+          { "Title": "Conversions", "Url": "/convert/" },
           { "Title": "Comparison", "Url": "/comparison/" },
           { "Title": "Playground", "Url": "/playground/" },
           { "Title": "Support", "Url": "/pricing/" },

@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>An Open Source cross-platform .NET library for creating, reading, editing,
-            and writing Microsoft PowerPoint PPTX/PPTM and PPT/POT/PPS presentations.</Description>
+        <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.</Description>
         <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
         <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
@@ -16,9 +15,7 @@
         <Authors>Przemyslaw Klys</Authors>
 
         <PackageId>OfficeIMO.PowerPoint</PackageId>
-        <PackageTags>
-            pptx;pptm;ppt;pot;pps;powerpoint;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70
-        </PackageTags>
+        <PackageTags>ppt;pptx;pptm;pot;potx;pps;ppsx;powerpoint;presentation;office;openxml;conversion;netstandard;netstandard2.0;net8.0;net10.0;net472</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>

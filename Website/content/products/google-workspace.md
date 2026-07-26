@@ -7,6 +7,12 @@ install: "dotnet add package OfficeIMO.GoogleWorkspace"
 nuget: "OfficeIMO.GoogleWorkspace"
 docs_url: "/docs/google-workspace/"
 api_url: "/api/google-workspace/"
+meta.software.name: "OfficeIMO.GoogleWorkspace"
+meta.software.application_category: "DeveloperApplication"
+meta.software.operating_system: "Windows, Linux, macOS"
+meta.software.download_url: "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace"
+meta.software.price: 0
+meta.software.price_currency: "USD"
 ---
 
 ## Office and Google Workspace without a second document model

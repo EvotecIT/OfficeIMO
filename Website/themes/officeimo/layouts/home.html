@@ -6,6 +6,8 @@
   <title>{{ page.title }}</title>
   {{ description_meta_html }}
   {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
   <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
@@ -26,6 +28,7 @@
     {{ include "sections/trust-banner" }}
     {{ include "sections/how-it-works" }}
     {{ include "sections/format-ribbon" }}
+    {{ include "sections/stats" }}
     {{ include "sections/product-family" }}
     {{ include "sections/code-examples" }}
     {{ include "sections/showcase-preview" }}

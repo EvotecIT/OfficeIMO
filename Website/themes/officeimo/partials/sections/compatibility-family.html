@@ -1,0 +1,24 @@
+{{ if data.office_capabilities }}
+{{ for family in data.office_capabilities.families }}
+{{ if family.package == page.title }}
+<section class="imo-product-compatibility" style="--capability-color: {{ family.color }};">
+  <div class="imo-container">
+    <div class="imo-product-compatibility__intro">
+      <div>
+        <p class="imo-section__eyebrow">Format support</p>
+        <h2>Modern and legacy {{ family.title }} files</h2>
+        <p>Support is tracked by operation and fidelity. OfficeIMO reports approximations, visual fallbacks, preserved content, and blocked conversions instead of treating every extension as an identical promise.</p>
+        {{ if family.contract.hasUnimplementedCoverage }}<p><strong>Some tracked lanes are explicitly not implemented yet.</strong> The compatibility evidence names those gaps alongside supported behavior.</p>{{ end }}
+      </div>
+      <a class="imo-btn imo-btn-ghost" href="/compatibility/#{{ family.id }}">See full compatibility evidence</a>
+    </div>
+    <div class="imo-product-compatibility__formats">
+      <div><strong>Legacy binary</strong>{{ for extension in family.legacyFormats }}<span>{{ string.upcase extension }}</span>{{ end }}</div>
+      <div><strong>Modern</strong>{{ for extension in family.modernFormats }}<span>{{ string.upcase extension }}</span>{{ end }}</div>
+      <div><strong>Tracked contracts</strong>{{ for contract in family.contracts }}<span>{{ contract.label }}: {{ contract.capabilityCount }}</span>{{ end }}<span>Package line {{ family.packageVersion }}</span></div>
+    </div>
+  </div>
+</section>
+{{ end }}
+{{ end }}
+{{ end }}

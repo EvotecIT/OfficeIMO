@@ -1117,8 +1117,18 @@ namespace OfficeIMO.Word.Pdf {
                 tableRunStyleDefaults.FontFamily,
                 nativeFontMap.UsePdfDefaultForDocumentDefaultFont ? null : nativeDefaults.FontFamily
             }) {
+                if (string.IsNullOrWhiteSpace(familyName)) {
+                    continue;
+                }
+
                 if (nativeFontMap.TryGetNamedFontFamily(familyName, out string? registeredFamilyName)) {
                     return registeredFamilyName;
+                }
+
+                // A standard-family match at a higher-precedence source must stop
+                // lower-precedence named defaults from overriding the run.
+                if (TryResolveNativeMappedFont(familyName, nativeFontMap, out _)) {
+                    return null;
                 }
             }
 

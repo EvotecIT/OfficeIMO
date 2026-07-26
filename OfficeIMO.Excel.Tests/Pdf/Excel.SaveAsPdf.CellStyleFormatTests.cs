@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.TestAssets;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
@@ -168,6 +169,49 @@ public partial class Excel {
             item => item.Code == "WorksheetFontFamilySubstituted");
         Assert.Equal("Arial", warning.Details["fontFamily"]);
         Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_ReportsConfiguredSubstitutionForInheritedWorksheetFont() {
+        const string targetFamily = "OfficeIMO Portable Worksheet";
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfInheritedFontSubstitution.xlsx");
+
+        PdfCore.PdfDocumentConversionResult result;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("AB");
+            document.Save();
+
+            ExcelCellStyleSnapshot inheritedStyle = sheet.CellAt(1, 1).GetStyle();
+            Assert.False(inheritedStyle.IsFontFamilyExplicit);
+            string sourceFamily = Assert.IsType<string>(inheritedStyle.FontName);
+
+            var configured = new PdfCore.PdfOptions();
+            configured
+                .RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                    targetFamily,
+                    ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B')))
+                .RegisterFontFamilySubstitution(
+                    sourceFamily,
+                    targetFamily,
+                    PdfCore.PdfFontFamilySubstitutionImpact.LayoutSensitive);
+
+            result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+                PdfOptions = configured,
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0
+            });
+            _ = result.ToBytes();
+
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item =>
+                item.Code == "WorksheetFontFamilySubstituted" &&
+                item.Details.TryGetValue("fontFamily", out string? family) &&
+                family == sourceFamily);
+            Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+            Assert.Equal(targetFamily, warning.Details["resolvedFontFamily"]);
+            Assert.Equal(bool.TrueString, warning.Details["plannedSubstitution"]);
+            Assert.False(warning.Details.ContainsKey("fallbackSlot"));
+        }
     }
 
     [Fact]
