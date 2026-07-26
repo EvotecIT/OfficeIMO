@@ -376,7 +376,10 @@ public static partial class HtmlResourcePipeline {
                 options.MediaFeatures);
         }
 
-        return IsApplicableMedia(mediaText, options.MediaContext);
+        return HtmlComputedStyleEngine.IsApplicableMedia(
+            mediaText,
+            options.MediaContext,
+            options.MediaFeatures);
     }
 
     private static bool ContainsMediaType(string mediaQuery, string mediaType) {

@@ -10,6 +10,15 @@ public static partial class HtmlComputedStyleEngine {
     public static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) =>
         IsApplicableMedia(mediaText, MediaEnvironment.CreateDefault(mediaContext));
 
+    internal static bool IsApplicableMedia(
+        string mediaText,
+        HtmlCssMediaContext mediaContext,
+        HtmlRenderMediaFeatures mediaFeatures) {
+        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        mediaFeatures.Validate();
+        return IsApplicableMedia(mediaText, MediaEnvironment.CreateDefault(mediaContext, mediaFeatures));
+    }
+
     /// <summary>
     /// Evaluates whether a CSS media query list applies to a media context and surface size.
     /// </summary>
@@ -374,15 +383,18 @@ public static partial class HtmlComputedStyleEngine {
         internal double Height { get; }
         internal HtmlRenderMediaFeatures Features { get; }
 
-        internal static MediaEnvironment CreateDefault(HtmlCssMediaContext context) {
+        internal static MediaEnvironment CreateDefault(
+            HtmlCssMediaContext context,
+            HtmlRenderMediaFeatures? features = null) {
             if (context == HtmlCssMediaContext.Print) {
                 return new MediaEnvironment(
                     context,
                     OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch,
-                    OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch);
+                    OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch,
+                    features);
             }
 
-            return new MediaEnvironment(context, 816D, 1056D);
+            return new MediaEnvironment(context, 816D, 1056D, features);
         }
     }
 }

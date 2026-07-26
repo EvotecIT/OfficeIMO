@@ -273,6 +273,30 @@ public sealed class HtmlConversionLimitTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_UsesDocumentCssNestingLimitsForExternalStylesheetAnalysis() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssNestingDepth = 72;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<link rel='stylesheet' href='https://assets.example.test/deep.css'><p class='target'>Body</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+        string css = string.Concat(Enumerable.Repeat("@media all{", 70))
+            + ".target{color:red}"
+            + new string('}', 70);
+        var options = new HtmlRenderOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceResolver = (request, _) => Task.FromResult<HtmlResolvedResource?>(
+                new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
+
+        HtmlRenderText text = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            visual => visual.Text.Contains("Body", StringComparison.Ordinal));
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, text.Color);
+    }
+
+    [Fact]
     public void HtmlResourcePipeline_DoesNotCountEscapedBracesAsCssRuleBlocks() {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssNestingDepth = 1;

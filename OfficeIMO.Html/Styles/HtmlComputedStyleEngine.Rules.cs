@@ -103,7 +103,9 @@ public static partial class HtmlComputedStyleEngine {
         ICollection<StyleRule> rules,
         IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget) {
-        string[] selectors = SplitSelectorList(styleRule.SelectorText)
+        string selectorText = styleRule.SelectorText ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(selectorText)) return;
+        string[] selectors = SplitSelectorList(selectorText)
             .Select(selector => selector.Trim())
             .Where(selector => selector.Length > 0)
             .ToArray();
@@ -251,8 +253,8 @@ public static partial class HtmlComputedStyleEngine {
                 index = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (index < 0 || index >= end) return -1;
                 index++;
-            } else if (current == '{') return index;
-            else if (current == ';') return ~index;
+            } else if (current == '{' && !IsEscaped(css, index)) return index;
+            else if (current == ';' && !IsEscaped(css, index)) return ~index;
         }
         return -1;
     }

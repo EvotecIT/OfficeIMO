@@ -233,6 +233,26 @@ public sealed partial class HtmlRenderingTests {
             text => text.SemanticRole == "page-margin" && text.Text == expected);
     }
 
+    [Theory]
+    [InlineData(".escaped\\{", "escaped{")]
+    [InlineData(".escaped\\;", "escaped;")]
+    public void HtmlRender_Paged_RecoversRetainedDeclarationsAfterEscapedSelectorDelimiters(
+        string selector,
+        string className) {
+        string html = "<style>"
+            + "@page{size:3in 2in;margin:24px;@top-center{content:string(section)}}"
+            + selector + "{string-set:section 'Escaped selector'}"
+            + "</style><p class=\"" + className + "\">Body</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin" && text.Text == "Escaped selector");
+    }
+
     [Fact]
     public void HtmlRender_Paged_CollectsRunningStringsFromInlineElements() {
         const string html = """

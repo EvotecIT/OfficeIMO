@@ -145,6 +145,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlResourcePipeline_DefaultGeometryPreservesConfiguredMediaFeatures() {
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<link rel='stylesheet' href='https://assets.example.test/dark.css' media='(prefers-color-scheme:dark)'>",
+            new HtmlResourcePipelineOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+                MediaFeatures = new HtmlRenderMediaFeatures {
+                    PreferredColorScheme = HtmlPreferredColorScheme.Dark
+                }
+            });
+
+        HtmlResourceReference stylesheet = Assert.Single(
+            manifest.Resources,
+            resource => resource.Kind == HtmlResourceKind.Stylesheet);
+        Assert.Equal("https://assets.example.test/dark.css", stylesheet.Source);
+    }
+
+    [Fact]
     public void HtmlTable_PaintsRowGroupAndRowBackgroundsBehindTransparentCells() {
         const string html = "<table style='border-spacing:0'><tbody id='group' style='background:#0000ff'><tr id='row' style='background:#ff0000'><td style='background:transparent'>Cell</td></tr></tbody></table>";
 

@@ -11,6 +11,7 @@ internal static class HtmlRenderFontFaceLoader {
         IHtmlDocument document,
         HtmlResourceSession resources,
         HtmlRenderOptions options,
+        HtmlConversionLimits limits,
         HtmlDiagnosticReport diagnostics) {
         var fonts = new OfficeFontFaceCollection();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
@@ -18,6 +19,7 @@ internal static class HtmlRenderFontFaceLoader {
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long decodedFontBytes = 0L;
         var pipelineOptions = new HtmlResourcePipelineOptions {
+            Limits = limits.Clone(),
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
             MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,

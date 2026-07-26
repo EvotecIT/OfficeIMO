@@ -107,7 +107,12 @@ public sealed class HtmlResourceSession {
         HtmlRenderOptions options,
         HtmlDiagnosticReport? diagnostics = null,
         CancellationToken cancellationToken = default) =>
-        HtmlRenderResourceLoader.Load(manifest, options, diagnostics ?? new HtmlDiagnosticReport(), cancellationToken);
+        HtmlRenderResourceLoader.Load(
+            manifest,
+            options,
+            diagnostics ?? new HtmlDiagnosticReport(),
+            HtmlConversionLimits.CreateUntrustedProfile(),
+            cancellationToken);
 
     /// <summary>Resolves a manifest asynchronously using one operation-scoped session.</summary>
     public static Task<HtmlResourceSession> ResolveAsync(
@@ -115,7 +120,12 @@ public sealed class HtmlResourceSession {
         HtmlRenderOptions options,
         HtmlDiagnosticReport? diagnostics = null,
         CancellationToken cancellationToken = default) =>
-        HtmlRenderResourceLoader.LoadAsync(manifest, options, diagnostics ?? new HtmlDiagnosticReport(), cancellationToken);
+        HtmlRenderResourceLoader.LoadAsync(
+            manifest,
+            options,
+            diagnostics ?? new HtmlDiagnosticReport(),
+            HtmlConversionLimits.CreateUntrustedProfile(),
+            cancellationToken);
 
     internal void MarkAttempted(HtmlResourceReference reference) {
         if (reference.Source.Length > 0) _attempted.Add(reference.Source);
@@ -391,6 +401,7 @@ internal static class HtmlRenderResourceLoader {
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
+        HtmlConversionLimits limits,
         CancellationToken cancellationToken,
         HtmlCssByteBudget? cssBudget = null) {
         var session = new HtmlResourceSession(options, diagnostics);
@@ -400,6 +411,7 @@ internal static class HtmlRenderResourceLoader {
                 manifest,
                 options,
                 session,
+                limits,
                 cancellationToken,
                 cssBudget,
                 markAttemptedBeforeResolve: false,
@@ -419,6 +431,7 @@ internal static class HtmlRenderResourceLoader {
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
+        HtmlConversionLimits limits,
         CancellationToken cancellationToken,
         HtmlCssByteBudget? cssBudget = null) {
         var session = new HtmlResourceSession(options, diagnostics);
@@ -430,6 +443,7 @@ internal static class HtmlRenderResourceLoader {
             manifest,
             options,
             session,
+            limits,
             cancellationToken,
             cssBudget,
             markAttemptedBeforeResolve: true,
@@ -442,6 +456,7 @@ internal static class HtmlRenderResourceLoader {
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
         HtmlResourceSession result,
+        HtmlConversionLimits limits,
         CancellationToken cancellationToken,
         HtmlCssByteBudget? cssBudget,
         bool markAttemptedBeforeResolve,
@@ -455,6 +470,7 @@ internal static class HtmlRenderResourceLoader {
 
         var resourceOptions = new HtmlResourcePipelineOptions {
             ResourceUrlPolicy = result.ResourcePolicy.Clone(),
+            Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
