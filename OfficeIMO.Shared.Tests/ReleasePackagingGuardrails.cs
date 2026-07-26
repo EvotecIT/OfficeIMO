@@ -7,6 +7,28 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class ReleasePackagingGuardrails {
     [Fact]
+    public void CodexMarketplace_LocalPluginSourcesResolveFromRepositoryRoot() {
+        string repositoryRoot = GetRepositoryRoot();
+        string marketplacePath = Path.Combine(repositoryRoot, ".agents", "plugins", "marketplace.json");
+        using JsonDocument marketplace = JsonDocument.Parse(File.ReadAllText(marketplacePath));
+
+        Assert.All(marketplace.RootElement.GetProperty("plugins").EnumerateArray(), plugin => {
+            JsonElement source = plugin.GetProperty("source");
+            if (!string.Equals(source.GetProperty("source").GetString(), "local", StringComparison.Ordinal)) {
+                return;
+            }
+
+            string relativePath = source.GetProperty("path").GetString()
+                ?? throw new InvalidDataException("Local plugin sources must declare a path.");
+            string resolvedPath = Path.GetFullPath(relativePath, repositoryRoot);
+
+            Assert.True(
+                Directory.Exists(resolvedPath),
+                $"Local plugin source '{relativePath}' does not resolve from the repository root.");
+        });
+    }
+
+    [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
         string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
