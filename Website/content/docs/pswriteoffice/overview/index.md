@@ -22,7 +22,7 @@ The current manifest exports 477 cmdlets and 360 aliases across 16 documented fa
 
 - **Excel — 155 commands:** authoring, reading, charts, pivots, validation, comments, templates, comparison, repair, accessibility, streaming, and HTML review.
 - **Word — 91 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, protection, merging, and conversion.
-- **PDF — 74 commands:** composition, text and image extraction, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, and diagnostics.
+- **PDF — 80 commands:** composition, text and image extraction, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, and diagnostics.
 - **PowerPoint — 57 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, import, inspection, and HTML review.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.
 - **Markdown, Visio, Reader, and open formats:** typed Markdown, VSDX diagrams and stencils, normalized extraction, RTF, CSV, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.

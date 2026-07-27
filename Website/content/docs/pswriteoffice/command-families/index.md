@@ -12,7 +12,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | --- | ---: | --- |
 | Excel | 155 | [Excel automation](/docs/pswriteoffice/excel/) |
 | Word | 91 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 74 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| PDF | 80 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | PowerPoint | 57 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 25 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
