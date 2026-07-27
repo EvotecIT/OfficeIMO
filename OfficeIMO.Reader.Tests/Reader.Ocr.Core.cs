@@ -150,26 +150,41 @@ public sealed class ReaderOcrCoreTests {
     public async Task ApplyOcrAsync_ArmsTimeoutBeforeInvokingSynchronousProviderWork() {
         OfficeDocumentReadResult source = CreateDocument(1);
         using var providerInvoked = new ManualResetEventSlim(false);
+        using var releaseProvider = new ManualResetEventSlim(false);
         using var cancellationObserved = new ManualResetEventSlim(false);
+        var providerFinished = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var engine = new DelegateOfficeOcrEngine("synchronous-fixture", (_, cancellationToken) => {
             providerInvoked.Set();
-            if (cancellationToken.WaitHandle.WaitOne(TimeSpan.FromSeconds(10))) {
-                cancellationObserved.Set();
+            try {
+                Assert.True(releaseProvider.Wait(TimeSpan.FromSeconds(10)));
+                if (cancellationToken.WaitHandle.WaitOne(TimeSpan.Zero)) {
+                    cancellationObserved.Set();
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult { Text = "late" });
+            } finally {
+                providerFinished.TrySetResult(null);
             }
-            cancellationToken.ThrowIfCancellationRequested();
-            return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult { Text = "late" });
         });
 
-        Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
-            CandidateTimeout = TimeSpan.FromMilliseconds(20),
-            ContinueOnError = true,
-        });
+        try {
+            Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
+                CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                ContinueOnError = true,
+            });
 
-        Assert.True(providerInvoked.Wait(TimeSpan.FromSeconds(10)));
-        OfficeDocumentOcrExecutionResult execution = await executionTask;
-        Assert.True(cancellationObserved.Wait(TimeSpan.FromSeconds(10)));
-        Assert.Equal(1, execution.Report.FailedCandidateCount);
-        Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+            Assert.True(providerInvoked.Wait(TimeSpan.FromSeconds(10)));
+            OfficeDocumentOcrExecutionResult execution = await executionTask;
+            releaseProvider.Set();
+            Task completed = await Task.WhenAny(providerFinished.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+
+            Assert.Same(providerFinished.Task, completed);
+            Assert.True(cancellationObserved.IsSet);
+            Assert.Equal(1, execution.Report.FailedCandidateCount);
+            Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+        } finally {
+            releaseProvider.Set();
+        }
     }
 
     [Fact]

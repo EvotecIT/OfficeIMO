@@ -86,6 +86,43 @@ public sealed class AgentCommandTests {
     }
 
     [Fact]
+    public async Task McpConfiguredRootsOverrideTheWorkingDirectoryDefault() {
+        string root = Path.Combine(
+            Path.GetTempPath(),
+            "officeimo-agent-mcp-root-" + Guid.NewGuid().ToString("N"));
+        string workingDirectory = Path.Combine(root, "workspace");
+        string configuredRoot = Path.Combine(root, "configured");
+        Directory.CreateDirectory(workingDirectory);
+        Directory.CreateDirectory(configuredRoot);
+        string workingPath = Path.Combine(workingDirectory, "working.md");
+        string configuredPath = Path.Combine(configuredRoot, "configured.md");
+
+        try {
+            await File.WriteAllTextAsync(workingPath, "# Working");
+            await File.WriteAllTextAsync(configuredPath, "# Configured");
+            AgentPathPolicy policy = AgentPathPolicy.ForMcp(configuredRoot, workingDirectory);
+
+            Assert.Equal(configuredPath, policy.ResolveInput(configuredPath));
+            Assert.Throws<UnauthorizedAccessException>(() => policy.ResolveInput(workingPath));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void McpSeparatorOnlyRootConfigurationFailsClosed() {
+        string separatorOnly = new(Path.PathSeparator, 2);
+
+        AgentUsageException exception = Assert.Throws<AgentUsageException>(
+            () => AgentPathPolicy.ForMcp(separatorOnly, Directory.GetCurrentDirectory()));
+
+        Assert.Contains(
+            AgentPathPolicy.AllowedRootsEnvironmentVariable,
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CliFetchCanRevalidateASourceAcrossSeparateInvocations() {
         string path = Path.Combine(
             Path.GetTempPath(),

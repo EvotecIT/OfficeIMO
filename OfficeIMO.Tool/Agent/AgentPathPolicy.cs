@@ -16,9 +16,22 @@ internal sealed class AgentPathPolicy {
         string? configured = Environment.GetEnvironmentVariable(AllowedRootsEnvironmentVariable);
         return string.IsNullOrWhiteSpace(configured)
             ? new AgentPathPolicy()
-            : new AgentPathPolicy(configured.Split(
-                Path.PathSeparator,
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            : FromConfiguredRoots(configured);
+    }
+
+    internal static AgentPathPolicy FromMcpEnvironment() =>
+        ForMcp(
+            Environment.GetEnvironmentVariable(AllowedRootsEnvironmentVariable),
+            Directory.GetCurrentDirectory());
+
+    internal static AgentPathPolicy ForMcp(string? configuredRoots, string workingDirectory) {
+        if (!string.IsNullOrWhiteSpace(configuredRoots)) {
+            return FromConfiguredRoots(configuredRoots);
+        }
+        if (string.IsNullOrWhiteSpace(workingDirectory)) {
+            throw new ArgumentException("An MCP working directory is required.", nameof(workingDirectory));
+        }
+        return new AgentPathPolicy(new[] { workingDirectory });
     }
 
     internal string ResolveInput(string path) {
@@ -44,6 +57,18 @@ internal sealed class AgentPathPolicy {
         throw new UnauthorizedAccessException(
             "Path is outside the configured OfficeIMO MCP roots. Configure " +
             AllowedRootsEnvironmentVariable + " to allow it.");
+    }
+
+    private static AgentPathPolicy FromConfiguredRoots(string configuredRoots) {
+        string[] roots = configuredRoots.Split(
+            Path.PathSeparator,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (roots.Length == 0) {
+            throw new AgentUsageException(
+                AllowedRootsEnvironmentVariable +
+                " must contain at least one directory when it is configured.");
+        }
+        return new AgentPathPolicy(roots);
     }
 
     private static bool IsSameOrChildPathExact(string parentPath, string candidatePath) {

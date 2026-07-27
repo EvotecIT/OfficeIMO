@@ -26,6 +26,7 @@
 * Keep Excel and PowerPoint HTML imports detached from converter-owned streams, and support one-time Excel saves and PDF-table exports to write-only, non-seekable destinations on every target framework.
 * Preserve explicitly requested encoding preambles when RTF documents are saved to a file while keeping stream and byte-array exports preamble-free.
 * Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
+* Scope the local OfficeIMO MCP server to its launch working directory by default, while retaining explicit multi-root configuration through `OFFICEIMO_MCP_ALLOWED_ROOTS`.
 * Write OpenDocument ZIP records with a first-party deterministic writer so the required uncompressed `mimetype` entry remains standards-compliant on .NET Framework as well as modern .NET.
 * Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.
 * Reject `SaveOnDispose` for detached Excel HTTP loads instead of deferring an impossible write-back failure until disposal.

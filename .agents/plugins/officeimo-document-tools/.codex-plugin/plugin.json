@@ -1,6 +1,6 @@
 {
   "name": "officeimo-document-tools",
-  "version": "0.2.0+codex.20260726161342",
+  "version": "0.2.2",
   "description": "Compact local OfficeIMO document and mailbox MCP tools plus contributor workflows.",
   "author": {
     "name": "EvotecIT"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "OfficeIMO Document Tools",
     "shortDescription": "Inspect local documents and mailboxes with bounded OfficeIMO tools.",
-    "longDescription": "OfficeIMO Document Tools lets Codex inspect, search, selectively fetch, and convert local documents and mail stores through a compact STDIO MCP server. It also includes contributor workflows for conversion, PDF, website, build, and release work.",
+    "longDescription": "OfficeIMO Document Tools lets Codex inspect, search, selectively fetch, and convert documents and mail stores through a compact workspace-scoped STDIO MCP server. It also includes contributor workflows for conversion, PDF, website, build, and release work.",
     "developerName": "EvotecIT",
     "category": "DocumentAutomation",
     "capabilities": [

@@ -7,6 +7,56 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class ReleasePackagingGuardrails {
     [Fact]
+    public void CodexMarketplace_LocalPluginSourcesResolveFromRepositoryRoot() {
+        string repositoryRoot = GetRepositoryRoot();
+        string marketplacePath = Path.Combine(repositoryRoot, ".agents", "plugins", "marketplace.json");
+        using JsonDocument marketplace = JsonDocument.Parse(File.ReadAllText(marketplacePath));
+
+        Assert.All(marketplace.RootElement.GetProperty("plugins").EnumerateArray(), plugin => {
+            JsonElement source = plugin.GetProperty("source");
+            if (!string.Equals(source.GetProperty("source").GetString(), "local", StringComparison.Ordinal)) {
+                return;
+            }
+
+            string relativePath = source.GetProperty("path").GetString()
+                ?? throw new InvalidDataException("Local plugin sources must declare a path.");
+            string resolvedPath = Path.GetFullPath(Path.Combine(repositoryRoot, relativePath));
+
+            Assert.True(
+                Directory.Exists(resolvedPath),
+                $"Local plugin source '{relativePath}' does not resolve from the repository root.");
+        });
+    }
+
+    [Fact]
+    public void CodexPlugin_McpConfigurationUsesSupportedServerSchema() {
+        string repositoryRoot = GetRepositoryRoot();
+        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
+        string mcpPath = Path.Combine(
+            repositoryRoot,
+            ".agents",
+            "plugins",
+            "officeimo-document-tools",
+            ".mcp.json");
+        using JsonDocument mcp = JsonDocument.Parse(File.ReadAllText(mcpPath));
+        JsonElement officeImo = mcp.RootElement
+            .GetProperty("mcpServers")
+            .GetProperty("officeimo");
+
+        Assert.Equal("stdio", officeImo.GetProperty("type").GetString());
+        Assert.Equal("dotnet", officeImo.GetProperty("command").GetString());
+        Assert.Equal(
+            ["dnx", $"OfficeIMO.Tool@{coordinatedVersion}", "mcp", "serve", "--stdio"],
+            officeImo.GetProperty("args").EnumerateArray()
+                .Select(static value => value.GetString() ?? string.Empty)
+                .ToArray());
+        Assert.False(
+            officeImo.TryGetProperty("tools", out JsonElement tools) &&
+            tools.ValueKind == JsonValueKind.Array,
+            "Codex MCP tool configuration is a map when present, not an array allowlist.");
+    }
+
+    [Fact]
     public void ReadmeInventory_MatchesReleaseMapAndLinkedProjectCatalog() {
         string repositoryRoot = GetRepositoryRoot();
         string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);

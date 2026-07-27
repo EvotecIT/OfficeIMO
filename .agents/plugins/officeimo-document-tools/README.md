@@ -5,7 +5,7 @@ This repo-local Codex plugin exposes compact OfficeIMO tools for working with lo
 The bundled STDIO MCP server runs from the versioned `OfficeIMO.Tool` package:
 
 ```powershell
-dotnet dnx OfficeIMO.Tool@3.0.2 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.0.3 mcp serve --stdio
 ```
 
 It exposes five bounded tools:
@@ -18,4 +18,4 @@ It exposes five bounded tools:
 
 The intended agent flow is inspect or search first, then fetch selected content. PST, OST, OLM, EMLX, Mbox, MBX, and message directories are query-first; whole-store conversion is intentionally unavailable.
 
-Set `OFFICEIMO_MCP_ALLOWED_ROOTS` to a platform path-separator-delimited list when the server should be restricted to specific local roots. If it is unset, normal filesystem permissions apply.
+The server defaults filesystem access to the working directory inherited from Codex, which normally scopes it to the current workspace. Paths outside that directory are rejected. Set `OFFICEIMO_MCP_ALLOWED_ROOTS` to an exact-cased, platform path-separator-delimited replacement list only when the server should use different local roots; include the working directory explicitly when it should remain available.

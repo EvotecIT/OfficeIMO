@@ -8,7 +8,7 @@
       "name": "officeimo-document-tools",
       "source": {
         "source": "local",
-        "path": "./plugins/officeimo-document-tools"
+        "path": "./.agents/plugins/officeimo-document-tools"
       },
       "policy": {
         "installation": "AVAILABLE",
