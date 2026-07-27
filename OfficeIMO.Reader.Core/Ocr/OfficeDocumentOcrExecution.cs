@@ -194,7 +194,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Source = document.Source ?? new OfficeDocumentSource(),
                 ProviderOptions = options.ProviderOptions
             };
-            using var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
                 // Isolate both the provider's synchronous prefix and timeout supervision from a small thread pool.
@@ -250,6 +250,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 abandonedOperations.Track(recognitionTask);
                 ObserveBackgroundFailure(recognitionTask);
                 throw;
+            } finally {
+                DisposeCancellationSourceWhenOperationSettles(providerCancellation, recognitionTask);
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
@@ -328,6 +330,22 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         } catch (AggregateException) {
             // A provider cancellation callback must not replace the timeout result.
         }
+    }
+
+    private static void DisposeCancellationSourceWhenOperationSettles(
+        CancellationTokenSource cancellation,
+        Task? operation) {
+        if (operation == null || operation.IsCompleted) {
+            cancellation.Dispose();
+            return;
+        }
+
+        _ = operation.ContinueWith(
+            static (_, state) => ((CancellationTokenSource)state!).Dispose(),
+            cancellation,
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private sealed class OcrCandidateTimeoutException : Exception { }
