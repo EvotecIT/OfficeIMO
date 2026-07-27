@@ -21,7 +21,7 @@ OneNotePage page = section.Pages[0];
 
 var paragraph = new OneNoteParagraph();
 paragraph.Runs.Add(new OneNoteTextRun { Text = "Added offline" });
-page.Paragraphs.Add(paragraph);
+page.DirectContent.Add(paragraph);
 
 section.Save("Projects-updated.one");
 ```

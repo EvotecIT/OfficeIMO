@@ -12,6 +12,7 @@ OfficeIMO.Email opens Outlook PST and OST files plus OLM, mbox, EMLX, Apple Mail
 ## Read a PST or OST
 
 ```csharp
+using System.Linq;
 using OfficeIMO.Email.Store;
 
 using EmailStoreSession session = EmailStoreSession.Open("archive.ost");
@@ -19,7 +20,9 @@ using EmailStoreSession session = EmailStoreSession.Open("archive.ost");
 foreach (EmailStoreItemReference reference in session.EnumerateItems(
     new EmailStoreEnumerationOptions(maxItems: 10_000))) {
     EmailStoreItem item = session.ReadItem(reference);
-    Console.WriteLine($"{reference.FolderPath}: {item.Document.Subject}");
+    string folderPath = string.Join("/",
+        session.FolderCatalog.GetPath(reference.FolderKey).Select(folder => folder.Name));
+    Console.WriteLine($"{folderPath}: {item.Document.Subject}");
 }
 ```
 
