@@ -1,6 +1,6 @@
 ---
 title: Excel Workbooks
-description: Overview of the OfficeIMO.Excel package for creating and manipulating Excel spreadsheets.
+description: Overview of the OfficeIMO.Excel package for creating and manipulating Excel spreadsheets. Includes examples and API links.
 order: 20
 ---
 

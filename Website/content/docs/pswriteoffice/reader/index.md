@@ -1,6 +1,6 @@
 ---
 title: "Reader and Document Extraction"
-description: "Detect formats and extract normalized documents, chunks, hierarchy, tables, visuals, assets, and ingest results."
+description: "Detect formats and extract normalized documents, chunks, hierarchy, tables, visuals, assets, and ingest results. Includes examples and cmdlet links."
 layout: docs
 ---
 

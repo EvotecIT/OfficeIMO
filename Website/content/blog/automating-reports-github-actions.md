@@ -1,6 +1,6 @@
 ---
 title: "Automating Weekly Reports with OfficeIMO.Excel and GitHub Actions"
-description: "A practical sample showing one way to build automated Excel reports in CI/CD with OfficeIMO.Excel and GitHub Actions."
+description: "A practical sample showing one way to build automated Excel reports in CI/CD with OfficeIMO.Excel and GitHub Actions. Includes code and validation notes."
 date: 2026-01-15
 tags: [excel, ci-cd, automation]
 categories: [Workflow]

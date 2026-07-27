@@ -1,6 +1,6 @@
 ---
 title: PowerPoint Capability Matrix
-description: Tested authoring, editing, preservation, rendering, and reporting boundaries for OfficeIMO.PowerPoint.
+description: "Tested authoring, editing, preservation, rendering, and reporting boundaries for OfficeIMO.PowerPoint. Includes examples and API links."
 order: 35
 ---
 

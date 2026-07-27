@@ -1,6 +1,6 @@
 ---
 title: "RTF Documents"
-description: "Read, create, edit, preserve, and convert Rich Text Format documents with bounded parsing and explicit loss reports."
+description: "Read, create, edit, preserve, and convert Rich Text Format documents with bounded parsing and explicit loss reports. Includes examples and API links."
 order: 40
 meta.seo_title: "Read and convert RTF in .NET with OfficeIMO"
 ---

@@ -1,6 +1,6 @@
 ---
 title: CSV Documents
-description: Overview of the OfficeIMO.CSV package for strongly-typed CSV document workflows.
+description: Overview of the OfficeIMO.CSV package for strongly-typed CSV document workflows. Includes practical examples, limits, and API links.
 order: 50
 ---
 

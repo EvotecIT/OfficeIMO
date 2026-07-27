@@ -1,6 +1,6 @@
 ---
 title: Browser Converter
-description: Run supported OfficeIMO conversions locally through the WebAssembly app on OfficeIMO.com.
+description: Run supported OfficeIMO conversions locally through the WebAssembly app on OfficeIMO.com. Includes examples and API links.
 order: 90
 ---
 

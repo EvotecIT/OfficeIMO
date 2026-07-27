@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO Capability Catalog"
-description: "Navigate the complete managed document platform by workflow, component family, generated API, and validation evidence."
+description: "Navigate the complete managed document platform by workflow, component family, generated API, and validation evidence. Find examples and API links."
 layout: docs
 ---
 

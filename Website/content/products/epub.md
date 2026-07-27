@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Epub"
-description: "Extract EPUB metadata, spine-ordered chapters, navigation, and bounded resources for indexing and ingestion."
+description: "Extract EPUB metadata, spine-ordered chapters, navigation, and bounded resources for indexing and ingestion. Compare packages, examples, and limits."
 layout: product
 meta.seo_title: "EPUB extraction for .NET applications"
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/epub/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/epub/" />'

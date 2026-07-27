@@ -1,6 +1,6 @@
 ---
 title: Google Workspace support matrix
-description: Code-generated Docs, Sheets, and Slides translation support levels.
+description: "Code-generated Docs, Sheets, and Slides translation support levels. Includes authentication guidance, safety notes, examples, current limits, and package links."
 order: 80
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Images
-description: Adding images to Word documents from files, streams, base64, and URLs with OfficeIMO.Word.
+description: "Adding images to Word documents from files, streams, base64, and URLs with OfficeIMO.Word. Includes examples and API links."
 order: 13
 ---
 

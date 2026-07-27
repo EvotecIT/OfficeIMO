@@ -1,6 +1,6 @@
 ---
 title: "PowerShell Document Recipes"
-description: "Practical PSWriteOffice patterns for reports, presentations, PDF, CSV, Markdown, RTF, and document extraction."
+description: "Practical PSWriteOffice patterns for reports, presentations, PDF, CSV, Markdown, RTF, and document extraction. Includes examples and API links."
 order: 8
 meta.seo_title: "PSWriteOffice examples for document automation"
 ---

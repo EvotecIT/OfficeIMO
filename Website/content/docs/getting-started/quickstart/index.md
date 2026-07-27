@@ -1,6 +1,6 @@
 ---
 title: Quick Start
-description: Create your first Word document, Excel workbook, and PowerPoint presentation with OfficeIMO in minutes.
+description: Create your first Word document, Excel workbook, and PowerPoint presentation with OfficeIMO in minutes. Includes examples and API links.
 order: 2
 ---
 

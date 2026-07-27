@@ -1,5 +1,5 @@
 ---
 title: "Support"
-description: "Use OfficeIMO under the MIT license, get community help, sponsor the project, or discuss commercial support."
+description: "Use OfficeIMO under the MIT license, get community help, sponsor continued development, or compare commercial support options for your document workflows."
 layout: pricing
 ---

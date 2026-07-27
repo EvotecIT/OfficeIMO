@@ -1,6 +1,6 @@
 ---
 title: "Export Visio diagrams to images"
-description: "Render VSDX pages to SVG, PNG, JPEG, TIFF, or lossless WebP previews without Microsoft Visio installed."
+description: "Render VSDX pages to SVG, PNG, JPEG, TIFF, or lossless WebP previews without Microsoft Visio installed. Includes examples and API links."
 meta.seo_title: "Convert VSDX to SVG, PNG, JPEG, and WebP"
 order: 56
 ---

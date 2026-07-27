@@ -1,6 +1,6 @@
 ---
 title: "Browser Converter"
-description: "Convert supported Office, Markdown, and HTML content locally in your browser with OfficeIMO WebAssembly."
+description: "Convert supported Office, Markdown, and HTML files locally in your browser with OfficeIMO WebAssembly; preview and download results without uploading documents."
 layout: playground
 meta.seo_title: "Browser document converter | OfficeIMO"
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/convert/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/convert/" />'

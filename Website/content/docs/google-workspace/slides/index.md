@@ -1,6 +1,6 @@
 ---
 title: PowerPoint and Google Slides
-description: Create, import, template, and safely replace Google Slides with OfficeIMO.PowerPoint.
+description: "Create, import, template, and safely replace Google Slides with OfficeIMO.PowerPoint. Includes examples and package links."
 order: 40
 ---
 

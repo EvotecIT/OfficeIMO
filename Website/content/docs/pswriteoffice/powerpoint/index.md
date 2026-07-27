@@ -1,6 +1,6 @@
 ---
 title: "Automate PowerPoint Presentations"
-description: "Compose, inspect, update, theme, import, and render repeatable presentation decks."
+description: "Compose, inspect, update, theme, import, and render repeatable presentation decks. Includes PowerShell examples, validation notes, and cmdlet links."
 layout: docs
 ---
 

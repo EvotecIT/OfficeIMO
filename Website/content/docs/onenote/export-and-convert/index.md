@@ -1,6 +1,6 @@
 ---
 title: "Export and Convert OneNote"
-description: "Render native OneNote pages to images and convert notebooks to HTML, Markdown, PDF, or Reader results."
+description: "Render native OneNote pages to images and convert notebooks to HTML, Markdown, PDF, or Reader results. Includes examples and API links."
 order: 43
 meta.seo_title: "Convert OneNote to PDF, image, HTML or Markdown"
 ---

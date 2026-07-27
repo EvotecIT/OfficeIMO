@@ -1,6 +1,6 @@
 ---
 title: "Reliable Automation Patterns"
-description: "Structure document jobs for repeatability, diagnostics, safe mutation, and CI artifacts."
+description: "Structure document jobs for repeatability, diagnostics, safe mutation, and CI artifacts. Includes examples and cmdlet links."
 layout: docs
 ---
 

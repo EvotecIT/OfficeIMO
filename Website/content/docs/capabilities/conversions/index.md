@@ -1,6 +1,6 @@
 ---
 title: "Conversion and Rendering Map"
-description: "Choose the owning model, focused adapter, diagnostic policy, and deployment path for OfficeIMO conversions."
+description: "Choose the owning model, focused adapter, diagnostic policy, and deployment path for OfficeIMO conversions. Includes examples and API links."
 layout: docs
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Word to Markdown
-description: Bidirectional conversion between Word documents and Markdown using OfficeIMO.Word.Markdown.
+description: Bidirectional conversion between Word documents and Markdown using OfficeIMO.Word.Markdown. Includes examples and API links.
 order: 71
 ---
 

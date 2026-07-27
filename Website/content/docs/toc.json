@@ -132,6 +132,7 @@
       { "title": "PowerPoint Cmdlets", "path": "pswriteoffice/powerpoint/index.md", "href": "/docs/pswriteoffice/powerpoint/" },
       { "title": "PDF Cmdlets", "path": "pswriteoffice/pdf/index.md", "href": "/docs/pswriteoffice/pdf/" },
       { "title": "Reader Cmdlets", "path": "pswriteoffice/reader/index.md", "href": "/docs/pswriteoffice/reader/" },
+      { "title": "Confluence Cloud Cmdlets", "path": "pswriteoffice/confluence/index.md", "href": "/docs/pswriteoffice/confluence/" },
       { "title": "Visio Cmdlets", "path": "pswriteoffice/visio/index.md", "href": "/docs/pswriteoffice/visio/" },
       { "title": "Open and Text Formats", "path": "pswriteoffice/open-text-formats/index.md", "href": "/docs/pswriteoffice/open-text-formats/" },
       { "title": "Automation Patterns", "path": "pswriteoffice/automation-patterns/index.md", "href": "/docs/pswriteoffice/automation-patterns/" },

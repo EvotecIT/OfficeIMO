@@ -1,6 +1,6 @@
 ---
 title: PowerPoint Presentations
-description: Overview of OfficeIMO.PowerPoint for creating and editing PPTX and PowerPoint 97-2003 decks.
+description: "Overview of OfficeIMO.PowerPoint for creating and editing PPTX and PowerPoint 97-2003 decks. Includes examples and API links."
 order: 30
 ---
 

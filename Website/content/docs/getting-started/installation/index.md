@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: How to install OfficeIMO packages via NuGet, Package Manager Console, or PowerShell Gallery.
+description: How to install OfficeIMO packages via NuGet, Package Manager Console, or PowerShell Gallery. Includes examples and API links.
 order: 1
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Slides
-description: Build PowerPoint slides with titles, text boxes, bullets, tables, charts, notes, and slide management helpers.
+description: "Build PowerPoint slides with titles, text boxes, bullets, tables, charts, notes, and slide management helpers. Includes examples and API links."
 order: 31
 ---
 

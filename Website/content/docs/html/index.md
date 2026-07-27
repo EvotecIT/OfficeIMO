@@ -1,6 +1,6 @@
 ---
 title: "HTML and MHTML"
-description: "Parse, inspect, render, and safely project web content through the shared OfficeIMO.Html engine."
+description: "Parse, inspect, render, and safely project web content through the shared OfficeIMO.Html engine. Includes examples and API links."
 order: 39
 ---
 

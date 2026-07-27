@@ -1,6 +1,6 @@
 ---
 title: "PDF Conversion and Delivery"
-description: "Render Word, Excel, PowerPoint, HTML, Markdown, OpenDocument, and text formats to PDF with explicit diagnostics."
+description: "Render Word, Excel, PowerPoint, HTML, Markdown, OpenDocument, and text formats to PDF with explicit diagnostics. Includes examples and API links."
 layout: docs
 ---
 

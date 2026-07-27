@@ -1,6 +1,6 @@
 ---
 title: Google Workspace
-description: Choose and configure the OfficeIMO libraries for Google Docs, Sheets, Slides, Drive, and synchronization.
+description: "Choose and configure the OfficeIMO libraries for Google Docs, Sheets, Slides, Drive, and synchronization. Includes examples and package links."
 order: 10
 ---
 

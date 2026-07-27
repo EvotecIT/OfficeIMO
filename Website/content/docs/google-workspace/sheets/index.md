@@ -1,6 +1,6 @@
 ---
 title: Excel and Google Sheets
-description: Plan, export, import, and safely replace Google Sheets with OfficeIMO.Excel.
+description: "Plan, export, import, and safely replace Google Sheets with OfficeIMO.Excel. Includes examples, safety notes, and package links."
 order: 30
 ---
 

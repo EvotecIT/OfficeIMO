@@ -1,6 +1,6 @@
 ---
 title: Migration from the preview APIs
-description: Adopt the split Google Workspace packages and explicit fidelity, import, and replacement contracts.
+description: "Adopt the split Google Workspace packages and explicit fidelity, import, and replacement contracts. Includes examples and package links."
 order: 90
 ---
 

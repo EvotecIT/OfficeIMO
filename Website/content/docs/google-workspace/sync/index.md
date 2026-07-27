@@ -1,6 +1,6 @@
 ---
 title: Change tracking and synchronization
-description: Consume Drive changes and execute explicit dry-run, approval, conflict, cancellation, and partial-failure plans.
+description: "Consume Drive changes and execute explicit dry-run, approval, conflict, cancellation, and partial-failure plans. Includes examples and package links."
 order: 70
 ---
 

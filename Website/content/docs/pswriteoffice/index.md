@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for 464 PowerShell cmdlets across Office, PDF, Reader, Visio, and open formats."
+description: "Workflow guides for 477 PowerShell cmdlets across Office, PDF, Reader, Confluence Cloud, Visio, and open formats. Includes examples and cmdlet links."
 layout: docs
 ---
 
@@ -20,6 +20,7 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [PowerPoint automation](/docs/pswriteoffice/powerpoint/)
 - [PDF automation](/docs/pswriteoffice/pdf/)
 - [Reader and extraction](/docs/pswriteoffice/reader/)
+- [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
 - [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
 - [Automation patterns](/docs/pswriteoffice/automation-patterns/)
