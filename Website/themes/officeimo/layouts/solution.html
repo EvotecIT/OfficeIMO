@@ -34,10 +34,14 @@
             <a class="imo-btn imo-btn-ghost" href="/downloads/">Choose packages</a>
           </div>
         </div>
-        <aside class="imo-intent-proof imo-intent-proof--stack">
+        <aside class="imo-intent-proof imo-intent-proof--stack" aria-label="Decision summary">
+          <span class="imo-intent-proof__eyebrow">Decision focus</span>
           <strong>{{ page.meta.outcome ?? "A document workflow you control" }}</strong>
-          <span>Runs in your application, service, container, or pipeline</span>
-          <small>MIT licensed · no Microsoft Office runtime</small>
+          <div class="imo-intent-proof__facts">
+            <span><i aria-hidden="true"></i>Runs in your application, service, container, or pipeline</span>
+            <span><i aria-hidden="true"></i>MIT licensed and source-visible</span>
+            <span><i aria-hidden="true"></i>No Microsoft Office runtime</span>
+          </div>
         </aside>
       </div>
     </section>
@@ -47,6 +51,7 @@
 {{ content }}
       </article>
       <aside class="imo-intent-sidebar">
+        <p class="imo-intent-sidebar__eyebrow">Decision checklist</p>
         <h2>Why this route</h2>
         <ul>
           <li>Focused .NET packages</li>

@@ -128,6 +128,7 @@
       { "title": "Choose a Workflow", "path": "pswriteoffice/choosing-a-workflow/index.md", "href": "/docs/pswriteoffice/choosing-a-workflow/" },
       { "title": "All Command Families", "path": "pswriteoffice/command-families/index.md", "href": "/docs/pswriteoffice/command-families/" },
       { "title": "Compare ImportExcel and ExcelFast", "path": "pswriteoffice/compare-importexcel-excelfast/index.md", "href": "/docs/pswriteoffice/compare-importexcel-excelfast/" },
+      { "title": "Compare Office Automation Options", "path": "pswriteoffice/compare-office-automation-options/index.md", "href": "/docs/pswriteoffice/compare-office-automation-options/" },
       { "title": "Migrate from Legacy Modules", "path": "pswriteoffice/migrate-from-legacy-modules/index.md", "href": "/docs/pswriteoffice/migrate-from-legacy-modules/" },
       { "title": "Migrate from PSWriteWord", "path": "pswriteoffice/migrate-from-pswriteword/index.md", "href": "/docs/pswriteoffice/migrate-from-pswriteword/" },
       { "title": "Migrate from PSWriteExcel", "path": "pswriteoffice/migrate-from-pswriteexcel/index.md", "href": "/docs/pswriteoffice/migrate-from-pswriteexcel/" },

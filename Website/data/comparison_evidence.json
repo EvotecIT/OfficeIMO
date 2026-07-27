@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "lastReviewed": "2026-07-27",
+  "comparisons": [
+    {
+      "id": "aspose-commercial-suites",
+      "route": "/comparison/",
+      "sourcePath": "content/pages/comparison.md",
+      "subject": "Aspose and commercial .NET document suites",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Aspose.Words supported formats", "url": "https://docs.aspose.com/words/net/supported-document-formats/" },
+        { "name": "Aspose license types", "url": "https://purchase.aspose.com/policies/license-types/" }
+      ],
+      "officeImoEvidence": ["/compatibility/", "/convert/guides/", "/docs/getting-started/"]
+    },
+    {
+      "id": "open-xml-sdk",
+      "route": "/comparisons/officeimo-vs-open-xml-sdk/",
+      "sourcePath": "content/comparisons/officeimo-vs-open-xml-sdk.md",
+      "subject": "Microsoft Open XML SDK",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Open XML SDK getting started", "url": "https://learn.microsoft.com/en-us/office/open-xml/getting-started" },
+        { "name": "Open XML SDK repository", "url": "https://github.com/dotnet/Open-XML-SDK" }
+      ],
+      "officeImoEvidence": ["/docs/", "/compatibility/", "/downloads/"]
+    },
+    {
+      "id": "closedxml-epplus",
+      "route": "/comparisons/officeimo-vs-closedxml-epplus/",
+      "sourcePath": "content/comparisons/officeimo-vs-closedxml-epplus.md",
+      "subject": "ClosedXML and EPPlus",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "ClosedXML repository", "url": "https://github.com/ClosedXML/ClosedXML" },
+        { "name": "EPPlus license overview", "url": "https://www.epplussoftware.com/en/LicenseOverview" }
+      ],
+      "officeImoEvidence": ["/docs/excel/", "/compatibility/", "/docs/capabilities/benchmarks/"]
+    },
+    {
+      "id": "questpdf",
+      "route": "/comparisons/officeimo-vs-questpdf/",
+      "sourcePath": "content/comparisons/officeimo-vs-questpdf.md",
+      "subject": "QuestPDF",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "QuestPDF quick start", "url": "https://www.questpdf.com/quick-start.html" },
+        { "name": "QuestPDF pricing and license", "url": "https://www.questpdf.com/pricing.html" }
+      ],
+      "officeImoEvidence": ["/products/pdf/", "/docs/pdf/", "/docs/pdf/conversion/"]
+    },
+    {
+      "id": "syncfusion",
+      "route": "/comparisons/officeimo-vs-syncfusion/",
+      "sourcePath": "content/comparisons/officeimo-vs-syncfusion.md",
+      "subject": "Syncfusion Document SDKs",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Syncfusion Document SDK introduction", "url": "https://help.syncfusion.com/document-processing/introduction" },
+        { "name": "Syncfusion Community License", "url": "https://www.syncfusion.com/products/communitylicense" }
+      ],
+      "officeImoEvidence": ["/compatibility/", "/downloads/", "/third-party/"]
+    },
+    {
+      "id": "gembox",
+      "route": "/comparisons/officeimo-vs-gembox/",
+      "sourcePath": "content/comparisons/officeimo-vs-gembox.md",
+      "subject": "GemBox document components",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "GemBox component bundle", "url": "https://www.gemboxsoftware.com/bundle" },
+        { "name": "GemBox free-version limits", "url": "https://www.gemboxsoftware.com/bundle/free-version" }
+      ],
+      "officeImoEvidence": ["/compatibility/", "/downloads/", "/docs/capabilities/benchmarks/"]
+    },
+    {
+      "id": "iron-software",
+      "route": "/comparisons/officeimo-vs-iron-software/",
+      "sourcePath": "content/comparisons/officeimo-vs-iron-software.md",
+      "subject": "Iron Software document libraries",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "IronPDF licensing", "url": "https://ironpdf.com/licensing/" },
+        { "name": "IronWord API overview", "url": "https://ironsoftware.com/csharp/word/object-reference/api/" }
+      ],
+      "officeImoEvidence": ["/compatibility/", "/downloads/", "/pricing/"]
+    },
+    {
+      "id": "office-interop",
+      "route": "/comparisons/officeimo-vs-office-interop/",
+      "sourcePath": "content/comparisons/officeimo-vs-office-interop.md",
+      "subject": "Microsoft Office Interop and COM automation",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Microsoft unattended Office guidance", "url": "https://learn.microsoft.com/en-us/office/client-developer/integration/considerations-unattended-automation-office-microsoft-365-for-unattended-rpa" },
+        { "name": "Microsoft Office solutions guidance", "url": "https://learn.microsoft.com/en-us/visualstudio/vsto/office-solutions-development-overview-vsto" }
+      ],
+      "officeImoEvidence": ["/docs/getting-started/platform-support/", "/compatibility/", "/solutions/"]
+    },
+    {
+      "id": "libreoffice",
+      "route": "/comparisons/officeimo-vs-libreoffice/",
+      "sourcePath": "content/comparisons/officeimo-vs-libreoffice.md",
+      "subject": "LibreOffice headless conversion",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "LibreOffice command-line parameters", "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/start_parameters.html" },
+        { "name": "LibreOffice conversion filters", "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html" }
+      ],
+      "officeImoEvidence": ["/convert/guides/", "/solutions/legacy-office-modernization/", "/docs/conversion-fidelity/"]
+    },
+    {
+      "id": "mimekit",
+      "route": "/comparisons/officeimo-email-vs-mimekit/",
+      "sourcePath": "content/comparisons/officeimo-email-vs-mimekit.md",
+      "subject": "MimeKit",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "MimeKit repository", "url": "https://github.com/jstedfast/MimeKit" },
+        { "name": "MimeKit documentation", "url": "https://mimekit.net/docs/html/Introduction.htm" }
+      ],
+      "officeImoEvidence": ["/docs/email/messages-and-conversion/", "/docs/email/mailbox-stores/", "/docs/email/safety-and-verification/"]
+    },
+    {
+      "id": "onenote-graph",
+      "route": "/comparisons/officeimo-onenote-vs-microsoft-graph/",
+      "sourcePath": "content/comparisons/officeimo-onenote-vs-microsoft-graph.md",
+      "subject": "Microsoft Graph OneNote API",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Microsoft Graph OneNote overview", "url": "https://learn.microsoft.com/en-us/graph/integrate-with-onenote" },
+        { "name": "Get OneNote content and structure", "url": "https://learn.microsoft.com/en-us/graph/onenote-get-content" }
+      ],
+      "officeImoEvidence": ["/solutions/offline-onenote-automation/", "/docs/onenote/", "/api/onenote/"]
+    },
+    {
+      "id": "document-ingestion",
+      "route": "/comparisons/officeimo-reader-vs-document-ingestion-tools/",
+      "sourcePath": "content/comparisons/officeimo-reader-vs-document-ingestion-tools.md",
+      "subject": "MarkItDown, Docling, Apache Tika, and document ingestion tools",
+      "checkedAt": "2026-07-27",
+      "sources": [
+        { "name": "Microsoft MarkItDown", "url": "https://github.com/microsoft/markitdown" },
+        { "name": "Docling supported formats", "url": "https://docling-project.github.io/docling/usage/supported_formats/" },
+        { "name": "Apache Tika supported formats", "url": "https://tika.apache.org/3.0.0/formats.html" }
+      ],
+      "officeImoEvidence": ["/solutions/mixed-document-search-rag/", "/docs/reader/", "/docs/capabilities/benchmarks/"]
+    }
+  ]
+}

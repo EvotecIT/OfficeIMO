@@ -84,8 +84,21 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "test-discovery-evidence",
       "dependsOn": ["test-capability-claims"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-DiscoveryEvidence.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": ["test-discovery-evidence"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1092,6 +1105,7 @@
         "./projects/pswriteoffice/PSWriteOffice.psd1"
       ],
       "quickstart": "./data/llms-quickstart.cs",
+      "discovery": "./data/llms-discovery.md",
       "overview": "OfficeIMO is a free, MIT-licensed .NET library suite for creating, reading, editing, converting, rendering, inspecting, and extracting Office documents, PDF, email, OneNote, OpenDocument, and text formats without Microsoft Office; PSWriteOffice provides the PowerShell surface.",
       "license": "MIT",
       "targets": ".NET 8+, .NET 10+, .NET Standard 2.0, .NET Framework 4.7.2"
@@ -1119,9 +1133,24 @@
       "htmlTitle": "OfficeIMO Sitemap"
     },
     {
+      "task": "exec",
+      "id": "validate-discovery-artifacts",
+      "dependsOn": "build-sitemap",
+      "modes": ["ci"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-DiscoveryEvidence.ps1",
+        "-ArtifactRoot",
+        "./_site"
+      ],
+      "workingDirectory": "."
+    },
+    {
       "task": "optimize",
       "id": "optimize-site",
-      "dependsOn": "build-sitemap",
+      "dependsOn": "validate-discovery-artifacts",
       "skipModes": ["dev"],
       "siteRoot": "./_site",
       "config": "./site.json",
@@ -1235,7 +1264,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     },
     {
       "task": "doctor",
@@ -1250,7 +1279,7 @@
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/convert/,/convert/guides/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/playground/,/convert/,/convert/guides/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     }
   ]
 }

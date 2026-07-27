@@ -47,6 +47,7 @@
       "Output": "/",
       "DefaultLayout": "home",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -55,6 +56,7 @@
       "Output": "/products",
       "DefaultLayout": "product",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -63,6 +65,7 @@
       "Output": "/convert",
       "DefaultLayout": "conversion",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -71,6 +74,7 @@
       "Output": "/solutions",
       "DefaultLayout": "solution",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -79,6 +83,7 @@
       "Output": "/comparisons",
       "DefaultLayout": "solution",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -89,6 +94,7 @@
       "DefaultLayout": "blog-post",
       "ListLayout": "page",
       "UseToc": false,
+      "SitemapLastModified": "publishedDate",
       "EditorialCards": {
         "ImageAspect": "16/9",
         "ImageFit": "cover",
@@ -104,6 +110,7 @@
       "Output": "/docs",
       "DefaultLayout": "docs",
       "UseToc": true,
+      "SitemapLastModified": "sourceDate",
       "TocFile": "content/docs/toc.json",
       "Include": ["*.md", "**/*.md"]
     }
@@ -197,7 +204,7 @@
       "Enabled": true,
       "Search": true,
       "AiInput": true,
-      "AiTrain": false
+      "AiTrain": true
     },
     "BotRules": [
       { "UserAgent": "GPTBot", "Allow": "/" },
@@ -301,6 +308,8 @@
       { "Match": "/compatibility/", "Bundles": ["global", "product", "experience"] },
       { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/comparison/", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/comparisons/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
       { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
@@ -570,6 +579,7 @@
         "Name": "footer-resources",
         "Items": [
           { "Title": "FAQ", "Url": "/faq/" },
+          { "Title": "License and AI use", "Url": "/licensing/" },
           { "Title": "Third-Party Dependencies", "Url": "/third-party/" },
           { "Title": "Downloads", "Url": "/downloads/" },
           { "Title": "Changelog", "Url": "/changelog/" },

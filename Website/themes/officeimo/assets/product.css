@@ -594,15 +594,39 @@
   color: var(--imo-text, #e8edf5);
   font-size: 1.35rem;
 }
-.imo-intent-proof--stack > span {
-  padding: 0;
-  background: transparent;
-  color: var(--imo-text-muted, #94a3b8);
-  font-weight: 500;
-  text-align: left;
+.imo-intent-proof__eyebrow {
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--imo-primary, #38bdf8) !important;
+  font-size: .68rem;
+  font-weight: 850 !important;
+  letter-spacing: .12em;
+  text-align: left !important;
+  text-transform: uppercase;
 }
-.imo-intent-proof--stack > small {
-  text-align: left;
+.imo-intent-proof__facts {
+  display: grid;
+  gap: .75rem;
+  margin-top: .25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--imo-border, rgba(148, 163, 184, .18));
+}
+.imo-intent-proof__facts span {
+  display: grid;
+  grid-template-columns: .75rem minmax(0, 1fr);
+  gap: .6rem;
+  align-items: start;
+  color: var(--imo-text-muted, #94a3b8);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.imo-intent-proof__facts i {
+  width: .5rem;
+  height: .5rem;
+  margin-top: .3rem;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, .1);
 }
 .imo-intent-layout {
   display: grid;
@@ -616,6 +640,53 @@
 }
 .imo-intent-content > :first-child {
   margin-top: 0;
+}
+.imo-intent-content table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.4rem 0 2rem;
+  overflow-x: auto;
+  border: 1px solid var(--imo-border);
+  border-radius: 1rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--imo-surface);
+  box-shadow: var(--imo-shadow-sm);
+  -webkit-overflow-scrolling: touch;
+}
+.imo-intent-content th,
+.imo-intent-content td {
+  min-width: 11rem;
+  padding: .85rem 1rem;
+  border-right: 1px solid var(--imo-border);
+  border-bottom: 1px solid var(--imo-border);
+  color: var(--imo-text-secondary);
+  font-size: .82rem;
+  line-height: 1.55;
+  text-align: left;
+  vertical-align: top;
+}
+.imo-intent-content th {
+  background: color-mix(in srgb, var(--imo-primary) 7%, var(--imo-surface));
+  color: var(--imo-text);
+  font-size: .74rem;
+  font-weight: 800;
+}
+.imo-intent-content th:first-child,
+.imo-intent-content td:first-child {
+  min-width: 12rem;
+  color: var(--imo-text);
+  font-weight: 700;
+}
+.imo-intent-content tr > :last-child {
+  border-right: 0;
+}
+.imo-intent-content tbody tr:last-child td {
+  border-bottom: 0;
+}
+.imo-intent-content tbody tr:hover td {
+  background: color-mix(in srgb, var(--imo-primary) 3%, transparent);
 }
 .imo-howto {
   margin: 0 0 2.5rem;
@@ -670,8 +741,16 @@
   background: var(--imo-surface, #0f172a);
 }
 .imo-intent-sidebar h2 {
-  margin: 0 0 1rem;
+  margin: .25rem 0 1rem;
   font-size: 1.05rem;
+}
+.imo-intent-sidebar__eyebrow {
+  margin: 0;
+  color: var(--imo-primary, #38bdf8);
+  font-size: .65rem;
+  font-weight: 850;
+  letter-spacing: .11em;
+  text-transform: uppercase;
 }
 .imo-intent-sidebar dl,
 .imo-intent-sidebar ul {
@@ -716,4 +795,602 @@
   .imo-howto li span {
     grid-column: 2;
   }
+}
+
+/* ---------- Comparison hub ---------- */
+.imo-comparison-eyebrow {
+  margin: 0 0 .8rem;
+  color: var(--imo-primary, #2563eb);
+  font-size: .7rem;
+  font-weight: 850;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.imo-comparison-hero {
+  position: relative;
+  padding: clamp(4rem, 7vw, 6.5rem) 0 clamp(3.5rem, 6vw, 5.5rem);
+  border-bottom: 1px solid var(--imo-border);
+  background:
+    radial-gradient(circle at 82% 24%, rgba(37, 99, 235, .18), transparent 31%),
+    radial-gradient(circle at 68% 76%, rgba(20, 184, 166, .11), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--imo-primary) 4%, var(--imo-bg)), var(--imo-bg));
+}
+.imo-comparison-hero::before {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, .045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.72), transparent 84%);
+  pointer-events: none;
+}
+.imo-comparison-hero__inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(440px, .78fr);
+  gap: clamp(3rem, 7vw, 7rem);
+  align-items: center;
+}
+.imo-comparison-hero__copy {
+  max-width: 720px;
+}
+.imo-comparison-hero h1 {
+  margin: 0 0 1.35rem;
+  font-size: clamp(3.2rem, 5.8vw, 6rem);
+  line-height: .94;
+  letter-spacing: -.06em;
+}
+.imo-comparison-hero__lead {
+  max-width: 690px;
+  margin: 0;
+  color: var(--imo-text-secondary);
+  font-size: clamp(1.06rem, 1.8vw, 1.24rem);
+  line-height: 1.72;
+}
+.imo-comparison-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1.8rem;
+}
+.imo-comparison-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem 1.2rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.imo-comparison-trust li {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--imo-text-secondary);
+  font-size: .75rem;
+  font-weight: 700;
+}
+.imo-comparison-trust li::before {
+  width: .38rem;
+  height: .38rem;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .1);
+  content: "";
+}
+.imo-comparison-map {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 24%, var(--imo-border));
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--imo-surface) 90%, transparent);
+  box-shadow: 0 30px 80px rgba(2, 6, 23, .18);
+  backdrop-filter: blur(16px);
+}
+.imo-comparison-map__header,
+.imo-comparison-map__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.imo-comparison-map__header {
+  padding: .25rem .25rem .9rem;
+  border-bottom: 1px solid var(--imo-border);
+}
+.imo-comparison-map__header span {
+  color: var(--imo-text-secondary);
+  font-size: .67rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.imo-comparison-map__header strong {
+  font-size: .73rem;
+}
+.imo-comparison-map__canvas {
+  position: relative;
+  min-height: 310px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--imo-primary) 13%, transparent), transparent 39%);
+}
+.imo-comparison-map__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 238px;
+  height: 238px;
+  border: 1px dashed color-mix(in srgb, var(--imo-primary) 36%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.imo-comparison-map__ring::before,
+.imo-comparison-map__ring::after {
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 16%, transparent);
+  border-radius: 50%;
+  content: "";
+}
+.imo-comparison-map__ring::before {
+  inset: 38px;
+}
+.imo-comparison-map__ring::after {
+  inset: -40px;
+}
+.imo-comparison-map__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 132px;
+  height: 132px;
+  place-content: center;
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 40%, var(--imo-border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--imo-primary) 14%, var(--imo-surface));
+  text-align: center;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 18px 40px rgba(37, 99, 235, .16);
+}
+.imo-comparison-map__center small {
+  color: var(--imo-text-secondary);
+  font-size: .61rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.imo-comparison-map__center strong {
+  margin-top: .25rem;
+  font-size: .91rem;
+}
+.imo-comparison-map__node {
+  position: absolute;
+  z-index: 1;
+  padding: .48rem .68rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  background: var(--imo-bg);
+  color: var(--imo-text-secondary);
+  font-size: .66rem;
+  font-weight: 800;
+  box-shadow: var(--imo-shadow-sm);
+}
+.imo-comparison-map__node--suite { top: 12%; left: 12%; }
+.imo-comparison-map__node--format { top: 18%; right: 9%; }
+.imo-comparison-map__node--runtime { bottom: 15%; left: 8%; }
+.imo-comparison-map__node--ingestion { right: 7%; bottom: 11%; }
+.imo-comparison-map__footer {
+  padding: .9rem .25rem .2rem;
+  border-top: 1px solid var(--imo-border);
+  color: var(--imo-text-secondary);
+  font-size: .65rem;
+}
+.imo-comparison-map__footer span:first-child {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.imo-comparison-map__footer i {
+  width: .45rem;
+  height: .45rem;
+  border-radius: 50%;
+  background: #22c55e;
+}
+.imo-comparison-nav {
+  position: sticky;
+  top: var(--imo-header-height, 64px);
+  z-index: 25;
+  border-bottom: 1px solid var(--imo-border);
+  background: color-mix(in srgb, var(--imo-bg) 90%, transparent);
+  backdrop-filter: blur(16px);
+}
+.imo-comparison-nav > div {
+  display: flex;
+  gap: .35rem;
+  min-height: 54px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.imo-comparison-nav > div::-webkit-scrollbar {
+  display: none;
+}
+.imo-comparison-nav a {
+  padding: .55rem .78rem;
+  border-radius: .55rem;
+  color: var(--imo-text-secondary);
+  font-size: .76rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.imo-comparison-nav a:hover {
+  background: var(--imo-surface);
+  color: var(--imo-text);
+}
+.imo-body--comparison-hub {
+  overflow-x: clip;
+}
+.imo-comparison-hub__content {
+  padding-top: clamp(3.5rem, 6vw, 5.5rem);
+  padding-bottom: clamp(4rem, 7vw, 7rem);
+}
+.imo-comparison-intro {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(320px, 1fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: end;
+  padding-bottom: clamp(3.5rem, 6vw, 5.5rem);
+}
+.imo-comparison-intro h2,
+.imo-comparison-group__heading h2,
+.imo-comparison-method h2,
+.imo-comparison-next h2 {
+  margin: 0;
+  letter-spacing: -.045em;
+}
+.imo-comparison-intro h2 {
+  max-width: 600px;
+  font-size: clamp(2.2rem, 4.2vw, 3.8rem);
+  line-height: 1.03;
+}
+.imo-comparison-intro > p {
+  margin: 0;
+  color: var(--imo-text-secondary);
+  font-size: 1.04rem;
+  line-height: 1.75;
+}
+.imo-comparison-group {
+  scroll-margin-top: 8.5rem;
+  padding: clamp(3.5rem, 6vw, 5.5rem) 0;
+  border-top: 1px solid var(--imo-border);
+}
+.imo-comparison-group__heading {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(320px, 1fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: end;
+  margin-bottom: 2rem;
+}
+.imo-comparison-group__heading h2 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+}
+.imo-comparison-group__heading > p {
+  margin: 0;
+  color: var(--imo-text-secondary);
+  line-height: 1.7;
+}
+.imo-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.imo-comparison-grid--commercial {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.imo-comparison-card {
+  position: relative;
+  display: flex;
+  min-height: 330px;
+  flex-direction: column;
+  padding: 1.4rem;
+  overflow: hidden;
+  border: 1px solid var(--imo-border);
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--imo-primary) 4%, var(--imo-surface)), var(--imo-surface));
+  box-shadow: var(--imo-shadow-sm);
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.imo-comparison-card::after {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--imo-primary) 8%, transparent);
+  content: "";
+  pointer-events: none;
+}
+.imo-comparison-card:hover {
+  border-color: color-mix(in srgb, var(--imo-primary) 38%, var(--imo-border));
+  box-shadow: 0 18px 42px rgba(2, 6, 23, .12);
+  transform: translateY(-3px);
+}
+.imo-comparison-card--featured {
+  grid-column: span 2;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(37, 99, 235, .14), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--imo-primary) 7%, var(--imo-surface)), var(--imo-surface));
+}
+.imo-comparison-card__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.imo-comparison-card__mark {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 30%, var(--imo-border));
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--imo-primary) 11%, transparent);
+  color: var(--imo-primary);
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+.imo-comparison-card__type {
+  color: var(--imo-text-secondary);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.imo-comparison-card h3 {
+  position: relative;
+  z-index: 1;
+  margin: 1.25rem 0 .75rem;
+  font-size: 1.22rem;
+  line-height: 1.28;
+  letter-spacing: -.025em;
+}
+.imo-comparison-card h3 a {
+  color: var(--imo-text);
+  text-decoration: none;
+}
+.imo-comparison-card h3 a::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+.imo-comparison-card > p {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--imo-text-secondary);
+  font-size: .84rem;
+  line-height: 1.65;
+}
+.imo-comparison-card__tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .38rem;
+  margin-top: 1rem;
+}
+.imo-comparison-card__tags span {
+  padding: .3rem .5rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  color: var(--imo-text-secondary);
+  font-size: .62rem;
+  font-weight: 700;
+}
+.imo-comparison-card__link {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  gap: .45rem;
+  align-items: center;
+  width: max-content;
+  margin-top: auto;
+  padding-top: 1.35rem;
+  color: var(--imo-primary);
+  font-size: .75rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.imo-comparison-card__link span {
+  transition: transform .2s ease;
+}
+.imo-comparison-card:hover .imo-comparison-card__link span {
+  transform: translateX(3px);
+}
+.imo-comparison-method {
+  scroll-margin-top: 8.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(380px, .85fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  margin-top: clamp(3.5rem, 6vw, 5.5rem);
+  padding: clamp(2rem, 4vw, 3.2rem);
+  border: 1px solid color-mix(in srgb, var(--imo-primary) 24%, var(--imo-border));
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 86% 18%, rgba(20, 184, 166, .11), transparent 28%),
+    color-mix(in srgb, var(--imo-primary) 4%, var(--imo-surface));
+}
+.imo-comparison-method h2 {
+  max-width: 670px;
+  font-size: clamp(2rem, 3.7vw, 3.25rem);
+  line-height: 1.06;
+}
+.imo-comparison-method__copy > p:last-child {
+  max-width: 670px;
+  margin: 1.25rem 0 0;
+  color: var(--imo-text-secondary);
+  line-height: 1.75;
+}
+.imo-comparison-method__steps {
+  display: grid;
+  gap: .65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.imo-comparison-method__steps li {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: .9rem;
+  align-items: center;
+  padding: .9rem;
+  border: 1px solid var(--imo-border);
+  border-radius: .85rem;
+  background: color-mix(in srgb, var(--imo-bg) 76%, transparent);
+}
+.imo-comparison-method__steps li > span {
+  color: var(--imo-primary);
+  font-size: .7rem;
+  font-weight: 900;
+}
+.imo-comparison-method__steps strong,
+.imo-comparison-method__steps small {
+  display: block;
+}
+.imo-comparison-method__steps strong {
+  font-size: .82rem;
+}
+.imo-comparison-method__steps small {
+  margin-top: .18rem;
+  color: var(--imo-text-secondary);
+  font-size: .7rem;
+  line-height: 1.45;
+}
+.imo-comparison-method__links {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  padding-top: .4rem;
+}
+.imo-comparison-method__links a {
+  padding: .48rem .7rem;
+  border: 1px solid var(--imo-border);
+  border-radius: .65rem;
+  color: var(--imo-text-secondary);
+  font-size: .7rem;
+  font-weight: 750;
+}
+.imo-comparison-method__links a:hover {
+  border-color: color-mix(in srgb, var(--imo-primary) 35%, var(--imo-border));
+  color: var(--imo-primary);
+}
+.imo-comparison-disclosure {
+  max-width: 900px;
+  margin: 1.5rem auto 0;
+  color: var(--imo-text-secondary);
+  font-size: .74rem;
+  line-height: 1.65;
+  text-align: center;
+}
+.imo-comparison-next {
+  padding: clamp(3.5rem, 6vw, 5.5rem) 0;
+  border-top: 1px solid var(--imo-border);
+  background: linear-gradient(135deg, rgba(37, 99, 235, .09), rgba(20, 184, 166, .06));
+}
+.imo-comparison-next__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+}
+.imo-comparison-next h2 {
+  max-width: 760px;
+  font-size: clamp(2rem, 3.7vw, 3.2rem);
+}
+.imo-comparison-next p:not(.imo-comparison-eyebrow) {
+  max-width: 700px;
+  margin: .9rem 0 0;
+  color: var(--imo-text-secondary);
+  line-height: 1.65;
+}
+.imo-comparison-next__actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: .7rem;
+}
+@media (max-width: 1040px) {
+  .imo-comparison-hero__inner {
+    grid-template-columns: 1fr;
+  }
+  .imo-comparison-map {
+    width: min(620px, 100%);
+  }
+  .imo-comparison-grid,
+  .imo-comparison-grid--commercial {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .imo-comparison-card--featured {
+    grid-column: span 2;
+  }
+  .imo-comparison-next__inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 720px) {
+  .imo-comparison-hero {
+    padding-top: 3.2rem;
+  }
+  .imo-comparison-hero h1 {
+    font-size: clamp(2.65rem, 13vw, 4rem);
+  }
+  .imo-comparison-map__canvas {
+    min-height: 270px;
+  }
+  .imo-comparison-intro,
+  .imo-comparison-group__heading,
+  .imo-comparison-method {
+    grid-template-columns: 1fr;
+  }
+  .imo-comparison-grid,
+  .imo-comparison-grid--commercial {
+    grid-template-columns: 1fr;
+  }
+  .imo-comparison-card--featured {
+    grid-column: auto;
+  }
+  .imo-comparison-card {
+    min-height: 300px;
+  }
+  .imo-comparison-next__actions {
+    width: 100%;
+  }
+  .imo-comparison-next__actions .imo-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
+@media (max-width: 460px) {
+  .imo-comparison-map__header,
+  .imo-comparison-map__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .imo-comparison-map__ring {
+    width: 205px;
+    height: 205px;
+  }
+  .imo-comparison-map__node--suite { left: 2%; }
+  .imo-comparison-map__node--format { right: 1%; }
+  .imo-comparison-map__node--runtime { left: 0; }
+  .imo-comparison-map__node--ingestion { right: 0; }
 }
