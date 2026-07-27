@@ -40,4 +40,4 @@ LibreOffice facts were last checked on 27 July 2026 against the official [comman
 
 A conversion service can route a narrowly proven format through LibreOffice while using OfficeIMO for preflight, metadata, verification, extraction, or formats outside that route. Treat the external converter as an explicit provider: pin its version, isolate its profile, bound its runtime, capture diagnostics, reopen the output, and keep fallback behavior visible.
 
-Review [conversion guides](/convert/guides/), [legacy Office modernization](/solutions/legacy-office-modernization/), and [conversion fidelity policy](/docs/conversion-fidelity/) before selecting a route.
+Review [conversion guides](/convert/guides/), [legacy Office modernization](/solutions/legacy-office-modernization/), and [how to choose a conversion fidelity policy](/blog/choosing-document-conversion-fidelity/) before selecting a route.

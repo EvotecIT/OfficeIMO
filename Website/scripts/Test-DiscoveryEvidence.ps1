@@ -193,6 +193,25 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         }
     }
 
+    $registeredEvidenceRoutes = @(
+        $registry.comparisons |
+            ForEach-Object { @($_.officeImoEvidence) } |
+            ForEach-Object { [string] $_ } |
+            Where-Object { $_ -match '^/' } |
+            Sort-Object -Unique
+    )
+    foreach ($route in $registeredEvidenceRoutes) {
+        $relativeRoute = $route.Trim('/').Replace('/', [IO.Path]::DirectorySeparatorChar)
+        $artifactPath = if ([string]::IsNullOrWhiteSpace($relativeRoute)) {
+            Join-Path $resolvedArtifactRoot 'index.html'
+        } else {
+            Join-Path (Join-Path $resolvedArtifactRoot $relativeRoute) 'index.html'
+        }
+        if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
+            Add-Failure "Registered OfficeIMO evidence route '$route' does not render to an artifact."
+        }
+    }
+
     $hubArtifactPath = Join-Path $resolvedArtifactRoot 'comparisons\index.html'
     if (-not (Test-Path -LiteralPath $hubArtifactPath)) {
         Add-Failure 'The rendered comparison hub is missing.'

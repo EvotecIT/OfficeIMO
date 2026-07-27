@@ -108,7 +108,7 @@
         { "name": "LibreOffice command-line parameters", "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/start_parameters.html" },
         { "name": "LibreOffice conversion filters", "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html" }
       ],
-      "officeImoEvidence": ["/convert/guides/", "/solutions/legacy-office-modernization/", "/docs/conversion-fidelity/"]
+      "officeImoEvidence": ["/convert/guides/", "/solutions/legacy-office-modernization/", "/blog/choosing-document-conversion-fidelity/"]
     },
     {
       "id": "mimekit",
