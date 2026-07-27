@@ -1,6 +1,6 @@
 # OfficeIMO Agent Tools and WASM Roadmap
 
-Updated: 2026-07-26
+Updated: 2026-07-27
 
 This roadmap turns the PdfItDown comparison, the PSWritePDF retirement work, and the OfficeIMO browser conversion proof into a concrete OfficeIMO direction.
 
@@ -55,7 +55,7 @@ Commands:
 
 ```powershell
 officeimo mcp serve --stdio
-dotnet dnx OfficeIMO.Tool@3.0.2 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.0.3 mcp serve --stdio
 ```
 
 Tools:
@@ -73,7 +73,7 @@ PST, OST, OLM, EMLX, Mbox, MBX, and message directories are query-first. Search 
 Implementation rules:
 
 - Reuse OfficeIMO core libraries directly.
-- Keep file-system access explicit. `OFFICEIMO_MCP_ALLOWED_ROOTS` can restrict allowed roots.
+- Default file-system access to the MCP server's launch working directory. Treat `OFFICEIMO_MCP_ALLOWED_ROOTS` as an explicit replacement list and require the launch directory to be repeated when it should remain available.
 - Bound serialized output and return continuation cursors.
 - Treat extracted document and email content as untrusted data, never as instructions.
 - Write conversion output to an explicit path without overwriting by default.
@@ -123,7 +123,7 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 - Current implementation: `officeimo agent` and `officeimo mcp serve --stdio` share one compact service.
 - Current implementation: inspect, search, fetch, convert, and filtered capability discovery are available.
 - Current implementation: the plugin includes `.mcp.json` and document/mailbox operator skills.
-- Release requirement: publish `OfficeIMO.Tool` 3.0.2 so `dotnet dnx` can resolve the plugin command without a source checkout.
+- Release requirement: publish `OfficeIMO.Tool` 3.0.3 so `dotnet dnx` can resolve the plugin command without a source checkout.
 
 ### Phase 4 - PSWritePDF Retirement
 

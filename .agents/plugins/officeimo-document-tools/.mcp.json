@@ -5,7 +5,7 @@
       "command": "dotnet",
       "args": [
         "dnx",
-        "OfficeIMO.Tool@3.0.2",
+        "OfficeIMO.Tool@3.0.3",
         "mcp",
         "serve",
         "--stdio"

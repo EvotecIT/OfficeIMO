@@ -37,7 +37,8 @@ Usage:
                 Args = Array.Empty<string>()
             });
             builder.Logging.ClearProviders();
-            builder.Services.AddSingleton(new OfficeImoAgentService());
+            builder.Services.AddSingleton(new OfficeImoAgentService(
+                AgentPathPolicy.FromMcpEnvironment()));
             builder.Services.AddSingleton(serviceProvider => new OfficeImoMcpTools(
                 serviceProvider.GetRequiredService<OfficeImoAgentService>()));
             var serializerOptions = AgentJson.CreateSerializerOptions();

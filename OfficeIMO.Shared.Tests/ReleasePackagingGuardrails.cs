@@ -20,7 +20,7 @@ public sealed class ReleasePackagingGuardrails {
 
             string relativePath = source.GetProperty("path").GetString()
                 ?? throw new InvalidDataException("Local plugin sources must declare a path.");
-            string resolvedPath = Path.GetFullPath(relativePath, repositoryRoot);
+            string resolvedPath = Path.GetFullPath(Path.Combine(repositoryRoot, relativePath));
 
             Assert.True(
                 Directory.Exists(resolvedPath),
@@ -31,6 +31,7 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void CodexPlugin_McpConfigurationUsesSupportedServerSchema() {
         string repositoryRoot = GetRepositoryRoot();
+        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
         string mcpPath = Path.Combine(
             repositoryRoot,
             ".agents",
@@ -45,7 +46,7 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Equal("stdio", officeImo.GetProperty("type").GetString());
         Assert.Equal("dotnet", officeImo.GetProperty("command").GetString());
         Assert.Equal(
-            ["dnx", "OfficeIMO.Tool@3.0.2", "mcp", "serve", "--stdio"],
+            ["dnx", $"OfficeIMO.Tool@{coordinatedVersion}", "mcp", "serve", "--stdio"],
             officeImo.GetProperty("args").EnumerateArray()
                 .Select(static value => value.GetString() ?? string.Empty)
                 .ToArray());
