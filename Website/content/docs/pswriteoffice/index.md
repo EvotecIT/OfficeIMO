@@ -12,6 +12,8 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Install and verify](/docs/pswriteoffice/install/)
 - [Choose a workflow](/docs/pswriteoffice/choosing-a-workflow/)
 - [Command families](/docs/pswriteoffice/command-families/)
+- [PSWriteOffice vs ImportExcel vs ExcelFast](/docs/pswriteoffice/compare-importexcel-excelfast/)
+- [Migrate from PSWriteWord, PSWriteExcel, or PSWritePDF](/docs/pswriteoffice/migrate-from-legacy-modules/)
 
 ## Document workflows
 
@@ -25,6 +27,9 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
 - [Automation patterns](/docs/pswriteoffice/automation-patterns/)
 - [Troubleshooting and diagnostics](/docs/pswriteoffice/troubleshooting/)
+- [Migrate from PSWriteWord](/docs/pswriteoffice/migrate-from-pswriteword/)
+- [Migrate from PSWriteExcel](/docs/pswriteoffice/migrate-from-pswriteexcel/)
+- [Migrate from PSWritePDF](/docs/pswriteoffice/migrate-from-pswritepdf/)
 - [PSWriteOffice product overview](/products/pswriteoffice/)
 
 ## Notes

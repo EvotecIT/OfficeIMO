@@ -74,6 +74,14 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "comparisons",
+      "Input": "content/comparisons",
+      "Output": "/comparisons",
+      "DefaultLayout": "solution",
+      "UseToc": false,
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "blog",
       "Preset": "blog",
       "Input": "content/blog",
@@ -144,7 +152,8 @@
         "blog": "editorial",
         "products": "default",
         "conversions": "default",
-        "solutions": "default"
+        "solutions": "default",
+        "comparisons": "default"
       },
     "GeneratedCardVariantsByCollection": {
       "pages": "hero",
@@ -152,7 +161,8 @@
         "blog": "compact",
         "products": "hero",
         "conversions": "hero",
-        "solutions": "hero"
+        "solutions": "hero",
+        "comparisons": "hero"
     }
   },
   "StructuredData": {
@@ -431,6 +441,8 @@
                   { "Title": "Modernize legacy Office files", "Url": "/solutions/legacy-office-modernization/", "Description": "Move DOC, XLS, and PPT archives into governed modern workflows" },
                   { "Title": "Publish documents", "Url": "/solutions/document-publishing/", "Description": "Create Office, PDF, HTML, Markdown, and open-format output" },
                   { "Title": "Extract content", "Url": "/solutions/document-ingestion/", "Description": "Normalize documents for search, review, and AI workflows" },
+                  { "Title": "Migrate Outlook data", "Url": "/solutions/outlook-mailbox-migration/", "Description": "Read PST, OST, OLM, mbox, Maildir, and export verified PST files" },
+                  { "Title": "Work with OneNote offline", "Url": "/solutions/offline-onenote-automation/", "Description": "Read native OneNote files and export pages without Graph" },
                   { "Title": "Automate with PowerShell", "Url": "/solutions/powershell-document-automation/", "Description": "Build repeatable document jobs from scripts and pipelines" },
                   { "Title": "Migrate Google Workspace", "Url": "/solutions/google-workspace-migration/", "Description": "Translate Docs, Sheets, Slides, Drive, and Office content" }
                 ]
@@ -440,7 +452,8 @@
                 "Items": [
                   { "Title": "Cross-platform .NET", "Url": "/docs/getting-started/platform-support/", "Description": "Choose packages for services, apps, and AOT" },
                   { "Title": "Browser conversion", "Url": "/convert/", "Description": "Run supported routes locally with WebAssembly" },
-                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" }
+                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" },
+                  { "Title": "Compare libraries", "Url": "/comparisons/", "Description": "Choose OfficeIMO, Open XML SDK, ClosedXML, EPPlus, QuestPDF, or a commercial suite" }
                 ]
               }
             ]
