@@ -49,6 +49,55 @@ foreach ($route in $requiredProductRoutes) {
     }
 }
 
+$comparisonCollection = @($siteConfig.Collections | Where-Object Name -EQ 'comparisons')
+if ($comparisonCollection.Count -ne 1 -or [string] $comparisonCollection[0].DefaultLayout -ne 'comparison-detail') {
+    Add-Failure "The comparisons collection must use the dedicated 'comparison-detail' layout."
+}
+
+$comparisonRoute = @($siteConfig.AssetRegistry.RouteBundles | Where-Object Match -EQ '/comparisons/**')
+if ($comparisonRoute.Count -ne 1 -or @($comparisonRoute[0].Bundles) -notcontains 'comparison-detail') {
+    Add-Failure "The '/comparisons/**' route must load the comparison-detail visual bundle."
+}
+
+$comparisonLayoutPath = Join-Path $SiteRoot 'themes\officeimo\layouts\comparison-detail.html'
+$comparisonStylePath = Join-Path $SiteRoot 'themes\officeimo\assets\comparison-detail.css'
+$comparisonScriptPath = Join-Path $SiteRoot 'static\js\comparison-detail.js'
+foreach ($assetPath in @($comparisonLayoutPath, $comparisonStylePath, $comparisonScriptPath)) {
+    if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+        Add-Failure "Required comparison presentation asset is missing: '$assetPath'."
+    }
+}
+
+if (Test-Path -LiteralPath $comparisonLayoutPath -PathType Leaf) {
+    $comparisonLayout = Get-Content -LiteralPath $comparisonLayoutPath -Raw
+    foreach ($requiredMarkup in @(
+        'data-comparison-page',
+        'id="comparison-evidence"',
+        'imo-comparison-detail-sidebar',
+        '/comparisons/',
+        '/compatibility/',
+        '/licensing/'
+    )) {
+        if (-not $comparisonLayout.Contains($requiredMarkup, [StringComparison]::Ordinal)) {
+            Add-Failure "The comparison-detail layout is missing required evidence navigation '$requiredMarkup'."
+        }
+    }
+}
+
+if (Test-Path -LiteralPath $comparisonScriptPath -PathType Leaf) {
+    $comparisonScript = Get-Content -LiteralPath $comparisonScriptPath -Raw
+    foreach ($requiredEnhancement in @(
+        'imo-comparison-matrix',
+        'imo-comparison-choice-grid',
+        'data-comparison-page',
+        'DOMContentLoaded'
+    )) {
+        if (-not $comparisonScript.Contains($requiredEnhancement, [StringComparison]::Ordinal)) {
+            Add-Failure "The comparison-detail enhancement is missing '$requiredEnhancement'."
+        }
+    }
+}
+
 $registryPath = Join-Path $SiteRoot 'data\comparison_evidence.json'
 $registry = Get-Content -LiteralPath $registryPath -Raw | ConvertFrom-Json
 if ([int] $registry.schemaVersion -ne 1) {
@@ -222,6 +271,32 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         }
         if ($hubArtifact -notmatch [regex]::Escape("Reviewed $($registry.lastReviewed)")) {
             Add-Failure "The rendered comparison hub does not show registry review date '$($registry.lastReviewed)'."
+        }
+    }
+
+    $sampleComparison = @(
+        $registry.comparisons |
+            Where-Object { [string] $_.route -like '/comparisons/*' } |
+            Select-Object -First 1
+    )
+    if ($sampleComparison.Count -eq 1) {
+        $sampleRoute = [string] $sampleComparison[0].route
+        $sampleRelativeRoute = $sampleRoute.Trim('/').Replace('/', [IO.Path]::DirectorySeparatorChar)
+        $sampleArtifactPath = Join-Path (Join-Path $resolvedArtifactRoot $sampleRelativeRoute) 'index.html'
+        if (-not (Test-Path -LiteralPath $sampleArtifactPath -PathType Leaf)) {
+            Add-Failure "The rendered sample comparison '$sampleRoute' is missing."
+        } else {
+            $sampleArtifact = Get-Content -LiteralPath $sampleArtifactPath -Raw
+            foreach ($requiredRenderedEvidence in @(
+                'data-comparison-page',
+                'id="comparison-evidence"',
+                'comparison-detail.css',
+                'comparison-detail.js'
+            )) {
+                if ($sampleArtifact -notmatch [regex]::Escape($requiredRenderedEvidence)) {
+                    Add-Failure "Rendered comparison '$sampleRoute' is missing '$requiredRenderedEvidence'."
+                }
+            }
         }
     }
 

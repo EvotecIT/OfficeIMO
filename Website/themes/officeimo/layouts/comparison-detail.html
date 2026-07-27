@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--comparison-detail" data-comparison-page>
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--comparison-detail">
+    <section class="imo-comparison-detail-hero">
+      <div class="imo-container imo-comparison-detail-hero__inner">
+        <div class="imo-comparison-detail-hero__copy">
+          <a class="imo-comparison-detail-hero__back" href="/comparisons/">
+            <span aria-hidden="true">←</span>
+            All library comparisons
+          </a>
+          <p class="imo-comparison-eyebrow">{{ page.meta.eyebrow ?? ".NET library comparison" }}</p>
+          <h1>{{ page.title }}</h1>
+          {{ if page.description }}<p class="imo-comparison-detail-hero__lead">{{ page.description }}</p>{{ end }}
+          <div class="imo-comparison-detail-hero__actions">
+            <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? "/docs/getting-started/" }}">{{ page.meta.primary_label ?? "Read the relevant guide" }}</a>
+            <a class="imo-btn imo-btn-ghost" href="#comparison-evidence">Compare the evidence</a>
+          </div>
+        </div>
+
+        <aside class="imo-comparison-detail-proof" aria-label="Comparison method">
+          <div class="imo-comparison-detail-proof__header">
+            <span>Decision brief</span>
+            <i aria-hidden="true"></i>
+          </div>
+          <strong>{{ page.meta.outcome ?? "Choose from workload evidence" }}</strong>
+          <ol>
+            <li>
+              <span>01</span>
+              <div><b>Verify the boundary</b><small>Formats, operations, runtime, and deployment</small></div>
+            </li>
+            <li>
+              <span>02</span>
+              <div><b>Read the tradeoffs</b><small>Competitor strengths are stated plainly</small></div>
+            </li>
+            <li>
+              <span>03</span>
+              <div><b>Prove the workload</b><small>Representative files remain the final gate</small></div>
+            </li>
+          </ol>
+          <p>First-party sources · dated and recheckable</p>
+        </aside>
+      </div>
+    </section>
+
+    <nav class="imo-comparison-detail-nav" aria-label="Comparison resources">
+      <div class="imo-container">
+        <a href="/comparisons/"><span aria-hidden="true">↗</span> Comparison catalog</a>
+        <a href="#comparison-evidence"><span aria-hidden="true">↓</span> Decision evidence</a>
+        <a href="/compatibility/"><span aria-hidden="true">✓</span> Compatibility contracts</a>
+        <a href="/licensing/"><span aria-hidden="true">§</span> Licensing</a>
+      </div>
+    </nav>
+
+    <div class="imo-container imo-comparison-detail-layout">
+      <article id="comparison-evidence" class="imo-comparison-detail-content markdown-body">
+{{ content }}
+      </article>
+
+      <aside class="imo-comparison-detail-sidebar" aria-labelledby="evaluation-lens-title">
+        <p class="imo-comparison-detail-sidebar__eyebrow">Evaluation lens</p>
+        <h2 id="evaluation-lens-title">Make the shortlist defensible</h2>
+        <ol>
+          <li><span>01</span><div><strong>Workload</strong><small>Required inputs, outputs, and operations</small></div></li>
+          <li><span>02</span><div><strong>Deployment</strong><small>Runtime, platform, and dependency boundaries</small></div></li>
+          <li><span>03</span><div><strong>License</strong><small>Rights, obligations, support, and procurement</small></div></li>
+          <li><span>04</span><div><strong>Proof</strong><small>Fidelity, performance, and representative files</small></div></li>
+        </ol>
+        <a class="imo-comparison-detail-sidebar__link" href="/compatibility/">
+          Inspect operation-level support
+          <span aria-hidden="true">→</span>
+        </a>
+        <p class="imo-comparison-detail-sidebar__note">Feature names are not parity claims. Verify the exact operation and artifact quality your product needs.</p>
+      </aside>
+    </div>
+
+    <section class="imo-comparison-detail-next">
+      <div class="imo-container imo-comparison-detail-next__inner">
+        <div>
+          <p class="imo-comparison-eyebrow">Turn the shortlist into proof</p>
+          <h2>Test the decision with your real documents.</h2>
+          <p>Use the compatibility contracts to narrow the field, then validate fidelity, performance, and deployment with representative files.</p>
+        </div>
+        <div class="imo-comparison-detail-next__actions">
+          <a class="imo-btn imo-btn-primary" href="/compatibility/">Check compatibility</a>
+          <a class="imo-btn imo-btn-ghost" href="/docs/getting-started/">Build a proof of concept</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

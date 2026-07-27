@@ -81,7 +81,7 @@
       "Name": "comparisons",
       "Input": "content/comparisons",
       "Output": "/comparisons",
-      "DefaultLayout": "solution",
+      "DefaultLayout": "comparison-detail",
       "UseToc": false,
       "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
@@ -300,6 +300,11 @@
       { "Name": "docs", "Css": ["/css/docs.css"] },
       { "Name": "api", "Css": ["/css/api.css"] },
       { "Name": "experience", "Css": ["/css/visual-system.css"] },
+      {
+        "Name": "comparison-detail",
+        "Css": ["/css/comparison-detail.css"],
+        "Js": ["/js/comparison-detail.js"]
+      },
       { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
     ],
     "RouteBundles": [
@@ -309,7 +314,7 @@
       { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/comparison/", "Bundles": ["global", "product", "experience"] },
-      { "Match": "/comparisons/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/comparisons/**", "Bundles": ["global", "product", "comparison-detail", "experience"] },
       { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
       { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
