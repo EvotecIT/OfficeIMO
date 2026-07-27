@@ -25,6 +25,19 @@ Use `OfficeIMO.Reader.All` only when the host deliberately accepts the complete 
 ## Preserve the path back to evidence
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Email;
+using OfficeIMO.Reader.OneNote;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddWordHandler()
+    .AddPdfHandler()
+    .AddEmailHandlers()
+    .AddOneNoteHandler()
+    .Build();
+
 ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
     "policy.docx",
     chunkingOptions: new ReaderHierarchicalChunkingOptions {
@@ -35,7 +48,7 @@ ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
     });
 
 foreach (ReaderChunk chunk in hierarchy.Chunks) {
-    StoreEmbedding(chunk.Id, chunk.Text, chunk.TokenEstimate ?? 0);
+    Console.WriteLine($"{chunk.Id}: {chunk.TokenEstimate ?? 0} tokens");
 }
 ```
 
