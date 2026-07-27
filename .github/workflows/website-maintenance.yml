@@ -16,12 +16,12 @@ concurrency:
 
 jobs:
   website-maintenance:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-maintenance.yml@15497ba4468a8a3679244022d180fae49882e562
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-maintenance.yml@f40719ac03ab3eddabdf22a926542f86ef5b48f5
     with:
       website_root: Website
       pipeline_config: Website/pipeline.maintenance.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 15497ba4468a8a3679244022d180fae49882e562
+      powerforge_ref: f40719ac03ab3eddabdf22a926542f86ef5b48f5
       report_artifact_name: powerforge-website-maintenance-reports
