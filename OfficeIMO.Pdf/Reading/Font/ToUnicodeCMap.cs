@@ -3,6 +3,35 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Pdf;
 
 internal sealed class ToUnicodeCMap {
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
+#if NET8_0_OR_GREATER
+    private const RegexOptions StaticRegexOptions =
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking;
+#else
+    private const RegexOptions StaticRegexOptions =
+        RegexOptions.Compiled | RegexOptions.CultureInvariant;
+#endif
+    private static readonly Regex BfCharEntryRegex = new Regex(
+        @"<(?<src>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>",
+        StaticRegexOptions,
+        RegexTimeout);
+    private static readonly Regex BfCharSectionRegex = new Regex(
+        @"beginbfchar([\s\S]*?)endbfchar",
+        StaticRegexOptions | RegexOptions.IgnoreCase,
+        RegexTimeout);
+    private static readonly Regex BfRangeSequentialEntryRegex = new Regex(
+        @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>",
+        StaticRegexOptions,
+        RegexTimeout);
+    private static readonly Regex BfRangeSectionRegex = new Regex(
+        @"beginbfrange([\s\S]*?)endbfrange",
+        StaticRegexOptions | RegexOptions.IgnoreCase,
+        RegexTimeout);
+    private static readonly Regex BfRangeArrayEntryRegex = new Regex(
+        @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]",
+        StaticRegexOptions | RegexOptions.IgnoreCase,
+        RegexTimeout);
+
     private const int MaxMappings = 65536;
     private const int MaxRangeMappings = 4096;
     private const int MaxSourceCodeBytes = 4;
@@ -29,9 +58,8 @@ internal sealed class ToUnicodeCMap {
 
     private void Parse(string s) {
         // Handle beginbfchar / endbfchar lines like: <AB> <00E9>
-        var bfchar = new Regex(@"<(?<src>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>");
-        foreach (Match section in Regex.Matches(s, @"beginbfchar([\s\S]*?)endbfchar", RegexOptions.IgnoreCase)) {
-            foreach (Match m in bfchar.Matches(section.Groups[1].Value)) {
+        foreach (Match section in BfCharSectionRegex.Matches(s)) {
+            foreach (Match m in BfCharEntryRegex.Matches(section.Groups[1].Value)) {
                 if (HasReachedMappingLimit()) {
                     break;
                 }
@@ -44,15 +72,14 @@ internal sealed class ToUnicodeCMap {
             }
         }
         // Handle beginbfrange / endbfrange, sequential mapping
-        var bfrangeLine = new Regex(@"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>");
-        foreach (Match section in Regex.Matches(s, @"beginbfrange([\s\S]*?)endbfrange", RegexOptions.IgnoreCase)) {
+        foreach (Match section in BfRangeSectionRegex.Matches(s)) {
             if (HasReachedMappingLimit()) {
                 break;
             }
 
             string body = section.Groups[1].Value;
-            string sequentialBody = Regex.Replace(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", string.Empty, RegexOptions.IgnoreCase);
-            foreach (Match m in bfrangeLine.Matches(sequentialBody)) {
+            string sequentialBody = BfRangeArrayEntryRegex.Replace(body, string.Empty);
+            foreach (Match m in BfRangeSequentialEntryRegex.Matches(sequentialBody)) {
                 if (HasReachedMappingLimit()) {
                     break;
                 }
@@ -73,7 +100,7 @@ internal sealed class ToUnicodeCMap {
                 }
             }
 
-            foreach (Match m in Regex.Matches(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", RegexOptions.IgnoreCase)) {
+            foreach (Match m in BfRangeArrayEntryRegex.Matches(body)) {
                 if (HasReachedMappingLimit()) {
                     break;
                 }

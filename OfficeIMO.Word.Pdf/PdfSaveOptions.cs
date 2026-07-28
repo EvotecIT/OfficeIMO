@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
+using DrawingCore = OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word.Pdf {
     /// <summary>
@@ -93,6 +94,18 @@ namespace OfficeIMO.Word.Pdf {
         /// Defaults to false to preserve strict fidelity.
         /// </summary>
         public bool DefaultTableBorders { get; set; } = false;
+
+        /// <summary>
+        /// Applies shared deterministic typography resources to the first-party PDF engine.
+        /// Word pagination and layout settings remain owned by this converter.
+        /// </summary>
+        public PdfSaveOptions UseRenderingProfile(
+            DrawingCore.OfficeRenderingProfile profile,
+            DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            PdfOptions ??= new PdfCore.PdfOptions();
+            PdfOptions.UseRenderingProfile(profile, mode);
+            return this;
+        }
 
         /// <summary>
         /// Applies a high-level export profile by setting the Word PDF options that correspond to that profile.

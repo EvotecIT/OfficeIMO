@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -11,19 +13,37 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
     /// </summary>
     /// <param name="fontName">Display name used in fallback segments and diagnostics.</param>
     /// <param name="trueTypeFont">TrueType or OpenType/CFF font bytes to inspect for Unicode glyph coverage.</param>
-    public PdfEmbeddedFontFallbackCandidate(string fontName, byte[] trueTypeFont) {
+    public PdfEmbeddedFontFallbackCandidate(string fontName, byte[] trueTypeFont)
+        : this(fontName, trueTypeFont, OfficeFontUnicodeRangeSet.All) {
+    }
+
+    /// <summary>
+    /// Creates a fallback candidate whose glyph coverage is limited to an explicit Unicode range policy.
+    /// </summary>
+    /// <param name="fontName">Display name used in fallback segments and diagnostics.</param>
+    /// <param name="trueTypeFont">TrueType or OpenType/CFF font bytes to inspect for Unicode glyph coverage.</param>
+    /// <param name="unicodeRanges">Unicode scalars this candidate is allowed to serve.</param>
+    public PdfEmbeddedFontFallbackCandidate(
+        string fontName,
+        byte[] trueTypeFont,
+        OfficeFontUnicodeRangeSet unicodeRanges) {
         Guard.NotNullOrWhiteSpace(fontName, nameof(fontName));
         Guard.NotNull(trueTypeFont, nameof(trueTypeFont));
+        Guard.NotNull(unicodeRanges, nameof(unicodeRanges));
         if (trueTypeFont.Length == 0) {
             throw new ArgumentException("Embedded font fallback data cannot be empty.", nameof(trueTypeFont));
         }
 
         FontName = fontName;
         _fontData = trueTypeFont.ToArray();
+        UnicodeRanges = unicodeRanges;
     }
 
     /// <summary>Display name used in fallback segments and diagnostics.</summary>
     public string FontName { get; }
+
+    /// <summary>Unicode scalars this candidate is allowed to serve.</summary>
+    public OfficeFontUnicodeRangeSet UnicodeRanges { get; }
 
     internal byte[] DataSnapshot => _fontData;
 }
