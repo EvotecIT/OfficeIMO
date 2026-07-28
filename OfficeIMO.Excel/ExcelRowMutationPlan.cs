@@ -59,6 +59,8 @@ namespace OfficeIMO.Excel {
     /// Applying a plan re-runs every safety check against the current workbook state. A plan therefore
     /// cannot be used to bypass a new array-formula, PivotTable, control, mapping, or capacity conflict.
     /// Planning rejects pending deferred worksheet writes rather than materializing them as a side effect.
+    /// Each plan permits one application attempt. A failed attempt consumes the plan because mutation may
+    /// already have started before a later validation, package, or save failure is observed.
     /// </remarks>
     public sealed class ExcelRowMutationPlan {
         private readonly ExcelSheet _owner;
@@ -106,12 +108,16 @@ namespace OfficeIMO.Excel {
         /// <summary>Whether this plan has already been applied successfully.</summary>
         public bool IsApplied => Volatile.Read(ref _applyState) == 2;
 
+        /// <summary>Whether an application attempt has started, succeeded, or failed.</summary>
+        public bool IsConsumed => Volatile.Read(ref _applyState) != 0;
+
         /// <summary>
         /// Revalidates and applies the planned operation exactly once.
         /// </summary>
         public void Apply() {
             if (Interlocked.CompareExchange(ref _applyState, 1, 0) != 0) {
-                throw new InvalidOperationException("This Excel mutation plan is already being applied or was applied successfully.");
+                throw new InvalidOperationException(
+                    "This Excel mutation plan is already being applied, was applied successfully, or a previous attempt failed.");
             }
 
             try {
@@ -122,7 +128,7 @@ namespace OfficeIMO.Excel {
                 }
                 Volatile.Write(ref _applyState, 2);
             } catch {
-                Volatile.Write(ref _applyState, 0);
+                Volatile.Write(ref _applyState, 3);
                 throw;
             }
         }

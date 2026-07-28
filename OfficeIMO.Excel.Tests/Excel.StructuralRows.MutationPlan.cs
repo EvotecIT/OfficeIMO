@@ -2,9 +2,11 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -22,6 +24,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRowMutationPlan plan = data.PlanInsertRows(2);
 
+            Assert.False(plan.IsConsumed);
             Assert.Equal(ExcelRowMutationKind.Insert, plan.Kind);
             Assert.Equal("Data", plan.SheetName);
             Assert.Equal(2, plan.FirstRow);
@@ -39,6 +42,7 @@ namespace OfficeIMO.Tests {
             plan.Apply();
 
             Assert.True(plan.IsApplied);
+            Assert.True(plan.IsConsumed);
             Assert.True(data.CellAt(2, 1).GetValue().IsBlank);
             Assert.Equal(10, data.CellAt(3, 1).GetValue<int>());
             Assert.Equal("SUM(A3:A4)", data.GetFormulaText(1, 3));
@@ -133,7 +137,10 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("array formula", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.False(plan.IsApplied);
+            Assert.True(plan.IsConsumed);
             Assert.Equal(2, sheet.CellAt(2, 1).GetValue<int>());
+            InvalidOperationException retry = Assert.Throws<InvalidOperationException>(() => plan.Apply());
+            Assert.Contains("previous attempt failed", retry.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -160,6 +167,115 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, names.ItemCount);
             Assert.Equal("'Data'!$A$5:$B$7", globalName.Text);
             Assert.Equal("$A$2:$B$3", otherLocalName.Text);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanUsesImplicitCellCoordinates() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(1, 1).SetValue("Header");
+            sheet.CellAt(2, 1).SetValue(10);
+            sheet.CellAt(3, 1).SetValue(20);
+            foreach (Row row in sheet.WorksheetPart.Worksheet.Descendants<Row>()) {
+                row.RowIndex = null;
+                foreach (Cell cell in row.Elements<Cell>()) {
+                    cell.CellReference = null;
+                }
+            }
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            ExcelMutationImpact cells = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "worksheet-cells");
+            Assert.Equal(2, cells.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanResolvesSharedFormulaFollowers() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(2, 1).SetValue(1);
+            sheet.CellAt(3, 1).SetValue(2);
+            AppendSharedFormulaGroup(sheet, sharedIndex: 41U, anchorReference: "B2:B3");
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(2, formulas.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanUsesPendingFormulaAsAuthoritative() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellFormula(1, 1, "A2");
+            Assert.True(document.HasPendingDirectCellValues);
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(1, formulas.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesThreadedComments() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(3, 1).SetValue("Value");
+            sheet.AddThreadedComment("A3", "Review");
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            ExcelMutationImpact comments = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "comments");
+            Assert.Equal(1, comments.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesChartsHostedOnOtherSheets() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            data.CellAt(5, 1).SetValue(10);
+            data.CellAt(6, 1).SetValue(20);
+            summary.CellAt(1, 1).SetValue("Label");
+            summary.CellAt(1, 2).SetValue("Value");
+            summary.CellAt(2, 1).SetValue("One");
+            summary.CellAt(2, 2).SetValue(1);
+            summary.AddChartFromRange("A1:B2", row: 5, column: 4);
+            ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
+            C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
+            formula.Text = "Data!A5:A6";
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(5);
+
+            Assert.Contains(plan.Impacts, impact =>
+                impact.Category == "formula-references" && impact.ItemCount >= 1);
+            Assert.Contains(plan.Impacts, impact =>
+                impact.Category == "drawings" && impact.ItemCount >= 1);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesPivotSourcesHostedOnOtherSheets() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet data = CreatePivotSheet(document);
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            PivotTablePart pivotPart = Assert.Single(data.WorksheetPart.PivotTableParts);
+            summary.WorksheetPart.AddPart(pivotPart);
+            data.WorksheetPart.DeletePart(pivotPart);
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(2);
+
+            ExcelMutationImpact pivots = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "pivots");
+            Assert.True(pivots.ItemCount >= 1);
         }
     }
 }

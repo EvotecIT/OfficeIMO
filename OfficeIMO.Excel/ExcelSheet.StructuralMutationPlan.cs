@@ -65,9 +65,23 @@ namespace OfficeIMO.Excel {
             int mergedCells = 0;
             int hyperlinks = 0;
             int sparklines = 0;
+            int drawings = 0;
+            int pivots = 0;
+            int comments = 0;
             var targetCellCoordinates = new HashSet<long>();
+            var pendingCells = new Dictionary<long, object?>();
+            var inspectedDrawingRoots = new HashSet<OpenXmlPartRootElement>();
             int mutatedSheetIndex = -1;
             int sheetIndex = 0;
+
+            if (_pendingCellValueDirectSaveBuffer != null) {
+                foreach ((int Row, int Column, object? Value) pending in
+                    _pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+                    budget.Consume();
+                    long coordinate = ((long)pending.Row << 32) | (uint)pending.Column;
+                    pendingCells[coordinate] = pending.Value;
+                }
+            }
 
             foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
                 budget.Consume();
@@ -84,9 +98,48 @@ namespace OfficeIMO.Excel {
 
                 bool rewriteUnqualified = ReferenceEquals(worksheetPart, _worksheetPart)
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
+                var worksheetElements = new List<OpenXmlElement>();
                 foreach (OpenXmlElement element in worksheetPart.Worksheet.Descendants()) {
                     budget.Consume();
-                    if (element is OpenXmlLeafTextElement formula
+                    worksheetElements.Add(element);
+                }
+                ExcelSheet inspectedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
+                    ? this
+                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
+                    inspectedSheet.BuildEffectiveCellCoordinates();
+                IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
+                    inspectedSheet.BuildSharedFormulaDefinitions(effectiveCoordinates);
+                foreach (OpenXmlElement element in worksheetElements) {
+                    if (element is Cell cell) {
+                        if (!effectiveCoordinates.TryGetValue(cell, out var effectiveCoordinate)) {
+                            continue;
+                        }
+
+                        long coordinate = ((long)effectiveCoordinate.Row << 32) | (uint)effectiveCoordinate.Column;
+                        bool pendingValueIsAuthoritative = rewriteUnqualified && pendingCells.ContainsKey(coordinate);
+                        if (rewriteUnqualified
+                            && targetCellCoordinates.Add(coordinate)
+                            && effectiveCoordinate.Row >= firstRow) {
+                            cells++;
+                        }
+
+                        if (!pendingValueIsAuthoritative
+                            && cell.CellFormula != null
+                            && FormulaChangesForPlan(
+                                inspectedSheet.ResolveCellFormulaText(
+                                    cell,
+                                    sharedFormulaDefinitions,
+                                    effectiveCoordinates),
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count,
+                                rewriteUnqualified)) {
+                            formulas++;
+                        }
+                    } else if (element is OpenXmlLeafTextElement formula
+                        && element is not DocumentFormat.OpenXml.Spreadsheet.CellFormula
                         && IsStructuralFormulaElement(formula)
                         && FormulaChangesForPlan(
                             formula.Text,
@@ -100,13 +153,7 @@ namespace OfficeIMO.Excel {
                     if (!rewriteUnqualified) {
                         continue;
                     }
-                    if (element is Cell cell
-                        && A1.TryParseCellReferenceFast(cell.CellReference?.Value, out int row, out int column)) {
-                        targetCellCoordinates.Add(((long)row << 32) | (uint)column);
-                        if (row >= firstRow) {
-                            cells++;
-                        }
-                    } else if (element is DataValidation) {
+                    if (element is DataValidation) {
                         validation++;
                     } else if (element is ConditionalFormatting) {
                         conditionalFormatting++;
@@ -118,6 +165,18 @@ namespace OfficeIMO.Excel {
                         sparklines++;
                     }
                 }
+
+                CountDrawingPlanImpacts(
+                    worksheetPart.DrawingsPart,
+                    rewriteUnqualified,
+                    kind,
+                    firstRow,
+                    lastRow,
+                    count,
+                    budget,
+                    inspectedDrawingRoots,
+                    ref drawings,
+                    ref formulas);
 
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                     budget.Consume();
@@ -139,27 +198,63 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (_pendingCellValueDirectSaveBuffer != null) {
-                foreach ((int Row, int Column, object? Value) pending in
-                    _pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+            foreach (KeyValuePair<long, object?> pending in pendingCells) {
+                int pendingRow = checked((int)(pending.Key >> 32));
+                if (targetCellCoordinates.Add(pending.Key) && pendingRow >= firstRow) {
+                    cells++;
+                }
+                if (pending.Value is DirectFormulaCellValue pendingFormula
+                    && FormulaChangesForPlan(
+                        pendingFormula.Formula,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count,
+                        rewriteUnqualifiedReferences: true)) {
+                    formulas++;
+                }
+            }
+
+            foreach (ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
+                budget.Consume();
+                CountDrawingPlanImpacts(
+                    chartsheetPart.DrawingsPart,
+                    rewriteUnqualifiedReferences: false,
+                    kind,
+                    firstRow,
+                    lastRow,
+                    count,
+                    budget,
+                    inspectedDrawingRoots,
+                    ref drawings,
+                    ref formulas);
+            }
+
+            pivots += CountBounded(_worksheetPart.PivotTableParts, budget);
+            foreach (PivotTableCacheDefinitionPart cachePart in GetWorkbookPivotCacheDefinitionParts()) {
+                budget.Consume();
+                foreach (OpenXmlElement _ in cachePart.PivotCacheDefinition?.Descendants()
+                    ?? Enumerable.Empty<OpenXmlElement>()) {
                     budget.Consume();
-                    long coordinate = ((long)pending.Row << 32) | (uint)pending.Column;
-                    if (!targetCellCoordinates.Add(coordinate)) {
-                        continue;
-                    }
-                    if (pending.Row >= firstRow) {
-                        cells++;
-                    }
-                    if (pending.Value is DirectFormulaCellValue pendingFormula
-                        && FormulaChangesForPlan(
-                            pendingFormula.Formula,
-                            kind,
-                            firstRow,
-                            lastRow,
-                            count,
-                            rewriteUnqualifiedReferences: true)) {
-                        formulas++;
-                    }
+                }
+                if (PivotSourceChangesForPlan(cachePart, firstRow, lastRow, count, kind)) {
+                    pivots++;
+                }
+            }
+
+            comments += CountBounded(
+                _worksheetPart.WorksheetCommentsPart?.Comments?.Descendants<Comment>()
+                    ?? Enumerable.Empty<Comment>(),
+                budget);
+            foreach (WorksheetThreadedCommentsPart threadedPart in _worksheetPart.WorksheetThreadedCommentsParts) {
+                budget.Consume();
+                foreach (DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment comment in
+                    threadedPart.ThreadedComments?.Elements<
+                        DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment>()
+                    ?? Enumerable.Empty<
+                        DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment>()) {
+                    budget.Consume();
+                    comments++;
                 }
             }
 
@@ -222,22 +317,18 @@ namespace OfficeIMO.Excel {
             AddImpact(
                 impacts,
                 "drawings",
-                CountBounded(_worksheetPart.DrawingsPart?.WorksheetDrawing?.Descendants()
-                    ?? Enumerable.Empty<OpenXmlElement>(), budget),
+                drawings,
                 "Drawing anchors, shapes, and embedded chart locations are checked and remapped.");
             AddImpact(
                 impacts,
                 "pivots",
-                CountBounded(_worksheetPart.PivotTableParts, budget),
+                pivots,
                 "Pivot output and source boundaries are validated before mutation.");
             AddImpact(
                 impacts,
                 "comments",
-                CountBounded(
-                    _worksheetPart.WorksheetCommentsPart?.Comments?.Descendants()
-                    ?? Enumerable.Empty<Comment>(),
-                    budget),
-                "Legacy comment anchors are checked and remapped.");
+                comments,
+                "Legacy and threaded comment anchors are checked and remapped.");
             AddImpact(
                 impacts,
                 "sparklines",
@@ -288,6 +379,117 @@ namespace OfficeIMO.Excel {
                     Name,
                     rewriteUnqualifiedReferences);
             return !string.Equals(formula, rewritten, StringComparison.Ordinal);
+        }
+
+        private bool PivotSourceChangesForPlan(
+            PivotTableCacheDefinitionPart cachePart,
+            int firstRow,
+            int lastRow,
+            int count,
+            ExcelRowMutationKind kind) {
+            WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
+            if (source != null
+                && string.IsNullOrWhiteSpace(source.Id?.Value)
+                && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                && source.Reference?.Value is string sourceReference
+                && FormulaChangesForPlan(
+                    sourceReference,
+                    kind,
+                    firstRow,
+                    lastRow,
+                    count,
+                    rewriteUnqualifiedReferences: true)) {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(source?.Id?.Value)
+                && source?.Name?.Value is string sourceName
+                && IsNamedPivotSourceAffected(sourceName, firstRow)) {
+                return true;
+            }
+
+            return cachePart.PivotCacheDefinition?.CacheSource?.Consolidation?.RangeSets?
+                .Elements<RangeSet>()
+                .Any(rangeSet =>
+                    string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
+                    && string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                    && FormulaChangesForPlan(
+                        rangeSet.Reference?.Value,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count,
+                        rewriteUnqualifiedReferences: true)) == true;
+        }
+
+        private void CountDrawingPlanImpacts(
+            DrawingsPart? drawingsPart,
+            bool rewriteUnqualifiedReferences,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count,
+            MutationPlanScanBudget budget,
+            ISet<OpenXmlPartRootElement> inspectedRoots,
+            ref int drawings,
+            ref int formulas) {
+            if (drawingsPart == null) {
+                return;
+            }
+
+            if (drawingsPart.WorksheetDrawing != null
+                && inspectedRoots.Add(drawingsPart.WorksheetDrawing)) {
+                budget.Consume();
+                foreach (OpenXmlElement element in drawingsPart.WorksheetDrawing.Descendants()) {
+                    budget.Consume();
+                    if (rewriteUnqualifiedReferences) {
+                        drawings++;
+                    }
+                    if (element is DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape shape
+                        && FormulaChangesForPlan(
+                            shape.TextLink?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count,
+                            rewriteUnqualifiedReferences)) {
+                        if (!rewriteUnqualifiedReferences) {
+                            drawings++;
+                        }
+                        formulas++;
+                    }
+                }
+            }
+
+            foreach (OpenXmlPartRootElement? chartRoot in drawingsPart.ChartParts
+                .Select(part => part.ChartSpace)
+                .Cast<OpenXmlPartRootElement?>()
+                .Concat(drawingsPart.ExtendedChartParts.Select(part => part.ChartSpace))) {
+                if (chartRoot == null || !inspectedRoots.Add(chartRoot)) {
+                    continue;
+                }
+
+                budget.Consume();
+                bool chartChanges = false;
+                foreach (OpenXmlElement element in chartRoot.Descendants()) {
+                    budget.Consume();
+                    if (element is OpenXmlLeafTextElement formula
+                        && string.Equals(formula.LocalName, "f", StringComparison.Ordinal)
+                        && FormulaChangesForPlan(
+                            formula.Text,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count,
+                            rewriteUnqualifiedReferences)) {
+                        formulas++;
+                        chartChanges = true;
+                    }
+                }
+                if (chartChanges) {
+                    drawings++;
+                }
+            }
         }
 
         private static bool IsStructuralFormulaElement(OpenXmlLeafTextElement element) =>
