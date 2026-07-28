@@ -1,6 +1,6 @@
 ---
 title: "OneNote"
-description: "Work with native OneNote sections, notebooks, tables of contents, and packages offline."
+description: "Work with native OneNote sections, notebooks, tables of contents, and packages offline. Includes examples and API links."
 order: 37
 meta.seo_title: "OneNote file automation | OfficeIMO"
 ---

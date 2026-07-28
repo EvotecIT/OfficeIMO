@@ -1,6 +1,6 @@
 ---
 title: PowerPoint Templates and Brand Kits
-description: Inspect corporate PPTX and POTX templates, resolve named layouts and placeholders, and generate editable branded decks.
+description: "Inspect corporate PPTX and POTX templates, resolve named layouts and placeholders, and generate editable branded decks. Includes examples and API links."
 order: 34
 ---
 

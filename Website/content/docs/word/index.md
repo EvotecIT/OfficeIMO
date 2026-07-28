@@ -1,6 +1,6 @@
 ---
 title: Word Documents
-description: Overview of the OfficeIMO.Word package for creating and manipulating Microsoft Word documents.
+description: "Overview of the OfficeIMO.Word package for creating and manipulating Microsoft Word documents. Includes examples and API links."
 order: 10
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.PowerPoint"
-description: "Create, read, edit, and convert PPT, PPTX, PPTM, POT, and PPS presentations from .NET without Microsoft PowerPoint."
+description: "Create, read, edit, and convert PPT, PPTX, PPTM, POT, and PPS presentations from .NET without Microsoft PowerPoint. Compare packages, examples, and limits."
 layout: product
 product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"

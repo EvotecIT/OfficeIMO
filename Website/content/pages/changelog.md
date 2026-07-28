@@ -1,6 +1,6 @@
 ---
 title: "Changelog"
-description: "Release history and changelog for all OfficeIMO packages."
+description: "Review release history for OfficeIMO packages, including version dates, package-specific changes, fixes, compatibility updates, and links to each release."
 layout: page
 ---
 

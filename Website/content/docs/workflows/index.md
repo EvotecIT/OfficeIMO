@@ -1,6 +1,6 @@
 ---
 title: "Workflow Finder"
-description: "Choose an OfficeIMO or PSWriteOffice workflow by the input you have and the artifact you need."
+description: "Choose an OfficeIMO or PSWriteOffice workflow by the input you have and the artifact you need. Includes examples and API links."
 order: 5
 meta.seo_title: "OfficeIMO examples by document workflow"
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Automate Excel Workbooks"
-description: "Build, inspect, validate, compare, repair, and publish workbook workflows from PowerShell."
+description: "Build, inspect, validate, compare, repair, and publish workbook workflows from PowerShell. Includes examples and cmdlet links."
 layout: docs
 ---
 

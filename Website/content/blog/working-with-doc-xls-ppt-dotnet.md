@@ -1,6 +1,6 @@
 ---
 title: "Working with DOC, XLS, and PPT in .NET Without Microsoft Office"
-description: "A practical guide to reading, converting, validating, and preserving legacy Microsoft Office files with OfficeIMO."
+description: "A practical guide to reading, converting, validating, and preserving legacy Microsoft Office files with OfficeIMO. Includes code and validation notes."
 date: 2026-07-25
 tags: [dotnet, word, excel]
 categories: [Workflow]

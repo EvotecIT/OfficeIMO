@@ -1,6 +1,6 @@
 ---
 title: "Render and Convert HTML"
-description: "Parse HTML or MHTML, control resource access, render images, and convert web content into Office and PDF artifacts."
+description: "Parse HTML or MHTML, control resource access, render images, and convert web content into Office and PDF artifacts. Includes examples and API links."
 order: 42
 meta.seo_title: "Convert HTML to PDF, Word and images in .NET"
 ---

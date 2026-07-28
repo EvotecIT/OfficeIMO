@@ -1,6 +1,6 @@
 ---
 title: "OpenDocument"
-description: "Create and edit ODT, ODS, and ODP files and connect them to Office and PDF adapters."
+description: "Create and edit ODT, ODS, and ODP files and connect them to Office and PDF adapters. Includes practical examples, limits, and API links."
 order: 38
 meta.seo_title: "OpenDocument formats and APIs | OfficeIMO"
 ---

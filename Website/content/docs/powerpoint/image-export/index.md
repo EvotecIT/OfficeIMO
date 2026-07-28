@@ -1,6 +1,6 @@
 ---
 title: "PowerPoint Image Export"
-description: "Render PowerPoint slides to PNG, JPEG, TIFF, SVG, or WebP for previews, review, and delivery workflows."
+description: "Render PowerPoint slides to PNG, JPEG, TIFF, SVG, or WebP for previews, review, and delivery workflows. Includes examples and API links."
 order: 44
 meta.seo_title: "Export PowerPoint slides to images in .NET"
 ---

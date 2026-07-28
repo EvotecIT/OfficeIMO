@@ -1,6 +1,6 @@
 ---
 title: "EPUB Extraction"
-description: "Extract EPUB metadata, spine-ordered chapters, navigation, and bounded resources for search and ingestion."
+description: "Extract EPUB metadata, spine-ordered chapters, navigation, and bounded resources for search and ingestion. Includes examples and API links."
 order: 41
 meta.seo_title: "Extract EPUB text and metadata in .NET"
 ---

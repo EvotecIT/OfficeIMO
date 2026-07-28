@@ -1,6 +1,6 @@
 ---
 title: Word to HTML
-description: HTML and Word conversion helpers in OfficeIMO.Word.Html for common structures and round-trip workflows.
+description: HTML and Word conversion helpers in OfficeIMO.Word.Html for common structures and round-trip workflows. Includes examples and API links.
 order: 70
 ---
 

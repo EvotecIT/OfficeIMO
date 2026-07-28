@@ -1,6 +1,6 @@
 ---
 title: "Database Reporting with DbaClientX"
-description: "Move SQL data into Excel or CSV, verify the artifact, and optionally load it back with DbaClientX and PSWriteOffice."
+description: "Move SQL data into Excel or CSV, verify the artifact, and optionally load it back with DbaClientX and PSWriteOffice. Includes examples and API links."
 order: 6
 meta.seo_title: "Export SQL Server data to Excel or CSV with PowerShell"
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Troubleshooting and Diagnostics"
-description: "Diagnose module loading, file-format routing, rewrite safety, conversion fidelity, and platform-specific dependencies."
+description: "Diagnose module loading, file-format routing, rewrite safety, conversion fidelity, and platform-specific dependencies. Includes examples and cmdlet links."
 layout: docs
 ---
 

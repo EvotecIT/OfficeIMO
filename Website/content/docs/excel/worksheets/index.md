@@ -1,6 +1,6 @@
 ---
 title: Worksheets
-description: Working with Excel worksheets in OfficeIMO.Excel — cells, formatting, formulas, and named ranges.
+description: Working with Excel worksheets in OfficeIMO.Excel — cells, formatting, formulas, and named ranges. Includes examples and API links.
 order: 21
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "API Reference"
-description: "Generated .NET API reference for OfficeIMO libraries and cmdlet reference for PSWriteOffice."
+description: "Browse OfficeIMO .NET APIs and PSWriteOffice cmdlets with signatures, parameters, examples, source links, inheritance details, and related reference pages."
 layout: api-home
 ---
 

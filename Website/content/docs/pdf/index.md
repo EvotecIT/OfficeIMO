@@ -1,6 +1,6 @@
 ---
 title: "PDF"
-description: "Create, inspect, transform, render, sign, and validate PDF documents with OfficeIMO.Pdf."
+description: "Create, inspect, transform, render, sign, and validate PDF documents with OfficeIMO.Pdf. Includes examples and API links."
 order: 35
 meta.seo_title: "PDF authoring and conversion | OfficeIMO"
 ---

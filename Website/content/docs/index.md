@@ -1,6 +1,6 @@
 ---
 title: Documentation
-description: Task-oriented guides and generated API reference for the OfficeIMO package family.
+description: Task-oriented guides and generated API reference for the OfficeIMO package family. Includes practical examples, limits, and API links.
 layout: docs-home
 order: 1
 slug: index

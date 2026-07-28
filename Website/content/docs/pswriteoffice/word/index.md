@@ -1,6 +1,6 @@
 ---
 title: "Automate Word Documents"
-description: "Create, inspect, update, review, merge, protect, and convert DOCX workflows from PowerShell."
+description: "Create, inspect, update, review, merge, protect, and convert DOCX workflows from PowerShell. Includes examples and cmdlet links."
 layout: docs
 ---
 

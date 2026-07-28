@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Html"
-description: "Parse HTML and MHTML, resolve resources safely, and render or project web content into OfficeIMO document models."
+description: "Parse HTML and MHTML, resolve resources safely, and render or project web content into OfficeIMO document models. Compare packages, examples, and limits."
 layout: product
 meta.seo_title: "OfficeIMO.Html for web document workflows"
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/html/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/html/" />'

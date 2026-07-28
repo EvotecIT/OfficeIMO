@@ -1,6 +1,6 @@
 ---
 title: "Open Formats and Text Automation"
-description: "Use the smaller PSWriteOffice families for text, interchange, open formats, and managed message workflows."
+description: "Use the smaller PSWriteOffice families for text, interchange, open formats, and managed message workflows. Includes examples and cmdlet links."
 layout: docs
 aliases:
   - /docs/pswriteoffice/markdown/

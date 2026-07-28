@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for 464 PowerShell cmdlets across Office, PDF, Reader, Visio, and open formats."
+description: "Workflow guides for 477 PowerShell cmdlets across Office, PDF, Reader, Confluence Cloud, Visio, and open formats. Includes examples and cmdlet links."
 layout: docs
 ---
 
@@ -12,6 +12,9 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Install and verify](/docs/pswriteoffice/install/)
 - [Choose a workflow](/docs/pswriteoffice/choosing-a-workflow/)
 - [Command families](/docs/pswriteoffice/command-families/)
+- [PSWriteOffice vs ImportExcel vs ExcelFast](/docs/pswriteoffice/compare-importexcel-excelfast/)
+- [PSWriteOffice vs Office Interop, Graph, and LibreOffice](/docs/pswriteoffice/compare-office-automation-options/)
+- [Migrate from PSWriteWord, PSWriteExcel, or PSWritePDF](/docs/pswriteoffice/migrate-from-legacy-modules/)
 
 ## Document workflows
 
@@ -20,10 +23,14 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [PowerPoint automation](/docs/pswriteoffice/powerpoint/)
 - [PDF automation](/docs/pswriteoffice/pdf/)
 - [Reader and extraction](/docs/pswriteoffice/reader/)
+- [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
 - [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
 - [Automation patterns](/docs/pswriteoffice/automation-patterns/)
 - [Troubleshooting and diagnostics](/docs/pswriteoffice/troubleshooting/)
+- [Migrate from PSWriteWord](/docs/pswriteoffice/migrate-from-pswriteword/)
+- [Migrate from PSWriteExcel](/docs/pswriteoffice/migrate-from-pswriteexcel/)
+- [Migrate from PSWritePDF](/docs/pswriteoffice/migrate-from-pswritepdf/)
 - [PSWriteOffice product overview](/products/pswriteoffice/)
 
 ## Notes

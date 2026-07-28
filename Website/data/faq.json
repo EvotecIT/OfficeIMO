@@ -29,7 +29,7 @@
         },
         {
           "question": "What is PSWriteOffice?",
-          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its current manifest exports 464 cmdlets and 354 aliases across 15 validated families for Word, Excel, PowerPoint, PDF, Reader, Visio, text, open-format, email, and conversion workflows. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
+          "answer": "<p>PSWriteOffice is the PowerShell surface over the OfficeIMO document platform. Its current manifest exports 477 cmdlets and 360 aliases across 16 validated families for Word, Excel, PowerPoint, PDF, Reader, Visio, Confluence, text, open-format, email, and conversion workflows. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
         },
         {
           "question": "Does OfficeIMO support reading existing documents?",

@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.OneNote"
-description: "Read, create, edit, and write native OneNote sections, notebooks, tables of contents, and packages offline."
+description: "Read, create, edit, and write native OneNote sections, notebooks, tables of contents, and packages offline. Compare packages, examples, and limits."
 layout: product
 meta.seo_title: "OfficeIMO.OneNote for .NET applications"
 meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/products/onenote/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/products/onenote/" />'

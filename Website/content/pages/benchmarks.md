@@ -1,6 +1,6 @@
 ---
 title: "Benchmarks"
-description: "Reproducible performance evidence for OfficeIMO document and data workloads."
+description: "Compare reproducible OfficeIMO performance evidence across document and data workloads, with measured environments, datasets, results, and repeatable commands."
 layout: page
 meta.raw_html: true
 ---

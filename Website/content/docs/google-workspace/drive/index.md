@@ -1,6 +1,6 @@
 ---
 title: Google Drive
-description: Use the shared typed Drive owner for files, conversion, collaboration, media, and change tokens.
+description: "Use the shared typed Drive owner for files, conversion, collaboration, media, and change tokens. Includes examples and package links."
 order: 50
 ---
 

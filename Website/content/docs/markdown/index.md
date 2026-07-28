@@ -1,6 +1,6 @@
 ---
 title: Markdown
-description: Overview of the OfficeIMO.Markdown package — fluent builder, typed reader/AST, and HTML renderer.
+description: "Overview of the OfficeIMO.Markdown package — fluent builder, typed reader/AST, and HTML renderer. Includes examples and API links."
 order: 40
 ---
 

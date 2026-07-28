@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Word"
-description: "Create, read, edit, and convert DOC, DOCX, DOCM, DOT, and modern Word templates from .NET without Microsoft Word."
+description: "Create, read, edit, and convert DOC, DOCX, DOCM, DOT, and modern Word templates from .NET without Microsoft Word. Compare packages, examples, and limits."
 layout: product
 product_color: "#2563eb"
 install: "dotnet add package OfficeIMO.Word"

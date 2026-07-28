@@ -1,6 +1,6 @@
 ---
 title: Platform Support
-description: Supported target frameworks, operating systems, and AOT/trimming compatibility for OfficeIMO packages.
+description: Supported target frameworks, operating systems, and AOT/trimming compatibility for OfficeIMO packages. Includes examples and API links.
 order: 3
 ---
 

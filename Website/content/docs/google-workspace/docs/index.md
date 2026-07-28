@@ -1,6 +1,6 @@
 ---
 title: Word and Google Docs
-description: Plan, export, import, and safely replace Google Docs with OfficeIMO.Word.
+description: "Plan, export, import, and safely replace Google Docs with OfficeIMO.Word. Includes examples, safety notes, and package links."
 order: 20
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Shared drives
-description: Validate shared-drive and folder identity, target translators, and track per-drive changes.
+description: "Validate shared-drive and folder identity, target translators, and track per-drive changes. Includes examples and package links."
 order: 65
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Live-test setup
-description: Run disposable Google Docs, Sheets, Slides, Drive, shared-drive, and change-feed tests safely.
+description: "Run disposable Google Docs, Sheets, Slides, Drive, shared-drive, and change-feed tests safely. Includes examples and package links."
 order: 75
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Headers and Footers
-description: Adding headers, footers, and page numbers to Word documents with OfficeIMO.Word.
+description: "Adding headers, footers, and page numbers to Word documents with OfficeIMO.Word. Includes practical examples, limits, and API links."
 order: 14
 ---
 

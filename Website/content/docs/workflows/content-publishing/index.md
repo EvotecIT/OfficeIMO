@@ -1,6 +1,6 @@
 ---
 title: "Content Publishing Patterns"
-description: "Turn Markdown, HTML, RTF, OneNote, and OpenDocument content into documents and delivery artifacts."
+description: "Turn Markdown, HTML, RTF, OneNote, and OpenDocument content into documents and delivery artifacts. Includes examples and API links."
 order: 7
 meta.seo_title: "Convert Markdown, HTML, RTF and OpenDocument with OfficeIMO"
 ---

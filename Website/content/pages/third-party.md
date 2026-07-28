@@ -1,6 +1,6 @@
 ---
 title: "Third-Party Dependencies"
-description: "Runtime dependency and upstream license notes for the public OfficeIMO package family."
+description: "Review runtime dependencies and upstream licenses for the public OfficeIMO package family, with package-level attribution and links to authoritative projects."
 layout: page
 ---
 

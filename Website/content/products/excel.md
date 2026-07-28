@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Excel"
-description: "Create, read, edit, and convert XLS, XLSX, XLSB, XLSM, and Excel templates from .NET without Microsoft Excel."
+description: "Create, read, edit, and convert XLS, XLSX, XLSB, XLSM, and Excel templates from .NET without Microsoft Excel. Compare packages, examples, and limits."
 layout: product
 product_color: "#059669"
 install: "dotnet add package OfficeIMO.Excel"

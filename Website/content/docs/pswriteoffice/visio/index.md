@@ -1,6 +1,6 @@
 ---
 title: "Automate Visio Diagrams"
-description: "Create, inspect, arrange, stencil, and export VSDX diagrams from PowerShell."
+description: "Create, inspect, arrange, stencil, and export VSDX diagrams from PowerShell. Includes PowerShell examples, validation notes, and cmdlet links."
 layout: docs
 ---
 

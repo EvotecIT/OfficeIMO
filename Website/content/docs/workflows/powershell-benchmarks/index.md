@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Performance Evidence"
-description: "Reproduce the Excel and CSV benchmarks used to evaluate PSWriteOffice PowerShell workflows."
+description: "Reproduce the Excel and CSV benchmarks used to evaluate PSWriteOffice PowerShell workflows. Includes examples and API links."
 order: 8
 meta.seo_title: "PSWriteOffice Excel and CSV benchmarks"
 ---

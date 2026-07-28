@@ -1,6 +1,6 @@
 ---
 title: "Install and Verify PSWriteOffice"
-description: "Install the module, confirm the command surface, and choose a safe output location."
+description: "Install the module, confirm the command surface, and choose a safe output location. Includes PowerShell examples, validation notes, and cmdlet links."
 layout: docs
 ---
 

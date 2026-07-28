@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--comparison-hub">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--comparison-hub">
+    <section class="imo-comparison-hero">
+      <div class="imo-container imo-comparison-hero__inner">
+        <div class="imo-comparison-hero__copy">
+          <p class="imo-comparison-eyebrow">{{ page.meta.eyebrow ?? ".NET library comparisons" }}</p>
+          <h1>{{ page.title }}</h1>
+          {{ if page.description }}<p class="imo-comparison-hero__lead">{{ page.description }}</p>{{ end }}
+          <div class="imo-comparison-hero__actions">
+            <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? "/compatibility/" }}">{{ page.meta.primary_label ?? "Check compatibility" }}</a>
+            <a class="imo-btn imo-btn-ghost" href="#comparison-catalog">Explore comparisons</a>
+          </div>
+          <ul class="imo-comparison-trust" aria-label="Comparison principles">
+            <li>First-party sources</li>
+            <li>Facts dated and recheckable</li>
+            <li>Tradeoffs stated plainly</li>
+          </ul>
+        </div>
+
+        <aside class="imo-comparison-map" aria-label="OfficeIMO comparison decision map" data-comparison-count="{{ data.comparison_evidence.comparisons.size }}">
+          <div class="imo-comparison-map__header">
+            <span>Decision map</span>
+            <strong>{{ data.comparison_evidence.comparisons.size }} maintained comparisons</strong>
+          </div>
+          <div class="imo-comparison-map__canvas" aria-hidden="true">
+            <div class="imo-comparison-map__ring"></div>
+            <div class="imo-comparison-map__center">
+              <small>Start with</small>
+              <strong>Your workload</strong>
+            </div>
+            <span class="imo-comparison-map__node imo-comparison-map__node--suite">Suites</span>
+            <span class="imo-comparison-map__node imo-comparison-map__node--format">Formats</span>
+            <span class="imo-comparison-map__node imo-comparison-map__node--runtime">Runtime</span>
+            <span class="imo-comparison-map__node imo-comparison-map__node--ingestion">Ingestion</span>
+          </div>
+          <div class="imo-comparison-map__footer">
+            <span><i></i> MIT and source-visible</span>
+            <span>Reviewed {{ data.comparison_evidence.lastReviewed }}</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <nav class="imo-comparison-nav" aria-label="Comparison categories">
+      <div class="imo-container">
+        <a href="#commercial-suites">Commercial suites</a>
+        <a href="#focused-libraries">Focused libraries</a>
+        <a href="#runtime-architecture">Runtime architecture</a>
+        <a href="#evaluation-method">Evaluation method</a>
+      </div>
+    </nav>
+
+    <div class="imo-container imo-comparison-hub__content">
+{{ content }}
+    </div>
+
+    <section class="imo-comparison-next">
+      <div class="imo-container imo-comparison-next__inner">
+        <div>
+          <p class="imo-comparison-eyebrow">Bring your real files</p>
+          <h2>Shortlist with facts. Decide with representative documents.</h2>
+          <p>Verify formats, operations, fidelity, dependencies, and deployment boundaries before choosing a library.</p>
+        </div>
+        <div class="imo-comparison-next__actions">
+          <a class="imo-btn imo-btn-primary" href="/compatibility/">Check compatibility</a>
+          <a class="imo-btn imo-btn-ghost" href="/docs/getting-started/">Build a proof of concept</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

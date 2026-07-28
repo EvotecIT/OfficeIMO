@@ -47,6 +47,7 @@
       "Output": "/",
       "DefaultLayout": "home",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -55,6 +56,7 @@
       "Output": "/products",
       "DefaultLayout": "product",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -63,6 +65,7 @@
       "Output": "/convert",
       "DefaultLayout": "conversion",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -71,6 +74,16 @@
       "Output": "/solutions",
       "DefaultLayout": "solution",
       "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
+      "Name": "comparisons",
+      "Input": "content/comparisons",
+      "Output": "/comparisons",
+      "DefaultLayout": "comparison-detail",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
       "Include": ["*.md", "**/*.md"]
     },
     {
@@ -81,6 +94,7 @@
       "DefaultLayout": "blog-post",
       "ListLayout": "page",
       "UseToc": false,
+      "SitemapLastModified": "publishedDate",
       "EditorialCards": {
         "ImageAspect": "16/9",
         "ImageFit": "cover",
@@ -96,6 +110,7 @@
       "Output": "/docs",
       "DefaultLayout": "docs",
       "UseToc": true,
+      "SitemapLastModified": "sourceDate",
       "TocFile": "content/docs/toc.json",
       "Include": ["*.md", "**/*.md"]
     }
@@ -144,7 +159,8 @@
         "blog": "editorial",
         "products": "default",
         "conversions": "default",
-        "solutions": "default"
+        "solutions": "default",
+        "comparisons": "default"
       },
     "GeneratedCardVariantsByCollection": {
       "pages": "hero",
@@ -152,7 +168,8 @@
         "blog": "compact",
         "products": "hero",
         "conversions": "hero",
-        "solutions": "hero"
+        "solutions": "hero",
+        "comparisons": "hero"
     }
   },
   "StructuredData": {
@@ -187,7 +204,7 @@
       "Enabled": true,
       "Search": true,
       "AiInput": true,
-      "AiTrain": false
+      "AiTrain": true
     },
     "BotRules": [
       { "UserAgent": "GPTBot", "Allow": "/" },
@@ -283,6 +300,11 @@
       { "Name": "docs", "Css": ["/css/docs.css"] },
       { "Name": "api", "Css": ["/css/api.css"] },
       { "Name": "experience", "Css": ["/css/visual-system.css"] },
+      {
+        "Name": "comparison-detail",
+        "Css": ["/css/comparison-detail.css"],
+        "Js": ["/js/comparison-detail.js"]
+      },
       { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
     ],
     "RouteBundles": [
@@ -291,6 +313,8 @@
       { "Match": "/compatibility/", "Bundles": ["global", "product", "experience"] },
       { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/comparison/", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/comparisons/**", "Bundles": ["global", "product", "comparison-detail", "experience"] },
       { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks", "experience"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs", "experience"] },
       { "Match": "/faq/", "Bundles": ["global", "docs", "experience"] },
@@ -431,6 +455,8 @@
                   { "Title": "Modernize legacy Office files", "Url": "/solutions/legacy-office-modernization/", "Description": "Move DOC, XLS, and PPT archives into governed modern workflows" },
                   { "Title": "Publish documents", "Url": "/solutions/document-publishing/", "Description": "Create Office, PDF, HTML, Markdown, and open-format output" },
                   { "Title": "Extract content", "Url": "/solutions/document-ingestion/", "Description": "Normalize documents for search, review, and AI workflows" },
+                  { "Title": "Migrate Outlook data", "Url": "/solutions/outlook-mailbox-migration/", "Description": "Read PST, OST, OLM, mbox, Maildir, and export verified PST files" },
+                  { "Title": "Work with OneNote offline", "Url": "/solutions/offline-onenote-automation/", "Description": "Read native OneNote files and export pages without Graph" },
                   { "Title": "Automate with PowerShell", "Url": "/solutions/powershell-document-automation/", "Description": "Build repeatable document jobs from scripts and pipelines" },
                   { "Title": "Migrate Google Workspace", "Url": "/solutions/google-workspace-migration/", "Description": "Translate Docs, Sheets, Slides, Drive, and Office content" }
                 ]
@@ -440,7 +466,8 @@
                 "Items": [
                   { "Title": "Cross-platform .NET", "Url": "/docs/getting-started/platform-support/", "Description": "Choose packages for services, apps, and AOT" },
                   { "Title": "Browser conversion", "Url": "/convert/", "Description": "Run supported routes locally with WebAssembly" },
-                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" }
+                  { "Title": "Server workflows", "Url": "/docs/", "Description": "Keep authentication, storage, and retention in your stack" },
+                  { "Title": "Compare libraries", "Url": "/comparisons/", "Description": "Choose OfficeIMO, Open XML SDK, ClosedXML, EPPlus, QuestPDF, or a commercial suite" }
                 ]
               }
             ]
@@ -557,6 +584,7 @@
         "Name": "footer-resources",
         "Items": [
           { "Title": "FAQ", "Url": "/faq/" },
+          { "Title": "License and AI use", "Url": "/licensing/" },
           { "Title": "Third-Party Dependencies", "Url": "/third-party/" },
           { "Title": "Downloads", "Url": "/downloads/" },
           { "Title": "Changelog", "Url": "/changelog/" },

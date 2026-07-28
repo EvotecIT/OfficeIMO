@@ -1,6 +1,6 @@
 ---
 title: "PDF Inspection, Extraction, and Operations"
-description: "Preflight, repair, extract, merge, split, stamp, optimize, redact, and inspect PDFs with structured reports."
+description: "Preflight, repair, extract, merge, split, stamp, optimize, redact, and inspect PDFs with structured reports. Includes examples and API links."
 layout: docs
 ---
 

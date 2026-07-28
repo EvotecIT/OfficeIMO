@@ -1,6 +1,6 @@
 ---
 title: "Choose a PSWriteOffice Workflow"
-description: "Decide between authoring, editing, inspection, conversion, and normalized Reader extraction."
+description: "Decide between authoring, editing, inspection, conversion, and normalized Reader extraction. Includes examples and cmdlet links."
 layout: docs
 ---
 
