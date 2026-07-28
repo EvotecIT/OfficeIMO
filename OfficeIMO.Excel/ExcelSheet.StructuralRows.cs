@@ -69,17 +69,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
-            ValidateRowInsertionAgainstArrayFormulas(firstRow);
-            ValidateRowInsertionAgainstPivotOutputs(firstRow);
-            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            uint maxShiftedRow = GetMaximumEffectiveRowIndex(sheetData, firstRow);
-            if (maxShiftedRow > 0U && (long)maxShiftedRow + count > A1.MaxRows) {
-                throw new InvalidOperationException("Inserting rows would move worksheet content beyond Excel's row limit.");
-            }
-            ValidateStructuralRowReferenceCapacity(firstRow, count);
+            PreflightRowInsertion(firstRow, count);
             MaterializeWorkbookSharedFormulasForStructuralEdit();
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
 
             if (sheetData != null) {
                 NormalizeImplicitRowIndices(sheetData);
@@ -115,10 +107,7 @@ namespace OfficeIMO.Excel {
             }
 
             int lastRemovedRow = firstRow + count - 1;
-            ValidateStructuralRowReferenceMode();
-            ValidateStructuralRowControlSafety();
-            ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
-            ValidateWorkbookSharedFormulasForStructuralEdit();
+            PreflightRowDeletion(firstRow, count);
             MaterializeWorkbookSharedFormulasForStructuralEdit();
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData != null) {
@@ -152,6 +141,28 @@ namespace OfficeIMO.Excel {
             ShiftMergeCellsRows(firstRow, -count, lastRemovedRow);
             InvalidateStructuralFormulaResults();
             ResetStructuralMutationCaches();
+        }
+
+        private void PreflightRowInsertion(int firstRow, int count) {
+            ValidateStructuralRowReferenceMode();
+            ValidateStructuralRowControlSafety();
+            ValidateRowInsertionAgainstArrayFormulas(firstRow);
+            ValidateRowInsertionAgainstPivotOutputs(firstRow);
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            uint maxShiftedRow = GetMaximumEffectiveRowIndex(sheetData, firstRow);
+            if (maxShiftedRow > 0U && (long)maxShiftedRow + count > A1.MaxRows) {
+                throw new InvalidOperationException("Inserting rows would move worksheet content beyond Excel's row limit.");
+            }
+            ValidateWorkbookSharedFormulasForStructuralEdit();
+            ValidateStructuralRowReferenceCapacity(firstRow, count);
+        }
+
+        private void PreflightRowDeletion(int firstRow, int count) {
+            int lastRemovedRow = firstRow + count - 1;
+            ValidateStructuralRowReferenceMode();
+            ValidateStructuralRowControlSafety();
+            ValidateRowDeletionAgainstOwnedRanges(firstRow, lastRemovedRow);
+            ValidateWorkbookSharedFormulasForStructuralEdit();
         }
 
         private void ValidateRowInsertionAgainstArrayFormulas(int firstRow) {
