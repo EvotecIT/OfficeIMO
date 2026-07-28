@@ -60,29 +60,36 @@ namespace OfficeIMO.Excel {
             var impacts = new List<ExcelMutationImpact>();
             int lastRow = firstRow + count - 1;
             int cells = 0;
+            int rows = 0;
             int formulas = 0;
             int definedNames = 0;
             int validation = 0;
             int conditionalFormatting = 0;
             int mergedCells = 0;
             int hyperlinks = 0;
+            int dataConsolidation = 0;
+            int namedSheetViews = 0;
             int sparklines = 0;
             int drawings = 0;
             int pivots = 0;
             int comments = 0;
             int connectionParameters = 0;
             var targetCellCoordinates = new HashSet<long>();
-            var pendingCells = new Dictionary<long, object?>();
+            var pendingOwnerCells = new Dictionary<long, object?>();
+            var pendingDirectCells = new List<(ExcelSheet Owner, int Row, int Column, object? Value)>();
+            ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
             var inspectedDrawingRoots = new HashSet<OpenXmlPartRootElement>();
+            var drawingOwners = new List<(DrawingsPart Part, bool RewriteUnqualifiedReferences)>();
             int mutatedSheetIndex = -1;
             int sheetIndex = 0;
 
-            if (_pendingCellValueDirectSaveBuffer != null) {
+            if (pendingOwner?._pendingCellValueDirectSaveBuffer != null) {
                 foreach ((int Row, int Column, object? Value) pending in
-                    _pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+                    pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
                     budget.Consume();
                     long coordinate = ((long)pending.Row << 32) | (uint)pending.Column;
-                    pendingCells[coordinate] = pending.Value;
+                    pendingOwnerCells[coordinate] = pending.Value;
+                    pendingDirectCells.Add((pendingOwner, pending.Row, pending.Column, pending.Value));
                 }
             }
 
@@ -113,6 +120,11 @@ namespace OfficeIMO.Excel {
                     inspectedSheet.BuildEffectiveCellCoordinates();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                     inspectedSheet.BuildSharedFormulaDefinitions(effectiveCoordinates);
+                bool isPendingOwner = pendingOwner != null
+                    && ReferenceEquals(worksheetPart, pendingOwner._worksheetPart);
+                if (rewriteUnqualified) {
+                    rows += CountAffectedRowRecords(worksheetPart.Worksheet, firstRow);
+                }
                 foreach (OpenXmlElement element in worksheetElements) {
                     if (element is Cell cell) {
                         if (!effectiveCoordinates.TryGetValue(cell, out var effectiveCoordinate)) {
@@ -120,7 +132,8 @@ namespace OfficeIMO.Excel {
                         }
 
                         long coordinate = ((long)effectiveCoordinate.Row << 32) | (uint)effectiveCoordinate.Column;
-                        bool pendingValueIsAuthoritative = rewriteUnqualified && pendingCells.ContainsKey(coordinate);
+                        bool pendingValueIsAuthoritative = isPendingOwner
+                            && pendingOwnerCells.ContainsKey(coordinate);
                         if (rewriteUnqualified
                             && targetCellCoordinates.Add(coordinate)
                             && effectiveCoordinate.Row >= firstRow) {
@@ -199,6 +212,17 @@ namespace OfficeIMO.Excel {
                             formulas++;
                         }
                     }
+                    if (element is DataReference source
+                        && string.IsNullOrWhiteSpace(source.Id?.Value)
+                        && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                        && ReferenceListChangesForPlan(
+                            source.Reference?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
+                        dataConsolidation++;
+                    }
                     if (!rewriteUnqualified) {
                         continue;
                     }
@@ -217,41 +241,28 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                CountDrawingPlanImpacts(
-                    worksheetPart.DrawingsPart,
-                    rewriteUnqualified,
-                    kind,
-                    firstRow,
-                    lastRow,
-                    count,
-                    budget,
-                    inspectedDrawingRoots,
-                    ref drawings,
-                    ref formulas);
+                if (worksheetPart.DrawingsPart != null) {
+                    drawingOwners.Add((worksheetPart.DrawingsPart, rewriteUnqualified));
+                }
 
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
-                    budget.Consume();
-                    foreach (OpenXmlElement element in tablePart.Table?.Descendants()
-                        ?? Enumerable.Empty<OpenXmlElement>()) {
-                        budget.Consume();
-                        if (element is OpenXmlLeafTextElement formula
-                            && IsStructuralFormulaElement(formula)
-                            && FormulaChangesForPlan(
-                            formula.Text,
-                            kind,
-                            firstRow,
-                            lastRow,
-                            count,
-                            rewriteUnqualified)) {
-                            formulas++;
-                        }
-                    }
+                    formulas += CountTableFormulaPlanImpacts(
+                        tablePart,
+                        rewriteUnqualified,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count,
+                        budget);
                 }
             }
 
-            foreach (KeyValuePair<long, object?> pending in pendingCells) {
-                int pendingRow = checked((int)(pending.Key >> 32));
-                if (targetCellCoordinates.Add(pending.Key) && pendingRow >= firstRow) {
+            foreach ((ExcelSheet Owner, int Row, int Column, object? Value) pending in pendingDirectCells) {
+                bool ownerIsTarget = ReferenceEquals(pending.Owner._worksheetPart, _worksheetPart);
+                long coordinate = ((long)pending.Row << 32) | (uint)pending.Column;
+                if (ownerIsTarget
+                    && targetCellCoordinates.Add(coordinate)
+                    && pending.Row >= firstRow) {
                     cells++;
                 }
                 if (pending.Value is DirectFormulaCellValue pendingFormula
@@ -261,9 +272,24 @@ namespace OfficeIMO.Excel {
                         firstRow,
                         lastRow,
                         count,
-                        rewriteUnqualifiedReferences: true)) {
+                        rewriteUnqualifiedReferences: ownerIsTarget)) {
                     formulas++;
                 }
+            }
+
+            foreach ((DrawingsPart Part, bool RewriteUnqualifiedReferences) drawingOwner in
+                drawingOwners.OrderByDescending(owner => owner.RewriteUnqualifiedReferences)) {
+                CountDrawingPlanImpacts(
+                    drawingOwner.Part,
+                    drawingOwner.RewriteUnqualifiedReferences,
+                    kind,
+                    firstRow,
+                    lastRow,
+                    count,
+                    budget,
+                    inspectedDrawingRoots,
+                    ref drawings,
+                    ref formulas);
             }
 
             foreach (ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
@@ -343,6 +369,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            namedSheetViews += CountNamedSheetViewPlanImpacts(
+                kind,
+                firstRow,
+                lastRow,
+                count,
+                budget);
+
             foreach (OpenXmlElement element in WorkbookRoot.Descendants()) {
                 budget.Consume();
                 if (element is DefinedName definedName
@@ -363,6 +396,11 @@ namespace OfficeIMO.Excel {
                 "worksheet-cells",
                 cells,
                 "Cells at or below the structural boundary can move or be removed.");
+            AddImpact(
+                impacts,
+                "worksheet-rows",
+                rows,
+                "Worksheet row records at or below the structural boundary can move or be removed.");
             AddImpact(
                 impacts,
                 "formula-references",
@@ -399,6 +437,16 @@ namespace OfficeIMO.Excel {
                 "hyperlinks",
                 hyperlinks,
                 "Internal link destinations and cell anchors are checked and remapped.");
+            AddImpact(
+                impacts,
+                "data-consolidation",
+                dataConsolidation,
+                "Workbook data-consolidation sources that target this worksheet are checked and remapped.");
+            AddImpact(
+                impacts,
+                "named-sheet-views",
+                namedSheetViews,
+                "Named-sheet-view filter ranges are checked and remapped.");
             AddImpact(
                 impacts,
                 "drawings",
@@ -487,13 +535,17 @@ namespace OfficeIMO.Excel {
         }
 
         private void PreflightPendingDirectCellsForRowInsertion(int firstRow, int count) {
-            if (_pendingCellValueDirectSaveBuffer == null) {
+            ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
+            if (pendingOwner?._pendingCellValueDirectSaveBuffer == null) {
                 return;
             }
 
+            bool ownerIsTarget = ReferenceEquals(pendingOwner._worksheetPart, _worksheetPart);
             foreach ((int Row, int Column, object? Value) pending in
-                _pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
-                if (pending.Row >= firstRow && (long)pending.Row + count > A1.MaxRows) {
+                pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+                if (ownerIsTarget
+                    && pending.Row >= firstRow
+                    && (long)pending.Row + count > A1.MaxRows) {
                     throw new InvalidOperationException(
                         "Inserting rows would move a pending worksheet cell beyond Excel's row limit.");
                 }
@@ -502,7 +554,7 @@ namespace OfficeIMO.Excel {
                         formula.Formula,
                         firstRow,
                         count,
-                        rewriteUnqualifiedReferences: true);
+                        rewriteUnqualifiedReferences: ownerIsTarget);
                 }
             }
         }
