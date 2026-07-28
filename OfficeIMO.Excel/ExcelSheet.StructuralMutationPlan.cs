@@ -69,6 +69,8 @@ namespace OfficeIMO.Excel {
             int hyperlinks = 0;
             int dataConsolidation = 0;
             int namedSheetViews = 0;
+            int protectedRanges = 0;
+            int webPublishItems = 0;
             int sparklines = 0;
             int drawings = 0;
             int pivots = 0;
@@ -187,6 +189,7 @@ namespace OfficeIMO.Excel {
                     } else if (element is OpenXmlLeafTextElement formula
                         && element is not DocumentFormat.OpenXml.Spreadsheet.CellFormula
                         && IsStructuralFormulaElement(formula)
+                        && (!rewriteUnqualified || !UsesAnchoredTargetFormulaSemantics(formula))
                         && FormulaChangesForPlan(
                             formula.Text,
                             kind,
@@ -212,6 +215,19 @@ namespace OfficeIMO.Excel {
                             formulas++;
                         }
                     }
+                    if (!rewriteUnqualified
+                        && element is ConditionalFormatValueObject threshold
+                        && threshold.Type?.Value == ConditionalFormatValueObjectValues.Formula
+                        && FormulaChangesForPlan(
+                            threshold.Val?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count,
+                            rewriteUnqualifiedReferences: false)) {
+                        formulas++;
+                        conditionalFormatting++;
+                    }
                     if (element is DataReference source
                         && string.IsNullOrWhiteSpace(source.Id?.Value)
                         && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
@@ -226,6 +242,17 @@ namespace OfficeIMO.Excel {
                     if (!rewriteUnqualified) {
                         continue;
                     }
+                    if (element is DataValidation
+                        || element is X14.DataValidation
+                        || element is ConditionalFormatting
+                        || element is X14.ConditionalFormatting) {
+                        formulas += CountAnchoredMetadataFormulaPlanImpacts(
+                            element,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count);
+                    }
                     if (element is DataValidation) {
                         validation++;
                     } else if (element is ConditionalFormatting) {
@@ -238,6 +265,14 @@ namespace OfficeIMO.Excel {
                         validation++;
                     } else if (element is X14.ConditionalFormatting) {
                         conditionalFormatting++;
+                    } else if (element is ProtectedRange protectedRange
+                        && ReferenceListChangesForPlan(
+                            protectedRange.SequenceOfReferences?.InnerText,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
+                        protectedRanges++;
                     }
                 }
 
@@ -353,21 +388,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            comments += CountBounded(
-                _worksheetPart.WorksheetCommentsPart?.Comments?.Descendants<Comment>()
-                    ?? Enumerable.Empty<Comment>(),
-                budget);
-            foreach (WorksheetThreadedCommentsPart threadedPart in _worksheetPart.WorksheetThreadedCommentsParts) {
-                budget.Consume();
-                foreach (DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment comment in
-                    threadedPart.ThreadedComments?.Elements<
-                        DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment>()
-                    ?? Enumerable.Empty<
-                        DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments.ThreadedComment>()) {
-                    budget.Consume();
-                    comments++;
-                }
-            }
+            comments += CountCommentPlanImpacts(budget);
 
             namedSheetViews += CountNamedSheetViewPlanImpacts(
                 kind,
@@ -389,6 +410,17 @@ namespace OfficeIMO.Excel {
                         mutatedSheetIndex >= 0
                         && definedName.LocalSheetId?.Value == (uint)mutatedSheetIndex)) {
                     definedNames++;
+                }
+                if (element is WebPublishItem item
+                    && item.SourceType?.Value == WebSourceValues.Range
+                    && string.Equals(item.SourceObject?.Value, Name, StringComparison.OrdinalIgnoreCase)
+                    && ReferenceListChangesForPlan(
+                        item.SourceRef?.Value,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count)) {
+                    webPublishItems++;
                 }
             }
             AddImpact(
@@ -447,6 +479,16 @@ namespace OfficeIMO.Excel {
                 "named-sheet-views",
                 namedSheetViews,
                 "Named-sheet-view filter ranges are checked and remapped.");
+            AddImpact(
+                impacts,
+                "protected-ranges",
+                protectedRanges,
+                "Editable protected-range metadata is checked and remapped.");
+            AddImpact(
+                impacts,
+                "web-publish",
+                webPublishItems,
+                "Workbook web-publish source ranges are checked and remapped.");
             AddImpact(
                 impacts,
                 "drawings",
