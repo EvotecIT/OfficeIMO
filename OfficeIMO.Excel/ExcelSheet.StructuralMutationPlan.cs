@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -23,6 +24,7 @@ namespace OfficeIMO.Excel {
                     firstRow,
                     count,
                     effective);
+                PreflightPendingDirectCellsForRowInsertion(firstRow, count);
                 PreflightRowInsertion(firstRow, count);
                 return plan;
             });
@@ -68,6 +70,7 @@ namespace OfficeIMO.Excel {
             int drawings = 0;
             int pivots = 0;
             int comments = 0;
+            int connectionParameters = 0;
             var targetCellCoordinates = new HashSet<long>();
             var pendingCells = new Dictionary<long, object?>();
             var inspectedDrawingRoots = new HashSet<OpenXmlPartRootElement>();
@@ -125,18 +128,48 @@ namespace OfficeIMO.Excel {
                         }
 
                         if (!pendingValueIsAuthoritative
-                            && cell.CellFormula != null
-                            && FormulaChangesForPlan(
-                                inspectedSheet.ResolveCellFormulaText(
-                                    cell,
-                                    sharedFormulaDefinitions,
-                                    effectiveCoordinates),
-                                kind,
-                                firstRow,
-                                lastRow,
-                                count,
-                                rewriteUnqualified)) {
-                            formulas++;
+                            && cell.CellFormula is CellFormula cellFormula) {
+                            if (FormulaChangesForPlan(
+                                    inspectedSheet.ResolveCellFormulaText(
+                                        cell,
+                                        sharedFormulaDefinitions,
+                                        effectiveCoordinates),
+                                    kind,
+                                    firstRow,
+                                    lastRow,
+                                    count,
+                                    rewriteUnqualified)) {
+                                formulas++;
+                            }
+                            if (rewriteUnqualified
+                                && cellFormula.FormulaType?.Value != CellFormulaValues.Shared
+                                && ReferenceListChangesForPlan(
+                                    cellFormula.Reference?.Value,
+                                    kind,
+                                    firstRow,
+                                    lastRow,
+                                    count)) {
+                                formulas++;
+                            }
+                            if (rewriteUnqualified
+                                && cellFormula.FormulaType?.Value == CellFormulaValues.DataTable) {
+                                if (ReferenceListChangesForPlan(
+                                        cellFormula.R1?.Value,
+                                        kind,
+                                        firstRow,
+                                        lastRow,
+                                        count)) {
+                                    formulas++;
+                                }
+                                if (ReferenceListChangesForPlan(
+                                        cellFormula.R2?.Value,
+                                        kind,
+                                        firstRow,
+                                        lastRow,
+                                        count)) {
+                                    formulas++;
+                                }
+                            }
                         }
                     } else if (element is OpenXmlLeafTextElement formula
                         && element is not DocumentFormat.OpenXml.Spreadsheet.CellFormula
@@ -150,6 +183,22 @@ namespace OfficeIMO.Excel {
                             rewriteUnqualified)) {
                         formulas++;
                     }
+                    if (element is Hyperlink hyperlink) {
+                        bool internalLocationChanges = string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
+                            && FormulaChangesForPlan(
+                                hyperlink.Location?.Value,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count,
+                                rewriteUnqualified);
+                        if (rewriteUnqualified || internalLocationChanges) {
+                            hyperlinks++;
+                        }
+                        if (internalLocationChanges) {
+                            formulas++;
+                        }
+                    }
                     if (!rewriteUnqualified) {
                         continue;
                     }
@@ -159,10 +208,12 @@ namespace OfficeIMO.Excel {
                         conditionalFormatting++;
                     } else if (element is MergeCell) {
                         mergedCells++;
-                    } else if (element is Hyperlink) {
-                        hyperlinks++;
                     } else if (element is DocumentFormat.OpenXml.Office2010.Excel.Sparkline) {
                         sparklines++;
+                    } else if (element is X14.DataValidation) {
+                        validation++;
+                    } else if (element is X14.ConditionalFormatting) {
+                        conditionalFormatting++;
                     }
                 }
 
@@ -239,6 +290,40 @@ namespace OfficeIMO.Excel {
                 }
                 if (PivotSourceChangesForPlan(cachePart, firstRow, lastRow, count, kind)) {
                     pivots++;
+                }
+            }
+
+            var queryConnectionIds = new HashSet<uint>();
+            foreach (QueryTablePart queryPart in _worksheetPart.QueryTableParts) {
+                budget.Consume();
+                foreach (OpenXmlElement _ in queryPart.QueryTable?.Descendants()
+                    ?? Enumerable.Empty<OpenXmlElement>()) {
+                    budget.Consume();
+                }
+                if (queryPart.QueryTable?.ConnectionId?.Value is uint connectionId) {
+                    queryConnectionIds.Add(connectionId);
+                }
+            }
+            Connections? connections = WorkbookPartRoot.ConnectionsPart?.Connections;
+            if (connections != null) {
+                budget.Consume();
+                foreach (Connection connection in connections.Elements<Connection>()) {
+                    budget.Consume();
+                    bool isTargetConnection = connection.Id?.Value is uint connectionId
+                        && queryConnectionIds.Contains(connectionId);
+                    foreach (OpenXmlElement element in connection.Descendants()) {
+                        budget.Consume();
+                        if (isTargetConnection
+                            && element is Parameter parameter
+                            && ReferenceListChangesForPlan(
+                                parameter.Cell?.Value,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count)) {
+                            connectionParameters++;
+                        }
+                    }
                 }
             }
 
@@ -331,6 +416,11 @@ namespace OfficeIMO.Excel {
                 "Legacy and threaded comment anchors are checked and remapped.");
             AddImpact(
                 impacts,
+                "connection-parameters",
+                connectionParameters,
+                "Cell-backed query connection parameters are checked and remapped.");
+            AddImpact(
+                impacts,
                 "sparklines",
                 sparklines,
                 "Sparkline locations and data references are checked and remapped.");
@@ -379,6 +469,42 @@ namespace OfficeIMO.Excel {
                     Name,
                     rewriteUnqualifiedReferences);
             return !string.Equals(formula, rewritten, StringComparison.Ordinal);
+        }
+
+        private static bool ReferenceListChangesForPlan(
+            string? reference,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            return !string.IsNullOrWhiteSpace(reference)
+                && TryRemapShiftedReferenceListRows(
+                    reference!,
+                    firstRow,
+                    kind == ExcelRowMutationKind.Insert ? count : -count,
+                    kind == ExcelRowMutationKind.Delete ? lastRow : null,
+                    out _);
+        }
+
+        private void PreflightPendingDirectCellsForRowInsertion(int firstRow, int count) {
+            if (_pendingCellValueDirectSaveBuffer == null) {
+                return;
+            }
+
+            foreach ((int Row, int Column, object? Value) pending in
+                _pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
+                if (pending.Row >= firstRow && (long)pending.Row + count > A1.MaxRows) {
+                    throw new InvalidOperationException(
+                        "Inserting rows would move a pending worksheet cell beyond Excel's row limit.");
+                }
+                if (pending.Value is DirectFormulaCellValue formula) {
+                    ThrowIfFormulaReferenceOverflows(
+                        formula.Formula,
+                        firstRow,
+                        count,
+                        rewriteUnqualifiedReferences: true);
+                }
+            }
         }
 
         private bool PivotSourceChangesForPlan(

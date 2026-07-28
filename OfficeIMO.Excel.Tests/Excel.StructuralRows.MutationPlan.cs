@@ -2,11 +2,14 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
+using Xm = DocumentFormat.OpenXml.Office.Excel;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -276,6 +279,104 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "pivots");
             Assert.True(pivots.ItemCount >= 1);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesFormulaReferenceAttributes() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(2, 3).SetValue(0);
+            Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
+                .Single(candidate => candidate.CellReference?.Value == "C2");
+            cell.CellFormula = new CellFormula("1") {
+                FormulaType = CellFormulaValues.DataTable,
+                Reference = "C2:C3",
+                R1 = "A2",
+                R2 = "B3"
+            };
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(3, formulas.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesCrossSheetHyperlinks() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            data.CellAt(5, 1).SetValue("Target");
+            summary.SetInternalLink(1, 1, data, "A5", display: "Target");
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(5);
+
+            ExcelMutationImpact hyperlinks = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "hyperlinks");
+            Assert.Equal(1, hyperlinks.ItemCount);
+            Assert.Contains(plan.Impacts, impact =>
+                impact.Category == "formula-references" && impact.ItemCount >= 1);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesOffice2010ValidationAndFormatting() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(2, 1).SetValue(1);
+            var validation = new X14.DataValidation(
+                new Xm.ReferenceSequence("B2:B3"));
+            var formatting = new X14.ConditionalFormatting(
+                new Xm.ReferenceSequence("C2:C3"));
+            sheet.WorksheetPart.Worksheet.Append(
+                new ExtensionList(
+                    new Extension(validation) {
+                        Uri = "{CCE6A557-97BC-4B89-ADB6-D9C93CAAB3DF}"
+                    },
+                    new Extension(formatting) {
+                        Uri = "{78C0D931-6437-407D-A8EE-F0AAD7539E65}"
+                    }));
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
+
+            Assert.Contains(plan.Impacts, impact =>
+                impact.Category == "validation" && impact.ItemCount == 1);
+            Assert.Contains(plan.Impacts, impact =>
+                impact.Category == "conditional-formatting" && impact.ItemCount == 1);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesQueryConnectionParameters() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellAt(5, 1).SetValue(1);
+            AttachCellBackedConnection(document, sheet, "A5");
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            ExcelMutationImpact parameters = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "connection-parameters");
+            Assert.Equal(1, parameters.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanPreflightsUnmirroredPendingFormulas() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            for (int column = 1; column <= 128; column++) {
+                sheet.CellValue(1, column, column);
+            }
+            sheet.CellFormula(1, 129, $"A{A1.MaxRows}");
+            Assert.True(document.HasPendingDirectCellValues);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => sheet.PlanInsertRows(1));
+
+            Assert.Contains("row limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(document.HasPendingDirectCellValues);
         }
     }
 }
