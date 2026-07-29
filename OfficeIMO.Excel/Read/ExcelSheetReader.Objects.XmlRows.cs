@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private object?[] ReadXmlRowValues(XmlReader rowReader, int rowIndex, int c1, int c2, int cols, CancellationToken ct) {
             var values = new object?[cols];
             ReadXmlRowValuesInto(rowReader, rowIndex, c1, c2, values, ct);
@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel {
                 return TrySetStringTextBinding(rawText, binding, target);
             }
 
-            return TrySetNumericTextBinding(rawText, binding, target);
+            return TrySetNumericTextBinding(rawText, binding, target, true);
         }
 
         private static CellRaw CreateRawCell(

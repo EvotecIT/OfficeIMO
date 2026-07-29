@@ -17,7 +17,7 @@ public sealed partial class CsvDocument
     /// <param name="loadOptions">CSV load options.</param>
     /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
-    public static CsvDataReader CreateDataReader(string path, CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null)
+    internal static CsvDataReader CreateDataReader(string path, CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -32,6 +32,16 @@ public sealed partial class CsvDocument
         }
 
 #if NET8_0_OR_GREATER
+        if (CanUseStreamSpanDataReader(options, readerOptions)
+            && CsvFile.ResolveCompression(options.CompressionType, path) == CsvCompressionType.None)
+        {
+            var spanReader = CsvFile.OpenTextReader(path, options, FileBufferSize);
+            if (TryCreateStreamSpanDataReader(spanReader, options, readerOptions, out CsvDataReader? dataReader))
+            {
+                return dataReader!;
+            }
+        }
+
         if (CanUseMemoryBackedFileDataReader(path, options, readerOptions))
         {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -89,12 +99,95 @@ public sealed partial class CsvDocument
         }
     }
 
+    internal static CsvDataReader CreateDataReader(
+        Stream stream,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null)
+    {
+        if (stream == null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        if (!stream.CanRead)
+        {
+            throw new ArgumentException("Stream must be readable.", nameof(stream));
+        }
+
+        var options = loadOptions?.Clone() ?? new CsvLoadOptions();
+        readerOptions ??= new CsvDataReaderOptions();
+        if (readerOptions.SchemaSampleSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(readerOptions), "Schema sample size must be greater than zero.");
+        }
+
+        if (!stream.CanSeek || !CanUseSinglePassFileDataReader(options, readerOptions))
+        {
+            return Load(stream, options).CreateDataReader(readerOptions);
+        }
+
+        long startPosition = stream.Position;
+#if NET8_0_OR_GREATER
+        if (CanUseStreamSpanDataReader(options, readerOptions))
+        {
+            var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+            if (TryCreateStreamSpanDataReader(spanReader, options, readerOptions, out CsvDataReader? dataReader))
+            {
+                return dataReader!;
+            }
+
+            stream.Position = startPosition;
+        }
+#endif
+
+        var reader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+        IEnumerator<IReadOnlyList<string>>? records = null;
+        try
+        {
+            records = CsvParser.ParseReusable(reader, options).GetEnumerator();
+            if (!records.MoveNext())
+            {
+                records.Dispose();
+                reader.Dispose();
+                return CreateEmptyDataReader(readerOptions, options);
+            }
+
+            if (ShouldUseGeneralDataReaderForFirstHeaderRecord(records.Current, options))
+            {
+                records.Dispose();
+                reader.Dispose();
+                stream.Position = startPosition;
+                return Load(stream, options).CreateDataReader(readerOptions);
+            }
+
+            var header = AppendStaticColumnsToHeader(NormalizeParsedHeader(records.Current, options), options);
+            var columns = CreateDataReaderColumns(header, readerOptions);
+            var rows = EnumerateRemainingStringRows(records);
+            var rowOwner = new CsvFileDataReaderRowOwner(reader, records);
+            records = null;
+            return new CsvDataReader(
+                columns,
+                rows,
+                header.Count - (options.StaticColumns?.Count ?? 0),
+                options,
+                options.Culture,
+                options.DateTimeFormats,
+                rowOwner);
+        }
+        catch
+        {
+            records?.Dispose();
+            reader.Dispose();
+            throw;
+        }
+    }
+
     /// <summary>
     /// Creates a forward-only data reader over the document rows.
     /// </summary>
     /// <param name="options">Reader projection options. When omitted, all columns are emitted as strings.</param>
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
-    public CsvDataReader CreateDataReader(CsvDataReaderOptions? options = null)
+    internal CsvDataReader CreateDataReader(CsvDataReaderOptions? options = null)
     {
         options ??= new CsvDataReaderOptions();
         if (options.SchemaSampleSize <= 0)
@@ -150,6 +243,67 @@ public sealed partial class CsvDocument
         (!readerOptions.InferSchema || readerOptions.Schema is not null);
 
 #if NET8_0_OR_GREATER
+    private static bool CanUseStreamSpanDataReader(
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions) =>
+        CanUseSinglePassFileDataReader(options, readerOptions)
+        && readerOptions.Schema is null
+        && !readerOptions.InferSchema
+        && options.StaticColumns is null
+        && string.IsNullOrEmpty(options.DelimiterText)
+        && options.MaxFieldLength is null
+        && options.MaxQuotedFieldLength is null
+        && !options.NormalizeQuotes
+        && !options.InternStrings;
+
+    private static bool TryCreateStreamSpanDataReader(
+        TextReader reader,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions,
+        out CsvDataReader? dataReader)
+    {
+        var rows = new CsvParser.CsvStreamDataReaderRowSource(reader, options);
+        try
+        {
+            if (!rows.Read())
+            {
+                rows.Dispose();
+                dataReader = CreateEmptyDataReader(readerOptions, options);
+                return true;
+            }
+
+            var firstRecord = new string[rows.FieldCount];
+            for (int index = 0; index < firstRecord.Length; index++)
+            {
+                firstRecord[index] = rows.GetString(index);
+            }
+
+            if (ShouldUseGeneralDataReaderForFirstHeaderRecord(firstRecord, options))
+            {
+                rows.Dispose();
+                dataReader = null;
+                return false;
+            }
+
+            IReadOnlyList<string> header = NormalizeParsedHeader(firstRecord, options);
+            rows.SetSourceColumnCount(header.Count);
+            CsvDataColumnProjection[] columns = CreateDataReaderColumns(header, readerOptions);
+            dataReader = new CsvDataReader(
+                columns,
+                rows,
+                header.Count,
+                options,
+                options.Culture,
+                options.DateTimeFormats);
+            return true;
+        }
+        catch
+        {
+            rows.Dispose();
+            throw;
+        }
+    }
+
     private static bool CanUseMemoryBackedFileDataReader(
         string path,
         CsvLoadOptions options,

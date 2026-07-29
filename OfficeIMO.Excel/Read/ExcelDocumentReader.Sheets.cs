@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Additional sheet helpers for <see cref="ExcelDocumentReader"/>.
     /// </summary>
-    public sealed partial class ExcelDocumentReader {
+    internal sealed partial class ExcelDocumentReader {
         /// <summary>
         /// Gets a reader by sheet index (1-based, Excel display order).
         /// </summary>

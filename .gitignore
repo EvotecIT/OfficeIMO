@@ -386,4 +386,10 @@ Website/.powerforge/git-sync-manifest.json
 Website/Build/
 Website/projects/
 Website/static/data/
+!Website/static/data/
+Website/static/data/*
+!Website/static/data/benchmarks/
+Website/static/data/benchmarks/*
+!Website/static/data/benchmarks/tabular/
+!Website/static/data/benchmarks/tabular/*.json
 Website/data/ecosystem/stats.json

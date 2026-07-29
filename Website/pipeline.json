@@ -158,6 +158,14 @@
     },
     {
       "task": "dotnet-build",
+      "id": "build-tabular",
+      "project": "../OfficeIMO.Tabular/OfficeIMO.Tabular.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
       "id": "build-visio",
       "project": "../OfficeIMO.Visio/OfficeIMO.Visio.csproj",
       "configuration": "Release",
@@ -284,6 +292,7 @@
           "order": 40
         },
         { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
+        { "id": "officeimo.tabular", "name": "OfficeIMO.Tabular", "order": 55 },
         { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
         { "id": "officeimo.reader", "name": "OfficeIMO.Reader packages", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
@@ -327,6 +336,11 @@
         { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
       ],
       "assetRules": [
+        {
+          "product": "officeimo.tabular",
+          "label": "OfficeIMO.Tabular",
+          "match": ["*OfficeIMO.Tabular*.nupkg"]
+        },
         {
           "product": "officeimo.googleworkspace.auth.googleapis",
           "label": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
@@ -671,6 +685,27 @@
     },
     {
       "task": "apidocs",
+      "id": "build-apidocs-tabular",
+      "dependsOn": ["build-tabular", "build-site"],
+      "config": "./site.json",
+      "xml": "../OfficeIMO.Tabular/bin/Release/net8.0/OfficeIMO.Tabular.xml",
+      "assembly": "../OfficeIMO.Tabular/bin/Release/net8.0/OfficeIMO.Tabular.dll",
+      "out": "./_site/api/tabular",
+      "title": "OfficeIMO.Tabular API Reference",
+      "baseUrl": "/api/tabular",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/api.css,/css/visual-system.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "includeNamespace": "OfficeIMO.Tabular",
+      "injectCriticalCss": true
+    },
+    {
+      "task": "apidocs",
       "id": "build-apidocs-visio",
       "dependsOn": ["build-visio", "build-site"],
       "config": "./site.json",
@@ -935,6 +970,7 @@
         "build-apidocs-markdown",
         "build-apidocs-powerpoint",
         "build-apidocs-csv",
+        "build-apidocs-tabular",
         "build-apidocs-visio",
         "build-apidocs-pdf",
         "build-apidocs-html",
@@ -955,6 +991,7 @@
         "./_site/api/markdown/xrefmap.json",
         "./_site/api/powerpoint/xrefmap.json",
         "./_site/api/csv/xrefmap.json",
+        "./_site/api/tabular/xrefmap.json",
         "./_site/api/visio/xrefmap.json",
         "./_site/api/pdf/xrefmap.json",
         "./_site/api/html/xrefmap.json",

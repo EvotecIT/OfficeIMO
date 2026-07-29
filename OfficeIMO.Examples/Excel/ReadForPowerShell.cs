@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using OfficeIMO.Excel;
+using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -32,13 +33,14 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // Read dictionaries with Simple converters (optional)
-            var rows = ExcelRead.ReadRangeObjects(filePath, "Data", "A1:B3", ExcelReadPresets.Simple());
-
-            // Emit one JSON object per row (PowerShell-friendly)
+            // The same public reader works for CSV, XLSX, XLSM, and XLSB without an A1 range.
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
-            foreach (var row in rows)
+            using var reader = TabularReader.Open(filePath);
+            while (reader.Read())
             {
+                var row = new Dictionary<string, object?>(reader.FieldCount, StringComparer.OrdinalIgnoreCase);
+                for (int column = 0; column < reader.FieldCount; column++)
+                    row[reader.GetName(column)] = reader.IsDBNull(column) ? null : reader.GetValue(column);
                 Console.WriteLine(JsonSerializer.Serialize(row, jsonOptions));
             }
         }

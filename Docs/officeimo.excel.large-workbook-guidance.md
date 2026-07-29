@@ -15,9 +15,22 @@ This guide describes the current safe path for large workbook generation, readin
 
 | Workload | Preferred API | Notes |
 | --- | --- | --- |
-| Bounded range reads | `ReadRange(...)`, `Rows(...)`, or typed `RowsAs<T>(...)` | Best when callers need materialized data for a known range. |
-| Very large reads | `ReadRangeStream(...)`, `RowsAsStream<T>(...)`, or `ReadObjectsStream<T>(...)` | Streams rows while keeping workbook state bounded. Prefer these when only one pass over the data is needed. |
-| Unknown workbook intake | `InspectFeatures()`, `InspectFormulas()`, and targeted read options | Treat preserve-only and unsupported findings as a preflight signal before edit-heavy flows. |
+| Forward-only CSV or Excel reads | `TabularReader.Open(...)` | One `DbDataReader` contract covers CSV, TSV, XLSX, XLSM, and XLSB. Workbook used ranges are discovered automatically. |
+| Typed object reads | `TabularReader.ReadRecords<T>()` | Column names match writable properties case-insensitively. Use `[DataMember(Name = "...")]` for headers that are not CLR property names. |
+| Multiple worksheets | `TableNames`, `TableName`, and `NextResult()` | Results stay in workbook order. Set `TabularReadOptions.TableName` when only one worksheet should be opened. |
+| Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
+
+Example:
+
+```csharp
+using OfficeIMO.Tabular;
+
+using var reader = TabularReader.Open("sales.xlsx");
+int revenue = reader.GetOrdinal("Revenue");
+while (reader.Read()) {
+    Console.WriteLine(reader.GetDecimal(revenue));
+}
+```
 
 ## Preflight Before Editing Existing Workbooks
 
@@ -74,6 +87,17 @@ Use the comparison summary for public-facing numbers only when the run records:
 - raw samples, mean, median, and allocation data
 - package-size and package-part metrics when save behavior matters
 - machine and runtime information from the artifact manifest
+
+The pinned tabular suite reproduces the public 65K-record CSV, XLSX, and XLSB
+workloads with hash-verified inputs and equivalent typed getters:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Tabular.Benchmarks -- --validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Tabular.Benchmarks -- --artifacts .\artifacts\tabular-full
+```
+
+Windows, Linux, and macOS are separate evidence lanes. Do not average them or
+substitute one platform when another platform is missing.
 
 ## Current Boundaries
 

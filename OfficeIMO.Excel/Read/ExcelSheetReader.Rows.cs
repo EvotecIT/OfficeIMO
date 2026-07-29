@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Row-oriented readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Lazily reads each row within the A1 range as a typed object array.
         /// Values are converted using shared strings and styles (date detection).

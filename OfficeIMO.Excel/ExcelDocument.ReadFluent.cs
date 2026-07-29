@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Starts a fluent read pipeline over this open document.
         /// </summary>
-        public ExcelFluentReadWorkbook Read(ExcelReadOptions? options = null)
+        internal ExcelFluentReadWorkbook Read(ExcelReadOptions? options = null)
             => new ExcelFluentReadWorkbook(this, options);
     }
 }

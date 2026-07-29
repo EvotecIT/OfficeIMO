@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Streaming APIs for large ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private void ReadXmlRowIntoChunk(XmlReader rowReader, object?[][] rows, int rowIndex, int startRow, int c1, int c2, CancellationToken ct) {
             if (rowReader.IsEmptyElement) {
                 return;

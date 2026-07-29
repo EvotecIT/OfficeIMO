@@ -2,7 +2,7 @@ using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         internal uint?[,]? ReadCellStyleIndexes(string a1Range, CancellationToken ct = default) {
             var (firstRow, firstColumn, lastRow, lastColumn) = A1.ParseRange(a1Range);
             if (!CanAttemptXmlFastReader()) {

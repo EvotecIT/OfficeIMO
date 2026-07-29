@@ -247,3 +247,211 @@
 
   apply();
 }());
+
+(function () {
+  var root = document.querySelector('[data-tabular-benchmarks]');
+  if (!root || !window.fetch) return;
+
+  var state = root.querySelector('[data-tabular-state]');
+  var table = root.querySelector('[data-tabular-table]');
+  var rows = root.querySelector('[data-tabular-rows]');
+  var meta = root.querySelector('[data-tabular-meta]');
+  var platformButtons = root.querySelectorAll('[data-tabular-platform]');
+  var modeButtons = root.querySelectorAll('[data-tabular-mode]');
+  var selectedComparison = root.getAttribute('data-comparison-id');
+  var catalog;
+
+  function queryValue(name, fallback) {
+    try {
+      return new URL(window.location.href).searchParams.get(name) || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  var selectedPlatform = queryValue('benchmark-os', 'windows').toLowerCase();
+  var selectedMode = queryValue('benchmark-mode', 'full').toLowerCase();
+
+  function setQuery() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('benchmark-os', selectedPlatform);
+      url.searchParams.set('benchmark-mode', selectedMode);
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) {
+      // The selector still works in hosts without the URL API.
+    }
+  }
+
+  function activateButtons() {
+    Array.prototype.forEach.call(platformButtons, function (button) {
+      var active = button.getAttribute('data-tabular-platform') === selectedPlatform;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      var availability = catalog && catalog.availability
+        ? catalog.availability.find(function (item) { return item.platform === button.getAttribute('data-tabular-platform'); })
+        : null;
+      button.classList.toggle('missing', !!availability && !availability.available);
+    });
+    Array.prototype.forEach.call(modeButtons, function (button) {
+      var active = button.getAttribute('data-tabular-mode') === selectedMode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function formatDuration(value) {
+    if (typeof value !== 'number') return '—';
+    if (value >= 1000) return (value / 1000).toFixed(2) + ' s';
+    return value.toFixed(value >= 100 ? 1 : 2) + ' ms';
+  }
+
+  function formatBytes(value) {
+    if (typeof value !== 'number') return '—';
+    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(2) + ' MB';
+    if (value >= 1024) return (value / 1024).toFixed(1) + ' KB';
+    return Math.round(value) + ' B';
+  }
+
+  function metric(row, name) {
+    if (!row || !row.metrics) return null;
+    if (typeof row.metrics[name] === 'number') return row.metrics[name];
+    var key = Object.keys(row.metrics).find(function (candidate) {
+      return candidate.toLowerCase() === name.toLowerCase();
+    });
+    return key ? row.metrics[key] : null;
+  }
+
+  function workloadName(row) {
+    var type = row && row.variables ? (row.variables.Type || row.variables.type || '') : '';
+    var shortName = String(type).split('.').pop().replace(/Benchmarks$/, '');
+    var names = {
+      CsvString: 'CSV · strings',
+      CsvTyped: 'CSV · typed getters',
+      XlsxTyped: 'XLSX · typed getters',
+      XlsxBinder: 'XLSX · typed objects',
+      XlsbTyped: 'XLSB · typed getters'
+    };
+    return names[shortName] || shortName || 'Tabular read';
+  }
+
+  function renderResult(entry, result) {
+    var summaries = result.summary || [];
+    var groups = {};
+    summaries.forEach(function (row) {
+      var workload = workloadName(row);
+      if (!groups[workload]) groups[workload] = [];
+      groups[workload].push(row);
+    });
+
+    rows.innerHTML = '';
+    Object.keys(groups).forEach(function (workload) {
+      var group = groups[workload];
+      var fastest = Math.min.apply(null, group.map(function (row) {
+        return typeof row.medianMs === 'number' ? row.medianMs : Number.POSITIVE_INFINITY;
+      }));
+      group.sort(function (left, right) {
+        if (left.scenario === 'OfficeIMO') return -1;
+        if (right.scenario === 'OfficeIMO') return 1;
+        return String(left.scenario).localeCompare(String(right.scenario));
+      });
+      group.forEach(function (row, index) {
+        var median = row.medianMs;
+        var ratio = typeof median === 'number' && isFinite(fastest) && fastest > 0 ? median / fastest : null;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + (index === 0 ? workload : '') + '</td>' +
+          '<td><strong>' + String(row.scenario || 'Unknown') + '</strong></td>' +
+          '<td>' + formatDuration(median) + '</td>' +
+          '<td>' + formatBytes(metric(row, 'Allocated')) + '</td>' +
+          '<td>' + (ratio === null ? '—' : ratio.toFixed(2) + 'x') + '</td>';
+        if (ratio !== null && ratio <= 1.0005) tr.classList.add('imo-tabular-benchmark-fastest');
+        rows.appendChild(tr);
+      });
+    });
+
+    meta.innerHTML = '';
+    [
+      selectedComparison,
+      selectedPlatform,
+      selectedMode,
+      entry.environment && entry.environment.processorName,
+      entry.environment && entry.environment.runtimeVersion,
+      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString()
+    ].filter(Boolean).forEach(function (value) {
+      var span = document.createElement('span');
+      span.textContent = value;
+      meta.appendChild(span);
+    });
+
+    state.hidden = true;
+    table.hidden = false;
+  }
+
+  function renderSelection() {
+    activateButtons();
+    setQuery();
+    table.hidden = true;
+    meta.innerHTML = '';
+    var entry = (catalog.entries || []).find(function (candidate) {
+      return candidate.comparisonId === selectedComparison &&
+        candidate.platform === selectedPlatform &&
+        candidate.runMode === selectedMode &&
+        (selectedMode !== 'full' || candidate.publish === true);
+    });
+    if (!entry) {
+      state.hidden = false;
+      state.className = 'imo-tabular-benchmark-state missing';
+      state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + selectedPlatform + ' yet.';
+      return;
+    }
+    if (entry.comparable === false) {
+      state.hidden = false;
+      state.className = 'imo-tabular-benchmark-state incompatible';
+      state.textContent = 'This lane is not directly comparable: ' + (entry.compatibilityIssues || []).join(' ');
+      return;
+    }
+
+    state.hidden = false;
+    state.className = 'imo-tabular-benchmark-state';
+    state.textContent = 'Loading ' + selectedPlatform + ' ' + selectedMode + ' results…';
+    fetch(entry.resultPath, { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function (result) { renderResult(entry, result); })
+      .catch(function (error) {
+        state.hidden = false;
+        state.className = 'imo-tabular-benchmark-state incompatible';
+        state.textContent = 'Benchmark evidence could not be loaded: ' + error.message;
+      });
+  }
+
+  Array.prototype.forEach.call(platformButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedPlatform = button.getAttribute('data-tabular-platform');
+      renderSelection();
+    });
+  });
+  Array.prototype.forEach.call(modeButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedMode = button.getAttribute('data-tabular-mode');
+      renderSelection();
+    });
+  });
+
+  fetch(root.getAttribute('data-index-url'), { credentials: 'same-origin' })
+    .then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    })
+    .then(function (value) {
+      catalog = value;
+      renderSelection();
+    })
+    .catch(function (error) {
+      state.className = 'imo-tabular-benchmark-state incompatible';
+      state.textContent = 'Benchmark catalog could not be loaded: ' + error.message;
+    });
+}());

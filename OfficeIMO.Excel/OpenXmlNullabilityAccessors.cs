@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
         private WorksheetCommentsPart? WorksheetCommentsPartRoot => _worksheetPart.WorksheetCommentsPart;
     }
 
-    public sealed partial class ExcelDocumentReader {
+    internal sealed partial class ExcelDocumentReader {
         private WorkbookPart WorkbookPartRoot =>
             _doc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
 
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             WorkbookPartRoot.Workbook ?? throw new InvalidOperationException("Workbook is null.");
     }
 
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private Worksheet WorksheetRoot =>
             _wsPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
     }

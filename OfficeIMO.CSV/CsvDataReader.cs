@@ -5,18 +5,14 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-#if NET8_0_OR_GREATER
-using CsvDataReaderTextRowSource = OfficeIMO.CSV.CsvParser.CsvTextDataReaderRowSource;
-#else
 using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
-#endif
 
 namespace OfficeIMO.CSV;
 
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-public sealed class CsvDataReader : DbDataReader
+internal sealed class CsvDataReader : DbDataReader
 {
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
@@ -132,25 +128,37 @@ public sealed class CsvDataReader : DbDataReader
     public override bool GetBoolean(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Boolean)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null)
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is bool boolean)
+            ReadOnlySpan<char> span = _textRowSource.GetSpan(ordinal);
+            if (bool.TryParse(span, out bool spanBoolean))
+            {
+                return spanBoolean;
+            }
+
+            if (span.Length == 1 && (span[0] == '0' || span[0] == '1'))
+            {
+                return span[0] == '1';
+            }
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is bool boolean)
+        {
+            return boolean;
+        }
+
+        if (rawValue is string text)
+        {
+            if (bool.TryParse(text, out boolean))
             {
                 return boolean;
             }
 
-            if (rawValue is string text)
+            if (text == "0" || text == "1")
             {
-                if (bool.TryParse(text, out boolean))
-                {
-                    return boolean;
-                }
-
-                if (text == "0" || text == "1")
-                {
-                    return text == "1";
-                }
+                return text == "1";
             }
         }
 
@@ -158,14 +166,43 @@ public sealed class CsvDataReader : DbDataReader
     }
 
     /// <inheritdoc />
-    public override byte GetByte(int ordinal) => (byte)GetValue(ordinal);
+    public override byte GetByte(int ordinal)
+    {
+        EnsureOpenRow();
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            byte.TryParse(_textRowSource.GetSpan(ordinal), NumberStyles.Any, _culture, out byte spanValue))
+        {
+            return spanValue;
+        }
+#endif
+        object? rawValue = GetRawValue(ordinal);
+        if (rawValue is byte value)
+        {
+            return value;
+        }
+
+        if (rawValue is string text &&
+            byte.TryParse(text, NumberStyles.Any, _culture, out value))
+        {
+            return value;
+        }
+
+        return (byte)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
         throw new NotSupportedException("CSV fields are exposed as scalar values.");
 
     /// <inheritdoc />
-    public override char GetChar(int ordinal) => (char)GetValue(ordinal);
+    public override char GetChar(int ordinal)
+    {
+        string value = GetString(ordinal);
+        return value.Length == 1
+            ? value[0]
+            : throw new InvalidCastException("The CSV field does not contain one character.");
+    }
 
     /// <inheritdoc />
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length)
@@ -200,18 +237,26 @@ public sealed class CsvDataReader : DbDataReader
     public override DateTime GetDateTime(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.DateTime)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            CsvDataProjectionConverter.TryParseDateTime(
+                _textRowSource.GetSpan(ordinal),
+                _culture,
+                _dateTimeFormats,
+                out DateTime spanDateTime))
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is DateTime dateTime)
-            {
-                return dateTime;
-            }
+            return spanDateTime;
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is DateTime dateTime)
+        {
+            return dateTime;
+        }
 
-            if (rawValue is string text && TryParseDateTime(text, out dateTime))
-            {
-                return dateTime;
-            }
+        if (rawValue is string text && TryParseDateTime(text, out dateTime))
+        {
+            return dateTime;
         }
 
         return (DateTime)GetValue(ordinal);
@@ -221,26 +266,43 @@ public sealed class CsvDataReader : DbDataReader
     public override decimal GetDecimal(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Decimal)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null)
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is decimal decimalValue)
+            ReadOnlySpan<char> span = _textRowSource.GetSpan(ordinal);
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture)
+                && CsvDataProjectionConverter.TryParseInvariantDecimal(span, out decimal fastDecimal))
+            {
+                return fastDecimal;
+            }
+
+            if (decimal.TryParse(
+                    span,
+                    NumberStyles.Number | NumberStyles.AllowExponent,
+                    _culture,
+                    out decimal spanDecimal))
+            {
+                return spanDecimal;
+            }
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is decimal decimalValue)
+        {
+            return decimalValue;
+        }
+
+        if (rawValue is string text)
+        {
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                CsvDataProjectionConverter.TryParseInvariantDecimal(text, out decimalValue))
             {
                 return decimalValue;
             }
 
-            if (rawValue is string text)
+            if (decimal.TryParse(text, NumberStyles.Any, _culture, out decimalValue))
             {
-                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
-                    CsvDataProjectionConverter.TryParseInvariantDecimal(text, out decimalValue))
-                {
-                    return decimalValue;
-                }
-
-                if (decimal.TryParse(text, NumberStyles.Any, _culture, out decimalValue))
-                {
-                    return decimalValue;
-                }
+                return decimalValue;
             }
         }
 
@@ -251,18 +313,22 @@ public sealed class CsvDataReader : DbDataReader
     public override double GetDouble(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Double)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            double.TryParse(_textRowSource.GetSpan(ordinal), NumberStyles.Any, _culture, out double spanDouble))
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is double doubleValue)
-            {
-                return doubleValue;
-            }
+            return spanDouble;
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is double doubleValue)
+        {
+            return doubleValue;
+        }
 
-            if (rawValue is string text && double.TryParse(text, NumberStyles.Any, _culture, out doubleValue))
-            {
-                return doubleValue;
-            }
+        if (rawValue is string text && double.TryParse(text, NumberStyles.Any, _culture, out doubleValue))
+        {
+            return doubleValue;
         }
 
         return (double)GetValue(ordinal);
@@ -283,27 +349,76 @@ public sealed class CsvDataReader : DbDataReader
     public override Type GetFieldType(int ordinal) => _columns[ordinal].DataType;
 
     /// <inheritdoc />
-    public override float GetFloat(int ordinal) => (float)GetValue(ordinal);
+    public override float GetFloat(int ordinal)
+    {
+        EnsureOpenRow();
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            float.TryParse(_textRowSource.GetSpan(ordinal), NumberStyles.Any, _culture, out float spanValue))
+        {
+            return spanValue;
+        }
+#endif
+        object? rawValue = GetRawValue(ordinal);
+        if (rawValue is float value)
+        {
+            return value;
+        }
+
+        if (rawValue is string text &&
+            float.TryParse(text, NumberStyles.Any, _culture, out value))
+        {
+            return value;
+        }
+
+        return (float)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
-    public override Guid GetGuid(int ordinal) => (Guid)GetValue(ordinal);
+    public override Guid GetGuid(int ordinal)
+    {
+        EnsureOpenRow();
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            Guid.TryParse(_textRowSource.GetSpan(ordinal), out Guid spanValue))
+        {
+            return spanValue;
+        }
+#endif
+        object? rawValue = GetRawValue(ordinal);
+        if (rawValue is Guid value)
+        {
+            return value;
+        }
+
+        if (rawValue is string text && Guid.TryParse(text, out value))
+        {
+            return value;
+        }
+
+        return (Guid)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override short GetInt16(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int16)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            short.TryParse(_textRowSource.GetSpan(ordinal), NumberStyles.Any, _culture, out short spanInt16))
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is short int16)
-            {
-                return int16;
-            }
+            return spanInt16;
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is short int16)
+        {
+            return int16;
+        }
 
-            if (rawValue is string text && short.TryParse(text, NumberStyles.Any, _culture, out int16))
-            {
-                return int16;
-            }
+        if (rawValue is string text && short.TryParse(text, NumberStyles.Any, _culture, out int16))
+        {
+            return int16;
         }
 
         return (short)GetValue(ordinal);
@@ -313,26 +428,39 @@ public sealed class CsvDataReader : DbDataReader
     public override int GetInt32(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int32)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null)
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is int int32)
+            ReadOnlySpan<char> span = _textRowSource.GetSpan(ordinal);
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                CsvDataProjectionConverter.TryParseInvariantInt32(span, out int spanInt32))
+            {
+                return spanInt32;
+            }
+
+            if (int.TryParse(span, NumberStyles.Any, _culture, out spanInt32))
+            {
+                return spanInt32;
+            }
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is int int32)
+        {
+            return int32;
+        }
+
+        if (rawValue is string text)
+        {
+            if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                CsvDataProjectionConverter.TryParseInvariantInt32(text, out int32))
             {
                 return int32;
             }
 
-            if (rawValue is string text)
+            if (int.TryParse(text, NumberStyles.Any, _culture, out int32))
             {
-                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
-                    CsvDataProjectionConverter.TryParseInvariantInt32(text, out int32))
-                {
-                    return int32;
-                }
-
-                if (int.TryParse(text, NumberStyles.Any, _culture, out int32))
-                {
-                    return int32;
-                }
+                return int32;
             }
         }
 
@@ -343,18 +471,22 @@ public sealed class CsvDataReader : DbDataReader
     public override long GetInt64(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int64)
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null &&
+            long.TryParse(_textRowSource.GetSpan(ordinal), NumberStyles.Any, _culture, out long spanInt64))
         {
-            var rawValue = GetRawValue(ordinal);
-            if (rawValue is long int64)
-            {
-                return int64;
-            }
+            return spanInt64;
+        }
+#endif
+        var rawValue = GetRawValue(ordinal);
+        if (rawValue is long int64)
+        {
+            return int64;
+        }
 
-            if (rawValue is string text && long.TryParse(text, NumberStyles.Any, _culture, out int64))
-            {
-                return int64;
-            }
+        if (rawValue is string text && long.TryParse(text, NumberStyles.Any, _culture, out int64))
+        {
+            return int64;
         }
 
         return (long)GetValue(ordinal);

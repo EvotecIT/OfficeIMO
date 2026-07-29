@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed class ExcelXmlRangeDataReader : DbDataReader {
             private const string IsReadOnlyColumn = "IsReadOnly";
             private const string IsRowVersionColumn = "IsRowVersion";
@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
             private readonly Stream _stream = Stream.Null;
             private readonly XmlReader _reader = null!;
             private readonly ExcelUtf8RangeRowSource? _utf8Source;
+            private readonly int _utf8SourceOrdinalOffset;
             private readonly int _firstRow;
             private readonly int _lastRow;
             private readonly int _firstColumn;
@@ -65,7 +66,9 @@ namespace OfficeIMO.Excel {
                 int fieldCount,
                 bool headersInFirstRow,
                 ExcelReadOptions options,
-                CancellationToken ct) {
+                CancellationToken ct,
+                ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
+                int utf8SourceFirstColumn = 0) {
                 _owner = owner;
                 _firstRow = firstRow;
                 _lastRow = lastRow;
@@ -83,7 +86,10 @@ namespace OfficeIMO.Excel {
                 _currentBooleanValues = new bool[fieldCount];
                 _blankRow = new object?[fieldCount];
 
-                if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
+                if (preindexedUtf8Source != null) {
+                    _utf8Source = preindexedUtf8Source;
+                    _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
+                } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
                 } else {
                     _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -522,7 +528,7 @@ namespace OfficeIMO.Excel {
 
                 if (_utf8Source != null) {
                     _utf8Source.ReadValue(
-                        ordinal,
+                        ordinal + _utf8SourceOrdinalOffset,
                         targetKind,
                         out _currentPrimitiveKinds[ordinal],
                         out _currentDoubleValues[ordinal],

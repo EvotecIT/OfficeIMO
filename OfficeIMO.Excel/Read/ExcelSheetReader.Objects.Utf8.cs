@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// UTF-8 object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private IEnumerable<T> ReadObjectsStreamUtf8OrXmlAdaptive<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,

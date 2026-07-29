@@ -1,8 +1,7 @@
 using System;
-using System.Data;
-using System.Globalization;
 using System.IO;
 using OfficeIMO.Excel;
+using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -32,14 +31,14 @@ namespace OfficeIMO.Examples.Excel
                 sheet.CellValue(1, 5, "Note");
 
                 // Data rows
-                sheet.CellValue(2, 1, "Y");
-                sheet.CellValue(2, 2, "$1,234.56");
+                sheet.CellValue(2, 1, true);
+                sheet.CellValue(2, 2, 1234.56m);
                 sheet.CellValue(2, 3, DateTime.Today);
                 sheet.CellValue(2, 4, 3);
                 sheet.CellValue(2, 5, "First order");
 
-                sheet.CellValue(3, 1, "N");
-                sheet.CellValue(3, 2, "PLN 2 345,67");
+                sheet.CellValue(3, 1, false);
+                sheet.CellValue(3, 2, 2345.67m);
                 sheet.CellValue(3, 3, DateTime.Today.AddDays(-1));
                 sheet.CellValue(3, 4, 7);
                 sheet.CellValue(3, 5, "Second order");
@@ -48,29 +47,17 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // 2) Use a simple preset so the example stays short
-            var readOptions = ExcelReadPresets.Simple();
-
-            // 3) Read the file using the reader API
-            using (var reader = ExcelDocumentReader.Open(filePath, readOptions))
-            {
-                var sheet = reader.GetSheet("Data");
-
-                // Read as DataTable
-                DataTable dt = sheet.ReadRangeAsDataTable("A1:E3", headersInFirstRow: true);
-                Console.WriteLine($"DataTable rows: {dt.Rows.Count}, cols: {dt.Columns.Count}");
-
-                // Map to objects
-                foreach (var sale in sheet.ReadObjects<Sale>("A1:E3"))
-                {
-                    Console.WriteLine($"Active={sale.Active}, Amount={sale.Amount}, Date={sale.Date:d}, Qty={sale.Qty}, Note={sale.Note}");
-                }
-
-                // Typed column
-                foreach (var amount in sheet.ReadColumnAs<decimal>("B2:B3"))
-                {
-                    Console.WriteLine($"Amount column value: {amount}");
-                }
+            // 2) Read the workbook through the same API used for CSV and XLSB.
+            using var reader = TabularReader.Open(filePath, new TabularReadOptions { NumericAsDecimal = true });
+            while (reader.Read()) {
+                var sale = new Sale {
+                    Active = reader.GetBoolean(reader.GetOrdinal("Active")),
+                    Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
+                    Date = reader.GetDateTime(reader.GetOrdinal("Date")),
+                    Qty = reader.GetInt32(reader.GetOrdinal("Qty")),
+                    Note = reader.GetString(reader.GetOrdinal("Note"))
+                };
+                Console.WriteLine($"Active={sale.Active}, Amount={sale.Amount}, Date={sale.Date:d}, Qty={sale.Qty}, Note={sale.Note}");
             }
         }
     }

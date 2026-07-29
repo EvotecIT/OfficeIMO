@@ -28,26 +28,48 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 throw new InvalidDataException($"The XLSB package part '{normalized}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {_options.MaxPartBytes} bytes.");
             }
 
-            int capacity = checked((int)entry.Length);
+            int length = checked((int)entry.Length);
             using Stream input = entry.Open();
-            using var output = new MemoryStream(capacity);
-            byte[] buffer = new byte[81920];
-            while (true) {
-                int read = input.Read(buffer, 0, buffer.Length);
-                if (read == 0) break;
-                if (output.Length + read > _options.MaxPartBytes) {
-                    throw new InvalidDataException($"The XLSB package part '{normalized}' exceeds the configured decompression limit of {_options.MaxPartBytes} bytes.");
+            byte[] output = new byte[length];
+            int offset = 0;
+            while (offset < output.Length) {
+                int read = input.Read(output, offset, output.Length - offset);
+                if (read == 0) {
+                    throw new EndOfStreamException($"The XLSB package part '{normalized}' ended after {offset} of {output.Length} declared bytes.");
                 }
-
                 _decompressedBytesRead = checked(_decompressedBytesRead + read);
                 if (_decompressedBytesRead > _options.MaxPackageBytes) {
                     throw new InvalidDataException($"The XLSB package exceeds the configured aggregate decompression budget of {_options.MaxPackageBytes} bytes.");
                 }
 
-                output.Write(buffer, 0, read);
+                offset += read;
             }
 
-            return output.ToArray();
+            if (input.ReadByte() >= 0) {
+                throw new InvalidDataException($"The XLSB package part '{normalized}' exceeds its declared decompressed length of {length} bytes.");
+            }
+
+            return output;
+        }
+
+        internal Stream OpenPart(string partName) {
+            string normalized = NormalizePartName(partName);
+            if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {
+                throw new InvalidDataException($"The XLSB package part '{normalized}' is missing.");
+            }
+
+            if (entry.Length > _options.MaxPartBytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package part '{normalized}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {_options.MaxPartBytes} bytes.");
+            }
+
+            _decompressedBytesRead = checked(_decompressedBytesRead + entry.Length);
+            if (_decompressedBytesRead > _options.MaxPackageBytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package exceeds the configured aggregate decompression budget of {_options.MaxPackageBytes} bytes.");
+            }
+
+            return entry.Open();
         }
 
         internal IReadOnlyDictionary<string, XlsbPackageRelationship> ReadRelationships(string sourcePartName) {
@@ -175,4 +197,5 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return normalized;
         }
     }
+
 }

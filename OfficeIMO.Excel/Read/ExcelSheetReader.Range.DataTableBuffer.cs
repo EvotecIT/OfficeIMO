@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Reads a rectangular range to a DataTable. If headersInFirstRow = true, first row becomes column names.
         /// </summary>

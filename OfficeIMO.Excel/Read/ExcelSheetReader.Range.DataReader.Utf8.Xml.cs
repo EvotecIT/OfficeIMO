@@ -1,7 +1,7 @@
 #nullable enable
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
             private bool HasSupportedUtf8Encoding() {
                 int probeLength = Math.Min(_length, 256);

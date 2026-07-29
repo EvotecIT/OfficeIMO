@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Reader for an Excel workbook (read-only). Provides access to sheet readers and basic metadata.
     /// </summary>
-    public sealed partial class ExcelDocumentReader : IDisposable {
+    internal sealed partial class ExcelDocumentReader : IDisposable {
         private const string OfficeDocumentRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private const string StrictOfficeDocumentRelationshipNamespace = "http://purl.oclc.org/ooxml/officeDocument/relationships";
         private const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -50,16 +50,27 @@ namespace OfficeIMO.Excel {
             }
 
             var effectiveOptions = options ?? new ExcelReadOptions();
-            byte[] bytes;
-            using (var stream = File.OpenRead(path)) {
-                bytes = OfficeStreamReader.ReadAllBytes(stream, effectiveOptions.MaxInputBytes);
+            long inputLength = new FileInfo(path).Length;
+            if (inputLength > effectiveOptions.MaxInputBytes) {
+                throw new InvalidDataException(
+                    $"Workbook input contains {inputLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
-            return OpenFromBytes(
-                bytes,
-                effectiveOptions,
-                normalizeContentTypes: false,
-                contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+            try {
+                var document = SpreadsheetDocument.Open(path, isEditable: false);
+                return new ExcelDocumentReader(document, effectiveOptions, owns: true);
+            } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
+                byte[] bytes;
+                using (var stream = File.OpenRead(path)) {
+                    bytes = OfficeStreamReader.ReadAllBytes(stream, effectiveOptions.MaxInputBytes);
+                }
+
+                return OpenFromBytes(
+                    bytes,
+                    effectiveOptions,
+                    normalizeContentTypes: true,
+                    contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+            }
         }
 
         /// <summary>

@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel;
 /// <summary>
 /// Chunked extraction helpers intended for AI ingestion.
 /// </summary>
-public static class ExcelExtractionExtensions {
+internal static class ExcelExtractionExtensions {
     /// <summary>
     /// Options controlling Excel extraction behavior.
     /// </summary>

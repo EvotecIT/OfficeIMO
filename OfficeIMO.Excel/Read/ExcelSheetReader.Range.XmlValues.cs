@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private enum XmlDataReaderTargetKind : byte {
             None,
             Int32,
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                 return decimalNumber;
             }
 
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
                             }
 
                             if (numericAsDecimal
-                                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                                 return decimalNumber;
                             }
 
@@ -276,7 +276,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal rawDecimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal rawDecimalNumber)) {
                 return rawDecimalNumber;
             }
 
@@ -549,7 +549,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
+                && TryParseExcelNumberAsDecimal(rawText, culture, out decimal decimalNumber)) {
                 value = decimalNumber;
                 return true;
             }

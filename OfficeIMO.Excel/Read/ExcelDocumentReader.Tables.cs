@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelDocumentReader {
+    internal sealed partial class ExcelDocumentReader {
         /// <summary>
         /// Returns all Excel tables defined in the workbook.
         /// </summary>

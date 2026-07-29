@@ -12,7 +12,94 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
+        internal IDataReader ReadUsedRangeAsDataReader(
+            bool headersInFirstRow = true,
+            int schemaSampleRows = 0,
+            CancellationToken ct = default) {
+            if (schemaSampleRows == 0
+                && TryCreateIndexedUsedRangeDataReader(headersInFirstRow, ct, out IDataReader? indexedReader)) {
+                return indexedReader!;
+            }
+
+            string usedRange = GetUsedRangeA1();
+            return ReadRangeAsDataReader(
+                usedRange,
+                headersInFirstRow: headersInFirstRow,
+                schemaSampleRows: schemaSampleRows,
+                ct: ct);
+        }
+
+        private bool TryCreateIndexedUsedRangeDataReader(
+            bool headersInFirstRow,
+            CancellationToken ct,
+            out IDataReader? dataReader) {
+            dataReader = null;
+            if (!CanUseRangeStreamXmlReader()
+                || !TryGetWorksheetDimensionReferenceFromXml(out string declaredRange)
+                || !A1.TryParseRange(
+                    declaredRange,
+                    out int declaredFirstRow,
+                    out int declaredFirstColumn,
+                    out int declaredLastRow,
+                    out int declaredLastColumn)) {
+                return false;
+            }
+
+            int declaredFieldCount = declaredLastColumn - declaredFirstColumn + 1;
+            if (declaredFieldCount <= 0
+                || declaredFieldCount > _opt.MaxDataReaderColumns
+                || declaredFieldCount > _opt.MaxDataReaderBufferedCells) {
+                return false;
+            }
+
+            if (!ExcelUtf8RangeRowSource.TryCreate(
+                    this,
+                    declaredFirstRow,
+                    declaredLastRow,
+                    declaredFirstColumn,
+                    declaredFieldCount,
+                    ct,
+                    out ExcelUtf8RangeRowSource? source)) {
+                return false;
+            }
+
+            try {
+                if (!source!.CellsFitWithinRange
+                    || !source.TryGetUsedBounds(
+                        out int firstRow,
+                        out int firstColumn,
+                        out int lastRow,
+                        out int lastColumn)) {
+                    source.Dispose();
+                    return false;
+                }
+
+                int fieldCount = lastColumn - firstColumn + 1;
+                if (fieldCount <= 0 || fieldCount > _opt.MaxDataReaderColumns) {
+                    source.Dispose();
+                    return false;
+                }
+
+                dataReader = new ExcelXmlRangeDataReader(
+                    this,
+                    firstRow,
+                    firstColumn,
+                    lastRow,
+                    lastColumn,
+                    fieldCount,
+                    headersInFirstRow,
+                    _opt,
+                    ct,
+                    source,
+                    declaredFirstColumn);
+                return true;
+            } catch {
+                source!.Dispose();
+                throw;
+            }
+        }
+
         /// <summary>
         /// Creates a forward-only <see cref="IDataReader"/> over a rectangular range without
         /// materializing the full range. The reader buffers at most <paramref name="schemaSampleRows"/>

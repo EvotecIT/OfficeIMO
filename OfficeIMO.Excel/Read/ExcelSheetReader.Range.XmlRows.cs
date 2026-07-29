@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private bool CanUseXmlFastReader() {
             return _opt.CellValueConverter == null
                 && _opt.Culture == CultureInfo.InvariantCulture

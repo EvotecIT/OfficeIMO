@@ -41,10 +41,17 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
 
         internal double ReadDouble() {
             EnsureAvailable(8);
-            byte[] bytes = new byte[8];
-            Buffer.BlockCopy(_data, Position, bytes, 0, bytes.Length);
-            Position += bytes.Length;
-            return BitConverter.ToDouble(bytes, 0);
+            int offset = Position;
+            Position += 8;
+            ulong bits = _data[offset]
+                | ((ulong)_data[offset + 1] << 8)
+                | ((ulong)_data[offset + 2] << 16)
+                | ((ulong)_data[offset + 3] << 24)
+                | ((ulong)_data[offset + 4] << 32)
+                | ((ulong)_data[offset + 5] << 40)
+                | ((ulong)_data[offset + 6] << 48)
+                | ((ulong)_data[offset + 7] << 56);
+            return BitConverter.Int64BitsToDouble(unchecked((long)bits));
         }
 
         internal string ReadWideString(int maxCharacters) {

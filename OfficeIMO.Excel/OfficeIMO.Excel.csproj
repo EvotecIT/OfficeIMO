@@ -86,6 +86,9 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
+        <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
+        <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />
+        <InternalsVisibleTo Include="OfficeIMO.Tabular" />
     </ItemGroup>
 
 </Project>

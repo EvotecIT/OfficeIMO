@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed class TypedPropertyBinding<TTarget> {
             internal TypedPropertyBinding(
                 PropertyInfo property,

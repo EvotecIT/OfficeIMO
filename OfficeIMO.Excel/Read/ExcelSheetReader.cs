@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Reader for a single worksheet. Offers enumeration and conversion helpers.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
         private readonly SharedStringCache _sst;
@@ -521,7 +521,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.NumericAsDecimal) {
-                if (TryParseRawDecimal(rawText, out var dec)) {
+                if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec)) {
                     value = dec;
                     return true;
                 }
@@ -785,6 +785,29 @@ namespace OfficeIMO.Excel {
                 || decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
         }
 
+        private static bool TryParseExcelNumberAsDecimal(string rawText, CultureInfo culture, out decimal value) {
+            value = 0m;
+            bool parsed = TryParseInvariantDoubleFast(rawText, out double number)
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)
+                || (culture != CultureInfo.InvariantCulture
+                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out number));
+            return parsed && TryConvertExcelNumberToDecimal(number, out value);
+        }
+
+        private static bool TryConvertExcelNumberToDecimal(double number, out decimal value) {
+            value = 0m;
+            if (double.IsNaN(number) || double.IsInfinity(number)) {
+                return false;
+            }
+
+            try {
+                value = (decimal)number;
+                return true;
+            } catch (OverflowException) {
+                return false;
+            }
+        }
+
         private static bool TryParseInvariantDecimalFast(string rawText, out decimal value) {
             value = 0m;
             if (string.IsNullOrEmpty(rawText)) {
@@ -871,7 +894,7 @@ namespace OfficeIMO.Excel {
                         return FromExcelSerialDate(oa);
                 }
                 if (_opt.NumericAsDecimal) {
-                    if (TryParseRawDecimal(rawText, out var dec))
+                    if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
                         return dec;
                     if (TryParseRawDouble(rawText, out var dbl))
                         return dbl;
@@ -904,7 +927,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_opt.NumericAsDecimal) {
-                    if (TryParseRawDecimal(rawText, out var dec2))
+                    if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec2))
                         return dec2;
                     if (TryParseRawDouble(rawText, out var dbl2))
                         return dbl2;

@@ -12,7 +12,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowFieldSpans<TVisitor>(string path, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(string path, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -43,7 +43,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowFieldSpans<TVisitor>(TextReader reader, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(TextReader reader, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (reader == null)
@@ -81,7 +81,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (text == null)
@@ -99,7 +99,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    public static void ReadRowFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         options ??= new CsvLoadOptions();
@@ -131,7 +131,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpans(string path, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans(string path, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
         if (fieldAction == null)
         {
@@ -149,7 +149,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpans<TVisitor>(string path, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(string path, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -170,7 +170,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpans(TextReader reader, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans(TextReader reader, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
         if (fieldAction == null)
         {
@@ -188,7 +188,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpans<TVisitor>(TextReader reader, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(TextReader reader, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (reader == null)
@@ -215,7 +215,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpansFromText(string text, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpansFromText(string text, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
         if (fieldAction == null)
         {
@@ -233,7 +233,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpansFromText<TVisitor>(string text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpansFromText<TVisitor>(string text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (text == null)
@@ -251,7 +251,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    public static void ReadFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         options = CreateRawRecordOptions(options);

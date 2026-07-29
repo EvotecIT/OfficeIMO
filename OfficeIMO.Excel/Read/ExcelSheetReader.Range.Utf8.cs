@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// UTF-8 range materialization helpers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private static bool ShouldAttemptUtf8Range(int firstRow, int lastRow) {
             return firstRow > 1 || lastRow - firstRow + 1 > BufferedRangeStreamRowLimit;
         }

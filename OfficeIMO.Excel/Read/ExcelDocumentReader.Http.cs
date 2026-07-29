@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelDocumentReader {
+    internal sealed partial class ExcelDocumentReader {
         /// <summary>
         /// Asynchronously opens a remote Excel workbook for read-only access.
         /// </summary>

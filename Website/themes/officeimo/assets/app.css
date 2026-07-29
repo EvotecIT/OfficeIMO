@@ -536,6 +536,20 @@ pre code{background:none;padding:0;color:inherit}
 .imo-benchmark-value--mid{background:rgba(245,158,11,.06)}
 .imo-benchmark-value--slow{background:rgba(244,63,94,.055)}
 .imo-benchmark-missing{color:var(--imo-text-muted)}
+.imo-tabular-benchmark-controls{display:flex;flex-wrap:wrap;gap:1rem 2rem;margin:1rem 0}
+.imo-tabular-benchmark-label{display:block;margin-bottom:.35rem;color:var(--imo-text-secondary);font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.imo-tabular-benchmark-buttons{display:flex;flex-wrap:wrap;gap:.4rem}
+.imo-tabular-benchmark-buttons button{border:1px solid var(--imo-border);border-radius:999px;background:var(--imo-surface);color:var(--imo-text);cursor:pointer;font-weight:800;padding:.42rem .8rem}
+.imo-tabular-benchmark-buttons button:hover{background:var(--imo-surface-hover)}
+.imo-tabular-benchmark-buttons button.active{border-color:var(--imo-excel);background:rgba(16,185,129,.14);color:var(--imo-excel)}
+.imo-tabular-benchmark-buttons button.missing:not(.active){border-style:dashed;color:var(--imo-text-muted)}
+.imo-tabular-benchmark-state{margin:.85rem 0;border:1px solid var(--imo-border);border-radius:8px;background:var(--imo-surface);padding:.85rem 1rem;color:var(--imo-text-secondary)}
+.imo-tabular-benchmark-state.missing{border-style:dashed}
+.imo-tabular-benchmark-state.incompatible{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}
+.imo-tabular-benchmark-table{min-width:720px;font-variant-numeric:tabular-nums}
+.imo-tabular-benchmark-table td:first-child{font-weight:800}
+.imo-tabular-benchmark-fastest{background:rgba(16,185,129,.08)}
+.imo-tabular-benchmark-methodology{margin:.8rem 0 0;color:var(--imo-text-secondary);font-size:.84rem}
 @media(max-width:1500px){.imo-benchmark-explorer{width:calc(100vw - 3rem)}.imo-benchmark-table--matrix{min-width:1190px}.imo-benchmark-table--matrix th:nth-child(1),.imo-benchmark-table--matrix td:nth-child(1){width:245px}.imo-benchmark-table--matrix th:nth-child(2),.imo-benchmark-table--matrix td:nth-child(2){width:112px}.imo-benchmark-table--matrix th:nth-child(n+3),.imo-benchmark-table--matrix td:nth-child(n+3){width:104px}}
 @media(max-width:1180px){.imo-benchmark-tools{grid-template-columns:repeat(3,minmax(0,1fr))}.imo-benchmark-tools label:first-child{grid-column:1/-1}.imo-benchmark-count{white-space:normal}}
 @media(max-width:900px){.imo-benchmark-coverage__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-family__header{grid-template-columns:1fr;gap:.8rem}.imo-benchmark-highlight-grid{grid-template-columns:1fr}.imo-benchmark-explorer{width:calc(100vw - 2rem)}.imo-benchmark-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-reset{min-height:36px}.imo-benchmark-table-wrap{overflow-x:auto}.imo-benchmark-table--matrix{min-width:1190px;font-size:.84rem}}

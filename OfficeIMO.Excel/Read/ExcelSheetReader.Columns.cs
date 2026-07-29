@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Column-oriented readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Reads a single-column A1 range (e.g., "B2:B1000") as a typed sequence.
         /// </summary>

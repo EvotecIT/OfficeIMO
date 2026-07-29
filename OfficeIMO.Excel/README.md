@@ -152,15 +152,29 @@ and DOC/XLS/XLSB loss policies, see the
 ### Map rows to objects
 
 ```csharp
-using var document = ExcelDocument.Load("input.xlsx");
-List<Person> people = document["Data"].RowsAs<Person>("A1:C100").ToList();
+using System.Runtime.Serialization;
+using OfficeIMO.Tabular;
 
+using var reader = TabularReader.Open("input.xlsx", new TabularReadOptions {
+    TableName = "Data"
+});
+List<Person> people = reader.ReadRecords<Person>().ToList();
+
+[DataContract]
 public sealed class Person {
+    [DataMember(Name = "Full Name")]
     public string Name { get; set; } = "";
+
     public int Value { get; set; }
     public string Status { get; set; } = "";
 }
 ```
+
+`TabularReader` is the read-only entry point for CSV, TSV, XLSX, XLSM, and
+XLSB. It discovers the used range, exposes additional worksheets through
+`NextResult()`, and supports standard `[DataMember(Name = "...")]` column
+mapping. Use `ExcelDocument.Load` when the workbook must be inspected, edited,
+or saved again.
 
 ### Append to an existing table
 

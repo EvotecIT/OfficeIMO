@@ -18,6 +18,8 @@ internal sealed partial class CsvLineReader : IDisposable
     private int _length;
     private bool _endOfReader;
 
+    internal char[] Buffer => _buffer;
+
     public CsvLineReader(TextReader reader)
     {
         _reader = reader ?? throw new ArgumentNullException(nameof(reader));

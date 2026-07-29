@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private const int DenseSnapshotCapacityLimit = 100_000;
         // DataTable materialization already carries row storage cost; keep the single-pass XML buffer active
         // through larger normal sheets to avoid a slower second worksheet scan.

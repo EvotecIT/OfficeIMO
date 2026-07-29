@@ -8,6 +8,30 @@ namespace OfficeIMO.CSV;
 internal static partial class CsvDataProjectionConverter
 {
 #if NET8_0_OR_GREATER
+    private static readonly decimal[] InvariantDecimalPowers =
+    {
+        1m,
+        10m,
+        100m,
+        1_000m,
+        10_000m,
+        100_000m,
+        1_000_000m,
+        10_000_000m,
+        100_000_000m,
+        1_000_000_000m,
+        10_000_000_000m,
+        100_000_000_000m,
+        1_000_000_000_000m,
+        10_000_000_000_000m,
+        100_000_000_000_000m,
+        1_000_000_000_000_000m,
+        10_000_000_000_000_000m,
+        100_000_000_000_000_000m,
+        1_000_000_000_000_000_000m,
+        10_000_000_000_000_000_000m
+    };
+
     internal static object ConvertTextSpan(
         ReadOnlySpan<char> text,
         CsvDataColumnProjection column,
@@ -83,7 +107,7 @@ internal static partial class CsvDataProjectionConverter
         return int.TryParse(text, NumberStyles.Any, culture, out value);
     }
 
-    private static bool TryParseInvariantInt32(ReadOnlySpan<char> text, out int value)
+    internal static bool TryParseInvariantInt32(ReadOnlySpan<char> text, out int value)
     {
         value = 0;
         if (text.Length == 0)
@@ -127,7 +151,7 @@ internal static partial class CsvDataProjectionConverter
         return true;
     }
 
-    private static bool TryParseDateTime(
+    internal static bool TryParseDateTime(
         ReadOnlySpan<char> text,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
@@ -149,9 +173,105 @@ internal static partial class CsvDataProjectionConverter
         return DateTime.TryParse(text, culture, DateTimeStyles.None, out dateTime);
     }
 
+    internal static bool TryParseInvariantDecimal(ReadOnlySpan<char> text, out decimal value)
+    {
+        value = 0m;
+        if (text.Length == 0)
+        {
+            return false;
+        }
+
+        int index = 0;
+        bool negative = false;
+        if (text[0] == '-' || text[0] == '+')
+        {
+            negative = text[0] == '-';
+            index = 1;
+            if (index == text.Length)
+            {
+                return false;
+            }
+        }
+
+        bool sawDigit = false;
+        bool sawDecimalPoint = false;
+        int fractionalDigits = 0;
+        ulong significand = 0;
+        for (; index < text.Length; index++)
+        {
+            char current = text[index];
+            if (current == '.')
+            {
+                if (sawDecimalPoint)
+                {
+                    return false;
+                }
+
+                sawDecimalPoint = true;
+                continue;
+            }
+
+            uint digit = (uint)(current - '0');
+            if (digit > 9)
+            {
+                return false;
+            }
+
+            if (significand > (ulong.MaxValue - digit) / 10UL)
+            {
+                return false;
+            }
+
+            sawDigit = true;
+            significand = (significand * 10UL) + digit;
+            if (sawDecimalPoint)
+            {
+                fractionalDigits++;
+                if (fractionalDigits >= InvariantDecimalPowers.Length)
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (!sawDigit)
+        {
+            value = 0m;
+            return false;
+        }
+
+        value = new decimal(significand);
+        if (fractionalDigits != 0)
+        {
+            value /= InvariantDecimalPowers[fractionalDigits];
+        }
+
+        if (negative) value = -value;
+        return true;
+    }
+
     private static bool TryParseDefaultInvariantDateTime(ReadOnlySpan<char> text, out DateTime dateTime)
     {
         dateTime = default;
+        if (text.Length == 10 &&
+            text[4] == '-' &&
+            text[7] == '-' &&
+            TryParseFourDigits(text, 0, out var isoYear) &&
+            TryParseTwoDigits(text, 5, out var isoMonth) &&
+            TryParseTwoDigits(text, 8, out var isoDay))
+        {
+            try
+            {
+                dateTime = new DateTime(isoYear, isoMonth, isoDay);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                dateTime = default;
+                return false;
+            }
+        }
+
         if (text.Length != DefaultInvariantDateTimeFormat.Length ||
             text[2] != '/' ||
             text[5] != '/' ||

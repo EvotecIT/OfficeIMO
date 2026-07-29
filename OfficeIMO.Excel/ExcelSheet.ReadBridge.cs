@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         /// Reads the sheet's used range as a sequence of dictionaries using the first row as headers.
         /// </summary>
         /// <param name="options">Optional read options/presets.</param>
-        public IEnumerable<Dictionary<string, object?>> Rows(ExcelReadOptions? options = null) {
+        internal IEnumerable<Dictionary<string, object?>> Rows(ExcelReadOptions? options = null) {
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
             var a1 = sh.GetUsedRangeA1();
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="a1Range">Inclusive A1 range (e.g., "A1:C100").</param>
         /// <param name="options">Optional read options/presets.</param>
-        public IEnumerable<Dictionary<string, object?>> Rows(string a1Range, ExcelReadOptions? options = null) {
+        internal IEnumerable<Dictionary<string, object?>> Rows(string a1Range, ExcelReadOptions? options = null) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Maps the specified A1 range to a sequence of T using header-to-property mapping.
         /// </summary>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, ExcelReadOptions? options = null) where T : new() {
+        internal IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, ExcelReadOptions? options = null) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
         /// Streams the specified A1 range as instances of T using header-to-property mapping.
         /// Enumerate the returned sequence while the owning ExcelDocument is still open.
         /// </summary>
-        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        internal IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
             ExcelReadOptions? options = null,
             CancellationToken ct = default) where T : new() {
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads the sheet's used range as editable rows. First row is treated as headers.
         /// </summary>
-        public IEnumerable<RowEdit> RowsObjects(ExcelReadOptions? options = null) {
+        internal IEnumerable<RowEdit> RowsObjects(ExcelReadOptions? options = null) {
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
             var a1 = sh.GetUsedRangeA1();
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads the specified A1 range as editable rows. First row is treated as headers.
         /// </summary>
-        public IEnumerable<RowEdit> RowsObjects(string a1Range, ExcelReadOptions? options = null) {
+        internal IEnumerable<RowEdit> RowsObjects(string a1Range, ExcelReadOptions? options = null) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);

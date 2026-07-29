@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Streams a rectangular range and maps each data row into an instance of T without materializing the full result set first.
         /// Header cells are matched to public writable properties on T by name (case-insensitive).

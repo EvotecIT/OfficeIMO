@@ -181,29 +181,28 @@ public sealed record PersonRecord {
 }
 ```
 
-## Streaming and materializing
+## Read once or edit
 
-Use streaming mode when the caller only needs forward-only row processing.
+Use `OfficeIMO.Tabular` when the caller only needs a forward-only read. The
+same `TabularReader` contract handles CSV, TSV, XLSX, XLSM, and XLSB, so a data
+pipeline does not need a CSV-specific reader API.
 
 ```csharp
-foreach (var row in CsvDocument.Load("large.csv", new CsvLoadOptions {
-    Mode = CsvLoadMode.Stream,
-    HasHeaderRow = true,
-    TrimWhitespace = true
-}).AsEnumerable()) {
-    int id = row.AsInt32("Id");
-    string? status = row.AsString("Status");
+using OfficeIMO.Tabular;
+
+using var reader = TabularReader.Open("large.csv");
+while (reader.Read()) {
+    int id = reader.GetInt32(reader.GetOrdinal("Id"));
+    string status = reader.GetString(reader.GetOrdinal("Status"));
     Console.WriteLine($"{id}: {status}");
 }
 ```
 
-Transforms such as `SortBy`, `Filter`, and `AddColumn` require in-memory mode. Materialize deliberately when that is the desired tradeoff:
+Use `CsvDocument` when the file must be transformed or saved again. Operations
+such as `SortBy`, `Filter`, and `AddColumn` require materialized rows:
 
 ```csharp
-var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
-        Mode = CsvLoadMode.Stream
-    })
-    .Materialize()
+var transformed = CsvDocument.Load("large.csv")
     .AddColumn("ImportedUtc", _ => DateTime.UtcNow)
     .Filter(row => row.AsString("Status") == "Ready")
     .SortBy(row => row.AsInt32("Id"));
@@ -211,18 +210,17 @@ var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
 transformed.Save("ready.csv");
 ```
 
-Use `CreateDataReader` when the next hop expects an ADO.NET reader, such as `DataTable.Load` or a provider bulk-copy API. Schema inference can expose typed columns while the rows remain forward-only:
+`TabularReader` is an ADO.NET `DbDataReader`, so it also plugs directly into
+`DataTable.Load` and provider bulk-copy APIs. Enable inference when delimited
+text should expose typed columns:
 
 ```csharp
 using System.Data;
+using OfficeIMO.Tabular;
 
-var document = CsvDocument.Load("large.csv", new CsvLoadOptions {
-    Mode = CsvLoadMode.Stream
-});
-
-using var reader = document.CreateDataReader(new CsvDataReaderOptions {
-    InferSchema = true,
-    SchemaSampleSize = 1000
+using var reader = TabularReader.Open("large.csv", new TabularReadOptions {
+    InferTypes = true,
+    SchemaSampleRows = 1000
 });
 
 var table = new DataTable();

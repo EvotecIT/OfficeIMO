@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
-    public sealed partial class ExcelSheetReader {
+    internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource : IDisposable {
             private const int InitialBufferSize = 64 * 1024;
             private const int MaximumBufferSize = 64 * 1024 * 1024;
@@ -33,6 +33,10 @@ namespace OfficeIMO.Excel {
             private int _rowCount;
             private int _rowCursor;
             private int _currentRowOffset = -1;
+            private int _minimumCellRow = int.MaxValue;
+            private int _maximumCellRow;
+            private int _minimumCellColumn = int.MaxValue;
+            private int _maximumCellColumn;
             private int _lastDateStyleIndex = -1;
             private bool _lastDateStyleResult;
             private bool _cellsFitWithinRange = true;
@@ -127,6 +131,18 @@ namespace OfficeIMO.Excel {
             }
 
             internal bool CellsFitWithinRange => _cellsFitWithinRange;
+
+            internal bool TryGetUsedBounds(
+                out int firstRow,
+                out int firstColumn,
+                out int lastRow,
+                out int lastColumn) {
+                firstRow = _minimumCellRow;
+                firstColumn = _minimumCellColumn;
+                lastRow = _maximumCellRow;
+                lastColumn = _maximumCellColumn;
+                return lastRow > 0 && lastColumn > 0;
+            }
 
             internal void ReadValue(
                 int ordinal,
@@ -328,7 +344,7 @@ namespace OfficeIMO.Excel {
                         InitializeMetadataRow(rowOffset);
                     }
 
-                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowOffset, includeRow)) {
+                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowIndex, rowOffset, includeRow)) {
                         return false;
                     }
 
@@ -342,7 +358,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            private bool TryIndexRow(ref int position, int rowOffset, bool rowWithinRange) {
+            private bool TryIndexRow(
+                ref int position,
+                int rowIndex,
+                int rowOffset,
+                bool rowWithinRange) {
                 int nextColumn = 1;
                 int previousColumn = 0;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
@@ -360,6 +380,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     previousColumn = columnIndex;
+                    if (rowIndex < _minimumCellRow) _minimumCellRow = rowIndex;
+                    if (rowIndex > _maximumCellRow) _maximumCellRow = rowIndex;
+                    if (columnIndex < _minimumCellColumn) _minimumCellColumn = columnIndex;
+                    if (columnIndex > _maximumCellColumn) _maximumCellColumn = columnIndex;
                     int ordinal = columnIndex - _firstColumn;
                     if (!rowWithinRange || (uint)ordinal >= (uint)_fieldCount) {
                         _cellsFitWithinRange = false;
@@ -537,12 +561,13 @@ namespace OfficeIMO.Excel {
 
                         return;
                     }
-                }
 
-                if (_options.NumericAsDecimal
-                    && Utf8Parser.TryParse(trimmed, out decimal decimalNumber, out int decimalConsumed)
-                    && decimalConsumed == trimmed.Length) {
-                    objectValue = decimalNumber;
+                    if (TryConvertExcelNumberToDecimal(number, out decimal decimalNumber)) {
+                        objectValue = decimalNumber;
+                        return;
+                    }
+
+                    objectValue = number;
                     return;
                 }
 
@@ -595,8 +620,10 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_options.NumericAsDecimal && TryParseRawDecimal(value, _options.Culture, out decimal decimalNumber)) {
-                    objectValue = decimalNumber;
+                if (_options.NumericAsDecimal && parsedNumber) {
+                    objectValue = TryConvertExcelNumberToDecimal(number, out decimal decimalNumber)
+                        ? decimalNumber
+                        : number;
                     return;
                 }
 

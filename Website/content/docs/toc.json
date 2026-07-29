@@ -104,6 +104,12 @@
     ]
   },
   {
+    "title": "Tabular Data",
+    "items": [
+      { "title": "CSV and Excel Reader", "path": "tabular/index.md", "href": "/docs/tabular/" }
+    ]
+  },
+  {
     "title": "Visio",
     "items": [
       { "title": "Visio Overview", "path": "visio/index.md", "href": "/docs/visio/" },
