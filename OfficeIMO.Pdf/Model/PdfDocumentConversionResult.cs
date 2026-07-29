@@ -454,7 +454,8 @@ public sealed partial class PdfDocumentConversionResult {
         options.RequiredWarningCodes.Count > 0 ||
         options.RequiredWarningSources.Count > 0 ||
         options.RequireNoUnexpectedWarnings ||
-        options.RequireNoErrorWarnings;
+        options.RequireNoErrorWarnings ||
+        options.RequireLosslessConversion;
 
     private void AddUnexpectedWarningIssues(List<PdfConversionProofIssue> issues, PdfConversionProofOptions options) {
         var unexpectedCodes = new HashSet<string>(StringComparer.Ordinal);

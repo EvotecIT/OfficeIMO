@@ -360,7 +360,7 @@ public sealed class ReleasePackagingGuardrails {
         string migrationPath = Path.Combine(repositoryRoot, "MIGRATION.md");
         string migration = File.ReadAllText(migrationPath);
         Assert.Contains("# OfficeIMO migration guide", migration, StringComparison.Ordinal);
-        Assert.Contains("## Migrating from OfficeIMO 3.x to 4.0", migration, StringComparison.Ordinal);
+        Assert.Contains("## Migrating from OfficeIMO 3.0 to 3.1", migration, StringComparison.Ordinal);
         Assert.Contains("## Migrating from OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
         Assert.Contains("## Migrating from OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
         Assert.Contains("### Conversion API grammar", migration, StringComparison.Ordinal);

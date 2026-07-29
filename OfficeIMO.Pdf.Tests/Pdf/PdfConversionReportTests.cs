@@ -290,6 +290,28 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_LosslessProofCapturesSerializationDiagnostics() {
+        var report = new PdfConversionReport();
+        var pdfOptions = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create(pdfOptions).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
+        var proofOptions = new PdfConversionProofOptions {
+            RequireReadablePdf = false,
+            IncludeArtifactHash = false
+        }.RequireNoLoss();
+
+        PdfConversionProofReport proof = result.AssessProof(proofOptions);
+
+        Assert.False(proof.IsSatisfied);
+        Assert.True(proof.HasLoss);
+        Assert.Contains(proof.Issues, issue => issue.Feature == "SaveDiagnostics");
+        Assert.Contains(proof.Issues, issue => issue.Feature == "ConversionLoss");
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesRequiredPageCount() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create()
