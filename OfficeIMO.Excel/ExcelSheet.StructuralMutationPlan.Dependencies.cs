@@ -14,7 +14,8 @@ namespace OfficeIMO.Excel {
         private static void ClassifyExternalFormulaPlanImpact(
             OpenXmlElement formula,
             ISet<OpenXmlElement> validationImpacts,
-            ISet<OpenXmlElement> conditionalFormattingImpacts) {
+            ISet<OpenXmlElement> conditionalFormattingImpacts,
+            ISet<OpenXmlElement> sparklineImpacts) {
             for (OpenXmlElement? ancestor = formula.Parent;
                 ancestor != null;
                 ancestor = ancestor.Parent) {
@@ -24,6 +25,10 @@ namespace OfficeIMO.Excel {
                 }
                 if (ancestor is ConditionalFormatting || ancestor is X14.ConditionalFormatting) {
                     conditionalFormattingImpacts.Add(ancestor);
+                    return;
+                }
+                if (ancestor is X14.Sparkline) {
+                    sparklineImpacts.Add(ancestor);
                     return;
                 }
             }

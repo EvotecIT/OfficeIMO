@@ -19,7 +19,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
-            if (options?.PdfOptions == null) {
+            bool hasConfiguredPdfOptions = options?.HasExplicitPdfFontConfiguration == true;
+            if (!hasConfiguredPdfOptions) {
                 pdfOptions.DefaultFontSize = defaults.FontSize;
             }
             if ((string.IsNullOrWhiteSpace(pdfOptions.Language) ||
@@ -33,7 +34,6 @@ namespace OfficeIMO.Word.Pdf {
             bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;
             bool allowDocumentFontEmbedding = allowSystemFontEmbedding &&
                                               options?.ResourcePolicy.AllowDocumentFontEmbedding == true;
-            bool hasConfiguredPdfOptions = options?.PdfOptions != null;
             bool appliedNativeDefaultFont = false;
             if (!hasConfiguredPdfOptions || !string.IsNullOrWhiteSpace(options?.FontFamily)) {
                 appliedNativeDefaultFont = ApplyNativeDefaultFont(

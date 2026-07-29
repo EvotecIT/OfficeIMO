@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
             int worksheetRangeMetadata = 0;
             int queryTableSorts = 0;
             int webPublishItems = 0;
+            int tables = 0;
             int sparklines = 0;
             int drawings = 0;
             int pivots = 0;
@@ -81,6 +82,7 @@ namespace OfficeIMO.Excel {
             var targetCellCoordinates = new HashSet<long>();
             var externalValidationImpacts = new HashSet<OpenXmlElement>();
             var externalConditionalFormattingImpacts = new HashSet<OpenXmlElement>();
+            var externalSparklineImpacts = new HashSet<OpenXmlElement>();
             var pendingOwnerCells = new Dictionary<long, object?>();
             var pendingDirectCells = new List<(ExcelSheet Owner, int Row, int Column, object? Value)>();
             ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
@@ -210,7 +212,8 @@ namespace OfficeIMO.Excel {
                             ClassifyExternalFormulaPlanImpact(
                                 formula,
                                 externalValidationImpacts,
-                                externalConditionalFormattingImpacts);
+                                externalConditionalFormattingImpacts,
+                                externalSparklineImpacts);
                         }
                     }
                     if (element is Hyperlink hyperlink) {
@@ -243,7 +246,8 @@ namespace OfficeIMO.Excel {
                         ClassifyExternalFormulaPlanImpact(
                             threshold,
                             externalValidationImpacts,
-                            externalConditionalFormattingImpacts);
+                            externalConditionalFormattingImpacts,
+                            externalSparklineImpacts);
                     }
                     if (element is DataReference source
                         && string.IsNullOrWhiteSpace(source.Id?.Value)
@@ -307,7 +311,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
-                    formulas += CountTableFormulaPlanImpacts(
+                    int tableFormulaImpacts = CountTableFormulaPlanImpacts(
                         tablePart,
                         rewriteUnqualified,
                         kind,
@@ -315,6 +319,10 @@ namespace OfficeIMO.Excel {
                         lastRow,
                         count,
                         budget);
+                    formulas += tableFormulaImpacts;
+                    if (rewriteUnqualified || tableFormulaImpacts > 0) {
+                        tables++;
+                    }
                 }
             }
 
@@ -457,6 +465,7 @@ namespace OfficeIMO.Excel {
             }
             validation += externalValidationImpacts.Count;
             conditionalFormatting += externalConditionalFormattingImpacts.Count;
+            sparklines += externalSparklineImpacts.Count;
             AddImpact(
                 impacts,
                 "worksheet-cells",
@@ -481,7 +490,7 @@ namespace OfficeIMO.Excel {
             AddImpact(
                 impacts,
                 "tables",
-                CountBounded(_worksheetPart.TableDefinitionParts, budget),
+                tables,
                 "Worksheet tables are checked for range, filter, and calculated-column changes.");
             AddImpact(
                 impacts,
