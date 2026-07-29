@@ -25,6 +25,170 @@ namespace OfficeIMO.Excel {
             return count;
         }
 
+        private int CountWorksheetRangeMetadataPlanImpacts(
+            Worksheet worksheet,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            var affected = new HashSet<OpenXmlElement>();
+            bool Changes(string? reference) => ReferenceListChangesForPlan(
+                reference,
+                kind,
+                firstRow,
+                lastRow,
+                count);
+
+            foreach (AutoFilter filter in worksheet.Descendants<AutoFilter>()) {
+                if (Changes(filter.Reference?.Value)) {
+                    affected.Add(filter);
+                }
+            }
+
+            SheetDimension? dimension = worksheet.GetFirstChild<SheetDimension>();
+            if (dimension != null && Changes(dimension.Reference?.Value)) {
+                affected.Add(dimension);
+            }
+
+            foreach (IgnoredError error in worksheet.Descendants<IgnoredError>()) {
+                if (Changes(error.SequenceOfReferences?.InnerText)) {
+                    affected.Add(error);
+                }
+            }
+            foreach (X14.IgnoredError error in worksheet.Descendants<X14.IgnoredError>()) {
+                if (Changes(error.ReferenceSequence?.Text)) {
+                    affected.Add(error);
+                }
+            }
+
+            Scenarios? scenarios = worksheet.GetFirstChild<Scenarios>();
+            if (scenarios != null) {
+                if (Changes(scenarios.SequenceOfReferences?.InnerText)) {
+                    affected.Add(scenarios);
+                }
+                foreach (Scenario scenario in scenarios.Elements<Scenario>()) {
+                    if (scenario.Elements<InputCells>()
+                        .Any(input => Changes(input.CellReference?.Value))) {
+                        affected.Add(scenario);
+                    }
+                }
+            }
+
+            foreach (CellWatch watch in worksheet.Descendants<CellWatch>()) {
+                if (Changes(watch.CellReference?.Value)) {
+                    affected.Add(watch);
+                }
+            }
+
+            foreach (OpenXmlElement tag in worksheet.Descendants()
+                .Where(element => string.Equals(
+                    element.LocalName,
+                    "cellSmartTag",
+                    StringComparison.OrdinalIgnoreCase))) {
+                string? reference = tag.GetAttributes()
+                    .FirstOrDefault(attribute => string.Equals(
+                        attribute.LocalName,
+                        "r",
+                        StringComparison.OrdinalIgnoreCase))
+                    .Value;
+                if (Changes(reference)) {
+                    affected.Add(tag);
+                }
+            }
+
+            foreach (SortState sortState in worksheet.Descendants<SortState>()) {
+                if (Changes(sortState.Reference?.Value)
+                    || sortState.Elements<SortCondition>()
+                        .Any(condition => Changes(condition.Reference?.Value))
+                    || sortState.Elements<X14.SortCondition>()
+                        .Any(condition => Changes(condition.Reference?.Value))) {
+                    affected.Add(sortState);
+                }
+            }
+
+            foreach (SheetView view in worksheet.Descendants<SheetView>()) {
+                if (Changes(view.TopLeftCell?.Value)) {
+                    affected.Add(view);
+                }
+            }
+            foreach (CustomSheetView view in worksheet.Descendants<CustomSheetView>()) {
+                if (Changes(view.TopLeftCell?.Value)) {
+                    affected.Add(view);
+                }
+            }
+            foreach (Pane pane in worksheet.Descendants<Pane>()) {
+                if (Changes(pane.TopLeftCell?.Value)) {
+                    affected.Add(pane);
+                }
+            }
+            foreach (Selection selection in worksheet.Descendants<Selection>()) {
+                if (Changes(selection.ActiveCell?.Value)
+                    || Changes(selection.SequenceOfReferences?.InnerText)) {
+                    affected.Add(selection);
+                }
+            }
+
+            foreach (Break pageBreak in worksheet.Descendants<RowBreaks>()
+                .SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
+                if (pageBreak.Id?.Value is uint rowId
+                    && rowId > 0U
+                    && rowId >= (uint)firstRow) {
+                    affected.Add(pageBreak);
+                }
+            }
+
+            return affected.Count;
+        }
+
+        private int CountQueryTableSortPlanImpacts(
+            QueryTable? queryTable,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            if (queryTable == null) {
+                return 0;
+            }
+
+            int impacts = 0;
+            foreach (SortState sortState in queryTable.Descendants<SortState>()) {
+                if (ReferenceListChangesForPlan(
+                        sortState.Reference?.Value,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count)
+                    || sortState.Elements<SortCondition>().Any(condition =>
+                        ReferenceListChangesForPlan(
+                            condition.Reference?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count))
+                    || sortState.Elements<X14.SortCondition>().Any(condition =>
+                        ReferenceListChangesForPlan(
+                            condition.Reference?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count))) {
+                    impacts++;
+                }
+            }
+            return impacts;
+        }
+
+        private static bool ChartFormulaCacheWillBeInvalidated(OpenXmlLeafTextElement formula) {
+            OpenXmlElement? reference = formula.Parent;
+            return reference != null
+                && (reference.ChildElements.Any(element =>
+                        element.LocalName.EndsWith("Cache", StringComparison.OrdinalIgnoreCase))
+                    || (string.Equals(reference.LocalName, "numDim", StringComparison.Ordinal)
+                        || string.Equals(reference.LocalName, "strDim", StringComparison.Ordinal))
+                    && reference.ChildElements.Any(element =>
+                        string.Equals(element.LocalName, "lvl", StringComparison.Ordinal)));
+        }
+
         private int CountNamedSheetViewPlanImpacts(
             ExcelRowMutationKind kind,
             int firstRow,

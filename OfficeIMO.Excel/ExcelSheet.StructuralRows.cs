@@ -422,7 +422,11 @@ namespace OfficeIMO.Excel {
                     || string.Equals(sheetElement.Name?.Value, Name, StringComparison.OrdinalIgnoreCase);
                 ExcelSheet formulaSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 foreach (string formula in formulaSheet.ResolveSharedFormulaTextsForStructuralValidation()) {
                     ThrowIfFormulaReferenceOverflows(formula, firstRow, count, rewriteUnqualified);
                 }

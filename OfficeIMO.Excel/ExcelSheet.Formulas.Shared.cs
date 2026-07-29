@@ -153,7 +153,11 @@ namespace OfficeIMO.Excel {
 
                 ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 sheet.MaterializeSharedFormulasForStructuralEdit();
             }
         }
@@ -167,7 +171,11 @@ namespace OfficeIMO.Excel {
 
                 ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 sheet.ResolveSharedFormulaTextsForStructuralValidation();
             }
         }

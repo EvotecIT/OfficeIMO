@@ -70,6 +70,8 @@ namespace OfficeIMO.Excel {
             int dataConsolidation = 0;
             int namedSheetViews = 0;
             int protectedRanges = 0;
+            int worksheetRangeMetadata = 0;
+            int queryTableSorts = 0;
             int webPublishItems = 0;
             int sparklines = 0;
             int drawings = 0;
@@ -117,7 +119,11 @@ namespace OfficeIMO.Excel {
                 }
                 ExcelSheet inspectedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
-                    : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
                 IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
                     inspectedSheet.BuildEffectiveCellCoordinates();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
@@ -276,6 +282,15 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                if (rewriteUnqualified) {
+                    worksheetRangeMetadata += CountWorksheetRangeMetadataPlanImpacts(
+                        worksheetPart.Worksheet,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count);
+                }
+
                 if (worksheetPart.DrawingsPart != null) {
                     drawingOwners.Add((worksheetPart.DrawingsPart, rewriteUnqualified));
                 }
@@ -361,6 +376,12 @@ namespace OfficeIMO.Excel {
                     ?? Enumerable.Empty<OpenXmlElement>()) {
                     budget.Consume();
                 }
+                queryTableSorts += CountQueryTableSortPlanImpacts(
+                    queryPart.QueryTable,
+                    kind,
+                    firstRow,
+                    lastRow,
+                    count);
                 if (queryPart.QueryTable?.ConnectionId?.Value is uint connectionId) {
                     queryConnectionIds.Add(connectionId);
                 }
@@ -484,6 +505,16 @@ namespace OfficeIMO.Excel {
                 "protected-ranges",
                 protectedRanges,
                 "Editable protected-range metadata is checked and remapped.");
+            AddImpact(
+                impacts,
+                "worksheet-range-metadata",
+                worksheetRangeMetadata,
+                "Worksheet filters, views, scenarios, watches, errors, and page ranges are checked and remapped.");
+            AddImpact(
+                impacts,
+                "query-table-sorts",
+                queryTableSorts,
+                "Query-table sort ranges are checked and remapped.");
             AddImpact(
                 impacts,
                 "web-publish",
@@ -694,16 +725,20 @@ namespace OfficeIMO.Excel {
                 foreach (OpenXmlElement element in chartRoot.Descendants()) {
                     budget.Consume();
                     if (element is OpenXmlLeafTextElement formula
-                        && string.Equals(formula.LocalName, "f", StringComparison.Ordinal)
-                        && FormulaChangesForPlan(
-                            formula.Text,
-                            kind,
-                            firstRow,
-                            lastRow,
-                            count,
-                            rewriteUnqualifiedReferences)) {
-                        formulas++;
-                        chartChanges = true;
+                        && string.Equals(formula.LocalName, "f", StringComparison.Ordinal)) {
+                        if (FormulaChangesForPlan(
+                                formula.Text,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count,
+                                rewriteUnqualifiedReferences)) {
+                            formulas++;
+                            chartChanges = true;
+                        }
+                        if (ChartFormulaCacheWillBeInvalidated(formula)) {
+                            chartChanges = true;
+                        }
                     }
                 }
                 if (chartChanges) {

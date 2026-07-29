@@ -11,6 +11,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal int RegisteredSheetWrapperCountForTests {
+            get {
+                lock (_sheetWrapperCacheLock) {
+                    return _sheetWrappers.Count;
+                }
+            }
+        }
+
         internal void ResetStructuralMutationCaches(WorksheetPart worksheetPart) {
             var wrappers = new List<ExcelSheet>();
             lock (_sheetWrapperCacheLock) {
