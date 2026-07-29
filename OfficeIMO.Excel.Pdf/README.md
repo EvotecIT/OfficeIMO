@@ -97,7 +97,7 @@ using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Open("statement.pdf");
-PdfExcelImportReport report = pdf.SaveAsExcel("statement-tables.xlsx");
+PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx");
 
 foreach (var table in report.Entries) {
     Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
@@ -116,9 +116,9 @@ PdfDocument pdf = PdfDocument.Open("bank-statement.pdf");
 PdfLogicalDocument source = pdf.Read.Logical(
     PdfPageSelection.Parse("1-3"));
 
-PdfExcelImportReport report = source.SaveAsExcel(
+PdfExcelTableImportReport report = source.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",
-    new PdfExcelImportOptions {
+    new PdfExcelTableImportOptions {
         MaxRows = 250
     });
 

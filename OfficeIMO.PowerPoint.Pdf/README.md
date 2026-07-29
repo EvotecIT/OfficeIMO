@@ -130,7 +130,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Open("handout.pdf");
-PdfPowerPointImportReport report = pdf.SaveAsPowerPoint("handout.pptx");
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout.pptx");
 
 foreach (var page in report.VisualPages) {
     Console.WriteLine($"PDF page {page.PageNumber}, slide {page.SlideIndex + 1}");
@@ -145,11 +145,11 @@ options.MaxRows = 400;
 options.MaxRowsPerSlide = 18;
 options.MaxColumnsPerSlide = 6;
 
-PdfPowerPointImportReport report = pdf.SaveAsPowerPoint(
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint(
     "financial-statement-tables.pptx",
     options);
 
-foreach (var table in report.Entries) {
+foreach (var table in report.TableEntries) {
     Console.WriteLine($"Page {table.PageNumber}, slide {table.SlideIndex + 1}");
 }
 

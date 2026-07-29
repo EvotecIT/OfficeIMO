@@ -33,8 +33,8 @@ public sealed class PdfPowerPointVisualPageEntry {
 /// <summary>
 /// Describes one logical PDF table imported into a PowerPoint slide.
 /// </summary>
-public sealed class PdfPowerPointImportEntry {
-    internal PdfPowerPointImportEntry(
+public sealed class PdfPowerPointTableImportEntry {
+    internal PdfPowerPointTableImportEntry(
         int pageIndex,
         int pageNumber,
         int tableIndex,
@@ -113,28 +113,28 @@ public sealed class PdfPowerPointImportEntry {
     public bool HeaderRowIncluded { get; }
 }
 
-/// <summary>Reports the detected tables imported from a logical PDF into a PowerPoint presentation.</summary>
-public sealed class PdfPowerPointImportReport {
-    internal PdfPowerPointImportReport(
-        IReadOnlyList<PdfPowerPointImportEntry> entries,
+/// <summary>Reports a PDF-to-PowerPoint conversion in visual-page or editable-table mode.</summary>
+public sealed class PdfPowerPointConversionReport {
+    internal PdfPowerPointConversionReport(
+        IReadOnlyList<PdfPowerPointTableImportEntry> entries,
         OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
         Mode = PdfPowerPointImportMode.EditableTables;
-        Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
+        TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         VisualPages = Array.Empty<PdfPowerPointVisualPageEntry>();
     }
 
-    internal PdfPowerPointImportReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+    internal PdfPowerPointConversionReport(IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
         Mode = PdfPowerPointImportMode.VisualPages;
-        Entries = Array.Empty<PdfPowerPointImportEntry>();
+        TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
     }
 
-    /// <summary>Gets the import strategy used for this operation.</summary>
+    /// <summary>Gets the conversion strategy used for this operation.</summary>
     public PdfPowerPointImportMode Mode { get; }
 
     /// <summary>Gets a snapshot of imported table segment metadata.</summary>
-    public IReadOnlyList<PdfPowerPointImportEntry> Entries { get; }
+    public IReadOnlyList<PdfPowerPointTableImportEntry> TableEntries { get; }
 
     /// <summary>Gets a snapshot of visual page-to-slide mappings.</summary>
     public IReadOnlyList<PdfPowerPointVisualPageEntry> VisualPages { get; }
@@ -147,41 +147,41 @@ public sealed class PdfPowerPointImportReport {
 
     /// <summary>Gets whether table reconstruction truncated data or visual rendering reported a failure/simplification.</summary>
     public bool HasLoss =>
-        Entries.Any(static entry => entry.Truncated) ||
+        TableEntries.Any(static entry => entry.Truncated) ||
         VisualPages.Any(static page =>
             !page.Succeeded ||
             page.CapabilityDiagnostics.Any(static diagnostic =>
                 diagnostic.SupportLevel != OfficeIMO.Pdf.PdfRenderSupportLevel.Supported));
 
-    /// <summary>Throws when the import reported possible content loss.</summary>
+    /// <summary>Throws when the conversion reported possible content loss.</summary>
     public void RequireNoLoss() {
         if (HasLoss) throw new InvalidOperationException("PDF-to-PowerPoint conversion reported possible content loss.");
     }
 }
 
-/// <summary>Contains an editable PowerPoint presentation and the corresponding PDF table import report.</summary>
-public sealed class PdfPowerPointImportResult {
-    internal PdfPowerPointImportResult(PptCore.PowerPointPresentation value, PdfPowerPointImportReport report) {
+/// <summary>Contains a PowerPoint presentation and the corresponding PDF conversion report.</summary>
+public sealed class PdfPowerPointConversionResult {
+    internal PdfPowerPointConversionResult(PptCore.PowerPointPresentation value, PdfPowerPointConversionReport report) {
         Value = value ?? throw new ArgumentNullException(nameof(value));
         Report = report ?? throw new ArgumentNullException(nameof(report));
     }
 
-    /// <summary>Gets the generated editable PowerPoint presentation. The caller owns and disposes it.</summary>
+    /// <summary>Gets the generated PowerPoint presentation. The caller owns and disposes it.</summary>
     public PptCore.PowerPointPresentation Value { get; }
 
-    /// <summary>Gets the immutable import report.</summary>
-    public PdfPowerPointImportReport Report { get; }
+    /// <summary>Gets the immutable conversion report.</summary>
+    public PdfPowerPointConversionReport Report { get; }
 
-    /// <summary>Gets whether the import reported possible content loss.</summary>
+    /// <summary>Gets whether the conversion reported possible content loss.</summary>
     public bool HasLoss => Report.HasLoss;
 
     /// <summary>Gets whether the source contained page content outside the imported tables.</summary>
     public bool HasOmittedPageContent => Report.HasOmittedPageContent;
 
-    /// <summary>Returns the generated editable PowerPoint presentation.</summary>
+    /// <summary>Returns the generated PowerPoint presentation.</summary>
     public PptCore.PowerPointPresentation RequireValue() => Value;
 
-    /// <summary>Returns the generated editable presentation only when no detected table was truncated.</summary>
+    /// <summary>Returns the generated presentation only when the selected conversion mode reported no loss.</summary>
     public PptCore.PowerPointPresentation RequireNoLoss() {
         Report.RequireNoLoss();
         return Value;

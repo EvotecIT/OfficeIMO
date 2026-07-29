@@ -64,12 +64,10 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
                 continue;
             }
 
-            int index = text.IndexOf(span.Text, cursor, StringComparison.Ordinal);
-            if (index < 0) {
+            if (!TryFindNormalizedSpan(text, span.Text, cursor, out int index, out int end)) {
                 continue;
             }
 
-            int end = index + span.Text.Length;
             string runText = text.Substring(cursor, end - cursor);
             if (runs.Count > 0 && StylesMatch(runs[runs.Count - 1].SourceSpan, span)) {
                 PdfLogicalTextRun previous = runs[runs.Count - 1];
@@ -95,6 +93,60 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         return Array.AsReadOnly(runs.ToArray());
+    }
+
+    private static bool TryFindNormalizedSpan(
+        string text,
+        string spanText,
+        int start,
+        out int index,
+        out int end) {
+        index = -1;
+        end = -1;
+
+        int sourceStart = 0;
+        while (sourceStart < spanText.Length && char.IsWhiteSpace(spanText[sourceStart])) {
+            sourceStart++;
+        }
+
+        if (sourceStart == spanText.Length) {
+            return false;
+        }
+
+        for (int candidate = start; candidate < text.Length; candidate++) {
+            if (text[candidate] != spanText[sourceStart]) {
+                continue;
+            }
+
+            int source = sourceStart;
+            int target = candidate;
+            while (source < spanText.Length) {
+                if (char.IsWhiteSpace(spanText[source])) {
+                    while (source < spanText.Length && char.IsWhiteSpace(spanText[source])) {
+                        source++;
+                    }
+                    while (target < text.Length && char.IsWhiteSpace(text[target])) {
+                        target++;
+                    }
+                    continue;
+                }
+
+                if (target >= text.Length || text[target] != spanText[source]) {
+                    break;
+                }
+
+                source++;
+                target++;
+            }
+
+            if (source == spanText.Length) {
+                index = candidate;
+                end = target;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool StylesMatch(PdfTextSpan? left, PdfTextSpan right) {

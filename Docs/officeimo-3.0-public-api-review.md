@@ -56,7 +56,7 @@ The type was emitted by `OfficeIMO.Drawing` only for `netstandard2.0` and `net47
 
 ### PDF table adapters
 
-The Excel and PowerPoint adapters now say “tables” in method and result names. Their reports add `SourceScope` and `HasOmittedPageContent`, so non-table PDF content can no longer be silently described as lossless. The exact old-to-new names are in the [3.0 migration guide](officeimo-3.0-migration.md#pdf-table-imports).
+The Excel and PowerPoint adapters now say “tables” in method and result names. Their reports add `SourceScope` and `HasOmittedPageContent`, so non-table PDF content can no longer be silently described as lossless. The exact old-to-new names are in the [3.0 migration section](../MIGRATION.md#pdf-table-imports).
 
 ### Legacy XLS
 

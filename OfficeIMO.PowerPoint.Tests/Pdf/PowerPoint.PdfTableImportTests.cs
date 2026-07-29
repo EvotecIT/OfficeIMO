@@ -24,12 +24,12 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(pdf);
-        PdfPowerPointImportResult result = opened.ToPowerPointPresentationResult();
+        PdfPowerPointConversionResult result = opened.ToPowerPointPresentationResult();
 
         Assert.Equal(PdfPowerPointImportMode.VisualPages, result.Report.Mode);
         Assert.Equal(new[] { 1, 2 }, result.Report.VisualPages.Select(page => page.PageNumber).ToArray());
         Assert.All(result.Report.VisualPages, page => Assert.True(page.Succeeded));
-        Assert.Empty(result.Report.Entries);
+        Assert.Empty(result.Report.TableEntries);
 
         using var presentation = new MemoryStream();
         using (result.Value) {
@@ -69,12 +69,12 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointImportReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             PdfPowerPointImportOptions.CreateEditableTables());
 
-        PdfPowerPointImportEntry result = Assert.Single(report.Entries);
+        PdfPowerPointTableImportEntry result = Assert.Single(report.TableEntries);
         Assert.Equal(1, result.PageNumber);
         Assert.Equal(0, result.TableIndex);
         Assert.Equal(0, result.SlideIndex);
@@ -131,7 +131,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointImportReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             presentation,
             new PdfPowerPointImportOptions {
@@ -140,7 +140,7 @@ public class PowerPointPdfTableImportTests {
                 IncludeSourceTitles = false
             });
 
-        PdfPowerPointImportEntry result = Assert.Single(report.Entries);
+        PdfPowerPointTableImportEntry result = Assert.Single(report.TableEntries);
         Assert.Equal(2, result.RowCount);
         Assert.Equal(3, result.TotalRowCount);
         Assert.True(result.Truncated);
@@ -159,7 +159,7 @@ public class PowerPointPdfTableImportTests {
         }
 
         using var emptyPresentation = new MemoryStream();
-        PdfPowerPointImportReport emptyReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport emptyReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyPresentation,
             new PdfPowerPointImportOptions {
@@ -167,7 +167,7 @@ public class PowerPointPdfTableImportTests {
                 EmptyPresentationMessage = "Nothing tabular was detected."
             });
 
-        Assert.Empty(emptyReport.Entries);
+        Assert.Empty(emptyReport.TableEntries);
         using PresentationDocument emptyPackage = PresentationDocument.Open(new MemoryStream(emptyPresentation.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(emptyPackage).ToList());
         Assert.Empty(emptyPackage.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));
@@ -196,7 +196,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointImportReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfPowerPointImportOptions {
@@ -205,7 +205,7 @@ public class PowerPointPdfTableImportTests {
                 EmptyPresentationMessage = "No table rows were imported."
             });
 
-        Assert.Empty(report.Entries);
+        Assert.Empty(report.TableEntries);
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));
@@ -238,7 +238,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointImportReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfPowerPointImportOptions {
@@ -247,7 +247,7 @@ public class PowerPointPdfTableImportTests {
                 MaxColumnsPerSlide = 2
             });
 
-        IReadOnlyList<PdfPowerPointImportEntry> results = report.Entries;
+        IReadOnlyList<PdfPowerPointTableImportEntry> results = report.TableEntries;
         Assert.Equal(4, results.Count);
         Assert.All(results, result => {
             Assert.Equal(4, result.SegmentCount);

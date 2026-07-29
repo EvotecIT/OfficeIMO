@@ -2,8 +2,8 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Describes one logical PDF table imported into an Excel worksheet.
     /// </summary>
-public sealed class PdfExcelImportEntry {
-        internal PdfExcelImportEntry(
+public sealed class PdfExcelTableImportEntry {
+        internal PdfExcelTableImportEntry(
             int pageIndex,
             int pageNumber,
             int tableIndex,
@@ -63,16 +63,16 @@ public sealed class PdfExcelImportEntry {
     }
 
     /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
-    public sealed class PdfExcelImportReport {
-        internal PdfExcelImportReport(
-            IReadOnlyList<PdfExcelImportEntry> entries,
+    public sealed class PdfExcelTableImportReport {
+        internal PdfExcelTableImportReport(
+            IReadOnlyList<PdfExcelTableImportEntry> entries,
             OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope) {
             Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
             SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         }
 
         /// <summary>Gets a snapshot of imported table metadata.</summary>
-        public IReadOnlyList<PdfExcelImportEntry> Entries { get; }
+        public IReadOnlyList<PdfExcelTableImportEntry> Entries { get; }
 
         /// <summary>Gets source-page content that was outside this table-only import.</summary>
         public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
@@ -90,8 +90,8 @@ public sealed class PdfExcelImportEntry {
     }
 
     /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
-    public sealed class PdfExcelImportResult {
-        internal PdfExcelImportResult(ExcelDocument value, PdfExcelImportReport report) {
+    public sealed class PdfExcelTableImportResult {
+        internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) {
             Value = value ?? throw new ArgumentNullException(nameof(value));
             Report = report ?? throw new ArgumentNullException(nameof(report));
         }
@@ -100,7 +100,7 @@ public sealed class PdfExcelImportEntry {
         public ExcelDocument Value { get; }
 
         /// <summary>Gets the immutable table import report.</summary>
-        public PdfExcelImportReport Report { get; }
+        public PdfExcelTableImportReport Report { get; }
 
         /// <summary>Gets whether the import truncated content within a detected source table.</summary>
         public bool HasLoss => Report.HasLoss;

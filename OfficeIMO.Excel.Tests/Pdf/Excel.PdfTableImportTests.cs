@@ -33,14 +33,14 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelImportReport report = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false
             });
 
-        PdfExcelImportEntry result = Assert.Single(report.Entries);
+        PdfExcelTableImportEntry result = Assert.Single(report.Entries);
         Assert.Equal(1, result.PageNumber);
         Assert.Equal(0, result.TableIndex);
         Assert.Equal(3, result.ColumnCount);
@@ -94,14 +94,14 @@ public partial class Excel {
             .ToBytes();
         using var workbook = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
 
-        PdfExcelImportReport report = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false
             });
 
-        PdfExcelImportEntry result = Assert.Single(report.Entries);
+        PdfExcelTableImportEntry result = Assert.Single(report.Entries);
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);
         Assert.Equal("A-100", values[1, 0]);
@@ -132,14 +132,14 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelImportReport report = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             workbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false
             });
 
-        PdfExcelImportEntry result = Assert.Single(report.Entries);
+        PdfExcelTableImportEntry result = Assert.Single(report.Entries);
         byte[] workbookBytes = workbook.ToArray();
         using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(workbookBytes), false)) {
             SheetData sheetData = GetOnlySheetData(spreadsheet);
@@ -163,10 +163,10 @@ public partial class Excel {
         Assert.Equal(2d, Convert.ToDouble(values[1, 2], CultureInfo.InvariantCulture));
 
         using var textWorkbook = new MemoryStream();
-        PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf),
             textWorkbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false,
                 ConvertNumericColumns = false
             });
@@ -215,15 +215,15 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        PdfExcelImportReport report = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport report = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             workbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 MaxRows = 2,
                 AutoFitColumns = false
             });
 
-        PdfExcelImportEntry result = Assert.Single(report.Entries);
+        PdfExcelTableImportEntry result = Assert.Single(report.Entries);
         Assert.Equal(1, result.PageNumber);
         Assert.Equal(2, result.RowCount);
         Assert.Equal(3, result.TotalRowCount);
@@ -238,10 +238,10 @@ public partial class Excel {
         Assert.Equal("Customer", values[2, 0]);
 
         using var emptyWorkbook = new MemoryStream();
-        PdfExcelImportReport emptyReport = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport emptyReport = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyWorkbook,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false
             });
 

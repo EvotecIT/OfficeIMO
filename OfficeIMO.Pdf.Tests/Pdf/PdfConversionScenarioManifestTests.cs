@@ -1908,21 +1908,21 @@ public sealed class PdfConversionScenarioManifestTests {
         }
 
         using var excelStream = new MemoryStream();
-        PdfExcelImportReport excelReport = PdfExcelConverterExtensions.SaveAsExcel(
+        PdfExcelTableImportReport excelReport = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
             logicalDocument,
             excelStream,
-            new PdfExcelImportOptions {
+            new PdfExcelTableImportOptions {
                 AutoFitColumns = false
             });
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointImportReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             logicalDocument,
             powerPointStream,
             PdfPowerPointImportOptions.CreateEditableTables());
 
-        PdfExcelImportEntry excelResult = Assert.Single(excelReport.Entries);
-        PdfPowerPointImportEntry powerPointResult = Assert.Single(powerPointReport.Entries);
+        PdfExcelTableImportEntry excelResult = Assert.Single(excelReport.Entries);
+        PdfPowerPointTableImportEntry powerPointResult = Assert.Single(powerPointReport.TableEntries);
 
         Assert.Equal(3, excelResult.ColumnCount);
         Assert.Equal(3, powerPointResult.ColumnCount);

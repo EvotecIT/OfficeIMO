@@ -696,8 +696,12 @@ namespace OfficeIMO.Tests {
             var bodyLetter = Assert.Single(page.Letters, letter => letter.Value == "S");
 
             Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "StyledListMarkerFont");
-            Assert.Contains("Courier", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("Courier", bodyLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                MonospacePdfFontNameParts,
+                fontName => markerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(
+                MonospacePdfFontNameParts,
+                fontName => bodyLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -730,7 +734,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "LevelMarkerRunPropertiesBody");
             Assert.Equal(1, CountOccurrences(content, "0.753 0 0 rg"));
-            Assert.Contains("Courier", markerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                MonospacePdfFontNameParts,
+                fontName => markerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

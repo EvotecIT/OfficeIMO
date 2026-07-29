@@ -4,13 +4,13 @@ namespace OfficeIMO.OpenDocument.Ods.Pdf;
 
 /// <summary>Diagnostics from the PDF-to-Excel and Excel-to-ODS stages.</summary>
 public sealed class PdfOdsConversionReport {
-    internal PdfOdsConversionReport(PdfExcelImportReport pdfReport, OdfConversionReport openDocumentReport) {
+    internal PdfOdsConversionReport(PdfExcelTableImportReport pdfReport, OdfConversionReport openDocumentReport) {
         PdfReport = pdfReport ?? throw new ArgumentNullException(nameof(pdfReport));
         OpenDocumentReport = openDocumentReport ?? throw new ArgumentNullException(nameof(openDocumentReport));
     }
 
     /// <summary>Detected-table import evidence and omitted PDF page scope.</summary>
-    public PdfExcelImportReport PdfReport { get; }
+    public PdfExcelTableImportReport PdfReport { get; }
     /// <summary>Feature mappings from Excel to ODS.</summary>
     public OdfConversionReport OpenDocumentReport { get; }
     /// <summary>True when either stage truncated, approximated, skipped, or omitted source content.</summary>

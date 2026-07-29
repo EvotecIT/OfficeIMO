@@ -162,6 +162,60 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
+    public void OfficeImageApisUseCanonicalVerbAndCardinalityVocabulary() {
+        Assembly[] assemblies = {
+            typeof(WordDocument).Assembly,
+            typeof(ExcelDocument).Assembly,
+            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
+        };
+        MethodInfo[] methods = assemblies
+            .SelectMany(static assembly => assembly.GetExportedTypes())
+            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            .ToArray();
+
+        Assert.DoesNotContain(methods, static method =>
+            method.Name is "SaveImage" or "SaveAsImage");
+
+        Assert.NotNull(typeof(WordDocument).GetMethod("ToImage", Type.EmptyTypes));
+        Assert.NotNull(typeof(WordDocument).GetMethods().SingleOrDefault(static method =>
+            method.Name == "ExportImage" && method.GetParameters().Length > 0));
+        Assert.Contains(typeof(WordDocument).GetMethods(), static method => method.Name == "SaveAsImages");
+
+        Assert.NotNull(typeof(ExcelSheet).GetMethod("ToImage", Type.EmptyTypes));
+        Assert.Contains(typeof(ExcelSheet).GetMethods(), static method => method.Name == "ExportImage");
+        Assert.Contains(typeof(ExcelDocument).GetMethods(), static method => method.Name == "SaveAsImages");
+
+        Assert.NotNull(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethod("ToImage", Type.EmptyTypes));
+        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethods(), static method => method.Name == "ExportImage");
+        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).GetMethods(), static method => method.Name == "SaveAsImages");
+    }
+
+    [Fact]
+    public void ConversionTargetNamesUseDotNetAcronymCasing() {
+        Assembly[] assemblies = {
+            typeof(WordDocument).Assembly,
+            typeof(ExcelDocument).Assembly,
+            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly,
+            typeof(HtmlConversionDocument).Assembly,
+            typeof(PdfDocument).Assembly
+        };
+        string[] methodNames = assemblies
+            .SelectMany(static assembly => assembly.GetExportedTypes())
+            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            .Select(static method => method.Name)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.DoesNotContain(methodNames, static name =>
+            name.Contains("PDF", StringComparison.Ordinal) ||
+            name.Contains("HTML", StringComparison.Ordinal) ||
+            name.Contains("RTF", StringComparison.Ordinal) ||
+            name.Contains("ODT", StringComparison.Ordinal) ||
+            name.Contains("ODS", StringComparison.Ordinal) ||
+            name.Contains("ODP", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CanonicalSchemaAndAstNamesDoNotExposeAliases() {
         Assert.Null(typeof(OfficeDocumentReadResultSchema).GetField("Version", BindingFlags.Public | BindingFlags.Static));
         Assert.NotNull(typeof(OfficeIMO.Markdown.FootnoteDefinitionBlock).GetProperty("ChildBlocks"));

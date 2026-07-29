@@ -4,13 +4,13 @@ namespace OfficeIMO.OpenDocument.Odp.Pdf;
 
 /// <summary>Diagnostics from the PDF-to-PowerPoint and PowerPoint-to-ODP stages.</summary>
 public sealed class PdfOdpConversionReport {
-    internal PdfOdpConversionReport(PdfPowerPointImportReport pdfReport, OdfConversionReport openDocumentReport) {
+    internal PdfOdpConversionReport(PdfPowerPointConversionReport pdfReport, OdfConversionReport openDocumentReport) {
         PdfReport = pdfReport ?? throw new ArgumentNullException(nameof(pdfReport));
         OpenDocumentReport = openDocumentReport ?? throw new ArgumentNullException(nameof(openDocumentReport));
     }
 
     /// <summary>Visual-page or editable-table PDF import evidence.</summary>
-    public PdfPowerPointImportReport PdfReport { get; }
+    public PdfPowerPointConversionReport PdfReport { get; }
     /// <summary>Feature mappings from PowerPoint to ODP.</summary>
     public OdfConversionReport OpenDocumentReport { get; }
     /// <summary>True when either stage truncated, approximated, skipped, or omitted source content.</summary>

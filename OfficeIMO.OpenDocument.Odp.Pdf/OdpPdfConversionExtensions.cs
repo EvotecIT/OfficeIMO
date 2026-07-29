@@ -80,7 +80,7 @@ public static class OdpPdfConversionExtensions {
     /// <summary>Reconstructs an ODP presentation and preserves diagnostics from both conversion stages.</summary>
     public static PdfOdpConversionResult ToOdpPresentationResult(this PdfCore.PdfDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        PowerPointPdf.PdfPowerPointImportResult pdf =
+        PowerPointPdf.PdfPowerPointConversionResult pdf =
             PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
@@ -99,7 +99,7 @@ public static class OdpPdfConversionExtensions {
     /// <remarks>A logical PDF model supports the editable-table mode. Visual-page mode requires an opened PDF.</remarks>
     public static PdfOdpConversionResult ToOdpPresentationResult(this PdfCore.PdfLogicalDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        PowerPointPdf.PdfPowerPointImportResult pdf =
+        PowerPointPdf.PdfPowerPointConversionResult pdf =
             PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions);
         using (pdf.Value) {
             OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);

@@ -37,6 +37,52 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void LogicalTextBlocks_AlignRunsAfterWhitespaceNormalization() {
+        var first = new PdfTextSpan(
+            "  Red  ",
+            "F1",
+            12,
+            0,
+            100,
+            30,
+            OfficeIMO.Drawing.OfficeColor.Red,
+            baseFont: "Helvetica");
+        var second = new PdfTextSpan(
+            "Blue",
+            "F2",
+            12,
+            36,
+            100,
+            24,
+            OfficeIMO.Drawing.OfficeColor.Blue,
+            baseFont: "Courier");
+
+        var block = new PdfLogicalTextBlock(
+            1,
+            PdfLogicalElementKind.TextBlock,
+            "Red Blue",
+            0,
+            60,
+            100,
+            12,
+            new[] { first, second });
+
+        Assert.Equal("Red Blue", string.Concat(block.Runs.Select(run => run.Text)));
+        Assert.Collection(
+            block.Runs,
+            run => {
+                Assert.Equal("Red ", run.Text);
+                Assert.Equal("Helvetica", run.BaseFont);
+                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, run.Color);
+            },
+            run => {
+                Assert.Equal("Blue", run.Text);
+                Assert.Equal("Courier", run.BaseFont);
+                Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, run.Color);
+            });
+    }
+
+    [Fact]
     public void Load_BuildsLogicalPagesWithTextTablesAndImages() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

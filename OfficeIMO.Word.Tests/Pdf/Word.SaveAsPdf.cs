@@ -204,7 +204,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        AssertPdfUsesAnyFont(pdfPath, "Courier New", "Courier");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]

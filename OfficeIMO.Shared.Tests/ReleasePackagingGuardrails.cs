@@ -350,18 +350,30 @@ public sealed class ReleasePackagingGuardrails {
         Assert.Contains($"`{openXmlVersion}`", aotGuide, StringComparison.Ordinal);
 
         string changelog = File.ReadAllText(Path.Combine(repositoryRoot, "CHANGELOG.MD"));
-        Assert.Contains("SaveAsExcel", changelog, StringComparison.Ordinal);
+        Assert.Contains("SaveTablesAsExcel", changelog, StringComparison.Ordinal);
         Assert.Contains("SaveAsPowerPoint", changelog, StringComparison.Ordinal);
-        Assert.Contains("ToExcelDocument", changelog, StringComparison.Ordinal);
+        Assert.Contains("ImportTablesToExcelDocument", changelog, StringComparison.Ordinal);
         Assert.Contains("ToPowerPointPresentation", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("SaveAs{Format}FromPdfTables", changelog, StringComparison.Ordinal);
         Assert.DoesNotContain("To{Format}BytesFromPdfTables", changelog, StringComparison.Ordinal);
 
-        string migration = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-migration.md"));
+        string migrationPath = Path.Combine(repositoryRoot, "MIGRATION.md");
+        string migration = File.ReadAllText(migrationPath);
+        Assert.Contains("# OfficeIMO migration guide", migration, StringComparison.Ordinal);
+        Assert.Contains("## Migrating from OfficeIMO 3.x to 4.0", migration, StringComparison.Ordinal);
+        Assert.Contains("## Migrating from OfficeIMO 2.x to 3.0", migration, StringComparison.Ordinal);
+        Assert.Contains("## Migrating from OfficeIMO 1.x to 2.0", migration, StringComparison.Ordinal);
+        Assert.Contains("### Conversion API grammar", migration, StringComparison.Ordinal);
+        Assert.Contains("`SaveImage`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfExcelTableImportOptions`", migration, StringComparison.Ordinal);
+        Assert.Contains("`PdfPowerPointConversionResult`", migration, StringComparison.Ordinal);
         Assert.Contains("`new WordHelpers()`", migration, StringComparison.Ordinal);
         Assert.Contains("using OfficeIMO.Word;", migration, StringComparison.Ordinal);
         Assert.Contains("vector graphics", migration, StringComparison.Ordinal);
         Assert.Contains("System.Runtime.CompilerServices.IsExternalInit", migration, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-3.0-migration.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo-4.0-pdf-bridges.md")));
+        Assert.False(File.Exists(Path.Combine(repositoryRoot, "Docs", "officeimo.breaking-api-migration.md")));
 
         string apiReview = File.ReadAllText(Path.Combine(
             repositoryRoot,

@@ -9,9 +9,8 @@ using Xunit;
 
 namespace OfficeIMO.Pdf.Tests;
 
-public sealed class PdfTableConversionApiContracts {
+public sealed class PdfBridgeApiContracts {
     [Theory]
-    [InlineData(typeof(PdfExcelConverterExtensions), "SaveAsExcel", "ToExcelDocument", "ToExcelDocumentResult")]
     [InlineData(typeof(PowerPointPdfConverterExtensions), "SaveAsPowerPoint", "ToPowerPointPresentation", "ToPowerPointPresentationResult")]
     [InlineData(typeof(PdfWordConverterExtensions), "SaveAsWord", "ToWordDocument", "ToWordDocumentResult")]
     [InlineData(typeof(RtfPdfConverterExtensions), "SaveAsRtf", "ToRtfDocument", "ToRtfDocumentResult")]
@@ -52,33 +51,69 @@ public sealed class PdfTableConversionApiContracts {
     }
 
     [Fact]
-    public void FourPointZeroAdaptersDoNotExposeRetiredAmbiguousNames() {
-        string[] retiredNames = [
-            "ImportTablesToExcelDocument",
-            "ImportTablesToExcelDocumentResult",
-            "SaveTablesAsExcel",
-            "SaveTablesAsExcelAsync",
+    public void ExcelTableRecoveryUsesTheSameNarrowFacadeOnOpenedAndLogicalPdfDocuments() {
+        MethodInfo[] methods = typeof(PdfExcelTableConverterExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static);
+        string[] methodNames = methods.Select(static method => method.Name).ToArray();
+
+        Assert.Equal(4, methodNames.Count(static name => name == "SaveTablesAsExcel"));
+        Assert.Equal(4, methodNames.Count(static name => name == "SaveTablesAsExcelAsync"));
+        Assert.Equal(2, methodNames.Count(static name => name == "ImportTablesToExcelDocument"));
+        Assert.Equal(2, methodNames.Count(static name => name == "ImportTablesToExcelDocumentResult"));
+
+        foreach (Type receiverType in new[] { typeof(PdfDocument), typeof(PdfLogicalDocument) }) {
+            MethodInfo[] receiverMethods = methods
+                .Where(method => method.GetParameters()[0].ParameterType == receiverType)
+                .ToArray();
+
+            Assert.Equal(2, receiverMethods.Count(static method => method.Name == "SaveTablesAsExcel"));
+            Assert.Equal(2, receiverMethods.Count(static method => method.Name == "SaveTablesAsExcelAsync"));
+            Assert.Single(receiverMethods, static method => method.Name == "ImportTablesToExcelDocument");
+            Assert.Single(receiverMethods, static method => method.Name == "ImportTablesToExcelDocumentResult");
+        }
+    }
+
+    [Fact]
+    public void GeneralAndNarrowRoutesDoNotCompeteForTheSameFacadeNames() {
+        string[] retiredPowerPointTableNames = [
             "ImportTablesToPowerPointPresentation",
             "ImportTablesToPowerPointPresentationResult",
             "SaveTablesAsPowerPoint",
             "SaveTablesAsPowerPointAsync"
         ];
 
-        string[] publicNames = typeof(PdfExcelConverterExtensions)
+        string[] excelNames = typeof(PdfExcelTableConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Concat(typeof(PowerPointPdfConverterExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static))
+            .Select(static method => method.Name)
+            .ToArray();
+        string[] powerPointNames = typeof(PowerPointPdfConverterExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Select(static method => method.Name)
             .ToArray();
 
-        Assert.DoesNotContain(publicNames, retiredNames.Contains);
+        Assert.DoesNotContain("ToExcelDocument", excelNames);
+        Assert.DoesNotContain("ToExcelDocumentResult", excelNames);
+        Assert.DoesNotContain("SaveAsExcel", excelNames);
+        Assert.DoesNotContain("SaveAsExcelAsync", excelNames);
+        Assert.DoesNotContain(powerPointNames, retiredPowerPointTableNames.Contains);
     }
 
     [Fact]
     public void FourPointZeroOptionNamesDescribeTheirOwningBridgeAndDirection() {
         Assert.Null(typeof(WordPdfSaveOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfSaveOptions"));
         Assert.Null(typeof(PdfWordImportOptions).Assembly.GetType("OfficeIMO.Word.Pdf.PdfWordReadOptions"));
-        Assert.Null(typeof(PdfExcelImportOptions).Assembly.GetType("OfficeIMO.Excel.Pdf.PdfExcelTableImportOptions"));
+        Assert.Null(typeof(PdfExcelTableImportOptions).Assembly.GetType("OfficeIMO.Excel.Pdf.PdfExcelImportOptions"));
         Assert.Null(typeof(PdfPowerPointImportOptions).Assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportOptions"));
         Assert.Null(typeof(PdfRtfImportOptions).Assembly.GetType("OfficeIMO.Rtf.Pdf.PdfRtfReadOptions"));
+    }
+
+    [Fact]
+    public void GeneralPowerPointRouteUsesConversionResultsAndExplicitTableEntries() {
+        Assembly assembly = typeof(PdfPowerPointConversionResult).Assembly;
+
+        Assert.Null(assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportResult"));
+        Assert.Null(assembly.GetType("OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportReport"));
+        Assert.NotNull(typeof(PdfPowerPointConversionReport).GetProperty("TableEntries"));
+        Assert.Null(typeof(PdfPowerPointConversionReport).GetProperty("Entries"));
     }
 }
