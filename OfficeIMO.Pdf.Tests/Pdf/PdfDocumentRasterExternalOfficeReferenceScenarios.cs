@@ -10,7 +10,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
-using WordPdfSaveOptions = OfficeIMO.Word.Pdf.PdfSaveOptions;
+using WordPdfSaveOptions = OfficeIMO.Word.Pdf.WordPdfSaveOptions;
 
 namespace OfficeIMO.Tests.Pdf;
 

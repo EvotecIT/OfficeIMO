@@ -322,7 +322,7 @@ public sealed partial class HtmlRenderingTests {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
-        options.DocumentOptions.CompressContentStreams = false;
+        options.PdfOptions.CompressContentStreams = false;
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
         string rawPdf = Encoding.ASCII.GetString(pdf);
@@ -512,7 +512,7 @@ public sealed partial class HtmlRenderingTests {
         };
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
         for (int index = 0; index < PdfCore.PdfOptions.MaximumNamedFontFamilies - 1; index++) {
-            options.DocumentOptions.RegisterNamedFontFamily(
+            options.PdfOptions.RegisterNamedFontFamily(
                 new PdfCore.PdfEmbeddedFontFamily("Reserved" + index.ToString(), new byte[] { 0 }));
         }
 

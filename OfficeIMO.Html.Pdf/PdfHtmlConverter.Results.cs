@@ -4,6 +4,12 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
+    /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
+    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return document.Read.Logical().ToHtmlResult(options);
+    }
+
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML and returns a machine-readable export summary.
     /// </summary>

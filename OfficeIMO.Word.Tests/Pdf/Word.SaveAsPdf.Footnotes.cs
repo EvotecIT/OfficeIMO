@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 first.AddFootNote("Native footnote text");
                 document.AddParagraph("Native after footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 endnoteParagraph.AddEndNote("Native endnote text");
                 document.AddParagraph("Native after notes");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 WordSection secondSection = document.AddSection();
                 secondSection.AddParagraph("Second section note").AddFootNote("Second section footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
                     .SetText("Later outer note")
                     .AddFootNote("Later outer footnote");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions { IncludePageNumbers = false });
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { IncludePageNumbers = false });
             }
 
             using (var pdf = PdfPigDocument.Open(pdfPath)) {

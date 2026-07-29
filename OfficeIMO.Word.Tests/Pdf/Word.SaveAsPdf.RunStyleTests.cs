@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("After");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -49,6 +49,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Does_Not_Treat_First_Run_Color_As_Paragraph_Default() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeFirstRunColorReset.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFirstRunColorReset.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph paragraph = document.AddParagraph();
+                paragraph.AddText("Red first").SetColorHex("FF0000");
+                paragraph.AddText(" then automatic");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+            int redColor = content.IndexOf("1 0 0 rg", StringComparison.Ordinal);
+            int blackColorAfterRed = content.IndexOf("0 0 0 rg", redColor + "1 0 0 rg".Length, StringComparison.Ordinal);
+
+            Assert.True(redColor >= 0, "Expected the explicitly colored first run to emit a red PDF fill color.");
+            Assert.True(blackColorAfterRed > redColor, "Expected the following automatic-color run to reset to the paragraph default.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Run_And_Paragraph_Font_Sizes() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRunFontSizes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunFontSizes.pdf");
@@ -62,7 +86,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("Normal");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -93,7 +117,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Document default font should not embed host fonts by default.");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
                 });
@@ -120,7 +144,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Document default font should be embedded for stable PDF viewers.");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
@@ -152,7 +176,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddText("Arial run").SetFontFamily("Arial");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
                 });
@@ -192,7 +216,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddText("Available mapped family").SetFontFamily(availableFamily);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
                 });
@@ -219,7 +243,7 @@ namespace OfficeIMO.Tests {
             }
 
             document.Save();
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
             });
@@ -244,7 +268,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph().AddText("Unavailable font marker").SetFontFamily(unavailableFamily);
             document.Save();
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
             });
@@ -265,7 +289,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph().AddText("Portable font marker").SetFontFamily("Arial");
             document.Save();
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             });
@@ -297,7 +321,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" After");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
@@ -336,7 +360,7 @@ namespace OfficeIMO.Tests {
                 cellParagraph.AddText(cellMarker).SetFontFamily(fontFamily);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                     IncludePageNumbers = false
                 });
@@ -367,7 +391,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("After");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -422,7 +446,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" After");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica"
                 });
@@ -480,7 +504,7 @@ namespace OfficeIMO.Tests {
                 styledParagraph.SetStyleId("NativeSubscriptParagraphStyle");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica"
                 });
@@ -524,7 +548,7 @@ namespace OfficeIMO.Tests {
                 cellParagraph.AddText("CellStyledChar").SetCharacterStyleId(styleId);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
                     Margins = PageMargins.Uniform(40),
@@ -555,7 +579,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph(marker);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }

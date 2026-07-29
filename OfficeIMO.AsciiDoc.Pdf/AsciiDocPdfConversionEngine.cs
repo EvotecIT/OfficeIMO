@@ -13,13 +13,13 @@ internal static class AsciiDocPdfConversionEngine {
 
         AsciiDocPdfSaveOptions operation = (options ?? new AsciiDocPdfSaveOptions()).CloneForConversion();
         AsciiDocToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.PdfOptions);
-        return result.WithAdditionalWarnings(ToPdfWarnings(document, projection));
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions);
+        return result
+            .WithSourceConversionReport(projection.Report)
+            .WithAdditionalWarnings(ToPdfWarnings(document));
     }
 
-    private static IEnumerable<PdfCore.PdfConversionWarning> ToPdfWarnings(
-        AsciiDocDocument document,
-        AsciiDocToMarkdownResult projection) {
+    private static IEnumerable<PdfCore.PdfConversionWarning> ToPdfWarnings(AsciiDocDocument document) {
         foreach (AsciiDocDiagnostic diagnostic in document.Diagnostics) {
             yield return new PdfCore.PdfConversionWarning(
                 "OfficeIMO.AsciiDoc.Pdf",
@@ -33,22 +33,6 @@ internal static class AsciiDocPdfConversionEngine {
                 });
         }
 
-        foreach (AsciiDocMarkdownConversionDiagnostic diagnostic in projection.Report.Diagnostics) {
-            yield return new PdfCore.PdfConversionWarning(
-                "OfficeIMO.AsciiDoc.Pdf",
-                diagnostic.Code,
-                diagnostic.Feature + " @ " + diagnostic.SourceSpan,
-                diagnostic.Message,
-                diagnostic.Outcome == AsciiDocMarkdownConversionOutcome.Converted
-                    ? PdfCore.PdfConversionWarningSeverity.Information
-                    : PdfCore.PdfConversionWarningSeverity.Warning,
-                details: new Dictionary<string, string> {
-                    ["stage"] = "semantic-projection",
-                    ["feature"] = diagnostic.Feature,
-                    ["outcome"] = diagnostic.Outcome.ToString(),
-                    ["sourceSpan"] = diagnostic.SourceSpan.ToString()
-                });
-        }
     }
 
     private static PdfCore.PdfConversionWarningSeverity ToPdfSeverity(AsciiDocDiagnosticSeverity severity) => severity switch {

@@ -4,7 +4,7 @@
     <Description>Optional HarfBuzz text-shaping provider for OfficeIMO.Drawing and OfficeIMO.Pdf.</Description>
     <AssemblyName>OfficeIMO.Drawing.HarfBuzz</AssemblyName>
     <AssemblyTitle>OfficeIMO.Drawing.HarfBuzz</AssemblyTitle>
-    <VersionPrefix>3.0.3</VersionPrefix>
+    <VersionPrefix>3.1.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

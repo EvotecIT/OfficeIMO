@@ -1,9 +1,11 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Collects shared PDF conversion warnings from one adapter run.
 /// </summary>
-public sealed class PdfConversionReport {
+public sealed class PdfConversionReport : IOfficeConversionReport {
     private readonly List<PdfConversionWarning> _warnings = new();
     private readonly List<PdfConversionReport> _linkedReports = new();
 
@@ -104,6 +106,10 @@ public sealed class PdfConversionReport {
         }
 
         return this;
+    }
+
+    void IOfficeConversionReport.RequireNoLoss() {
+        RequireNoLoss();
     }
 
     /// <summary>

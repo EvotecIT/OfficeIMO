@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("PDF paragraph using the selected host font family.");
                 document.Save();
 
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     FontFamily = fontFamily
                 });
             }

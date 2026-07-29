@@ -201,6 +201,18 @@ namespace OfficeIMO.Excel.Pdf {
         public string EmptyCellText { get; set; } = string.Empty;
 
         /// <summary>
+        /// Applies shared deterministic typography resources to the first-party PDF engine.
+        /// Worksheet selection and page layout remain owned by this converter.
+        /// </summary>
+        public ExcelPdfSaveOptions UseRenderingProfile(
+            DrawingCore.OfficeRenderingProfile profile,
+            DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            PdfOptions ??= new PdfCore.PdfOptions();
+            PdfOptions.UseRenderingProfile(profile, mode);
+            return this;
+        }
+
+        /// <summary>
         /// Applies a high-level export profile by setting the Excel PDF options that correspond to that profile.
         /// </summary>
         public ExcelPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {

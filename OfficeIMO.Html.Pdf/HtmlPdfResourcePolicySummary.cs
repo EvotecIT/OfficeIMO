@@ -15,6 +15,9 @@ public sealed class HtmlPdfResourcePolicySummary {
     /// <summary>True when installed host fonts may be discovered, read, and embedded.</summary>
     public bool AllowSystemFontEmbedding { get; private set; }
 
+    /// <summary>True when source-document font names may be used to locate installed host fonts.</summary>
+    public bool AllowDocumentFontEmbedding { get; private set; }
+
     /// <summary>True when local files may be resolved by the application-supplied resolver.</summary>
     public bool AllowLocalFileAccess { get; private set; }
 
@@ -58,6 +61,7 @@ public sealed class HtmlPdfResourcePolicySummary {
         return new HtmlPdfResourcePolicySummary {
             HasResourceResolver = options.ResourceResolver != null,
             AllowSystemFontEmbedding = options.ResourcePolicy.AllowSystemFontEmbedding,
+            AllowDocumentFontEmbedding = options.ResourcePolicy.AllowDocumentFontEmbedding,
             AllowLocalFileAccess = options.ResourcePolicy.AllowLocalFileAccess,
             AllowRemoteResourceResolution = options.ResourcePolicy.AllowRemoteResourceResolution,
             AllowDataUris = options.ResourcePolicy.AllowDataUris,

@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Pdf {
     /// supported metadata, page breaks, headings, paragraphs, list items, logical tables, and source
     /// placeholders, but it is not a pixel-perfect fixed-layout PDF to DOCX renderer.
     /// </remarks>
-    public sealed class PdfWordReadOptions {
+    public sealed class PdfWordImportOptions {
         /// <summary>Whether PDF Info dictionary metadata should be copied into Word built-in properties.</summary>
         public bool IncludeMetadata { get; set; } = true;
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word.Pdf {
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         /// <summary>Creates an import profile that reconstructs only detected PDF tables.</summary>
-        public static PdfWordReadOptions CreateTablesOnly() => new PdfWordReadOptions {
+        public static PdfWordImportOptions CreateTablesOnly() => new PdfWordImportOptions {
             IncludeMetadata = false,
             PreservePageBreaks = false,
             IncludeEmptyPages = false,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         /// <summary>Creates a reusable copy of this option set.</summary>
-        public PdfWordReadOptions Clone() => new PdfWordReadOptions {
+        public PdfWordImportOptions Clone() => new PdfWordImportOptions {
             IncludeMetadata = IncludeMetadata,
             PreservePageBreaks = PreservePageBreaks,
             IncludeEmptyPages = IncludeEmptyPages,
@@ -122,9 +122,9 @@ namespace OfficeIMO.Word.Pdf {
             EmptyDocumentMessage = EmptyDocumentMessage
         }.CopyAllowedHyperlinkUriSchemesFrom(AllowedHyperlinkUriSchemes);
 
-        internal PdfWordReadOptions CloneForConversion() => Clone();
+        internal PdfWordImportOptions CloneForConversion() => Clone();
 
-        private PdfWordReadOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
+        private PdfWordImportOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
             AllowedHyperlinkUriSchemes.Clear();
             foreach (string scheme in schemes) {
                 if (!string.IsNullOrWhiteSpace(scheme)) {

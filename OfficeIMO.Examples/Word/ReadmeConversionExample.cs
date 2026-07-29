@@ -164,7 +164,7 @@ namespace OfficeIMO.Examples.Word {
                 
                 using (var document = WordDocument.Load(inputPath)) {
                     string pdfPath = Path.Combine(folderPath, "README_to_pdf.pdf");
-                    document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                         Orientation = PdfPageOrientation.Portrait
                     });
                     

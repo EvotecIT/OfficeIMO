@@ -264,12 +264,35 @@ public sealed partial class PdfOptions {
     /// <summary>Embeds a TrueType font file for a generated standard-font slot.</summary>
     public PdfOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) {
         var embeddedFont = new PdfEmbeddedFont(font, data, fontName);
+        if (_embeddedFonts != null &&
+            _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? existingFont) &&
+            EmbeddedFontMatches(existingFont, embeddedFont)) {
+            return this;
+        }
+
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
         _embeddedOpenTypeCffFontPrograms?.Remove(font);
         _embeddedFontProgramFailures?.Remove(font);
         ClearReportedEmbeddedFontProgramFailure(font);
         return this;
+    }
+
+    private static bool EmbeddedFontMatches(PdfEmbeddedFont left, PdfEmbeddedFont right) {
+        if (!string.Equals(left.FontName, right.FontName, System.StringComparison.Ordinal) ||
+            left.DataSnapshot.Length != right.DataSnapshot.Length) {
+            return false;
+        }
+
+        byte[] leftData = left.DataSnapshot;
+        byte[] rightData = right.DataSnapshot;
+        for (int index = 0; index < leftData.Length; index++) {
+            if (leftData[index] != rightData[index]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot.</summary>

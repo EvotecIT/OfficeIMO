@@ -27,7 +27,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Body value";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -59,7 +59,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Border B2";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -106,7 +106,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Style border B2";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -155,7 +155,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Style nonuniform B2";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(30)

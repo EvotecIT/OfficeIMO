@@ -52,7 +52,9 @@
     <ProjectReference Include="..\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote.Pdf\OfficeIMO.OneNote.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
-    <ProjectReference Include="..\OfficeIMO.OpenDocument.Pdf\OfficeIMO.OpenDocument.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Odp.Pdf\OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Ods.Pdf\OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.GoogleSlides\OfficeIMO.PowerPoint.GoogleSlides.csproj" />
@@ -141,7 +143,9 @@
     <TrimmerRootAssembly Include="OfficeIMO.OneNote.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.OneNote.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.OpenDocument" />
-    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Odp.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Ods.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Odt.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.GoogleSlides" />

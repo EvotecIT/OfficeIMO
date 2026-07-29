@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -264,6 +265,50 @@ public sealed class PdfConversionReportTests {
         Assert.True(pinnedProof.IsSatisfied, pinnedProof.Summary);
         Assert.Equal(proof.ArtifactSha256, pinnedProof.ArtifactSha256);
         Assert.Equal(proof.ArtifactByteCount, pinnedProof.ArtifactByteCount);
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_AssessProofCapturesAndCanRejectSourceStageLoss() {
+        var result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source loss proof")),
+                new PdfConversionReport())
+            .WithSourceConversionReport(new LossySourceConversionReport());
+
+        PdfConversionProofReport observed = result.AssessProof();
+        PdfConversionProofReport required = result.AssessProof(
+            new PdfConversionProofOptions().RequireNoLoss());
+
+        Assert.True(observed.IsSatisfied, observed.Summary);
+        Assert.True(observed.HasLoss);
+        Assert.Contains("possible content loss", observed.Summary, StringComparison.Ordinal);
+        Assert.False(required.IsSatisfied);
+        Assert.True(required.HasLoss);
+        PdfConversionProofIssue issue = Assert.Single(
+            required.Issues,
+            item => item.Feature == "ConversionLoss");
+        Assert.Equal(nameof(LossySourceConversionReport), issue.Actual);
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_LosslessProofCapturesSerializationDiagnostics() {
+        var report = new PdfConversionReport();
+        var pdfOptions = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create(pdfOptions).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
+        var proofOptions = new PdfConversionProofOptions {
+            RequireReadablePdf = false,
+            IncludeArtifactHash = false
+        }.RequireNoLoss();
+
+        PdfConversionProofReport proof = result.AssessProof(proofOptions);
+
+        Assert.False(proof.IsSatisfied);
+        Assert.True(proof.HasLoss);
+        Assert.Contains(proof.Issues, issue => issue.Feature == "SaveDiagnostics");
+        Assert.Contains(proof.Issues, issue => issue.Feature == "ConversionLoss");
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-bidirectional-text-layout");
     }
 
     [Fact]
@@ -699,5 +744,13 @@ public sealed class PdfConversionReportTests {
         Assert.Contains(proof.Issues, issue => issue.Feature == "WarningSeverity" && issue.Actual == "1");
         Assert.Contains("PDF conversion proof failed", proof.Summary, StringComparison.Ordinal);
         Assert.Throws<InvalidOperationException>(() => result.AssertProof(new PdfConversionProofOptions().RequireTextMarkers("Missing proof text")));
+    }
+
+    private sealed class LossySourceConversionReport : IOfficeConversionReport {
+        public bool HasLoss => true;
+
+        public void RequireNoLoss() {
+            throw new InvalidOperationException("The test source stage is lossy.");
+        }
     }
 }

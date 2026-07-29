@@ -95,7 +95,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.RepeatHeaderRowAtTheTopOfEachPage = true;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -201,7 +201,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 closing.SetFontSize(8);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new PageSize(612, 792)
                 });
@@ -236,7 +236,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new PageSize(612, 360),
                     Margins = PageMargins.Uniform(36)

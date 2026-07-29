@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -11,13 +13,16 @@ public sealed class PdfSaveResult {
         Exception? exception,
         PdfConversionReport? report = null,
         PdfPipelineReport? pipeline = null,
-        PdfSerializationReport? serialization = null) {
+        PdfSerializationReport? serialization = null,
+        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports = null) {
         OutputPath = outputPath;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         Exception = exception;
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
         Report = Snapshot(report);
+        IOfficeConversionReport[] sourceReports = SnapshotSourceReports(sourceConversionReports);
+        ConversionReports = CreateConversionReports(sourceReports, report == null ? null : Report);
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
         Pipeline = pipeline ?? PdfPipelineReport.Empty();
         Serialization = serialization;
@@ -41,8 +46,11 @@ public sealed class PdfSaveResult {
     /// <summary>Structured text encoding diagnostics captured from PDF generation failures.</summary>
     public IReadOnlyList<PdfTextEncodingDiagnostic> TextEncodingDiagnostics { get; }
 
-    /// <summary>Snapshot of source-conversion and structured output warnings for this save attempt.</summary>
+    /// <summary>Snapshot of PDF-stage structured output warnings for this save attempt.</summary>
     public PdfConversionReport Report { get; }
+
+    /// <summary>Ordered source-stage reports followed by the PDF-stage report, when conversion preceded the save.</summary>
+    public IReadOnlyList<IOfficeConversionReport> ConversionReports { get; }
 
     /// <summary>End-to-end create/open, mutation, and output evidence for this save attempt.</summary>
     public PdfPipelineReport Pipeline { get; }
@@ -50,11 +58,14 @@ public sealed class PdfSaveResult {
     /// <summary>Bounded serialization evidence for a successful save, when available.</summary>
     public PdfSerializationReport? Serialization { get; }
 
-    /// <summary>Source-conversion and structured output warnings for this save attempt.</summary>
+    /// <summary>PDF-stage structured output warnings for this save attempt.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
 
-    /// <summary>True when source conversion or PDF output produced a warning.</summary>
+    /// <summary>True when the PDF stage produced a structured output warning.</summary>
     public bool HasWarnings => Report.HasWarnings;
+
+    /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
+    public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
     public PdfSaveResult RequireSuccess() {
@@ -66,6 +77,14 @@ public sealed class PdfSaveResult {
             ? "PDF save did not complete."
             : "PDF save did not complete. " + string.Join(" ", Diagnostics);
         throw new InvalidOperationException(message, Exception);
+    }
+
+    /// <summary>Returns this result or throws when any conversion stage reported possible content loss.</summary>
+    public PdfSaveResult RequireNoLoss() {
+        foreach (IOfficeConversionReport report in ConversionReports) {
+            report.RequireNoLoss();
+        }
+        return this;
     }
 
     /// <summary>Creates a successful save result.</summary>
@@ -102,13 +121,46 @@ public sealed class PdfSaveResult {
         return new PdfSaveResult(outputPath, 0, diagnostics, exception, pipeline: pipeline);
     }
 
-    internal PdfSaveResult WithReport(PdfConversionReport report) {
-        return new PdfSaveResult(OutputPath, BytesWritten, Diagnostics, Exception, report, Pipeline, Serialization);
+    internal PdfSaveResult WithReport(
+        PdfConversionReport report,
+        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports = null) {
+        return new PdfSaveResult(
+            OutputPath,
+            BytesWritten,
+            Diagnostics,
+            Exception,
+            report,
+            Pipeline,
+            Serialization,
+            sourceConversionReports);
     }
 
     private static PdfConversionReport Snapshot(PdfConversionReport? report) {
         var snapshot = new PdfConversionReport();
         if (report != null) snapshot.AddRange(report.Warnings);
         return snapshot;
+    }
+
+    private static IOfficeConversionReport[] SnapshotSourceReports(
+        IReadOnlyList<IOfficeConversionReport>? reports) {
+        if (reports == null || reports.Count == 0) return Array.Empty<IOfficeConversionReport>();
+        var snapshot = new IOfficeConversionReport[reports.Count];
+        for (int i = 0; i < reports.Count; i++) {
+            snapshot[i] = reports[i];
+        }
+        return snapshot;
+    }
+
+    private static IOfficeConversionReport[] CreateConversionReports(
+        IOfficeConversionReport[] sourceReports,
+        PdfConversionReport? pdfReport) {
+        int count = sourceReports.Length + (pdfReport == null ? 0 : 1);
+        if (count == 0) return Array.Empty<IOfficeConversionReport>();
+        var reports = new IOfficeConversionReport[count];
+        for (int i = 0; i < sourceReports.Length; i++) {
+            reports[i] = sourceReports[i];
+        }
+        if (pdfReport != null) reports[reports.Length - 1] = pdfReport;
+        return reports;
     }
 }

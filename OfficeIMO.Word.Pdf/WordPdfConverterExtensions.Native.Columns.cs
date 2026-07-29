@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
             Dictionary<long, int> footnoteNumbersById,
-            PdfSaveOptions? options,
+            WordPdfSaveOptions? options,
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries,
             IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
             NativeDocumentDefaults nativeDefaults,

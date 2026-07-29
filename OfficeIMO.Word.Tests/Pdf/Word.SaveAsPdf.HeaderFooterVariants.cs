@@ -35,7 +35,7 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -91,7 +91,7 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -143,7 +143,7 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -202,14 +202,14 @@ public partial class Word {
         RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Offset Footer");
         document.AddParagraph("Offset body");
 
-        byte[] lowOffsetBytes = document.ToPdf(new PdfSaveOptions {
+        byte[] lowOffsetBytes = document.ToPdf(new WordPdfSaveOptions {
             IncludePageNumbers = false,
             PdfOptions = new PdfCore.PdfOptions {
                 HeaderOffsetY = 6,
                 FooterOffsetY = 8
             }
         });
-        byte[] highOffsetBytes = document.ToPdf(new PdfSaveOptions {
+        byte[] highOffsetBytes = document.ToPdf(new WordPdfSaveOptions {
             IncludePageNumbers = false,
             PdfOptions = new PdfCore.PdfOptions {
                 HeaderOffsetY = 30,

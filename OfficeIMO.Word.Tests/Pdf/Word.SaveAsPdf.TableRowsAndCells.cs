@@ -25,7 +25,7 @@ public partial class Word {
             document.AddParagraph("AfterTall");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -67,7 +67,7 @@ public partial class Word {
 
             document.AddParagraph("AfterHiddenCellText");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -113,7 +113,7 @@ public partial class Word {
 
             table.Rows[0].Cells[1].Paragraphs[0].Text = "capsTableStyle";
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -154,7 +154,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(40),
@@ -188,7 +188,7 @@ public partial class Word {
             table.Rows[2].Cells[0].Paragraphs[0].Text = "ShortC";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(320, 260),
                 Margins = PdfCore.PageMargins.Uniform(30)
@@ -236,7 +236,7 @@ public partial class Word {
             document.AddParagraph("ParagraphTableChainTarget");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(260, 260),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
@@ -293,7 +293,7 @@ public partial class Word {
                 info.Name == "CreateNativeTableStyle" &&
                 info.GetParameters().Length == 4 &&
                 info.GetParameters()[3].ParameterType == typeof(double?));
-        PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, 2, new PdfSaveOptions(), null }));
+        PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, 2, new WordPdfSaveOptions(), null }));
 
         Assert.Equal(0, style.RepeatHeaderRowCount);
         Assert.True(style.AllowRowBreakAcrossPages);
@@ -356,7 +356,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 320),
                 Margins = PdfCore.PageMargins.Uniform(30),
@@ -388,7 +388,7 @@ public partial class Word {
             table.Rows[0].Cells[1].Paragraphs[0].Text = "RightColumn";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 300),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -433,7 +433,7 @@ public partial class Word {
             table.Rows[1]._tableRow.TableRowProperties.Append(new GridBefore { Val = 1 });
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -478,7 +478,7 @@ public partial class Word {
             table.Rows[0]._tableRow.TableRowProperties.Append(new GridAfter { Val = 1 });
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 220),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -534,7 +534,7 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(612, 300),
                 Margins = new PdfCore.PageMargins(72, 72, 40, 40)
@@ -570,7 +570,7 @@ public partial class Word {
             after.LineSpacingAfterPoints = 0;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -606,7 +606,7 @@ public partial class Word {
             after.LineSpacingAfterPoints = 0;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -654,7 +654,7 @@ public partial class Word {
             paragraph.AddText(secondMarker);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -691,7 +691,7 @@ public partial class Word {
             paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -742,7 +742,7 @@ public partial class Word {
             paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -772,7 +772,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedTableSize";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -810,7 +810,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledTableRun";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -851,7 +851,7 @@ public partial class Word {
             table.Rows[0].Cells[1].ShadingFillColorHex = "F4CCCC";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 220),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -910,7 +910,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "DirectTopPeer";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 260),
                 Margins = PdfCore.PageMargins.Uniform(30),
@@ -966,7 +966,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "BaselineAA";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1024,7 +1024,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "PlainA PlainB";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -1080,7 +1080,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "PlainIndent";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 240),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1118,7 +1118,7 @@ public partial class Word {
             indented.IndentationBeforePoints = 42D;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 240),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1153,7 +1153,7 @@ public partial class Word {
             paragraph.AddTabStop(3600, TabStopValues.Right, TabStopLeaderCharValues.Dot);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 180),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1197,7 +1197,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "CellSpacingTwo";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -1237,7 +1237,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "StyledCellSpacingTwo";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -1291,7 +1291,7 @@ public partial class Word {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "CompactCellTwo";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -1319,7 +1319,7 @@ public partial class Word {
             table.Rows[2].Cells[0].Paragraphs[0].Text = "Gamma";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(72)
@@ -1353,7 +1353,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 180),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1387,7 +1387,7 @@ public partial class Word {
             second.LineSpacingAfterPoints = 0;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1436,7 +1436,7 @@ public partial class Word {
             second.LineSpacingAfterPoints = 0D;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(36),
@@ -1485,7 +1485,7 @@ public partial class Word {
             cell.AddParagraph(secondMarker).SetStyleId(styleId);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
@@ -1513,7 +1513,7 @@ public partial class Word {
             linkParagraph.Hyperlink!.Anchor = "IgnoredWhenExternalUriExists";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1566,7 +1566,7 @@ public partial class Word {
             rightCell.VerticalAlignment = TableVerticalAlignmentValues.Bottom;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1608,7 +1608,7 @@ public partial class Word {
             right.ParagraphAlignment = JustificationValues.Right;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 240),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -1683,7 +1683,7 @@ public partial class Word {
             rightCell.Paragraphs[0].SetStyleId(rightStyleId);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -1732,7 +1732,7 @@ public partial class Word {
             table.Rows[1].Cells[1].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(30)
@@ -1784,7 +1784,7 @@ public partial class Word {
             Assert.Equal(2, table.Rows[1].Cells[0].RowSpan);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }

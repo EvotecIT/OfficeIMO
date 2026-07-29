@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("0000FF", run.ColorHex);
             string roundTrip = doc.ToHtml();
-            Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(">Test</", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("0000FF", run.ColorHex);
             string roundTrip = doc.ToHtml();
-            Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(">Test</", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

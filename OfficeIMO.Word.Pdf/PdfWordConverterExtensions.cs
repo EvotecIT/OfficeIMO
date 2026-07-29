@@ -8,18 +8,72 @@ namespace OfficeIMO.Word.Pdf {
     /// PDF parsing, stream handling, and page selection remain owned by <c>OfficeIMO.Pdf</c>.
     /// </summary>
     public static class PdfWordConverterExtensions {
+        /// <summary>Converts an opened PDF into an editable Word document.</summary>
+        public static WordDocument ToWordDocument(
+            this PdfCore.PdfDocument document,
+            PdfWordImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().ToWordDocument(options);
+        }
+
+        /// <summary>Converts an opened PDF into an editable Word document with conversion diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResult(
+            this PdfCore.PdfDocument document,
+            PdfWordImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().ToWordDocumentResult(options);
+        }
+
+        /// <summary>Converts an opened PDF and saves the editable Word document to a file.</summary>
+        public static PdfWordConversionReport SaveAsWord(
+            this PdfCore.PdfDocument document,
+            string path,
+            PdfWordImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsWord(path, options);
+        }
+
+        /// <summary>Converts an opened PDF and saves the editable Word document to a caller-owned stream.</summary>
+        public static PdfWordConversionReport SaveAsWord(
+            this PdfCore.PdfDocument document,
+            Stream stream,
+            PdfWordImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsWord(stream, options);
+        }
+
+        /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a file.</summary>
+        public static Task<PdfWordConversionReport> SaveAsWordAsync(
+            this PdfCore.PdfDocument document,
+            string path,
+            PdfWordImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsWordAsync(path, options, cancellationToken);
+        }
+
+        /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a caller-owned stream.</summary>
+        public static Task<PdfWordConversionReport> SaveAsWordAsync(
+            this PdfCore.PdfDocument document,
+            Stream stream,
+            PdfWordImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsWordAsync(stream, options, cancellationToken);
+        }
+
         /// <summary>Converts a logical PDF model into an editable Word document.</summary>
         public static WordDocument ToWordDocument(
             this PdfCore.PdfLogicalDocument document,
-            PdfWordReadOptions? options = null) => document.ToWordDocumentResult(options).Value;
+            PdfWordImportOptions? options = null) => document.ToWordDocumentResult(options).Value;
 
         /// <summary>Converts a logical PDF model into an editable Word document with conversion diagnostics.</summary>
         public static PdfWordConversionResult ToWordDocumentResult(
             this PdfCore.PdfLogicalDocument document,
-            PdfWordReadOptions? options = null) {
+            PdfWordImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
-            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
             WordDocument word = PdfWordConverter.Convert(document, operation);
             return new PdfWordConversionResult(word, operation.Report);
         }
@@ -28,7 +82,7 @@ namespace OfficeIMO.Word.Pdf {
         public static PdfWordConversionReport SaveAsWord(
             this PdfCore.PdfLogicalDocument document,
             string path,
-            PdfWordReadOptions? options = null) {
+            PdfWordImportOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
             PdfWordConversionResult result = document.ToWordDocumentResult(options);
             using (result.Value) {
@@ -41,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
         public static PdfWordConversionReport SaveAsWord(
             this PdfCore.PdfLogicalDocument document,
             Stream stream,
-            PdfWordReadOptions? options = null) {
+            PdfWordImportOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
             PdfWordConversionResult result = document.ToWordDocumentResult(options);
@@ -55,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
         public static async Task<PdfWordConversionReport> SaveAsWordAsync(
             this PdfCore.PdfLogicalDocument document,
             string path,
-            PdfWordReadOptions? options = null,
+            PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
@@ -70,7 +124,7 @@ namespace OfficeIMO.Word.Pdf {
         public static async Task<PdfWordConversionReport> SaveAsWordAsync(
             this PdfCore.PdfLogicalDocument document,
             Stream stream,
-            PdfWordReadOptions? options = null,
+            PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));

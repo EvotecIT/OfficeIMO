@@ -30,7 +30,7 @@ public partial class Word {
             padded.StyleDetails!.MarginDefaultLeftWidth = 1000;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -65,7 +65,7 @@ public partial class Word {
             padded.Rows[0].Cells[0].MarginTopWidth = 320;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(400, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -98,7 +98,7 @@ public partial class Word {
             spaced.StyleDetails!.CellSpacing = 240;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -144,7 +144,7 @@ public partial class Word {
             spaced._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedSpacedTable" };
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(420, 500),
                 Margins = PdfCore.PageMargins.Uniform(40)
@@ -194,7 +194,7 @@ public partial class Word {
             padded.ConditionalFormattingFirstColumn = true;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(520, 360),
                 Margins = PdfCore.PageMargins.Uniform(40)

@@ -13,6 +13,73 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void PdfSemanticImport_PreservesLogicalRunColorSizeAndFontStyle() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .FontSize(14)
+                .Bold("Bold red")
+                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .FontSize(9)
+                .Italic(" italic blue"))
+            .ToBytes();
+
+        using OfficeWordDocument imported = LoadSemanticPdf(pdf).ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(
+            new MemoryStream(imported.ToBytes()),
+            false);
+        Body body = GetPdfSemanticBody(package);
+
+        Run red = body.Descendants<Run>().First(run =>
+            run.RunProperties?.Color?.Val?.Value == "FF0000" &&
+            ReadRunText(run).Contains("Bold red", StringComparison.Ordinal));
+        Assert.Contains("Bold red", ReadRunText(red), StringComparison.Ordinal);
+        Assert.NotNull(red.RunProperties?.Bold);
+        Assert.Equal("FF0000", red.RunProperties?.Color?.Val?.Value);
+        Assert.Equal("28", red.RunProperties?.FontSize?.Val?.Value);
+
+        Run blue = body.Descendants<Run>().First(run =>
+            run.RunProperties?.Color?.Val?.Value == "0000FF" &&
+            ReadRunText(run).Contains("italic blue", StringComparison.Ordinal));
+        Assert.Contains("italic blue", ReadRunText(blue), StringComparison.Ordinal);
+        Assert.NotNull(blue.RunProperties?.Italic);
+        Assert.Equal("0000FF", blue.RunProperties?.Color?.Val?.Value);
+        Assert.Equal("18", blue.RunProperties?.FontSize?.Val?.Value);
+    }
+
+    [Fact]
+    public void PdfSemanticImport_PreservesStyledListRunsWithoutRepeatingMarker() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .Text("\u2022 ")
+                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Bold("Bold red")
+                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Italic(" italic blue"))
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
+        Assert.Equal("Bold red italic blue", logicalItem.Text);
+        Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
+
+        using OfficeWordDocument imported = logical.ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(
+            new MemoryStream(imported.ToBytes()),
+            false);
+        Paragraph listItem = Assert.Single(GetPdfSemanticBody(package).Elements<Paragraph>());
+        Assert.Equal("Bold red italic blue", ReadParagraphText(listItem));
+        Assert.NotNull(listItem.ParagraphProperties?.NumberingProperties);
+        Assert.Contains(listItem.Descendants<Run>(), run =>
+            ReadRunText(run).Contains("Bold red", StringComparison.Ordinal) &&
+            run.RunProperties?.Bold != null &&
+            run.RunProperties?.Color?.Val?.Value == "FF0000");
+        Assert.Contains(listItem.Descendants<Run>(), run =>
+            ReadRunText(run).Contains("italic blue", StringComparison.Ordinal) &&
+            run.RunProperties?.Italic != null &&
+            run.RunProperties?.Color?.Val?.Value == "0000FF");
+    }
+
+    [Fact]
     public void PdfSemanticImport_ResultsKeepDiagnosticsScopedToEachConversion() {
         byte[] imagePdf = PdfCore.PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Operation-scoped image")
@@ -20,7 +87,7 @@ public partial class Word {
         byte[] textPdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("A clean second conversion."))
             .ToBytes();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult first = LoadSemanticPdf(imagePdf).ToWordDocumentResult(options);
         using OfficeWordDocument firstDocument = first.RequireValue();
@@ -32,6 +99,9 @@ public partial class Word {
         Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
         Assert.Contains(first.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
     }
+
+    private static string ReadRunText(Run run) =>
+        string.Concat(run.Descendants<Text>().Select(text => text.Text));
 
     [Fact]
     public void PdfSemanticImport_SaveAsWord_ImportsEditableDocumentStructure() {
@@ -64,7 +134,7 @@ public partial class Word {
             .H1("Second Page")
             .TextField("Approval", width: 120, value: "Ready")
             .ToBytes();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -129,7 +199,7 @@ public partial class Word {
             .H1("Second Page Marker")
             .Paragraph(paragraph => paragraph.Text("Only selected page body."))
             .ToBytes();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.LoadPageRanges(
             pdf,
             CreateSemanticLayoutOptions(),
@@ -189,7 +259,7 @@ public partial class Word {
             .H1("Unsafe Link", linkUri: "javascript:alert(1)", linkContents: "Unsafe Link")
             .Paragraph(paragraph => paragraph.Text("The unsafe PDF action remains inert in Word."))
             .ToBytes();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -216,7 +286,7 @@ public partial class Word {
             })
             .H1("Disabled URI Link", linkUri: "https://example.com/disabled", linkContents: "Disabled URI Link")
             .ToBytes();
-        var options = new PdfWordReadOptions {
+        var options = new PdfWordImportOptions {
             ImportUriLinks = false,
             ImportInternalLinks = true,
 
@@ -251,7 +321,7 @@ public partial class Word {
             .H2("Details")
             .Paragraph(paragraph => paragraph.Text("Destination content survives as editable Word text."))
             .ToBytes();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -284,7 +354,7 @@ public partial class Word {
             .H1("Image Placeholder Policy")
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Placeholder policy pixel")
             .ToBytes();
-        var options = new PdfWordReadOptions {
+        var options = new PdfWordImportOptions {
             ImportImages = false,
             IncludeImagePlaceholders = true,
 
@@ -305,7 +375,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_RawDeviceRgbImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceRgbImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -324,7 +394,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_FilterChainDeviceRgbImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildAsciiHexFlateDeviceRgbImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -343,7 +413,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DctImageStreamsWithSoftMask_AreEmbeddedWithTransparencyWarning() {
         byte[] pdf = BuildDeviceRgbJpegSoftMaskImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -354,6 +424,8 @@ public partial class Word {
             warning.Code == "PdfImageTransparencyMaskNotResolved" &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
+        InvalidOperationException loss = Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+        Assert.Contains("PdfImageTransparencyMaskNotResolved", loss.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
@@ -366,7 +438,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_ColorKeyMaskedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildDeviceRgbColorKeyMaskImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -385,7 +457,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DeviceCmykImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceCmykImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -404,7 +476,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DeviceCmykSoftMaskImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildDeviceCmykSoftMaskImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -423,7 +495,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawIndexedRgbImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -442,7 +514,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedSoftMaskImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildIndexedSoftMaskImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -461,7 +533,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedColorKeyMaskedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildIndexedColorKeyMaskImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -480,7 +552,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_ImageMaskStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildImageMaskPdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -499,7 +571,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DecodeRemappedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceGrayInvertedDecodeImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -518,7 +590,7 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IccBasedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawIccBasedRgbImagePdf();
-        var options = new PdfWordReadOptions();
+        var options = new PdfWordImportOptions();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;

@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page2");
                 document.Save();
-                document.SaveAsPdf(pdfCustom, new PdfSaveOptions {
+                document.SaveAsPdf(pdfCustom, new WordPdfSaveOptions {
                     IncludePageNumbers = true,
                     PageNumberFormat = "Page {current} of {total}"
                 });
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("After native page break");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native section page numbering second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = true
                 });
             }
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Restarted section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Second section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     PageNumberFormat = "AUTO {current}/{total}"
                 });
             }
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native roman field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions());
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions());
             }
 
             Assert.True(File.Exists(pdfPath));

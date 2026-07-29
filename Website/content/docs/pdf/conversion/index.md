@@ -13,7 +13,7 @@ OfficeIMO conversion adapters project source models into the first-party PDF eng
 | PowerPoint | `OfficeIMO.PowerPoint.Pdf` |
 | HTML | `OfficeIMO.Html.Pdf` |
 | Markdown | `OfficeIMO.Markdown.Pdf` |
-| OpenDocument | `OfficeIMO.OpenDocument.Pdf` |
+| OpenDocument | `OfficeIMO.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, or `.Odp.Pdf` |
 | OneNote | `OfficeIMO.OneNote.Pdf` |
 | RTF, AsciiDoc, LaTeX | their focused `.Pdf` adapters |
 

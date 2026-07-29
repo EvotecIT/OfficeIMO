@@ -97,13 +97,14 @@ public sealed class AsciiDocToMarkdownContractTests {
         const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
         var result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
+        AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
+            Assert.Single(result.SourceConversionReports));
 
         Assert.True(bytes.Length > 100);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
-        Assert.Contains(result.Warnings, warning =>
-            warning.Converter == "OfficeIMO.AsciiDoc.Pdf" &&
-            warning.Code == "ADOCMD103" &&
-            warning.Details["stage"] == "semantic-projection");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "ADOCMD103");
+        Assert.True(result.HasLoss);
     }
 
     [Fact]

@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 runSubscript.SetSubScript();
                 document.AddParagraph("After native baseline formatting");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 cellParagraph.AddText("CellSoftSecond");
                 document.AddParagraph("After native text wrapping breaks");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("FollowingBody");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(260, 170),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("ChainTarget");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(260, 220),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("AfterStyledPageBreak");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica"
                 });
@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Break(), new Text("CellAfterSameRun"))));
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native justified paragraph alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau wraps across multiple visual lines.");
                 paragraph.ParagraphAlignment = JustificationValues.Both;
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(240, 360),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(24)
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.RightSize = 8;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("After styled panel");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -399,7 +399,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("After shaded block");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 240),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
@@ -429,7 +429,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("After native horizontal line");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("After native bottom border");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
                 paragraph.LineSpacingBeforePoints = 8;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.RightSize = 20;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests {
                 wide.Borders.LeftSpace = 24;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
@@ -614,7 +614,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.BottomSpace = uint.MaxValue;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
                     Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
@@ -635,7 +635,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddTabStop(4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 180),
                     Margins = PageMargins.Uniform(36)
@@ -684,7 +684,7 @@ namespace OfficeIMO.Tests {
                 document.Settings.DefaultTabStop = defaultTabStopTwips;
                 document.AddParagraph("WWWWWWWWWWWW\tTabRight");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(420, 180),
                     Margins = PageMargins.Uniform(36)
@@ -783,7 +783,7 @@ namespace OfficeIMO.Tests {
                 paragraph.SetStyleId(styleId);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 180),
                     Margins = PageMargins.Uniform(36)
@@ -883,7 +883,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("LeftMarker");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
                     Margins = PageMargins.Uniform(30),
@@ -913,7 +913,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("LeftMarker");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
                     Margins = PageMargins.Uniform(30),
@@ -944,7 +944,7 @@ namespace OfficeIMO.Tests {
                 bidi.BiDi = true;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PdfOptions = new PdfOptions {
                         ViewerPreferences = new PdfViewerPreferencesOptions {
@@ -1033,7 +1033,7 @@ namespace OfficeIMO.Tests {
                 styled.SetStyleId(styleId);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica"
                 });
@@ -1083,7 +1083,7 @@ namespace OfficeIMO.Tests {
 
                 document.AddParagraph("VisibleAfterHiddenText");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -1127,7 +1127,7 @@ namespace OfficeIMO.Tests {
                 styled.SetStyleId(capsStyleId);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -1222,7 +1222,7 @@ namespace OfficeIMO.Tests {
             };
             document.AddParagraph("Document default font diagnostic");
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             });
@@ -1263,7 +1263,7 @@ namespace OfficeIMO.Tests {
                     targetFamily,
                     PdfFontFamilySubstitutionImpact.Compatible);
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PdfOptions = configured,
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -1316,7 +1316,7 @@ namespace OfficeIMO.Tests {
                     targetFamily,
                     PdfFontFamilySubstitutionImpact.Compatible);
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 FontFamily = "OfficeIMO Unavailable Explicit Family",
                 PdfOptions = configured,
@@ -1355,7 +1355,7 @@ namespace OfficeIMO.Tests {
                     substitutedFamily,
                     PdfFontFamilySubstitutionImpact.Compatible);
 
-            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new PdfSaveOptions {
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PdfOptions = configured,
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -1398,7 +1398,7 @@ namespace OfficeIMO.Tests {
                 HeaderFont = PdfStandardFont.Courier,
                 FooterFont = PdfStandardFont.Courier
             };
-            var saveOptions = new PdfSaveOptions {
+            var saveOptions = new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PdfOptions = configured
             };
@@ -1427,7 +1427,7 @@ namespace OfficeIMO.Tests {
             runProperties.Languages = new Languages { Val = "pl-PL" };
             document.AddParagraph("Document language");
 
-            byte[] bytes = document.ToPdf(new PdfSaveOptions {
+            byte[] bytes = document.ToPdf(new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
 
@@ -1504,7 +1504,7 @@ namespace OfficeIMO.Tests {
                 PdfStandardFont.Helvetica,
                 portableFont,
                 "OfficeIMO-Portable-Regular");
-            var saveOptions = new PdfSaveOptions {
+            var saveOptions = new WordPdfSaveOptions {
                 PdfOptions = configured
             };
 
@@ -1532,16 +1532,22 @@ namespace OfficeIMO.Tests {
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(
                 createStyle.Invoke(null, new[] { paragraph, nativeDefaults, nativeFontMap }));
 
-            Assert.NotNull(style.LineHeight);
-            Assert.Equal(1.15D, style.LineHeight.Value, 6);
-            Assert.True(Math.Abs(style.LineHeight.Value - 1.220703125D) > 0.01D);
-
             MethodInfo resolveSingleLine = converterType.GetMethod(
                 "ResolveNativeWordSingleLineHeight",
                 BindingFlags.NonPublic | BindingFlags.Static,
                 binder: null,
                 new[] { nativeFontMapType, typeof(string[]) },
                 modifiers: null)!;
+            double resolvedRatio = Assert.IsType<double>(resolveSingleLine.Invoke(
+                null,
+                new object?[] {
+                    nativeFontMap,
+                    new[] { "Times New Roman" }
+                }));
+            Assert.NotNull(style.LineHeight);
+            Assert.Equal(resolvedRatio, style.LineHeight.Value, 6);
+            Assert.True(Math.Abs(style.LineHeight.Value - 1.220703125D) > 0.01D);
+
             double fallbackRatio = Assert.IsType<double>(resolveSingleLine.Invoke(
                 null,
                 new object?[] {
@@ -1608,7 +1614,7 @@ namespace OfficeIMO.Tests {
                 atLeast.AddText("AtLeastSecond");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(360, 260),
                     Margins = PageMargins.Uniform(36),
@@ -1654,7 +1660,7 @@ namespace OfficeIMO.Tests {
                 paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     FontFamily = "Helvetica"
                 });
@@ -1755,7 +1761,7 @@ namespace OfficeIMO.Tests {
                 after.LineSpacingAfterPoints = 0;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
                     Margins = PageMargins.Uniform(36),
@@ -1874,7 +1880,7 @@ namespace OfficeIMO.Tests {
                 paragraph.LineSpacingAfterPoints = 0;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(260, 260),
                     Margins = PageMargins.Uniform(36)
@@ -1915,7 +1921,7 @@ namespace OfficeIMO.Tests {
                 after.LineSpacingAfterPoints = 0;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
                     Margins = PageMargins.Uniform(36),
@@ -1944,7 +1950,7 @@ namespace OfficeIMO.Tests {
                 second.LineSpacingAfterPoints = 0;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
                     Margins = PageMargins.Uniform(36),
@@ -1996,7 +2002,7 @@ namespace OfficeIMO.Tests {
                 second.LineSpacingAfterPoints = 0;
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
                     Margins = PageMargins.Uniform(36),

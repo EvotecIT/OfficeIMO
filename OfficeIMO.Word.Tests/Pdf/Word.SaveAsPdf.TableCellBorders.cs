@@ -69,7 +69,7 @@ public partial class Word {
             cell.Borders.RightSize = 8;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -103,7 +103,7 @@ public partial class Word {
             cell.Borders.RightSize = 20;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -153,7 +153,7 @@ public partial class Word {
             cell.Borders.TopRightToBottomLeftSize = 8;
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)

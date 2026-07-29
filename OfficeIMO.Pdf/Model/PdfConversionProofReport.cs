@@ -12,6 +12,7 @@ public sealed class PdfConversionProofReport {
         long artifactByteCount,
         string artifactSha256,
         PdfConversionReportSummary warningSummary,
+        bool hasLoss,
         IReadOnlyList<PdfConversionProofIssue> issues) {
         DocumentInfo = documentInfo;
         LogicalDocument = logicalDocument;
@@ -20,6 +21,7 @@ public sealed class PdfConversionProofReport {
         ArtifactByteCount = artifactByteCount;
         ArtifactSha256 = artifactSha256 ?? string.Empty;
         WarningSummary = warningSummary;
+        HasLoss = hasLoss;
         Issues = issues;
     }
 
@@ -44,6 +46,9 @@ public sealed class PdfConversionProofReport {
     /// <summary>Grouped warning summary captured from the conversion report snapshot.</summary>
     public PdfConversionReportSummary WarningSummary { get; }
 
+    /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
+    public bool HasLoss { get; }
+
     /// <summary>Missing or failed proof items.</summary>
     public IReadOnlyList<PdfConversionProofIssue> Issues { get; }
 
@@ -54,7 +59,9 @@ public sealed class PdfConversionProofReport {
     public string Summary {
         get {
             if (IsSatisfied) {
-                return "PDF conversion proof checks passed.";
+                return HasLoss
+                    ? "PDF conversion proof checks passed, but a conversion stage reported possible content loss."
+                    : "PDF conversion proof checks passed.";
             }
 
             return "PDF conversion proof failed: " + string.Join("; ", Issues.Select(issue => issue.Message));

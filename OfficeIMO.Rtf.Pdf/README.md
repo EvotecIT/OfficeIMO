@@ -8,6 +8,23 @@ Supported export coverage includes semantic paragraphs, paragraph indentation/sp
 
 Supported import coverage includes PDF Info metadata, first-page paper size, logical headings, logical list items, grouped paragraphs, basic paragraph spacing, and page transitions as RTF page-break-before paragraphs. PDF is a fixed-layout format, so import is semantic text extraction rather than lossless visual reconstruction of arbitrary PDFs.
 
+## Import PDF with diagnostics
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Rtf.Pdf;
+
+PdfDocument pdf = PdfDocument.Open("source.pdf");
+PdfRtfConversionResult result = pdf.ToRtfDocumentResult();
+
+result.Value.Save("source.rtf");
+foreach (var warning in result.Report.Warnings) {
+    Console.WriteLine($"{warning.Code}: {warning.Message}");
+}
+```
+
+The semantic importer preserves detected run color, font size, bold, and italic through shared logical PDF runs. Tables, images, links, and form widgets currently produce structured loss diagnostics instead of disappearing silently.
+
 ## Export with diagnostics
 
 ```csharp
