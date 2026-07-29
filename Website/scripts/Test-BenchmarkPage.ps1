@@ -118,6 +118,7 @@ if ($scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'candidate\.comparisonId === selectedComparison' -or
     $scriptText -notmatch 'candidate\.publish === true' -or
     $scriptText -notmatch 'compatibilityIssues' -or
+    $scriptText -notmatch "macos:\s*'macOS'" -or
     $pageHtml -notmatch 'Quick results are diagnostic only') {
     throw 'Tabular benchmark selector does not preserve shareable platform/mode state and evidence safety labels.'
 }

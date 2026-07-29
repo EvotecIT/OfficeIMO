@@ -25,3 +25,26 @@ function Get-TabularBenchmarkEvidenceLocation {
         ResultPath = "/data/benchmarks/tabular/$fileName"
     }
 }
+
+function Write-TabularBenchmarkResult {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path,
+        [Parameter(Mandatory)]
+        [object] $InputObject
+    )
+
+    $benchmarkJsonType = [Type]::GetType('PowerForge.BenchmarkJson, PowerForge', $true)
+    $writeMethod = $benchmarkJsonType.GetMethods() |
+        Where-Object { $_.Name -eq 'Write' -and $_.IsGenericMethodDefinition } |
+        Select-Object -First 1
+    if ($null -eq $writeMethod) {
+        throw 'PowerForge.BenchmarkJson.Write<T> is unavailable.'
+    }
+
+    $value = $InputObject.PSObject.BaseObject
+    $closedMethod = $writeMethod.MakeGenericMethod($value.GetType())
+    $arguments = [object[]] @([string] $Path, $value)
+    $null = $closedMethod.Invoke($null, $arguments)
+}

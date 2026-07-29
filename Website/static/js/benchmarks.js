@@ -313,6 +313,15 @@
     return Math.round(value) + ' B';
   }
 
+  function platformLabel(value) {
+    var labels = {
+      windows: 'Windows',
+      linux: 'Linux',
+      macos: 'macOS'
+    };
+    return labels[value] || value;
+  }
+
   function metric(row, name) {
     if (!row || !row.metrics) return null;
     if (typeof row.metrics[name] === 'number') return row.metrics[name];
@@ -373,7 +382,7 @@
     meta.innerHTML = '';
     [
       selectedComparison,
-      selectedPlatform,
+      platformLabel(selectedPlatform),
       selectedMode,
       entry.environment && entry.environment.processorName,
       entry.environment && entry.environment.runtimeVersion,
@@ -402,7 +411,7 @@
     if (!entry) {
       state.hidden = false;
       state.className = 'imo-tabular-benchmark-state missing';
-      state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + selectedPlatform + ' yet.';
+      state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + platformLabel(selectedPlatform) + ' yet.';
       return;
     }
     if (entry.comparable === false) {
@@ -414,7 +423,7 @@
 
     state.hidden = false;
     state.className = 'imo-tabular-benchmark-state';
-    state.textContent = 'Loading ' + selectedPlatform + ' ' + selectedMode + ' results…';
+    state.textContent = 'Loading ' + platformLabel(selectedPlatform) + ' ' + selectedMode + ' results…';
     fetch(entry.resultPath, { credentials: 'same-origin' })
       .then(function (response) {
         if (!response.ok) throw new Error('HTTP ' + response.status);

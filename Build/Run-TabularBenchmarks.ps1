@@ -96,7 +96,7 @@ foreach ($row in $result.Summary) {
     $row.RunMode = $RunMode
 }
 
-[PowerForge.BenchmarkJson]::Write($normalizedPath, $result)
+Write-TabularBenchmarkResult -Path $normalizedPath -InputObject $result
 if ($catalogEligible) {
     Update-BenchmarkEvidenceCatalog `
         -InputObject $result `
