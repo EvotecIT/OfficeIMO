@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 2,
+  "expectedPlatforms": [
+    "windows",
+    "linux",
+    "macos"
+  ],
+  "entries": [
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-29T18:09:45.9365965+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.CSV.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.CSV.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-csv-decoded-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "91d9047062b001cb5fa27b3e1ea2c2edb13fddff"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-29T18:11:33.6617128+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "91d9047062b001cb5fa27b3e1ea2c2edb13fddff"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "platform": "windows",
+      "runMode": "quick",
+      "generatedUtc": "2026-07-29T18:11:05.6322314+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-quick.json",
+      "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "91d9047062b001cb5fa27b3e1ea2c2edb13fddff"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    }
+  ],
+  "availability": [
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-29T18:09:45.9365965+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-29T18:11:33.6617128+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-29T18:11:05.6322314+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    }
+  ]
+}
