@@ -113,7 +113,7 @@ public sealed class BrowserConversionService {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = false,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,

@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options for extracting logical PDF tables into an Excel workbook.
     /// </summary>
-    public sealed class PdfExcelTableImportOptions {
+public sealed class PdfExcelImportOptions {
         /// <summary>
         /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.
         /// </summary>

@@ -140,7 +140,7 @@ namespace OfficeIMO.Word.Pdf {
             ScaleDownToFit = true
         };
 
-        private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
+        private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, WordPdfSaveOptions? options) {
             ResetNativeStyleLookupCache(document);
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Word.Pdf {
             return pdf;
         }
 
-        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, PdfSaveOptions? options) {
+        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, WordPdfSaveOptions? options) {
             int endIndex = startIndex + 1;
             while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options)) {
                 endIndex++;
@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Pdf {
             return endIndex;
         }
 
-        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, PdfSaveOptions? options) {
+        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordPdfSaveOptions? options) {
             if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
                 return false;
             }

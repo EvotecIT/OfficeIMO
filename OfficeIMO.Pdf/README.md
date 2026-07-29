@@ -536,7 +536,7 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new PdfSaveOptions {
+var options = new WordPdfSaveOptions {
     TextFallbacks = PdfTextFallbackFeatures.Default,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 }.UseProfile(PdfExportProfile.PrintReady);
@@ -642,8 +642,8 @@ using OfficeIMO.Word.Pdf;
 using var word = WordDocument.Load("proposal.docx");
 word.SaveAsPdf("proposal.pdf");
 
-PdfLogicalDocument statement = PdfLogicalDocument.Load("bank-statement.pdf");
-PdfExcelTableImportReport tableReport = statement.SaveTablesAsExcel(
+PdfDocument statement = PdfDocument.Open("bank-statement.pdf");
+PdfExcelImportReport tableReport = statement.SaveAsExcel(
     "bank-statement-tables.xlsx");
 
 Console.WriteLine($"Non-table page content detected: {tableReport.HasOmittedPageContent}");
@@ -663,17 +663,19 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 | Package | Role |
 | --- | --- |
 | [OfficeIMO.Word.Pdf](../OfficeIMO.Word.Pdf/README.md) | Maps Word documents into PDF primitives. |
-| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Maps Excel workbooks into PDF primitives. |
+| [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Maps Excel workbooks to PDF and recovers detected PDF tables as editable worksheets. |
 | [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md) | Maps Markdown documents into PDF primitives. |
-| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Maps PowerPoint slides into PDF primitives. |
+| [OfficeIMO.PowerPoint.Pdf](../OfficeIMO.PowerPoint.Pdf/README.md) | Maps PowerPoint slides to PDF and imports PDF pages as visual slides or editable detected tables. |
 | [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) | Bridges HTML to PDF and PDF to HTML. |
 | [OfficeIMO.Rtf.Pdf](../OfficeIMO.Rtf.Pdf/README.md) | Maps semantic RTF into PDF and logical PDF content back to RTF. |
 | [OfficeIMO.OneNote.Pdf](../OfficeIMO.OneNote.Pdf/README.md) | Explicitly projects offline OneNote hierarchy into a semantic PDF document with loss diagnostics. |
 | [OfficeIMO.AsciiDoc.Pdf](../OfficeIMO.AsciiDoc.Pdf/README.md) | Projects native AsciiDoc through the loss-aware Markdown bridge and combines parser, projection, and PDF diagnostics. |
 | [OfficeIMO.Latex.Pdf](../OfficeIMO.Latex.Pdf/README.md) | Projects the bounded LaTeX profile through the loss-aware Markdown bridge without executing TeX. |
-| [OfficeIMO.OpenDocument.Pdf](../OfficeIMO.OpenDocument.Pdf/README.md) | Provides direct ODT, ODS, and ODP façades while retaining both OpenDocument projection and PDF conversion diagnostics. |
+| [OfficeIMO.OpenDocument.Odt.Pdf](../OfficeIMO.OpenDocument.Odt.Pdf/README.md) | Provides direct ODT and PDF façades with combined OpenDocument and PDF diagnostics. |
+| [OfficeIMO.OpenDocument.Ods.Pdf](../OfficeIMO.OpenDocument.Ods.Pdf/README.md) | Provides direct ODS and PDF façades without Word or PowerPoint dependencies. |
+| [OfficeIMO.OpenDocument.Odp.Pdf](../OfficeIMO.OpenDocument.Odp.Pdf/README.md) | Provides direct ODP and PDF façades without Word or Excel dependencies. |
 
-The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are intentionally not advertised as direct conversion until their route-specific artifact gates are proven.
+The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-support-matrix.md) records direct, composed, and planned routes from the canonical [`Docs/pdf-conversion-scenarios.json`](../Docs/pdf-conversion-scenarios.json) manifest. The [4.0 PDF bridge migration guide](../Docs/officeimo-4.0-pdf-bridges.md) documents the unified reverse API, fidelity modes, and remaining roadmap gaps. `OfficeIMO.Reader.Pdf` can project any normalized `OfficeDocumentReadResult` through one explicit PDF policy and merged evidence contract. Email, EPUB, and Visio are intentionally not advertised as direct conversion until their route-specific artifact gates are proven.
 
 ## Boundaries
 

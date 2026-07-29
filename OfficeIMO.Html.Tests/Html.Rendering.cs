@@ -408,6 +408,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(summary.HasResourceResolver);
         Assert.True(summary.AllowSystemFontEmbedding);
+        Assert.True(summary.AllowDocumentFontEmbedding);
         Assert.False(summary.AllowLocalFileAccess);
         Assert.False(summary.AllowRemoteResourceResolution);
         Assert.True(summary.AllowDataUris);
@@ -420,6 +421,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(24, summary.MaxResourceRequests);
         Assert.Equal(4, summary.MaxStylesheetImportDepth);
         Assert.Contains("https", summary.AllowedUrlSchemes);
+    }
+
+    [Fact]
+    public void HtmlPdf_DocumentFontPolicyPreventsCssFamiliesFromLocatingHostFonts() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        var options = new HtmlPdfSaveOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault()
+        };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
+            .Parse("<p style=\"font-family:'" + installedFamily + "'\">Document font boundary</p>")
+            .ToPdfDocumentResult(options);
+
+        Assert.True(options.GetResourcePolicySummary().AllowSystemFontEmbedding);
+        Assert.False(options.GetResourcePolicySummary().AllowDocumentFontEmbedding);
+        Assert.Empty(result.Value.Options.EmbeddedFonts);
+        Assert.Contains("Document font boundary", PdfCore.PdfReadDocument.Open(result.Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

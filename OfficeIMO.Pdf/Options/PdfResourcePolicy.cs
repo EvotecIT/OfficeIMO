@@ -11,6 +11,7 @@ public sealed class PdfResourcePolicy {
     /// </summary>
     public static PdfResourcePolicy CreateDefault() => new PdfResourcePolicy {
         AllowSystemFontEmbedding = true,
+        AllowDocumentFontEmbedding = true,
         AllowDataUris = true,
         AllowEmbeddedPackageResources = true
     };
@@ -42,7 +43,7 @@ public sealed class PdfResourcePolicy {
 
     /// <summary>
     /// When true, Office converters may use font family names from the source document to locate and embed installed
-    /// system fonts. Disabled by default because document-controlled names must not trigger host font disclosure.
+    /// system fonts. Enabled by the balanced document-conversion default and disabled by the portable deterministic policy.
     /// </summary>
     public bool AllowDocumentFontEmbedding { get; set; }
 

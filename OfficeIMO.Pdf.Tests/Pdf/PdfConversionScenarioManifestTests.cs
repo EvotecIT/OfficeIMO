@@ -305,7 +305,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
-        RtfDocument imported = logical.ToRtfDocument(new PdfRtfReadOptions());
+        RtfDocument imported = logical.ToRtfDocument(new PdfRtfImportOptions());
         string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
@@ -1901,28 +1901,28 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfLogicalDocument logicalDocument = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
 
         using var semanticWordStream = new MemoryStream();
-        var semanticWordOptions = new PdfWordReadOptions();
+        var semanticWordOptions = new PdfWordImportOptions();
         PdfWordConversionResult semanticWordResult = logicalDocument.ToWordDocumentResult(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
         }
 
         using var excelStream = new MemoryStream();
-        PdfExcelTableImportReport excelReport = PdfExcelTableConverterExtensions.SaveTablesAsExcel(
+        PdfExcelImportReport excelReport = PdfExcelConverterExtensions.SaveAsExcel(
             logicalDocument,
             excelStream,
-            new PdfExcelTableImportOptions {
+            new PdfExcelImportOptions {
                 AutoFitColumns = false
             });
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointTableImportReport powerPointReport = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
+        PdfPowerPointImportReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             logicalDocument,
             powerPointStream,
-            new PdfPowerPointTableImportOptions());
+            PdfPowerPointImportOptions.CreateEditableTables());
 
-        PdfExcelTableImportEntry excelResult = Assert.Single(excelReport.Entries);
-        PdfPowerPointTableImportEntry powerPointResult = Assert.Single(powerPointReport.Entries);
+        PdfExcelImportEntry excelResult = Assert.Single(excelReport.Entries);
+        PdfPowerPointImportEntry powerPointResult = Assert.Single(powerPointReport.Entries);
 
         Assert.Equal(3, excelResult.ColumnCount);
         Assert.Equal(3, powerPointResult.ColumnCount);

@@ -1,6 +1,14 @@
 # OfficeIMO breaking API migration
 
-This cleanup ships as one coordinated `2.0.0` release across every supported OfficeIMO package. The shared version marks a single compatibility boundary: applications should upgrade their OfficeIMO package set together instead of mixing `1.x` and `2.x` packages.
+## 4.0 PDF bridge boundary
+
+For the current PDF adapter surface, package defaults, and reverse-route migration, see the [OfficeIMO 4.0 PDF bridge guide](officeimo-4.0-pdf-bridges.md).
+
+Applications should upgrade their OfficeIMO package set together instead of mixing 3.x and 4.0 packages. The focused OpenDocument PDF adapters replace the former all-formats umbrella at this boundary.
+
+## Historical 2.0 cleanup
+
+The material below records the coordinated `2.0.0` cleanup. Its shared version marked a single compatibility boundary: applications upgraded their OfficeIMO package set together instead of mixing `1.x` and `2.x` packages.
 
 This release is a coordinated breaking cleanup across the OfficeIMO solution. It removes compatibility aliases, duplicate infrastructure, misleading async methods, and option-owned operation state. Consumers should migrate to the canonical APIs below instead of recreating removed names in wrappers.
 
@@ -85,7 +93,7 @@ Structured conversion results consistently provide:
 - `HasLoss` when the conversion simplified or omitted content;
 - `RequireValue()` and `RequireNoLoss()` where failing fast is useful.
 
-The canonical PDF result method is `ToPdfDocumentResult()`. Source-explicit methods include `ToPdfDocumentFromMarkdownResult()`, `ToPdfDocumentFromRtfResult()`, and `ToWordDocumentFromPdfResult()`.
+The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`.
 
 `SaveAsPdf` now returns structured save evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF PDF adapters. `ToPdf()` remains the direct encoded-byte convenience API. Launching or opening a generated PDF is application behavior and is not part of saving.
 
@@ -258,12 +266,12 @@ Use the shared result diagnostics instead:
 | phone compatibility properties | `OutlookContact.Phones` |
 | `TrackComments` | no replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking |
 | `ToPdfResult()` | `ToPdfDocumentResult()` |
-| PDF `ToWordResult()` | `ToWordDocumentFromPdfResult()` |
+| PDF `ToWordResult()` | `ToWordDocumentResult()` |
 | `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |
 | `RtfDocument.ToHtmlMemoryStream()` | `ToHtmlStream()` |
 | `ToRtfMemoryStream()` | `ToRtfStream()` |
-| `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()` |
+| `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWord()` / `SaveAsRtf()` on `PdfDocument` |
 | `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveAsExcel()` / `SaveAsWordDocument()` / `SaveAsPowerPoint()` |
 | `WordHelpers.ConvertDotXtoDocX(...)` | `ConvertDotxToDocx(...)` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |

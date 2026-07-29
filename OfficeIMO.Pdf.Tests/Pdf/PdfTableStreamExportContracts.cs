@@ -16,7 +16,7 @@ public class PdfTableStreamExportContracts {
         PdfLogicalDocument logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
-        logical.SaveAsWord(destination, PdfWordReadOptions.CreateTablesOnly());
+        logical.SaveAsWord(destination, PdfWordImportOptions.CreateTablesOnly());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.MainDocumentPart);
@@ -27,7 +27,7 @@ public class PdfTableStreamExportContracts {
         PdfLogicalDocument logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
-        logical.SaveTablesAsPowerPoint(destination);
+        logical.SaveAsPowerPoint(destination);
 
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.PresentationPart);
@@ -37,9 +37,9 @@ public class PdfTableStreamExportContracts {
     public async Task TableConversions_ProvideReportsAndAsyncCallerOwnedStreamWrites() {
         PdfLogicalDocument logical = CreateLogicalDocument();
 
-        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfWordReadOptions.CreateTablesOnly());
-        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
-        PdfPowerPointTableImportResult powerPointResult = logical.ImportTablesToPowerPointPresentationResult();
+        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfWordImportOptions.CreateTablesOnly());
+        PdfExcelImportResult excelResult = logical.ToExcelDocumentResult();
+        PdfPowerPointImportResult powerPointResult = logical.ToPowerPointPresentationResult();
 
         using var wordDocument = wordResult.RequireNoLoss();
         using var excelDocument = excelResult.RequireNoLoss();
@@ -60,9 +60,9 @@ public class PdfTableStreamExportContracts {
         using var wordStream = new MemoryStream();
         using var excelStream = new MemoryStream();
         using var powerPointStream = new MemoryStream();
-        await logical.SaveAsWordAsync(wordStream, PdfWordReadOptions.CreateTablesOnly());
-        await logical.SaveTablesAsExcelAsync(excelStream);
-        await logical.SaveTablesAsPowerPointAsync(powerPointStream);
+        await logical.SaveAsWordAsync(wordStream, PdfWordImportOptions.CreateTablesOnly());
+        await logical.SaveAsExcelAsync(excelStream);
+        await logical.SaveAsPowerPointAsync(powerPointStream);
 
         wordStream.WriteByte(0);
         excelStream.WriteByte(0);
@@ -80,7 +80,7 @@ public class PdfTableStreamExportContracts {
         cancellation.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            logical.SaveAsWordAsync(destination, PdfWordReadOptions.CreateTablesOnly(), cancellation.Token));
+            logical.SaveAsWordAsync(destination, PdfWordImportOptions.CreateTablesOnly(), cancellation.Token));
         Assert.Equal(0, destination.Length);
     }
 
@@ -131,8 +131,8 @@ public class PdfTableStreamExportContracts {
             .ToBytes();
         PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
 
-        PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
-        PdfPowerPointTableImportResult powerPointResult = logical.ImportTablesToPowerPointPresentationResult();
+        PdfExcelImportResult excelResult = logical.ToExcelDocumentResult();
+        PdfPowerPointImportResult powerPointResult = logical.ToPowerPointPresentationResult();
 
         Assert.Empty(logical.TextBlocks);
         Assert.Empty(logical.Images);

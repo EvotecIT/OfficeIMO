@@ -35,7 +35,7 @@ public partial class Word {
             second.AddPageNumbering(1, NumberFormatValues.Decimal);
             document.AddParagraph("AfterRestart");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = true,
                 PageSize = new OfficeIMO.Pdf.PageSize(400, 300),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(50)
@@ -80,7 +80,7 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "BasePeer";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(420, 260),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(40)

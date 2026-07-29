@@ -54,10 +54,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 85 |
-| Documented package, tool, and example projects below | 92 |
+| Coordinated `3.0.x` release packages | 87 |
+| Documented package, tool, and example projects below | 94 |
 | Native format, foundation, and shared-service packages | 26 |
-| Conversion and cloud bridge packages | 29 |
+| Conversion and cloud bridge packages | 31 |
 | Unified Reader packages | 27 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
@@ -524,13 +524,29 @@ _Dependency footprint:_ only OfficeIMO PowerPoint, PDF, and Drawing packages.
 
 _Dependency footprint:_ only OfficeIMO PowerPoint and OpenDocument packages.
 
-#### [OfficeIMO.OpenDocument.Pdf](OfficeIMO.OpenDocument.Pdf/README.md)
+#### [OfficeIMO.OpenDocument.Odt.Pdf](OfficeIMO.OpenDocument.Odt.Pdf/README.md)
 
-- [x] Direct ODT, ODS, and ODP to PDF workflows with path, stream, synchronous, asynchronous, and result-bearing APIs
-- [x] One thin façade over the existing OpenDocument-to-Office adapters and canonical Word, Excel, and PowerPoint PDF engines
-- [x] Combined feature-mapping and PDF conversion diagnostics so approximated, skipped, and unsupported content remains visible
+- [x] Bidirectional ODT and PDF workflows through the Word semantic engine
+- [x] Path, stream, synchronous, asynchronous, and result-bearing entry points
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
 
-_Dependency footprint:_ only first-party OfficeIMO OpenDocument, Office, and PDF adapter packages; no second document or PDF rendering engine.
+_Dependency footprint:_ Word, Word OpenDocument, PDF, and native OpenDocument only; no Excel or PowerPoint stack.
+
+#### [OfficeIMO.OpenDocument.Ods.Pdf](OfficeIMO.OpenDocument.Ods.Pdf/README.md)
+
+- [x] Bidirectional ODS and PDF workflows through the Excel semantic engine
+- [x] Editable detected-table recovery with non-table page-content loss reporting
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
+
+_Dependency footprint:_ Excel, Excel OpenDocument, PDF, and native OpenDocument only; no Word or PowerPoint stack.
+
+#### [OfficeIMO.OpenDocument.Odp.Pdf](OfficeIMO.OpenDocument.Odp.Pdf/README.md)
+
+- [x] Bidirectional ODP and PDF workflows through the PowerPoint semantic engine
+- [x] Visual-page reconstruction by default, with explicit editable-table mode
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
+
+_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 4.0 package graph has no all-formats umbrella or bridge-specific Core package.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 

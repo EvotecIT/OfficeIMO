@@ -14,19 +14,19 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">The document to convert.</param>
         /// <param name="options">Optional PDF configuration.</param>
         /// <returns>The generated first-party PDF document model.</returns>
-        public static PdfCore.PdfDocument ToPdfDocument(this WordDocument document, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocument ToPdfDocument(this WordDocument document, WordPdfSaveOptions? options = null) {
             return document.ToPdfDocumentResult(options).Value;
         }
 
         /// <summary>
         /// Converts the specified <see cref="WordDocument"/> to a PDF document and returns conversion diagnostics with it.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this WordDocument document, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this WordDocument document, WordPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            PdfSaveOptions operation = (options ?? new PdfSaveOptions()).CloneForConversion();
+            WordPdfSaveOptions operation = (options ?? new WordPdfSaveOptions()).CloneForConversion();
             PdfCore.PdfDocument pdf = CreateOfficeIMOPdfDocument(document, operation);
             return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
         }
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">The document to convert.</param>
         /// <param name="path">The output PDF file path.</param>
         /// <param name="options">Optional PDF configuration.</param>
-        public static PdfCore.PdfSaveResult SaveAsPdf(this WordDocument document, string path, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfSaveResult SaveAsPdf(this WordDocument document, string path, WordPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Attempts to save the specified <see cref="WordDocument"/> as a PDF file and returns output diagnostics instead of throwing.
         /// </summary>
-        public static PdfCore.PdfSaveResult TrySaveAsPdf(this WordDocument document, string path, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfSaveResult TrySaveAsPdf(this WordDocument document, string path, WordPdfSaveOptions? options = null) {
             try {
                 if (document == null) {
                     throw new ArgumentNullException(nameof(document));
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">The document to convert.</param>
         /// <param name="stream">The output stream to receive the PDF data.</param>
         /// <param name="options">Optional PDF configuration.</param>
-        public static PdfCore.PdfSaveResult SaveAsPdf(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfSaveResult SaveAsPdf(this WordDocument document, Stream stream, WordPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Attempts to write the specified <see cref="WordDocument"/> as a PDF to a stream and returns output diagnostics instead of throwing.
         /// </summary>
-        public static PdfCore.PdfSaveResult TrySaveAsPdf(this WordDocument document, Stream stream, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfSaveResult TrySaveAsPdf(this WordDocument document, Stream stream, WordPdfSaveOptions? options = null) {
             try {
                 if (document == null) {
                     throw new ArgumentNullException(nameof(document));
@@ -127,7 +127,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <returns>The generated PDF as a byte array.</returns>
         /// <example><code>byte[] pdf = document.ToPdf();</code></example>
-        public static byte[] ToPdf(this WordDocument document, PdfSaveOptions? options = null) {
+        public static byte[] ToPdf(this WordDocument document, WordPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>The saved PDF output result with conversion and pipeline diagnostics.</returns>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this WordDocument document, string path, WordPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Attempts to save the specified <see cref="WordDocument"/> as a PDF file asynchronously and returns output diagnostics instead of throwing.
         /// </summary>
-        public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, string path, WordPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (document == null) {
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>The saved PDF output result with conversion and pipeline diagnostics.</returns>
-        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this WordDocument document, Stream stream, WordPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -217,7 +217,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Attempts to write the specified <see cref="WordDocument"/> as a PDF to a stream asynchronously and returns output diagnostics instead of throwing.
         /// </summary>
-        public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this WordDocument document, Stream stream, WordPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (document == null) {

@@ -35,7 +35,7 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("proposal.docx");
 
-var options = new PdfSaveOptions {
+var options = new WordPdfSaveOptions {
     Orientation = PdfPageOrientation.Portrait,
     Margins = PageMargins.UniformCentimeters(1.5),
     Title = "Customer proposal",
@@ -68,7 +68,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("complex-document.docx");
-var options = new PdfSaveOptions {
+var options = new WordPdfSaveOptions {
     DefaultTableBorders = true
 };
 
@@ -84,42 +84,44 @@ foreach (var warning in result.Warnings) {
 }
 ```
 
-### Import logical PDF tables into Word
-
-```csharp
-using OfficeIMO.Word.Pdf;
-
-var imported = PdfWordTableConverterExtensions.SaveTablesAsWordDocument(
-    "statement.pdf",
-    "statement-tables.docx");
-
-foreach (var table in imported) {
-    Console.WriteLine($"Page {table.PageNumber}, table {table.TableIndex + 1}");
-}
-```
-
 ### Import semantic PDF content into Word
 
 ```csharp
 using OfficeIMO.Pdf;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
-var options = new PdfWordReadOptions {
-    LayoutOptions = new PdfTextLayoutOptions {
-        ForceSingleColumn = true
-    }
-};
+PdfDocument pdf = PdfDocument.Open("packet.pdf");
+PdfWordConversionResult import = pdf.ToWordDocumentResult(
+    new PdfWordImportOptions());
 
-var import = File.ReadAllBytes("packet.pdf").ToWordDocumentFromPdfResult(options);
 using WordDocument word = import.Value;
-byte[] docx = word.ToBytes();
+word.Save("packet.docx");
 
-foreach (var warning in import.Warnings) {
+foreach (var warning in import.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```
 
-The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. It creates an editable Word document; it does not claim fixed-layout page recreation or Microsoft Word rendering parity.
+The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, detected run color/size/emphasis, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. It creates an editable Word document; it does not claim fixed-layout page recreation or Microsoft Word rendering parity.
+
+For selected pages or custom layout analysis, read the logical model first:
+
+```csharp
+PdfLogicalDocument selected = pdf.Read.Logical(
+    PdfPageSelection.Parse("1-3,5"),
+    new PdfTextLayoutOptions { ForceSingleColumn = true });
+
+selected.SaveAsWord("packet-selection.docx");
+```
+
+For table-only recovery, use the same façade with the explicit profile:
+
+```csharp
+pdf.SaveAsWord(
+    "statement-tables.docx",
+    PdfWordImportOptions.CreateTablesOnly());
+```
 
 ## What it exports
 
@@ -133,15 +135,15 @@ The semantic import path preserves document metadata, page breaks, headings, par
 
 - Parser-supported PDF metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, complete image-file payloads with transparency-mask fidelity metadata, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette PDF image streams into editable `.docx` content when their filters are supported.
 - Image fallback placeholders and form-widget placeholders with diagnostics instead of silently dropping unsupported objects.
-- Page-range filtered imports through `PdfWordReadOptions.PageRanges`.
-- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordReadOptions.ImportUriLinks` and `PdfWordReadOptions.AllowedHyperlinkUriSchemes`.
-- Internal PDF destination reconstruction through `PdfWordReadOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
-- Native image embedding through `PdfWordReadOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfWordReadOptions.IncludeImagePlaceholders`.
+- Page-range filtered imports through `PdfDocument.Read.Logical(PdfPageSelection, ...)`.
+- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordImportOptions.ImportUriLinks` and `PdfWordImportOptions.AllowedHyperlinkUriSchemes`.
+- Internal PDF destination reconstruction through `PdfWordImportOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
+- Native image embedding through `PdfWordImportOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfWordImportOptions.IncludeImagePlaceholders`.
 - Per-operation import warnings through `PdfWordConversionResult.Report`.
 
 ## Options and diagnostics
 
-Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features should become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
+Use `WordPdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum. The balanced resource default enables installed fonts but denies arbitrary local and remote reads; use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion and `CreateTrustedHost()` only when local or remote resource access is intentional. Profiles do not inject page numbers; set `IncludePageNumbers = true` explicitly when generated numbering is desired. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features should become actionable operation results instead of mutable option state. Available embeddable Word families use shared named PDF resources and are not limited to three compatibility slots. Unavailable or non-embeddable families fall back to a mapped PDF font with an explicit warning.
 
 ## Boundaries
 

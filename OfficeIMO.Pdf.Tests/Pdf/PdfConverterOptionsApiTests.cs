@@ -8,7 +8,7 @@ public sealed class PdfConverterOptionsApiTests {
     [Fact]
     public void ConverterOptionsExposeExpectedResourceDefaults() {
         var markdown = new MarkdownPdfSaveOptions();
-        var word = new OfficeIMO.Word.Pdf.PdfSaveOptions();
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions();
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
         var html = new OfficeIMO.Html.Pdf.HtmlPdfSaveOptions();
@@ -21,7 +21,7 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Equal(PdfTextFallbackFeatures.Default, excel.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, powerPoint.TextFallbacks);
         AssertBalancedDefault(markdown.ResourcePolicy);
-        AssertPortable(word.ResourcePolicy);
+        AssertBalancedDefault(word.ResourcePolicy);
         AssertBalancedDefault(excel.ResourcePolicy);
         AssertBalancedDefault(powerPoint.ResourcePolicy);
         AssertBalancedDefault(html.ResourcePolicy);
@@ -64,12 +64,12 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void WordProfileMapsPrintReadyChoices() {
-        var options = new OfficeIMO.Word.Pdf.PdfSaveOptions {
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
             IncludePageNumbers = false,
             DefaultTableBorders = false
         };
 
-        OfficeIMO.Word.Pdf.PdfSaveOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
+        OfficeIMO.Word.Pdf.WordPdfSaveOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
 
         Assert.Same(options, returned);
         Assert.False(options.IncludePageNumbers);
@@ -126,7 +126,7 @@ public sealed class PdfConverterOptionsApiTests {
         var profile = (PdfExportProfile)999;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new MarkdownPdfSaveOptions().UseProfile(profile));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.PdfSaveOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseProfile(profile));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseProfile(profile));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseProfile(profile));
     }
@@ -256,7 +256,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     private static void AssertBalancedDefault(PdfResourcePolicy policy) {
         Assert.True(policy.AllowSystemFontEmbedding);
-        Assert.False(policy.AllowDocumentFontEmbedding);
+        Assert.True(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);

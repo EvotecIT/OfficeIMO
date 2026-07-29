@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using OfficeIMO.OpenDocument.Pdf;
+using OfficeIMO.OpenDocument.Odp.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using Xunit;
 

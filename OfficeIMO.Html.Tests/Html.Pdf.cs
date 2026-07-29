@@ -261,7 +261,10 @@ public sealed class HtmlPdfTests {
         Assert.Equal(1, result.Summary.WarningCount);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, item => item.Code == "AcroFormXfaDetected");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
@@ -276,6 +279,14 @@ public sealed class HtmlPdfTests {
         PdfHtmlConversionResult imageResult = PdfCore.PdfLogicalDocument.Load(imagePdf).ToHtmlResult(options);
         PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.True(imageResult.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => imageResult.RequireNoLoss());
+
+        using var output = new MemoryStream();
+        PdfCore.PdfConversionReport saveReport = PdfCore.PdfLogicalDocument.Load(imagePdf).SaveAsHtml(output, options);
+        Assert.True(saveReport.HasLoss);
+        Assert.NotEmpty(output.ToArray());
 
         PdfHtmlConversionResult textResult = PdfCore.PdfLogicalDocument.Load(textPdf).ToHtmlResult(options);
 

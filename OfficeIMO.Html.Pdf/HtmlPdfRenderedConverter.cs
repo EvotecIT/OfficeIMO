@@ -122,7 +122,9 @@ internal static partial class HtmlPdfRenderedConverter {
             webFonts.Slots.Keys,
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
-        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
+        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None &&
+            options.ResourcePolicy.AllowSystemFontEmbedding &&
+            options.ResourcePolicy.AllowDocumentFontEmbedding) {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);

@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfLogicalDocumentTests {
     [Fact]
+    public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .Color(PdfColor.FromRgb(255, 0, 0))
+                .Font(PdfStandardFont.Helvetica)
+                .Text("Red")
+                .Color(PdfColor.FromRgb(0, 0, 255))
+                .Font(PdfStandardFont.Courier)
+                .Text("Blue"))
+            .ToBytes();
+
+        PdfLogicalTextBlock block = Assert.Single(PdfLogicalDocument.Load(pdf).TextBlocks);
+
+        Assert.Equal(block.SpanCount, block.Spans.Count);
+        Assert.True(block.Spans.Count >= 2);
+        Assert.Contains(block.Spans, span => span.Text.Contains("Red", StringComparison.Ordinal));
+        Assert.Contains(block.Spans, span => span.Text.Contains("Blue", StringComparison.Ordinal));
+        Assert.Contains(block.Spans, span => span.BaseFont?.Contains("Helvetica", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Contains(block.Spans, span => span.BaseFont?.Contains("Courier", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.True(block.Spans.Where(span => span.Color.HasValue).Select(span => span.Color).Distinct().Count() >= 2);
+        Assert.Equal(block.Text, string.Concat(block.Runs.Select(run => run.Text)));
+        Assert.Contains(block.Runs, run =>
+            run.Text.Contains("Red", StringComparison.Ordinal) &&
+            run.BaseFont?.Contains("Helvetica", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Contains(block.Runs, run =>
+            run.Text.Contains("Blue", StringComparison.Ordinal) &&
+            run.BaseFont?.Contains("Courier", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.True(block.Runs.Where(run => run.Color.HasValue).Select(run => run.Color).Distinct().Count() >= 2);
+    }
+
+    [Fact]
     public void Load_BuildsLogicalPagesWithTextTablesAndImages() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

@@ -2,7 +2,11 @@
 ### Breaking Changes
 * Replace public color/image helper usage of `SixLabors.ImageSharp` with first-party `OfficeIMO.Drawing` types. Consumers that passed `SixLabors.ImageSharp.Color` should migrate to `OfficeIMO.Drawing.OfficeColor`.
 * Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; see the [breaking API migration guide](Docs/officeimo.breaking-api-migration.md).
-* Rename the table-only PDF adapters to `SaveTablesAsExcel` / `SaveTablesAsPowerPoint` and `ImportTablesToExcelDocument` / `ImportTablesToPowerPointPresentation`, with table-specific report and result types.
+* Unify the 4.0 PDF bridge surface around `PdfDocument` and `PdfLogicalDocument`, with format-owned save/import options, immutable result reports, and consistent `To...`, `To...Result`, `SaveAs...`, and `SaveAs...Async` entry points. See the [4.0 PDF bridge migration guide](Docs/officeimo-4.0-pdf-bridges.md).
+* Replace the all-formats `OfficeIMO.OpenDocument.Pdf` package with focused ODT, ODS, and ODP packages. Each package provides bidirectional routes without pulling unrelated Office stacks; no umbrella or bridge-specific Core package is retained.
+* Make PDF-to-PowerPoint useful beyond detected tables: the default opened-PDF route creates one rendered visual slide per page, while `PdfPowerPointImportMode.EditableTables` retains editable table recovery with explicit omitted-content diagnostics.
+* Rename the PDF table recovery entry points to destination-shaped APIs: use `ToExcelDocument` / `SaveAsExcel` and `ToPowerPointPresentation` / `SaveAsPowerPoint`.
+* Enable installed and document font embedding in the balanced PDF resource policy, preserve detected PDF text-run color/size/emphasis in semantic Word and RTF imports, and enable Word-to-HTML run color/highlight fidelity by default.
 * Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
 * Rename `WordHelpers.ConvertDotXtoDocX(...)` to `ConvertDotxToDocx(...)`, make its package rewrite stream expandable on .NET Framework, and prioritize real symbol fonts before Arial in automatic PDF fallbacks.
 * Serialize Excel floating-point cells, dates, formula and chart caches, pivot values and filters, validations, custom properties, conditional formatting, dimensions, filters, and streaming-writer values with one invariant round-trip formatter on every target framework.

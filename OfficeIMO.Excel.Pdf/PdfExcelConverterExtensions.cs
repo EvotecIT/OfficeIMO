@@ -7,16 +7,70 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Converts structured logical PDF tables into Excel worksheets.
     /// </summary>
-    public static class PdfExcelTableConverterExtensions {
+    public static class PdfExcelConverterExtensions {
+        /// <summary>Imports logical PDF tables from an opened PDF into a new editable Excel document.</summary>
+        public static ExcelDocument ToExcelDocument(
+            this PdfCore.PdfDocument document,
+            PdfExcelImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().ToExcelDocument(options);
+        }
+
+        /// <summary>Imports logical PDF tables from an opened PDF into an editable Excel document plus an explicit table-scope report.</summary>
+        public static PdfExcelImportResult ToExcelDocumentResult(
+            this PdfCore.PdfDocument document,
+            PdfExcelImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().ToExcelDocumentResult(options);
+        }
+
+        /// <summary>Imports logical PDF tables from an opened PDF into a new Excel workbook.</summary>
+        public static PdfExcelImportReport SaveAsExcel(
+            this PdfCore.PdfDocument document,
+            string workbookPath,
+            PdfExcelImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsExcel(workbookPath, options);
+        }
+
+        /// <summary>Imports logical PDF tables from an opened PDF into a caller-owned workbook stream.</summary>
+        public static PdfExcelImportReport SaveAsExcel(
+            this PdfCore.PdfDocument document,
+            Stream workbookStream,
+            PdfExcelImportOptions? options = null) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsExcel(workbookStream, options);
+        }
+
+        /// <summary>Imports logical PDF tables from an opened PDF and asynchronously saves a new Excel workbook.</summary>
+        public static Task<PdfExcelImportReport> SaveAsExcelAsync(
+            this PdfCore.PdfDocument document,
+            string workbookPath,
+            PdfExcelImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsExcelAsync(workbookPath, options, cancellationToken);
+        }
+
+        /// <summary>Imports logical PDF tables from an opened PDF and asynchronously saves to a caller-owned workbook stream.</summary>
+        public static Task<PdfExcelImportReport> SaveAsExcelAsync(
+            this PdfCore.PdfDocument document,
+            Stream workbookStream,
+            PdfExcelImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            return document.Read.Logical().SaveAsExcelAsync(workbookStream, options, cancellationToken);
+        }
+
         /// <summary>Imports logical PDF tables into a new Excel workbook at <paramref name="workbookPath"/>.</summary>
-        public static PdfExcelTableImportReport SaveTablesAsExcel(
+        public static PdfExcelImportReport SaveAsExcel(
             this PdfCore.PdfLogicalDocument document,
             string workbookPath,
-            PdfExcelTableImportOptions? options = null) {
+            PdfExcelImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
 
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelImportResult result = document.ToExcelDocumentResult(options);
             using (result.Value) {
                 result.Value.Save(workbookPath);
             }
@@ -24,15 +78,15 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Imports logical PDF tables into an Excel workbook written to a caller-owned stream.</summary>
-        public static PdfExcelTableImportReport SaveTablesAsExcel(
+        public static PdfExcelImportReport SaveAsExcel(
             this PdfCore.PdfLogicalDocument document,
             Stream workbookStream,
-            PdfExcelTableImportOptions? options = null) {
+            PdfExcelImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
             if (!workbookStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(workbookStream));
 
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelImportResult result = document.ToExcelDocumentResult(options);
             using (result.Value) {
                 result.Value.Save(workbookStream);
             }
@@ -40,31 +94,31 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Imports logical PDF tables into a new editable Excel document.</summary>
-        public static ExcelDocument ImportTablesToExcelDocument(
+        public static ExcelDocument ToExcelDocument(
             this PdfCore.PdfLogicalDocument document,
-            PdfExcelTableImportOptions? options = null) => document.ImportTablesToExcelDocumentResult(options).Value;
+            PdfExcelImportOptions? options = null) => document.ToExcelDocumentResult(options).Value;
 
         /// <summary>Imports logical PDF tables into an editable Excel document plus an explicit table-scope report.</summary>
-        public static PdfExcelTableImportResult ImportTablesToExcelDocumentResult(
+        public static PdfExcelImportResult ToExcelDocumentResult(
             this PdfCore.PdfLogicalDocument document,
-            PdfExcelTableImportOptions? options = null) {
+            PdfExcelImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             ExcelDocument workbook = ExcelDocument.Create();
-            IReadOnlyList<PdfExcelTableImportEntry> entries = ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
+            IReadOnlyList<PdfExcelImportEntry> entries = ImportTables(document, workbook, options ?? new PdfExcelImportOptions());
             PdfCore.PdfTableExtractionScopeReport sourceScope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(document);
-            return new PdfExcelTableImportResult(workbook, new PdfExcelTableImportReport(entries, sourceScope));
+            return new PdfExcelImportResult(workbook, new PdfExcelImportReport(entries, sourceScope));
         }
 
         /// <summary>Asynchronously imports logical PDF tables into an Excel workbook written to a file.</summary>
-        public static async Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
+        public static async Task<PdfExcelImportReport> SaveAsExcelAsync(
             this PdfCore.PdfLogicalDocument document,
             string workbookPath,
-            PdfExcelTableImportOptions? options = null,
+            PdfExcelImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
             cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelImportResult result = document.ToExcelDocumentResult(options);
             using (result.Value) {
                 await result.Value.SaveAsync(workbookPath, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
@@ -72,33 +126,33 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Asynchronously imports logical PDF tables into an Excel workbook written to a caller-owned stream.</summary>
-        public static async Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
+        public static async Task<PdfExcelImportReport> SaveAsExcelAsync(
             this PdfCore.PdfLogicalDocument document,
             Stream workbookStream,
-            PdfExcelTableImportOptions? options = null,
+            PdfExcelImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
             if (!workbookStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(workbookStream));
             cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelImportResult result = document.ToExcelDocumentResult(options);
             using (result.Value) {
                 await result.Value.SaveAsync(workbookStream, cancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }
 
-        private static IReadOnlyList<PdfExcelTableImportEntry> ImportTables(
+        private static IReadOnlyList<PdfExcelImportEntry> ImportTables(
             PdfCore.PdfLogicalDocument document,
             ExcelDocument workbook,
-            PdfExcelTableImportOptions options) {
+            PdfExcelImportOptions options) {
             IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables = PdfCore.PdfLogicalTableAnalysis.ExtractTables(document, options.MaxRows);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
-                return Array.Empty<PdfExcelTableImportEntry>();
+                return Array.Empty<PdfExcelImportEntry>();
             }
 
-            var results = new List<PdfExcelTableImportEntry>(tables.Count);
+            var results = new List<PdfExcelImportEntry>(tables.Count);
             for (int i = 0; i < tables.Count; i++) {
                 PdfCore.PdfLogicalTableExtraction extraction = tables[i];
                 PdfCore.PdfLogicalTableData data = extraction.Data;
@@ -116,7 +170,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 string actualTableName = FindActualTableName(workbook, sheet.Name, range, requestedTableName);
-                results.Add(new PdfExcelTableImportEntry(
+                results.Add(new PdfExcelImportEntry(
                     extraction.PageIndex,
                     extraction.PageNumber,
                     extraction.TableIndex,
@@ -133,12 +187,12 @@ namespace OfficeIMO.Excel.Pdf {
             return results.AsReadOnly();
         }
 
-        private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelTableImportOptions options) {
+        private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelImportOptions options) {
             ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, SheetNameValidationMode.Sanitize);
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 
-        private static DataTable ToDataTable(string tableName, PdfCore.PdfLogicalTableData data, PdfExcelTableImportOptions options) {
+        private static DataTable ToDataTable(string tableName, PdfCore.PdfLogicalTableData data, PdfExcelImportOptions options) {
             var table = new DataTable(tableName) {
                 Locale = CultureInfo.InvariantCulture
             };

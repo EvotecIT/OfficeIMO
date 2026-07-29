@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after linked heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after bookmark linked heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after whitespace heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after bookmarked run-only heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                 internalLink.AddHyperLink("Native paragraph bookmark link", "NativeParagraphTarget", addStyle: true, tooltip: "Native paragraph bookmark metadata");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native TOC second body");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
                 MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("BuildNativeTableOfContentsEntries", BindingFlags.NonPublic | BindingFlags.Static)!;
                 object entries = method.Invoke(null, new object[] {
                     document,
-                    new PdfSaveOptions { IncludePageNumbers = false },
+                    new WordPdfSaveOptions { IncludePageNumbers = false },
                     new Dictionary<DocumentFormat.OpenXml.Wordprocessing.Paragraph, string>()
                 })!;
                 object secondEntry = ((System.Collections.IEnumerable)entries)
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, secondEntryPage);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native appendix body");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native body after normal heading");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
                 "CreateNativeOptions",
                 BindingFlags.NonPublic | BindingFlags.Static)!;
 
-            var saveOptions = new PdfSaveOptions {
+            var saveOptions = new WordPdfSaveOptions {
                 ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
                 TextFallbacks = PdfTextFallbackFeatures.Default
             };
