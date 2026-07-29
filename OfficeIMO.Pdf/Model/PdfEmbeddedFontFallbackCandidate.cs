@@ -26,7 +26,15 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
     public PdfEmbeddedFontFallbackCandidate(
         string fontName,
         byte[] trueTypeFont,
-        OfficeFontUnicodeRangeSet unicodeRanges) {
+        OfficeFontUnicodeRangeSet unicodeRanges)
+        : this(fontName, trueTypeFont, unicodeRanges, OfficeFontStyle.Regular) {
+    }
+
+    internal PdfEmbeddedFontFallbackCandidate(
+        string fontName,
+        byte[] trueTypeFont,
+        OfficeFontUnicodeRangeSet unicodeRanges,
+        OfficeFontStyle style) {
         Guard.NotNullOrWhiteSpace(fontName, nameof(fontName));
         Guard.NotNull(trueTypeFont, nameof(trueTypeFont));
         Guard.NotNull(unicodeRanges, nameof(unicodeRanges));
@@ -37,6 +45,7 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         FontName = fontName;
         _fontData = trueTypeFont.ToArray();
         UnicodeRanges = unicodeRanges;
+        Style = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
     }
 
     /// <summary>Display name used in fallback segments and diagnostics.</summary>
@@ -44,6 +53,8 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
 
     /// <summary>Unicode scalars this candidate is allowed to serve.</summary>
     public OfficeFontUnicodeRangeSet UnicodeRanges { get; }
+
+    internal OfficeFontStyle Style { get; }
 
     internal byte[] DataSnapshot => _fontData;
 }

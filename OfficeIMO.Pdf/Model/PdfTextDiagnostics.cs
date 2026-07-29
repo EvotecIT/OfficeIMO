@@ -171,6 +171,26 @@ internal static class PdfTextDiagnostics {
             string runLocation = AppendRunLocation(location, runIndex);
             PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
             PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
+            if (options.TryGetEffectiveRenderingProfileFallbacks(
+                    run.FontFamily,
+                    run.Bold,
+                    run.Italic,
+                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks)
+                && profileFamilyFallbacks != null) {
+                diagnostics.AddRange(AnalyzeGeneratedTextWithFallback(
+                    run.Text,
+                    profileFamilyFallbacks,
+                    source,
+                    runLocation,
+                    runIndex,
+                    shapingMode,
+                    (string _, int _, out int length) => {
+                        length = 0;
+                        return false;
+                    }));
+                runIndex++;
+                continue;
+            }
             if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
                 if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                     namedFontProgram != null) {
