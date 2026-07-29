@@ -134,6 +134,26 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
+    public void OpenDataReader_NonSeekableFallbackObservesCancellationWhileBuffering() {
+        using var cancellation = new CancellationTokenSource();
+        using var stream = new CancelingNonSeekableReadStream(
+            Encoding.UTF8.GetBytes("1,Ada\n2,Grace\n"),
+            cancellation,
+            maximumReadSize: 4);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.OpenDataReader(
+                stream,
+                new CsvLoadOptions {
+                    Mode = CsvLoadMode.Stream,
+                    HasHeaderRow = false,
+                    CancellationToken = cancellation.Token
+                }));
+        Assert.Equal(1, stream.ReadCount);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
     public void OpenDataReader_PathRejectsInputBeyondConfiguredLimit() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Limit.{Guid.NewGuid():N}.csv");
         try {
@@ -218,6 +238,52 @@ public sealed class CsvDataReaderApiTests {
             _served = true;
             int copied = Math.Min(count, _bytes.Length);
             Array.Copy(_bytes, 0, buffer, offset, copied);
+            return copied;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class CancelingNonSeekableReadStream : Stream {
+        private readonly byte[] _bytes;
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _maximumReadSize;
+        private int _position;
+
+        internal CancelingNonSeekableReadStream(
+            byte[] bytes,
+            CancellationTokenSource cancellation,
+            int maximumReadSize) {
+            _bytes = bytes;
+            _cancellation = cancellation;
+            _maximumReadSize = maximumReadSize;
+        }
+
+        internal int ReadCount { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            int remaining = _bytes.Length - _position;
+            int copied = Math.Min(Math.Min(count, _maximumReadSize), remaining);
+            if (copied > 0) {
+                Array.Copy(_bytes, _position, buffer, offset, copied);
+                _position += copied;
+                _cancellation.Cancel();
+            }
             return copied;
         }
 

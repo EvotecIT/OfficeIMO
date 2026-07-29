@@ -959,7 +959,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
+        internal static bool ShouldProjectFormula(LegacyXlsWorkbook workbook, string formulaText) =>
             workbook.PreserveExternalWorkbookLinks || !ReferencesExternalWorkbook(workbook, formulaText);
 
         private static bool ReferencesExternalWorkbook(LegacyXlsWorkbook workbook, string formulaText) =>

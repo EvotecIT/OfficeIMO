@@ -9,6 +9,8 @@ using System.IO;
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Excel.Xlsb.Read;
 
 namespace OfficeIMO.Excel {
@@ -81,8 +83,32 @@ namespace OfficeIMO.Excel {
                     readOnly: true,
                     saveOnDispose: false,
                     sourcePath,
-                    importOptions),
+                    importOptions,
+                    workbook => ValidateLegacyFormulaProjection(workbook, options)),
                 options);
+        }
+
+        private static void ValidateLegacyFormulaProjection(
+            LegacyXlsWorkbook workbook,
+            ExcelReadOptions options) {
+            if (options.UseCachedFormulaResult) {
+                return;
+            }
+
+            foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
+                LegacyXlsCell? unprojectable = worksheet.Cells.FirstOrDefault(cell =>
+                    cell.IsFormula &&
+                    (string.IsNullOrWhiteSpace(cell.FormulaText) ||
+                     !LegacyXlsWorkbookProjector.ShouldProjectFormula(workbook, cell.FormulaText!)));
+                if (unprojectable == null) {
+                    continue;
+                }
+
+                string reference = A1.CellReference(unprojectable.Row, unprojectable.Column);
+                throw new NotSupportedException(
+                    $"Legacy XLS formula text cannot be projected for '{worksheet.Name}'!{reference}. " +
+                    "UseCachedFormulaResult=false cannot return the cached value as ordinary data.");
+            }
         }
 
         internal static LegacyXlsImportOptions CreateLegacyImportOptions(ExcelReadOptions options) =>

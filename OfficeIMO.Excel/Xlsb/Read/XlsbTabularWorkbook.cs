@@ -64,11 +64,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _cellBudget = new XlsbCellReadBudget(_limits.MaxCells);
 
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships =
-                _parts.ReadRelationships(workbookPartName);
+                _parts.ReadRelationships(workbookPartName, cancellationToken);
             var bundleSheets = new List<XlsbBundleSheet>();
             bool uses1904DateSystem = false;
             ParseWorkbookPart(
-                _parts.ReadPart(workbookPartName),
+                _parts.ReadPart(workbookPartName, cancellationToken),
                 bundleSheets,
                 ref uses1904DateSystem);
             Uses1904DateSystem = uses1904DateSystem;
@@ -129,7 +129,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, readOptions.MaxInputBytes);
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(
+                stream,
+                cancellationToken,
+                readOptions.MaxInputBytes);
             return OpenOwnedStream(
                 new MemoryStream(bytes, writable: false),
                 readOptions,
@@ -171,9 +174,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new KeyNotFoundException($"Table '{tableName}' was not found.");
             }
 
-            Stream part = hasHeaderRow
-                ? _parts.OpenPart(sheet.PartName)
-                : new MemoryStream(_parts.ReadPart(sheet.PartName), writable: false);
+            Stream part = new MemoryStream(
+                _parts.ReadPart(sheet.PartName, cancellationToken),
+                writable: false);
             try {
                 return new XlsbTabularDataReader(
                     part,
@@ -249,7 +252,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName);
+            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var values = new List<string>();
             long totalCharacters = 0;
@@ -299,7 +302,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName);
+            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var customFormats = new Dictionary<ushort, string>();
             var dateStyles = new List<bool>();

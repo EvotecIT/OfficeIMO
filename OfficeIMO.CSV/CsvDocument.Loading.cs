@@ -281,7 +281,10 @@ public sealed partial class CsvDocument
 
         options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes);
+        byte[] snapshot = OfficeStreamReader.ReadAllBytes(
+            stream,
+            options.CancellationToken,
+            options.MaxInputBytes);
         return LoadInternal(
             () => CsvFile.OpenTextReader(
                 new MemoryStream(snapshot, writable: false),

@@ -78,13 +78,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int actualFirstColumn = int.MaxValue;
             int actualLastColumn = -1;
-            if (!hasHeaderRow) {
-                DiscoverHeaderlessDataColumns(
+            try {
+                DiscoverDataColumns(
                     worksheetPart,
                     limits,
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn);
+            } catch {
+                worksheetPart.Dispose();
+                throw;
             }
 
             var records = new XlsbStreamRecordSliceReader(

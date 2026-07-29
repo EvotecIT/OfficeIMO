@@ -189,10 +189,18 @@ internal sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override char GetChar(int ordinal)
     {
-        string value = GetString(ordinal);
-        return value.Length == 1
-            ? value[0]
-            : throw new InvalidCastException("The CSV field does not contain one character.");
+        object value = GetValue(ordinal);
+        if (value is char character)
+        {
+            return character;
+        }
+
+        if (value is string text && text.Length == 1)
+        {
+            return text[0];
+        }
+
+        throw new InvalidCastException("The CSV field does not contain one character.");
     }
 
     /// <inheritdoc />

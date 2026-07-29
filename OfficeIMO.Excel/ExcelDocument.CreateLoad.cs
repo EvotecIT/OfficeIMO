@@ -369,7 +369,8 @@ namespace OfficeIMO.Excel {
             bool readOnly,
             bool saveOnDispose,
             string? filePath,
-            LegacyXlsImportOptions? importOptions = null) {
+            LegacyXlsImportOptions? importOptions = null,
+            Action<LegacyXlsWorkbook>? beforeProjection = null) {
             if (!readOnly && saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
             }
@@ -384,6 +385,7 @@ namespace OfficeIMO.Excel {
             if (errors.Length > 0) {
                 throw new InvalidDataException("Legacy XLS import failed: " + FormatLegacyXlsDiagnostics(errors));
             }
+            beforeProjection?.Invoke(workbook);
 
             return ProjectLoadedLegacyXlsWorkbook(
                 workbook,

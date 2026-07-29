@@ -1435,6 +1435,25 @@ namespace OfficeIMO.Tests {
             Assert.Null(formula.FormulaText);
         }
 
+        [Fact]
+        public void OpenDataReader_LegacyXlsRejectsUnprojectableFormulaTextMode() {
+            byte[][] workbookStreams = {
+                LegacyXlsTestWorkbookBuilder.CreateUnsupportedFormulaTokenWorkbookStream(),
+                LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream()
+            };
+
+            foreach (byte[] workbookStream in workbookStreams) {
+                byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                    ExcelDocument.OpenDataReader(
+                        compound,
+                        new ExcelReadOptions { UseCachedFormulaResult = false }));
+
+                Assert.Contains("cannot be projected", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("UseCachedFormulaResult=false", exception.Message, StringComparison.Ordinal);
+            }
+        }
+
         private static void AssertFormula(LegacyXlsWorksheet sheet, int row, int column, string expectedFormula, object expectedValue) {
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == row && cell.Column == column);
             Assert.True(formula.IsFormula);

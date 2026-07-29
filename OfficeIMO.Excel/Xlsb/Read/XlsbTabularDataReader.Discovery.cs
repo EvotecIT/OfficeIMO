@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
-        private static void DiscoverHeaderlessDataColumns(
+        private static void DiscoverDataColumns(
             Stream worksheetPart,
             XlsbImportOptions limits,
             CancellationToken cancellationToken,
@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int lastColumn) {
             if (!worksheetPart.CanSeek) {
                 throw new InvalidOperationException(
-                    "Headerless XLSB reads require a seekable worksheet part for schema discovery.");
+                    "XLSB reads require a seekable worksheet part for schema discovery.");
             }
 
             firstColumn = int.MaxValue;

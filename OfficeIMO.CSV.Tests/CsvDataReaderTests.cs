@@ -508,6 +508,23 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void GetChar_ReturnsExplicitCharacterSchemaValue()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Code").AsType(typeof(char))
+            .Done()
+            .Build();
+        var document = CsvDocument.Parse("Code\nX\n");
+
+        using var reader = document.CreateDataReader(
+            new CsvDataReaderOptions { Schema = schema });
+
+        Assert.Equal(typeof(char), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal('X', reader.GetChar(0));
+    }
+
+    [Fact]
     public void CreateDataReader_WithoutSchema_ConvertsObjectValuesToStringsAndDbNull()
     {
         var doc = new CsvDocument()

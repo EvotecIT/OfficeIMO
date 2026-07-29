@@ -1,6 +1,8 @@
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Read;
+using System.IO.Compression;
 using System.Threading;
 using Xunit;
 
@@ -127,6 +129,45 @@ public partial class Excel {
         Assert.True(reader.Read());
         Assert.True(reader.IsDBNull(0));
         Assert.Equal("Actual", reader.GetString(1));
+    }
+
+    [Fact]
+    public void XlsbTabularReader_DiscoversHeadedDataColumnsBeyondHeaderAndDeclaredDimension() {
+        using var worksheetPart = CreateHeaderlessTabularWorksheet(
+            declaredLastColumn: 0,
+            (0, 0, 0U),
+            (1, 1, 1U));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Header", "Actual" },
+            hasHeaderRow: true,
+            new XlsbCellReadBudget(10));
+
+        Assert.Equal(2, reader.FieldCount);
+        Assert.Equal("Header", reader.GetName(0));
+        Assert.Equal("Column2", reader.GetName(1));
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(0));
+        Assert.Equal("Actual", reader.GetString(1));
+    }
+
+    [Fact]
+    public void XlsbPackagePartReader_RejectsPreCancelledPartRead() {
+        using var package = new MemoryStream();
+        using (var archive = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
+            ZipArchiveEntry entry = archive.CreateEntry("xl/sharedStrings.bin");
+            using Stream destination = entry.Open();
+            destination.Write(new byte[1024], 0, 1024);
+        }
+
+        package.Position = 0;
+        using var readArchive = new ZipArchive(package, ZipArchiveMode.Read, leaveOpen: true);
+        var partReader = new XlsbPackagePartReader(readArchive, new XlsbImportOptions());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            partReader.ReadPart("xl/sharedStrings.bin", cancellation.Token));
     }
 
     [Fact]

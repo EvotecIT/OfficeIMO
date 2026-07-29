@@ -79,6 +79,7 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (source.CanSeek) {
                 long remaining = source.Length - source.Position;
                 EnsureWithinLimit(remaining, maxBytes);

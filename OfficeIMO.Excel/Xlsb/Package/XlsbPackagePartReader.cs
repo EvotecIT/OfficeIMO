@@ -1,10 +1,12 @@
 using System.IO.Compression;
+using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.Xlsb.Package {
     /// <summary>Reads bounded package parts and OPC relationships from an XLSB archive.</summary>
     internal sealed class XlsbPackagePartReader {
+        private const int PartReadBufferSize = 81920;
         private readonly XlsbImportOptions _options;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private long _decompressedBytesRead;
@@ -18,7 +20,11 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
         internal bool ContainsPart(string partName) => _entries.ContainsKey(NormalizePartName(partName));
 
-        internal byte[] ReadPart(string partName) {
+        internal byte[] ReadPart(string partName) =>
+            ReadPart(partName, CancellationToken.None);
+
+        internal byte[] ReadPart(string partName, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             string normalized = NormalizePartName(partName);
             if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {
                 throw new InvalidDataException($"The XLSB package part '{normalized}' is missing.");
@@ -30,10 +36,15 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
             int length = checked((int)entry.Length);
             using Stream input = entry.Open();
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] output = new byte[length];
             int offset = 0;
             while (offset < output.Length) {
-                int read = input.Read(output, offset, output.Length - offset);
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = input.Read(
+                    output,
+                    offset,
+                    Math.Min(PartReadBufferSize, output.Length - offset));
                 if (read == 0) {
                     throw new EndOfStreamException($"The XLSB package part '{normalized}' ended after {offset} of {output.Length} declared bytes.");
                 }
@@ -45,6 +56,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 offset += read;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (input.ReadByte() >= 0) {
                 throw new InvalidDataException($"The XLSB package part '{normalized}' exceeds its declared decompressed length of {length} bytes.");
             }
@@ -72,13 +84,16 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return entry.Open();
         }
 
-        internal IReadOnlyDictionary<string, XlsbPackageRelationship> ReadRelationships(string sourcePartName) {
+        internal IReadOnlyDictionary<string, XlsbPackageRelationship> ReadRelationships(
+            string sourcePartName,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             string relationshipPart = GetRelationshipPartName(sourcePartName);
             if (!ContainsPart(relationshipPart)) {
                 return new Dictionary<string, XlsbPackageRelationship>(StringComparer.Ordinal);
             }
 
-            byte[] xml = ReadPart(relationshipPart);
+            byte[] xml = ReadPart(relationshipPart, cancellationToken);
             using var stream = new MemoryStream(xml, writable: false);
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
@@ -89,6 +104,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             var relationships = new Dictionary<string, XlsbPackageRelationship>(StringComparer.Ordinal);
             foreach (XElement element in document.Descendants().Where(item => item.Name.LocalName == "Relationship")) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string? id = (string?)element.Attribute("Id");
                 string? type = (string?)element.Attribute("Type");
                 string? target = (string?)element.Attribute("Target");

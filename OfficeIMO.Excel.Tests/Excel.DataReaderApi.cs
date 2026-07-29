@@ -378,6 +378,22 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_PreCancelledLargeSeekableStreamStopsBeforeSizingItsSnapshot() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        using var stream = new LargeLengthSeekableStream((long)int.MaxValue + 1);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            ExcelDocument.OpenDataReader(
+                stream,
+                new ExcelReadOptions {
+                    CancellationToken = cancellation.Token,
+                    MaxInputBytes = long.MaxValue
+                }));
+        Assert.False(stream.ReadAttempted);
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbObservesCancellationDuringTraversal() {
         using var cancellation = new CancellationTokenSource();
         using DbDataReader reader = ExcelDocument.OpenDataReader(
@@ -611,5 +627,46 @@ public partial class Excel {
             }
             return read;
         }
+    }
+
+    private sealed class LargeLengthSeekableStream : Stream {
+        private readonly long _length;
+        private long _position;
+
+        internal LargeLengthSeekableStream(long length) {
+            _length = length;
+        }
+
+        internal bool ReadAttempted { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _length;
+        public override long Position {
+            get => _position;
+            set => _position = value;
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadAttempted = true;
+            throw new InvalidOperationException("The cancelled stream must not be read.");
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) {
+            _position = origin switch {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => checked(_position + offset),
+                SeekOrigin.End => checked(_length + offset),
+                _ => throw new ArgumentOutOfRangeException(nameof(origin))
+            };
+            return _position;
+        }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }
