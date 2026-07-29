@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -125,6 +127,17 @@ public sealed class TabularReaderContracts {
         Assert.True(reader.Read());
         Assert.Equal(50, reader.GetInt32(1));
         Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void Open_XlsbRejectsFormulaCellsWhenCachedResultsAreDisabled() {
+        using var reader = TabularReader.Open(
+            GetXlsbFixture("basic-values-formula.xlsb"),
+            new TabularReadOptions { UseCachedFormulaResult = false });
+
+        Assert.True(reader.Read());
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => reader.Read());
+        Assert.Contains("formula-token", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -297,6 +310,104 @@ public sealed class TabularReaderContracts {
     }
 
     [Fact]
+    public void Open_XlsbDiscoversActualColumnsWhenDeclaredDimensionIsStale() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Tabular.Dimension.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceXlsbWorksheetLastColumn(path, 0);
+
+            using var reader = TabularReader.Open(path);
+            Assert.Equal(2, reader.FieldCount);
+            Assert.Equal("Name", reader.GetName(0));
+            Assert.Equal("Amount", reader.GetName(1));
+            Assert.True(reader.Read());
+            Assert.Equal("Alpha", reader.GetString(0));
+            Assert.Equal(42, reader.GetInt32(1));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Open_XlsxUsesConfiguredCultureAndParsesGuidText() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Tabular.Culture.{Guid.NewGuid():N}.xlsx");
+        Guid identifier = Guid.NewGuid();
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Amount");
+                sheet.CellValue(1, 2, "Identifier");
+                sheet.CellValue(2, 1, "1,5");
+                sheet.CellValue(2, 2, identifier.ToString("D"));
+                document.Save();
+            }
+
+            using var reader = TabularReader.Open(
+                path,
+                new TabularReadOptions { Culture = CultureInfo.GetCultureInfo("de-DE") });
+            Assert.True(reader.Read());
+            Assert.Equal(1.5m, reader.GetDecimal(0));
+            Assert.Equal(identifier, reader.GetGuid(1));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(TabularFormat.ExcelOpenXml)]
+    [InlineData(TabularFormat.ExcelBinary)]
+    public void Open_MissingTableDisposesWorkbookOwner(TabularFormat format) {
+        string extension = format == TabularFormat.ExcelBinary ? ".xlsb" : ".xlsx";
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Tabular.Missing.{Guid.NewGuid():N}{extension}");
+        try {
+            if (format == TabularFormat.ExcelBinary) {
+                File.Copy(GetXlsbFixture("basic-values-formula.xlsb"), path);
+            } else {
+                using var document = ExcelDocument.Create(path);
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            Assert.Throws<KeyNotFoundException>(() =>
+                TabularReader.Open(
+                    path,
+                    format,
+                    new TabularReadOptions { TableName = "Missing" }));
+
+            using FileStream exclusive = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.True(exclusive.CanWrite);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Open_XlsxObservesCancellationWhileBufferingInput() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Tabular.Cancel.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                for (int row = 2; row <= 2000; row++) {
+                    sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));
+                }
+                document.Save();
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            using var stream = new CancelingReadStream(File.ReadAllBytes(path), cancellation, 1024);
+            Assert.Throws<OperationCanceledException>(() =>
+                TabularReader.Open(
+                    stream,
+                    TabularFormat.ExcelOpenXml,
+                    new TabularReadOptions { CancellationToken = cancellation.Token }));
+            Assert.True(stream.CanRead);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReadRecords_UsesTheSameTypedBindingForCsvAndXlsx() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Tabular.Records", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -381,7 +492,7 @@ public sealed class TabularReaderContracts {
         int valueStart = dimensionStart + "<dimension ref=\"".Length;
         int valueEnd = xml.IndexOf('"', valueStart);
         Assert.True(valueEnd > valueStart);
-        xml = xml[..valueStart] + declaredDimension + xml[valueEnd..];
+        xml = xml.Substring(0, valueStart) + declaredDimension + xml.Substring(valueEnd);
 
         originalEntry.Delete();
         ZipArchiveEntry replacement = archive.CreateEntry(
@@ -391,6 +502,61 @@ public sealed class TabularReaderContracts {
             replacement.Open(),
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         writer.Write(xml);
+    }
+
+    private static void ReplaceXlsbWorksheetLastColumn(string path, uint lastColumn) {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Update);
+        ZipArchiveEntry originalEntry = archive.GetEntry("xl/worksheets/sheet1.bin")
+            ?? throw new InvalidDataException("The XLSB fixture has no first worksheet part.");
+        byte[] bytes;
+        using (Stream input = originalEntry.Open()) {
+            using var output = new MemoryStream();
+            input.CopyTo(output);
+            bytes = output.ToArray();
+        }
+
+        bool replaced = false;
+        int position = 0;
+        while (position < bytes.Length) {
+            int firstTypeByte = bytes[position++];
+            int type = firstTypeByte & 0x7F;
+            if ((firstTypeByte & 0x80) != 0) {
+                type |= (bytes[position++] & 0x7F) << 7;
+            }
+
+            int size = 0;
+            for (int index = 0; index < 4; index++) {
+                int current = bytes[position++];
+                size |= (current & 0x7F) << (index * 7);
+                if ((current & 0x80) == 0 || index == 3) {
+                    break;
+                }
+            }
+
+            if (type == 148) {
+                Assert.True(size >= 16);
+                WriteUInt32LittleEndian(bytes, position + 12, lastColumn);
+                replaced = true;
+                break;
+            }
+
+            position = checked(position + size);
+        }
+
+        Assert.True(replaced);
+        originalEntry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(
+            "xl/worksheets/sheet1.bin",
+            CompressionLevel.Optimal);
+        using Stream destination = replacement.Open();
+        destination.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void WriteUInt32LittleEndian(byte[] bytes, int offset, uint value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static void AssertRecord(string path) {
@@ -410,6 +576,28 @@ public sealed class TabularReaderContracts {
         public string Customer { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public DateTime Placed { get; set; }
+    }
+
+    private sealed class CancelingReadStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _maximumReadSize;
+
+        internal CancelingReadStream(
+            byte[] bytes,
+            CancellationTokenSource cancellation,
+            int maximumReadSize)
+            : base(bytes, writable: false) {
+            _cancellation = cancellation;
+            _maximumReadSize = maximumReadSize;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, Math.Min(count, _maximumReadSize));
+            if (read > 0) {
+                _cancellation.Cancel();
+            }
+            return read;
+        }
     }
 
     [DataContract]

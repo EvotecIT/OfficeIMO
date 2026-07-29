@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -60,6 +61,12 @@ namespace OfficeIMO.Excel {
         /// Culture used when parsing numbers and dates stored as strings.
         /// </summary>
         public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// Cancellation observed by internal workbook initialization. Public format-neutral
+        /// callers configure this through <c>TabularReadOptions.CancellationToken</c>.
+        /// </summary>
+        internal CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// When true, matrix/range readers fill unspecified cells with nulls.

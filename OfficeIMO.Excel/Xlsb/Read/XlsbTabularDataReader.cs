@@ -69,6 +69,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _limits = limits ?? throw new ArgumentNullException(nameof(limits));
             _cancellationToken = cancellationToken;
+            if (worksheetPart == null) {
+                throw new ArgumentNullException(nameof(worksheetPart));
+            }
+
             var records = new XlsbStreamRecordSliceReader(
                 worksheetPart ?? throw new ArgumentNullException(nameof(worksheetPart)),
                 limits.MaxRecordBytes,
@@ -76,18 +80,28 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _records = records;
             try {
                 FindSheetData(out int dimensionFirstColumn, out int dimensionLastColumn);
-                _firstColumn = dimensionFirstColumn;
                 Dictionary<int, string?>? headerValues = null;
                 if (hasHeaderRow && _hasPendingRow) {
                     headerValues = ReadHeaderRow();
                 }
 
                 _hasRows = _hasPendingRow;
-                int fieldCount = dimensionLastColumn >= dimensionFirstColumn
-                    ? checked(dimensionLastColumn - dimensionFirstColumn + 1)
+                int headerFirstColumn = headerValues != null && headerValues.Count > 0
+                    ? headerValues.Keys.Min()
+                    : int.MaxValue;
+                int headerLastColumn = headerValues != null && headerValues.Count > 0
+                    ? headerValues.Keys.Max()
+                    : -1;
+                int firstColumn = dimensionLastColumn >= dimensionFirstColumn
+                    ? Math.Min(dimensionFirstColumn, headerFirstColumn)
+                    : headerFirstColumn == int.MaxValue ? 0 : headerFirstColumn;
+                int lastColumn = Math.Max(dimensionLastColumn, headerLastColumn);
+                _firstColumn = firstColumn;
+                int fieldCount = lastColumn >= firstColumn
+                    ? checked(lastColumn - firstColumn + 1)
                     : headerValues == null || headerValues.Count == 0
                         ? 0
-                        : checked(headerValues.Keys.Max() - dimensionFirstColumn + 1);
+                        : checked(headerValues.Keys.Max() - firstColumn + 1);
                 if (fieldCount > _options.MaxDataReaderColumns) {
                     throw new InvalidDataException(
                         $"XLSB table column count {fieldCount} exceeds the configured limit of {_options.MaxDataReaderColumns}.");
@@ -419,6 +433,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private void StoreCell(XlsbRecordSlice record) {
+            EnsureFormulaModeSupported(record.Type);
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
@@ -429,7 +444,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int ordinal = column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
-                return;
+                throw new InvalidDataException(
+                    $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
             }
 
             _cellsRead = checked(_cellsRead + 1);
@@ -505,6 +521,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private DecodedCell DecodeCell(XlsbRecordSlice record) {
+            EnsureFormulaModeSupported(record.Type);
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
@@ -608,6 +625,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private static bool IsCellRecord(int recordType) =>
             recordType is >= BrtCellBlank and <= BrtFmlaError or BrtCellRString;
+
+        private static bool IsFormulaRecord(int recordType) =>
+            recordType is >= BrtFmlaString and <= BrtFmlaError;
+
+        private void EnsureFormulaModeSupported(int recordType) {
+            if (!_options.UseCachedFormulaResult && IsFormulaRecord(recordType)) {
+                throw new NotSupportedException(
+                    "XLSB formula-token projection is not supported when cached formula results are disabled.");
+            }
+        }
 
         private void SetPendingRow(XlsbRecordSlice record) {
             ValidateRowHeader(record);

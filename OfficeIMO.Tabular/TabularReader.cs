@@ -410,9 +410,9 @@ public sealed partial class TabularReader : DbDataReader {
         ExcelDocumentReader owner,
         TabularReadOptions options,
         TabularFormat format) {
-        IReadOnlyList<string> workbookTables = owner.GetSheetNames();
-        IReadOnlyList<string> selectedTables = SelectTables(workbookTables, options.TableName);
         try {
+            IReadOnlyList<string> workbookTables = owner.GetSheetNames();
+            IReadOnlyList<string> selectedTables = SelectTables(workbookTables, options.TableName);
             return new TabularReader(
                 format,
                 selectedTables,
@@ -452,7 +452,8 @@ public sealed partial class TabularReader : DbDataReader {
             Culture = options.Culture,
             NumericAsDecimal = options.NumericAsDecimal,
             TreatDatesUsingNumberFormat = options.TreatDatesUsingNumberFormat,
-            UseCachedFormulaResult = options.UseCachedFormulaResult
+            UseCachedFormulaResult = options.UseCachedFormulaResult,
+            CancellationToken = options.CancellationToken
         };
 
     private static TabularReader OpenExcelBinaryPath(string path, TabularReadOptions options) {
@@ -477,8 +478,8 @@ public sealed partial class TabularReader : DbDataReader {
         XlsbTabularWorkbook owner,
         TabularReadOptions options,
         ExcelReadOptions excelOptions) {
-        IReadOnlyList<string> selectedTables = SelectTables(owner.TableNames, options.TableName);
         try {
+            IReadOnlyList<string> selectedTables = SelectTables(owner.TableNames, options.TableName);
             return new TabularReader(
                 TabularFormat.ExcelBinary,
                 selectedTables,

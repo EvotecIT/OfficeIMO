@@ -157,24 +157,56 @@
   ],
   "availability": [
     {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "full",
       "platform": "windows",
       "available": true,
       "runModes": [
-        "full",
-        "quick"
+        "full"
       ],
       "latestUtc": "2026-07-29T13:05:37.3121691+00:00"
     },
     {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "full",
       "platform": "linux",
       "available": true,
       "runModes": [
-        "full",
+        "full"
+      ],
+      "latestUtc": "2026-07-29T13:05:37.4217982+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-07-29T12:47:19.5398683+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": true,
+      "runModes": [
         "quick"
       ],
       "latestUtc": "2026-07-29T13:05:37.4344308+00:00"
     },
     {
+      "comparisonId": "markpflug-65k-sales-v1-net10.0",
+      "runMode": "quick",
       "platform": "macos",
       "available": false,
       "runModes": [],

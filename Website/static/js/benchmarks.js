@@ -260,6 +260,7 @@
   var modeButtons = root.querySelectorAll('[data-tabular-mode]');
   var selectedComparison = root.getAttribute('data-comparison-id');
   var catalog;
+  var activeRequestId = 0;
 
   function queryValue(name, fallback) {
     try {
@@ -289,7 +290,11 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
       var availability = catalog && catalog.availability
-        ? catalog.availability.find(function (item) { return item.platform === button.getAttribute('data-tabular-platform'); })
+        ? catalog.availability.find(function (item) {
+          return item.comparisonId === selectedComparison &&
+            item.runMode === selectedMode &&
+            item.platform === button.getAttribute('data-tabular-platform');
+        })
         : null;
       button.classList.toggle('missing', !!availability && !availability.available);
     });
@@ -344,7 +349,8 @@
     return names[shortName] || shortName || 'Tabular read';
   }
 
-  function renderResult(entry, result) {
+  function renderResult(entry, result, requestId) {
+    if (requestId !== activeRequestId) return;
     var summaries = result.summary || [];
     var groups = {};
     summaries.forEach(function (row) {
@@ -398,6 +404,7 @@
   }
 
   function renderSelection() {
+    var requestId = ++activeRequestId;
     activateButtons();
     setQuery();
     table.hidden = true;
@@ -429,8 +436,9 @@
         if (!response.ok) throw new Error('HTTP ' + response.status);
         return response.json();
       })
-      .then(function (result) { renderResult(entry, result); })
+      .then(function (result) { renderResult(entry, result, requestId); })
       .catch(function (error) {
+        if (requestId !== activeRequestId) return;
         state.hidden = false;
         state.className = 'imo-tabular-benchmark-state incompatible';
         state.textContent = 'Benchmark evidence could not be loaded: ' + error.message;

@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
             private readonly int _fieldCount;
             private readonly long _maximumBufferedCells;
             private readonly CancellationToken _ct;
+            private readonly CultureInfo _culture;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
             private readonly object?[] _currentValues;
@@ -77,6 +78,7 @@ namespace OfficeIMO.Excel {
                 _fieldCount = fieldCount;
                 _maximumBufferedCells = options.MaxDataReaderBufferedCells;
                 _ct = ct;
+                _culture = options.Culture;
                 _nextLogicalRow = firstRow;
                 _currentValues = new object?[fieldCount];
                 _currentValueLoaded = new bool[fieldCount];
@@ -142,22 +144,22 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return value is bool boolean ? boolean : Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+                return value is bool boolean ? boolean : Convert.ToBoolean(value, _culture);
             }
 
             /// <inheritdoc />
-            public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
                 throw new NotSupportedException("Excel range fields are exposed as scalar values.");
 
             /// <inheritdoc />
-            public override char GetChar(int ordinal) => Convert.ToChar(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override char GetChar(int ordinal) => Convert.ToChar(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty;
+                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
                 if (buffer == null) {
                     return value.Length;
                 }
@@ -188,11 +190,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, CultureInfo.InvariantCulture);
+                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
             }
 
             /// <inheritdoc />
-            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
@@ -203,7 +205,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return value is double number ? number : Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                return value is double number ? number : Convert.ToDouble(value, _culture);
             }
 
             /// <inheritdoc />
@@ -212,13 +214,16 @@ namespace OfficeIMO.Excel {
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
             /// <inheritdoc />
-            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override float GetFloat(int ordinal) => Convert.ToSingle(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
-            public override Guid GetGuid(int ordinal) => (Guid)GetNonDbNullValue(ordinal);
+            public override Guid GetGuid(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return value is Guid guid ? guid : Guid.Parse(Convert.ToString(value, _culture)!);
+            }
 
             /// <inheritdoc />
-            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override int GetInt32(int ordinal) {
@@ -229,11 +234,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 object value = GetNonDbNullValue(ordinal);
-                return ConvertDataReaderInt32(value);
+                return ConvertDataReaderInt32(value, _culture);
             }
 
             /// <inheritdoc />
-            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override string GetName(int ordinal) => _columnNames[ordinal];
@@ -251,7 +256,7 @@ namespace OfficeIMO.Excel {
             /// <inheritdoc />
             public override string GetString(int ordinal) {
                 object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
             }
 
             /// <inheritdoc />
