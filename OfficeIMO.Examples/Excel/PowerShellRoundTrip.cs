@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using OfficeIMO.Excel;
+using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -37,44 +38,57 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // 2) Modify: read used range via sheet.Rows(), update cells and save again
+            // 2) Modify: read through the format-neutral tabular API, then update and save
+            var updates = new List<(int RowNumber, int? Value, string Status)>();
+            using (var reader = TabularReader.Open(filePath, new TabularReadOptions { TableName = "Data" }))
+            {
+                int rowNumber = 2;
+                while (reader.Read())
+                {
+                    string? name = reader.IsDBNull(0) ? null : Convert.ToString(reader.GetValue(0));
+                    int value = reader.IsDBNull(1) ? 0 : Convert.ToInt32(reader.GetValue(1));
+
+                    if (string.Equals(name, "Alpha", StringComparison.OrdinalIgnoreCase) && value == 10)
+                    {
+                        updates.Add((rowNumber, 15, "Processed"));
+                    }
+                    else if (string.Equals(name, "Beta", StringComparison.OrdinalIgnoreCase))
+                    {
+                        updates.Add((rowNumber, null, "Hold"));
+                    }
+
+                    rowNumber++;
+                }
+            }
+
             using (var doc = ExcelDocument.Load(filePath))
             {
                 var s = doc["Data"];
-                var rows = s.Rows().ToList();
-                foreach (var row in rows)
+                foreach (var update in updates)
                 {
-                    var name = Convert.ToString(row["Name"]);
-                    var valueObj = row.ContainsKey("Value") ? row["Value"] : null;
-                    int value = 0;
-                    if (valueObj != null)
+                    if (update.Value.HasValue)
                     {
-                        try { value = Convert.ToInt32(valueObj); } catch { /* ignore */ }
+                        s.CellValue(update.RowNumber, 2, update.Value.Value);
                     }
-
-                    // Example rule: if Alpha has value 10 → set Value to 15 and Status to Processed
-                    if (string.Equals(name, "Alpha", StringComparison.OrdinalIgnoreCase) && value == 10)
-                    {
-                        s.CellValue(2, 2, 15); // row 2, col 2
-                        s.CellValue(2, 3, "Processed");
-                    }
-                    // If Beta → mark Status to Hold
-                    if (string.Equals(name, "Beta", StringComparison.OrdinalIgnoreCase))
-                    {
-                        s.CellValue(3, 3, "Hold");
-                    }
+                    s.CellValue(update.RowNumber, 3, update.Status);
                 }
                 doc.Save();
                 if (openExcel) doc.OpenInApplication();
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption
-            using var doc2 = ExcelDocument.Load(filePath);
-            var finalRows = doc2["Data"].Rows("A1:C3");
+            using var finalReader = TabularReader.Open(filePath, new TabularReadOptions { TableName = "Data" });
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
-            foreach (var r in finalRows)
+            while (finalReader.Read())
             {
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(r, jsonOptions));
+                var row = new Dictionary<string, object?>(finalReader.FieldCount, StringComparer.OrdinalIgnoreCase);
+                for (int ordinal = 0; ordinal < finalReader.FieldCount; ordinal++)
+                {
+                    row[finalReader.GetName(ordinal)] = finalReader.IsDBNull(ordinal)
+                        ? null
+                        : finalReader.GetValue(ordinal);
+                }
+                Console.WriteLine(JsonSerializer.Serialize(row, jsonOptions));
             }
         }
     }
