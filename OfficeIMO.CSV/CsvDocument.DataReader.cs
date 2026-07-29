@@ -17,7 +17,7 @@ public sealed partial class CsvDocument
     /// <param name="loadOptions">CSV load options.</param>
     /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
-    internal static CsvDataReader CreateDataReader(string path, CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null)
+    public static DbDataReader OpenDataReader(string path, CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -99,7 +99,14 @@ public sealed partial class CsvDocument
         }
     }
 
-    internal static CsvDataReader CreateDataReader(
+    /// <summary>
+    /// Opens a forward-only data reader over a CSV stream.
+    /// </summary>
+    /// <param name="stream">Readable CSV stream. The stream remains open after the reader is disposed.</param>
+    /// <param name="loadOptions">CSV load options.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
+    public static DbDataReader OpenDataReader(
         Stream stream,
         CsvLoadOptions? loadOptions = null,
         CsvDataReaderOptions? readerOptions = null)
@@ -187,7 +194,7 @@ public sealed partial class CsvDocument
         }
     }
 
-    private static CsvDataReader CreateBufferedDataReaderFromCurrentPosition(
+    private static DbDataReader CreateBufferedDataReaderFromCurrentPosition(
         Stream stream,
         long startPosition,
         CsvLoadOptions options,
@@ -215,7 +222,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="options">Reader projection options. When omitted, all columns are emitted as strings.</param>
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
-    internal CsvDataReader CreateDataReader(CsvDataReaderOptions? options = null)
+    public DbDataReader CreateDataReader(CsvDataReaderOptions? options = null)
     {
         options ??= new CsvDataReaderOptions();
         if (options.SchemaSampleSize <= 0)

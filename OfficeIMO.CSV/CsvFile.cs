@@ -45,12 +45,19 @@ public static class CsvFile
             : options.CompressionType;
         EnsureCompressionSupported(compressionType);
         ValidateMaxDecompressedBytes(options);
+        ValidateMaxInputBytes(options);
 
-        Stream input = WrapReadStream(source, compressionType, leaveOpen);
+        if (source.CanSeek && source.Length - source.Position > options.MaxInputBytes)
+        {
+            throw new InvalidDataException(
+                $"CSV data exceeds the configured maximum size ({options.MaxInputBytes} bytes).");
+        }
+
+        Stream boundedSource = new CsvBoundedReadStream(source, options.MaxInputBytes, leaveOpen);
+        Stream input = WrapReadStream(boundedSource, compressionType, leaveOpen: false);
         if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
-            bool leaveBoundedInputOpen = compressionType == CsvCompressionType.None && leaveOpen;
-            input = new CsvBoundedReadStream(input, maxBytesLimit, leaveBoundedInputOpen);
+            input = new CsvBoundedReadStream(input, maxBytesLimit, leaveOpen: false);
         }
 
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -59,7 +66,7 @@ public static class CsvFile
             encoding,
             detectEncodingFromByteOrderMarks: true,
             bufferSize,
-            leaveOpen: compressionType == CsvCompressionType.None && leaveOpen);
+            leaveOpen: false);
     }
 
     /// <summary>
@@ -337,7 +344,7 @@ public static class CsvFile
             _bytesRead += count;
             if (_bytesRead > _maxBytes)
             {
-                throw new InvalidOperationException($"CSV data exceeded the configured limit of {_maxBytes} bytes.");
+                throw new InvalidDataException($"CSV data exceeds the configured maximum size ({_maxBytes} bytes).");
             }
         }
 

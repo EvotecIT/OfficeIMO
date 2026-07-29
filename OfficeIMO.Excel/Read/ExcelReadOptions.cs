@@ -10,6 +10,35 @@ namespace OfficeIMO.Excel {
         private int _maxSharedStringItemCharacters = 32_767;
         private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
         private long _maxInputBytes = 512L * 1024L * 1024L;
+        private int _schemaSampleRows = 1_024;
+
+        /// <summary>
+        /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
+        /// When omitted, worksheets are exposed in workbook order through
+        /// <see cref="System.Data.Common.DbDataReader.NextResult"/>.
+        /// </summary>
+        public string? SheetName { get; set; }
+
+        /// <summary>Gets or sets whether the first row supplies column names.</summary>
+        public bool HasHeaderRow { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the data-reader schema is inferred from worksheet values.
+        /// Native cell values are preserved regardless of this setting.
+        /// </summary>
+        public bool InferSchema { get; set; }
+
+        /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
+        public int SchemaSampleRows {
+            get => _schemaSampleRows;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Schema sample rows must be greater than zero.");
+                }
+
+                _schemaSampleRows = value;
+            }
+        }
 
         /// <summary>Maximum workbook bytes buffered by <see cref="ExcelDocumentReader"/>. Default: 512 MiB.</summary>
         public long MaxInputBytes {
@@ -63,10 +92,9 @@ namespace OfficeIMO.Excel {
         public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
 
         /// <summary>
-        /// Cancellation observed by internal workbook initialization. Public format-neutral
-        /// callers configure this through <c>TabularReadOptions.CancellationToken</c>.
+        /// Cancellation observed while opening and streaming workbook data.
         /// </summary>
-        internal CancellationToken CancellationToken { get; set; }
+        public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// When true, matrix/range readers fill unspecified cells with nulls.

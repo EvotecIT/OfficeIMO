@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using OfficeIMO.Excel;
-using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -47,8 +46,10 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // 2) Read the workbook through the same API used for CSV and XLSB.
-            using var reader = TabularReader.Open(filePath, new TabularReadOptions { NumericAsDecimal = true });
+            // 2) Read the workbook through the package-owned XLSX/XLSB data-reader API.
+            using var reader = ExcelDocument.OpenDataReader(
+                filePath,
+                new ExcelReadOptions { NumericAsDecimal = true });
             while (reader.Read()) {
                 var sale = new Sale {
                     Active = reader.GetBoolean(reader.GetOrdinal("Active")),

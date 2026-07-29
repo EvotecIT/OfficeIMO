@@ -249,16 +249,19 @@
 }());
 
 (function () {
-  var root = document.querySelector('[data-tabular-benchmarks]');
+  var root = document.querySelector('[data-library-comparison-benchmarks]');
   if (!root || !window.fetch) return;
 
-  var state = root.querySelector('[data-tabular-state]');
-  var table = root.querySelector('[data-tabular-table]');
-  var rows = root.querySelector('[data-tabular-rows]');
-  var meta = root.querySelector('[data-tabular-meta]');
-  var platformButtons = root.querySelectorAll('[data-tabular-platform]');
-  var modeButtons = root.querySelectorAll('[data-tabular-mode]');
-  var selectedComparison = root.getAttribute('data-comparison-id');
+  var state = root.querySelector('[data-library-comparison-state]');
+  var table = root.querySelector('[data-library-comparison-table]');
+  var rows = root.querySelector('[data-library-comparison-rows]');
+  var meta = root.querySelector('[data-library-comparison-meta]');
+  var workloadButtons = root.querySelectorAll('[data-library-comparison-workload]');
+  var platformButtons = root.querySelectorAll('[data-library-comparison-platform]');
+  var modeButtons = root.querySelectorAll('[data-library-comparison-mode]');
+  var selectedComparison = queryValue(
+    'benchmark-workload',
+    root.getAttribute('data-comparison-id'));
   var catalog;
   var activeRequestId = 0;
 
@@ -276,6 +279,7 @@
   function setQuery() {
     try {
       var url = new URL(window.location.href);
+      url.searchParams.set('benchmark-workload', selectedComparison);
       url.searchParams.set('benchmark-os', selectedPlatform);
       url.searchParams.set('benchmark-mode', selectedMode);
       window.history.replaceState(null, '', url.toString());
@@ -285,21 +289,26 @@
   }
 
   function activateButtons() {
+    Array.prototype.forEach.call(workloadButtons, function (button) {
+      var active = button.getAttribute('data-library-comparison-workload') === selectedComparison;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
     Array.prototype.forEach.call(platformButtons, function (button) {
-      var active = button.getAttribute('data-tabular-platform') === selectedPlatform;
+      var active = button.getAttribute('data-library-comparison-platform') === selectedPlatform;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
       var availability = catalog && catalog.availability
         ? catalog.availability.find(function (item) {
           return item.comparisonId === selectedComparison &&
             item.runMode === selectedMode &&
-            item.platform === button.getAttribute('data-tabular-platform');
+            item.platform === button.getAttribute('data-library-comparison-platform');
         })
         : null;
       button.classList.toggle('missing', !!availability && !availability.available);
     });
     Array.prototype.forEach.call(modeButtons, function (button) {
-      var active = button.getAttribute('data-tabular-mode') === selectedMode;
+      var active = button.getAttribute('data-library-comparison-mode') === selectedMode;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -336,17 +345,13 @@
     return key ? row.metrics[key] : null;
   }
 
-  function workloadName(row) {
-    var type = row && row.variables ? (row.variables.Type || row.variables.type || '') : '';
-    var shortName = String(type).split('.').pop().replace(/Benchmarks$/, '');
+  function workloadName() {
     var names = {
-      CsvString: 'CSV · strings',
-      CsvTyped: 'CSV · typed getters',
-      XlsxTyped: 'XLSX · typed getters',
-      XlsxBinder: 'XLSX · typed objects',
-      XlsbTyped: 'XLSB · typed getters'
+      'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
+      'markpflug-65k-xlsx-typed-net10.0': 'XLSX · typed values',
+      'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
-    return names[shortName] || shortName || 'Tabular read';
+    return names[selectedComparison] || selectedComparison || 'Library comparison';
   }
 
   function renderResult(entry, result, requestId) {
@@ -354,7 +359,7 @@
     var summaries = result.summary || [];
     var groups = {};
     summaries.forEach(function (row) {
-      var workload = workloadName(row);
+      var workload = workloadName();
       if (!groups[workload]) groups[workload] = [];
       groups[workload].push(row);
     });
@@ -366,9 +371,9 @@
         return typeof row.medianMs === 'number' ? row.medianMs : Number.POSITIVE_INFINITY;
       }));
       group.sort(function (left, right) {
-        if (left.scenario === 'OfficeIMO') return -1;
-        if (right.scenario === 'OfficeIMO') return 1;
-        return String(left.scenario).localeCompare(String(right.scenario));
+        var leftMedian = typeof left.medianMs === 'number' ? left.medianMs : Number.POSITIVE_INFINITY;
+        var rightMedian = typeof right.medianMs === 'number' ? right.medianMs : Number.POSITIVE_INFINITY;
+        return leftMedian - rightMedian || String(left.scenario).localeCompare(String(right.scenario));
       });
       group.forEach(function (row, index) {
         var median = row.medianMs;
@@ -380,14 +385,14 @@
           '<td>' + formatDuration(median) + '</td>' +
           '<td>' + formatBytes(metric(row, 'Allocated')) + '</td>' +
           '<td>' + (ratio === null ? '—' : ratio.toFixed(2) + 'x') + '</td>';
-        if (ratio !== null && ratio <= 1.0005) tr.classList.add('imo-tabular-benchmark-fastest');
+        if (ratio !== null && ratio <= 1.0005) tr.classList.add('imo-library-comparison-fastest');
         rows.appendChild(tr);
       });
     });
 
     meta.innerHTML = '';
     [
-      selectedComparison,
+      workloadName(),
       platformLabel(selectedPlatform),
       selectedMode,
       entry.environment && entry.environment.processorName,
@@ -417,19 +422,19 @@
     });
     if (!entry) {
       state.hidden = false;
-      state.className = 'imo-tabular-benchmark-state missing';
+      state.className = 'imo-library-comparison-state missing';
       state.textContent = 'No ' + selectedMode + ' evidence has been published for ' + platformLabel(selectedPlatform) + ' yet.';
       return;
     }
     if (entry.comparable === false) {
       state.hidden = false;
-      state.className = 'imo-tabular-benchmark-state incompatible';
+      state.className = 'imo-library-comparison-state incompatible';
       state.textContent = 'This lane is not directly comparable: ' + (entry.compatibilityIssues || []).join(' ');
       return;
     }
 
     state.hidden = false;
-    state.className = 'imo-tabular-benchmark-state';
+    state.className = 'imo-library-comparison-state';
     state.textContent = 'Loading ' + platformLabel(selectedPlatform) + ' ' + selectedMode + ' results…';
     fetch(entry.resultPath, { credentials: 'same-origin' })
       .then(function (response) {
@@ -440,20 +445,26 @@
       .catch(function (error) {
         if (requestId !== activeRequestId) return;
         state.hidden = false;
-        state.className = 'imo-tabular-benchmark-state incompatible';
+        state.className = 'imo-library-comparison-state incompatible';
         state.textContent = 'Benchmark evidence could not be loaded: ' + error.message;
       });
   }
 
+  Array.prototype.forEach.call(workloadButtons, function (button) {
+    button.addEventListener('click', function () {
+      selectedComparison = button.getAttribute('data-library-comparison-workload');
+      renderSelection();
+    });
+  });
   Array.prototype.forEach.call(platformButtons, function (button) {
     button.addEventListener('click', function () {
-      selectedPlatform = button.getAttribute('data-tabular-platform');
+      selectedPlatform = button.getAttribute('data-library-comparison-platform');
       renderSelection();
     });
   });
   Array.prototype.forEach.call(modeButtons, function (button) {
     button.addEventListener('click', function () {
-      selectedMode = button.getAttribute('data-tabular-mode');
+      selectedMode = button.getAttribute('data-library-comparison-mode');
       renderSelection();
     });
   });
@@ -468,7 +479,7 @@
       renderSelection();
     })
     .catch(function (error) {
-      state.className = 'imo-tabular-benchmark-state incompatible';
+      state.className = 'imo-library-comparison-state incompatible';
       state.textContent = 'Benchmark catalog could not be loaded: ' + error.message;
     });
 }());

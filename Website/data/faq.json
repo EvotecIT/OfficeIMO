@@ -37,7 +37,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>Yes, for <strong>89 of the 90 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 87 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
+          "answer": "<p>Yes, for <strong>88 of the 89 production projects</strong>, with proof recorded per project rather than inferred from a few samples. CI fully roots 86 library assemblies in a native executable, runs a bounded native workflow for the optional Google APIs credential adapter, and publishes and starts the production CLI tool on Windows and Linux. The WPF/WebView2 renderer is the one managed-only project because the .NET SDK rejects trimming for WPF executables. See the <a href='/docs/advanced/aot-trimming/'>NativeAOT deployment guide</a> and the <a href='/data/aot-compatibility.json'>complete project matrix</a>.</p>"
         }
       ]
     },

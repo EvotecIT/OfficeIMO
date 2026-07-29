@@ -390,6 +390,6 @@ Website/static/data/
 Website/static/data/*
 !Website/static/data/benchmarks/
 Website/static/data/benchmarks/*
-!Website/static/data/benchmarks/tabular/
-!Website/static/data/benchmarks/tabular/*.json
+!Website/static/data/benchmarks/library-comparisons/
+!Website/static/data/benchmarks/library-comparisons/*.json
 Website/data/ecosystem/stats.json

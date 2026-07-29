@@ -15,17 +15,17 @@ This guide describes the current safe path for large workbook generation, readin
 
 | Workload | Preferred API | Notes |
 | --- | --- | --- |
-| Forward-only CSV or Excel reads | `TabularReader.Open(...)` | One `DbDataReader` contract covers CSV, TSV, XLSX, XLSM, and XLSB. Workbook used ranges are discovered automatically. |
-| Typed object reads | `TabularReader.ReadRecords<T>()` | Column names match writable properties case-insensitively. Use `[DataMember(Name = "...")]` for headers that are not CLR property names. |
-| Multiple worksheets | `TableNames`, `TableName`, and `NextResult()` | Results stay in workbook order. Set `TabularReadOptions.TableName` when only one worksheet should be opened. |
+| Forward-only Excel reads | `ExcelDocument.OpenDataReader(...)` | The package-owned `DbDataReader` contract covers XLSX, XLSM, XLSB, and BIFF8 XLS and discovers used ranges automatically. |
+| Forward-only CSV reads | `CsvDocument.OpenDataReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
+| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReadOptions.SheetName` when only one worksheet should be opened. |
 | Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
 
 Example:
 
 ```csharp
-using OfficeIMO.Tabular;
+using OfficeIMO.Excel;
 
-using var reader = TabularReader.Open("sales.xlsx");
+using var reader = ExcelDocument.OpenDataReader("sales.xlsx");
 int revenue = reader.GetOrdinal("Revenue");
 while (reader.Read()) {
     Console.WriteLine(reader.GetDecimal(revenue));
@@ -88,15 +88,18 @@ Use the comparison summary for public-facing numbers only when the run records:
 - package-size and package-part metrics when save behavior matters
 - machine and runtime information from the artifact manifest
 
-The pinned tabular suite reproduces the public 65K-record CSV, XLSX, and XLSB
-workloads with hash-verified inputs and equivalent typed getters:
+The CSV and Excel benchmark projects own their respective library comparisons:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Tabular.Benchmarks -- --validate
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Tabular.Benchmarks -- --artifacts .\artifacts\tabular-full
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks -- --filter "*CsvBenchmarks*"
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks -- comparison-suite --out-dir .\artifacts\excel --row-set 2500,25000
 ```
 
-Windows, Linux, and macOS are separate evidence lanes. Do not average them or
+The suites compare OfficeIMO with the libraries that support each equivalent
+workload, including Sep, Sylvan, CsvHelper, Dataplat/dbatools, LumenWorks,
+ClosedXML, EPPlus, MiniExcel, LargeXlsx, SpreadCheetah, ExcelDataReader, and
+opt-in NPOI. No library is treated as an opponent or universal baseline.
+Windows, Linux, and macOS remain separate evidence lanes; never average them or
 substitute one platform when another platform is missing.
 
 ## Current Boundaries

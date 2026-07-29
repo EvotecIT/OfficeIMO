@@ -169,19 +169,36 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int currentRowIndex = _pendingRowIndex;
             _hasPendingRow = false;
-            while (_records.TryRead(out XlsbRecordSlice record)) {
-                CheckCancellation();
-                if (record.Type == BrtRowHdr) {
-                    SetPendingRow(record);
-                    break;
-                }
+            if (_cancellationToken.CanBeCanceled) {
+                while (_records.TryRead(out XlsbRecordSlice record)) {
+                    CheckCancellation();
+                    if (record.Type == BrtRowHdr) {
+                        SetPendingRow(record);
+                        break;
+                    }
 
-                if (record.Type == BrtEndSheetData) {
-                    break;
-                }
+                    if (record.Type == BrtEndSheetData) {
+                        break;
+                    }
 
-                if (IsCellRecord(record.Type)) {
-                    StoreCell(record);
+                    if (IsCellRecord(record.Type)) {
+                        StoreCell(record);
+                    }
+                }
+            } else {
+                while (_records.TryRead(out XlsbRecordSlice record)) {
+                    if (record.Type == BrtRowHdr) {
+                        SetPendingRow(record);
+                        break;
+                    }
+
+                    if (record.Type == BrtEndSheetData) {
+                        break;
+                    }
+
+                    if (IsCellRecord(record.Type)) {
+                        StoreCell(record);
+                    }
                 }
             }
 
@@ -471,15 +488,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             _cellBudget.Consume();
 
-            bool isDate = _options.TreatDatesUsingNumberFormat
-                && styleIndex < _dateStyles.Length
-                && _dateStyles[styleIndex];
             switch (record.Type) {
                 case BrtCellBlank:
                     _kinds[ordinal] = XlsbTabularValueKind.Empty;
                     break;
                 case BrtCellRk:
-                    StoreNumber(ordinal, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), isDate);
+                    StoreNumber(ordinal, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
                     break;
                 case BrtCellError:
                     _kinds[ordinal] = XlsbTabularValueKind.Error;
@@ -490,7 +504,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _booleans[ordinal] = cursor.ReadByte() != 0;
                     break;
                 case BrtCellReal:
-                    StoreNumber(ordinal, cursor.ReadDouble(), isDate);
+                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
                     break;
                 case BrtCellSt:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
@@ -517,7 +531,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
                     break;
                 case BrtFmlaNum:
-                    StoreNumber(ordinal, cursor.ReadDouble(), isDate);
+                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
                     break;
                 case BrtFmlaBool:
                     _kinds[ordinal] = XlsbTabularValueKind.Boolean;
@@ -532,7 +546,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
         }
 
-        private void StoreNumber(int ordinal, double number, bool isDate) {
+        private void StoreNumber(int ordinal, double number, uint styleIndex) {
+            bool isDate = _options.TreatDatesUsingNumberFormat
+                && styleIndex < _dateStyles.Length
+                && _dateStyles[styleIndex];
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
         }

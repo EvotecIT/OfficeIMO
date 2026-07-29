@@ -57,11 +57,13 @@ features expected from a document and ingestion model: schema inference and
 validation, typed values, transforms, compressed files, malformed-input policy,
 formula-injection protection, progress, cancellation, and diagnostics.
 
-The focused table compares equivalent 25,000-row wide field-span reads,
-projected-array writes, `IDataReader` writes, and prepared-text writes. Benchmark
-preflight parses every typed field or compares every prepared text field, so a
-library cannot win by merely producing the right row shape. Lower is faster;
-differences below 5% should be treated as ties rather than ranking claims.
+The historical single-workstation table below compares equivalent 25,000-row
+wide field-span reads, projected-array writes, `IDataReader` writes, and
+prepared-text writes. Benchmark preflight parses every typed field or compares
+every prepared text field, so a library cannot win by merely producing the
+right row shape. Lower is faster within a row; differences below 5% should be
+treated as ties. This table is retained for reproducibility, not as a current
+cross-platform library ranking.
 
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
@@ -72,11 +74,12 @@ differences below 5% should be treated as ties rather than ranking claims.
 | Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
-These are local snapshots, not universal rankings. Runtime, CPU, input
-shape, quoting, encoding, storage, warm-up, and consumer behavior all matter;
-results will vary. See the [full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md)
-for CsvHelper, Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and
-`DbDataReader` lanes and the exact commands used to reproduce them.
+Runtime, CPU, input shape, quoting, encoding, storage, warm-up, and consumer
+behavior all matter. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
+matrix for current Windows, Linux, and macOS evidence. See the
+[full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md) for CsvHelper,
+Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and `DbDataReader`
+lanes and the exact commands used to reproduce them.
 
 ## Schema example
 
@@ -183,14 +186,14 @@ public sealed record PersonRecord {
 
 ## Read once or edit
 
-Use `OfficeIMO.Tabular` when the caller only needs a forward-only read. The
-same `TabularReader` contract handles CSV, TSV, XLSX, XLSM, and XLSB, so a data
-pipeline does not need a CSV-specific reader API.
+Use `CsvDocument.OpenDataReader` when the caller only needs a forward-only
+ADO.NET reader. CSV parsing, delimiter handling, schema inference, limits, and
+stream ownership remain in `OfficeIMO.CSV`.
 
 ```csharp
-using OfficeIMO.Tabular;
+using OfficeIMO.CSV;
 
-using var reader = TabularReader.Open("large.csv");
+using var reader = CsvDocument.OpenDataReader("large.csv");
 while (reader.Read()) {
     int id = reader.GetInt32(reader.GetOrdinal("Id"));
     string status = reader.GetString(reader.GetOrdinal("Status"));
@@ -210,18 +213,21 @@ var transformed = CsvDocument.Load("large.csv")
 transformed.Save("ready.csv");
 ```
 
-`TabularReader` is an ADO.NET `DbDataReader`, so it also plugs directly into
+`CsvDataReader` is an ADO.NET `DbDataReader`, so it also plugs directly into
 `DataTable.Load` and provider bulk-copy APIs. Enable inference when delimited
 text should expose typed columns:
 
 ```csharp
 using System.Data;
-using OfficeIMO.Tabular;
+using OfficeIMO.CSV;
 
-using var reader = TabularReader.Open("large.csv", new TabularReadOptions {
-    InferTypes = true,
-    SchemaSampleRows = 1000
-});
+using var reader = CsvDocument.OpenDataReader(
+    "large.csv",
+    new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+    new CsvDataReaderOptions {
+        InferSchema = true,
+        SchemaSampleSize = 1000
+    });
 
 var table = new DataTable();
 table.Load(reader);

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using OfficeIMO.Excel;
-using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -33,9 +32,9 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // The same public reader works for CSV, XLSX, XLSM, and XLSB without an A1 range.
+            // The OfficeIMO.Excel reader works for XLSX, XLSM, and XLSB without an A1 range.
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
-            using var reader = TabularReader.Open(filePath);
+            using var reader = ExcelDocument.OpenDataReader(filePath);
             while (reader.Read())
             {
                 var row = new Dictionary<string, object?>(reader.FieldCount, StringComparer.OrdinalIgnoreCase);

@@ -5,7 +5,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Controls how a <see cref="CsvDocument"/> is exposed as a forward-only data reader.
 /// </summary>
-internal sealed class CsvDataReaderOptions
+public sealed class CsvDataReaderOptions
 {
     /// <summary>
     /// Gets or sets an explicit schema used for typed reader columns.

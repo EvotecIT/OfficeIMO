@@ -69,7 +69,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
-    <InternalsVisibleTo Include="OfficeIMO.Tabular" />
   </ItemGroup>
 
 </Project>

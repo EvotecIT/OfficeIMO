@@ -13,7 +13,6 @@
     <ItemGroup>
         <ProjectReference Include="..\\OfficeIMO.Drawing\\OfficeIMO.Drawing.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Tabular\\OfficeIMO.Tabular.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
         <ProjectReference Include="..\\OfficeIMO.GoogleWorkspace\\OfficeIMO.GoogleWorkspace.csproj" />

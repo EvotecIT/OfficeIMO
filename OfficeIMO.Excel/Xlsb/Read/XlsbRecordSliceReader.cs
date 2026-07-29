@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     /// <summary>
@@ -90,7 +91,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     }
 
     internal sealed class XlsbStreamRecordSliceReader : IDisposable {
-        private const int InputBufferSize = 1024 * 1024;
+        private const int InputBufferSize = 128 * 1024;
         private readonly Stream _stream;
         private readonly int _maxRecordBytes;
         private readonly XlsbRecordReadBudget _budget;
@@ -115,8 +116,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _inputBuffer = ArrayPool<byte>.Shared.Rent(InputBufferSize);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryRead(out XlsbRecordSlice record) {
-            ThrowIfDisposed();
             int recordOffset = _offset;
             if (!TryReadByte(out int firstTypeByte)) {
                 record = default;
@@ -155,6 +156,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ArrayPool<byte>.Shared.Return(inputBuffer);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadVariableLengthValue() {
             int value = 0;
             for (int index = 0; index < 4; index++) {
@@ -168,6 +170,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             throw new InvalidDataException("The BIFF12 record size header is invalid.");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadRequiredByte(string fieldName) {
             if (!TryReadByte(out int value)) {
                 throw new EndOfStreamException($"The BIFF12 stream ended inside the {fieldName} header.");
@@ -176,6 +179,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryReadByte(out int value) {
             if (_inputOffset == _inputLength) {
                 _inputLength = _stream.Read(_inputBuffer, 0, _inputBuffer.Length);
@@ -191,6 +195,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReadPayload(
             int size,
             int recordOffset,
@@ -241,11 +246,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _payloadBuffer = new byte[capacity];
         }
 
-        private void ThrowIfDisposed() {
-            if (_disposed) {
-                throw new ObjectDisposedException(nameof(XlsbStreamRecordSliceReader));
-            }
-        }
     }
 
     internal readonly struct XlsbRecordSlice {
@@ -267,6 +267,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal int Size { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal XlsbSliceCursor CreateCursor() => new(Bytes, PayloadOffset, Size);
     }
 
@@ -288,11 +289,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal int Remaining => _end - Position;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal byte ReadByte() {
             EnsureAvailable(1);
             return _bytes[Position++];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ushort ReadUInt16() {
             EnsureAvailable(2);
             int offset = Position;
@@ -300,6 +303,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return (ushort)(_bytes[offset] | (_bytes[offset + 1] << 8));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal uint ReadUInt32() {
             EnsureAvailable(4);
             int offset = Position;
@@ -312,6 +316,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal int ReadInt32() => unchecked((int)ReadUInt32());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal double ReadDouble() {
             EnsureAvailable(8);
             int offset = Position;
@@ -346,6 +351,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Position += count;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureAvailable(int count) {
             if (count < 0 || count > Remaining) {
                 throw new EndOfStreamException(

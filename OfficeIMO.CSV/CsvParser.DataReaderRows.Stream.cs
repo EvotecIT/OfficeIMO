@@ -17,6 +17,10 @@ internal static partial class CsvParser
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvLoadOptions _options;
+        private readonly char _delimiter;
+        private readonly bool _trim;
+        private readonly bool _strictQuotes;
+        private readonly bool _allowEmpty;
         private readonly Queue<CsvLine> _pendingLines = new();
         private readonly List<string> _quotedFields = new(32);
         private CsvDataReaderStreamRowVisitor _visitor;
@@ -28,6 +32,10 @@ internal static partial class CsvParser
         {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _delimiter = GetDelimiterChar(options);
+            _trim = options.TrimWhitespace;
+            _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
+            _allowEmpty = options.AllowEmptyLines;
             _lineReader = new CsvLineReader(reader);
             _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
         }
@@ -41,11 +49,6 @@ internal static partial class CsvParser
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             _visitor.Reset();
-            char delimiter = GetDelimiterChar(_options);
-            bool trim = _options.TrimWhitespace;
-            bool strictQuotes = _options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
-            bool allowEmpty = _options.AllowEmptyLines;
-
             while (true)
             {
                 ThrowIfCancellationRequested(_options);
@@ -55,10 +58,10 @@ internal static partial class CsvParser
                 if (_pendingLines.Count == 0)
                 {
                     readResult = _lineReader.ReadUnquotedFieldSpansOrLine(
-                        delimiter,
-                        trim,
+                        _delimiter,
+                        _trim,
                         _options.CommentCharacter,
-                        allowEmpty,
+                        _allowEmpty,
                         emitFields: true,
                         recordIndex: _emittedRecordCount,
                         projectedFieldVisitor: null,
@@ -76,7 +79,7 @@ internal static partial class CsvParser
                     if (readResult == CsvLineReadResult.UnquotedRecord)
                     {
                         _lineNumber++;
-                        if (fieldCount == 0 || (!allowEmpty && isEmptyRecord))
+                        if (fieldCount == 0 || (!_allowEmpty && isEmptyRecord))
                         {
                             continue;
                         }
@@ -116,11 +119,11 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, delimiter, trim, out string[] fields))
+                if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, _delimiter, _trim, out string[] fields))
                 {
                     _lineNumber++;
                     if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
-                        || !ShouldEmitRecord(fields, allowEmpty))
+                        || !ShouldEmitRecord(fields, _allowEmpty))
                     {
                         continue;
                     }
@@ -139,16 +142,16 @@ internal static partial class CsvParser
                             _pendingLines,
                             line,
                             lineSeparator,
-                            delimiter,
-                            trim,
-                            strictQuotes,
+                            _delimiter,
+                            _trim,
+                            _strictQuotes,
                             _quotedFields,
                             ref _lineNumber)
                         && !TryParseQuotedRecord(
                             line,
-                            delimiter,
-                            trim,
-                            strictQuotes,
+                            _delimiter,
+                            _trim,
+                            _strictQuotes,
                             _lineNumber,
                             _quotedFields))
                     {
@@ -163,7 +166,7 @@ internal static partial class CsvParser
 
                 _lineNumber++;
                 if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
-                    || !ShouldEmitRecord(_quotedFields, allowEmpty))
+                    || !ShouldEmitRecord(_quotedFields, _allowEmpty))
                 {
                     continue;
                 }

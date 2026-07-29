@@ -48,11 +48,12 @@ tables, formulas, charts, pivots, conditional formatting, validation, images,
 templates, protection, print settings, headers and footers, and both `.xlsx`
 and the supported legacy `.xls` subset.
 
-The compact table deliberately mixes raw data paths with feature-bearing work:
-typed-object reads, plain and styled `DataReader` exports, and a report containing
-normal workbook features. Each row only includes libraries with a directly
-comparable public API. Lower is faster.
-Differences below 5% are treated as ties rather than ranking claims.
+The historical single-workstation table below deliberately mixes raw data paths
+with feature-bearing work: typed-object reads, plain and styled `DataReader`
+exports, and a report containing normal workbook features. Each row only
+includes libraries with a directly comparable public API. Lower is faster
+within a row. Differences below 5% are treated as ties. This table is retained
+for reproducibility, not as a current cross-platform library ranking.
 
 <!-- officeimo-excel-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
@@ -63,10 +64,10 @@ Differences below 5% are treated as ties rather than ranking claims.
 | Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Read | 1.00x (25ms) | 11.13x (278ms) | 10.08x (252ms) | n/a | n/a | 1.56x (39ms) | OfficeIMO.Excel fastest |
 <!-- officeimo-excel-benchmark-table:end -->
 
-These are local direction-finding results, not guarantees. Hardware, runtime,
-workload shape, package versions, warm-up, and library options change outcomes;
-results will vary. OfficeIMO wins some lanes and not others. The
-[benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) publishes the full
+Hardware, runtime, workload shape, package versions, warm-up, and library
+options change outcomes. Use the benchmark website's hash-pinned CSV/XLSX/XLSB
+matrix for current Windows, Linux, and macOS evidence. The
+[benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) covers the broader
 comparison suite against ClosedXML, EPPlus, MiniExcel, LargeXlsx,
 SpreadCheetah, ExcelDataReader, and Sylvan.Data.Excel. The opt-in
 [NPOI comparison](../OfficeIMO.Excel.Benchmarks.NPOI/README.md) separately covers
@@ -149,32 +150,28 @@ For untrusted files, capability preflight, macro and embedded-payload handling,
 and DOC/XLS/XLSB loss policies, see the
 [Word and Excel interoperability guide](../Docs/officeimo.word-excel-interoperability.md).
 
-### Map rows to objects
+### Stream workbook rows
 
 ```csharp
-using System.Runtime.Serialization;
-using OfficeIMO.Tabular;
+using OfficeIMO.Excel;
 
-using var reader = TabularReader.Open("input.xlsx", new TabularReadOptions {
-    TableName = "Data"
+using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+    SheetName = "Data",
+    NumericAsDecimal = true
 });
-List<Person> people = reader.ReadRecords<Person>().ToList();
-
-[DataContract]
-public sealed class Person {
-    [DataMember(Name = "Full Name")]
-    public string Name { get; set; } = "";
-
-    public int Value { get; set; }
-    public string Status { get; set; } = "";
+while (reader.Read()) {
+    string name = reader.GetString(reader.GetOrdinal("Full Name"));
+    decimal value = reader.GetDecimal(reader.GetOrdinal("Value"));
+    Console.WriteLine($"{name}: {value}");
 }
 ```
 
-`TabularReader` is the read-only entry point for CSV, TSV, XLSX, XLSM, and
-XLSB. It discovers the used range, exposes additional worksheets through
-`NextResult()`, and supports standard `[DataMember(Name = "...")]` column
-mapping. Use `ExcelDocument.Load` when the workbook must be inspected, edited,
-or saved again.
+`ExcelDocument.OpenDataReader` is the package-owned read-only entry point for
+XLSX, XLSM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
+additional worksheets through `NextResult()`. Legacy XLS is projected through
+the package's existing first-party reader; use `ExcelDocument.Load` when the
+workbook must be inspected, edited, or saved again. CSV uses the parallel
+`CsvDocument.OpenDataReader` API from the separate `OfficeIMO.CSV` package.
 
 ### Append to an existing table
 

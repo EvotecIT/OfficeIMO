@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using OfficeIMO.Adf;
+using OfficeIMO.CSV;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
 using OfficeIMO.Reader;
-using OfficeIMO.Tabular;
 
 var adfAttributes = new ReadOnlyObjectDictionary(new Dictionary<string, object?> {
     ["html"] = "<strong>Ready</strong>",
@@ -48,12 +48,15 @@ if (!string.Equals(value, "token-marker", StringComparison.Ordinal)) {
 }
 
 using var tabularStream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
-using var tabularReader = TabularReader.Open(tabularStream, TabularFormat.DelimitedText);
-if (!tabularReader.Read() || tabularReader.GetInt32(0) != 1 || tabularReader.GetString(1) != "Ada") {
+using var csvReader = CsvDocument.OpenDataReader(
+    tabularStream,
+    new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+    new CsvDataReaderOptions { InferSchema = true });
+if (!csvReader.Read() || csvReader.GetInt32(0) != 1 || csvReader.GetString(1) != "Ada") {
     throw new InvalidOperationException("The canonical tabular reader did not read its NativeAOT CSV fixture.");
 }
 
-Console.WriteLine("PASS | 87 production libraries fully rooted; Google APIs token-store and tabular reader contracts passed from NativeAOT.");
+Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store and CSV reader contracts passed from NativeAOT.");
 
 file sealed class InMemoryTokenStore : IGoogleWorkspaceTokenStore {
     private readonly Dictionary<string, object?> _values = new(StringComparer.Ordinal);

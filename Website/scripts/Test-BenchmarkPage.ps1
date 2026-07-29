@@ -4,13 +4,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$resolvedSiteRoot = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $SiteRoot))
+$resolvedSiteRoot = if ([System.IO.Path]::IsPathRooted($SiteRoot)) {
+    [System.IO.Path]::GetFullPath($SiteRoot)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $SiteRoot))
+}
 $dataPath = Join-Path $resolvedSiteRoot 'data\benchmarks-excel.json'
 $pagePath = Join-Path $resolvedSiteRoot 'benchmarks\index.html'
 $scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
-$tabularCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\tabular\index.json'
+$comparisonCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\library-comparisons\index.json'
 $stylePath = Join-Path $PSScriptRoot '..\themes\officeimo\assets\app.css'
-$evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\TabularBenchmarkEvidence.ps1'
+$evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\BenchmarkEvidence.ps1'
 
 . $evidenceHelperPath
 
@@ -26,8 +30,8 @@ if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
     throw "Benchmark sort/filter script was not published to '$scriptPath'."
 }
 
-if (-not (Test-Path -LiteralPath $tabularCatalogPath -PathType Leaf)) {
-    throw "Tabular benchmark evidence catalog was not published to '$tabularCatalogPath'."
+if (-not (Test-Path -LiteralPath $comparisonCatalogPath -PathType Leaf)) {
+    throw "Library comparison evidence catalog was not published to '$comparisonCatalogPath'."
 }
 
 if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
@@ -35,13 +39,13 @@ if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
 }
 
 $contractEvidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO-evidence-contract'
-$net8Evidence = Get-TabularBenchmarkEvidenceLocation `
-    -ComparisonId 'markpflug-65k-sales-v1-net8.0' `
+$net8Evidence = Get-BenchmarkEvidenceLocation `
+    -ComparisonId 'markpflug-65k-csv-decoded-net8.0' `
     -Platform windows `
     -RunMode full `
     -StaticRoot $contractEvidenceRoot
-$net10Evidence = Get-TabularBenchmarkEvidenceLocation `
-    -ComparisonId 'markpflug-65k-sales-v1-net10.0' `
+$net10Evidence = Get-BenchmarkEvidenceLocation `
+    -ComparisonId 'markpflug-65k-csv-decoded-net10.0' `
     -Platform windows `
     -RunMode full `
     -StaticRoot $contractEvidenceRoot
@@ -49,11 +53,11 @@ if ($net8Evidence.FileName -eq $net10Evidence.FileName -or
     $net8Evidence.ResultPath -eq $net10Evidence.ResultPath -or
     $net8Evidence.FileName -notmatch 'net8\.0' -or
     $net10Evidence.FileName -notmatch 'net10\.0') {
-    throw 'Tabular benchmark payload paths do not keep framework comparison identities separate.'
+    throw 'Library comparison payload paths do not keep framework identities separate.'
 }
 
 $data = Get-Content -LiteralPath $dataPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$tabularCatalog = Get-Content -LiteralPath $tabularCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$comparisonCatalog = Get-Content -LiteralPath $comparisonCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $rowCount = @($data.rows).Count
 $summaryCount = @($data.summary).Count
 $matrixRowCount = @($data.matrix.rows).Count
@@ -70,10 +74,10 @@ if ($summaryCount -lt 1) {
     throw "Benchmark data JSON does not contain summary rows."
 }
 
-if ($tabularCatalog.schemaVersion -ne 2 -or
-    @($tabularCatalog.expectedPlatforms).Count -ne 3 -or
-    -not (@($tabularCatalog.availability).Where({ $_.platform -eq 'macos' -and -not $_.available }))) {
-    throw 'Tabular benchmark catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
+if ($comparisonCatalog.schemaVersion -ne 2 -or
+    @($comparisonCatalog.expectedPlatforms).Count -ne 3 -or
+    -not (@($comparisonCatalog.availability).Where({ $_.platform -eq 'macos' -and -not $_.available }))) {
+    throw 'Library comparison catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
 }
 
 $pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
@@ -81,14 +85,16 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
     throw "Benchmark page did not render the generated data dashboard."
 }
 
-if ($pageHtml -notmatch 'data-tabular-benchmarks' -or
-    $pageHtml -notmatch 'data-comparison-id="markpflug-65k-sales-v1-net10\.0"' -or
-    $pageHtml -notmatch 'data-tabular-platform="windows"' -or
-    $pageHtml -notmatch 'data-tabular-platform="linux"' -or
-    $pageHtml -notmatch 'data-tabular-platform="macos"' -or
-    $pageHtml -notmatch 'data-tabular-mode="full"' -or
-    $pageHtml -notmatch 'data-tabular-mode="quick"') {
-    throw 'Benchmark page did not render the tabular platform and evidence selectors.'
+if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
+    $pageHtml -notmatch 'data-comparison-id="markpflug-65k-csv-decoded-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsx-typed-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsb-typed-net10\.0"' -or
+    $pageHtml -notmatch 'data-library-comparison-platform="windows"' -or
+    $pageHtml -notmatch 'data-library-comparison-platform="linux"' -or
+    $pageHtml -notmatch 'data-library-comparison-platform="macos"' -or
+    $pageHtml -notmatch 'data-library-comparison-mode="full"' -or
+    $pageHtml -notmatch 'data-library-comparison-mode="quick"') {
+    throw 'Benchmark page did not render the workload, platform, and evidence selectors.'
 }
 
 if ($pageHtml -notmatch 'data-benchmark-family="excel"' -or
@@ -113,7 +119,8 @@ if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch '
     throw "Benchmark sort/filter script does not expose the expected matrix behaviors."
 }
 
-if ($scriptText -notmatch 'benchmark-os' -or
+if ($scriptText -notmatch 'benchmark-workload' -or
+    $scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'benchmark-mode' -or
     $scriptText -notmatch 'candidate\.comparisonId === selectedComparison' -or
     $scriptText -notmatch 'item\.comparisonId === selectedComparison' -or
@@ -123,8 +130,10 @@ if ($scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'requestId !== activeRequestId' -or
     $scriptText -notmatch 'compatibilityIssues' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
+    $scriptText -notmatch 'workloadName\(\)' -or
+    $scriptText -match "scenario === 'OfficeIMO'" -or
     $pageHtml -notmatch 'Quick results are diagnostic only') {
-    throw 'Tabular benchmark selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
+    throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
 }
 
 $styleText = Get-Content -LiteralPath $stylePath -Raw -Encoding UTF8

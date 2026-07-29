@@ -1,12 +1,11 @@
 using System;
 using System.IO;
 using OfficeIMO.Excel;
-using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
     /// <summary>
-    /// Demonstrates the canonical format-neutral tabular reader.
+    /// Demonstrates the canonical OfficeIMO.Excel data reader.
     /// </summary>
     internal static class ReadPresetsAndHelpers
     {
@@ -51,7 +50,7 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 2) One reader shape, automatic used range, and typed getters.
-            using var reader = TabularReader.Open(filePath, new TabularReadOptions {
+            using var reader = ExcelDocument.OpenDataReader(filePath, new ExcelReadOptions {
                 NumericAsDecimal = true
             });
             while (reader.Read()) {

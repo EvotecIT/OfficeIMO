@@ -351,6 +351,7 @@ namespace OfficeIMO.Excel {
             private readonly Type[] _columnTypes;
             private readonly List<object?[]> _prefetchedRows;
             private readonly object?[] _blankRow;
+            private readonly bool _hasRows;
             private Dictionary<string, int>? _ordinals;
             private RangeChunk? _currentChunk;
             private object?[]? _currentRow;
@@ -393,6 +394,7 @@ namespace OfficeIMO.Excel {
                 _columnTypes = options.InferDataTableColumnTypes
                     ? InferColumnTypes(_prefetchedRows, fieldCount)
                     : CreateObjectColumnTypes(fieldCount);
+                _hasRows = _prefetchedRows.Count > 0 || _nextRow <= _lastRow;
             }
 
             /// <inheritdoc />
@@ -408,7 +410,7 @@ namespace OfficeIMO.Excel {
             public override int FieldCount => _fieldCount;
 
             /// <inheritdoc />
-            public override bool HasRows => !_closed && (_prefetchedIndex < _prefetchedRows.Count || _nextRow <= _lastRow);
+            public override bool HasRows => !_closed && _hasRows;
 
             /// <inheritdoc />
             public override bool IsClosed => _closed;

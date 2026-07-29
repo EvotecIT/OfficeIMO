@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbRecordReadBudget _recordBudget;
         private readonly XlsbCellReadBudget _cellBudget;
         private readonly IReadOnlyList<string> _sharedStrings;
+        private readonly int _maxSharedStringItemCharacters;
+        private readonly long _maxSharedStringCharacters;
         private readonly bool[] _dateStyles;
         private readonly List<XlsbTabularSheet> _sheets;
         private readonly string[] _tableNames;
@@ -49,8 +51,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _packageStream = packageStream ?? throw new ArgumentNullException(nameof(packageStream));
             _archive = archive ?? throw new ArgumentNullException(nameof(archive));
             _cancellationToken = cancellationToken;
+            _maxSharedStringItemCharacters = readOptions.MaxSharedStringItemCharacters;
+            _maxSharedStringCharacters = readOptions.MaxSharedStringCharacters;
             _limits = new XlsbImportOptions {
                 MaxPackageBytes = readOptions.MaxInputBytes,
+                MaxSharedStrings = readOptions.MaxSharedStringItems,
                 ReportPreservedRecords = false
             };
             _limits.Validate();
@@ -125,6 +130,29 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, readOptions.MaxInputBytes);
+            return OpenOwnedStream(
+                new MemoryStream(bytes, writable: false),
+                readOptions,
+                cancellationToken);
+        }
+
+        internal static XlsbTabularWorkbook Open(
+            byte[] bytes,
+            ExcelReadOptions readOptions,
+            CancellationToken cancellationToken = default) {
+            if (bytes == null) {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+            if (readOptions == null) {
+                throw new ArgumentNullException(nameof(readOptions));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bytes.LongLength > readOptions.MaxInputBytes) {
+                throw new InvalidDataException(
+                    $"The XLSB package contains {bytes.LongLength} bytes, exceeding the configured limit of {readOptions.MaxInputBytes} bytes.");
+            }
+
             return OpenOwnedStream(
                 new MemoryStream(bytes, writable: false),
                 readOptions,
@@ -222,6 +250,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             byte[] bytes = _parts.ReadPart(partName);
             var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
             var values = new List<string>();
+            long totalCharacters = 0;
             bool began = false;
             bool ended = false;
             while (records.TryRead(out XlsbRecordSlice record)) {
@@ -238,7 +267,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                     var cursor = record.CreateCursor();
                     cursor.ReadByte();
-                    values.Add(cursor.ReadWideString(_limits.MaxStringCharacters));
+                    string value = cursor.ReadWideString(_maxSharedStringItemCharacters);
+                    if (totalCharacters > _maxSharedStringCharacters - value.Length) {
+                        throw new InvalidDataException(
+                            $"The XLSB shared-string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
+                    }
+
+                    totalCharacters += value.Length;
+                    values.Add(value);
                 }
             }
 

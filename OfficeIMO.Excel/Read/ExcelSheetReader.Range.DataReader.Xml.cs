@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
             private readonly DateTime[] _currentDateTimeValues;
             private readonly bool[] _currentBooleanValues;
             private readonly object?[] _blankRow;
+            private readonly bool _hasRows;
             private Dictionary<int, object?[]>? _bufferedRows;
             private Dictionary<string, int>? _ordinals;
             private object?[]? _currentRow;
@@ -111,6 +112,7 @@ namespace OfficeIMO.Excel {
                     ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
                     : CreateGeneratedColumnNames(fieldCount);
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
+                _hasRows = _nextLogicalRow <= _lastRow;
                 _currentRow = null;
             }
 
@@ -127,7 +129,7 @@ namespace OfficeIMO.Excel {
             public override int FieldCount => _fieldCount;
 
             /// <inheritdoc />
-            public override bool HasRows => !_closed && _nextLogicalRow <= _lastRow;
+            public override bool HasRows => !_closed && _hasRows;
 
             /// <inheritdoc />
             public override bool IsClosed => _closed;

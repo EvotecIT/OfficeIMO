@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using OfficeIMO.Excel;
-using OfficeIMO.Tabular;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -38,9 +37,11 @@ namespace OfficeIMO.Examples.Excel
                 if (openExcel) doc.OpenInApplication();
             }
 
-            // 2) Modify: read through the format-neutral tabular API, then update and save
+            // 2) Modify: read through the package-owned Excel API, then update and save
             var updates = new List<(int RowNumber, int? Value, string Status)>();
-            using (var reader = TabularReader.Open(filePath, new TabularReadOptions { TableName = "Data" }))
+            using (var reader = ExcelDocument.OpenDataReader(
+                filePath,
+                new ExcelReadOptions { SheetName = "Data" }))
             {
                 int rowNumber = 2;
                 while (reader.Read())
@@ -77,7 +78,9 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption
-            using var finalReader = TabularReader.Open(filePath, new TabularReadOptions { TableName = "Data" });
+            using var finalReader = ExcelDocument.OpenDataReader(
+                filePath,
+                new ExcelReadOptions { SheetName = "Data" });
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
             while (finalReader.Read())
             {

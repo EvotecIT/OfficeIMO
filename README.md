@@ -151,20 +151,6 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 
 _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` support and image export are OfficeIMO implementations.
 
-#### [OfficeIMO.Tabular](OfficeIMO.Tabular/README.md)
-
-- [x] One forward-only `DbDataReader` API for CSV, TSV, XLSX, XLSM, and XLSB
-- [x] Extension-based format detection, automatic workbook used ranges, worksheet names, and `NextResult()` traversal
-- [x] Consistent typed getters and `ReadRecords<T>()` object binding across delimited text and Excel formats
-- [x] Standard `[DataMember(Name = "...")]` mappings for headers that do not match CLR property names
-- [x] Bounded input, cancellation, caller-owned stream lifetime, and explicit read options
-
-Use `TabularReader` for read-only data pipelines. Use `CsvDocument` or
-`ExcelDocument` when the source must be transformed, edited, inspected, or
-saved again.
-
-_Dependency footprint:_ `OfficeIMO.CSV` and `OfficeIMO.Excel`.
-
 #### [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 
 - [x] Create, load, edit, inspect, and save editable `.pptx` presentations
