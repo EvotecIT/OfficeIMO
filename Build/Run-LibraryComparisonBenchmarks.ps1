@@ -20,9 +20,9 @@ if ($Publish -and $RunMode -ne 'full') {
 if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
     Import-Module PSPublishModule -MinimumVersion 3.0.81 -Force
 } else {
-    $powerForgeModule = Join-Path $PowerForgeRoot "PowerForge.PowerShell\bin\Release\$Framework\PowerForge.PowerShell.dll"
+    $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$Framework\PSPublishModule.dll"
     if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
-        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PowerForge.PowerShell for $Framework in Release configuration first."
+        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PSPublishModule for $Framework in Release configuration first."
     }
     Import-Module $powerForgeModule -Force
 }
