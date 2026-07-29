@@ -804,10 +804,17 @@ internal static class PdfTextDiagnostics {
         coveredLength = 0;
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
             OfficeTextLigatures.TryGetLatinPresentationForm(text, textIndex, out int ligatureScalar, out int ligatureLength)) {
-            int ligatureFontIndex = FindCoveringFont(fonts, ligatureScalar);
-            if (ligatureFontIndex >= 0) {
-                coveredLength = ligatureLength;
-                return ligatureFontIndex;
+            for (int index = 0; index < fonts.Count; index++) {
+                if (fonts[index].TryGetLigatureGlyphId(
+                    text,
+                    textIndex,
+                    ligatureLength,
+                    ligatureScalar,
+                    out int glyphId)
+                    && glyphId > 0) {
+                    coveredLength = ligatureLength;
+                    return index;
+                }
             }
         }
 
@@ -1138,6 +1145,28 @@ internal static class PdfTextDiagnostics {
                 glyphId = 0;
                 return false;
             }
+            return TryGetGlyphIdIgnoringUnicodeRanges(unicodeScalar, out glyphId);
+        }
+
+        public bool TryGetLigatureGlyphId(
+            string text,
+            int textIndex,
+            int textLength,
+            int ligatureScalar,
+            out int glyphId) {
+            int end = textIndex + textLength;
+            for (int index = textIndex; index < end;) {
+                int scalar = ReadScalar(text, ref index);
+                if (!_unicodeRanges.Contains(scalar)) {
+                    glyphId = 0;
+                    return false;
+                }
+            }
+
+            return TryGetGlyphIdIgnoringUnicodeRanges(ligatureScalar, out glyphId);
+        }
+
+        private bool TryGetGlyphIdIgnoringUnicodeRanges(int unicodeScalar, out int glyphId) {
             if (_trueTypeFont != null) {
                 return _trueTypeFont.TryGetGlyphId(unicodeScalar, out glyphId);
             }

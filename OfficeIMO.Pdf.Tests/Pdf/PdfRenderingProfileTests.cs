@@ -95,7 +95,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void OverlayPreservesExplicitPdfFallbacksWhileRegisteringProfileFonts() {
+    public void OverlayMergesDeclaredProfileFallbacksAfterExplicitPdfFallbacks() {
         var options = new PdfOptions()
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] {
@@ -104,7 +104,8 @@ public sealed class PdfRenderingProfileTests {
                         ManagedTextShapingTestAssets.CreateFont('B'))
                 }));
         var profileFonts = new OfficeFontFaceCollection()
-            .Add("Profile Sans", ManagedTextShapingTestAssets.CreateFont('A'));
+            .Add("Profile Sans", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddFallbackFamily("Profile Sans");
 
         options.UseRenderingProfile(
             new OfficeRenderingProfile("overlay", profileFonts),
@@ -112,13 +113,104 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(options.HasNamedFontFamily("Profile Sans"));
         Assert.Equal(
-            new[] { "Existing Fallback" },
+            new[] { "Existing Fallback", "Profile Sans" },
             options.EmbeddedFontFallbacks?.FontFamilyNames);
+    }
+
+    [Fact]
+    public void OverlayPreservesExistingFallbackBytesWhenProfileNameCollides() {
+        byte[] existingData = ManagedTextShapingTestAssets.CreateFont('B');
+        var options = new PdfOptions()
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate("Shared", existingData)
+                }));
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddFallbackFamily("Shared");
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("overlay-collision", profileFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(existingData, options.NamedFontFamilies["Shared"].Regular);
+        Assert.Equal(existingData, options.EmbeddedFontFallbacks?.Candidates[0].DataSnapshot);
+    }
+
+    [Fact]
+    public void ProfileFallbackPlannerDoesNotReplaceStyledNamedFamily() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] bold = ManagedTextShapingTestAssets.CreateFont('B');
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Styled", regular)
+            .Add("Styled", bold, OfficeFontStyle.Bold)
+            .AddFallbackFamily("Styled");
+        var options = new PdfOptions();
+
+        options.UseRenderingProfile(new OfficeRenderingProfile("styled", fonts));
+
+        PdfEmbeddedFontFamily family = options.NamedFontFamilies["Styled"];
+        Assert.Equal(regular, family.Regular);
+        Assert.Equal(bold, family.Bold);
+    }
+
+    [Fact]
+    public void RangeScopedProfileFacesRemainAddressableByAuthoredFamily() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped", fonts));
+
+        Assert.True(options.TryGetRenderingProfileFamilyFallbacks(
+            "Scoped",
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfTextFallbackSegment segment = Assert.Single(
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+                .PlanText("A")
+                .Segments);
+        Assert.Equal(fonts.Faces[0].ResourceFamilyName, segment.FontName);
+        Assert.True(options.HasNamedFontFamily(segment.FontName));
+    }
+
+    [Fact]
+    public void LatinLigatureFallbackRangesApplyToSourceCharacters() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('f', 'i', 0xFB01);
+        var latin = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange(0x0000, 0x00FF)
+        });
+        var presentationOnly = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange(0xFB01, 0xFB01)
+        });
+
+        PdfTextFallbackPlan allowed = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Latin", font, latin) })
+            .PlanText("fi", shapingMode: PdfTextShapingMode.LatinLigatures);
+        PdfTextFallbackPlan rejected = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Presentation only",
+                    font,
+                    presentationOnly)
+            })
+            .PlanText("fi", shapingMode: PdfTextShapingMode.LatinLigatures);
+
+        Assert.True(allowed.IsFullyCovered);
+        Assert.False(rejected.IsFullyCovered);
     }
 
     [Fact]
     public void ReplaceClearsPreviouslyRegisteredPdfFontState() {
         var options = new PdfOptions()
+            .UseFontFamily(new PdfEmbeddedFontFamily(
+                "Existing Standard",
+                ManagedTextShapingTestAssets.CreateFont('C')))
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 "Existing Family",
                 ManagedTextShapingTestAssets.CreateFont('A')))
@@ -132,6 +224,7 @@ public sealed class PdfRenderingProfileTests {
         options.UseRenderingProfile(new OfficeRenderingProfile("managed-only"));
 
         Assert.Empty(options.NamedFontFamilies);
+        Assert.Empty(options.EmbeddedFonts);
         Assert.Null(options.EmbeddedFontFallbacks);
     }
 
