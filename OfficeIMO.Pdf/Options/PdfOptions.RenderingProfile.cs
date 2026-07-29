@@ -122,10 +122,16 @@ public sealed partial class PdfOptions {
     }
 
     private void RegisterProfileFamilyFallbacks(OfficeFontFaceCollection fonts) {
+        var scopedFamilies = new HashSet<string>(
+            fonts.Faces
+                .Where(face => !face.UnicodeRanges.IsAll)
+                .Select(face => face.FamilyName),
+            StringComparer.OrdinalIgnoreCase);
         foreach (IGrouping<string, OfficeFontFace> family in fonts.Faces
-            .Where(face => !face.UnicodeRanges.IsAll)
+            .Where(face => scopedFamilies.Contains(face.FamilyName))
             .GroupBy(face => face.FamilyName, StringComparer.OrdinalIgnoreCase)) {
             PdfEmbeddedFontFallbackCandidate[] candidates = family
+                .OrderBy(face => face.UnicodeRanges.IsAll ? 1 : 0)
                 .GroupBy(face => face.ResourceFamilyName, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .Select(face => new PdfEmbeddedFontFallbackCandidate(
@@ -145,7 +151,7 @@ public sealed partial class PdfOptions {
             PdfEmbeddedFontFallbackCandidate[] merged = fallbacks.TryGetValue(
                     family.Key,
                     out PdfEmbeddedFontFallbackSet? existing)
-                ? MergeFallbackCandidates(existing.Candidates, candidates)
+                ? OverlayFallbackCandidates(existing.Candidates, candidates)
                 : candidates;
             fallbacks[family.Key] = new PdfEmbeddedFontFallbackSet(merged);
         }
@@ -204,6 +210,34 @@ public sealed partial class PdfOptions {
                 if (names.Add(candidate.FontName)) {
                     merged.Add(candidate);
                 }
+            }
+        }
+        return merged.ToArray();
+    }
+
+    private static PdfEmbeddedFontFallbackCandidate[] OverlayFallbackCandidates(
+        IEnumerable<PdfEmbeddedFontFallbackCandidate> existing,
+        IEnumerable<PdfEmbeddedFontFallbackCandidate> overlay) {
+        var replacements = overlay.ToDictionary(
+            candidate => candidate.FontName,
+            candidate => candidate,
+            StringComparer.OrdinalIgnoreCase);
+        var merged = new List<PdfEmbeddedFontFallbackCandidate>();
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in existing) {
+            PdfEmbeddedFontFallbackCandidate selected =
+                replacements.TryGetValue(candidate.FontName, out PdfEmbeddedFontFallbackCandidate? replacement)
+                    ? replacement
+                    : candidate;
+            if (names.Add(selected.FontName)) {
+                merged.Add(selected);
+            }
+            replacements.Remove(candidate.FontName);
+        }
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in overlay) {
+            if (replacements.ContainsKey(candidate.FontName)
+                && names.Add(candidate.FontName)) {
+                merged.Add(candidate);
             }
         }
         return merged.ToArray();

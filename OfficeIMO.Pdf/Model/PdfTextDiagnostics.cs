@@ -551,7 +551,13 @@ internal static class PdfTextDiagnostics {
                 continue;
             }
 
-            int fontIndex = FindCoveringFont(fonts, text, scalarStart, shapingMode, out int coveredLength);
+            int fontIndex = FindCoveringFont(
+                fonts,
+                text,
+                scalarStart,
+                shapingMode,
+                out int coveredLength,
+                segmentFontIndex);
             if (fontIndex < 0) {
                 FlushSegment(scalarStart);
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fonts));
@@ -588,6 +594,7 @@ internal static class PdfTextDiagnostics {
         TryGetSelectedTextLength tryGetSelectedTextLength) {
         List<EmbeddedFontFallbackProgram> fallbackFonts = BuildFallbackPrograms(fallbackSet.Candidates);
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
+        int previousFallbackFontIndex = -1;
 
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -606,9 +613,17 @@ internal static class PdfTextDiagnostics {
                 continue;
             }
 
-            if (FindCoveringFont(fallbackFonts, text, scalarStart, shapingMode, out int fallbackCoveredLength) < 0) {
+            int fallbackFontIndex = FindCoveringFont(
+                fallbackFonts,
+                text,
+                scalarStart,
+                shapingMode,
+                out int fallbackCoveredLength,
+                previousFallbackFontIndex);
+            if (fallbackFontIndex < 0) {
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fallbackFonts, location, runIndex));
             } else {
+                previousFallbackFontIndex = fallbackFontIndex;
                 index = scalarStart + fallbackCoveredLength;
             }
         }
@@ -820,7 +835,13 @@ internal static class PdfTextDiagnostics {
         return -1;
     }
 
-    private static int FindCoveringFont(IReadOnlyList<EmbeddedFontFallbackProgram> fonts, string text, int textIndex, PdfTextShapingMode shapingMode, out int coveredLength) {
+    private static int FindCoveringFont(
+        IReadOnlyList<EmbeddedFontFallbackProgram> fonts,
+        string text,
+        int textIndex,
+        PdfTextShapingMode shapingMode,
+        out int coveredLength,
+        int contextualFontIndex = -1) {
         coveredLength = 0;
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
             OfficeTextLigatures.TryGetLatinPresentationForm(text, textIndex, out int ligatureScalar, out int ligatureLength)) {
@@ -840,6 +861,16 @@ internal static class PdfTextDiagnostics {
 
         int endIndex = textIndex;
         int scalar = ReadScalar(text, ref endIndex);
+        if (contextualFontIndex >= 0
+            && contextualFontIndex < fonts.Count
+            && char.IsWhiteSpace(text, textIndex)
+            && fonts[contextualFontIndex].TryGetGlyphIdIgnoringUnicodeRanges(
+                scalar,
+                out int whitespaceGlyphId)
+            && whitespaceGlyphId > 0) {
+            coveredLength = endIndex - textIndex;
+            return contextualFontIndex;
+        }
         int fontIndex = FindCoveringFont(fonts, scalar);
         if (fontIndex >= 0) {
             coveredLength = endIndex - textIndex;
@@ -1186,7 +1217,7 @@ internal static class PdfTextDiagnostics {
             return TryGetGlyphIdIgnoringUnicodeRanges(ligatureScalar, out glyphId);
         }
 
-        private bool TryGetGlyphIdIgnoringUnicodeRanges(int unicodeScalar, out int glyphId) {
+        public bool TryGetGlyphIdIgnoringUnicodeRanges(int unicodeScalar, out int glyphId) {
             if (_trueTypeFont != null) {
                 return _trueTypeFont.TryGetGlyphId(unicodeScalar, out glyphId);
             }
