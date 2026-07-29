@@ -7,12 +7,13 @@ internal static partial class PdfWriter {
         PdfStandardFont.Courier
     };
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1859:Use concrete types when possible",
+        Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
     private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
         PdfEmbeddedFontFallbackSet? fallbackSet = options?.EmbeddedFontFallbacksSnapshot;
-        if (fallbackSet == null) {
-            return runs as System.Collections.Generic.IReadOnlyList<TextRun> ?? runs.ToArray();
-        }
 
         var normalized = new System.Collections.Generic.List<TextRun>();
         foreach (TextRun run in runs) {
@@ -21,13 +22,31 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            if (options?.TryGetEffectiveRenderingProfileFallbacks(
+                    run.FontFamily,
+                    run.Bold,
+                    run.Italic,
+                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
+                && profileFamilyFallbacks != null
+                && TryPlanFallbackTextRuns(
+                    profileFamilyFallbacks,
+                    run.Text,
+                    run,
+                    options,
+                    ResolveFontForRun(run, baseFont),
+                    out System.Collections.Generic.IReadOnlyList<TextRun> profileRuns)) {
+                normalized.AddRange(profileRuns);
+                continue;
+            }
+
             if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
                 normalized.Add(run);
                 continue;
             }
 
-            if (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns) ||
-                TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns)) {
+            if (fallbackSet != null
+                && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns)
+                    || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
                 normalized.AddRange(plannedRuns);
             } else {
                 normalized.Add(run);

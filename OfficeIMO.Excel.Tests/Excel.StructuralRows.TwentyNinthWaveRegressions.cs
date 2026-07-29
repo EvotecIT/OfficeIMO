@@ -74,6 +74,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanClassifiesExternallyHostedTableAndSparklineFormulas() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            summary.CellValue(1, 1, "Value");
+            summary.CellValue(2, 1, 1);
+            summary.AddTable(
+                "A1:A2",
+                hasHeader: true,
+                name: "SummaryTable",
+                style: OfficeIMO.Excel.TableStyle.TableStyleMedium2);
+
+            Table table = Assert.Single(summary.WorksheetPart.TableDefinitionParts).Table;
+            TableColumn tableColumn = Assert.Single(table.TableColumns!.Elements<TableColumn>());
+            tableColumn.CalculatedColumnFormula = new CalculatedColumnFormula("Data!A5");
+
+            summary.CellValue(2, 2, 1);
+            summary.AddSparklines("A2:B2", "C2");
+            X14.Sparkline sparkline = Assert.Single(
+                summary.WorksheetPart.Worksheet.Descendants<X14.Sparkline>());
+            sparkline.Formula!.Text = "Data!A5:A6";
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(5);
+
+            ExcelMutationImpact tables = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "tables");
+            ExcelMutationImpact sparklines = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "sparklines");
+            Assert.Equal(1, tables.ItemCount);
+            Assert.Equal(1, sparklines.ItemCount);
+            Assert.Equal("Data!A5", tableColumn.CalculatedColumnFormula.Text);
+            Assert.Equal("Data!A5:A6", sparkline.Formula.Text);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanRejectsPreservedFastSaveRowsWithoutMaterializing() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");

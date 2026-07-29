@@ -171,6 +171,26 @@ internal static class PdfTextDiagnostics {
             string runLocation = AppendRunLocation(location, runIndex);
             PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
             PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
+            if (options.TryGetEffectiveRenderingProfileFallbacks(
+                    run.FontFamily,
+                    run.Bold,
+                    run.Italic,
+                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks)
+                && profileFamilyFallbacks != null) {
+                diagnostics.AddRange(AnalyzeGeneratedTextWithFallback(
+                    run.Text,
+                    profileFamilyFallbacks,
+                    source,
+                    runLocation,
+                    runIndex,
+                    shapingMode,
+                    (string _, int _, out int length) => {
+                        length = 0;
+                        return false;
+                    }));
+                runIndex++;
+                continue;
+            }
             if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
                 if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                     namedFontProgram != null) {
@@ -804,10 +824,17 @@ internal static class PdfTextDiagnostics {
         coveredLength = 0;
         if (shapingMode == PdfTextShapingMode.LatinLigatures &&
             OfficeTextLigatures.TryGetLatinPresentationForm(text, textIndex, out int ligatureScalar, out int ligatureLength)) {
-            int ligatureFontIndex = FindCoveringFont(fonts, ligatureScalar);
-            if (ligatureFontIndex >= 0) {
-                coveredLength = ligatureLength;
-                return ligatureFontIndex;
+            for (int index = 0; index < fonts.Count; index++) {
+                if (fonts[index].TryGetLigatureGlyphId(
+                    text,
+                    textIndex,
+                    ligatureLength,
+                    ligatureScalar,
+                    out int glyphId)
+                    && glyphId > 0) {
+                    coveredLength = ligatureLength;
+                    return index;
+                }
             }
         }
 
@@ -1138,6 +1165,28 @@ internal static class PdfTextDiagnostics {
                 glyphId = 0;
                 return false;
             }
+            return TryGetGlyphIdIgnoringUnicodeRanges(unicodeScalar, out glyphId);
+        }
+
+        public bool TryGetLigatureGlyphId(
+            string text,
+            int textIndex,
+            int textLength,
+            int ligatureScalar,
+            out int glyphId) {
+            int end = textIndex + textLength;
+            for (int index = textIndex; index < end;) {
+                int scalar = ReadScalar(text, ref index);
+                if (!_unicodeRanges.Contains(scalar)) {
+                    glyphId = 0;
+                    return false;
+                }
+            }
+
+            return TryGetGlyphIdIgnoringUnicodeRanges(ligatureScalar, out glyphId);
+        }
+
+        private bool TryGetGlyphIdIgnoringUnicodeRanges(int unicodeScalar, out int glyphId) {
             if (_trueTypeFont != null) {
                 return _trueTypeFont.TryGetGlyphId(unicodeScalar, out glyphId);
             }

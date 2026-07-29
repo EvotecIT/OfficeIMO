@@ -53,6 +53,8 @@ public sealed partial class PdfOptions {
             Encryption = _encryption?.Clone(),
             AcroFormDefaultTextAlignment = AcroFormDefaultTextAlignment,
             _embeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
+            _renderingProfileFamilyFallbacks =
+                CloneRenderingProfileFamilyFallbacks(_renderingProfileFamilyFallbacks),
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,

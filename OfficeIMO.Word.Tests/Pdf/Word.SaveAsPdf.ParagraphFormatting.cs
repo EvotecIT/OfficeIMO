@@ -1418,6 +1418,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_Document_Typography_For_Fontless_Rendering_Profile() {
+            using WordDocument document = WordDocument.Create(
+                Path.Combine(_directoryWithFiles, "PdfNativeFontlessRenderingProfile.docx"));
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.DocDefaults ??= new DocDefaults();
+            RunPropertiesDefault runDefaults =
+                styles.DocDefaults.GetFirstChild<RunPropertiesDefault>()
+                ?? styles.DocDefaults.AppendChild(new RunPropertiesDefault());
+            RunPropertiesBaseStyle runProperties =
+                runDefaults.GetFirstChild<RunPropertiesBaseStyle>()
+                ?? runDefaults.AppendChild(new RunPropertiesBaseStyle());
+            runProperties.RunFonts = new RunFonts {
+                Ascii = "Times New Roman",
+                HighAnsi = "Times New Roman"
+            };
+            runProperties.FontSize = new FontSize { Val = "36" };
+            document.AddParagraph("Document typography");
+
+            Type nativeFontMapType = typeof(WordPdfConverterExtensions)
+                .GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
+            MethodInfo createOptions = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeOptions",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            var saveOptions = new WordPdfSaveOptions().UseRenderingProfile(
+                new OfficeIMO.Drawing.OfficeRenderingProfile(
+                    "shaping-only",
+                    textShapingProvider: OfficeIMO.Drawing.OfficeManagedTextShapingProvider.Instance));
+
+            PdfOptions effective = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new[] {
+                document,
+                saveOptions,
+                nativeFontMap
+            }));
+
+            Assert.Equal(18D, effective.DefaultFontSize);
+            Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
+            Assert.Same(
+                OfficeIMO.Drawing.OfficeManagedTextShapingProvider.Instance,
+                effective.TextShapingProvider);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Document_Default_Language_To_Pdf_Catalog() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultLanguage.docx"));
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
