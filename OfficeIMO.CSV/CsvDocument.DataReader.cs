@@ -130,7 +130,9 @@ public sealed partial class CsvDocument
 
         if (!stream.CanSeek)
         {
-            return Load(stream, options).CreateDataReader(readerOptions);
+            return CanUseSinglePassFileDataReader(options, readerOptions)
+                ? CreateSinglePassNonSeekableDataReader(stream, options, readerOptions)
+                : Load(stream, options).CreateDataReader(readerOptions);
         }
 
         long startPosition = stream.Position;
@@ -175,6 +177,44 @@ public sealed partial class CsvDocument
             var header = AppendStaticColumnsToHeader(NormalizeParsedHeader(records.Current, options), options);
             var columns = CreateDataReaderColumns(header, readerOptions);
             var rows = EnumerateRemainingStringRows(records);
+            var rowOwner = new CsvFileDataReaderRowOwner(reader, records);
+            records = null;
+            return new CsvDataReader(
+                columns,
+                rows,
+                header.Count - (options.StaticColumns?.Count ?? 0),
+                options,
+                options.Culture,
+                options.DateTimeFormats,
+                rowOwner);
+        }
+        catch
+        {
+            records?.Dispose();
+            reader.Dispose();
+            throw;
+        }
+    }
+
+    private static DbDataReader CreateSinglePassNonSeekableDataReader(
+        Stream stream,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions)
+    {
+        var reader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, FileBufferSize);
+        IEnumerator<CsvParser.CsvParsedRecord>? records = null;
+        try
+        {
+            records = CsvParser.ParseWithMetadata(reader, options).GetEnumerator();
+            if (!TryReadHeader(records, options, out IReadOnlyList<string> header, out _))
+            {
+                records.Dispose();
+                reader.Dispose();
+                return CreateEmptyDataReader(readerOptions, options);
+            }
+
+            var columns = CreateDataReaderColumns(header, readerOptions);
+            var rows = EnumerateRemainingParsedRows(records);
             var rowOwner = new CsvFileDataReaderRowOwner(reader, records);
             records = null;
             return new CsvDataReader(
@@ -429,6 +469,15 @@ public sealed partial class CsvDocument
         }
     }
 
+    private static IEnumerable<IReadOnlyList<string>> EnumerateRemainingParsedRows(
+        IEnumerator<CsvParser.CsvParsedRecord> records)
+    {
+        while (records.MoveNext())
+        {
+            yield return records.Current.Values;
+        }
+    }
+
     private CsvDataReader CreateStreamingInferredDataReader(int schemaSampleSize)
     {
 #if NET8_0_OR_GREATER
@@ -521,9 +570,9 @@ public sealed partial class CsvDocument
     private sealed class CsvFileDataReaderRowOwner : IDisposable
     {
         private TextReader? _reader;
-        private IEnumerator<IReadOnlyList<string>>? _records;
+        private IDisposable? _records;
 
-        internal CsvFileDataReaderRowOwner(TextReader reader, IEnumerator<IReadOnlyList<string>> records)
+        internal CsvFileDataReaderRowOwner(TextReader reader, IDisposable records)
         {
             _reader = reader;
             _records = records;

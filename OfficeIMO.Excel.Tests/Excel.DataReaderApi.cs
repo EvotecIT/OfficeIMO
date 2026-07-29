@@ -261,6 +261,26 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_HeaderlessXlsbDiscoversColumnsBeyondDeclaredDimension() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.HeaderlessDimension.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            ReplaceXlsbWorksheetLastColumn(path, 0);
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { HasHeaderRow = false });
+
+            Assert.Equal(2, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal("Name", reader.GetString(0));
+            Assert.Equal("Amount", reader.GetString(1));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsxUsesConfiguredCultureAndParsesGuidText() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Culture.{Guid.NewGuid():N}.xlsx");
         Guid identifier = Guid.NewGuid();

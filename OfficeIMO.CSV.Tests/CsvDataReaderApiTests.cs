@@ -170,4 +170,59 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal(3, stream.Position);
         Assert.True(stream.CanRead);
     }
+
+    [Fact]
+    public void OpenDataReader_NonSeekableStreamReturnsBeforeReadingToEnd() {
+        using var stream = new SingleChunkNonSeekableReadStream(
+            Encoding.UTF8.GetBytes("# metadata\nId,Name\n1,Ada\n"));
+
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        Assert.Equal(1, stream.ReadCount);
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Ada", reader.GetString(1));
+        Assert.Equal(1, stream.ReadCount);
+    }
+
+    private sealed class SingleChunkNonSeekableReadStream : Stream {
+        private readonly byte[] _bytes;
+        private bool _served;
+
+        internal SingleChunkNonSeekableReadStream(byte[] bytes) {
+            _bytes = bytes;
+        }
+
+        internal int ReadCount { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            if (_served) {
+                throw new InvalidOperationException("The data reader attempted to drain the non-seekable source.");
+            }
+
+            _served = true;
+            int copied = Math.Min(count, _bytes.Length);
+            Array.Copy(_bytes, 0, buffer, offset, copied);
+            return copied;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
 }

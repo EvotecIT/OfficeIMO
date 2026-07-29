@@ -95,6 +95,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly Stream _stream;
         private readonly int _maxRecordBytes;
         private readonly XlsbRecordReadBudget _budget;
+        private readonly bool _leaveOpen;
         private byte[] _inputBuffer;
         private byte[] _payloadBuffer = new byte[256];
         private int _inputOffset;
@@ -105,7 +106,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal XlsbStreamRecordSliceReader(
             Stream stream,
             int maxRecordBytes,
-            XlsbRecordReadBudget budget) {
+            XlsbRecordReadBudget budget,
+            bool leaveOpen = false) {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) {
                 throw new ArgumentException("The BIFF12 stream must be readable.", nameof(stream));
@@ -113,6 +115,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             _maxRecordBytes = maxRecordBytes;
             _budget = budget ?? throw new ArgumentNullException(nameof(budget));
+            _leaveOpen = leaveOpen;
             _inputBuffer = ArrayPool<byte>.Shared.Rent(InputBufferSize);
         }
 
@@ -150,7 +153,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _disposed = true;
-            _stream.Dispose();
+            if (!_leaveOpen) {
+                _stream.Dispose();
+            }
             byte[] inputBuffer = _inputBuffer;
             _inputBuffer = Array.Empty<byte>();
             ArrayPool<byte>.Shared.Return(inputBuffer);

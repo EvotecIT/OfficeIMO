@@ -76,6 +76,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
 
+            int actualFirstColumn = int.MaxValue;
+            int actualLastColumn = -1;
+            if (!hasHeaderRow) {
+                DiscoverHeaderlessDataColumns(
+                    worksheetPart,
+                    limits,
+                    cancellationToken,
+                    out actualFirstColumn,
+                    out actualLastColumn);
+            }
+
             var records = new XlsbStreamRecordSliceReader(
                 worksheetPart ?? throw new ArgumentNullException(nameof(worksheetPart)),
                 limits.MaxRecordBytes,
@@ -99,10 +110,23 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int headerLastColumn = headerValues != null && headerValues.Count > 0
                     ? headerValues.Keys.Max()
                     : -1;
-                int firstColumn = dimensionLastColumn >= dimensionFirstColumn
-                    ? Math.Min(dimensionFirstColumn, headerFirstColumn)
-                    : headerFirstColumn == int.MaxValue ? 0 : headerFirstColumn;
-                int lastColumn = Math.Max(dimensionLastColumn, headerLastColumn);
+                int firstColumn = int.MaxValue;
+                if (dimensionLastColumn >= dimensionFirstColumn) {
+                    firstColumn = dimensionFirstColumn;
+                }
+                if (headerFirstColumn != int.MaxValue) {
+                    firstColumn = Math.Min(firstColumn, headerFirstColumn);
+                }
+                if (actualFirstColumn != int.MaxValue) {
+                    firstColumn = Math.Min(firstColumn, actualFirstColumn);
+                }
+                if (firstColumn == int.MaxValue) {
+                    firstColumn = 0;
+                }
+
+                int lastColumn = Math.Max(
+                    Math.Max(dimensionLastColumn, headerLastColumn),
+                    actualLastColumn);
                 _firstColumn = firstColumn;
                 int fieldCount = lastColumn >= firstColumn
                     ? checked(lastColumn - firstColumn + 1)
@@ -557,7 +581,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int available = source.Length - checked((int)dataOffset);
             if (destination == null) {
-                return available;
+                return source.Length;
             }
 
             int count = Math.Min(available, length);

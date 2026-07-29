@@ -171,7 +171,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new KeyNotFoundException($"Table '{tableName}' was not found.");
             }
 
-            Stream part = _parts.OpenPart(sheet.PartName);
+            Stream part = hasHeaderRow
+                ? _parts.OpenPart(sheet.PartName)
+                : new MemoryStream(_parts.ReadPart(sheet.PartName), writable: false);
             try {
                 return new XlsbTabularDataReader(
                     part,

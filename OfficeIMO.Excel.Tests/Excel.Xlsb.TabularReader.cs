@@ -113,6 +113,69 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_DiscoversHeaderlessColumnsBeyondDeclaredDimension() {
+        using var worksheetPart = CreateHeaderlessTabularWorksheet(
+            declaredLastColumn: 0,
+            (0, 1, 0U));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Actual" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10));
+
+        Assert.Equal(2, reader.FieldCount);
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(0));
+        Assert.Equal("Actual", reader.GetString(1));
+    }
+
+    [Fact]
+    public void XlsbTabularReader_NullBuffersReportFullFieldLength() {
+        using (var worksheetPart = CreateTabularWorksheet((0, 0U)))
+        using (var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "abcdef" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10))) {
+            Assert.True(reader.Read());
+            Assert.Equal(6, reader.GetChars(0, 3, null, 0, 0));
+        }
+
+        using (var worksheetPart = CreateTabularWorksheet((0, 0U)))
+        using (var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "ignored" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions {
+                CellValueConverter = static _ => new ExcelCellValue(new byte[] { 1, 2, 3, 4 })
+            })) {
+            Assert.True(reader.Read());
+            Assert.Equal(4, reader.GetBytes(0, 2, null, 0, 0));
+        }
+    }
+
+    [Fact]
+    public void XlsbTabularReader_SchemaBudgetCountsRowsActuallyBuffered() {
+        using var worksheetPart = CreateWideNumericTabularWorksheet(fieldCount: 1000);
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            Array.Empty<string>(),
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions {
+                InferSchema = true,
+                SchemaSampleRows = 1024,
+                MaxDataReaderBufferedCells = 1000
+            });
+
+        Assert.Equal(1000, reader.FieldCount);
+        Assert.True(reader.Read());
+        Assert.Equal(1.25, reader.GetDouble(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void ExcelDocumentReader_DisposesOpenedDocumentWhenInitializationFails() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.ReaderDispose.{Guid.NewGuid():N}.xlsx");
         try {
@@ -178,6 +241,37 @@ public partial class Excel {
             XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, value));
         }
 
+        XlsbRecordWriter.Write(stream, 146);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateHeaderlessTabularWorksheet(
+        int declaredLastColumn,
+        params (int RowIndex, int Column, uint SharedStringIndex)[] cells) {
+        var stream = new MemoryStream();
+        int lastRow = cells.Length == 0 ? 0 : cells.Max(static cell => cell.RowIndex);
+        XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, lastRow, 0, declaredLastColumn));
+        XlsbRecordWriter.Write(stream, 145);
+        foreach (IGrouping<int, (int RowIndex, int Column, uint SharedStringIndex)> row in
+                 cells.GroupBy(static cell => cell.RowIndex).OrderBy(static row => row.Key)) {
+            XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(row.Key));
+            foreach ((int _, int column, uint sharedStringIndex) in row) {
+                XlsbRecordWriter.Write(stream, 7, CreateSharedStringCellPayload(column, sharedStringIndex));
+            }
+        }
+
+        XlsbRecordWriter.Write(stream, 146);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateWideNumericTabularWorksheet(int fieldCount) {
+        var stream = new MemoryStream();
+        XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, 0, 0, fieldCount - 1));
+        XlsbRecordWriter.Write(stream, 145);
+        XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, 1.25));
         XlsbRecordWriter.Write(stream, 146);
         stream.Position = 0;
         return stream;

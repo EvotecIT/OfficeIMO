@@ -20,12 +20,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "Buffered cell limit must be greater than zero.");
             }
 
-            long requestedCells = checked((long)_options.SchemaSampleRows * FieldCount);
-            if (requestedCells > _options.MaxDataReaderBufferedCells) {
-                throw new InvalidOperationException(
-                    $"Schema sampling would buffer {requestedCells} cells, exceeding the configured limit of {_options.MaxDataReaderBufferedCells}.");
-            }
-
             var rows = new List<XlsbBufferedRow>(Math.Min(_options.SchemaSampleRows, 256));
             var inferred = new Type?[FieldCount];
             var mixed = new bool[FieldCount];
@@ -33,6 +27,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (!ReadSourceRow()) {
                     break;
+                }
+
+                long bufferedCells = checked((long)(rows.Count + 1) * FieldCount);
+                if (bufferedCells > _options.MaxDataReaderBufferedCells) {
+                    throw new InvalidOperationException(
+                        $"Schema sampling would buffer {bufferedCells} cells, exceeding the configured limit of {_options.MaxDataReaderBufferedCells}.");
                 }
 
                 rows.Add(new XlsbBufferedRow(
