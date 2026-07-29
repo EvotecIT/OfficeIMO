@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly XlsbImportOptions _limits;
+        private readonly XlsbCellReadBudget _cellBudget;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _ordinals;
         private readonly XlsbTabularValueKind[] _kinds;
@@ -50,7 +51,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private bool _hasPendingRow;
         private bool _hasCurrentRow;
         private readonly bool _hasRows;
-        private int _cellsRead;
+        private int _pendingRowIndex;
+        private int _nextLogicalRowIndex;
         private int _recordsSinceCancellationCheck;
 
         internal XlsbTabularDataReader(
@@ -62,12 +64,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ExcelReadOptions options,
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
+            XlsbCellReadBudget cellBudget,
             CancellationToken cancellationToken) {
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _limits = limits ?? throw new ArgumentNullException(nameof(limits));
+            _cellBudget = cellBudget ?? throw new ArgumentNullException(nameof(cellBudget));
             _cancellationToken = cancellationToken;
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
@@ -82,7 +86,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 FindSheetData(out int dimensionFirstColumn, out int dimensionLastColumn);
                 Dictionary<int, string?>? headerValues = null;
                 if (hasHeaderRow && _hasPendingRow) {
+                    int headerRowIndex = _pendingRowIndex;
                     headerValues = ReadHeaderRow();
+                    _nextLogicalRowIndex = checked(headerRowIndex + 1);
+                } else if (_hasPendingRow) {
+                    _nextLogicalRowIndex = _pendingRowIndex;
                 }
 
                 _hasRows = _hasPendingRow;
@@ -153,6 +161,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
+            if (_nextLogicalRowIndex < _pendingRowIndex) {
+                _nextLogicalRowIndex++;
+                _hasCurrentRow = true;
+                return true;
+            }
+
+            int currentRowIndex = _pendingRowIndex;
             _hasPendingRow = false;
             while (_records.TryRead(out XlsbRecordSlice record)) {
                 CheckCancellation();
@@ -168,6 +183,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 if (IsCellRecord(record.Type)) {
                     StoreCell(record);
                 }
+            }
+
+            _nextLogicalRowIndex = checked(currentRowIndex + 1);
+            if (_hasPendingRow && _pendingRowIndex <= currentRowIndex) {
+                throw new InvalidDataException(
+                    $"The XLSB worksheet contains non-increasing row index {_pendingRowIndex} after row {currentRowIndex}.");
             }
 
             _hasCurrentRow = true;
@@ -448,11 +469,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
             }
 
-            _cellsRead = checked(_cellsRead + 1);
-            if (_cellsRead > _limits.MaxCells) {
-                throw new InvalidDataException(
-                    $"The XLSB table exceeds the configured limit of {_limits.MaxCells} populated cells.");
-            }
+            _cellBudget.Consume();
 
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && styleIndex < _dateStyles.Length
@@ -522,6 +539,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private DecodedCell DecodeCell(XlsbRecordSlice record) {
             EnsureFormulaModeSupported(record.Type);
+            _cellBudget.Consume();
             var cursor = record.CreateCursor();
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
@@ -637,7 +655,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private void SetPendingRow(XlsbRecordSlice record) {
-            ValidateRowHeader(record);
+            _pendingRowIndex = ValidateRowHeader(record);
             _hasPendingRow = true;
         }
 
@@ -652,7 +670,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
         }
 
-        private static void ValidateRowHeader(XlsbRecordSlice record) {
+        private static int ValidateRowHeader(XlsbRecordSlice record) {
             if (record.Size < 17) {
                 throw new InvalidDataException(
                     $"The BrtRowHdr record at offset {record.RecordOffset} is truncated.");
@@ -664,6 +682,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The BrtRowHdr record at offset {record.RecordOffset} contains invalid row index {rowIndex}.");
             }
+
+            return checked((int)rowIndex);
         }
 
         private static long CopySegment<T>(

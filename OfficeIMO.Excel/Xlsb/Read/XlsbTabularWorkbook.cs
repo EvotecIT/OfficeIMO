@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbPackagePartReader _parts;
         private readonly XlsbImportOptions _limits;
         private readonly XlsbRecordReadBudget _recordBudget;
+        private readonly XlsbCellReadBudget _cellBudget;
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly bool[] _dateStyles;
         private readonly List<XlsbTabularSheet> _sheets;
@@ -55,6 +56,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _limits.Validate();
             _parts = new XlsbPackagePartReader(_archive, _limits);
             _recordBudget = new XlsbRecordReadBudget(_limits.MaxRecordCount);
+            _cellBudget = new XlsbCellReadBudget(_limits.MaxCells);
 
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships =
                 _parts.ReadRelationships(workbookPartName);
@@ -152,6 +154,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     readOptions,
                     _limits,
                     _recordBudget,
+                    _cellBudget,
                     cancellationToken);
             } catch {
                 part.Dispose();

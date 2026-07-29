@@ -58,10 +58,16 @@ namespace OfficeIMO.Excel {
                     $"Workbook input contains {inputLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
+            SpreadsheetDocument? document = null;
             try {
-                var document = SpreadsheetDocument.Open(path, isEditable: false);
+                document = SpreadsheetDocument.Open(path, isEditable: false);
                 return new ExcelDocumentReader(document, effectiveOptions, owns: true);
-            } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
+            } catch (Exception ex) {
+                document?.Dispose();
+                if (!IsRecoverableOpenException(ex)) {
+                    throw;
+                }
+
                 byte[] bytes;
                 using (var stream = File.OpenRead(path)) {
                     bytes = OfficeStreamReader.ReadAllBytes(
@@ -518,6 +524,7 @@ namespace OfficeIMO.Excel {
 
             MemoryStream? packageStream = null;
             Package? package = null;
+            SpreadsheetDocument? document = null;
             try {
                 if (normalizeContentTypes) {
                     packageStream = new MemoryStream(bytes.Length + 4096);
@@ -532,17 +539,20 @@ namespace OfficeIMO.Excel {
 
                 package = Package.Open(packageStream, FileMode.Open, FileAccess.Read);
                 effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
-                var doc = SpreadsheetDocument.Open(package);
-                return new ExcelDocumentReader(doc, effectiveOptions, owns: true, package, packageStream);
+                document = SpreadsheetDocument.Open(package);
+                return new ExcelDocumentReader(document, effectiveOptions, owns: true, package, packageStream);
             } catch (Exception ex) when (!normalizeContentTypes && IsRecoverableOpenException(ex)) {
+                document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
                 return OpenFromBytes(bytes, effectiveOptions, normalizeContentTypes: true, contextMessage);
             } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
+                document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
                 throw new IOException($"{contextMessage} See inner exception for details.", ex);
             } catch {
+                document?.Dispose();
                 package?.Close();
                 packageStream?.Dispose();
                 throw;

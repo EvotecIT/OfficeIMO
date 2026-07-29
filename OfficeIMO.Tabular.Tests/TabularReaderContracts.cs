@@ -207,6 +207,27 @@ public sealed class TabularReaderContracts {
     }
 
     [Fact]
+    public void Open_SeekableCsvFallbackStartsAtTheCallerPosition() {
+        byte[] prefix = Encoding.UTF8.GetBytes("ignored prefix");
+        byte[] payload = Encoding.UTF8.GetBytes("Id;Name\n1;Ada\n");
+        using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
+        stream.Position = prefix.Length;
+
+        using var reader = TabularReader.Open(
+            stream,
+            TabularFormat.DelimitedText,
+            new TabularReadOptions { DetectDelimiter = true });
+
+        Assert.Equal(prefix.Length, stream.Position);
+        Assert.Equal("Id", reader.GetName(0));
+        Assert.Equal("Name", reader.GetName(1));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Ada", reader.GetString(1));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void Open_CsvObservesCancellationDuringTraversal() {
         using var cancellation = new CancellationTokenSource();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n2\n"));

@@ -121,12 +121,17 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(readerOptions), "Schema sample size must be greater than zero.");
         }
 
-        if (!stream.CanSeek || !CanUseSinglePassFileDataReader(options, readerOptions))
+        if (!stream.CanSeek)
         {
             return Load(stream, options).CreateDataReader(readerOptions);
         }
 
         long startPosition = stream.Position;
+        if (!CanUseSinglePassFileDataReader(options, readerOptions))
+        {
+            return CreateBufferedDataReaderFromCurrentPosition(stream, startPosition, options, readerOptions);
+        }
+
 #if NET8_0_OR_GREATER
         if (CanUseStreamSpanDataReader(options, readerOptions))
         {
@@ -157,7 +162,7 @@ public sealed partial class CsvDocument
                 records.Dispose();
                 reader.Dispose();
                 stream.Position = startPosition;
-                return Load(stream, options).CreateDataReader(readerOptions);
+                return CreateBufferedDataReaderFromCurrentPosition(stream, startPosition, options, readerOptions);
             }
 
             var header = AppendStaticColumnsToHeader(NormalizeParsedHeader(records.Current, options), options);
@@ -180,6 +185,29 @@ public sealed partial class CsvDocument
             reader.Dispose();
             throw;
         }
+    }
+
+    private static CsvDataReader CreateBufferedDataReaderFromCurrentPosition(
+        Stream stream,
+        long startPosition,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions)
+    {
+        byte[] snapshot;
+        try
+        {
+            snapshot = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+                stream,
+                options.CancellationToken,
+                options.MaxInputBytes);
+        }
+        finally
+        {
+            stream.Position = startPosition;
+        }
+
+        using var snapshotStream = new MemoryStream(snapshot, writable: false);
+        return Load(snapshotStream, options).CreateDataReader(readerOptions);
     }
 
     /// <summary>
