@@ -94,7 +94,7 @@ claim conformance without passing external validator evidence.
         PdfComplianceProfile? complianceProfile = null;
         if (arguments.PdfUaLanguage != null) {
             complianceProfile = PdfComplianceProfile.PdfUa1;
-            options.DocumentOptions.UsePdfUa(PdfComplianceProfile.PdfUa1, arguments.PdfUaLanguage);
+            options.PdfOptions.UsePdfUa(PdfComplianceProfile.PdfUa1, arguments.PdfUaLanguage);
         }
 
         PdfDocumentConversionResult conversion;

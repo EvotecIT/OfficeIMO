@@ -106,6 +106,18 @@ public sealed class PowerPointPdfSaveOptions {
     public DrawingCore.OfficeChartLayout? ChartLayout { get; set; }
 
     /// <summary>
+    /// Applies shared deterministic typography resources to the first-party PDF engine.
+    /// Slide composition and feature switches remain owned by this converter.
+    /// </summary>
+    public PowerPointPdfSaveOptions UseRenderingProfile(
+        DrawingCore.OfficeRenderingProfile profile,
+        DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+        PdfOptions ??= new PdfCore.PdfOptions();
+        PdfOptions.UseRenderingProfile(profile, mode);
+        return this;
+    }
+
+    /// <summary>
     /// Applies a high-level export profile by setting the PowerPoint PDF options that correspond to that profile.
     /// </summary>
     public PowerPointPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {

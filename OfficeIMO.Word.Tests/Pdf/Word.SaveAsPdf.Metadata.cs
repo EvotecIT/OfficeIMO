@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 document.BuiltinDocumentProperties.Keywords = "native, keyword";
                 document.AddParagraph("Native metadata");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions());
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions());
             }
 
             Assert.True(File.Exists(pdfPath));
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 document.BuiltinDocumentProperties.Keywords = "native, keyword";
                 document.AddParagraph("Native metadata font");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "Times New Roman" });
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { FontFamily = "Times New Roman" });
             }
 
             using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {

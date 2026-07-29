@@ -2,16 +2,80 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
 
 public class RtfPdfImportTests {
     [Fact]
+    public void PdfToRtf_PreservesLogicalRunColorSizeAndFontStyle() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .FontSize(14)
+                .Bold("Bold red")
+                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .FontSize(9)
+                .Italic(" italic blue"))
+            .ToBytes();
+
+        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument();
+        RtfRun red = document.Paragraphs
+            .SelectMany(paragraph => paragraph.Runs)
+            .First(run => run.Text.Contains("Bold red", StringComparison.Ordinal));
+        RtfRun blue = document.Paragraphs
+            .SelectMany(paragraph => paragraph.Runs)
+            .First(run => run.Text.Contains("italic blue", StringComparison.Ordinal));
+
+        Assert.True(red.Bold);
+        Assert.Equal(14D, red.FontSize);
+        Assert.NotNull(red.ForegroundColorIndex);
+        RtfColor redColor = document.Colors[red.ForegroundColorIndex!.Value - 1];
+        Assert.Equal((byte)255, redColor.Red);
+        Assert.Equal((byte)0, redColor.Green);
+        Assert.Equal((byte)0, redColor.Blue);
+
+        Assert.True(blue.Italic);
+        Assert.Equal(9D, blue.FontSize);
+        Assert.NotNull(blue.ForegroundColorIndex);
+        RtfColor blueColor = document.Colors[blue.ForegroundColorIndex!.Value - 1];
+        Assert.Equal((byte)0, blueColor.Red);
+        Assert.Equal((byte)0, blueColor.Green);
+        Assert.Equal((byte)255, blueColor.Blue);
+    }
+
+    [Fact]
+    public void PdfToRtf_PreservesStyledListRunsWithoutRepeatingMarker() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .Text("\u2022 ")
+                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Bold("Bold red")
+                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Italic(" italic blue"))
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
+        Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
+
+        RtfDocument document = logical.ToRtfDocument();
+        RtfParagraph listItem = Assert.Single(document.Paragraphs);
+        Assert.Equal("Bold red italic blue", listItem.ToPlainText());
+        Assert.Equal(RtfListKind.Bullet, listItem.ListKind);
+        RtfRun red = listItem.Runs.First(run => run.Text.Contains("Bold red", StringComparison.Ordinal));
+        RtfRun blue = listItem.Runs.First(run => run.Text.Contains("italic blue", StringComparison.Ordinal));
+        Assert.True(red.Bold);
+        Assert.True(blue.Italic);
+        Assert.NotNull(red.ForegroundColorIndex);
+        Assert.NotNull(blue.ForegroundColorIndex);
+    }
+
+    [Fact]
     public void PdfBytes_ToRtfDocument_Imports_Metadata_Headings_Lists_Paragraphs_And_PageBreaks() {
         byte[] pdf = CreateSemanticPdf();
 
-        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateReadOptions());
+        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions());
 
         Assert.Equal("PDF Import Title", document.Info.Title);
         Assert.Equal("OfficeIMO", document.Info.Author);
@@ -44,7 +108,7 @@ public class RtfPdfImportTests {
     public void Pdf_ToRtf_Serializes_And_RoundTrips_Imported_Text() {
         byte[] pdf = CreateSemanticPdf();
 
-        string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateReadOptions()).ToRtf();
+        string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions()).ToRtf();
         RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
 
         Assert.Contains("Clinical Summary", rtf, StringComparison.Ordinal);
@@ -67,12 +131,12 @@ public class RtfPdfImportTests {
             using MemoryStream pdfStream = new MemoryStream(pdf);
             RtfDocument fromStream = PdfCore.PdfLogicalDocument
                 .Load(pdfStream, CreateLayoutOptions())
-                .ToRtfDocument(CreateReadOptions());
+                .ToRtfDocument(CreateImportOptions());
             Assert.Contains(fromStream.Paragraphs, paragraph => paragraph.ToPlainText() == "First bullet");
 
             RtfDocument fromFile = PdfCore.PdfLogicalDocument
                 .Load(pdfPath, CreateLayoutOptions())
-                .ToRtfDocument(CreateReadOptions());
+                .ToRtfDocument(CreateImportOptions());
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
             fromFile.Save(rtfPath, encoding: Encoding.UTF8);
@@ -86,13 +150,13 @@ public class RtfPdfImportTests {
     }
 
     [Fact]
-    public void PdfRtfReadOptions_Clone_IsIndependent() {
-        var options = new PdfRtfReadOptions {
+    public void PdfRtfImportOptions_Clone_IsIndependent() {
+        var options = new PdfRtfImportOptions {
             PreservePageBreaks = false,
             IncludeMetadata = false
         };
 
-        PdfRtfReadOptions clone = options.Clone();
+        PdfRtfImportOptions clone = options.Clone();
         clone.PreservePageBreaks = true;
         clone.IncludeMetadata = true;
 
@@ -102,7 +166,49 @@ public class RtfPdfImportTests {
         Assert.True(clone.IncludeMetadata);
     }
 
-    private static PdfRtfReadOptions CreateReadOptions() => new PdfRtfReadOptions();
+    [Fact]
+    public async Task PdfDocument_RtfFacade_ReturnsDiagnosticsAndSupportsSyncAndAsyncSave() {
+        byte[] pdf = CreateSemanticPdf();
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(pdf);
+
+        PdfRtfConversionResult result = opened.ToRtfDocumentResult(CreateImportOptions());
+        Assert.False(result.HasLoss);
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
+
+        using var sync = new MemoryStream();
+        PdfRtfConversionReport syncReport = opened.SaveAsRtf(sync, CreateImportOptions());
+        Assert.False(syncReport.HasLoss);
+        Assert.NotEmpty(sync.ToArray());
+
+        using var asyncOutput = new MemoryStream();
+        PdfRtfConversionReport asyncReport = await opened.SaveAsRtfAsync(asyncOutput, CreateImportOptions());
+        Assert.False(asyncReport.HasLoss);
+        Assert.NotEmpty(asyncOutput.ToArray());
+    }
+
+    [Fact]
+    public void PdfToRtf_ReportsDetectedTablesThatCannotBeReconstructed() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .KeyValueTable(new[] {
+                PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
+                PdfCore.PdfKeyValueRow.Text("Customer", "Evotec"),
+                PdfCore.PdfKeyValueRow.Text("Due", "2026-06-30")
+            })
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        Assert.NotEmpty(logical.Tables);
+
+        PdfRtfConversionResult result = logical.ToRtfDocumentResult();
+
+        Assert.True(result.HasLoss);
+        PdfCore.PdfConversionWarning warning = Assert.Single(
+            result.Report.Warnings,
+            item => item.Code == "TABLES_NOT_IMPORTED");
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
+    }
+
+    private static PdfRtfImportOptions CreateImportOptions() => new PdfRtfImportOptions();
 
     private static PdfCore.PdfLogicalDocument LoadSemanticPdf(byte[] pdf) =>
         PdfCore.PdfLogicalDocument.Load(pdf, CreateLayoutOptions());

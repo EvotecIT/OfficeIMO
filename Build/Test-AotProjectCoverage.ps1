@@ -38,8 +38,8 @@ $managedOnly = @(
     }
 )
 
-if ($rootedLibraries.Count -ne 86) {
-    throw "Expected 86 fully rooted production libraries, found $($rootedLibraries.Count)."
+if ($rootedLibraries.Count -ne 88) {
+    throw "Expected 88 fully rooted production libraries, found $($rootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."

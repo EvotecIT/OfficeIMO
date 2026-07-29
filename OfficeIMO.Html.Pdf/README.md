@@ -65,7 +65,7 @@ var options = new HtmlPdfSaveOptions {
     DefaultFontFamily = "Arial",
     BackgroundColor = OfficeColor.White,
     Scale = 1.5,
-    DocumentOptions = new OfficeIMO.Pdf.PdfOptions()
+    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm }");

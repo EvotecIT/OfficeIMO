@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 
-`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. It also imports logical PDF tables into editable PowerPoint table slides.
+`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. In the reverse direction it creates one rendered PDF page per slide by default, with an explicit editable-table reconstruction mode.
 
 ## Install
 
@@ -121,27 +121,35 @@ result.Report.RequireNoErrorWarnings();
 - Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
-## PDF table import
+## Import PDF pages
 
-`SaveTablesAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. It does not claim to convert unrelated page text, source vector graphics, images, links, forms, annotations, or actions.
+The general PDF route creates one visual slide per selected PDF page. Each page image is movable and resizable as a slide object; text and vectors inside the page image are not claimed as editable PowerPoint objects.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-PdfLogicalDocument source = PdfLogicalDocument.LoadPageRanges(
-    "financial-statement.pdf",
-    PdfPageRange.From(2, 5));
+PdfDocument pdf = PdfDocument.Open("handout.pdf");
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout.pptx");
 
-PdfPowerPointTableImportReport report = source.SaveTablesAsPowerPoint(
+foreach (var page in report.VisualPages) {
+    Console.WriteLine($"PDF page {page.PageNumber}, slide {page.SlideIndex + 1}");
+}
+```
+
+Use editable-table mode when detected data is more important than page appearance:
+
+```csharp
+var options = PdfPowerPointImportOptions.CreateEditableTables();
+options.MaxRows = 400;
+options.MaxRowsPerSlide = 18;
+options.MaxColumnsPerSlide = 6;
+
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint(
     "financial-statement-tables.pptx",
-    new PdfPowerPointTableImportOptions {
-        MaxRows = 400,
-        MaxRowsPerSlide = 18,
-        MaxColumnsPerSlide = 6
-    });
+    options);
 
-foreach (var table in report.Entries) {
+foreach (var table in report.TableEntries) {
     Console.WriteLine($"Page {table.PageNumber}, slide {table.SlideIndex + 1}");
 }
 
@@ -153,7 +161,9 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 - Presentation modeling stays in `OfficeIMO.PowerPoint`.
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a thin adapter over shared PDF primitives.
-- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` make the omitted page surface explicit.
+- Opened-PDF import defaults to `PdfPowerPointImportMode.VisualPages`. Managed-renderer capability diagnostics report page failures or simplifications.
+- `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
+- The next meaningful expansion is a hybrid visual/editable mode followed by bounded text-box and image-layer reconstruction. Arbitrary vectors, groups, forms, annotations, and animations are not yet claimed as editable slide objects.
 - Complex slide fidelity gaps should be reported through warnings and deeper docs rather than broad README claims.
 
 ## Related packages

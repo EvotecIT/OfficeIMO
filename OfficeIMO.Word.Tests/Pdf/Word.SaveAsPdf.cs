@@ -204,7 +204,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        AssertPdfUsesAnyFont(pdfPath, "Courier New", "Courier");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = font });
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { FontFamily = font });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -231,7 +231,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello explicit serif default font");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "serif" });
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { FontFamily = "serif" });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -297,7 +297,7 @@ public partial class Word {
             document.Settings.FontFamilyHighAnsi = "Times New Roman";
             document.AddParagraph("Hello unavailable requested font fallback");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "OfficeIMO Missing Requested Font" });
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions { FontFamily = "OfficeIMO Missing Requested Font" });
         }
 
         Assert.True(File.Exists(pdfPath));
@@ -313,7 +313,7 @@ public partial class Word {
             document.AddParagraph("Styled serif").SetFontFamily("Georgia");
             document.AddParagraph("Default serif");
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 FontFamily = "Times New Roman",
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
             });
@@ -339,7 +339,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 Orientation = orientation,
                 PageSize = PdfCore.PageSizes.A4
             });
@@ -396,7 +396,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
 
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 PageSize = size
             });
         }
@@ -421,7 +421,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
 
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 Margins = PdfCore.PageMargins.UniformCentimeters(marginCm)
             });
         }
@@ -443,7 +443,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 Margins = PdfCore.PageMargins.FromCentimeters(1, 3, 2, 2)
             });
         }

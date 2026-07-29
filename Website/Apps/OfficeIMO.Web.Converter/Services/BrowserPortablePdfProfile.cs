@@ -97,7 +97,7 @@ internal static class BrowserPortablePdfProfile {
         return new HtmlPdfSaveOptions {
             DefaultFontFamily = DefaultLayoutFontFamilies,
             Fonts = CreateLayoutFonts(data),
-            DocumentOptions = CreateOptions(profile),
+            PdfOptions = CreateOptions(profile),
             FontFamily = new PdfEmbeddedFontFamily(
                 DefaultFontFamily,
                 data.CarlitoRegular,

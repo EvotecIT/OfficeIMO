@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Markdown document plus explicit conversion diagnostics.</summary>
@@ -27,7 +29,7 @@ public sealed class AsciiDocToMarkdownResult {
 }
 
 /// <summary>AsciiDoc-to-Markdown conversion diagnostics captured for one operation.</summary>
-public sealed class AsciiDocToMarkdownReport {
+public sealed class AsciiDocToMarkdownReport : IOfficeConversionReport {
     internal AsciiDocToMarkdownReport(IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }

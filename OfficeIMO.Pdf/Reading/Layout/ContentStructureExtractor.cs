@@ -210,8 +210,10 @@ public sealed class StructuredLine {
     public string Text { get; set; } = string.Empty;
     /// <summary>Representative font size in points.</summary>
     public double FontSize { get; set; }
+    /// <summary>Immutable snapshot of the positioned text spans grouped into this line.</summary>
+    public IReadOnlyList<PdfTextSpan> Spans { get; internal set; } = Array.Empty<PdfTextSpan>();
     /// <summary>Number of underlying spans grouped into this line.</summary>
-    public int SpanCount { get; set; }
+    public int SpanCount => Spans.Count;
 }
 
 internal static class ContentStructureExtractor {
@@ -415,7 +417,7 @@ internal static class ContentStructureExtractor {
                 XEnd = line.XEnd,
                 Text = line.Text,
                 FontSize = GetLineFontSize(line),
-                SpanCount = line.Spans.Count
+                Spans = Array.AsReadOnly(line.Spans.ToArray())
             });
         }
 
@@ -460,7 +462,7 @@ internal static class ContentStructureExtractor {
                 XEnd = line.XEnd,
                 Text = text,
                 FontSize = fontSize,
-                SpanCount = line.Spans.Count
+                Spans = Array.AsReadOnly(line.Spans.ToArray())
             };
             page.Headings.Add(new StructuredHeading {
                 Level = GetHeadingLevel(fontSize, bodySize),
@@ -522,7 +524,7 @@ internal static class ContentStructureExtractor {
             XEnd = line.XEnd,
             Text = line.Text,
             FontSize = GetLineFontSize(line),
-            SpanCount = line.Spans.Count
+            Spans = Array.AsReadOnly(line.Spans.ToArray())
         };
     }
 

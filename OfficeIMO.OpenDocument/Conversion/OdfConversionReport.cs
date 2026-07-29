@@ -1,7 +1,9 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Feature mapping report for one explicit conversion between OpenDocument and another Office format.</summary>
-public sealed class OdfConversionReport {
+public sealed class OdfConversionReport : IOfficeConversionReport {
     private readonly List<OdfConversionMapping> _mappings = new List<OdfConversionMapping>();
 
     /// <summary>Creates an empty conversion report.</summary>

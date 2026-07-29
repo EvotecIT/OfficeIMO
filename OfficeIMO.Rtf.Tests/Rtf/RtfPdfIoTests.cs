@@ -72,12 +72,16 @@ public class RtfPdfIoTests {
             .GetMethods(BindingFlags.Public | BindingFlags.Static);
 
         Assert.DoesNotContain(methods, method => method.Name.Contains("FromRtf", StringComparison.Ordinal));
-        Assert.All(
-            methods.Where(method => method.Name != nameof(RtfPdfConverterExtensions.ToRtfDocument)),
-            method => Assert.Equal(typeof(RtfDocument), method.GetParameters()[0].ParameterType));
-
-        MethodInfo import = Assert.Single(methods, method => method.Name == nameof(RtfPdfConverterExtensions.ToRtfDocument));
-        Assert.Equal(typeof(PdfCore.PdfLogicalDocument), import.GetParameters()[0].ParameterType);
+        Type[] parsedSourceTypes = {
+            typeof(RtfDocument),
+            typeof(PdfCore.PdfDocument),
+            typeof(PdfCore.PdfLogicalDocument)
+        };
+        Assert.All(methods, method =>
+            Assert.Contains(method.GetParameters()[0].ParameterType, parsedSourceTypes));
+        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(RtfDocument));
+        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfDocument));
+        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfLogicalDocument));
     }
 
     private static RtfDocument CreateDocument(string text) {

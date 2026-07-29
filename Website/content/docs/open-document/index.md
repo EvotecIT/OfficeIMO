@@ -22,7 +22,7 @@ document.AddParagraph("Created without LibreOffice or Office.");
 document.Save("summary.odt");
 ```
 
-The package also exposes `OdsDocument` for spreadsheets and `OdpDocument` for presentations. Add the focused Word, Excel, or PowerPoint OpenDocument adapter when the workflow needs bidirectional conversion; add `OfficeIMO.OpenDocument.Pdf` for PDF output.
+The package also exposes `OdsDocument` for spreadsheets and `OdpPresentation` for presentations. Add the focused Word, Excel, or PowerPoint OpenDocument adapter when the workflow needs Office interchange. For PDF, choose `OfficeIMO.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, or `.Odp.Pdf` so unrelated Office stacks stay out of the application. The 4.0 package graph has no all-formats PDF umbrella.
 
 ## Choose the artifact
 

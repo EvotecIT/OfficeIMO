@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"✓ Saved as Word: {docPath}");
                 
                 string pdfPath = Path.Combine(folderPath, "UnifiedExample.pdf");
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions { 
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     Orientation = PdfPageOrientation.Portrait 
                 });
                 Console.WriteLine($"✓ Saved as PDF: {pdfPath}");

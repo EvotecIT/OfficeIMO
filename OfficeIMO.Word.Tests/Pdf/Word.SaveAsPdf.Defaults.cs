@@ -10,10 +10,11 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void SaveAsPdf_DefaultsDoNotReadInstalledHostFonts() {
-            var options = new PdfSaveOptions();
+        public void SaveAsPdf_DefaultsEmbedDocumentFontsWithoutAllowingArbitraryResourceReads() {
+            var options = new WordPdfSaveOptions();
 
-            Assert.False(options.ResourcePolicy.AllowSystemFontEmbedding);
+            Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
+            Assert.True(options.ResourcePolicy.AllowDocumentFontEmbedding);
             Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
             Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
         }
@@ -26,7 +27,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello World");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     DefaultOrientation = PageOrientationValues.Landscape,
                     DefaultPageSize = WordPageSize.A4
                 });

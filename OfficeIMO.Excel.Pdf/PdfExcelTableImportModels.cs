@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Describes one logical PDF table imported into an Excel worksheet.
     /// </summary>
-    public sealed class PdfExcelTableImportEntry {
+public sealed class PdfExcelTableImportEntry {
         internal PdfExcelTableImportEntry(
             int pageIndex,
             int pageNumber,

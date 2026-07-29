@@ -779,8 +779,14 @@ internal static class PdfTextDiagnostics {
     private static EmbeddedFontFallbackProgramBox CreateFallbackProgram(PdfEmbeddedFontFallbackCandidate candidate) {
         byte[] fontData = candidate.DataSnapshot;
         EmbeddedFontFallbackProgram program = IsOpenTypeCffFontData(fontData)
-            ? new EmbeddedFontFallbackProgram(candidate.FontName, PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName))
-            : new EmbeddedFontFallbackProgram(candidate.FontName, PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName));
+            ? new EmbeddedFontFallbackProgram(
+                candidate.FontName,
+                PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName),
+                candidate.UnicodeRanges)
+            : new EmbeddedFontFallbackProgram(
+                candidate.FontName,
+                PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName),
+                candidate.UnicodeRanges);
         return new EmbeddedFontFallbackProgramBox(program);
     }
 
@@ -1101,24 +1107,37 @@ internal static class PdfTextDiagnostics {
         fontData[3] == 0x4F;
 
     private readonly struct EmbeddedFontFallbackProgram {
-        public EmbeddedFontFallbackProgram(string fontName, PdfTrueTypeFontProgram font) {
+        public EmbeddedFontFallbackProgram(
+            string fontName,
+            PdfTrueTypeFontProgram font,
+            OfficeFontUnicodeRangeSet unicodeRanges) {
             FontName = fontName;
             _trueTypeFont = font;
             _cffFont = null;
+            _unicodeRanges = unicodeRanges;
         }
 
-        public EmbeddedFontFallbackProgram(string fontName, PdfOpenTypeCffFontProgram font) {
+        public EmbeddedFontFallbackProgram(
+            string fontName,
+            PdfOpenTypeCffFontProgram font,
+            OfficeFontUnicodeRangeSet unicodeRanges) {
             FontName = fontName;
             _trueTypeFont = null;
             _cffFont = font;
+            _unicodeRanges = unicodeRanges;
         }
 
         private readonly PdfTrueTypeFontProgram? _trueTypeFont;
         private readonly PdfOpenTypeCffFontProgram? _cffFont;
+        private readonly OfficeFontUnicodeRangeSet _unicodeRanges;
 
         public string FontName { get; }
 
         public bool TryGetGlyphId(int unicodeScalar, out int glyphId) {
+            if (!_unicodeRanges.Contains(unicodeScalar)) {
+                glyphId = 0;
+                return false;
+            }
             if (_trueTypeFont != null) {
                 return _trueTypeFont.TryGetGlyphId(unicodeScalar, out glyphId);
             }

@@ -9,6 +9,18 @@ namespace OfficeIMO.Drawing.HarfBuzz.Tests;
 
 public sealed class OfficeHarfBuzzTextShapingProviderTests {
     [Fact]
+    public void RenderingProfileAppliesHarfBuzzToSharedExportOptions() {
+        OfficeRenderingProfile profile = OfficeHarfBuzzRenderingProfile.Create(language: " ar ");
+        var options = new OfficeImageExportOptions();
+
+        options.UseRenderingProfile(profile);
+
+        Assert.Equal("officeimo-harfbuzz", profile.Name);
+        Assert.Same(OfficeHarfBuzzTextShapingProvider.Instance, options.TextShapingProvider);
+        Assert.Equal("ar", options.TextShapingLanguage);
+    }
+
+    [Fact]
     public void ShapesLatinLigaturesWithLogicalClusterMappings() {
         const string text = "office";
         byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));

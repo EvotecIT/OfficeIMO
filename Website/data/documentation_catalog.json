@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 148,
-    "productionComponentCount": 89,
+    "projectCount": 150,
+    "productionComponentCount": 91,
     "testProjectCount": 31,
     "benchmarkProjectCount": 12,
     "validationProjectCount": 17,
     "apiReferenceCount": 17,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 39700
+    "conceptualWordCount": 39800
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 11
+      "componentCount": 13
     },
     {
       "name": "Foundations and integrations",
@@ -580,17 +580,43 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument"
     },
     {
-      "name": "OfficeIMO.OpenDocument.Pdf",
-      "packageId": "OfficeIMO.OpenDocument.Pdf",
+      "name": "OfficeIMO.OpenDocument.Odp.Pdf",
+      "packageId": "OfficeIMO.OpenDocument.Odp.Pdf",
       "category": "Formats and interoperability",
-      "description": "Direct loss-aware OpenDocument text, spreadsheet, and presentation to PDF adapters.",
+      "description": "Bidirectional, loss-aware ODP and PDF conversion through the PowerPoint semantic engine.",
       "kind": "package",
-      "projectPath": "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj",
-      "sourceFileCount": 4,
-      "referencingTestProjectCount": 1,
+      "projectPath": "OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Pdf"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf"
+    },
+    {
+      "name": "OfficeIMO.OpenDocument.Ods.Pdf",
+      "packageId": "OfficeIMO.OpenDocument.Ods.Pdf",
+      "category": "Formats and interoperability",
+      "description": "Bidirectional, loss-aware ODS and PDF conversion through the Excel semantic engine.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/open-document/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf"
+    },
+    {
+      "name": "OfficeIMO.OpenDocument.Odt.Pdf",
+      "packageId": "OfficeIMO.OpenDocument.Odt.Pdf",
+      "category": "Formats and interoperability",
+      "description": "Bidirectional, loss-aware ODT and PDF conversion through the Word semantic engine.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/open-document/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf"
     },
     {
       "name": "OfficeIMO.Pdf",
@@ -1054,7 +1080,7 @@
       "description": "Bidirectional semantic RTF/PDF converter with shared fidelity diagnostics and managed image handling.",
       "kind": "package",
       "projectPath": "OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
-      "sourceFileCount": 13,
+      "sourceFileCount": 14,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
       "apiUrl": null,

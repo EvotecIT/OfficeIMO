@@ -45,14 +45,14 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeRunClasses { get; set; }
 
         /// <summary>
-        /// When true, includes run color information as inline styles.
+        /// When true, includes run color information as inline styles. Defaults to true for conversion fidelity.
         /// </summary>
-        public bool IncludeRunColorStyles { get; set; }
+        public bool IncludeRunColorStyles { get; set; } = true;
 
         /// <summary>
-        /// When true, includes run highlight information as inline styles.
+        /// When true, includes run highlight information as inline styles. Defaults to true for conversion fidelity.
         /// </summary>
-        public bool IncludeRunHighlightStyles { get; set; }
+        public bool IncludeRunHighlightStyles { get; set; } = true;
 
         /// <summary>
         /// When true, includes paragraph spacing information as inline styles.

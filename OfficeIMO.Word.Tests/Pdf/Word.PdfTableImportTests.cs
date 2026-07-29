@@ -32,7 +32,7 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        PdfWordConversionResult result = LoadTables(pdf).ToWordDocumentResult(PdfWordReadOptions.CreateTablesOnly());
+        PdfWordConversionResult result = LoadTables(pdf).ToWordDocumentResult(PdfWordImportOptions.CreateTablesOnly());
         using (result.Value) {
             result.Value.Save(document);
         }
@@ -80,7 +80,7 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        PdfWordReadOptions tablesOnly = PdfWordReadOptions.CreateTablesOnly();
+        PdfWordImportOptions tablesOnly = PdfWordImportOptions.CreateTablesOnly();
         tablesOnly.MaxTableRows = 2;
         PdfWordConversionResult result = LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)).ToWordDocumentResult(tablesOnly);
         using (result.Value) {
@@ -101,7 +101,7 @@ public partial class Word {
         }
 
         using var emptyDocument = new MemoryStream();
-        PdfWordReadOptions emptyOptions = PdfWordReadOptions.CreateTablesOnly();
+        PdfWordImportOptions emptyOptions = PdfWordImportOptions.CreateTablesOnly();
         emptyOptions.EmptyDocumentMessage = "Nothing tabular was detected.";
         PdfWordConversionResult emptyResult = LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)).ToWordDocumentResult(emptyOptions);
         using (emptyResult.Value) {

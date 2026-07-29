@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.OneNote.Html;
 using OfficeIMO.OneNote.Markdown;
@@ -11,6 +12,14 @@ using System.Threading;
 namespace OfficeIMO.OneNote.Tests;
 
 public sealed class ConverterTests {
+    [Fact]
+    public void PdfOptionsNameTheMarkdownProjectionStageExplicitly() {
+        PropertyInfo? markdownOptions = typeof(OneNotePdfSaveOptions).GetProperty("MarkdownOptions");
+
+        Assert.Equal(typeof(MarkdownPdfSaveOptions), markdownOptions?.PropertyType);
+        Assert.Null(typeof(OneNotePdfSaveOptions).GetProperty("PdfOptions"));
+    }
+
     [Fact]
     public void SharedProjectionCoversHierarchyContentAndOptionalRelatedPages() {
         OneNoteNotebook notebook = CreateNotebook();
@@ -127,9 +136,13 @@ public sealed class ConverterTests {
         section.Pages[0].DirectContent[0].Layout = new OneNoteLayout { X = 120, Y = 80, Width = 240 };
 
         PdfDocumentConversionResult result = section.ToPdfDocumentResult();
+        OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
+            Assert.Single(result.SourceConversionReports));
 
-        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
-        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.DoesNotContain(result.Warnings, warning =>
+            warning.Code.StartsWith("ONENOTE_MARKDOWN_", StringComparison.Ordinal));
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
@@ -147,7 +160,9 @@ public sealed class ConverterTests {
         Assert.True(markdown.HasLoss);
         Assert.Contains(markdown.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
         Assert.True(pdf.HasLoss);
-        Assert.Contains(pdf.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
+            Assert.Single(pdf.SourceConversionReports));
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
         Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
     }
 

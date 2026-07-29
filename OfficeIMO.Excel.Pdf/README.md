@@ -90,15 +90,14 @@ foreach (var warning in result.Warnings) {
 result.Report.RequireNoErrorWarnings();
 ```
 
-## Import PDF tables
+## Import structured PDF data
 
 ```csharp
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfLogicalDocument source = PdfLogicalDocument.Load("statement.pdf");
-PdfExcelTableImportReport report = source.SaveTablesAsExcel(
-    "statement-tables.xlsx");
+PdfDocument pdf = PdfDocument.Open("statement.pdf");
+PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx");
 
 foreach (var table in report.Entries) {
     Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
@@ -113,9 +112,9 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfLogicalDocument source = PdfLogicalDocument.LoadPageRanges(
-    "bank-statement.pdf",
-    PdfPageRange.From(1, 3));
+PdfDocument pdf = PdfDocument.Open("bank-statement.pdf");
+PdfLogicalDocument source = pdf.Read.Logical(
+    PdfPageSelection.Parse("1-3"));
 
 PdfExcelTableImportReport report = source.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",
@@ -143,7 +142,8 @@ report.RequireNoLoss(); // checks table-row truncation, not unrelated page conte
 - Workbook reading stays in `OfficeIMO.Excel`.
 - PDF layout and writing stay in `OfficeIMO.Pdf`.
 - This package should remain a translation adapter, not a second PDF engine.
-- PDF import is intentionally table-only. `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not imported as page content.
+- PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables.
+- The roadmap is better table continuation, repeated-header recognition, typed values, and bounded positioned-cell recovery—not pretending arbitrary PDF page art is an editable workbook.
 - Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
 
 ## Related packages

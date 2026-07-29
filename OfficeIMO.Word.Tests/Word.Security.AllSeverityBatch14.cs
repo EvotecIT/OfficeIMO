@@ -40,7 +40,7 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         document.AddParagraph("body remains renderable");
         using var output = new MemoryStream();
 
-        document.SaveAsPdf(output, new PdfSaveOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(output, new WordPdfSaveOptions { IncludePageNumbers = false });
 
         Assert.True(output.Length > 0);
     }
@@ -54,7 +54,7 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "cell";
         using var output = new MemoryStream();
 
-        document.SaveAsPdf(output, new PdfSaveOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(output, new WordPdfSaveOptions { IncludePageNumbers = false });
 
         Assert.True(output.Length > 0);
     }
