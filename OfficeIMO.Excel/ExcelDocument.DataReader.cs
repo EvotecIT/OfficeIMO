@@ -41,10 +41,19 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
-            byte[] bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadAllBytes(
-                stream,
-                effectiveOptions.CancellationToken,
-                effectiveOptions.MaxInputBytes);
+            long originalPosition = stream.CanSeek ? stream.Position : 0L;
+            byte[] bytes;
+            try {
+                bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+                    stream,
+                    effectiveOptions.CancellationToken,
+                    effectiveOptions.MaxInputBytes);
+            } finally {
+                if (stream.CanSeek) {
+                    stream.Position = originalPosition;
+                }
+            }
+
             return OpenDataReader(bytes, effectiveOptions);
         }
 

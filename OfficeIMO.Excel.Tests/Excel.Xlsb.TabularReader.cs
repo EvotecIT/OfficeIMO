@@ -71,6 +71,48 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_InfersStableSchemaAndReplaysSampledRows() {
+        using var worksheetPart = CreateNumericTabularWorksheet(
+            (0, 1.25),
+            (1, 2.5));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            Array.Empty<string>(),
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions {
+                InferSchema = true,
+                SchemaSampleRows = 2
+            });
+
+        Assert.Equal(typeof(double), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1.25, reader.GetDouble(0));
+        Assert.Equal(typeof(double), reader.GetFieldType(0));
+        Assert.True(reader.Read());
+        Assert.Equal(2.5, reader.GetDouble(0));
+        Assert.False(reader.Read());
+        Assert.Equal(typeof(double), reader.GetFieldType(0));
+    }
+
+    [Fact]
+    public void XlsbTabularReader_NumericAsDecimalFallsBackToDoubleOutsideDecimalRange() {
+        using var worksheetPart = CreateNumericTabularWorksheet((0, 1E100));
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            Array.Empty<string>(),
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            new ExcelReadOptions { NumericAsDecimal = true });
+
+        Assert.True(reader.Read());
+        double value = Assert.IsType<double>(reader.GetValue(0));
+        Assert.Equal(1E100, value);
+        Assert.Equal(typeof(double), reader.GetFieldType(0));
+        Assert.Throws<InvalidCastException>(() => reader.GetDecimal(0));
+    }
+
+    [Fact]
     public void ExcelDocumentReader_DisposesOpenedDocumentWhenInitializationFails() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.ReaderDispose.{Guid.NewGuid():N}.xlsx");
         try {
@@ -97,14 +139,15 @@ public partial class Excel {
         Stream worksheetPart,
         IReadOnlyList<string> sharedStrings,
         bool hasHeaderRow,
-        XlsbCellReadBudget cellBudget) =>
+        XlsbCellReadBudget cellBudget,
+        ExcelReadOptions? options = null) =>
         new(
             worksheetPart,
             sharedStrings,
             Array.Empty<bool>(),
             uses1904DateSystem: false,
             hasHeaderRow,
-            new ExcelReadOptions(),
+            options ?? new ExcelReadOptions(),
             new XlsbImportOptions(),
             new XlsbRecordReadBudget(100),
             cellBudget,
@@ -118,6 +161,21 @@ public partial class Excel {
         foreach ((int rowIndex, uint sharedStringIndex) in rows) {
             XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(rowIndex));
             XlsbRecordWriter.Write(stream, 7, CreateSharedStringCellPayload(0, sharedStringIndex));
+        }
+
+        XlsbRecordWriter.Write(stream, 146);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream CreateNumericTabularWorksheet(params (int RowIndex, double Value)[] rows) {
+        var stream = new MemoryStream();
+        int lastRow = rows.Length == 0 ? 0 : rows.Max(static row => row.RowIndex);
+        XlsbRecordWriter.Write(stream, 148, CreateWorksheetDimensionPayload(0, lastRow, 0, 0));
+        XlsbRecordWriter.Write(stream, 145);
+        foreach ((int rowIndex, double value) in rows) {
+            XlsbRecordWriter.Write(stream, 0, CreateTabularRowHeaderPayload(rowIndex));
+            XlsbRecordWriter.Write(stream, 5, CreateRealCellPayload(0, value));
         }
 
         XlsbRecordWriter.Write(stream, 146);
@@ -153,6 +211,15 @@ public partial class Excel {
         writer.Write(column);
         writer.Write(0U);
         writer.Write(sharedStringIndex);
+        return stream.ToArray();
+    }
+
+    private static byte[] CreateRealCellPayload(int column, double value) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write(column);
+        writer.Write(0U);
+        writer.Write(value);
         return stream.ToArray();
     }
 

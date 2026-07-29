@@ -100,6 +100,23 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_ReadsSeekableWorkbookStreamFromCurrentPositionAndRestoresIt() {
+        byte[] workbook = File.ReadAllBytes(GetDataReaderXlsbFixture("basic-values-formula.xlsb"));
+        byte[] prefix = Encoding.UTF8.GetBytes("already-consumed-envelope");
+        using var stream = new MemoryStream(prefix.Length + workbook.Length);
+        stream.Write(prefix, 0, prefix.Length);
+        stream.Write(workbook, 0, workbook.Length);
+        stream.Position = prefix.Length;
+
+        using DbDataReader reader = ExcelDocument.OpenDataReader(stream);
+
+        Assert.Equal(prefix.Length, stream.Position);
+        Assert.True(reader.Read());
+        Assert.Equal("Alpha", reader.GetString(0));
+        Assert.Equal(42, reader.GetInt32(1));
+    }
+
+    [Fact]
     public void OpenDataReader_RejectsUnknownPathExtensionsInsteadOfGuessing() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             ExcelDocument.OpenDataReader("workbook.unknown"));
