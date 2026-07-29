@@ -53,14 +53,16 @@ public sealed class LatexMarkdownConversionTests {
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
         var result = LatexDocument.Parse(Source).Document.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
+        LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
+            Assert.Single(result.SourceConversionReports));
 
         Assert.True(bytes.Length > 100);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
-        Assert.Contains(result.Warnings, warning =>
-            warning.Converter == "OfficeIMO.Latex.Pdf" &&
-            warning.Code == "LATEXMD101" &&
-            warning.Details["stage"] == "semantic-projection");
-        Assert.Contains(result.Warnings, warning => warning.Code == "LATEXMD102");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
+        Assert.DoesNotContain(result.Warnings, warning =>
+            warning.Code == "LATEXMD101" || warning.Code == "LATEXMD102");
+        Assert.True(result.HasLoss);
     }
 
     [Fact]

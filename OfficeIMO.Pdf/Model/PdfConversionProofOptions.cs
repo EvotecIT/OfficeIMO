@@ -35,6 +35,9 @@ public sealed class PdfConversionProofOptions {
     /// <summary>True when conversion warnings whose codes are not accepted should fail the proof.</summary>
     public bool RequireNoUnexpectedWarnings { get; set; }
 
+    /// <summary>True when possible content loss in any conversion stage should fail the proof.</summary>
+    public bool RequireLosslessConversion { get; set; }
+
     /// <summary>True when the proof snapshot should include the generated artifact byte count and SHA-256.</summary>
     public bool IncludeArtifactHash { get; set; } = true;
 
@@ -531,6 +534,12 @@ public sealed class PdfConversionProofOptions {
     /// <summary>Requires the conversion report to contain no error-severity warnings.</summary>
     public PdfConversionProofOptions RequireNoErrors() {
         RequireNoErrorWarnings = true;
+        return this;
+    }
+
+    /// <summary>Requires every source and PDF conversion stage to report no possible content loss.</summary>
+    public PdfConversionProofOptions RequireNoLoss() {
+        RequireLosslessConversion = true;
         return this;
     }
 

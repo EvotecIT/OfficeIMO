@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Latex.Markdown;
 
 /// <summary>Conversion outcome.</summary>
@@ -108,7 +110,7 @@ public sealed class MarkdownToLatexResult {
 }
 
 /// <summary>LaTeX-to-Markdown conversion diagnostics captured for one operation.</summary>
-public sealed class LatexToMarkdownReport {
+public sealed class LatexToMarkdownReport : IOfficeConversionReport {
     internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
     }

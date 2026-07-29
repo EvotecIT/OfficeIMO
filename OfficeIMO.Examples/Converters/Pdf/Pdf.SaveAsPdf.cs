@@ -55,7 +55,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     PageSize = OfficeIMO.Pdf.PageSizes.A4,
                     Orientation = PdfPageOrientation.Landscape,
                     Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
@@ -77,7 +77,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
 
                 using (MemoryStream pdfStream = new MemoryStream()) {
-                    document.SaveAsPdf(pdfStream, new PdfSaveOptions {
+                    document.SaveAsPdf(pdfStream, new WordPdfSaveOptions {
                         PageSize = new OfficeIMO.Pdf.PageSize(300, 500)
                     });
                     File.WriteAllBytes(pdfPath, pdfStream.ToArray());

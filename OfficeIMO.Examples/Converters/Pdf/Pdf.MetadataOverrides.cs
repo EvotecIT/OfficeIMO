@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 document.BuiltinDocumentProperties.Keywords = "orig1, orig2";
                 document.AddParagraph("Test");
                 document.Save();
-                var options = new PdfSaveOptions {
+                var options = new WordPdfSaveOptions {
                     Title = "Pdf Title",
                     Author = "Pdf Author",
                     Subject = "Pdf Subject",

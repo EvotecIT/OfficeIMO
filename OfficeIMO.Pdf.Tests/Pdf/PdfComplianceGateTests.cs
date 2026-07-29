@@ -548,7 +548,7 @@ public class PdfComplianceGateTests {
         var options = new HtmlPdfSaveOptions {
             DefaultFontFamily = "OfficeIMO Source Serif",
             FontFamily = new PdfEmbeddedFontFamily("OfficeIMO Source Serif", fontData),
-            DocumentOptions = CreatePdfUa1Options()
+            PdfOptions = CreatePdfUa1Options()
         };
         return HtmlConversionDocument.Parse(html).ToPdf(options);
     }

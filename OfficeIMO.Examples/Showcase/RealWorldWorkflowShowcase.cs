@@ -1,7 +1,7 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.OpenDocument;
-using OfficeIMO.OpenDocument.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
@@ -57,7 +57,7 @@ internal static class RealWorldWorkflowShowcase {
 
         document.Save();
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(
-            new OfficeIMO.Word.Pdf.PdfSaveOptions().UseProfile(PdfExportProfile.Faithful));
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseProfile(PdfExportProfile.Faithful));
         SavePdf(
             conversion,
             Path.Combine(output, "customer-delivery-summary.pdf"));

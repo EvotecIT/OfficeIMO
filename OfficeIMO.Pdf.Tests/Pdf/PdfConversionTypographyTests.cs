@@ -213,7 +213,7 @@ public sealed class PdfConversionTypographyTests {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "Київ";
             document.Save();
 
-            return document.ToPdf(new WordPdf.PdfSaveOptions {
+            return document.ToPdf(new WordPdf.WordPdfSaveOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             });
@@ -334,7 +334,7 @@ Zażółć gęślą jaźń
             document.AddParagraph("office cafe\u0301");
             document.Save();
 
-            var options = new WordPdf.PdfSaveOptions {
+            var options = new WordPdf.WordPdfSaveOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             };
@@ -405,7 +405,7 @@ Zażółć gęślą jaźń
             document.AddParagraph(text);
             document.Save();
 
-            var options = new WordPdf.PdfSaveOptions {
+            var options = new WordPdf.WordPdfSaveOptions {
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;

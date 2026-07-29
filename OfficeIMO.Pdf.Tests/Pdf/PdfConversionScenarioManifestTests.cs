@@ -4,12 +4,14 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.AsciiDoc;
+using OfficeIMO.AsciiDoc.Markdown;
 using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Latex;
+using OfficeIMO.Latex.Markdown;
 using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.PowerPoint;
@@ -95,11 +97,15 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentConversionResult result = AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
+            Assert.Single(result.SourceConversionReports));
 
         Assert.Contains("AsciiDoc direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.AsciiDoc.Pdf" && warning.Code == "ADOCMD103");
-        Assert.Contains(result.Warnings, warning => warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
+        Assert.DoesNotContain(result.Warnings, warning =>
+            warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
+        Assert.True(result.HasLoss);
 
         WriteReviewArtifact("asciidoc-direct-semantic-document.pdf", pdf);
     }
@@ -119,11 +125,14 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentConversionResult result = LatexDocument.Parse(source).Document.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
+            Assert.Single(result.SourceConversionReports));
 
         Assert.Contains("LaTeX direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.Latex.Pdf" && warning.Code == "LATEXMD101");
-        Assert.Contains(result.Warnings, warning => warning.Code == "LATEXMD102");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
+        Assert.True(result.HasLoss);
 
         WriteReviewArtifact("latex-direct-semantic-document.pdf", pdf);
     }
@@ -305,7 +314,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
-        RtfDocument imported = logical.ToRtfDocument(new PdfRtfReadOptions());
+        RtfDocument imported = logical.ToRtfDocument(new PdfRtfImportOptions());
         string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
@@ -1901,7 +1910,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfLogicalDocument logicalDocument = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
 
         using var semanticWordStream = new MemoryStream();
-        var semanticWordOptions = new PdfWordReadOptions();
+        var semanticWordOptions = new PdfWordImportOptions();
         PdfWordConversionResult semanticWordResult = logicalDocument.ToWordDocumentResult(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
@@ -1916,13 +1925,13 @@ public sealed class PdfConversionScenarioManifestTests {
             });
 
         using var powerPointStream = new MemoryStream();
-        PdfPowerPointTableImportReport powerPointReport = PowerPointPdfConverterExtensions.SaveTablesAsPowerPoint(
+        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
             logicalDocument,
             powerPointStream,
-            new PdfPowerPointTableImportOptions());
+            PdfPowerPointImportOptions.CreateEditableTables());
 
         PdfExcelTableImportEntry excelResult = Assert.Single(excelReport.Entries);
-        PdfPowerPointTableImportEntry powerPointResult = Assert.Single(powerPointReport.Entries);
+        PdfPowerPointTableImportEntry powerPointResult = Assert.Single(powerPointReport.TableEntries);
 
         Assert.Equal(3, excelResult.ColumnCount);
         Assert.Equal(3, powerPointResult.ColumnCount);

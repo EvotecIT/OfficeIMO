@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -16,16 +18,25 @@ public sealed partial class PdfDocumentConversionResult {
         _sourceReport = conversionReport;
         Value = document;
         Report = SnapshotReport(conversionReport);
+        SourceConversionReports = Array.Empty<IOfficeConversionReport>();
+        ConversionReports = CreateConversionReports(SourceConversionReports, Report);
     }
 
-    private PdfDocumentConversionResult(PdfDocument document, PdfConversionReport sourceReport, PdfConversionReport conversionReportSnapshot) {
+    private PdfDocumentConversionResult(
+        PdfDocument document,
+        PdfConversionReport sourceReport,
+        PdfConversionReport conversionReportSnapshot,
+        IReadOnlyList<IOfficeConversionReport> sourceConversionReports) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(sourceReport, nameof(sourceReport));
         Guard.NotNull(conversionReportSnapshot, nameof(conversionReportSnapshot));
+        Guard.NotNull(sourceConversionReports, nameof(sourceConversionReports));
 
         _sourceReport = sourceReport;
         Value = document;
         Report = SnapshotReport(conversionReportSnapshot);
+        SourceConversionReports = SnapshotSourceReports(sourceConversionReports);
+        ConversionReports = CreateConversionReports(SourceConversionReports, Report);
     }
 
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
@@ -34,17 +45,23 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>Create/open and post-processing evidence accumulated by the generated PDF document.</summary>
     public PdfPipelineReport Pipeline => Value.Pipeline;
 
-    /// <summary>Snapshot of conversion warnings captured when the result was created and refreshed after save-time diagnostics run.</summary>
+    /// <summary>Snapshot of PDF-stage warnings captured when the result was created and refreshed after save-time diagnostics run.</summary>
     public PdfConversionReport Report { get; }
 
-    /// <summary>Warnings captured during conversion.</summary>
+    /// <summary>Reports from semantic or format-projection stages that ran before PDF layout.</summary>
+    public IReadOnlyList<IOfficeConversionReport> SourceConversionReports { get; }
+
+    /// <summary>Ordered source-stage reports followed by the PDF-stage report.</summary>
+    public IReadOnlyList<IOfficeConversionReport> ConversionReports { get; }
+
+    /// <summary>Warnings captured by the PDF conversion stage.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
 
-    /// <summary>True when conversion produced at least one warning.</summary>
+    /// <summary>True when the PDF conversion stage produced at least one warning.</summary>
     public bool HasWarnings => Report.HasWarnings;
 
-    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Report.HasLoss;
+    /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
+    public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
     public PdfConversionReportSummary Summary => Report.Summarize();
@@ -52,9 +69,11 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>Returns the generated PDF document.</summary>
     public PdfDocument RequireValue() => Value;
 
-    /// <summary>Returns the generated PDF document only when conversion reported no possible content loss.</summary>
+    /// <summary>Returns the generated PDF document only when every conversion stage reported no possible content loss.</summary>
     public PdfDocument RequireNoLoss() {
-        Report.RequireNoLoss();
+        foreach (IOfficeConversionReport report in ConversionReports) {
+            report.RequireNoLoss();
+        }
         return Value;
     }
 
@@ -62,7 +81,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Returns a new conversion result with the supplied PDF document while preserving the captured conversion diagnostics.
     /// </summary>
     public PdfDocumentConversionResult WithValue(PdfDocument value) {
-        return new PdfDocumentConversionResult(value, _sourceReport, Report);
+        return new PdfDocumentConversionResult(value, _sourceReport, Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -74,7 +93,21 @@ public sealed partial class PdfDocumentConversionResult {
         var combinedSource = new PdfConversionReport();
         combinedSource.AddRange(warnings);
         combinedSource.LinkReport(_sourceReport);
-        return new PdfDocumentConversionResult(Value, combinedSource, combinedSource);
+        return new PdfDocumentConversionResult(Value, combinedSource, combinedSource, SourceConversionReports);
+    }
+
+    /// <summary>
+    /// Returns a new conversion result with a typed source-stage report prepended before existing
+    /// source stages and the PDF-stage report.
+    /// </summary>
+    public PdfDocumentConversionResult WithSourceConversionReport(IOfficeConversionReport report) {
+        Guard.NotNull(report, nameof(report));
+        var reports = new IOfficeConversionReport[SourceConversionReports.Count + 1];
+        reports[0] = report;
+        for (int i = 0; i < SourceConversionReports.Count; i++) {
+            reports[i + 1] = SourceConversionReports[i];
+        }
+        return new PdfDocumentConversionResult(Value, _sourceReport, Report, reports);
     }
 
     /// <summary>
@@ -211,7 +244,29 @@ public sealed partial class PdfDocumentConversionResult {
                 warningSummary.ErrorCount.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         }
 
-        return new PdfConversionProofReport(documentInfo, logicalDocument, extractedText, logicalSignals, artifactByteCount, artifactSha256, warningSummary, issues);
+        bool hasLoss = HasLoss;
+        if (options.RequireLosslessConversion && hasLoss) {
+            string lossyStages = string.Join(
+                ", ",
+                ConversionReports
+                    .Where(static report => report.HasLoss)
+                    .Select(static report => report.GetType().Name));
+            issues.Add(new PdfConversionProofIssue(
+                "ConversionLoss",
+                "no source or PDF conversion-stage loss",
+                string.IsNullOrEmpty(lossyStages) ? "reported loss" : lossyStages));
+        }
+
+        return new PdfConversionProofReport(
+            documentInfo,
+            logicalDocument,
+            extractedText,
+            logicalSignals,
+            artifactByteCount,
+            artifactSha256,
+            warningSummary,
+            hasLoss,
+            issues);
     }
 
     /// <summary>
@@ -242,7 +297,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -255,7 +310,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -268,7 +323,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -281,7 +336,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -294,7 +349,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -307,7 +362,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     /// <summary>
@@ -331,7 +386,7 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
@@ -341,13 +396,33 @@ public sealed partial class PdfDocumentConversionResult {
         } finally {
             RefreshConversionReport();
         }
-        return result.WithReport(Report);
+        return result.WithReport(Report, SourceConversionReports);
     }
 
     private static PdfConversionReport SnapshotReport(PdfConversionReport conversionReport) {
         var snapshot = new PdfConversionReport();
         snapshot.AddRange(conversionReport.Warnings);
         return snapshot;
+    }
+
+    private static IOfficeConversionReport[] SnapshotSourceReports(
+        IReadOnlyList<IOfficeConversionReport> sourceConversionReports) {
+        var snapshot = new IOfficeConversionReport[sourceConversionReports.Count];
+        for (int i = 0; i < sourceConversionReports.Count; i++) {
+            snapshot[i] = sourceConversionReports[i];
+        }
+        return snapshot;
+    }
+
+    private static IOfficeConversionReport[] CreateConversionReports(
+        IReadOnlyList<IOfficeConversionReport> sourceConversionReports,
+        PdfConversionReport pdfReport) {
+        var reports = new IOfficeConversionReport[sourceConversionReports.Count + 1];
+        for (int i = 0; i < sourceConversionReports.Count; i++) {
+            reports[i] = sourceConversionReports[i];
+        }
+        reports[reports.Length - 1] = pdfReport;
+        return reports;
     }
 
     private void RefreshConversionReport() {
@@ -379,7 +454,8 @@ public sealed partial class PdfDocumentConversionResult {
         options.RequiredWarningCodes.Count > 0 ||
         options.RequiredWarningSources.Count > 0 ||
         options.RequireNoUnexpectedWarnings ||
-        options.RequireNoErrorWarnings;
+        options.RequireNoErrorWarnings ||
+        options.RequireLosslessConversion;
 
     private void AddUnexpectedWarningIssues(List<PdfConversionProofIssue> issues, PdfConversionProofOptions options) {
         var unexpectedCodes = new HashSet<string>(StringComparer.Ordinal);

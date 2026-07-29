@@ -6,9 +6,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConverterOptionsApiTests {
     [Fact]
+    public void DirectAndComposedPdfOptionsUseUnambiguousStageNames() {
+        Type html = typeof(OfficeIMO.Html.Pdf.HtmlPdfSaveOptions);
+        Type asciiDoc = typeof(OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfSaveOptions);
+        Type latex = typeof(OfficeIMO.Latex.Pdf.LatexPdfSaveOptions);
+
+        Assert.Equal(typeof(PdfOptions), html.GetProperty("PdfOptions")?.PropertyType);
+        Assert.Null(html.GetProperty("DocumentOptions"));
+        Assert.Equal(typeof(MarkdownPdfSaveOptions), asciiDoc.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Equal(typeof(MarkdownPdfSaveOptions), latex.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Null(asciiDoc.GetProperty("PdfOptions"));
+        Assert.Null(latex.GetProperty("PdfOptions"));
+    }
+
+    [Fact]
     public void ConverterOptionsExposeExpectedResourceDefaults() {
         var markdown = new MarkdownPdfSaveOptions();
-        var word = new OfficeIMO.Word.Pdf.PdfSaveOptions();
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions();
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions();
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
         var html = new OfficeIMO.Html.Pdf.HtmlPdfSaveOptions();
@@ -21,13 +35,13 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Equal(PdfTextFallbackFeatures.Default, excel.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, powerPoint.TextFallbacks);
         AssertBalancedDefault(markdown.ResourcePolicy);
-        AssertPortable(word.ResourcePolicy);
+        AssertBalancedDefault(word.ResourcePolicy);
         AssertBalancedDefault(excel.ResourcePolicy);
         AssertBalancedDefault(powerPoint.ResourcePolicy);
         AssertBalancedDefault(html.ResourcePolicy);
         AssertBalancedDefault(rtf.ResourcePolicy);
-        AssertBalancedDefault(asciiDoc.PdfOptions.ResourcePolicy);
-        AssertBalancedDefault(latex.PdfOptions.ResourcePolicy);
+        AssertBalancedDefault(asciiDoc.MarkdownOptions.ResourcePolicy);
+        AssertBalancedDefault(latex.MarkdownOptions.ResourcePolicy);
         AssertPortable(PdfResourcePolicy.CreatePortableDeterministic());
     }
 
@@ -64,12 +78,12 @@ public sealed class PdfConverterOptionsApiTests {
 
     [Fact]
     public void WordProfileMapsPrintReadyChoices() {
-        var options = new OfficeIMO.Word.Pdf.PdfSaveOptions {
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
             IncludePageNumbers = false,
             DefaultTableBorders = false
         };
 
-        OfficeIMO.Word.Pdf.PdfSaveOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
+        OfficeIMO.Word.Pdf.WordPdfSaveOptions returned = options.UseProfile(PdfExportProfile.PrintReady);
 
         Assert.Same(options, returned);
         Assert.False(options.IncludePageNumbers);
@@ -126,7 +140,7 @@ public sealed class PdfConverterOptionsApiTests {
         var profile = (PdfExportProfile)999;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new MarkdownPdfSaveOptions().UseProfile(profile));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.PdfSaveOptions().UseProfile(profile));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseProfile(profile));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseProfile(profile));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseProfile(profile));
     }
@@ -256,7 +270,7 @@ public sealed class PdfConverterOptionsApiTests {
 
     private static void AssertBalancedDefault(PdfResourcePolicy policy) {
         Assert.True(policy.AllowSystemFontEmbedding);
-        Assert.False(policy.AllowDocumentFontEmbedding);
+        Assert.True(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);

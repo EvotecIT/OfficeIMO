@@ -842,6 +842,33 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void RegisterFontFamily_ReusingSameFamilyPreservesInFlightGlyphUsage() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        var options = new PdfOptions();
+        options.RegisterFontFamily(
+            PdfStandardFont.TimesRoman,
+            new PdfEmbeddedFontFamily("Idempotent Serif", fontData));
+        Assert.True(options.TryGetEmbeddedStandardFontProgram(PdfStandardFont.TimesRoman, out PdfTrueTypeFontProgram? firstProgram));
+        Assert.NotNull(firstProgram);
+        PdfGlyphRun firstRun = firstProgram!.ShapeText("header");
+
+        options.RegisterFontFamily(
+            PdfStandardFont.TimesRoman,
+            new PdfEmbeddedFontFamily("Idempotent Serif", (byte[])fontData.Clone()));
+        Assert.True(options.TryGetEmbeddedStandardFontProgram(PdfStandardFont.TimesRoman, out PdfTrueTypeFontProgram? secondProgram));
+        Assert.Same(firstProgram, secondProgram);
+
+        foreach (PdfGlyphInfo glyph in firstRun.Glyphs) {
+            Assert.Contains(glyph.GlyphId, secondProgram!.GetUsedGlyphIds());
+        }
+    }
+
+    [Fact]
     public void PdfTrueTypeFontProgram_ShapeTextProducesStableUnicodeGlyphRunForMultilingualText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

@@ -84,7 +84,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 
         var conversionReport = new PdfCore.PdfConversionReport();
-        PdfCore.PdfOptions documentOptions = options.DocumentOptions.Clone();
+        PdfCore.PdfOptions documentOptions = options.PdfOptions.Clone();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");
         if (rendered.Metadata.Title != null
@@ -122,7 +122,9 @@ internal static partial class HtmlPdfRenderedConverter {
             webFonts.Slots.Keys,
             StringComparer.OrdinalIgnoreCase);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
-        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.ResourcePolicy.AllowSystemFontEmbedding) {
+        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None &&
+            options.ResourcePolicy.AllowSystemFontEmbedding &&
+            options.ResourcePolicy.AllowDocumentFontEmbedding) {
             RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies, reservedFontSlots, cancellationToken);
         }
         ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);

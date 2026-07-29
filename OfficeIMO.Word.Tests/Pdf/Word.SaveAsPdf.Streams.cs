@@ -71,7 +71,7 @@ public partial class Word {
         document.Save();
 
         using var stream = new MemoryStream();
-        document.SaveAsPdf(stream, new PdfSaveOptions());
+        document.SaveAsPdf(stream, new WordPdfSaveOptions());
         Assert.Equal(0, stream.Position);
         Assert.True(stream.Length > 0);
     }
@@ -85,7 +85,7 @@ public partial class Word {
         document.Save();
 
         using var stream = new MemoryStream();
-        await document.SaveAsPdfAsync(stream, new PdfSaveOptions(), CancellationToken.None);
+        await document.SaveAsPdfAsync(stream, new WordPdfSaveOptions(), CancellationToken.None);
         Assert.Equal(0, stream.Position);
         Assert.True(stream.Length > 0);
     }
@@ -98,7 +98,7 @@ public partial class Word {
         document.AddParagraph("Hello native async bytes");
         document.Save();
 
-        byte[] bytes = document.ToPdf(new PdfSaveOptions {
+        byte[] bytes = document.ToPdf(new WordPdfSaveOptions {
             IncludePageNumbers = false,
             PageSize = new PdfCore.PageSize(240, 320),
             Margins = PdfCore.PageMargins.Uniform(36)

@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "N-A2";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "N-B2";
                 document.Save();
-                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                     IncludePageNumbers = false
                 });
             }

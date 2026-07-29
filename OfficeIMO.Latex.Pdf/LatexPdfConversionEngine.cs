@@ -13,13 +13,13 @@ internal static class LatexPdfConversionEngine {
 
         LatexPdfSaveOptions operation = (options ?? new LatexPdfSaveOptions()).CloneForConversion();
         LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.PdfOptions);
-        return result.WithAdditionalWarnings(ToPdfWarnings(document, projection));
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions);
+        return result
+            .WithSourceConversionReport(projection.Report)
+            .WithAdditionalWarnings(ToPdfWarnings(document));
     }
 
-    private static IEnumerable<PdfCore.PdfConversionWarning> ToPdfWarnings(
-        LatexDocument document,
-        LatexToMarkdownResult projection) {
+    private static IEnumerable<PdfCore.PdfConversionWarning> ToPdfWarnings(LatexDocument document) {
         foreach (LatexDiagnostic diagnostic in document.Diagnostics) {
             yield return new PdfCore.PdfConversionWarning(
                 "OfficeIMO.Latex.Pdf",
@@ -33,23 +33,6 @@ internal static class LatexPdfConversionEngine {
                 });
         }
 
-        foreach (LatexMarkdownConversionDiagnostic diagnostic in projection.Report.Diagnostics) {
-            string sourceSpan = diagnostic.LatexSpan.HasValue ? diagnostic.LatexSpan.Value.ToString() : "unknown";
-            yield return new PdfCore.PdfConversionWarning(
-                "OfficeIMO.Latex.Pdf",
-                diagnostic.Code,
-                diagnostic.Feature + " @ " + sourceSpan,
-                diagnostic.Message,
-                diagnostic.Outcome == LatexMarkdownConversionOutcome.Converted
-                    ? PdfCore.PdfConversionWarningSeverity.Information
-                    : PdfCore.PdfConversionWarningSeverity.Warning,
-                details: new Dictionary<string, string> {
-                    ["stage"] = "semantic-projection",
-                    ["feature"] = diagnostic.Feature,
-                    ["outcome"] = diagnostic.Outcome.ToString(),
-                    ["sourceSpan"] = sourceSpan
-                });
-        }
     }
 
     private static PdfCore.PdfConversionWarningSeverity ToPdfSeverity(LatexDiagnosticSeverity severity) => severity switch {

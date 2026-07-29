@@ -52,7 +52,7 @@ public partial class Word {
             document.AddParagraph("After list chart");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }
@@ -80,7 +80,7 @@ public partial class Word {
             document.AddParagraph("After list picture control");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false
             });
         }

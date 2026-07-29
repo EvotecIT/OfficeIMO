@@ -50,7 +50,7 @@ PdfDocument.Create()
 | PowerPoint presentation | `OfficeIMO.PowerPoint.Pdf` |
 | HTML | `OfficeIMO.Html.Pdf` |
 | Markdown | `OfficeIMO.Markdown.Pdf` |
-| OpenDocument | `OfficeIMO.OpenDocument.Pdf` |
+| OpenDocument | `OfficeIMO.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, or `.Odp.Pdf` |
 
 Use the [PDF API reference](/api/pdf/) for type-level detail. For conversion, inspect returned diagnostics before accepting approximated or omitted features.
 

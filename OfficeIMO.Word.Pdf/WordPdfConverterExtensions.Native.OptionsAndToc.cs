@@ -11,7 +11,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options, NativeFontMap nativeFontMap) {
+        private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, WordPdfSaveOptions? options, NativeFontMap nativeFontMap) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             if (options != null) {
@@ -122,7 +122,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ApplyNativeDefaultFont(
             WordDocument document,
             NativeDocumentDefaults defaults,
-            PdfSaveOptions? options,
+            WordPdfSaveOptions? options,
             PdfCore.PdfOptions pdfOptions,
             bool allowSystemFontEmbedding,
             bool allowDocumentFontEmbedding,
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTextFallbacks(
-            PdfSaveOptions? options,
+            WordPdfSaveOptions? options,
             PdfCore.PdfOptions pdfOptions,
             HashSet<PdfCore.PdfStandardFont> reservedFontSlots,
             bool preserveConfiguredFontSlots,
@@ -571,7 +571,7 @@ namespace OfficeIMO.Word.Pdf {
             return name;
         }
 
-        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, PdfSaveOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+        private static IReadOnlyList<NativeTableOfContentsEntry> BuildNativeTableOfContentsEntries(WordDocument document, WordPdfSaveOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
             var entries = new List<NativeTableOfContentsEntry>();
             int headingCount = CountNativeDocumentHeadings(document);
             int currentPage = 1;
