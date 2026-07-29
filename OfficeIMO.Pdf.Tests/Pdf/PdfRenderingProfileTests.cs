@@ -364,6 +364,55 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedPlannerPrefersNewestOverlappingFace() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var first = ManagedTextShapingTestAssets.CreateFont('A');
+        var newest = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", first, OfficeFontStyle.Regular, onlyA)
+            .Add("Scoped", newest, OfficeFontStyle.Regular, onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("newest-scoped", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Scoped",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+        PdfTextFallbackSegment segment = Assert.Single(planner.PlanText("A").Segments);
+
+        Assert.Equal(newest, planner.Candidates[segment.FontIndex].DataSnapshot);
+    }
+
+    [Fact]
+    public void RangeScopedPlannerResolvesOfficeFamilyListsInOrder() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("family-list", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "\"Missing\", \"Scoped\", \"Backup\"",
+            bold: false,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+
+        Assert.True(Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks)
+            .PlanText("A").IsFullyCovered);
+    }
+
+    [Fact]
     public void RequestedRangeFamilyCombinesWithDeclaredFallbacks() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
@@ -467,6 +516,49 @@ public sealed class PdfRenderingProfileTests {
         PdfTextFallbackSegment segment = Assert.Single(planner.PlanText("A").Segments);
 
         Assert.Equal("First", segment.FontName);
+    }
+
+    [Fact]
+    public void BoldItalicFallbackUsesRegularBeforePartialStyles() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Fallback", ManagedTextShapingTestAssets.CreateFont('A'))
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('B'),
+                OfficeFontStyle.Bold)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("bold-italic", fonts));
+
+        PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: true,
+                italic: true));
+
+        Assert.True(planner.PlanText("A").IsFullyCovered);
+        Assert.False(planner.PlanText("B").IsFullyCovered);
+    }
+
+    [Fact]
+    public void OverlaySlotFallbackCollisionStillRegistersProfileNamedFamily() {
+        var options = new PdfOptions()
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate(
+                        "Shared",
+                        ManagedTextShapingTestAssets.CreateFont('A'))
+                },
+                new[] { PdfStandardFont.Helvetica }));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Shared", ManagedTextShapingTestAssets.CreateFont('B'));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("slot-collision", fonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.True(options.HasNamedFontFamily("Shared"));
+        Assert.True(options.NamedFontFamilies["Shared"].Regular
+            .SequenceEqual(fonts.Faces[0].Data));
     }
 
     [Fact]
