@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private static void DiscoverDataColumns(
             Stream worksheetPart,
             XlsbImportOptions limits,
+            XlsbRecordReadBudget recordBudget,
             CancellationToken cancellationToken,
             out int firstColumn,
             out int lastColumn) {
@@ -21,7 +22,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 using var scanner = new XlsbStreamRecordSliceReader(
                     worksheetPart,
                     limits.MaxRecordBytes,
-                    new XlsbRecordReadBudget(limits.MaxRecordCount),
+                    recordBudget,
                     leaveOpen: true);
                 bool inSheetData = false;
                 int recordsSinceCancellationCheck = 0;

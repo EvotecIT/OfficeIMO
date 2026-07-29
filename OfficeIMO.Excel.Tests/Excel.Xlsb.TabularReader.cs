@@ -73,6 +73,32 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_SharesDiscoveryRecordBudgetAcrossWorksheetReaders() {
+        var recordBudget = new XlsbRecordReadBudget(12);
+        using (var firstWorksheet = CreateTabularWorksheet((0, 0U)))
+        using (var firstReader = CreateTabularReader(
+            firstWorksheet,
+            new[] { "First" },
+            hasHeaderRow: false,
+            new XlsbCellReadBudget(10),
+            recordBudget: recordBudget)) {
+            Assert.True(firstReader.HasRows);
+        }
+
+        using var secondWorksheet = CreateTabularWorksheet((0, 0U));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                secondWorksheet,
+                new[] { "Second" },
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10),
+                recordBudget: recordBudget));
+
+        Assert.Contains("workbook", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("BIFF12 records", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void XlsbTabularReader_InfersStableSchemaAndReplaysSampledRows() {
         using var worksheetPart = CreateNumericTabularWorksheet(
             (0, 1.25),
@@ -244,7 +270,8 @@ public partial class Excel {
         IReadOnlyList<string> sharedStrings,
         bool hasHeaderRow,
         XlsbCellReadBudget cellBudget,
-        ExcelReadOptions? options = null) =>
+        ExcelReadOptions? options = null,
+        XlsbRecordReadBudget? recordBudget = null) =>
         new(
             worksheetPart,
             sharedStrings,
@@ -253,7 +280,7 @@ public partial class Excel {
             hasHeaderRow,
             options ?? new ExcelReadOptions(),
             new XlsbImportOptions(),
-            new XlsbRecordReadBudget(100),
+            recordBudget ?? new XlsbRecordReadBudget(100),
             cellBudget,
             CancellationToken.None);
 

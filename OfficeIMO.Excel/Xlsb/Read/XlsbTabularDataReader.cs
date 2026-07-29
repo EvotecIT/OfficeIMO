@@ -82,6 +82,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 DiscoverDataColumns(
                     worksheetPart,
                     limits,
+                    recordBudget,
                     cancellationToken,
                     out actualFirstColumn,
                     out actualLastColumn);
