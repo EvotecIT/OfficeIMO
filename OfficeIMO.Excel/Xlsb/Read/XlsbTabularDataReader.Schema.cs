@@ -39,7 +39,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     (XlsbTabularValueKind[])_kinds.Clone(),
                     (double[])_numbers.Clone(),
                     (bool[])_booleans.Clone(),
-                    (string?[])_strings.Clone()));
+                    (string?[])_strings.Clone(),
+                    (object?[])_customValues.Clone()));
                 for (int ordinal = 0; ordinal < FieldCount; ordinal++) {
                     if (mixed[ordinal] || _kinds[ordinal] == XlsbTabularValueKind.Empty) {
                         continue;
@@ -62,6 +63,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _hasCurrentRow = false;
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
+            Array.Clear(_customValues, 0, _customValues.Length);
             return rows;
         }
 
@@ -70,6 +72,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Array.Copy(row.Numbers, _numbers, FieldCount);
             Array.Copy(row.Booleans, _booleans, FieldCount);
             Array.Copy(row.Strings, _strings, FieldCount);
+            Array.Copy(row.CustomValues, _customValues, FieldCount);
         }
 
         private static Type[] CreateObjectColumnTypes(int fieldCount) {
@@ -86,11 +89,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind[] kinds,
                 double[] numbers,
                 bool[] booleans,
-                string?[] strings) {
+                string?[] strings,
+                object?[] customValues) {
                 Kinds = kinds;
                 Numbers = numbers;
                 Booleans = booleans;
                 Strings = strings;
+                CustomValues = customValues;
             }
 
             internal XlsbTabularValueKind[] Kinds { get; }
@@ -100,6 +105,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             internal bool[] Booleans { get; }
 
             internal string?[] Strings { get; }
+
+            internal object?[] CustomValues { get; }
         }
     }
 }

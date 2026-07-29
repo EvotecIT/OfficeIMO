@@ -3,6 +3,7 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Drawing.Internal;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
@@ -646,7 +647,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
             options ??= new LegacyXlsImportOptions();
             options.Validate();
-            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compoundFile, out string? compoundError)) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            if (!OfficeCompoundFileReader.TryRead(
+                    bytes,
+                    options.CancellationToken,
+                    out OfficeCompoundFile? compoundFile,
+                    out string? compoundError)) {
                 var workbook = new LegacyXlsWorkbook();
                 if (!string.IsNullOrWhiteSpace(compoundError)) {
                     workbook.MutableDiagnostics.Add(CreateCompoundDiagnostic(compoundError!));
@@ -662,6 +668,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 return workbook;
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             byte[]? workbookStream = LegacyWorkbookStreamLocator.FindWorkbookStream(compoundFile!.Streams);
             if (workbookStream == null) {
                 var workbook = new LegacyXlsWorkbook();
@@ -681,10 +688,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 return workbook;
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options);
             parsedWorkbook.SourceCompoundFile = compoundFile;
+            options.CancellationToken.ThrowIfCancellationRequested();
             LegacyOleDocumentPropertyReader.AddDocumentProperties(compoundFile, parsedWorkbook, options);
+            options.CancellationToken.ThrowIfCancellationRequested();
             LegacyCompoundFeatureScanner.AddPreserveOnlyFeatures(compoundFile, parsedWorkbook, options);
+            options.CancellationToken.ThrowIfCancellationRequested();
             return parsedWorkbook;
         }
 
@@ -713,8 +724,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Projects this legacy workbook into a normal OfficeIMO Excel document.
         /// </summary>
         public ExcelDocument ToExcelDocument() {
-            return LegacyXlsWorkbookProjector.ToExcelDocument(this);
+            return ToExcelDocument(CancellationToken.None);
         }
+
+        internal ExcelDocument ToExcelDocument(CancellationToken cancellationToken) =>
+            LegacyXlsWorkbookProjector.ToExcelDocument(this, cancellationToken);
 
         /// <summary>
         /// Creates a compact import report for corpus baselines and preflight checks.

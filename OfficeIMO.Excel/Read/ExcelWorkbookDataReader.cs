@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.Xlsb.Read;
 
 namespace OfficeIMO.Excel {
@@ -57,28 +58,40 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelWorkbookDataReader OpenLegacy(string path, ExcelReadOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            return CreateLegacy(
-                ExcelDocument.Load(
-                    path,
-                    new ExcelLoadOptions {
-                        AccessMode = DocumentAccessMode.ReadOnly,
-                        MaxInputBytes = options.MaxInputBytes
-                    }),
-                options);
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            byte[] bytes = OfficeIMO.Drawing.Internal.OfficeStreamReader.ReadRemainingBytes(
+                stream,
+                options.CancellationToken,
+                options.MaxInputBytes);
+            return OpenLegacyCore(bytes, path, options);
         }
 
         internal static ExcelWorkbookDataReader OpenLegacy(byte[] bytes, ExcelReadOptions options) {
-            options.CancellationToken.ThrowIfCancellationRequested();
-            using var stream = new MemoryStream(bytes, writable: false);
+            return OpenLegacyCore(bytes, sourcePath: null, options);
+        }
+
+        private static ExcelWorkbookDataReader OpenLegacyCore(
+            byte[] bytes,
+            string? sourcePath,
+            ExcelReadOptions options) {
+            LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
             return CreateLegacy(
-                ExcelDocument.Load(
-                    stream,
-                    new ExcelLoadOptions {
-                        AccessMode = DocumentAccessMode.ReadOnly,
-                        MaxInputBytes = options.MaxInputBytes
-                    }),
+                ExcelDocument.LoadLegacyXlsFromNormalFlow(
+                    bytes,
+                    readOnly: true,
+                    saveOnDispose: false,
+                    sourcePath,
+                    importOptions),
                 options);
         }
+
+        internal static LegacyXlsImportOptions CreateLegacyImportOptions(ExcelReadOptions options) =>
+            new() {
+                MaxInputBytes = options.MaxInputBytes > int.MaxValue
+                    ? int.MaxValue
+                    : checked((int)options.MaxInputBytes),
+                CancellationToken = options.CancellationToken
+            };
 
         private static ExcelWorkbookDataReader CreateLegacy(
             ExcelDocument document,

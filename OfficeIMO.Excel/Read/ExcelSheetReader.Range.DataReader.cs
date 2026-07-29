@@ -17,6 +17,18 @@ namespace OfficeIMO.Excel {
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
             CancellationToken ct = default) {
+            if (TryGetWorksheetCellPresence(out bool hasCells) && !hasCells) {
+                return new ExcelRangeDataReader(
+                    Array.Empty<RangeChunk>(),
+                    firstRow: 1,
+                    lastRow: 0,
+                    fieldCount: 0,
+                    headersInFirstRow,
+                    schemaSampleRows,
+                    _opt,
+                    ct);
+            }
+
             if (schemaSampleRows == 0
                 && TryCreateIndexedUsedRangeDataReader(headersInFirstRow, ct, out IDataReader? indexedReader)) {
                 return indexedReader!;
@@ -391,7 +403,7 @@ namespace OfficeIMO.Excel {
                     _prefetchedRows.Add(row);
                 }
 
-                _columnTypes = options.InferDataTableColumnTypes
+                _columnTypes = schemaSampleRows > 0
                     ? InferColumnTypes(_prefetchedRows, fieldCount)
                     : CreateObjectColumnTypes(fieldCount);
                 _hasRows = _prefetchedRows.Count > 0 || _nextRow <= _lastRow;

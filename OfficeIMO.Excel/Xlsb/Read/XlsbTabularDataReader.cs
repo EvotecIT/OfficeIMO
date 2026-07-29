@@ -2,6 +2,7 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Projection;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data.Common;
 using System.Globalization;
 using System.Threading;
@@ -42,6 +43,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly double[] _numbers;
         private readonly bool[] _booleans;
         private readonly string?[] _strings;
+        private readonly object?[] _customValues;
         private readonly int _firstColumn;
         private readonly CancellationToken _cancellationToken;
         private bool _closed;
@@ -128,6 +130,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _numbers = new double[fieldCount];
                 _booleans = new bool[fieldCount];
                 _strings = new string?[fieldCount];
+                _customValues = new object?[fieldCount];
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
                 _schemaRows = _options.InferSchema
                     ? BufferSchemaRows()
@@ -172,6 +175,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
+            Array.Clear(_customValues, 0, _customValues.Length);
             if (_nextLogicalRowIndex < _pendingRowIndex) {
                 _nextLogicalRowIndex++;
                 _hasCurrentRow = true;
@@ -292,87 +296,35 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private void StoreCell(XlsbRecordSlice record) {
-            EnsureFormulaModeSupported(record.Type);
-            var cursor = record.CreateCursor();
-            int column = cursor.ReadInt32();
-            uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
-            if (column < 0 || column >= A1.MaxColumns) {
-                throw new InvalidDataException(
-                    $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
+            if (_options.CellValueConverter == null) {
+                StoreCellFast(record);
+                return;
             }
 
-            int ordinal = column - _firstColumn;
+            DecodedCell cell = DecodeCell(record);
+            int ordinal = cell.Column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
                 throw new InvalidDataException(
-                    $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
+                    $"The XLSB row contains column {cell.Column} outside the schema established by its header or worksheet dimension.");
             }
 
-            _cellBudget.Consume();
-
-            switch (record.Type) {
-                case BrtCellBlank:
-                    _kinds[ordinal] = XlsbTabularValueKind.Empty;
+            _kinds[ordinal] = cell.Kind;
+            switch (cell.Kind) {
+                case XlsbTabularValueKind.Text:
+                case XlsbTabularValueKind.Error:
+                    _strings[ordinal] = cell.Text;
                     break;
-                case BrtCellRk:
-                    StoreNumber(ordinal, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), styleIndex);
+                case XlsbTabularValueKind.Number:
+                case XlsbTabularValueKind.Date:
+                    _numbers[ordinal] = cell.Number;
                     break;
-                case BrtCellError:
-                    _kinds[ordinal] = XlsbTabularValueKind.Error;
-                    _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
+                case XlsbTabularValueKind.Boolean:
+                    _booleans[ordinal] = cell.Boolean;
                     break;
-                case BrtCellBool:
-                    _kinds[ordinal] = XlsbTabularValueKind.Boolean;
-                    _booleans[ordinal] = cursor.ReadByte() != 0;
+                case XlsbTabularValueKind.Custom:
+                    _customValues[ordinal] = cell.CustomValue;
                     break;
-                case BrtCellReal:
-                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
-                    break;
-                case BrtCellSt:
-                    _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
-                    break;
-                case BrtCellIsst: {
-                    uint sharedStringIndex = cursor.ReadUInt32();
-                    if (sharedStringIndex >= _sharedStrings.Count) {
-                        throw new InvalidDataException(
-                            $"The XLSB cell refers to missing shared string {sharedStringIndex}.");
-                    }
-
-                    _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = _sharedStrings[checked((int)sharedStringIndex)];
-                    break;
-                }
-                case BrtCellRString:
-                    cursor.ReadByte();
-                    _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
-                    break;
-                case BrtFmlaString:
-                    _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = cursor.ReadWideString(_limits.MaxStringCharacters);
-                    break;
-                case BrtFmlaNum:
-                    StoreNumber(ordinal, cursor.ReadDouble(), styleIndex);
-                    break;
-                case BrtFmlaBool:
-                    _kinds[ordinal] = XlsbTabularValueKind.Boolean;
-                    _booleans[ordinal] = cursor.ReadByte() != 0;
-                    break;
-                case BrtFmlaError:
-                    _kinds[ordinal] = XlsbTabularValueKind.Error;
-                    _strings[ordinal] = BiffErrorValue.ToText(cursor.ReadByte());
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
             }
-        }
-
-        private void StoreNumber(int ordinal, double number, uint styleIndex) {
-            bool isDate = _options.TreatDatesUsingNumberFormat
-                && styleIndex < _dateStyles.Length
-                && _dateStyles[styleIndex];
-            _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
-            _numbers[ordinal] = number;
         }
 
         private DecodedCell DecodeCell(XlsbRecordSlice record) {
@@ -389,25 +341,32 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && styleIndex < _dateStyles.Length
                 && _dateStyles[styleIndex];
+            DecodedCell cell;
             switch (record.Type) {
                 case BrtCellBlank:
-                    return new DecodedCell(column, XlsbTabularValueKind.Empty);
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Empty);
+                    break;
                 case BrtCellRk:
-                    return NumericCell(column, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), isDate);
+                    cell = NumericCell(column, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), isDate);
+                    break;
                 case BrtCellError:
-                    return new DecodedCell(column, XlsbTabularValueKind.Error) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Error) {
                         Text = BiffErrorValue.ToText(cursor.ReadByte())
                     };
+                    break;
                 case BrtCellBool:
-                    return new DecodedCell(column, XlsbTabularValueKind.Boolean) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Boolean) {
                         Boolean = cursor.ReadByte() != 0
                     };
+                    break;
                 case BrtCellReal:
-                    return NumericCell(column, cursor.ReadDouble(), isDate);
+                    cell = NumericCell(column, cursor.ReadDouble(), isDate);
+                    break;
                 case BrtCellSt:
-                    return new DecodedCell(column, XlsbTabularValueKind.Text) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = cursor.ReadWideString(_limits.MaxStringCharacters)
                     };
+                    break;
                 case BrtCellIsst: {
                     uint sharedStringIndex = cursor.ReadUInt32();
                     if (sharedStringIndex >= _sharedStrings.Count) {
@@ -415,32 +374,41 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell refers to missing shared string {sharedStringIndex}.");
                     }
 
-                    return new DecodedCell(column, XlsbTabularValueKind.Text) {
-                        Text = _sharedStrings[checked((int)sharedStringIndex)]
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
+                        Text = _sharedStrings[checked((int)sharedStringIndex)],
+                        RawText = sharedStringIndex.ToString(CultureInfo.InvariantCulture)
                     };
+                    break;
                 }
                 case BrtCellRString:
                     cursor.ReadByte();
-                    return new DecodedCell(column, XlsbTabularValueKind.Text) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = cursor.ReadWideString(_limits.MaxStringCharacters)
                     };
+                    break;
                 case BrtFmlaString:
-                    return new DecodedCell(column, XlsbTabularValueKind.Text) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
                         Text = cursor.ReadWideString(_limits.MaxStringCharacters)
                     };
+                    break;
                 case BrtFmlaNum:
-                    return NumericCell(column, cursor.ReadDouble(), isDate);
+                    cell = NumericCell(column, cursor.ReadDouble(), isDate);
+                    break;
                 case BrtFmlaBool:
-                    return new DecodedCell(column, XlsbTabularValueKind.Boolean) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Boolean) {
                         Boolean = cursor.ReadByte() != 0
                     };
+                    break;
                 case BrtFmlaError:
-                    return new DecodedCell(column, XlsbTabularValueKind.Error) {
+                    cell = new DecodedCell(column, XlsbTabularValueKind.Error) {
                         Text = BiffErrorValue.ToText(cursor.ReadByte())
                     };
+                    break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
             }
+
+            return ApplyCellValueConverter(cell, styleIndex, record.Type);
         }
 
         private static DecodedCell NumericCell(int column, double number, bool isDate) =>
@@ -454,8 +422,51 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Number => cell.Number.ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
                 XlsbTabularValueKind.Date => ConvertDate(cell.Number).ToString(_options.Culture),
+                XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
                 _ => null
             };
+
+        private DecodedCell ApplyCellValueConverter(
+            DecodedCell cell,
+            uint styleIndex,
+            int recordType) {
+            Func<ExcelCellContext, ExcelCellValue>? converter = _options.CellValueConverter;
+            if (converter == null) {
+                return cell;
+            }
+
+            CellValues? typeHint = cell.Kind switch {
+                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date => CellValues.Number,
+                XlsbTabularValueKind.Boolean => CellValues.Boolean,
+                XlsbTabularValueKind.Error => CellValues.Error,
+                XlsbTabularValueKind.Text when recordType == BrtCellIsst => CellValues.SharedString,
+                XlsbTabularValueKind.Text => CellValues.String,
+                _ => null
+            };
+            string? rawText = cell.RawText ?? cell.Kind switch {
+                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date =>
+                    cell.Number.ToString("R", CultureInfo.InvariantCulture),
+                XlsbTabularValueKind.Boolean => cell.Boolean ? "1" : "0",
+                XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
+                _ => null
+            };
+            string? inlineText = cell.Kind == XlsbTabularValueKind.Text
+                                 && recordType != BrtCellIsst
+                ? cell.Text
+                : null;
+            ExcelCellValue converted = converter(
+                new ExcelCellContext(
+                    typeHint,
+                    styleIndex,
+                    rawText,
+                    inlineText,
+                    _options.Culture));
+            return converted.Handled
+                ? new DecodedCell(cell.Column, XlsbTabularValueKind.Custom) {
+                    CustomValue = converted.Value
+                }
+                : cell;
+        }
 
         private DateTime ConvertDate(double serial) {
             if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value)) {
@@ -583,6 +594,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
                 XlsbTabularValueKind.Date => typeof(DateTime),
+                XlsbTabularValueKind.Custom => _customValues[ordinal]?.GetType() ?? typeof(object),
                 _ => typeof(object)
             };
 
@@ -600,7 +612,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Number,
             Boolean,
             Date,
-            Error
+            Error,
+            Custom
         }
 
         private struct DecodedCell {
@@ -610,6 +623,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 Number = 0;
                 Boolean = false;
                 Text = null;
+                RawText = null;
+                CustomValue = null;
             }
 
             internal int Column { get; }
@@ -621,6 +636,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             internal bool Boolean { get; set; }
 
             internal string? Text { get; set; }
+
+            internal string? RawText { get; set; }
+
+            internal object? CustomValue { get; set; }
         }
     }
 }

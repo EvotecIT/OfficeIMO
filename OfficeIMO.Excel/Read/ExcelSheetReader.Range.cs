@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -46,6 +47,33 @@ namespace OfficeIMO.Excel {
             string usedRange = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             _usedRangeA1 = usedRange;
             return usedRange;
+        }
+
+        private bool TryGetWorksheetCellPresence(out bool hasCells) {
+            hasCells = false;
+            if (_canStreamWorksheetPart) {
+                try {
+                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    if (TryPrepareWorksheetStream(stream)) {
+                        using var reader = OpenWorksheetXmlReader(stream);
+                        while (reader.Read()) {
+                            if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
+                                hasCells = true;
+                                return true;
+                            }
+                        }
+
+                        return true;
+                    }
+                } catch (XmlException) {
+                } catch (IOException) {
+                } catch (UnauthorizedAccessException) {
+                } catch (ObjectDisposedException) {
+                }
+            }
+
+            hasCells = WorksheetRoot.Descendants<Cell>().Any();
+            return true;
         }
 
         private bool TryGetWorksheetDimensionReferenceFromXml(out string reference) {

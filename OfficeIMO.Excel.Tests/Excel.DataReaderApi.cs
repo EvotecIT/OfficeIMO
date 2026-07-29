@@ -100,6 +100,18 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_LegacyImportUsesTheConfiguredInputLimit() {
+        var options = new ExcelReadOptions {
+            MaxInputBytes = 128L * 1024L * 1024L
+        };
+
+        OfficeIMO.Excel.LegacyXls.LegacyXlsImportOptions importOptions =
+            ExcelWorkbookDataReader.CreateLegacyImportOptions(options);
+
+        Assert.Equal(128 * 1024 * 1024, importOptions.MaxInputBytes);
+    }
+
+    [Fact]
     public void OpenDataReader_ReadsSeekableWorkbookStreamFromCurrentPositionAndRestoresIt() {
         byte[] workbook = File.ReadAllBytes(GetDataReaderXlsbFixture("basic-values-formula.xlsb"));
         byte[] prefix = Encoding.UTF8.GetBytes("already-consumed-envelope");
@@ -355,6 +367,94 @@ public partial class Excel {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => reader.Read());
+    }
+
+    [Fact]
+    public void OpenDataReader_LegacyXlsObservesCancellationWhileBufferingInput() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Cancel.{Guid.NewGuid():N}.xls");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                for (int row = 2; row <= 2000; row++) {
+                    sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));
+                }
+                document.Save();
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            using var stream = new CancelingReadStream(File.ReadAllBytes(path), cancellation, 1024);
+            Assert.Throws<OperationCanceledException>(() =>
+                ExcelDocument.OpenDataReader(
+                    stream,
+                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+            Assert.True(stream.CanRead);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsxInfersSchemaIndependentlyOfDataTableInference() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Schema.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, 42);
+                document.Save();
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    InferSchema = true,
+                    InferDataTableColumnTypes = false
+                });
+
+            Assert.Equal(typeof(double), reader.GetFieldType(0));
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_EmptyHeaderlessXlsxHasNoRows() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Empty.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Empty");
+                document.Save();
+            }
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions { HasHeaderRow = false });
+
+            Assert.Equal(0, reader.FieldCount);
+            Assert.False(reader.HasRows);
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OpenDataReader_XlsbHonorsTheCellValueConverter() {
+        using DbDataReader reader = ExcelDocument.OpenDataReader(
+            GetDataReaderXlsbFixture("basic-values-formula.xlsb"),
+            new ExcelReadOptions {
+                CellValueConverter = context =>
+                    context.RawText == "42"
+                        ? new ExcelCellValue("converted")
+                        : ExcelCellValue.NotHandled
+            });
+
+        Assert.True(reader.Read());
+        Assert.Equal("converted", reader.GetString(1));
+        Assert.Equal(typeof(string), reader.GetFieldType(1));
     }
 
     [Fact]

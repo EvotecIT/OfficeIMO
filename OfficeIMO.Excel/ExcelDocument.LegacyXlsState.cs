@@ -164,19 +164,31 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(LegacyXlsWorkbook workbook, string? sourcePath, bool readOnly = false) {
+        internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(
+            LegacyXlsWorkbook workbook,
+            string? sourcePath,
+            bool readOnly = false,
+            CancellationToken cancellationToken = default) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
                 throw new InvalidDataException("Legacy XLS import failed: no supported worksheets or chart sheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
             }
 
-            ExcelDocument document = workbook.ToExcelDocument();
-            if (readOnly) {
-                document = ReopenProjectedWorkbookReadOnly(document);
+            ExcelDocument document = workbook.ToExcelDocument(cancellationToken);
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (readOnly) {
+                    document = ReopenProjectedWorkbookReadOnly(document);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                document.MarkLoadedFromLegacyXls(sourcePath, workbook);
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
             }
-            document.MarkLoadedFromLegacyXls(sourcePath, workbook);
-            return document;
         }
 
         private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls, ExcelSaveOptions? options = null) {

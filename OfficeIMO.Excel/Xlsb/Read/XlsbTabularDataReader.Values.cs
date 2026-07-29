@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal],
                 XlsbTabularValueKind.Date => ConvertDate(_numbers[ordinal]),
+                XlsbTabularValueKind.Custom => _customValues[ordinal] ?? DBNull.Value,
                 _ => DBNull.Value
             };
         }
@@ -64,7 +65,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override bool IsDBNull(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] == XlsbTabularValueKind.Empty;
+            return _kinds[ordinal] == XlsbTabularValueKind.Empty
+                   || _kinds[ordinal] == XlsbTabularValueKind.Custom
+                   && _customValues[ordinal] == null;
         }
 
         public override string GetString(int ordinal) {
@@ -74,6 +77,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
                 XlsbTabularValueKind.Date => ConvertDate(_numbers[ordinal]).ToString(_options.Culture),
+                XlsbTabularValueKind.Custom when _customValues[ordinal] != null =>
+                    Convert.ToString(_customValues[ordinal], _options.Culture)
+                    ?? string.Empty,
                 _ => throw new InvalidCastException("The XLSB cell is blank.")
             };
         }
