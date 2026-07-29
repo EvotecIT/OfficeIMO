@@ -13,8 +13,6 @@ internal static partial class PdfWriter {
         Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
     private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
-        PdfEmbeddedFontFallbackSet? fallbackSet = options?.EmbeddedFontFallbacksSnapshot;
-
         var normalized = new System.Collections.Generic.List<TextRun>();
         foreach (TextRun run in runs) {
             if (run.InlineElement != null) {
@@ -44,6 +42,11 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            PdfEmbeddedFontFallbackSet? fallbackSet =
+                options?.GetEffectiveRenderingProfileDeclaredFallbacks(
+                    run.Bold,
+                    run.Italic)
+                ?? options?.EmbeddedFontFallbacksSnapshot;
             if (fallbackSet != null
                 && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns)
                     || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
