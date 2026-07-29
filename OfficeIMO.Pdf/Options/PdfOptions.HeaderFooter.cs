@@ -20,6 +20,7 @@ public sealed partial class PdfOptions {
             Guard.StandardFont(value, nameof(HeaderFont), "PDF header font must be one of the supported standard PDF fonts.");
             _headerFont = value;
             _hasExplicitHeaderFont = true;
+            MarkFontConfigurationChanged();
         }
     }
     /// <summary>Gets whether the header font slot was explicitly supplied by the caller or a theme.</summary>
@@ -33,10 +34,17 @@ public sealed partial class PdfOptions {
             }
 
             _headerFontFamily = value?.Trim();
+            MarkFontConfigurationChanged();
         }
     }
     /// <summary>Header font size in points.</summary>
-    public double HeaderFontSize { get; set; } = 9;
+    public double HeaderFontSize {
+        get => _headerFontSize;
+        set {
+            _headerFontSize = value;
+            MarkFontConfigurationChanged();
+        }
+    }
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
     public PdfColor? HeaderTextColor { get; set; }
     /// <summary>Header alignment.</summary>
@@ -65,6 +73,7 @@ public sealed partial class PdfOptions {
             Guard.StandardFont(value, nameof(FooterFont), "PDF footer font must be one of the supported standard PDF fonts.");
             _footerFont = value;
             _hasExplicitFooterFont = true;
+            MarkFontConfigurationChanged();
         }
     }
     /// <summary>Gets whether the footer font slot was explicitly supplied by the caller or a theme.</summary>
@@ -78,10 +87,17 @@ public sealed partial class PdfOptions {
             }
 
             _footerFontFamily = value?.Trim();
+            MarkFontConfigurationChanged();
         }
     }
     /// <summary>Footer font size in points.</summary>
-    public double FooterFontSize { get; set; } = 9;
+    public double FooterFontSize {
+        get => _footerFontSize;
+        set {
+            _footerFontSize = value;
+            MarkFontConfigurationChanged();
+        }
+    }
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>
     public PdfColor? FooterTextColor { get; set; }
     /// <summary>Footer alignment.</summary>

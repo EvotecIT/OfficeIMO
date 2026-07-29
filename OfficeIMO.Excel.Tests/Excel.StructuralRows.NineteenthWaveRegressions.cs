@@ -103,6 +103,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Keep", data.CellAt(1, 1).GetValue<string>());
         }
 
+        [Fact]
+        public void Test_StructuralRows_MutationPlanCountsOnlyChangedDrawingAnchors() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            AddCellLinkedDrawingShape(sheet, 1U, string.Empty);
+
+            ExcelRowMutationPlan unaffected = sheet.PlanInsertRows(10);
+            Assert.DoesNotContain(
+                unaffected.Impacts,
+                impact => impact.Category == "drawings");
+
+            ExcelRowMutationPlan affected = sheet.PlanInsertRows(1);
+            ExcelMutationImpact drawings = Assert.Single(
+                affected.Impacts,
+                impact => impact.Category == "drawings");
+            Assert.Equal(1, drawings.ItemCount);
+        }
+
         private static Xdr.Shape AddCellLinkedDrawingShape(
             ExcelSheet sheet,
             uint shapeId,
