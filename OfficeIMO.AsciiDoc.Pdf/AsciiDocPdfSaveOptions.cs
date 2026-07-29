@@ -7,7 +7,7 @@ namespace OfficeIMO.AsciiDoc.Pdf;
 /// <summary>Controls the loss-aware AsciiDoc-to-PDF route.</summary>
 public sealed class AsciiDocPdfSaveOptions {
     private AsciiDocToMarkdownOptions _projectionOptions = new AsciiDocToMarkdownOptions();
-    private MarkdownPdfSaveOptions _pdfOptions = new MarkdownPdfSaveOptions();
+    private MarkdownPdfSaveOptions _markdownOptions = new MarkdownPdfSaveOptions();
 
     /// <summary>AsciiDoc-to-Markdown semantic projection settings.</summary>
     public AsciiDocToMarkdownOptions ProjectionOptions {
@@ -16,9 +16,9 @@ public sealed class AsciiDocPdfSaveOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownPdfSaveOptions PdfOptions {
-        get => _pdfOptions;
-        set => _pdfOptions = value ?? throw new ArgumentNullException(nameof(value));
+    public MarkdownPdfSaveOptions MarkdownOptions {
+        get => _markdownOptions;
+        set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
 
     internal AsciiDocPdfSaveOptions CloneForConversion() => new AsciiDocPdfSaveOptions {
@@ -29,6 +29,6 @@ public sealed class AsciiDocPdfSaveOptions {
             ExpandDocumentAttributes = ProjectionOptions.ExpandDocumentAttributes,
             UndefinedAttributeBehavior = ProjectionOptions.UndefinedAttributeBehavior
         },
-        PdfOptions = PdfOptions.Clone()
+        MarkdownOptions = MarkdownOptions.Clone()
     };
 }

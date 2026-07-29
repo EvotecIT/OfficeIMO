@@ -1,5 +1,4 @@
 using OfficeIMO.Excel.OpenDocument;
-using OfficeIMO.OpenDocument.Internal;
 using ExcelPdf = OfficeIMO.Excel.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -17,7 +16,7 @@ public static class OdsPdfConversionExtensions {
         OdfConversionResult<OfficeIMO.Excel.ExcelDocument> conversion = source.ToExcelDocumentResult(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = ExcelPdf.ExcelPdfConverterExtensions.ToPdfDocumentResult(conversion.Value, pdfOptions);
-            return OdfPdfConversionDiagnostics.Attach(result, conversion.Report, "OfficeIMO.OpenDocument.Ods.Pdf");
+            return result.WithSourceConversionReport(conversion.Report);
         }
     }
 

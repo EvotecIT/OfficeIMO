@@ -1,5 +1,4 @@
 using OfficeIMO.PowerPoint.OpenDocument;
-using OfficeIMO.OpenDocument.Internal;
 using PowerPointPdf = OfficeIMO.PowerPoint.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -17,7 +16,7 @@ public static class OdpPdfConversionExtensions {
         OdfConversionResult<OfficeIMO.PowerPoint.PowerPointPresentation> conversion = source.ToPowerPointPresentationResult(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = PowerPointPdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(conversion.Value, pdfOptions);
-            return OdfPdfConversionDiagnostics.Attach(result, conversion.Report, "OfficeIMO.OpenDocument.Odp.Pdf");
+            return result.WithSourceConversionReport(conversion.Report);
         }
     }
 

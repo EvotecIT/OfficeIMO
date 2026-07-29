@@ -1434,7 +1434,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_DirectRenderer_PreservesExplicitUntaggedDocumentMode() {
         var options = new HtmlPdfSaveOptions {
-            DocumentOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfOptions {
                 TaggedStructureMode = PdfCore.PdfTaggedStructureMode.None
             }
         };
@@ -1459,7 +1459,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_PreservesCallerDocumentLanguageOverHtmlMetadata() {
         const string html = "<html lang='fr-FR'><body><p>Language precedence</p></body></html>";
         var options = new HtmlPdfSaveOptions();
-        options.DocumentOptions.Language = "en-US";
+        options.PdfOptions.Language = "en-US";
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 

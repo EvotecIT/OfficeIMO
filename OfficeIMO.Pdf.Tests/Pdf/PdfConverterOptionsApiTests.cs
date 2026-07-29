@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfConverterOptionsApiTests {
     [Fact]
+    public void DirectAndComposedPdfOptionsUseUnambiguousStageNames() {
+        Type html = typeof(OfficeIMO.Html.Pdf.HtmlPdfSaveOptions);
+        Type asciiDoc = typeof(OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfSaveOptions);
+        Type latex = typeof(OfficeIMO.Latex.Pdf.LatexPdfSaveOptions);
+
+        Assert.Equal(typeof(PdfOptions), html.GetProperty("PdfOptions")?.PropertyType);
+        Assert.Null(html.GetProperty("DocumentOptions"));
+        Assert.Equal(typeof(MarkdownPdfSaveOptions), asciiDoc.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Equal(typeof(MarkdownPdfSaveOptions), latex.GetProperty("MarkdownOptions")?.PropertyType);
+        Assert.Null(asciiDoc.GetProperty("PdfOptions"));
+        Assert.Null(latex.GetProperty("PdfOptions"));
+    }
+
+    [Fact]
     public void ConverterOptionsExposeExpectedResourceDefaults() {
         var markdown = new MarkdownPdfSaveOptions();
         var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions();
@@ -26,8 +40,8 @@ public sealed class PdfConverterOptionsApiTests {
         AssertBalancedDefault(powerPoint.ResourcePolicy);
         AssertBalancedDefault(html.ResourcePolicy);
         AssertBalancedDefault(rtf.ResourcePolicy);
-        AssertBalancedDefault(asciiDoc.PdfOptions.ResourcePolicy);
-        AssertBalancedDefault(latex.PdfOptions.ResourcePolicy);
+        AssertBalancedDefault(asciiDoc.MarkdownOptions.ResourcePolicy);
+        AssertBalancedDefault(latex.MarkdownOptions.ResourcePolicy);
         AssertPortable(PdfResourcePolicy.CreatePortableDeterministic());
     }
 

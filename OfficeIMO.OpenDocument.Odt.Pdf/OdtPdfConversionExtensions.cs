@@ -1,5 +1,4 @@
 using OfficeIMO.Word.OpenDocument;
-using OfficeIMO.OpenDocument.Internal;
 using WordPdf = OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -25,7 +24,7 @@ public static class OdtPdfConversionExtensions {
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result =
                 WordPdf.WordPdfConverterExtensions.ToPdfDocumentResult(conversion.Value, pdfOptions);
-            return OdfPdfConversionDiagnostics.Attach(result, conversion.Report, "OfficeIMO.OpenDocument.Odt.Pdf");
+            return result.WithSourceConversionReport(conversion.Report);
         }
     }
 

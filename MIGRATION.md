@@ -6,15 +6,15 @@ Choose the section for the version currently used by the application:
 
 | Current version | Upgrade path |
 | --- | --- |
-| `3.x` | Complete [Migrating from OfficeIMO 3.x to 4.0](#migrating-from-officeimo-3x-to-40). |
-| `2.x` | Complete the [3.0](#migrating-from-officeimo-2x-to-30) section, then the [4.0](#migrating-from-officeimo-3x-to-40) section. |
-| `1.x` | Complete the [2.0](#migrating-from-officeimo-1x-to-20), [3.0](#migrating-from-officeimo-2x-to-30), and [4.0](#migrating-from-officeimo-3x-to-40) sections in order. |
+| `3.0` | Complete [Migrating from OfficeIMO 3.0 to 3.1](#migrating-from-officeimo-30-to-31). |
+| `2.x` | Complete the [3.0](#migrating-from-officeimo-2x-to-30) section, then the [3.1](#migrating-from-officeimo-30-to-31) section. |
+| `1.x` | Complete the [2.0](#migrating-from-officeimo-1x-to-20), [3.0](#migrating-from-officeimo-2x-to-30), and [3.1](#migrating-from-officeimo-30-to-31) sections in order. |
 
 Do not mix package compatibility lines in one dependency graph. Adapter packages reference their owning document and renderer packages from the same coordinated line.
 
-## Migrating from OfficeIMO 3.x to 4.0
+## Migrating from OfficeIMO 3.0 to 3.1
 
-OfficeIMO 4.0 gives each optional PDF adapter one discoverable surface in both directions. Open a PDF once with `PdfDocument.Open(...)`, then call the destination-shaped method supplied by the package you installed.
+OfficeIMO 3.1 gives each optional PDF adapter one discoverable surface in both directions. Open a PDF once with `PdfDocument.Open(...)`, then call the destination-shaped method supplied by the package you installed.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -49,7 +49,7 @@ selected.SaveAsWord("selected.docx");
 
 ### OpenDocument PDF packages
 
-The 3.x `OfficeIMO.OpenDocument.Pdf` package pulled Word, Excel, and PowerPoint adapters together. In 4.0 it is replaced by focused packages so applications carry only the route they use:
+The 3.0 `OfficeIMO.OpenDocument.Pdf` package pulled Word, Excel, and PowerPoint adapters together. In 3.1 it is replaced by focused packages so applications carry only the route they use:
 
 | Route | Focused package | Reverse entry point |
 | --- | --- | --- |
@@ -57,13 +57,21 @@ The 3.x `OfficeIMO.OpenDocument.Pdf` package pulled Word, Excel, and PowerPoint 
 | ODS ⇄ PDF | `OfficeIMO.OpenDocument.Ods.Pdf` | `pdf.ToOdsDocument()` |
 | ODP ⇄ PDF | `OfficeIMO.OpenDocument.Odp.Pdf` | `pdf.ToOdpPresentation()` |
 
-There is no umbrella or bridge-specific Core package in 4.0. Install the format adapter your application actually uses.
+There is no umbrella or bridge-specific Core package in 3.1. Install the format adapter your application actually uses.
 
-Each reverse result exposes the native PDF import report and the OpenDocument feature-mapping report. PDF-to-ODS reports non-table page content as loss. PDF-to-ODP defaults to visual pages when the receiver is an opened `PdfDocument`; the lower-level logical receiver supports the editable-table profile because visual rendering needs the original PDF bytes.
+Each reverse result exposes the native PDF import report and the OpenDocument feature-mapping report. Forward ODT/ODS/ODP-to-PDF conversions keep the canonical `PdfDocumentConversionResult`: `SourceConversionReports` contains the typed OpenDocument projection report, `Report` contains PDF-layout warnings, and `ConversionReports` presents both stages in order. `HasLoss` and `RequireNoLoss()` cover every stage, and the same ordered reports flow into `PdfSaveResult` returned by `SaveAsPdf`.
+
+This replaces the 3.0 behavior that flattened OpenDocument feature mappings into synthetic `ODF_*` PDF warnings. Inspect the typed `OdfConversionReport.Mappings` instead; `PdfDocumentConversionResult.Warnings` now describes the PDF stage only.
+
+`HasWarnings` remains the PDF-stage warning flag because source reports have format-specific diagnostic models. Use `HasLoss` for the common end-to-end fidelity gate. Conversion proof can enforce the same rule with `new PdfConversionProofOptions().RequireNoLoss()`.
+
+The same stage-report model applies to AsciiDoc, LaTeX, and semantic OneNote PDF routes: their native Markdown-projection report appears in `SourceConversionReports`, while parser and PDF-layout diagnostics remain in the PDF report. Multi-stage conversions no longer relabel semantic projection findings as if the PDF renderer produced them.
+
+PDF-to-ODS reports non-table page content as loss. PDF-to-ODP defaults to visual pages when the receiver is an opened `PdfDocument`; the lower-level logical receiver supports the editable-table profile because visual rendering needs the original PDF bytes.
 
 ### Conversion API grammar
 
-OfficeIMO 4.0 uses one naming grammar across document conversions. The verb describes what the
+OfficeIMO 3.1 uses one naming grammar across document conversions. The verb describes what the
 method returns or where it writes; it does not describe the converter implementation:
 
 | Intent | Canonical shape | Example |
@@ -76,6 +84,8 @@ method returns or where it writes; it does not describe the converter implementa
 | Persist a document in its native format | `Save` / `SaveAsync` | `word.Save(...)` |
 | Recover one narrow feature | Name the feature explicitly | `pdf.SaveTablesAsExcel(...)` |
 | Configure a forward PDF save | `{Source}PdfSaveOptions` | `WordPdfSaveOptions` |
+| Configure the shared PDF writer inside direct save options | `PdfOptions` | `HtmlPdfSaveOptions.PdfOptions` |
+| Configure an intermediate conversion stage | `{Intermediate}Options` | `OneNotePdfSaveOptions.MarkdownOptions` |
 | Configure semantic reconstruction from PDF | `Pdf{Target}ImportOptions` | `PdfWordImportOptions` |
 | Describe a general reverse conversion | `Pdf{Target}ConversionResult` / `Report` | `PdfPowerPointConversionResult` |
 | Describe narrow table recovery | `Pdf{Target}TableImportResult` / `Report` | `PdfExcelTableImportResult` |
@@ -92,9 +102,9 @@ resource work.
 
 ### PDF bridge API replacements
 
-The 4.0 boundary removes the overlapping 3.x names instead of retaining aliases.
+The 3.1 boundary removes the overlapping 3.0 names instead of retaining aliases.
 
-| OfficeIMO 3.x | OfficeIMO 4.0 |
+| OfficeIMO 3.0 | OfficeIMO 3.1 |
 | --- | --- |
 | `PdfSaveOptions` in `OfficeIMO.Word.Pdf` | `WordPdfSaveOptions` |
 | `PdfWordReadOptions` | `PdfWordImportOptions` |
@@ -109,14 +119,14 @@ the Word source as PDF. A reverse option such as `PdfWordImportOptions` configur
 destination is reconstructed from PDF. Result and report names then describe the breadth of the
 operation: `Conversion` for a general destination route and `TableImport` for table-only recovery.
 
-Excel's 3.0 table-specific names remain unchanged in 4.0:
+Excel's 3.0 table-specific names remain unchanged in 3.1:
 `PdfExcelTableImportOptions`, `PdfExcelTableImportReport`, `PdfExcelTableImportResult`,
 `ImportTablesToExcelDocument`, and `SaveTablesAsExcel`. Keeping that narrow contract prevents a
 future broader `ToExcelDocument` route from either overstating today's behavior or requiring
 another breaking rename.
 
 PowerPoint is intentionally different. Its 3.0 table-specific names described a table-only
-adapter; the 4.0 default creates a slide for every PDF page, so the broader destination-shaped
+adapter; the 3.1 default creates a slide for every PDF page, so the broader destination-shaped
 name now represents broader behavior rather than reversing a rename for cosmetic consistency.
 
 `PdfWordImportOptions.CreateTablesOnly()` and `PdfPowerPointImportOptions.CreateEditableTables()`
@@ -543,6 +553,10 @@ Use the shared result diagnostics instead:
 | phone compatibility properties | `OutlookContact.Phones` |
 | `TrackComments` | no replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking |
 | `ToPdfResult()` | `ToPdfDocumentResult()` |
+| `HtmlPdfSaveOptions.DocumentOptions` | `HtmlPdfSaveOptions.PdfOptions` |
+| `AsciiDocPdfSaveOptions.PdfOptions` | `AsciiDocPdfSaveOptions.MarkdownOptions` |
+| `LatexPdfSaveOptions.PdfOptions` | `LatexPdfSaveOptions.MarkdownOptions` |
+| `OneNotePdfSaveOptions.PdfOptions` | `OneNotePdfSaveOptions.MarkdownOptions` |
 | PDF `ToWordResult()` | `ToWordDocumentResult()` |
 | `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `ToStream()` |

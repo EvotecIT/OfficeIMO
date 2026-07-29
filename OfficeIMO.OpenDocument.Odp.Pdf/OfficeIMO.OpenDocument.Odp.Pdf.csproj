@@ -30,9 +30,6 @@
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.SharedSource\OpenDocument\OdfPdfConversionDiagnostics.cs" Link="Internal\OdfPdfConversionDiagnostics.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Using Include="System" />
     <Using Include="System.IO" />
     <Using Include="System.Threading" />

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.OneNote.Markdown;
@@ -28,17 +29,47 @@ public sealed class OneNoteMarkdownDiagnostic {
 public sealed class OneNoteMarkdownConversionResult {
     internal OneNoteMarkdownConversionResult(MarkdownDoc value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
         Value = value;
-        Diagnostics = diagnostics;
+        Report = new OneNoteMarkdownConversionReport(diagnostics);
     }
 
     /// <summary>Projected Markdown document.</summary>
     public MarkdownDoc Value { get; }
 
     /// <summary>Source and projection diagnostics captured for this operation.</summary>
+    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.Diagnostics;
+
+    /// <summary>Typed semantic-projection report for this operation.</summary>
+    public OneNoteMarkdownConversionReport Report { get; }
+
+    /// <summary>True when projection reported an approximation, omission, or error.</summary>
+    public bool HasLoss => Report.HasLoss;
+
+    /// <summary>Returns the converted document only when projection reported no possible content loss.</summary>
+    public MarkdownDoc RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
+}
+
+/// <summary>OneNote-to-Markdown semantic-projection diagnostics captured for one operation.</summary>
+public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
+    internal OneNoteMarkdownConversionReport(IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+    }
+
+    /// <summary>Source and projection diagnostics in discovery order.</summary>
     public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics { get; }
 
     /// <summary>True when projection reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Diagnostics.Any(diagnostic => diagnostic.Severity != OneNoteDiagnosticSeverity.Information);
+    public bool HasLoss => Diagnostics.Any(static diagnostic =>
+        diagnostic.Severity != OneNoteDiagnosticSeverity.Information);
+
+    /// <summary>Throws when projection reported possible content loss.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) {
+            throw new InvalidOperationException("OneNote-to-Markdown conversion reported one or more lossy mappings.");
+        }
+    }
 }
 
 internal static class OneNoteMarkdownDiagnosticCollector {

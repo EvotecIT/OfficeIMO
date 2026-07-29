@@ -60,14 +60,14 @@ using OfficeIMO.Pdf;
 
 var options = new HtmlPdfSaveOptions {
     MaxPageCount = 200,
-    DocumentOptions = new PdfOptions().EnableTaggedPdfCatalogMarkers()
+    PdfOptions = new PdfOptions().EnableTaggedPdfCatalogMarkers()
 };
 options.AdditionalStylesheets.Add("@page { margin: 18mm } body { color: hsl(215 35% 20%) }");
 
 byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 ```
 
-PDF writer settings are snapshotted through `DocumentOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
+PDF writer settings are snapshotted through `PdfOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
 
 ## Control resources
 

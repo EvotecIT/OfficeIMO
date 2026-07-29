@@ -60,7 +60,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// Conversion snapshots this value. HTML-specific font and shaping properties are
     /// then applied as explicit adapter overrides.
     /// </remarks>
-    public PdfCore.PdfOptions DocumentOptions {
+    public PdfCore.PdfOptions PdfOptions {
         get => _documentOptions;
         set => _documentOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
@@ -92,7 +92,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
-        DocumentOptions = source.DocumentOptions.Clone();
+        PdfOptions = source.PdfOptions.Clone();
         TextShapingProvider = source.TextShapingProvider;
         ResourcePolicy = source.ResourcePolicy.Clone();
         EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;

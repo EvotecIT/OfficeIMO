@@ -12,7 +12,7 @@ public enum OneNotePdfProjectionMode {
 /// <summary>Controls explicit semantic OneNote-to-PDF projection.</summary>
 public sealed class OneNotePdfSaveOptions {
     private OneNoteMarkdownOptions _projectionOptions = new OneNoteMarkdownOptions();
-    private MarkdownPdfSaveOptions _pdfOptions = new MarkdownPdfSaveOptions();
+    private MarkdownPdfSaveOptions _markdownOptions = new MarkdownPdfSaveOptions();
 
     /// <summary>Projection mode. OfficeIMO currently supports only the explicit semantic-document contract.</summary>
     public OneNotePdfProjectionMode ProjectionMode { get; set; } = OneNotePdfProjectionMode.SemanticDocument;
@@ -24,9 +24,9 @@ public sealed class OneNotePdfSaveOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownPdfSaveOptions PdfOptions {
-        get => _pdfOptions;
-        set => _pdfOptions = value ?? throw new ArgumentNullException(nameof(value));
+    public MarkdownPdfSaveOptions MarkdownOptions {
+        get => _markdownOptions;
+        set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
 
     internal OneNotePdfSaveOptions CloneForConversion() {
@@ -36,7 +36,7 @@ public sealed class OneNotePdfSaveOptions {
         return new OneNotePdfSaveOptions {
             ProjectionMode = ProjectionMode,
             ProjectionOptions = ProjectionOptions.Clone(),
-            PdfOptions = PdfOptions.Clone()
+            MarkdownOptions = MarkdownOptions.Clone()
         };
     }
 }
