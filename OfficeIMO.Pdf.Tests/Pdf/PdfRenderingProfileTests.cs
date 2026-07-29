@@ -358,6 +358,39 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void DeclaredFallbackPlannerUsesRequestedRunStyle()
+    {
+        var onlyC = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('C', 'C')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Primary",
+                ManagedTextShapingTestAssets.CreateFont('C'),
+                OfficeFontStyle.Regular,
+                onlyC)
+            .Add("Fallback", ManagedTextShapingTestAssets.CreateFont('A'))
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('B'),
+                OfficeFontStyle.Bold)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("styled-fallback", fonts));
+
+        Assert.True(options.TryGetEffectiveRenderingProfileFallbacks(
+            "Primary",
+            bold: true,
+            italic: false,
+            out PdfEmbeddedFontFallbackSet? fallbacks));
+        PdfEmbeddedFontFallbackSet planner =
+            Assert.IsType<PdfEmbeddedFontFallbackSet>(fallbacks);
+
+        Assert.True(planner.PlanText("B").IsFullyCovered);
+        Assert.False(planner.PlanText("A").IsFullyCovered);
+    }
+
+    [Fact]
     public void EncodingPreflightUsesRangeScopedAuthoredFamilyPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')

@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
     private Dictionary<string, PdfEmbeddedFontFallbackSet>? _renderingProfileFamilyFallbacks;
+    private PdfEmbeddedFontFallbackCandidate[]? _renderingProfileDeclaredFallbackCandidates;
 
     /// <summary>
     /// Applies the text and font resources from a shared OfficeIMO rendering profile.
@@ -46,6 +47,7 @@ public sealed partial class PdfOptions {
             ClearEmbeddedStandardFontMappings();
             _embeddedFontFallbacks = null;
             _renderingProfileFamilyFallbacks?.Clear();
+            _renderingProfileDeclaredFallbackCandidates = null;
         }
         if (families.Count > 0) {
             foreach (PdfEmbeddedFontFamily family in families) {
@@ -61,8 +63,24 @@ public sealed partial class PdfOptions {
 
         PdfEmbeddedFontFallbackCandidate[] profileCandidates =
             CreateProfileFallbackCandidates(profileFonts);
+        PdfEmbeddedFontFallbackCandidate[] profileCandidateVariants = mode == OfficeRenderingProfileApplyMode.Overlay
+            ? profileCandidates
+                .Where(candidate => !preservedFallbackNames.Contains(candidate.FontName))
+                .ToArray()
+            : profileCandidates;
+        _renderingProfileDeclaredFallbackCandidates =
+            _renderingProfileDeclaredFallbackCandidates == null
+                ? profileCandidateVariants
+                : OverlayFallbackCandidateVariants(
+                    _renderingProfileDeclaredFallbackCandidates,
+                    profileCandidateVariants);
+        PdfEmbeddedFontFallbackCandidate[] regularProfileCandidates =
+            SelectRenderingProfileCandidates(
+                profileCandidateVariants,
+                bold: false,
+                italic: false);
         PdfEmbeddedFontFallbackCandidate[] combinedCandidates =
-            MergeProfileFallbackCandidates(existingFallbacks, profileCandidates);
+            MergeProfileFallbackCandidates(existingFallbacks, regularProfileCandidates);
         if (combinedCandidates.Length > 0) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in combinedCandidates) {
                 if (!HasNamedFontFamily(candidate.FontName)) {
@@ -111,6 +129,15 @@ public sealed partial class PdfOptions {
 
         PdfEmbeddedFontFallbackCandidate[] styledCandidates =
             SelectRenderingProfileCandidates(registered.Candidates, bold, italic);
+        PdfEmbeddedFontFallbackCandidate[] declaredCandidates =
+            SelectRenderingProfileCandidates(
+                _renderingProfileDeclaredFallbackCandidates
+                    ?? Array.Empty<PdfEmbeddedFontFallbackCandidate>(),
+                bold,
+                italic);
+        styledCandidates = MergeFallbackCandidates(
+            styledCandidates,
+            declaredCandidates);
         PdfEmbeddedFontFallbackCandidate[] combinedCandidates =
             MergeFallbackCandidates(styledCandidates, _embeddedFontFallbacks?.Candidates);
         if (combinedCandidates.Length == 0) {
@@ -243,6 +270,39 @@ public sealed partial class PdfOptions {
         return merged.ToArray();
     }
 
+    private static PdfEmbeddedFontFallbackCandidate[] OverlayFallbackCandidateVariants(
+        IEnumerable<PdfEmbeddedFontFallbackCandidate> existing,
+        IEnumerable<PdfEmbeddedFontFallbackCandidate> overlay) {
+        var replacements = overlay.ToDictionary(
+            CandidateVariantKey,
+            candidate => candidate,
+            StringComparer.OrdinalIgnoreCase);
+        var merged = new List<PdfEmbeddedFontFallbackCandidate>();
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in existing) {
+            string key = CandidateVariantKey(candidate);
+            PdfEmbeddedFontFallbackCandidate selected =
+                replacements.TryGetValue(key, out PdfEmbeddedFontFallbackCandidate? replacement)
+                    ? replacement
+                    : candidate;
+            if (keys.Add(key)) {
+                merged.Add(selected);
+            }
+            replacements.Remove(key);
+        }
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in overlay) {
+            string key = CandidateVariantKey(candidate);
+            if (replacements.ContainsKey(key) && keys.Add(key)) {
+                merged.Add(candidate);
+            }
+        }
+        return merged.ToArray();
+    }
+
+    private static string CandidateVariantKey(PdfEmbeddedFontFallbackCandidate candidate) =>
+        candidate.FontName + "\u001f" + ((int)candidate.Style).ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+
     private static PdfEmbeddedFontFallbackCandidate[] MergeProfileFallbackCandidates(
         PdfEmbeddedFontFallbackSet? existingFallbacks,
         IReadOnlyList<PdfEmbeddedFontFallbackCandidate> profileCandidates) {
@@ -318,7 +378,7 @@ public sealed partial class PdfOptions {
     private static PdfEmbeddedFontFallbackCandidate[] CreateProfileFallbackCandidates(
         OfficeFontFaceCollection fonts) {
         var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
-        var addedResources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var addedVariants = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string fallbackFamily in fonts.FallbackFamilies) {
             OfficeFontFace[] matching = fonts.Faces
                 .Where(face =>
@@ -326,21 +386,20 @@ public sealed partial class PdfOptions {
                     || string.Equals(face.ResourceFamilyName, fallbackFamily, StringComparison.OrdinalIgnoreCase))
                 .Reverse()
                 .ToArray();
-            foreach (IGrouping<string, OfficeFontFace> group in matching
-                .GroupBy(face => face.ResourceFamilyName, StringComparer.OrdinalIgnoreCase)) {
-                if (!addedResources.Add(group.Key)) {
+            foreach (OfficeFontFace face in matching) {
+                string key = face.ResourceFamilyName
+                    + "\u001f"
+                    + ((int)face.Style).ToString(
+                        System.Globalization.CultureInfo.InvariantCulture);
+                if (!addedVariants.Add(key)) {
                     continue;
                 }
 
-                OfficeFontFace[] faces = group.ToArray();
-                OfficeFontFace? regular = SelectProfileFace(faces, OfficeFontStyle.Regular)
-                    ?? faces.FirstOrDefault();
-                if (regular != null) {
-                    candidates.Add(new PdfEmbeddedFontFallbackCandidate(
-                        regular.ResourceFamilyName,
-                        regular.Data,
-                        regular.UnicodeRanges));
-                }
+                candidates.Add(new PdfEmbeddedFontFallbackCandidate(
+                    face.ResourceFamilyName,
+                    face.Data,
+                    face.UnicodeRanges,
+                    face.Style));
             }
         }
 

@@ -55,6 +55,8 @@ public sealed partial class PdfOptions {
             _embeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
             _renderingProfileFamilyFallbacks =
                 CloneRenderingProfileFamilyFallbacks(_renderingProfileFamilyFallbacks),
+            _renderingProfileDeclaredFallbackCandidates =
+                _renderingProfileDeclaredFallbackCandidates?.ToArray(),
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
