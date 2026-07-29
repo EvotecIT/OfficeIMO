@@ -584,6 +584,37 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FontlessReplacementRestoresOfficeAdapterFontDiscovery() {
+        static bool HasExplicitFontConfiguration(object options) =>
+            (bool)(options.GetType().GetProperty(
+                    "HasExplicitPdfFontConfiguration",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.GetValue(options)
+                ?? throw new InvalidOperationException(
+                    "The PDF adapter font-configuration state was not found."));
+
+        var configuredFonts = new OfficeFontFaceCollection()
+            .Add("Configured", ManagedTextShapingTestAssets.CreateFont('A'));
+        var configured = new OfficeRenderingProfile("configured", configuredFonts);
+        var fontless = new OfficeRenderingProfile("fontless");
+
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+        var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+        var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(configured)
+            .UseRenderingProfile(fontless);
+
+        Assert.False(HasExplicitFontConfiguration(word));
+        Assert.False(HasExplicitFontConfiguration(excel));
+        Assert.False(HasExplicitFontConfiguration(powerPoint));
+    }
+
+    [Fact]
     public void SharedRenderingProfileSurvivesOfficeAdapterCloningAndPdfGeneration() {
         OfficeRenderingProfile profile = OfficeRenderingProfile.Managed;
         byte[] wordPdf;

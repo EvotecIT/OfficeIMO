@@ -154,6 +154,7 @@ namespace OfficeIMO.Excel {
 
                         if (!pendingValueIsAuthoritative
                             && cell.CellFormula is CellFormula cellFormula) {
+                            bool formulaImpactRecorded = false;
                             if (FormulaChangesForPlan(
                                     inspectedSheet.ResolveCellFormulaText(
                                         cell,
@@ -165,6 +166,7 @@ namespace OfficeIMO.Excel {
                                     count,
                                     rewriteUnqualified)) {
                                 formulas++;
+                                formulaImpactRecorded = true;
                             }
                             if (rewriteUnqualified
                                 && cellFormula.FormulaType?.Value != CellFormulaValues.Shared
@@ -194,6 +196,10 @@ namespace OfficeIMO.Excel {
                                         count)) {
                                     formulas++;
                                 }
+                            }
+                            if (cellFormula.FormulaType?.Value == CellFormulaValues.Shared
+                                && !formulaImpactRecorded) {
+                                formulas++;
                             }
                         }
                     } else if (element is OpenXmlLeafTextElement formula
@@ -267,25 +273,32 @@ namespace OfficeIMO.Excel {
                         || element is X14.DataValidation
                         || element is ConditionalFormatting
                         || element is X14.ConditionalFormatting) {
-                        formulas += CountAnchoredMetadataFormulaPlanImpacts(
+                        int metadataFormulaImpacts =
+                            CountAnchoredMetadataFormulaPlanImpacts(
                             element,
                             kind,
                             firstRow,
                             lastRow,
                             count);
-                    }
-                    if (element is DataValidation) {
-                        validation++;
-                    } else if (element is ConditionalFormatting) {
-                        conditionalFormatting++;
+                        formulas += metadataFormulaImpacts;
+                        bool metadataRangeChanges =
+                            StructuralMetadataRangeChangesForPlan(
+                                element,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count);
+                        if (element is DataValidation || element is X14.DataValidation) {
+                            if (metadataRangeChanges || metadataFormulaImpacts > 0) {
+                                validation++;
+                            }
+                        } else if (metadataRangeChanges || metadataFormulaImpacts > 0) {
+                            conditionalFormatting++;
+                        }
                     } else if (element is MergeCell) {
                         mergedCells++;
                     } else if (element is DocumentFormat.OpenXml.Office2010.Excel.Sparkline) {
                         sparklines++;
-                    } else if (element is X14.DataValidation) {
-                        validation++;
-                    } else if (element is X14.ConditionalFormatting) {
-                        conditionalFormatting++;
                     } else if (element is ProtectedRange protectedRange
                         && ReferenceListChangesForPlan(
                             protectedRange.SequenceOfReferences?.InnerText,
@@ -627,6 +640,32 @@ namespace OfficeIMO.Excel {
                     kind == ExcelRowMutationKind.Insert ? count : -count,
                     kind == ExcelRowMutationKind.Delete ? lastRow : null,
                     out _);
+        }
+
+        private static bool StructuralMetadataRangeChangesForPlan(
+            OpenXmlElement metadata,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            string? references = metadata switch {
+                DataValidation validation =>
+                    validation.SequenceOfReferences?.InnerText,
+                X14.DataValidation validation =>
+                    validation.ReferenceSequence?.Text,
+                ConditionalFormatting formatting =>
+                    formatting.SequenceOfReferences?.InnerText,
+                X14.ConditionalFormatting formatting =>
+                    formatting.GetFirstChild<
+                        DocumentFormat.OpenXml.Office.Excel.ReferenceSequence>()?.Text,
+                _ => null
+            };
+            return ReferenceListChangesForPlan(
+                references,
+                kind,
+                firstRow,
+                lastRow,
+                count);
         }
 
         private void PreflightPendingDirectCellsForRowInsertion(int firstRow, int count) {
