@@ -6,6 +6,7 @@ param(
     [ValidateSet('all', 'csv', 'xlsx', 'xlsb')]
     [string] $Workload = 'all',
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
+    [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [switch] $Publish
 )
 
@@ -16,7 +17,15 @@ if ($Publish -and $RunMode -ne 'full') {
 }
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
-Import-Module PSPublishModule -MinimumVersion 3.0.81 -Force
+if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
+    Import-Module PSPublishModule -MinimumVersion 3.0.81 -Force
+} else {
+    $powerForgeModule = Join-Path $PowerForgeRoot "PowerForge.PowerShell\bin\Release\$Framework\PowerForge.PowerShell.dll"
+    if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
+        throw "The local PowerForge binary was not found at '$powerForgeModule'. Build PowerForge.PowerShell for $Framework in Release configuration first."
+    }
+    Import-Module $powerForgeModule -Force
+}
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
@@ -135,6 +144,7 @@ $outputs = foreach ($name in $selected) {
     $result.Metadata['benchmark.workload.framework'] = $Framework
     $result.Metadata['gitSha'] = $gitSha
     $result.Metadata['gitDirty'] = $gitDirty.ToString().ToLowerInvariant()
+    $result.Metadata['gitWorktreeClean'] = (-not $gitDirty).ToString().ToLowerInvariant()
     foreach ($sample in $result.Samples) {
         $sample.RunMode = $RunMode
     }

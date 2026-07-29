@@ -128,6 +128,8 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'candidate\.publish === true' -or
     $scriptText -notmatch 'activeRequestId' -or
     $scriptText -notmatch 'requestId !== activeRequestId' -or
+    $scriptText -notmatch "compatibilityValue\(entry, 'gitSha'\)" -or
+    $scriptText -notmatch "sourceCommit\.substring\(0, 12\)" -or
     $scriptText -notmatch 'compatibilityIssues' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
     $scriptText -notmatch 'workloadName\(\)' -or

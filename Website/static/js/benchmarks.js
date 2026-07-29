@@ -354,6 +354,15 @@
     return names[selectedComparison] || selectedComparison || 'Library comparison';
   }
 
+  function compatibilityValue(entry, name) {
+    var compatibility = entry && entry.compatibility;
+    if (!compatibility) return null;
+    var key = Object.keys(compatibility).find(function (candidate) {
+      return candidate.toLowerCase() === name.toLowerCase();
+    });
+    return key ? compatibility[key] : null;
+  }
+
   function renderResult(entry, result, requestId) {
     if (requestId !== activeRequestId) return;
     var summaries = result.summary || [];
@@ -391,13 +400,15 @@
     });
 
     meta.innerHTML = '';
+    var sourceCommit = compatibilityValue(entry, 'gitSha');
     [
       workloadName(),
       platformLabel(selectedPlatform),
       selectedMode,
       entry.environment && entry.environment.processorName,
       entry.environment && entry.environment.runtimeVersion,
-      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString()
+      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString(),
+      sourceCommit && 'source ' + sourceCommit.substring(0, 12)
     ].filter(Boolean).forEach(function (value) {
       var span = document.createElement('span');
       span.textContent = value;
