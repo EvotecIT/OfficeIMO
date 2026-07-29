@@ -19,8 +19,10 @@ public sealed class PdfWordConversionReport {
 
     /// <summary>Throws when the conversion reported possible content loss.</summary>
     public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException("PDF-to-Word conversion reported possible content loss. First diagnostic: " + Warnings[0]);
+        PdfCore.PdfConversionWarning? firstLoss = Warnings.FirstOrDefault(static warning =>
+            warning.Severity != PdfCore.PdfConversionWarningSeverity.Information);
+        if (firstLoss != null) {
+            throw new InvalidOperationException("PDF-to-Word conversion reported possible content loss. First diagnostic: " + firstLoss);
         }
     }
 }

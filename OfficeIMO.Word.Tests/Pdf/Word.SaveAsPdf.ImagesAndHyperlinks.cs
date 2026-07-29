@@ -53,7 +53,7 @@ public partial class Word {
             right.AddImage(imagePath, 48, 48);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfSaveOptions {
                 IncludePageNumbers = false,
                 PageSize = new OfficeIMO.Pdf.PageSize(300, 260),
                 Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
@@ -83,7 +83,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -114,7 +114,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -145,7 +145,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -173,7 +173,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 

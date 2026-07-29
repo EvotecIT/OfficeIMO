@@ -2,10 +2,44 @@ using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
+/// <summary>Defines how PDF content is reconstructed in PowerPoint.</summary>
+public enum PdfPowerPointImportMode {
+    /// <summary>Creates one high-fidelity rendered image slide per PDF page.</summary>
+    VisualPages,
+    /// <summary>Reconstructs detected tables as editable PowerPoint tables.</summary>
+    EditableTables
+}
+
 /// <summary>
-/// Options for extracting logical PDF tables into a PowerPoint presentation.
+/// Options for importing PDF content into a PowerPoint presentation.
 /// </summary>
-public sealed class PdfPowerPointTableImportOptions {
+public sealed class PdfPowerPointImportOptions {
+    /// <summary>Import strategy. Defaults to one visual slide per PDF page.</summary>
+    public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.VisualPages;
+
+    /// <summary>Optional caller-ordered page selection used by visual-page import.</summary>
+    public OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
+
+    /// <summary>Raster resolution used by visual-page import.</summary>
+    public double Dpi { get; set; } = 144D;
+
+    /// <summary>Maximum pages rendered by one visual-page import.</summary>
+    public int MaxPages { get; set; } = 100;
+
+    /// <summary>Maximum output pixels for one rendered PDF page.</summary>
+    public long MaxPixelsPerPage { get; set; } = 64L * 1024L * 1024L;
+
+    /// <summary>Maximum encoded PNG bytes retained for one rendered PDF page.</summary>
+    public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
+
+    /// <summary>Maximum aggregate encoded PNG bytes retained by visual-page import.</summary>
+    public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+
+    /// <summary>Creates the editable-table reconstruction profile.</summary>
+    public static PdfPowerPointImportOptions CreateEditableTables() => new PdfPowerPointImportOptions {
+        Mode = PdfPowerPointImportMode.EditableTables
+    };
+
     /// <summary>
     /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.
     /// </summary>

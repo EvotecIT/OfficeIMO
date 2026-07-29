@@ -39,6 +39,8 @@ document.Save("summary.odt");
 | `OfficeIMO.Word.OpenDocument` | Word and ODT conversion |
 | `OfficeIMO.Excel.OpenDocument` | Excel and ODS conversion |
 | `OfficeIMO.PowerPoint.OpenDocument` | PowerPoint and ODP conversion |
-| `OfficeIMO.OpenDocument.Pdf` | PDF output through the matching Office adapters |
+| `OfficeIMO.OpenDocument.Odt.Pdf` | Bidirectional ODT and PDF without Excel or PowerPoint |
+| `OfficeIMO.OpenDocument.Ods.Pdf` | Bidirectional ODS and PDF without Word or PowerPoint |
+| `OfficeIMO.OpenDocument.Odp.Pdf` | Bidirectional ODP and PDF without Word or Excel |
 
 Converters report unsupported or approximated features so a workflow can validate fidelity before it publishes the result.

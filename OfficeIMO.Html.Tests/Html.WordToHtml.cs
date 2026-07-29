@@ -1058,6 +1058,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_RunColorAndHighlightStyles_AreEnabledByDefault() {
+            using var doc = WordDocument.Create();
+            WordParagraph run = doc.AddParagraph().AddText("Colored");
+            run.ColorHex = "FF0000";
+            run.Highlight = HighlightColorValues.Cyan;
+
+            string html = doc.ToHtml(new WordToHtmlOptions());
+
+            Assert.Contains("color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("background-color:#00ffff", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_ParagraphSpacingAndIndentationStyles() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Spacing");

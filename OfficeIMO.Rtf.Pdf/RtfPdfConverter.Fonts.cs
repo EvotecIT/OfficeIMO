@@ -7,7 +7,9 @@ internal static partial class RtfPdfConverter {
         RtfDocument document,
         PdfCore.PdfOptions pdfOptions,
         RtfPdfSaveOptions options) {
-        bool allowSystemFontEmbedding = options.ResourcePolicy.AllowSystemFontEmbedding;
+        bool allowSystemFontEmbedding =
+            options.ResourcePolicy.AllowSystemFontEmbedding &&
+            options.ResourcePolicy.AllowDocumentFontEmbedding;
         bool systemFontBudgetReported = false;
         var fontSlots = new Dictionary<int, PdfCore.PdfStandardFont>();
         var familySlots = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);

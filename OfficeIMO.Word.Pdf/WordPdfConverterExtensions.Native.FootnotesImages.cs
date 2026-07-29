@@ -227,7 +227,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfSaveOptions? options = null, string source = "body image") {
+        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordPdfSaveOptions? options = null, string source = "body image") {
             if (image == null) {
                 return;
             }
@@ -253,7 +253,7 @@ namespace OfficeIMO.Word.Pdf {
             pdf.Image(preparedBytes, width, height, align);
         }
 
-        private static bool TryGetNativeBodyImageBytes(WordImage image, PdfSaveOptions? options, string source, out byte[] bytes) {
+        private static bool TryGetNativeBodyImageBytes(WordImage image, WordPdfSaveOptions? options, string source, out byte[] bytes) {
             try {
                 bytes = ImageEmbedder.GetImageBytes(image);
                 return true;

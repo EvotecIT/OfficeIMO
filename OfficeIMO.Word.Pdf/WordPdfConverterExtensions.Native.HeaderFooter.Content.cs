@@ -152,7 +152,7 @@ namespace OfficeIMO.Word.Pdf {
             return resolvedFontSize;
         }
 
-        private static PdfCore.PdfStandardFont ResolveNativeHeaderFooterBaseFont(WordDocument document, PdfSaveOptions? options, bool isHeader) {
+        private static PdfCore.PdfStandardFont ResolveNativeHeaderFooterBaseFont(WordDocument document, WordPdfSaveOptions? options, bool isHeader) {
             if (options?.PdfOptions != null) {
                 return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.HeaderFont : options.PdfOptions.FooterFont);
             }
@@ -458,7 +458,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IReadOnlyList<NativeHeaderFooterImage> GetNativeHeaderFooterImages(WordHeaderFooter? headerFooter, PdfSaveOptions? options, string source) {
+        private static IReadOnlyList<NativeHeaderFooterImage> GetNativeHeaderFooterImages(WordHeaderFooter? headerFooter, WordPdfSaveOptions? options, string source) {
             if (headerFooter == null) {
                 return Array.Empty<NativeHeaderFooterImage>();
             }
@@ -521,7 +521,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderFooterTableImages(List<NativeHeaderFooterImage> images, WordTable table, PdfSaveOptions? options, string source) {
+        private static void AddNativeHeaderFooterTableImages(List<NativeHeaderFooterImage> images, WordTable table, WordPdfSaveOptions? options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
@@ -546,7 +546,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, PdfCore.PdfAlign? alignOverride, PdfSaveOptions? options, string source) {
+        private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, PdfCore.PdfAlign? alignOverride, WordPdfSaveOptions? options, string source) {
             PdfCore.PdfAlign align = alignOverride ?? ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             if (paragraph.Image != null) {
                 AddNativeHeaderFooterImage(images, paragraph.Image, align, options, source);
@@ -563,7 +563,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, PdfSaveOptions? options, string source) {
+        private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, WordPdfSaveOptions? options, string source) {
             byte[] bytes = ImageEmbedder.GetImageBytes(image);
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
                 if (options != null) {

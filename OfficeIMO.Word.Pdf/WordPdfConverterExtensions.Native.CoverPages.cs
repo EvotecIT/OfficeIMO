@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
         private const double MaxNativeVmlLengthPoints = 1_000_000D;
         private const double MaxNativeVmlTextPathFontSizePoints = 400D;
 
-        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, PdfSaveOptions? options) {
+        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, WordPdfSaveOptions? options) {
             W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
             if (content == null || !HasNativeVmlCoverDrawing(content)) {
                 return false;

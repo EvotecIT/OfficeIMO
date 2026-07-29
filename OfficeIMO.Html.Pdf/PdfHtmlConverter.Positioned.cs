@@ -134,7 +134,11 @@ public static partial class PdfHtmlConverterExtensions {
             return;
         }
 
-        AddWarning(options, "ImagePlaceholder", "Some images are represented as page-scoped placeholders because no placement invocation was detected.");
+        AddWarning(
+            options,
+            "ImagePlaceholder",
+            "Some images are represented as page-scoped placeholders because no placement invocation was detected.",
+            PdfCore.PdfConversionWarningSeverity.Warning);
         builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
         for (int i = 0; i < unplaced.Count; i++) {
             builder.Append(RenderImageFigure(unplaced[i], options));

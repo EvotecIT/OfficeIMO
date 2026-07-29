@@ -7,18 +7,18 @@ namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
         private const string ConverterName = "OfficeIMO.Word.Pdf";
 
-        public static WordDocument Convert(PdfCore.PdfLogicalDocument source, PdfWordReadOptions? options) {
+        public static WordDocument Convert(PdfCore.PdfLogicalDocument source, PdfWordImportOptions? options) {
             if (source == null) {
                 throw new ArgumentNullException(nameof(source));
             }
 
-            PdfWordReadOptions readOptions = options ?? new PdfWordReadOptions();
+            PdfWordImportOptions readOptions = options ?? new PdfWordImportOptions();
             WordDocument document = WordDocument.Create();
             ImportInto(source, document, readOptions);
             return document;
         }
 
-        public static void ImportInto(PdfCore.PdfLogicalDocument source, WordDocument target, PdfWordReadOptions options) {
+        public static void ImportInto(PdfCore.PdfLogicalDocument source, WordDocument target, PdfWordImportOptions options) {
             if (source == null) {
                 throw new ArgumentNullException(nameof(source));
             }
@@ -100,7 +100,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static List<ImportItem> BuildImportItems(PdfCore.PdfLogicalPage page, PdfWordReadOptions options, ImportNavigationMap navigation) {
+        private static List<ImportItem> BuildImportItems(PdfCore.PdfLogicalPage page, PdfWordImportOptions options, ImportNavigationMap navigation) {
             var items = new List<ImportItem>();
             var consumedLinks = new HashSet<PdfCore.PdfLogicalLinkAnnotation>();
             int sequence = 0;
@@ -172,7 +172,7 @@ namespace OfficeIMO.Word.Pdf {
                         "PdfFormWidgetPlaceholder",
                         "Page " + widget.PageNumber.ToString(CultureInfo.InvariantCulture) + "/FormWidget",
                         "PDF form widget content is represented as editable Word placeholder text; interactive form reconstruction is not part of the semantic import contract.",
-                        PdfCore.PdfConversionWarningSeverity.Information,
+                        PdfCore.PdfConversionWarningSeverity.Warning,
                         new Dictionary<string, string> {
                             ["FieldName"] = widget.FieldName ?? string.Empty,
                             ["FieldType"] = widget.FieldType ?? string.Empty
@@ -195,7 +195,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddLinkItems(
             PdfCore.PdfLogicalPage page,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation,
             HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks,
             List<ImportItem> items,
@@ -259,7 +259,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfLogicalLinkAnnotation? FindOverlappingImportableLink(
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalTextBlock textBlock,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation,
             HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks) {
             if (!options.ImportUriLinks && !options.ImportInternalLinks) {
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfLogicalLinkAnnotation? FindOverlappingImportableLink(
             PdfCore.PdfLogicalPage page,
             PdfCore.PdfLogicalParagraph paragraph,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation,
             HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks) {
             if (!options.ImportUriLinks && !options.ImportInternalLinks) {
@@ -337,7 +337,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryCreateWordHyperlinkUri(
             PdfCore.PdfLogicalLinkAnnotation link,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             out Uri? uri) {
             uri = null;
             string? target = link.Uri;
@@ -353,7 +353,7 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static void ReportSkippedUriLink(PdfCore.PdfLogicalLinkAnnotation link, PdfWordReadOptions options) {
+        private static void ReportSkippedUriLink(PdfCore.PdfLogicalLinkAnnotation link, PdfWordImportOptions options) {
             AddWarning(
                 options,
                 "PdfUriLinkSkippedUnsafe",
@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
                 });
         }
 
-        private static void ReportSkippedInternalLink(PdfCore.PdfLogicalLinkAnnotation link, PdfWordReadOptions options) {
+        private static void ReportSkippedInternalLink(PdfCore.PdfLogicalLinkAnnotation link, PdfWordImportOptions options) {
             AddWarning(
                 options,
                 "PdfInternalLinkNotReconstructed",
@@ -388,10 +388,10 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalHeading heading,
             PdfCore.PdfLogicalLinkAnnotation? link,
             string? linkText,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation) {
             WordParagraph paragraph = link == null
-                ? document.AddParagraph(heading.Text)
+                ? AddStyledParagraph(document, new[] { heading.Line })
                 : AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!, options, navigation);
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
@@ -405,21 +405,60 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfLogicalParagraph paragraph,
             PdfCore.PdfLogicalLinkAnnotation? link,
             string? linkText,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation) {
             if (link == null) {
-                document.AddParagraph(paragraph.Text);
+                AddStyledParagraph(document, paragraph.Lines);
                 return;
             }
 
             AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!, options, navigation);
         }
 
+        private static WordParagraph AddStyledParagraph(
+            WordDocument document,
+            IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines) {
+            WordParagraph paragraph = document.AddParagraph();
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                if (lineIndex > 0) {
+                    paragraph.AddText(" ");
+                }
+
+                PdfCore.PdfLogicalTextBlock line = lines[lineIndex];
+                AppendStyledRuns(paragraph, line.Runs, line.Text);
+            }
+
+            return paragraph;
+        }
+
+        private static void AppendStyledRuns(
+            WordParagraph paragraph,
+            IReadOnlyList<PdfCore.PdfLogicalTextRun> runs,
+            string fallbackText) {
+            if (runs.Count == 0) {
+                paragraph.AddText(fallbackText);
+                return;
+            }
+
+            for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                PdfCore.PdfLogicalTextRun source = runs[runIndex];
+                WordParagraph run = paragraph.AddText(source.Text);
+                if (source.IsBold) run.SetBold();
+                if (source.IsItalic) run.SetItalic();
+                if (source.FontSize > 0D) {
+                    run.SetFontSize(Math.Max(1, (int)Math.Round(source.FontSize, MidpointRounding.AwayFromZero)));
+                }
+                if (source.Color.HasValue && source.Color.Value.A > 0) {
+                    run.SetColorHex(source.Color.Value.ToRgbHex());
+                }
+            }
+        }
+
         private static void AddStandaloneLink(
             WordDocument document,
             PdfCore.PdfLogicalLinkAnnotation link,
             string? linkText,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation) {
             AddHyperlinkParagraph(document, link, GetLinkDisplayText(link, linkText), options, navigation);
         }
@@ -428,7 +467,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocument document,
             PdfCore.PdfLogicalLinkAnnotation link,
             string text,
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             ImportNavigationMap navigation) {
             if (!TryResolveWordLinkTarget(link, options, navigation, out WordLinkTarget target)) {
                 return document.AddParagraph(text);
@@ -488,7 +527,8 @@ namespace OfficeIMO.Word.Pdf {
             WordList list = bullet
                 ? bulletList ??= document.AddListBulleted()
                 : numberedList ??= document.AddListNumbered();
-            list.AddItem(item.Text, Math.Max(0, item.Level - 1));
+            WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
+            AppendStyledRuns(paragraph, item.Runs, item.Text);
         }
 
         private static bool IsBulletMarker(string marker) {
@@ -504,7 +544,7 @@ namespace OfficeIMO.Word.Pdf {
                 trimmed == "\u00B7";
         }
 
-        private static void AddTable(WordDocument document, PdfCore.PdfLogicalTableExtraction extraction, PdfWordReadOptions options) {
+        private static void AddTable(WordDocument document, PdfCore.PdfLogicalTableExtraction extraction, PdfWordImportOptions options) {
             PdfCore.PdfLogicalTableData data = extraction.Data;
             if (data.Truncated) {
                 AddWarning(
@@ -539,7 +579,7 @@ namespace OfficeIMO.Word.Pdf {
             WordTable table,
             PdfCore.PdfLogicalTableData data,
             bool headerRowIncluded,
-            PdfWordReadOptions options) {
+            PdfWordImportOptions options) {
             List<WordTableRow> rows = table.Rows;
             int rowOffset = headerRowIncluded ? 1 : 0;
 
@@ -580,7 +620,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocument document,
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
-            PdfWordReadOptions options) {
+            PdfWordImportOptions options) {
             if (options.ImportImages && TryAddEmbeddedImage(document, image, placement, options)) {
                 return;
             }
@@ -594,7 +634,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocument document,
             PdfCore.PdfLogicalImage image,
             PdfCore.PdfImagePlacement? placement,
-            PdfWordReadOptions options) {
+            PdfWordImportOptions options) {
             PdfCore.PdfExtractedImage source = image.SourceImage;
             if (!source.IsImageFile || source.Bytes.Length == 0) {
                 AddImageSkippedWarning(image, "PDF image stream is not exposed as a complete image file payload.");
@@ -721,14 +761,14 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double PdfPointsToWordPixels(double points) => points * 96D / 72D;
 
-        private static void AddFormWidgetPlaceholder(WordDocument document, PdfCore.PdfLogicalFormWidget widget, PdfWordReadOptions options) {
+        private static void AddFormWidgetPlaceholder(WordDocument document, PdfCore.PdfLogicalFormWidget widget, PdfWordImportOptions options) {
             string name = string.IsNullOrWhiteSpace(widget.FieldName) ? "(unnamed)" : widget.FieldName!;
             string type = string.IsNullOrWhiteSpace(widget.FieldType) ? "field" : widget.FieldType!;
             string value = string.IsNullOrWhiteSpace(widget.Value) ? string.Empty : " = " + widget.Value;
             document.AddParagraph("[PDF form " + type + ": " + name + value + "]").SetItalic();
         }
 
-        private static void ReportNonReconstructedLinks(PdfCore.PdfLogicalDocument source, PdfWordReadOptions options, ImportNavigationMap navigation) {
+        private static void ReportNonReconstructedLinks(PdfCore.PdfLogicalDocument source, PdfWordImportOptions options, ImportNavigationMap navigation) {
             int linkCount = source.Links.Count(link => !TryResolveWordLinkTarget(link, options, navigation, out _));
             if (linkCount == 0) {
                 return;
@@ -761,7 +801,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddWarning(
-            PdfWordReadOptions options,
+            PdfWordImportOptions options,
             string code,
             string source,
             string message,

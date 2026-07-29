@@ -723,6 +723,49 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.DoesNotContain(projectReferences, reference => reference.Contains("PdfSharp", StringComparison.OrdinalIgnoreCase));
     }
 
+    public static IEnumerable<object[]> OpenDocumentPdfAdapters() {
+        yield return new object[] {
+            "OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
+            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" },
+            new[] { "OfficeIMO.Excel", "OfficeIMO.PowerPoint" }
+        };
+        yield return new object[] {
+            "OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
+            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" },
+            new[] { "OfficeIMO.Word", "OfficeIMO.PowerPoint" }
+        };
+        yield return new object[] {
+            "OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
+            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" },
+            new[] { "OfficeIMO.Word", "OfficeIMO.Excel" }
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(OpenDocumentPdfAdapters))]
+    public void FormatSpecificOpenDocumentPdfAdapters_DoNotReferenceSiblingOfficeStacks(
+        string relativeProjectPath,
+        string[] expectedOwners,
+        string[] forbiddenStacks) {
+        string[] references = GetProjectReferences(GetRepositoryPath(relativeProjectPath));
+
+        Assert.Equal(expectedOwners.Length, references.Length);
+        Assert.All(expectedOwners, owner =>
+            Assert.Contains(references, reference =>
+                reference.Contains("/" + owner + ".csproj", StringComparison.OrdinalIgnoreCase)));
+        Assert.All(forbiddenStacks, forbidden =>
+            Assert.DoesNotContain(references, reference =>
+                reference.Contains("/" + forbidden, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Fact]
+    public void OpenDocumentPdfAdapters_DoNotAddUmbrellaOrCorePackages() {
+        Assert.False(File.Exists(GetRepositoryPath(
+            "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj")));
+        Assert.False(File.Exists(GetRepositoryPath(
+            "OfficeIMO.OpenDocument.Pdf.Core/OfficeIMO.OpenDocument.Pdf.Core.csproj")));
+    }
+
     [Theory]
     [InlineData("OfficeIMO.Visio/VisioPngRenderer.PngRaster.cs")]
     [InlineData("OfficeIMO.Visio/VisioPngRenderer.Encoding.cs")]

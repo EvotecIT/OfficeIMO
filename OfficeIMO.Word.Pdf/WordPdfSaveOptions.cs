@@ -6,8 +6,8 @@ namespace OfficeIMO.Word.Pdf {
     /// <summary>
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
-    public class PdfSaveOptions {
-        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic();
+    public class WordPdfSaveOptions {
+        private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         public string? FontFamily { get; set; }
 
-        /// <summary>Host-resource policy. Defaults to portable deterministic conversion; callers must explicitly opt in before installed host fonts or external resources are read.</summary>
+        /// <summary>Host-resource policy. Defaults to balanced conversion: installed and document-named fonts may be embedded, while local files and remote resources remain disabled.</summary>
         public PdfCore.PdfResourcePolicy ResourcePolicy {
             get => _resourcePolicy;
             set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Word pagination and layout settings remain owned by this converter.
         /// </summary>
-        public PdfSaveOptions UseRenderingProfile(
+        public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
             PdfOptions ??= new PdfCore.PdfOptions();
@@ -110,7 +110,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Applies a high-level export profile by setting the Word PDF options that correspond to that profile.
         /// </summary>
-        public PdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+        public WordPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
             switch (profile) {
                 case PdfCore.PdfExportProfile.Faithful:
                     IncludePageNumbers = false;
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
-        internal PdfSaveOptions CloneForConversion() => new() {
+        internal WordPdfSaveOptions CloneForConversion() => new() {
             PdfOptions = PdfOptions,
             FontFamily = FontFamily,
             ResourcePolicy = ResourcePolicy.Clone(),

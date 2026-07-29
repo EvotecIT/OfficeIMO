@@ -46,7 +46,7 @@ if (!string.Equals(value, "token-marker", StringComparison.Ordinal)) {
     throw new InvalidOperationException("The Google APIs data-store adapter did not round-trip its value.");
 }
 
-Console.WriteLine("PASS | 86 production libraries fully rooted; Google APIs token-store adapter round-tripped from NativeAOT.");
+Console.WriteLine("PASS | 88 production libraries fully rooted; Google APIs token-store adapter round-tripped from NativeAOT.");
 
 file sealed class InMemoryTokenStore : IGoogleWorkspaceTokenStore {
     private readonly Dictionary<string, object?> _values = new(StringComparer.Ordinal);

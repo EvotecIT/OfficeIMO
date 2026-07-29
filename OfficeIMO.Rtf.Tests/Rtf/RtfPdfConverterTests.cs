@@ -42,6 +42,27 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_DocumentFontPolicyPreventsFontTableHostLookup() {
+        string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont(installedFamily);
+        document.Settings.SetDefaultFont(fontId);
+        document.AddParagraph().AddText("RTF document font boundary").FontId = fontId;
+        PdfCore.PdfResourcePolicy policy = PdfCore.PdfResourcePolicy.CreateDefault();
+        policy.AllowDocumentFontEmbedding = false;
+
+        PdfCore.PdfDocument converted = document.ToPdfDocument(new RtfPdfSaveOptions {
+            ResourcePolicy = policy
+        });
+
+        Assert.Empty(converted.Options.EmbeddedFonts);
+        Assert.Contains("RTF document font boundary", PdfCore.PdfReadDocument.Open(converted.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_CountsDistinctSystemFontFamiliesOnce() {
         string? installedFamily = new[] { "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));

@@ -142,7 +142,7 @@ public sealed class PdfRenderingProfileTests {
             textShapingProvider: OfficeManagedTextShapingProvider.Instance,
             textShapingLanguage: "pl");
 
-        var word = new OfficeIMO.Word.Pdf.PdfSaveOptions().UseRenderingProfile(profile);
+        var word = new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(profile);
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(profile);
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
             .UseRenderingProfile(profile);
@@ -164,7 +164,7 @@ public sealed class PdfRenderingProfileTests {
             word.AddParagraph("Word profile proof");
             wordPdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
                 word,
-                new OfficeIMO.Word.Pdf.PdfSaveOptions().UseRenderingProfile(profile));
+                new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(profile));
         }
 
         byte[] excelPdf;

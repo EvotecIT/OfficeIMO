@@ -1,3 +1,4 @@
+using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.OneNote.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -26,11 +27,13 @@ public sealed class OneNotePdfVisualScenarioTests {
         PdfCore.PdfDocumentConversionResult result = section.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
+            Assert.Single(result.SourceConversionReports));
 
         Assert.Contains("OneNote semantic PDF proof", text);
         Assert.Contains("Positioned note body", text);
-        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
-        Assert.Contains(result.Warnings, warning => warning.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
+        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
 
         string? outputDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT");
         if (!string.IsNullOrWhiteSpace(outputDirectory)) {

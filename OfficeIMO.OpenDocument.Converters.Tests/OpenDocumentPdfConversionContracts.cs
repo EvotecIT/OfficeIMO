@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
-using OfficeIMO.OpenDocument.Pdf;
+using OfficeIMO.Drawing;
+using OfficeIMO.OpenDocument.Odp.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -24,7 +28,8 @@ public sealed class OpenDocumentPdfConversionContracts {
 
         Assert.Single(methods, method => method.Name == "ToPdf");
         Assert.Single(methods, method => method.Name == "ToPdfDocument");
-        Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
+        MethodInfo resultMethod = Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
+        Assert.Equal(typeof(PdfDocumentConversionResult), resultMethod.ReturnType);
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf" && method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(2, methods.Count(method => method.Name == "TrySaveAsPdf" && method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync" && method.ReturnType == typeof(Task<PdfSaveResult>)));
@@ -39,13 +44,22 @@ public sealed class OpenDocumentPdfConversionContracts {
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
+        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
+            Assert.Single(result.SourceConversionReports));
 
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Direct ODT PDF", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning =>
-            warning.Code == "ODF_UNSUPPORTED" &&
-            warning.Source.EndsWith(":source-tracked-changes", StringComparison.Ordinal) &&
-            warning.Severity == PdfConversionWarningSeverity.Warning &&
-            warning.Details["stage"] == "open-document-projection");
+        Assert.Contains(projection.Mappings, mapping =>
+            mapping.Feature == "source-tracked-changes" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.DoesNotContain(result.Warnings, warning =>
+            warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
+        Assert.Collection(
+            result.ConversionReports,
+            report => Assert.Same(projection, report),
+            report => Assert.Same(result.Report, report));
     }
 
     [Fact]
@@ -54,13 +68,18 @@ public sealed class OpenDocumentPdfConversionContracts {
         source.AddSheet("Revenue").Cell(0, 0).SetString("Quarter total");
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult();
-        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        byte[] bytes = result.ToBytes();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
+        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
+            Assert.Single(result.SourceConversionReports));
 
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Quarter total", text, StringComparison.Ordinal);
-        Assert.Single(PdfReadDocument.Open(result.ToBytes()).Pages);
-        Assert.Contains(result.Warnings, warning =>
-            warning.Code == "ODF_CONVERTED" &&
-            warning.Severity == PdfConversionWarningSeverity.Information);
+        Assert.Single(PdfReadDocument.Open(bytes).Pages);
+        Assert.Contains(projection.Mappings, mapping =>
+            mapping.Status == OdfConversionMappingStatus.Converted);
+        Assert.DoesNotContain(result.Warnings, warning =>
+            warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -72,23 +91,37 @@ public sealed class OpenDocumentPdfConversionContracts {
         slide.AddFadeInAnimation(animated, TimeSpan.FromSeconds(1));
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult();
-        string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        byte[] bytes = result.ToBytes();
+        string text = PdfReadDocument.Open(bytes).ExtractText();
+        OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
+            Assert.Single(result.SourceConversionReports));
 
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Direct ODP PDF", text, StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning =>
-            warning.Code == "ODF_UNSUPPORTED" &&
-            warning.Source.EndsWith(":source-presentation-animations", StringComparison.Ordinal));
+        Assert.Contains(projection.Mappings, mapping =>
+            mapping.Feature == "source-presentation-animations" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
     public async Task DirectFacadeSupportsStreamAndAsyncSaveContracts() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Stream contract");
+        source.AddTrackedParagraphInsertion("Tracked source", "Reviewer");
         using var stream = new MemoryStream();
 
         PdfSaveResult save = await source.SaveAsPdfAsync(stream);
 
         Assert.True(save.Succeeded, save.Exception?.Message);
         Assert.True(stream.Length > 0);
+        Assert.True(save.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
+        Assert.Collection(
+            save.ConversionReports,
+            report => Assert.IsType<OdfConversionReport>(report),
+            report => Assert.IsType<PdfConversionReport>(report));
+        Assert.All(save.ConversionReports, report => Assert.IsAssignableFrom<IOfficeConversionReport>(report));
     }
 }

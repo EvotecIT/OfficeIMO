@@ -22,7 +22,7 @@ public partial class Word {
         const string headerOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>h=2</m:t></m:r></m:oMath></m:oMathPara>";
         const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
         const string tableOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>c=4</m:t></m:r></m:oMath></m:oMathPara>";
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -146,7 +146,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_MapsSimpleAndComplexEqFieldsToStaticText() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -173,7 +173,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_Body_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -212,7 +212,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Simple_Text_ContentControls() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleTextContentControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleTextContentControls.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -260,7 +260,7 @@ public partial class Word {
         document._document.Body!.Append(nested);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.ToPdfDocument(new PdfSaveOptions { IncludePageNumbers = false }));
+            document.ToPdfDocument(new WordPdfSaveOptions { IncludePageNumbers = false }));
         Assert.Contains("nesting exceeds", exception.Message, StringComparison.Ordinal);
     }
 
@@ -268,7 +268,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_DropDown_ComboBox_And_DatePicker_To_AcroForm_Fields() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyContentControlFormFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyContentControlFormFields.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -314,7 +314,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Cell_DropDown_ComboBox_And_DatePicker_To_AcroForm_Fields() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellContentControlFormFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellContentControlFormFields.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -353,7 +353,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_RepeatingSection_To_Text_Items() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyRepeatingSection.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyRepeatingSection.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -381,7 +381,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Cell_RepeatingSection_To_Text_Items() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellRepeatingSection.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellRepeatingSection.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -414,7 +414,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_CheckBox_To_AcroForm_Field() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyCheckBox.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyCheckBox.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 
@@ -442,7 +442,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Cell_CheckBox_To_AcroForm_Field() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCheckBox.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCheckBox.pdf");
-        var options = new PdfSaveOptions {
+        var options = new WordPdfSaveOptions {
             IncludePageNumbers = false
         };
 

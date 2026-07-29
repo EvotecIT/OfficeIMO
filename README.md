@@ -12,7 +12,7 @@ OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing,
 
 This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
-The current source and packaging line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [2.x to 3.0 migration guide](Docs/officeimo-3.0-migration.md).
+The current source and packaging line is `3.0.x`. Applications should upgrade OfficeIMO packages together: 3.0 tightens public boundaries, makes table-only PDF recovery explicit, and aligns the complete release set on one version. See the [OfficeIMO migration guide](MIGRATION.md#migrating-from-officeimo-2x-to-30).
 
 NuGet publication is a separate release step. The repository, project files, and locally packed artifacts target `3.0.3`; a package ID is installable from NuGet.org only after that exact artifact has been published there. Until then, use the clean local feed produced by the release build or remain on the current public stable version.
 
@@ -54,10 +54,10 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated `3.0.x` release packages | 85 |
-| Documented package, tool, and example projects below | 92 |
+| Coordinated `3.0.x` release packages | 87 |
+| Documented package, tool, and example projects below | 94 |
 | Native format, foundation, and shared-service packages | 26 |
-| Conversion and cloud bridge packages | 29 |
+| Conversion and cloud bridge packages | 31 |
 | Unified Reader packages | 27 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
@@ -524,13 +524,29 @@ _Dependency footprint:_ only OfficeIMO PowerPoint, PDF, and Drawing packages.
 
 _Dependency footprint:_ only OfficeIMO PowerPoint and OpenDocument packages.
 
-#### [OfficeIMO.OpenDocument.Pdf](OfficeIMO.OpenDocument.Pdf/README.md)
+#### [OfficeIMO.OpenDocument.Odt.Pdf](OfficeIMO.OpenDocument.Odt.Pdf/README.md)
 
-- [x] Direct ODT, ODS, and ODP to PDF workflows with path, stream, synchronous, asynchronous, and result-bearing APIs
-- [x] One thin façade over the existing OpenDocument-to-Office adapters and canonical Word, Excel, and PowerPoint PDF engines
-- [x] Combined feature-mapping and PDF conversion diagnostics so approximated, skipped, and unsupported content remains visible
+- [x] Bidirectional ODT and PDF workflows through the Word semantic engine
+- [x] Path, stream, synchronous, asynchronous, and result-bearing entry points
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
 
-_Dependency footprint:_ only first-party OfficeIMO OpenDocument, Office, and PDF adapter packages; no second document or PDF rendering engine.
+_Dependency footprint:_ Word, Word OpenDocument, PDF, and native OpenDocument only; no Excel or PowerPoint stack.
+
+#### [OfficeIMO.OpenDocument.Ods.Pdf](OfficeIMO.OpenDocument.Ods.Pdf/README.md)
+
+- [x] Bidirectional ODS and PDF workflows through the Excel semantic engine
+- [x] Editable detected-table recovery with non-table page-content loss reporting
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
+
+_Dependency footprint:_ Excel, Excel OpenDocument, PDF, and native OpenDocument only; no Word or PowerPoint stack.
+
+#### [OfficeIMO.OpenDocument.Odp.Pdf](OfficeIMO.OpenDocument.Odp.Pdf/README.md)
+
+- [x] Bidirectional ODP and PDF workflows through the PowerPoint semantic engine
+- [x] Visual-page reconstruction by default, with explicit editable-table mode
+- [x] Combined OpenDocument feature mapping and PDF conversion diagnostics
+
+_Dependency footprint:_ PowerPoint, PowerPoint OpenDocument, PDF, and native OpenDocument only; no Word or Excel stack. The 4.0 package graph has no all-formats umbrella or bridge-specific Core package.
 
 #### [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
@@ -1175,9 +1191,8 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 ## More documentation
 
 - [Examples](OfficeIMO.Examples/README.md)
-- [2.x to 3.0 migration](Docs/officeimo-3.0-migration.md)
+- [Versioned migration guide](MIGRATION.md)
 - [2.x to 3.0 public API review](Docs/officeimo-3.0-public-api-review.md)
-- [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md)
 - [Image export capability matrix](Docs/officeimo.image-export-capability-matrix.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)
 - [PDF conversion support matrix](Docs/officeimo.pdf-conversion-support-matrix.md)
