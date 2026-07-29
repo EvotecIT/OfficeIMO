@@ -126,10 +126,13 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 return this;
             }
+            _pdfOptions.UseRenderingProfile(profile, mode);
             if (profile.Fonts.Faces.Count > 0) {
                 _fontlessRenderingProfileFontConfigurationVersion = null;
+            } else if (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+                _fontlessRenderingProfileFontConfigurationVersion =
+                    _pdfOptions.FontConfigurationVersion;
             }
-            _pdfOptions.UseRenderingProfile(profile, mode);
             return this;
         }
 
