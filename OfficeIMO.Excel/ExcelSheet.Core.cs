@@ -743,7 +743,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (_excelDocument.HasDeferredDirectDataSetImport || _excelDocument.HasPendingDirectCellValues) {
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows
+                || _excelDocument.HasPendingDirectCellValues) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
         }

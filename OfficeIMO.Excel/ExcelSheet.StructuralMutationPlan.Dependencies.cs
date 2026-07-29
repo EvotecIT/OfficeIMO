@@ -11,6 +11,24 @@ using Xnsv = DocumentFormat.OpenXml.Office2021.Excel.NamedSheetViews;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static void ClassifyExternalFormulaPlanImpact(
+            OpenXmlElement formula,
+            ISet<OpenXmlElement> validationImpacts,
+            ISet<OpenXmlElement> conditionalFormattingImpacts) {
+            for (OpenXmlElement? ancestor = formula.Parent;
+                ancestor != null;
+                ancestor = ancestor.Parent) {
+                if (ancestor is DataValidation || ancestor is X14.DataValidation) {
+                    validationImpacts.Add(ancestor);
+                    return;
+                }
+                if (ancestor is ConditionalFormatting || ancestor is X14.ConditionalFormatting) {
+                    conditionalFormattingImpacts.Add(ancestor);
+                    return;
+                }
+            }
+        }
+
         private static int CountAffectedRowRecords(Worksheet worksheet, int firstRow) {
             int count = 0;
             uint previous = 0U;

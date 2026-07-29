@@ -79,6 +79,8 @@ namespace OfficeIMO.Excel {
             int comments = 0;
             int connectionParameters = 0;
             var targetCellCoordinates = new HashSet<long>();
+            var externalValidationImpacts = new HashSet<OpenXmlElement>();
+            var externalConditionalFormattingImpacts = new HashSet<OpenXmlElement>();
             var pendingOwnerCells = new Dictionary<long, object?>();
             var pendingDirectCells = new List<(ExcelSheet Owner, int Row, int Column, object? Value)>();
             ExcelSheet? pendingOwner = _excelDocument.PendingDirectCellValueSheet;
@@ -204,6 +206,12 @@ namespace OfficeIMO.Excel {
                             count,
                             rewriteUnqualified)) {
                         formulas++;
+                        if (!rewriteUnqualified) {
+                            ClassifyExternalFormulaPlanImpact(
+                                formula,
+                                externalValidationImpacts,
+                                externalConditionalFormattingImpacts);
+                        }
                     }
                     if (element is Hyperlink hyperlink) {
                         bool internalLocationChanges = string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
@@ -232,7 +240,10 @@ namespace OfficeIMO.Excel {
                             count,
                             rewriteUnqualifiedReferences: false)) {
                         formulas++;
-                        conditionalFormatting++;
+                        ClassifyExternalFormulaPlanImpact(
+                            threshold,
+                            externalValidationImpacts,
+                            externalConditionalFormattingImpacts);
                     }
                     if (element is DataReference source
                         && string.IsNullOrWhiteSpace(source.Id?.Value)
@@ -444,6 +455,8 @@ namespace OfficeIMO.Excel {
                     webPublishItems++;
                 }
             }
+            validation += externalValidationImpacts.Count;
+            conditionalFormatting += externalConditionalFormattingImpacts.Count;
             AddImpact(
                 impacts,
                 "worksheet-cells",
@@ -557,9 +570,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void EnsureMutationPlanCanInspectWithoutMaterializing() {
-            if (_excelDocument.HasDeferredDirectDataSetImport) {
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
                 throw new InvalidOperationException(
-                    "A non-mutating structural plan cannot inspect pending deferred worksheet writes. " +
+                    "A non-mutating structural plan cannot inspect pending deferred or preserved fast-save worksheet rows. " +
                     "Materialize or save those writes before requesting the plan.");
             }
         }
