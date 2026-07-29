@@ -22,8 +22,10 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            if (options?.TryGetRenderingProfileFamilyFallbacks(
+            if (options?.TryGetEffectiveRenderingProfileFallbacks(
                     run.FontFamily,
+                    run.Bold,
+                    run.Italic,
                     out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks) == true
                 && profileFamilyFallbacks != null
                 && TryPlanFallbackTextRuns(
