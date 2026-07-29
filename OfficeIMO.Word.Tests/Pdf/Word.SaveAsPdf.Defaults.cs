@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System.Globalization;
@@ -17,6 +18,19 @@ namespace OfficeIMO.Tests {
             Assert.True(options.ResourcePolicy.AllowDocumentFontEmbedding);
             Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
             Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
+        }
+
+        [Fact]
+        public void SaveAsPdf_ShapingOnlyProfileDetectsLaterDirectFontConfiguration() {
+            var options = new WordPdfSaveOptions()
+                .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+            Assert.False(options.HasExplicitPdfFontConfiguration);
+
+            options.PdfOptions!.DefaultFontSize = 13;
+
+            Assert.True(options.HasExplicitPdfFontConfiguration);
+            Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         }
 
         [Fact]

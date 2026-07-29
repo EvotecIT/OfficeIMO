@@ -713,10 +713,19 @@ namespace OfficeIMO.Excel {
             if (drawingsPart.WorksheetDrawing != null
                 && inspectedRoots.Add(drawingsPart.WorksheetDrawing)) {
                 budget.Consume();
+                var changedDrawingItems = new HashSet<OpenXmlElement>();
                 foreach (OpenXmlElement element in drawingsPart.WorksheetDrawing.Descendants()) {
                     budget.Consume();
-                    if (rewriteUnqualifiedReferences) {
-                        drawings++;
+                    if (rewriteUnqualifiedReferences
+                        && (element is DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor
+                            || element is DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor)
+                        && DrawingAnchorChangesForPlan(
+                            element,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
+                        changedDrawingItems.Add(element);
                     }
                     if (element is DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape shape
                         && FormulaChangesForPlan(
@@ -726,12 +735,16 @@ namespace OfficeIMO.Excel {
                             lastRow,
                             count,
                             rewriteUnqualifiedReferences)) {
-                        if (!rewriteUnqualifiedReferences) {
-                            drawings++;
-                        }
+                        OpenXmlElement changedItem = shape.Ancestors()
+                            .FirstOrDefault(ancestor =>
+                                ancestor is DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor
+                                || ancestor is DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor)
+                            ?? shape;
+                        changedDrawingItems.Add(changedItem);
                         formulas++;
                     }
                 }
+                drawings += changedDrawingItems.Count;
             }
 
             foreach (OpenXmlPartRootElement? chartRoot in drawingsPart.ChartParts
@@ -767,6 +780,128 @@ namespace OfficeIMO.Excel {
                     drawings++;
                 }
             }
+        }
+
+        private bool DrawingAnchorChangesForPlan(
+            OpenXmlElement anchor,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) {
+            int rowDelta = kind == ExcelRowMutationKind.Insert ? count : -count;
+            int? lastDeletedRow = kind == ExcelRowMutationKind.Delete ? lastRow : null;
+
+            if (anchor is DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor oneCellAnchor) {
+                return DrawingMarkerChangesForPlan(
+                    oneCellAnchor.FromMarker,
+                    firstRow,
+                    rowDelta,
+                    lastDeletedRow);
+            }
+
+            if (anchor is not DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor twoCellAnchor) {
+                return false;
+            }
+
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues placement =
+                twoCellAnchor.EditAs?.Value
+                ?? DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.TwoCell;
+            if (placement == DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.Absolute) {
+                return false;
+            }
+            if (placement == DocumentFormat.OpenXml.Drawing.Spreadsheet.EditAsValues.OneCell) {
+                return DrawingMarkerChangesForPlan(
+                    twoCellAnchor.FromMarker,
+                    firstRow,
+                    rowDelta,
+                    lastDeletedRow);
+            }
+
+            return TwoCellDrawingAnchorChangesForPlan(
+                twoCellAnchor,
+                firstRow,
+                rowDelta,
+                lastDeletedRow);
+        }
+
+        private static bool DrawingMarkerChangesForPlan(
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.MarkerType? marker,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            if (marker?.RowId?.Text is not string rowText
+                || !int.TryParse(
+                    rowText,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int zeroBasedRow)) {
+                return false;
+            }
+
+            int oneBasedRow = zeroBasedRow + 1;
+            if (!TryRemapShiftedReferenceRows(
+                    (oneBasedRow, 1, oneBasedRow, 1),
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remapped)) {
+                return false;
+            }
+            if (remapped == null) {
+                return !lastDeletedRow.HasValue
+                    || firstAffectedRow - 1 != zeroBasedRow;
+            }
+            return remapped.Value.r1 - 1 != zeroBasedRow;
+        }
+
+        private static bool TwoCellDrawingAnchorChangesForPlan(
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor anchor,
+            int firstAffectedRow,
+            int rowDelta,
+            int? lastDeletedRow) {
+            if (rowDelta == 0
+                || anchor.FromMarker?.RowId?.Text is not string fromRowText
+                || anchor.ToMarker?.RowId?.Text is not string toRowText
+                || !int.TryParse(
+                    fromRowText,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int fromZeroBasedRow)
+                || !int.TryParse(
+                    toRowText,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int toZeroBasedRow)) {
+                return false;
+            }
+
+            int firstSpannedRow = fromZeroBasedRow + 1;
+            bool toMarkerInsideRow = long.TryParse(
+                    anchor.ToMarker?.RowOffset?.Text,
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out long toRowOffset)
+                && toRowOffset != 0L;
+            int lastSpannedRow = toZeroBasedRow + (toMarkerInsideRow ? 1 : 0);
+            if (lastSpannedRow < firstSpannedRow
+                || !TryRemapShiftedReferenceRows(
+                    (firstSpannedRow, 1, lastSpannedRow, 1),
+                    firstAffectedRow,
+                    rowDelta,
+                    lastDeletedRow,
+                    out var remapped)) {
+                return false;
+            }
+            if (remapped == null) {
+                return !lastDeletedRow.HasValue
+                    || firstAffectedRow - 1 != fromZeroBasedRow
+                    || firstAffectedRow - 1 != toZeroBasedRow;
+            }
+
+            int remappedFromZeroBasedRow = remapped.Value.r1 - 1;
+            int remappedToZeroBasedRow = remapped.Value.r2 - (toMarkerInsideRow ? 1 : 0);
+            return remappedFromZeroBasedRow != fromZeroBasedRow
+                || remappedToZeroBasedRow != toZeroBasedRow;
         }
 
         private static bool IsStructuralFormulaElement(OpenXmlLeafTextElement element) =>

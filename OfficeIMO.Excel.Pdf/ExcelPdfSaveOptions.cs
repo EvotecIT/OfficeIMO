@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel.Pdf {
     public sealed class ExcelPdfSaveOptions {
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
+        private PdfCore.PdfOptions? _pdfOptions;
+        private long? _fontlessRenderingProfileFontConfigurationVersion;
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
 
         /// <summary>
@@ -25,7 +27,19 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
-        public PdfCore.PdfOptions? PdfOptions { get; set; }
+        public PdfCore.PdfOptions? PdfOptions {
+            get => _pdfOptions;
+            set {
+                _pdfOptions = value;
+                _fontlessRenderingProfileFontConfigurationVersion = null;
+            }
+        }
+
+        internal bool HasExplicitPdfFontConfiguration =>
+            _pdfOptions != null
+            && (!_fontlessRenderingProfileFontConfigurationVersion.HasValue
+                || _pdfOptions.FontConfigurationVersion
+                    != _fontlessRenderingProfileFontConfigurationVersion.Value);
 
         /// <summary>
         /// Optional workbook default font family used by the first-party PDF engine.
@@ -207,8 +221,20 @@ namespace OfficeIMO.Excel.Pdf {
         public ExcelPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            PdfOptions ??= new PdfCore.PdfOptions();
-            PdfOptions.UseRenderingProfile(profile, mode);
+            if (profile == null) throw new ArgumentNullException(nameof(profile));
+            if (_pdfOptions == null) {
+                _pdfOptions = new PdfCore.PdfOptions();
+                _pdfOptions.UseRenderingProfile(profile, mode);
+                if (profile.Fonts.Faces.Count == 0) {
+                    _fontlessRenderingProfileFontConfigurationVersion =
+                        _pdfOptions.FontConfigurationVersion;
+                }
+                return this;
+            }
+            if (profile.Fonts.Faces.Count > 0) {
+                _fontlessRenderingProfileFontConfigurationVersion = null;
+            }
+            _pdfOptions.UseRenderingProfile(profile, mode);
             return this;
         }
 

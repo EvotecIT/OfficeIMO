@@ -21,6 +21,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointSaveAsPdfTests {
     [Fact]
+    public void SaveAsPdf_PowerPointShapingOnlyProfileAllowsPresentationFontDiscoveryUntilCallerConfiguresFonts() {
+        var options = new PowerPointPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+
+        options.PdfOptions!.RegisterFontFamilySubstitution(
+            "Aptos",
+            "Portable Aptos");
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_MapsSlideSizeTextShapeAndPictureToCanvasPdf() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

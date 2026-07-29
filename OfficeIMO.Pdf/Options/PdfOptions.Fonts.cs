@@ -21,6 +21,7 @@ public sealed partial class PdfOptions {
         set {
             _embeddedFontFallbacks = value?.Clone();
             _embeddedFontFallbacks?.RegisterFonts(this);
+            MarkFontConfigurationChanged();
         }
     }
 
@@ -322,7 +323,9 @@ public sealed partial class PdfOptions {
     public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
         Guard.NotNull(fallbackSet, nameof(fallbackSet));
         _embeddedFontFallbacks = fallbackSet.Clone();
+        _renderingProfileDeclaredFallbackCandidates = null;
         _embeddedFontFallbacks.RegisterFonts(this);
+        MarkFontConfigurationChanged();
         return this;
     }
 

@@ -275,6 +275,7 @@ public sealed partial class PdfOptions {
         _embeddedOpenTypeCffFontPrograms?.Remove(font);
         _embeddedFontProgramFailures?.Remove(font);
         ClearReportedEmbeddedFontProgramFailure(font);
+        MarkFontConfigurationChanged();
         return this;
     }
 
