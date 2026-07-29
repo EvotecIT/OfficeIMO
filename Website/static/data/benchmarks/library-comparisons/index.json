@@ -8,6 +8,70 @@
   "entries": [
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "platform": "linux",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:37:27.4332656+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-linux-full.json",
+      "suite": "OfficeIMO.CSV.MarkPflug65K",
+      "environment": {
+        "osFamily": "Linux",
+        "osDescription": "Linux Ubuntu 24.04.3 LTS (Noble Numbat)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.110",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.CSV.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-csv-decoded-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:14:38.3796098+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-full.json",
+      "suite": "OfficeIMO.CSV.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.CSV.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-csv-decoded-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-07-29T18:09:45.9365965+00:00",
@@ -40,6 +104,70 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "platform": "linux",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:37:27.6233354+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-linux-full.json",
+      "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+      "environment": {
+        "osFamily": "Linux",
+        "osDescription": "Linux Ubuntu 24.04.3 LTS (Noble Numbat)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.110",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:20:58.5272082+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-full.json",
+      "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "platform": "windows",
       "runMode": "quick",
       "generatedUtc": "2026-07-29T18:11:33.6617128+00:00",
@@ -66,6 +194,70 @@
         "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
         "gitSha": "91d9047062b001cb5fa27b3e1ea2c2edb13fddff"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "platform": "linux",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:37:27.599419+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-linux-full.json",
+      "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+      "environment": {
+        "osFamily": "Linux",
+        "osDescription": "Linux Ubuntu 24.04.3 LTS (Noble Numbat)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.110",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "platform": "windows",
+      "runMode": "full",
+      "generatedUtc": "2026-07-29T18:19:36.4988506+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-full.json",
+      "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+      "environment": {
+        "osFamily": "Windows",
+        "osDescription": "Windows 11 (10.0.26200.8875/25H2/2025Update/HudsonValley2)",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "processorName": "AMD Ryzen 9 9950X3D2",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 16,
+        "logicalCoreCount": 32,
+        "runtimeVersion": ".NET 10.0.10 (10.0.10, 10.0.1026.32716)",
+        "dotNetSdkVersion": "10.0.302",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
+        "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
+        "gitSha": "3178178ff691ea52af6a6ad055b8ec175098d21d"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -106,6 +298,34 @@
   "availability": [
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:14:38.3796098+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:37:27.4332656+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "runMode": "quick",
       "platform": "windows",
       "available": true,
@@ -132,6 +352,34 @@
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:20:58.5272082+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:37:27.6233354+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "runMode": "quick",
       "platform": "windows",
       "available": true,
@@ -151,6 +399,34 @@
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "runMode": "quick",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:19:36.4988506+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-07-29T18:37:27.599419+00:00"
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
+      "runMode": "full",
       "platform": "macos",
       "available": false,
       "runModes": [],
