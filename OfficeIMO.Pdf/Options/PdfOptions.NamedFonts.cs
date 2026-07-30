@@ -99,6 +99,9 @@ public sealed partial class PdfOptions {
         _namedFontPrograms?.Clear();
         _namedOpenTypeCffFontPrograms?.Clear();
         _namedFontProgramFailures?.Clear();
+        if (_embeddedFontFallbacks?.UsesNamedFontFamilies == true) {
+            _embeddedFontFallbacks = null;
+        }
         _renderingProfileFamilyFallbacks?.Clear();
         _renderingProfileDeclaredFallbackCandidates = null;
         _renderingProfileOwnedNamedFamilyNames?.Clear();
