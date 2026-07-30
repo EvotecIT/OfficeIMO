@@ -445,14 +445,36 @@ public sealed partial class PdfOptions {
     }
 
     private void ReleaseRenderingProfileFontOwnership(string familyName) {
-        bool releasedProfileOwnedFamily =
-            _renderingProfileOwnedNamedFamilyNames?.Remove(familyName) == true;
+        var releasedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            familyName
+        };
+        if (_renderingProfileDeclaredFallbackCandidates != null) {
+            foreach (PdfEmbeddedFontFallbackCandidate candidate in
+                _renderingProfileDeclaredFallbackCandidates) {
+                if (string.Equals(
+                        CandidateFamilyKey(candidate),
+                        familyName,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    releasedNames.Add(candidate.FontName);
+                }
+            }
+        }
+        bool releasedProfileOwnedFamily = false;
+        foreach (string releasedName in releasedNames) {
+            releasedProfileOwnedFamily =
+                _renderingProfileOwnedNamedFamilyNames?.Remove(releasedName) == true
+                || releasedProfileOwnedFamily;
+            string key = NormalizeNamedFontFamilyKey(releasedName);
+            if (_namedFontFamilies?.Remove(key) == true) {
+                RemoveNamedFontProgramCache(key);
+            }
+        }
         if (_renderingProfileDeclaredFallbackCandidates != null) {
             _renderingProfileDeclaredFallbackCandidates =
                 _renderingProfileDeclaredFallbackCandidates
-                    .Where(candidate =>
-                        !string.Equals(
-                            candidate.FontName,
+                    .Where(candidate => !releasedNames.Contains(candidate.FontName)
+                        && !string.Equals(
+                            CandidateFamilyKey(candidate),
                             familyName,
                             StringComparison.OrdinalIgnoreCase))
                     .ToArray();
@@ -460,9 +482,9 @@ public sealed partial class PdfOptions {
         if (releasedProfileOwnedFamily && _embeddedFontFallbacks != null) {
             PdfEmbeddedFontFallbackCandidate[] candidates =
                 _embeddedFontFallbacks.Candidates
-                    .Where(candidate =>
-                        !string.Equals(
-                            candidate.FontName,
+                    .Where(candidate => !releasedNames.Contains(candidate.FontName)
+                        && !string.Equals(
+                            CandidateFamilyKey(candidate),
                             familyName,
                             StringComparison.OrdinalIgnoreCase))
                     .ToArray();
@@ -479,8 +501,9 @@ public sealed partial class PdfOptions {
                             Slot = _embeddedFontFallbacks.FontSlots[index]
                         })
                         .Where(entry =>
-                            !string.Equals(
-                                entry.Candidate.FontName,
+                            !releasedNames.Contains(entry.Candidate.FontName)
+                            && !string.Equals(
+                                CandidateFamilyKey(entry.Candidate),
                                 familyName,
                                 StringComparison.OrdinalIgnoreCase))
                         .Select(entry => entry.Slot)
@@ -493,12 +516,13 @@ public sealed partial class PdfOptions {
         if (_renderingProfileFamilyFallbacks == null) {
             return;
         }
+        _renderingProfileFamilyFallbacks.Remove(familyName);
         foreach (string key in _renderingProfileFamilyFallbacks.Keys.ToArray()) {
             PdfEmbeddedFontFallbackCandidate[] remaining =
                 _renderingProfileFamilyFallbacks[key]
-                    .Where(candidate =>
-                        !string.Equals(
-                            candidate.FontName,
+                    .Where(candidate => !releasedNames.Contains(candidate.FontName)
+                        && !string.Equals(
+                            CandidateFamilyKey(candidate),
                             familyName,
                             StringComparison.OrdinalIgnoreCase))
                     .ToArray();

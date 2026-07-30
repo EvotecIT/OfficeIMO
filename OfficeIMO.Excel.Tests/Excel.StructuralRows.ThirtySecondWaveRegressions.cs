@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -133,6 +134,63 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "sparklines");
             Assert.Equal(1, sparklines.ItemCount);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanRejectsRemovedWorksheet() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet original = document.AddWorksheet("Data");
+            ExcelRowMutationPlan plan = original.PlanInsertRows(1);
+            document.RemoveWorksheet("Data");
+            ExcelSheet replacement = document.AddWorksheet("Data");
+            replacement.CellValue(1, 1, "Replacement");
+
+            InvalidOperationException exception =
+                Assert.Throws<InvalidOperationException>(() => plan.Apply());
+
+            Assert.Contains("no longer part", exception.Message);
+            Assert.Equal("Replacement", replacement.CellAt(1, 1).GetValue<string>());
+            Assert.True(plan.IsConsumed);
+            Assert.False(plan.IsApplied);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_UnchangedMergeContainerIsNotNormalized() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var merges = new MergeCells(new MergeCell { Reference = "A1:B1" });
+            sheet.WorksheetPart.Worksheet.Append(merges);
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
+
+            Assert.DoesNotContain(
+                plan.Impacts,
+                impact => impact.Category == "merged-cells");
+            plan.Apply();
+            Assert.Null(merges.Count);
+            Assert.Equal(
+                "A1:B1",
+                Assert.Single(merges.Elements<MergeCell>()).Reference!.Value);
+        }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanChargesNamedPivotLookup() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = CreatePivotSheet(document);
+            WorksheetSource source = Assert.Single(
+                sheet.WorksheetPart.PivotTableParts).PivotTableCacheDefinitionPart!
+                .PivotCacheDefinition!.CacheSource!.WorksheetSource!;
+            source.Reference = null;
+            source.Sheet = null;
+            source.Name = "MissingPivotSource";
+            document.WorkbookRoot.DefinedNames = new DefinedNames(
+                new DefinedName("'Data'!$A$1:$A$2") { Name = "OtherName" });
+
+            ExcelRowMutationPlan namedPlan = sheet.PlanInsertRows(5);
+            source.Name = null;
+            ExcelRowMutationPlan unnamedPlan = sheet.PlanInsertRows(5);
+
+            Assert.True(namedPlan.ScannedElements > unnamedPlan.ScannedElements);
         }
     }
 }

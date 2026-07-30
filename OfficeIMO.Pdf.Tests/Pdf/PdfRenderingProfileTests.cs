@@ -337,7 +337,7 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void RangeScopedProfileFamilyIsReservedFromAdapterSystemFontDiscovery() {
+    public void RegisteringNamedFamilyReplacesReservedRangeScopedPlanner() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
         });
@@ -357,7 +357,7 @@ public sealed class PdfRenderingProfileTests {
             "Arial",
             ManagedTextShapingTestAssets.CreateFont('B')));
 
-        Assert.True(options.HasRenderingProfileFamilyPlanner("Arial"));
+        Assert.False(options.HasRenderingProfileFamilyPlanner("Arial"));
         Assert.True(options.ShouldPreferSelectedCallerFamily("Arial"));
     }
 
@@ -1785,6 +1785,37 @@ public sealed class PdfRenderingProfileTests {
         options.EmbeddedFontFallbacks = null;
 
         Assert.Null(options.EmbeddedFontFallbacks);
+        Assert.Null(options.GetEffectiveRenderingProfileDeclaredFallbacks(
+            bold: false,
+            italic: false));
+    }
+
+    [Fact]
+    public void RegisteringAuthoredFamilyReleasesScopedProfileResources() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA)
+            .AddFallbackFamily("Scoped");
+        string resourceFamilyName = fonts.Faces[0].ResourceFamilyName;
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped", fonts));
+        Assert.True(options.HasNamedFontFamily(resourceFamilyName));
+
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            "Scoped",
+            ManagedTextShapingTestAssets.CreateFont('B')));
+
+        Assert.True(options.HasNamedFontFamily("Scoped"));
+        Assert.False(options.HasNamedFontFamily(resourceFamilyName));
+        Assert.False(options.TryGetRenderingProfileFamilyFallbacks(
+            "Scoped",
+            out _));
         Assert.Null(options.GetEffectiveRenderingProfileDeclaredFallbacks(
             bold: false,
             italic: false));
