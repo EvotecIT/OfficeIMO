@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 
             pdfOptions.CreateOutlineFromHeadings = true;
-            preserveConfiguredFontSlots = options.PdfOptions != null;
+            preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
 
             if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
                 TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {

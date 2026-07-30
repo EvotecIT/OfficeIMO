@@ -116,13 +116,22 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
+            if (profile == null) {
+                throw new ArgumentNullException(nameof(profile));
+            }
+            if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
+                throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+
             bool profileOwnsCurrentFontConfiguration =
                 _pdfOptions == null
                 || (_renderingProfileFontConfigurationState.HasValue
                     && _pdfOptions.FontConfigurationState
                         == _renderingProfileFontConfigurationState.Value);
-            _pdfOptions ??= new PdfCore.PdfOptions();
-            _pdfOptions.UseRenderingProfile(profile, mode);
+            PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
+            target.UseRenderingProfile(profile, mode);
+            _pdfOptions ??= target;
             _renderingProfileFontConfigurationState =
                 profileOwnsCurrentFontConfiguration
                     ? _pdfOptions.FontConfigurationState

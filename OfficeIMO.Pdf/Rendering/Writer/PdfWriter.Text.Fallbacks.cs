@@ -245,43 +245,46 @@ internal static partial class PdfWriter {
         ch == '\n' || ch == '\r' || ch == '\t';
 
     private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, TextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
-        length = GetNextFallbackScalarLength(text, index);
+        string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
+        length = textElement.Length;
         if (options != null &&
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
             if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                 namedFontProgram != null) {
-                return TryGetCoveredTextLength(text, index, namedFontProgram, options.TextShapingModeSnapshot, out length);
+                return CanWriteWithEmbeddedFont(
+                    textElement,
+                    namedFontProgram,
+                    options.TextShapingModeSnapshot);
             }
 
             if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                 namedCffFontProgram != null) {
-                return TryGetCoveredTextLength(text, index, namedCffFontProgram, options.TextShapingModeSnapshot, out length);
+                return CanWriteWithEmbeddedFont(
+                    textElement,
+                    namedCffFontProgram,
+                    options.TextShapingModeSnapshot);
             }
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return TryGetCoveredTextLength(text, index, fontProgram, options.TextShapingModeSnapshot, out length);
+            return CanWriteWithEmbeddedFont(
+                textElement,
+                fontProgram,
+                options.TextShapingModeSnapshot);
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return TryGetCoveredTextLength(text, index, cffFontProgram, options.TextShapingModeSnapshot, out length);
+            return CanWriteWithEmbeddedFont(
+                textElement,
+                cffFontProgram,
+                options.TextShapingModeSnapshot);
         }
 
-        return CanWriteTextWithSelectedFont(text.Substring(index, length), fontForRun, options);
-    }
-
-    private static int GetNextFallbackScalarLength(string text, int index) {
-        if (index + 1 < text.Length &&
-            char.IsHighSurrogate(text[index]) &&
-            char.IsLowSurrogate(text[index + 1])) {
-            return 2;
-        }
-
-        return 1;
+        return CanWriteTextWithSelectedFont(textElement, fontForRun, options);
     }
 
     private static bool FontFamilySlotIsEmptyOrCandidate(
