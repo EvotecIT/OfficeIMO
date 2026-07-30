@@ -24,21 +24,22 @@ namespace OfficeIMO.Excel {
         /// Returns the used range of the worksheet as an A1 string (e.g., "A1:C10").
         /// If the sheet is empty, returns "A1:A1".
         /// </summary>
-        public string GetUsedRangeA1() {
+        public string GetUsedRangeA1(CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             if (_usedRangeA1 != null) {
                 return _usedRangeA1;
             }
 
             if (_canStreamWorksheetPart
-                && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)
-                && TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference)
-                && TryWorksheetCellsFitWithinRangeFromXml(tableBackedReference)) {
+                && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference, ct)
+                && TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference, ct)
+                && TryWorksheetCellsFitWithinRangeFromXml(tableBackedReference, ct)) {
                 _usedRangeA1 = tableBackedReference;
                 return tableBackedReference;
             }
 
             if (_canStreamWorksheetPart
-                && TryComputeUsedRangeReferenceFromXml(out string usedRangeReference)) {
+                && TryComputeUsedRangeReferenceFromXml(out string usedRangeReference, ct)) {
                 _usedRangeA1 = usedRangeReference;
                 return usedRangeReference;
             }
@@ -49,7 +50,10 @@ namespace OfficeIMO.Excel {
             return usedRange;
         }
 
-        private bool TryGetWorksheetCellPresence(out bool hasCells) {
+        private bool TryGetWorksheetCellPresence(
+            out bool hasCells,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             hasCells = false;
             if (_canStreamWorksheetPart) {
                 try {
@@ -57,6 +61,7 @@ namespace OfficeIMO.Excel {
                     if (TryPrepareWorksheetStream(stream)) {
                         using var reader = OpenWorksheetXmlReader(stream);
                         while (reader.Read()) {
+                            ct.ThrowIfCancellationRequested();
                             if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
                                 hasCells = true;
                                 return true;
@@ -72,11 +77,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ct.ThrowIfCancellationRequested();
             hasCells = WorksheetRoot.Descendants<Cell>().Any();
             return true;
         }
 
-        private bool TryGetWorksheetDimensionReferenceFromXml(out string reference) {
+        private bool TryGetWorksheetDimensionReferenceFromXml(
+            out string reference,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -86,6 +95,7 @@ namespace OfficeIMO.Excel {
 
                 using var reader = OpenWorksheetXmlReader(stream);
                 while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
                     }
@@ -111,7 +121,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool TryComputeUsedRangeReferenceFromXml(out string reference) {
+        private bool TryComputeUsedRangeReferenceFromXml(
+            out string reference,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -128,6 +141,7 @@ namespace OfficeIMO.Excel {
                 int nextRowIndex = 1;
 
                 while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
                     if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
                         continue;
                     }
@@ -151,6 +165,7 @@ namespace OfficeIMO.Excel {
                     int nextColumnIndex = 1;
                     bool advanceReader = true;
                     while (advanceReader ? reader.Read() : !reader.EOF) {
+                        ct.ThrowIfCancellationRequested();
                         advanceReader = true;
                         if (reader.NodeType == XmlNodeType.EndElement
                             && reader.Depth == rowDepth
@@ -226,7 +241,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryWorksheetCellsFitWithinRangeFromXml(string reference) {
+        private bool TryWorksheetCellsFitWithinRangeFromXml(
+            string reference,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             if (!A1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return false;
             }
@@ -240,6 +258,7 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 int nextRowIndex = 1;
                 while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
                     if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
                         continue;
                     }
@@ -259,6 +278,7 @@ namespace OfficeIMO.Excel {
                     int nextColumnIndex = 1;
                     bool advanceReader = true;
                     while (advanceReader ? reader.Read() : !reader.EOF) {
+                        ct.ThrowIfCancellationRequested();
                         advanceReader = true;
                         if (reader.NodeType == XmlNodeType.EndElement
                             && reader.Depth == rowDepth
@@ -317,7 +337,11 @@ namespace OfficeIMO.Excel {
             return TryNormalizeWorksheetDimensionReference(rawReference, out reference);
         }
 
-        private bool TryGetTableBackedDimensionReference(string dimensionReference, out string reference) {
+        private bool TryGetTableBackedDimensionReference(
+            string dimensionReference,
+            out string reference,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             if (!A1.TryParseRange(dimensionReference, out int dimensionFirstRow, out int dimensionFirstColumn, out int dimensionLastRow, out int dimensionLastColumn)) {
                 return false;
@@ -330,7 +354,8 @@ namespace OfficeIMO.Excel {
 
             try {
                 foreach (var tablePart in _wsPart.TableDefinitionParts) {
-                    string? tableReference = TryGetTableReferenceXmlFast(tablePart, out string xmlTableReference)
+                    ct.ThrowIfCancellationRequested();
+                    string? tableReference = TryGetTableReferenceXmlFast(tablePart, out string xmlTableReference, ct)
                         ? xmlTableReference
                         : tablePart.Table?.Reference?.Value;
                     if (string.IsNullOrWhiteSpace(tableReference)
@@ -365,12 +390,17 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryGetTableReferenceXmlFast(TableDefinitionPart tablePart, out string reference) {
+        private static bool TryGetTableReferenceXmlFast(
+            TableDefinitionPart tablePart,
+            out string reference,
+            CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
                 using var stream = tablePart.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorksheetXmlReaderSettings);
                 while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
                     if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "table") {
                         continue;
                     }

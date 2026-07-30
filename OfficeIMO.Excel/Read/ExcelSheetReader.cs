@@ -12,6 +12,10 @@ namespace OfficeIMO.Excel {
     /// Reader for a single worksheet. Offers enumeration and conversion helpers.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
+        private const string SpreadsheetNamespace =
+            "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private const string StrictSpreadsheetNamespace =
+            "http://purl.oclc.org/ooxml/spreadsheetml/main";
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
         private readonly SharedStringCache _sst;
@@ -61,6 +65,21 @@ namespace OfficeIMO.Excel {
         public string Name => _sheetName;
 
         internal void ValidateFormulaTextDataReaderProjection(CancellationToken ct) {
+            if (_canStreamWorksheetPart) {
+                try {
+                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    if (TryPrepareWorksheetStream(stream)) {
+                        ValidateFormulaTextDataReaderProjectionXml(stream, ct);
+                        return;
+                    }
+                } catch (XmlException) {
+                } catch (IOException) {
+                } catch (UnauthorizedAccessException) {
+                } catch (ObjectDisposedException) {
+                }
+            }
+
+            ct.ThrowIfCancellationRequested();
             Worksheet worksheet = _wsPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
@@ -75,6 +94,71 @@ namespace OfficeIMO.Excel {
                 }
 
                 string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                throw new NotSupportedException(
+                    $"Data-reader projection cannot safely expand the shared-formula follower " +
+                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    "shared-formula text is required.");
+            }
+        }
+
+        private void ValidateFormulaTextDataReaderProjectionXml(
+            Stream stream,
+            CancellationToken ct) {
+            using var reader = OpenWorksheetXmlReader(stream);
+            while (reader.Read()) {
+                ct.ThrowIfCancellationRequested();
+                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                    continue;
+                }
+
+                string reference = reader.GetAttribute("r") ?? "(unknown cell)";
+                bool sharedFollower = false;
+                bool hasCachedValue = false;
+                using XmlReader cellReader = reader.ReadSubtree();
+                while (cellReader.Read()) {
+                    ct.ThrowIfCancellationRequested();
+                    if (cellReader.NodeType != XmlNodeType.Element
+                        || cellReader.Depth != 1
+                        || (!string.Equals(
+                                cellReader.NamespaceURI,
+                                SpreadsheetNamespace,
+                                StringComparison.Ordinal)
+                            && !string.Equals(
+                                cellReader.NamespaceURI,
+                                StrictSpreadsheetNamespace,
+                                StringComparison.Ordinal))) {
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "v") {
+                        hasCachedValue = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName != "f"
+                        || !string.Equals(
+                            cellReader.GetAttribute("t"),
+                            "shared",
+                            StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    bool isFollower = cellReader.IsEmptyElement;
+                    if (!isFollower) {
+                        using XmlReader formulaReader = cellReader.ReadSubtree();
+                        if (formulaReader.Read()) {
+                            isFollower = string.IsNullOrWhiteSpace(
+                                formulaReader.ReadElementContentAsString());
+                        }
+                    }
+                    sharedFollower |= isFollower;
+                }
+
+                if (!sharedFollower
+                    || (_opt.UseCachedFormulaResult && hasCachedValue)) {
+                    continue;
+                }
+
                 throw new NotSupportedException(
                     $"Data-reader projection cannot safely expand the shared-formula follower " +
                     $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +

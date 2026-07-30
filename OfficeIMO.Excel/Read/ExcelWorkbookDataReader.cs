@@ -144,22 +144,27 @@ namespace OfficeIMO.Excel {
                 : new CompositeOwner(owner, additionalOwner);
             try {
                 IReadOnlyList<string> sheets = SelectSheets(owner.GetSheetNames(), options.SheetName);
-                foreach (string sheetName in sheets) {
-                    owner.GetSheet(sheetName)
-                        .ValidateFormulaTextDataReaderProjection(options.CancellationToken);
-                }
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    index => (DbDataReader)owner.GetSheet(sheets[index]).ReadUsedRangeAsDataReader(
-                        headersInFirstRow: options.HasHeaderRow,
-                        schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
-                        ct: options.CancellationToken),
+                    index => OpenOpenXmlSheet(owner, sheets[index], options),
                     lifetime,
                     options.Culture);
             } catch {
                 lifetime.Dispose();
                 throw;
             }
+        }
+
+        private static DbDataReader OpenOpenXmlSheet(
+            ExcelDocumentReader owner,
+            string sheetName,
+            ExcelReadOptions options) {
+            ExcelSheetReader sheet = owner.GetSheet(sheetName);
+            sheet.ValidateFormulaTextDataReaderProjection(options.CancellationToken);
+            return (DbDataReader)sheet.ReadUsedRangeAsDataReader(
+                headersInFirstRow: options.HasHeaderRow,
+                schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
+                ct: options.CancellationToken);
         }
 
         private static ExcelWorkbookDataReader CreateBinary(
@@ -205,9 +210,29 @@ namespace OfficeIMO.Excel {
             }
 
             _current.Dispose();
-            _sheetIndex++;
-            _current = _openSheet(_sheetIndex);
+            int nextSheetIndex = _sheetIndex + 1;
+            try {
+                _current = _openSheet(nextSheetIndex);
+            } catch {
+                CloseAfterSheetOpenFailure();
+                throw;
+            }
+            _sheetIndex = nextSheetIndex;
             return true;
+        }
+
+        private void CloseAfterSheetOpenFailure() {
+            _closed = true;
+            try {
+                _current.Dispose();
+            } catch {
+                // Preserve the worksheet-open failure while attempting complete cleanup.
+            }
+            try {
+                _owner.Dispose();
+            } catch {
+                // Preserve the worksheet-open failure while attempting complete cleanup.
+            }
         }
 
         public override void Close() {

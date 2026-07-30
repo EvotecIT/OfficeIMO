@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
             CancellationToken ct = default) {
-            if (TryGetWorksheetCellPresence(out bool hasCells) && !hasCells) {
+            if (TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
                     firstRow: 1,
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
-            string usedRange = GetUsedRangeA1();
+            string usedRange = GetUsedRangeA1(ct);
             return ReadRangeAsDataReader(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
             out IDataReader? dataReader) {
             dataReader = null;
             if (!CanUseRangeStreamXmlReader()
-                || !TryGetWorksheetDimensionReferenceFromXml(out string declaredRange)
+                || !TryGetWorksheetDimensionReferenceFromXml(out string declaredRange, ct)
                 || !A1.TryParseRange(
                     declaredRange,
                     out int declaredFirstRow,

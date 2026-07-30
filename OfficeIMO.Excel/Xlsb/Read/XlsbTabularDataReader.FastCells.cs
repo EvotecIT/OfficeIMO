@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
             }
+            ValidateStyleIndex(styleIndex, record);
 
             int ordinal = column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
@@ -87,6 +88,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 && _dateStyles[styleIndex];
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
+        }
+
+        private void ValidateStyleIndex(uint styleIndex, XlsbRecordSlice record) {
+            if (styleIndex >= _dateStyles.Length) {
+                throw new InvalidDataException(
+                    $"The XLSB cell record at offset {record.RecordOffset} refers to missing cell format " +
+                    $"{styleIndex}; the styles part exposes {_dateStyles.Length} format(s).");
+            }
         }
 
         private static void ValidateFormulaPayloadTail(

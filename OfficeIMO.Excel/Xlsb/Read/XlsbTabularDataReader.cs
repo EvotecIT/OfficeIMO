@@ -382,6 +382,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new InvalidDataException(
                     $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
             }
+            ValidateStyleIndex(styleIndex, record);
 
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && styleIndex < _dateStyles.Length
