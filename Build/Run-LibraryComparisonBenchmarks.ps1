@@ -88,8 +88,8 @@ if ($Publish -and $gitDirty) {
     throw 'Publishable benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
 
-$measurements = @(
-    foreach ($name in $selected) {
+$measurements = [System.Collections.Generic.List[object]]::new()
+foreach ($name in $selected) {
     $definition = $definitions[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
@@ -169,16 +169,15 @@ $measurements = @(
     $normalizedPath = Join-Path $artifactsPath 'normalized-result.json'
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
-    [pscustomobject]@{
+    $measurements.Add([pscustomobject]@{
         Workload = $name
         Definition = $definition
         Result = $result
         EvidenceLocation = $evidenceLocation
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
-    }
-    }
-)
+    })
+}
 
 if (($measurements.Count -ne $selected.Count) -or
     (@($measurements | Where-Object { $null -eq $_.Result }).Count -gt 0)) {
