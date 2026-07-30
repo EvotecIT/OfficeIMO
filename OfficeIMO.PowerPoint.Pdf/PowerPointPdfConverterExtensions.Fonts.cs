@@ -304,6 +304,10 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
+            if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                return;
+            }
+
             bool embedSystemFont = options.ResourcePolicy.AllowSystemFontEmbedding &&
                 options.ResourcePolicy.AllowDocumentFontEmbedding;
             if (embedSystemFont && pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out _)) {

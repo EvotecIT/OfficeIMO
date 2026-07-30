@@ -328,6 +328,31 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RangeScopedProfileFamilyIsReservedFromAdapterSystemFontDiscovery() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Arial",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-system-name", fonts));
+
+        Assert.True(options.HasRenderingProfileFamilyPlanner("Arial"));
+        Assert.False(options.HasNamedFontFamily("Arial"));
+
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            "Arial",
+            ManagedTextShapingTestAssets.CreateFont('B')));
+
+        Assert.True(options.HasRenderingProfileFamilyPlanner("Arial"));
+        Assert.True(options.ShouldPreferSelectedCallerFamily("Arial"));
+    }
+
+    [Fact]
     public void OverlayPreservesPriorRangeScopedFacesForAuthoredFamily() {
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
             new OfficeFontUnicodeRange('A', 'A')
@@ -2069,6 +2094,44 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
         Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void WordCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+        var fontProfile = new OfficeRenderingProfile(
+            "word-font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(fontProfile);
+        options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("shaping-only"),
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Empty(options.PdfOptions!.NamedFontFamilies);
+    }
+
+    [Fact]
+    public void PowerPointCallerFontMutationIsClearedByShapingOnlyProfileReplacement() {
+        var fontProfile = new OfficeRenderingProfile(
+            "powerpoint-font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(fontProfile);
+        options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("shaping-only"),
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+        Assert.Empty(options.PdfOptions!.NamedFontFamilies);
     }
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
