@@ -1439,6 +1439,94 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
     }
 
+    [Fact]
+    public void FontlessOverlayPreservesDirectCallerFontConfiguration() {
+        var fontless = new OfficeRenderingProfile("fontless-overlay");
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+                .UseRenderingProfile(fontless),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+                .UseRenderingProfile(fontless),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+                .UseRenderingProfile(fontless)
+        };
+
+        foreach (object adapter in adapters) {
+            PdfOptions pdfOptions = adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                    word.PdfOptions!,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                    excel.PdfOptions!,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions!,
+                _ => throw new InvalidOperationException()
+            };
+            pdfOptions.DefaultFont = PdfStandardFont.Courier;
+            switch (adapter) {
+                case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                    word.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+                case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                    excel.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+                case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                    powerPoint.UseRenderingProfile(
+                        fontless,
+                        OfficeRenderingProfileApplyMode.Overlay);
+                    break;
+            }
+
+            Assert.True(ReadExplicitPdfFontConfiguration(adapter));
+            Assert.Equal(PdfStandardFont.Courier, pdfOptions.DefaultFont);
+        }
+    }
+
+    [Fact]
+    public void RejectedProfileDoesNotCreateAdapterPdfOptions() {
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                "Family" + index.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                ManagedTextShapingTestAssets.CreateFont('A'));
+        }
+        var oversized = new OfficeRenderingProfile("oversized", fonts);
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions(),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions(),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+        };
+
+        foreach (object adapter in adapters) {
+            Assert.Throws<InvalidOperationException>(() => {
+                switch (adapter) {
+                    case OfficeIMO.Word.Pdf.WordPdfSaveOptions word:
+                        word.UseRenderingProfile(oversized);
+                        break;
+                    case OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel:
+                        excel.UseRenderingProfile(oversized);
+                        break;
+                    case OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint:
+                        powerPoint.UseRenderingProfile(oversized);
+                        break;
+                }
+            });
+            Assert.Null(adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word =>
+                    word.PdfOptions,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel =>
+                    excel.PdfOptions,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions,
+                _ => throw new InvalidOperationException()
+            });
+        }
+    }
+
     private static bool ReadExplicitPdfFontConfiguration(object options) =>
         (bool)(options.GetType().GetProperty(
                 "HasExplicitPdfFontConfiguration",

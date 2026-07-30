@@ -477,19 +477,33 @@ namespace OfficeIMO.Excel {
             if (commentVmlPart != null) {
                 budget.Consume();
                 XDocument document = LoadOrCreateVmlDocument(commentVmlPart);
+                XNamespace vmlNamespace = "urn:schemas-microsoft-com:vml";
                 XNamespace excelNamespace =
                     "urn:schemas-microsoft-com:office:excel";
-                foreach (XElement element in document.Descendants()) {
+                XElement? root = document.Root;
+                if (root != null) {
                     budget.Consume();
-                    if (element.Name != excelNamespace + "ClientData"
-                        || !string.Equals(
-                            element.Attribute("ObjectType")?.Value,
-                            "Note",
-                            StringComparison.OrdinalIgnoreCase)) {
+                    foreach (XElement _ in root.Descendants()) {
+                        budget.Consume();
+                    }
+                }
+                foreach (XElement shape in
+                    root?.Elements(vmlNamespace + "shape")
+                        ?? Enumerable.Empty<XElement>()) {
+                    XElement? clientData =
+                        shape.Element(excelNamespace + "ClientData");
+                    if (clientData == null
+                        || !TryParseVmlCoordinate(
+                            clientData.Element(excelNamespace + "Row")?.Value,
+                            out int zeroBasedRow)
+                        || !TryParseVmlCoordinate(
+                            clientData.Element(excelNamespace + "Column")?.Value,
+                            out int zeroBasedColumn)) {
                         continue;
                     }
 
-                    XElement? anchor = element.Element(excelNamespace + "Anchor");
+                    XElement? anchor =
+                        clientData.Element(excelNamespace + "Anchor");
                     if (anchor == null
                         || !RemapVmlAnchorRows(
                             new XElement(anchor),
@@ -497,20 +511,14 @@ namespace OfficeIMO.Excel {
                             kind == ExcelRowMutationKind.Insert ? count : -count,
                             kind == ExcelRowMutationKind.Delete ? lastRow : (int?)null,
                             columnDelta: 0,
-                            GetVmlAnchorPlacement(element, excelNamespace))) {
+                            GetVmlAnchorPlacement(
+                                clientData,
+                                excelNamespace))) {
                         continue;
                     }
 
-                    bool matchedExistingImpact =
-                        TryParseVmlCoordinate(
-                            element.Element(excelNamespace + "Row")?.Value,
-                            out int zeroBasedRow)
-                        && TryParseVmlCoordinate(
-                            element.Element(excelNamespace + "Column")?.Value,
-                            out int zeroBasedColumn)
-                        && impactedLegacyCommentCells.Contains(
-                            (zeroBasedRow + 1, zeroBasedColumn + 1));
-                    if (!matchedExistingImpact) {
+                    if (impactedLegacyCommentCells.Add(
+                        (zeroBasedRow + 1, zeroBasedColumn + 1))) {
                         comments++;
                     }
                 }

@@ -243,6 +243,11 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             bool createdPdfOptions = _pdfOptions == null;
+            bool profileOwnsCurrentFontConfiguration =
+                _pdfOptions != null
+                && _fontlessRenderingProfileFontConfigurationState.HasValue
+                && _pdfOptions.FontConfigurationState
+                    == _fontlessRenderingProfileFontConfigurationState.Value;
             bool profileOwnsCurrentPageSize =
                 createdPdfOptions
                 || (_pdfOptions != null
@@ -250,14 +255,15 @@ namespace OfficeIMO.Excel.Pdf {
                     && _renderingProfilePageHeight.HasValue
                     && _pdfOptions.PageWidth == _renderingProfilePageWidth.Value
                     && _pdfOptions.PageHeight == _renderingProfilePageHeight.Value);
-            if (_pdfOptions == null) {
-                _pdfOptions = new PdfCore.PdfOptions();
+            PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
+            target.UseRenderingProfile(profile, mode);
+            if (createdPdfOptions) {
+                _pdfOptions = target;
                 _pdfOptionsCreatedByRenderingProfile = true;
             }
-            _pdfOptions.UseRenderingProfile(profile, mode);
             if (profileOwnsCurrentPageSize) {
-                _renderingProfilePageWidth = _pdfOptions.PageWidth;
-                _renderingProfilePageHeight = _pdfOptions.PageHeight;
+                _renderingProfilePageWidth = target.PageWidth;
+                _renderingProfilePageHeight = target.PageHeight;
             } else {
                 _renderingProfilePageWidth = null;
                 _renderingProfilePageHeight = null;
@@ -267,9 +273,9 @@ namespace OfficeIMO.Excel.Pdf {
             } else if (_pdfOptionsCreatedByRenderingProfile
                 && (createdPdfOptions
                     || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
-                    || _fontlessRenderingProfileFontConfigurationState.HasValue)) {
+                    || profileOwnsCurrentFontConfiguration)) {
                 _fontlessRenderingProfileFontConfigurationState =
-                    _pdfOptions.FontConfigurationState;
+                    target.FontConfigurationState;
             } else {
                 _fontlessRenderingProfileFontConfigurationState = null;
             }
