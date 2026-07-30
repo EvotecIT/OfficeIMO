@@ -26,6 +26,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanCountsFormulaReplacedByPendingOrdinaryValue() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet summary = document.AddWorksheet("Summary");
+            SheetData sheetData = summary.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            for (int column = 1; column < 128; column++) {
+                summary.CellValue(1, column, column);
+            }
+            Row row = Assert.Single(sheetData.Elements<Row>());
+            row.Append(new Cell {
+                CellReference = "DX1",
+                CellFormula = new CellFormula("1+1")
+            });
+            summary.CellValue(1, 128, 128);
+            Assert.True(document.HasPendingDirectCellValues);
+            Assert.Single(summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
+            ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
+
+            ExcelRowMutationPlan plan = data.PlanInsertRows(100);
+
+            ExcelMutationImpact formulas = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "formula-references");
+            Assert.Equal(1, formulas.ItemCount);
+            plan.Apply();
+            CellFormula formula = Assert.Single(
+                summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
+            Assert.True(formula.CalculateCell?.Value);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanCountsFormulasRemovedWithMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");

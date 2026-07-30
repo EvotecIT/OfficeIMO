@@ -422,6 +422,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                nativeFontMap.RegisterNamed(trimmedFamilyName, trimmedFamilyName);
                 return;
             }
 
