@@ -121,6 +121,13 @@ namespace OfficeIMO.Excel {
                 if (worksheetElements == null) {
                     continue;
                 }
+                var anchoredMetadataFormulaTexts =
+                    new Dictionary<OpenXmlElement, List<string?>>();
+                foreach (OpenXmlElement element in worksheetElements) {
+                    AddAnchoredMetadataFormulaText(
+                        anchoredMetadataFormulaTexts,
+                        element);
+                }
                 ExcelSheet inspectedSheet = ReferenceEquals(worksheetPart, _worksheetPart)
                     ? this
                     : new ExcelSheet(
@@ -290,6 +297,7 @@ namespace OfficeIMO.Excel {
                         int metadataFormulaImpacts =
                             CountAnchoredMetadataFormulaPlanImpacts(
                             element,
+                            anchoredMetadataFormulaTexts,
                             kind,
                             firstRow,
                             lastRow,

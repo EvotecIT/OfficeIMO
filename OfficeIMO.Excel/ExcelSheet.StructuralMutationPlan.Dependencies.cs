@@ -363,44 +363,35 @@ namespace OfficeIMO.Excel {
 
         private int CountAnchoredMetadataFormulaPlanImpacts(
             OpenXmlElement metadata,
+            IReadOnlyDictionary<OpenXmlElement, List<string?>>
+                anchoredMetadataFormulaTexts,
             ExcelRowMutationKind kind,
             int firstRow,
             int lastRow,
             int count) {
             string? references;
-            IEnumerable<string?> formulaTexts;
             switch (metadata) {
                 case DataValidation validation:
                     references = validation.SequenceOfReferences?.InnerText;
-                    formulaTexts = new[] {
-                        validation.Formula1?.Text,
-                        validation.Formula2?.Text
-                    };
                     break;
                 case X14.DataValidation validation:
                     references = validation.ReferenceSequence?.Text;
-                    formulaTexts = new[] {
-                        validation.DataValidationForumla1?.Formula?.Text,
-                        validation.DataValidationForumla2?.Formula?.Text
-                    };
                     break;
                 case ConditionalFormatting formatting:
                     references = formatting.SequenceOfReferences?.InnerText;
-                    formulaTexts = formatting.Descendants<Formula>()
-                        .Select(formula => formula.Text)
-                        .Concat(formatting.Descendants<ConditionalFormatValueObject>()
-                            .Where(threshold =>
-                                threshold.Type?.Value == ConditionalFormatValueObjectValues.Formula)
-                            .Select(threshold => threshold.Val?.Value));
                     break;
                 case X14.ConditionalFormatting formatting:
                     references = formatting.GetFirstChild<Xm.ReferenceSequence>()?.Text;
-                    formulaTexts = formatting.Descendants<Xm.Formula>()
-                        .Select(formula => formula.Text);
                     break;
                 default:
                     return 0;
             }
+            IReadOnlyList<string?> formulaTexts =
+                anchoredMetadataFormulaTexts.TryGetValue(
+                    metadata,
+                    out List<string?>? recordedFormulaTexts)
+                    ? recordedFormulaTexts
+                    : Array.Empty<string?>();
 
             if (string.IsNullOrWhiteSpace(references)
                 || !TryGetReferenceListAnchorRow(references!, out int oldAnchorRow)) {
@@ -417,7 +408,8 @@ namespace OfficeIMO.Excel {
                     lastDeletedRow,
                     out List<string> remapped)) {
                 if (remapped.Count == 0) {
-                    return 0;
+                    return formulaTexts.Count(formulaText =>
+                        !string.IsNullOrEmpty(formulaText));
                 }
                 updatedReferences = string.Join(" ", remapped);
             }
@@ -443,6 +435,53 @@ namespace OfficeIMO.Excel {
                     relativeReferencesFollowAnchor: false,
                     relativeFormulaSourceRowDelta,
                     relativeFormulaAnchorRow: null));
+        }
+
+        private static void AddAnchoredMetadataFormulaText(
+            IDictionary<OpenXmlElement, List<string?>> formulaTextsByMetadata,
+            OpenXmlElement element) {
+            string? formulaText;
+            switch (element) {
+                case Formula1 formula1:
+                    formulaText = formula1.Text;
+                    break;
+                case Formula2 formula2:
+                    formulaText = formula2.Text;
+                    break;
+                case Formula formula:
+                    formulaText = formula.Text;
+                    break;
+                case Xm.Formula xmFormula:
+                    formulaText = xmFormula.Text;
+                    break;
+                case ConditionalFormatValueObject threshold
+                    when threshold.Type?.Value ==
+                        ConditionalFormatValueObjectValues.Formula:
+                    formulaText = threshold.Val?.Value;
+                    break;
+                default:
+                    return;
+            }
+
+            OpenXmlElement? metadata = element.Parent;
+            while (metadata != null
+                && metadata is not DataValidation
+                && metadata is not X14.DataValidation
+                && metadata is not ConditionalFormatting
+                && metadata is not X14.ConditionalFormatting) {
+                metadata = metadata.Parent;
+            }
+            if (metadata == null) {
+                return;
+            }
+
+            if (!formulaTextsByMetadata.TryGetValue(
+                    metadata,
+                    out List<string?>? formulaTexts)) {
+                formulaTexts = new List<string?>();
+                formulaTextsByMetadata.Add(metadata, formulaTexts);
+            }
+            formulaTexts.Add(formulaText);
         }
 
         private int CountCommentPlanImpacts(

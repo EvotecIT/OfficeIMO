@@ -56,6 +56,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanUsesChargedConditionalFormattingSnapshot() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            var formatting = new ConditionalFormatting {
+                SequenceOfReferences = new ListValue<StringValue> {
+                    InnerText = "A2:A5"
+                }
+            };
+            for (int index = 0; index < 64; index++) {
+                formatting.Append(new ConditionalFormattingRule(
+                    new Formula($"B{index + 1}")) {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = index + 1
+                });
+            }
+            sheet.WorksheetPart.Worksheet.Append(formatting);
+            ExcelRowMutationPlan baseline = sheet.PlanDeleteRows(2, 2);
+
+            ExcelRowMutationPlan exactBudget = sheet.PlanDeleteRows(
+                2,
+                2,
+                new ExcelMutationPlanOptions {
+                    MaximumScannedElements = baseline.ScannedElements
+                });
+            InvalidOperationException exception =
+                Assert.Throws<InvalidOperationException>(() =>
+                    sheet.PlanDeleteRows(
+                        2,
+                        2,
+                        new ExcelMutationPlanOptions {
+                            MaximumScannedElements = baseline.ScannedElements - 1
+                        }));
+
+            Assert.Equal(baseline.ScannedElements, exactBudget.ScannedElements);
+            Assert.Contains("exceeded its limit", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanUsesAnchoredValidationAndFormattingSemantics() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
