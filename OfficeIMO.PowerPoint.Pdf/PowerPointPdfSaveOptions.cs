@@ -21,18 +21,21 @@ public sealed class PowerPointPdfSaveOptions {
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     private PdfCore.PdfOptions? _pdfOptions;
     private long? _renderingProfileFontConfigurationState;
+    private bool _renderingProfileContainsFonts;
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions {
         get => _pdfOptions;
         set {
             _pdfOptions = value;
             _renderingProfileFontConfigurationState = null;
+            _renderingProfileContainsFonts = false;
         }
     }
 
     internal bool HasExplicitPdfFontConfiguration =>
         _pdfOptions != null
-        && (!_renderingProfileFontConfigurationState.HasValue
+        && (_renderingProfileContainsFonts
+            || !_renderingProfileFontConfigurationState.HasValue
             || _pdfOptions.FontConfigurationState
                 != _renderingProfileFontConfigurationState.Value);
 
@@ -141,11 +144,14 @@ public sealed class PowerPointPdfSaveOptions {
                     == _renderingProfileFontConfigurationState.Value);
         _pdfOptions ??= new PdfCore.PdfOptions();
         _pdfOptions.UseRenderingProfile(profile, mode);
-        _renderingProfileFontConfigurationState =
-            profileOwnsCurrentFontConfiguration
-            && profile.Fonts.Faces.Count == 0
-                ? _pdfOptions.FontConfigurationState
-                : null;
+        if (profileOwnsCurrentFontConfiguration) {
+            _renderingProfileFontConfigurationState =
+                _pdfOptions.FontConfigurationState;
+            _renderingProfileContainsFonts = profile.Fonts.Faces.Count > 0;
+        } else {
+            _renderingProfileFontConfigurationState = null;
+            _renderingProfileContainsFonts = false;
+        }
         return this;
     }
 

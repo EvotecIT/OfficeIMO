@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.Pdf {
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
         private long? _renderingProfileFontConfigurationState;
+        private bool _renderingProfileContainsFonts;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -18,12 +19,14 @@ namespace OfficeIMO.Word.Pdf {
             set {
                 _pdfOptions = value;
                 _renderingProfileFontConfigurationState = null;
+                _renderingProfileContainsFonts = false;
             }
         }
 
         internal bool HasExplicitPdfFontConfiguration =>
             _pdfOptions != null
-            && (!_renderingProfileFontConfigurationState.HasValue
+            && (_renderingProfileContainsFonts
+                || !_renderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
                     != _renderingProfileFontConfigurationState.Value);
 
@@ -132,10 +135,14 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
             target.UseRenderingProfile(profile, mode);
             _pdfOptions ??= target;
-            _renderingProfileFontConfigurationState =
-                profileOwnsCurrentFontConfiguration
-                    ? _pdfOptions.FontConfigurationState
-                    : null;
+            if (profileOwnsCurrentFontConfiguration) {
+                _renderingProfileFontConfigurationState =
+                    _pdfOptions.FontConfigurationState;
+                _renderingProfileContainsFonts = profile.Fonts.Faces.Count > 0;
+            } else {
+                _renderingProfileFontConfigurationState = null;
+                _renderingProfileContainsFonts = false;
+            }
             return this;
         }
 
@@ -188,6 +195,8 @@ namespace OfficeIMO.Word.Pdf {
             };
             clone._renderingProfileFontConfigurationState =
                 _renderingProfileFontConfigurationState;
+            clone._renderingProfileContainsFonts =
+                _renderingProfileContainsFonts;
             return clone;
         }
     }

@@ -223,6 +223,47 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayRefreshesInheritedFallbackWithoutRedeclaration() {
+        byte[] firstData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] secondData = ManagedTextShapingTestAssets.CreateFont('B');
+        var firstFonts = new OfficeFontFaceCollection()
+            .Add("Shared", firstData)
+            .AddFallbackFamily("Shared");
+        var secondFonts = new OfficeFontFaceCollection()
+            .Add("Shared", secondData);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", firstFonts));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("second", secondFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(
+            secondData,
+            Assert.Single(options.EmbeddedFontFallbacks!.Candidates).DataSnapshot);
+    }
+
+    [Fact]
+    public void OverlayAppendsNewFallbackFamiliesAfterInheritedOrder() {
+        var firstFonts = new OfficeFontFaceCollection()
+            .Add("First", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddFallbackFamily("First");
+        var secondFonts = new OfficeFontFaceCollection()
+            .Add("Second", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddFallbackFamily("Second");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", firstFonts));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("second", secondFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.Equal(
+            new[] { "First", "Second" },
+            options.EmbeddedFontFallbacks!.FontFamilyNames);
+    }
+
+    [Fact]
     public void ProfileFallbackPlannerDoesNotReplaceStyledNamedFamily() {
         byte[] regular = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] bold = ManagedTextShapingTestAssets.CreateFont('B');
@@ -1434,6 +1475,36 @@ public sealed class PdfRenderingProfileTests {
             .UseRenderingProfile(profile);
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void WordFontProfileRemainsExplicitFontConfiguration() {
+        var profile = new OfficeRenderingProfile(
+            "word-font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(profile);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void PowerPointFontProfileCanBeReplacedByShapingOnlyProfile() {
+        var fontProfile = new OfficeRenderingProfile(
+            "font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions()
+            .UseRenderingProfile(fontProfile);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("shaping-only"),
+            OfficeRenderingProfileApplyMode.Replace);
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+        Assert.False(options.CloneForConversion().HasExplicitPdfFontConfiguration);
     }
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
