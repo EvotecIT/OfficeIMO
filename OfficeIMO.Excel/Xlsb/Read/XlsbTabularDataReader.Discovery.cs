@@ -31,7 +31,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     recordBudget,
                     leaveOpen: true);
                 bool inSheetData = false;
-                bool reachedEndSheetData = false;
+                bool sawBeginSheetData = false;
+                bool sawEndSheetData = false;
                 int recordsSinceCancellationCheck = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 while (scanner.TryRead(out XlsbRecordSlice record)) {
@@ -41,15 +42,28 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
 
                     if (record.Type == BrtBeginSheetData) {
+                        if (sawBeginSheetData) {
+                            throw new InvalidDataException(
+                                "The XLSB worksheet contains duplicate or nested BrtBeginSheetData records.");
+                        }
+
+                        sawBeginSheetData = true;
                         inSheetData = true;
+                        continue;
+                    }
+                    if (record.Type == BrtEndSheetData) {
+                        if (!inSheetData) {
+                            throw new InvalidDataException(
+                                "The XLSB worksheet contains BrtEndSheetData without a matching BrtBeginSheetData record.");
+                        }
+
+                        sawEndSheetData = true;
+                        inSheetData = false;
+                        currentRow = -1;
                         continue;
                     }
                     if (!inSheetData) {
                         continue;
-                    }
-                    if (record.Type == BrtEndSheetData) {
-                        reachedEndSheetData = true;
-                        break;
                     }
                     if (record.Type == BrtRowHdr) {
                         currentRow = ValidateRowHeader(record);
@@ -77,7 +91,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                if (inSheetData && !reachedEndSheetData) {
+                if (!sawBeginSheetData) {
+                    throw new InvalidDataException(
+                        "The XLSB worksheet does not contain the required BrtBeginSheetData record.");
+                }
+                if (!sawEndSheetData) {
                     throw new InvalidDataException(
                         "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }

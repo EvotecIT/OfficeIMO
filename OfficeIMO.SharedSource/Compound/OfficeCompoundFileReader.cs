@@ -166,7 +166,7 @@ namespace OfficeIMO.Drawing.Internal {
                     }
                 }
 
-                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries),
+                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries, cancellationToken),
                     CreateCompoundEntry(root!, "Root Entry"));
                 return true;
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException || ex is IndexOutOfRangeException) {

@@ -115,6 +115,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 if (hasHeaderRow && _hasPendingRow) {
                     int headerRowIndex = _pendingRowIndex;
                     headerValues = ReadHeaderRow();
+                    if (_hasPendingRow && _pendingRowIndex <= headerRowIndex) {
+                        throw new InvalidDataException(
+                            $"The XLSB worksheet contains non-increasing row index {_pendingRowIndex} after header row {headerRowIndex}.");
+                    }
                     _nextLogicalRowIndex = checked(headerRowIndex + 1);
                 } else if (_hasPendingRow) {
                     _nextLogicalRowIndex = _pendingRowIndex;

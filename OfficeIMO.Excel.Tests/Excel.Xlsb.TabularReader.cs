@@ -305,6 +305,110 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_RejectsWorksheetWithoutBeginSheetData() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                Array.Empty<string>(),
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("BrtBeginSheetData", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbTabularReader_RejectsDuplicateBeginSheetData() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                Array.Empty<string>(),
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("BrtBeginSheetData", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbTabularReader_RejectsUnmatchedEndSheetData() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                Array.Empty<string>(),
+                hasHeaderRow: false,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("without a matching", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("BrtEndSheetData", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbTabularReader_RejectsRowThatDoesNotFollowHeader() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 0, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            7,
+            CreateSharedStringCellPayload(0, 0U));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            7,
+            CreateSharedStringCellPayload(0, 1U));
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
+                worksheetPart,
+                new[] { "Header", "Duplicate" },
+                hasHeaderRow: true,
+                new XlsbCellReadBudget(10)));
+
+        Assert.Contains("non-increasing row index", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("header row", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void XlsbTabularReader_DiscoversHeaderlessColumnsBeyondDeclaredDimension() {
         using var worksheetPart = CreateHeaderlessTabularWorksheet(
             declaredLastColumn: 0,
