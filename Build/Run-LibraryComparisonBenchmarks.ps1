@@ -117,9 +117,15 @@ foreach ($name in $selected) {
         $arguments += @('--job', 'Dry')
     }
 
-    & dotnet @arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "$name benchmark run failed with exit code $LASTEXITCODE."
+    Push-Location -LiteralPath $repositoryRoot
+    try {
+        & dotnet @arguments
+        $benchmarkExitCode = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    if ($benchmarkExitCode -ne 0) {
+        throw "$name benchmark run failed with exit code $benchmarkExitCode."
     }
     $provenanceCapture |
         Complete-BenchmarkProvenanceCapture |
