@@ -132,13 +132,17 @@ namespace OfficeIMO.Word.Pdf {
                 || (_renderingProfileFontConfigurationState.HasValue
                     && _pdfOptions.FontConfigurationState
                         == _renderingProfileFontConfigurationState.Value);
+            bool retainedProfileFonts =
+                mode == DrawingCore.OfficeRenderingProfileApplyMode.Overlay
+                && _renderingProfileContainsFonts;
             PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
             target.UseRenderingProfile(profile, mode);
             _pdfOptions ??= target;
             if (profileOwnsCurrentFontConfiguration) {
                 _renderingProfileFontConfigurationState =
                     _pdfOptions.FontConfigurationState;
-                _renderingProfileContainsFonts = profile.Fonts.Faces.Count > 0;
+                _renderingProfileContainsFonts =
+                    retainedProfileFonts || profile.Fonts.Faces.Count > 0;
             } else {
                 _renderingProfileFontConfigurationState = null;
                 _renderingProfileContainsFonts = false;

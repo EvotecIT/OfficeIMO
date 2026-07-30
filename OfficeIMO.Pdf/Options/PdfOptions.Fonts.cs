@@ -333,13 +333,8 @@ public sealed partial class PdfOptions {
         }
 
         PdfEmbeddedFontFallbackSet prepared = fallbackSet.Clone();
-        if (prepared.UsesNamedFontFamilies) {
-            foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
-                // Release stale profile ownership before the caller's active set is installed.
-                // Otherwise the ownership cleanup can filter the newly assigned candidate itself.
-                ReleaseRenderingProfileFontOwnership(candidate.FontName);
-            }
-        } else if (_renderingProfileOwnedNamedFamilyNames?.Count > 0) {
+        if (!prepared.UsesNamedFontFamilies
+            && _renderingProfileOwnedNamedFamilyNames?.Count > 0) {
             prepared = PromoteCompatibilitySlotFallbacks(
                     prepared,
                     Array.Empty<PdfEmbeddedFontFamily>(),
@@ -350,6 +345,13 @@ public sealed partial class PdfOptions {
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay);
+        }
+        if (prepared.UsesNamedFontFamilies) {
+            foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
+                // Release stale profile ownership before the caller's active set is installed.
+                // Otherwise registration can filter the newly assigned candidate itself.
+                ReleaseRenderingProfileFontOwnership(candidate.FontName);
+            }
         }
 
         _renderingProfileDeclaredFallbackCandidates = null;

@@ -260,7 +260,7 @@ internal static class PdfTextDiagnostics {
                     out PdfTrueTypeFontProgram? namedFontProgram)
                 && namedFontProgram != null) {
                 return (string value, int index, out int length) =>
-                    TryGetCoveredTextLength(
+                    TryGetCoveredTextElementLength(
                         value,
                         index,
                         namedFontProgram,
@@ -272,7 +272,7 @@ internal static class PdfTextDiagnostics {
                     out PdfOpenTypeCffFontProgram? namedCffFontProgram)
                 && namedCffFontProgram != null) {
                 return (string value, int index, out int length) =>
-                    TryGetCoveredTextLength(
+                    TryGetCoveredTextElementLength(
                         value,
                         index,
                         namedCffFontProgram,
@@ -285,6 +285,52 @@ internal static class PdfTextDiagnostics {
             length = 0;
             return false;
         };
+    }
+
+    private static bool TryGetCoveredTextElementLength(
+        string text,
+        int index,
+        PdfTrueTypeFontProgram fontProgram,
+        PdfTextShapingMode shapingMode,
+        out int length) {
+        string textElement = StringInfo.GetNextTextElement(text, index);
+        length = textElement.Length;
+        for (int offset = 0; offset < textElement.Length;) {
+            if (!TryGetCoveredTextLength(
+                    textElement,
+                    offset,
+                    fontProgram,
+                    shapingMode,
+                    out int coveredLength)
+                || coveredLength <= 0) {
+                return false;
+            }
+            offset += coveredLength;
+        }
+        return true;
+    }
+
+    private static bool TryGetCoveredTextElementLength(
+        string text,
+        int index,
+        PdfOpenTypeCffFontProgram fontProgram,
+        PdfTextShapingMode shapingMode,
+        out int length) {
+        string textElement = StringInfo.GetNextTextElement(text, index);
+        length = textElement.Length;
+        for (int offset = 0; offset < textElement.Length;) {
+            if (!TryGetCoveredTextLength(
+                    textElement,
+                    offset,
+                    fontProgram,
+                    shapingMode,
+                    out int coveredLength)
+                || coveredLength <= 0) {
+                return false;
+            }
+            offset += coveredLength;
+        }
+        return true;
     }
 
     /// <summary>

@@ -892,6 +892,17 @@ public sealed class PdfRenderingProfileTests {
             new OfficeRenderingProfile("mark-fallback", fonts),
             OfficeRenderingProfileApplyMode.Overlay);
 
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] {
+                    TextRun.Normal("a\u0301", fontFamily: "Caller, Marks")
+                },
+                options,
+                PdfStandardFont.Helvetica,
+                "mixed grapheme preflight");
+
+        Assert.Single(diagnostics);
+
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
                 .Paragraph(paragraph => paragraph
@@ -1273,6 +1284,27 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void CallerFallbackRetainsPromotedProfileFamilyWithIdenticalBytes() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFont('A');
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", data)
+            .AddFallbackFamily("Shared");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "shared-profile",
+                profileFonts));
+
+        options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Shared", data) },
+            new[] { PdfStandardFont.Helvetica }));
+
+        PdfEmbeddedFontFallbackSet fallback = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.EmbeddedFontFallbacks);
+        Assert.True(fallback.UsesNamedFontFamilies);
+        Assert.True(fallback.PlanText("A").IsFullyCovered);
+    }
+
+    [Fact]
     public void FontConfigurationStateIncludesFallbackUnicodeRanges() {
         byte[] data = ManagedTextShapingTestAssets.CreateFont('A', 'B');
         var onlyA = new OfficeFontUnicodeRangeSet(new[] {
@@ -1488,6 +1520,42 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void WordFontProfileRemainsExplicitAfterFontlessOverlay() {
+        var fontProfile = new OfficeRenderingProfile(
+            "word-font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(fontProfile);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("shaping-only-overlay"),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
+    public void PowerPointFailedProfileDoesNotCreatePdfOptions() {
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                $"Family {index}",
+                ManagedTextShapingTestAssets.CreateFont('A'));
+        }
+        var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            options.UseRenderingProfile(new OfficeRenderingProfile(
+                "too-many-families",
+                fonts)));
+
+        Assert.Null(options.PdfOptions);
+        Assert.False(options.HasExplicitPdfFontConfiguration);
     }
 
     [Fact]
