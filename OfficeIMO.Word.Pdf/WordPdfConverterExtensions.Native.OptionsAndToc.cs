@@ -421,6 +421,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                return;
+            }
+
             if (allowSystemFontEmbedding &&
                 pdfOptions.TryRegisterNamedOfficeFontFamily(trimmedFamilyName, out string? registeredFamilyName) &&
                 registeredFamilyName != null) {

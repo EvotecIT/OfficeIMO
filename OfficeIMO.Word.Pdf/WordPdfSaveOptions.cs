@@ -127,18 +127,19 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
 
-            bool profileOwnsCurrentFontConfiguration =
+            bool profileOwnsResultingFontConfiguration =
                 _pdfOptions == null
                 || (_renderingProfileFontConfigurationState.HasValue
-                    && _pdfOptions.FontConfigurationState
-                        == _renderingProfileFontConfigurationState.Value);
+                    && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                        || _pdfOptions.FontConfigurationState
+                            == _renderingProfileFontConfigurationState.Value));
             bool retainedProfileFonts =
                 mode == DrawingCore.OfficeRenderingProfileApplyMode.Overlay
                 && _renderingProfileContainsFonts;
             PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
             target.UseRenderingProfile(profile, mode);
             _pdfOptions ??= target;
-            if (profileOwnsCurrentFontConfiguration) {
+            if (profileOwnsResultingFontConfiguration) {
                 _renderingProfileFontConfigurationState =
                     _pdfOptions.FontConfigurationState;
                 _renderingProfileContainsFonts =

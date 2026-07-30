@@ -162,6 +162,9 @@ public sealed partial class PdfOptions {
         return true;
     }
 
+    internal bool HasRenderingProfileFamilyPlanner(string? familyName) =>
+        TryGetRenderingProfileFamilyCandidates(familyName, out _);
+
     internal bool ShouldPreferSelectedCallerFamily(string? familyName) {
         if (!TryGetNamedFontFamily(
                 familyName,
