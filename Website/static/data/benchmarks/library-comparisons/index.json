@@ -10,10 +10,10 @@
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:29:53.5643809+00:00",
+      "generatedUtc": "2026-07-30T05:52:07.5281716+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-linux-full.json",
-      "resultSha256": "648995463c2d96cafd132937a8fc4c8ce2c69785f6ed2bf2f1cc108b4689adb2",
+      "resultSha256": "55229d0c0d11b6efd331428468aa982f48e1ccf60d17a613427b3d1fc5c013b7",
       "suite": "OfficeIMO.CSV.MarkPflug65K",
       "environment": {
         "osFamily": "Linux",
@@ -44,7 +44,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-csv-decoded-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -53,10 +53,10 @@
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:33:37.573771+00:00",
+      "generatedUtc": "2026-07-30T05:33:28.6415526+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-csv-decoded-net10.0-windows-full.json",
-      "resultSha256": "66501f73fccdfb8eb834a851e03d9561cc1c78b71442c4912f8dfced63d6f201",
+      "resultSha256": "f9e9231634ea6f989a4b645f3d30c1c14e0ee775826d16dde57a6ed4502b1191",
       "suite": "OfficeIMO.CSV.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -87,7 +87,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-csv-decoded-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -139,10 +139,10 @@
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:34:38.5288796+00:00",
+      "generatedUtc": "2026-07-30T05:57:56.8604629+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-linux-full.json",
-      "resultSha256": "a24e2812fe1074d3856cb7ca14bf568148b8211a3a8ecdcec986303c03ac2a71",
+      "resultSha256": "c47e4e031542b131d7294aeafe7e3b642e1e32fcb150dab3d05843cbccc041a8",
       "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
       "environment": {
         "osFamily": "Linux",
@@ -173,7 +173,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -182,10 +182,10 @@
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:44:59.1122472+00:00",
+      "generatedUtc": "2026-07-30T05:44:44.8132236+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsb-typed-net10.0-windows-full.json",
-      "resultSha256": "b95410122f85cea5415318c2ce1197294d20476d6516dc39ccc5c4639de942e3",
+      "resultSha256": "28993c55d844d9e8ca5e86e636988e103ce66185056de8111d44ee660b8dc718",
       "suite": "OfficeIMO.Excel.Xlsb.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -216,7 +216,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-xlsb-typed-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -268,10 +268,10 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:33:06.6083185+00:00",
+      "generatedUtc": "2026-07-30T05:56:57.9933359+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-linux-full.json",
-      "resultSha256": "27ffa20c7eb95ccf7c7b3c85c21bf9fd593e1019f10cdb911314016373ff00f7",
+      "resultSha256": "cb4200716b0b5f937ec7dae7dc4655b7a991510829d882cb6a8d5e655076557a",
       "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
       "environment": {
         "osFamily": "Linux",
@@ -302,7 +302,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -311,10 +311,10 @@
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-07-30T03:43:04.3260277+00:00",
+      "generatedUtc": "2026-07-30T05:42:38.7318404+00:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/markpflug-65k-xlsx-typed-net10.0-windows-full.json",
-      "resultSha256": "5d5717f1c19ad6c2d52c5990da830a49afcb8001327df4801b572d69b4bc3aa9",
+      "resultSha256": "608d977b8eb5670a8735e8e091f5bcd243442c973877a420b451e8843208d5c5",
       "suite": "OfficeIMO.Excel.Xlsx.MarkPflug65K",
       "environment": {
         "osFamily": "Windows",
@@ -345,7 +345,7 @@
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "markpflug-65k-xlsx-typed-net10.0",
         "benchmark.workload.sourceCommit": "5e1113a1195bed985c10788a6b89caf551663bb1",
-        "gitSha": "b668d986923fbf3633412f1fa68b4b06cff5ede3"
+        "gitSha": "00b292bd704e14ad3675efa1aae863d9c9ea72d2"
       },
       "comparable": true,
       "compatibilityIssues": []
@@ -403,7 +403,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:33:37.573771+00:00"
+      "latestUtc": "2026-07-30T05:33:28.6415526+00:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -413,7 +413,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:29:53.5643809+00:00"
+      "latestUtc": "2026-07-30T05:52:07.5281716+00:00"
     },
     {
       "comparisonId": "markpflug-65k-csv-decoded-net10.0",
@@ -457,7 +457,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:44:59.1122472+00:00"
+      "latestUtc": "2026-07-30T05:44:44.8132236+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -467,7 +467,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:34:38.5288796+00:00"
+      "latestUtc": "2026-07-30T05:57:56.8604629+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsb-typed-net10.0",
@@ -511,7 +511,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:43:04.3260277+00:00"
+      "latestUtc": "2026-07-30T05:42:38.7318404+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
@@ -521,7 +521,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-07-30T03:33:06.6083185+00:00"
+      "latestUtc": "2026-07-30T05:56:57.9933359+00:00"
     },
     {
       "comparisonId": "markpflug-65k-xlsx-typed-net10.0",
