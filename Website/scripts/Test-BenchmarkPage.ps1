@@ -74,7 +74,7 @@ if ($summaryCount -lt 1) {
     throw "Benchmark data JSON does not contain summary rows."
 }
 
-if ($comparisonCatalog.schemaVersion -ne 2 -or
+if ($comparisonCatalog.schemaVersion -ne 3 -or
     @($comparisonCatalog.expectedPlatforms).Count -ne 3 -or
     -not (@($comparisonCatalog.availability).Where({ $_.platform -eq 'macos' -and -not $_.available }))) {
     throw 'Library comparison catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
