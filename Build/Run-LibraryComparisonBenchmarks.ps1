@@ -20,7 +20,7 @@ if ($Publish -and $RunMode -ne 'full') {
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
 if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
-    Import-Module PSPublishModule -MinimumVersion 3.0.81 -Force
+    Import-Module PSPublishModule -MinimumVersion 3.0.83 -Force
 } else {
     $powerForgeModule = Join-Path $PowerForgeRoot "PSPublishModule\bin\Release\$PowerForgeFramework\PSPublishModule.dll"
     if (-not (Test-Path -LiteralPath $powerForgeModule -PathType Leaf)) {
@@ -93,9 +93,16 @@ foreach ($name in $selected) {
     $definition = $definitions[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
+    $provenanceMetadata = [ordered]@{
+        'benchmark.workload.id' = $definition.ComparisonId
+        'benchmark.workload.sourceCommit' = '5e1113a1195bed985c10788a6b89caf551663bb1'
+        'benchmark.workload.framework' = $Framework
+    }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `
         -SourceRoot $repositoryRoot `
-        -ArtifactRoot $artifactsPath
+        -ArtifactRoot $artifactsPath `
+        -Metadata $provenanceMetadata `
+        -RunMode $RunMode
 
     $arguments = @(
         'run',
@@ -146,19 +153,6 @@ foreach ($name in $selected) {
             $details += "unexpected scenarios: $($unexpectedScenarios -join ', ')"
         }
         throw "$name benchmark evidence is incomplete ($($details -join '; '))."
-    }
-
-    $result.Metadata['benchmark.workload.id'] = $definition.ComparisonId
-    $result.Metadata['benchmark.workload.sourceCommit'] = '5e1113a1195bed985c10788a6b89caf551663bb1'
-    $result.Metadata['benchmark.workload.framework'] = $Framework
-    $result.Metadata['gitSha'] = $gitSha
-    $result.Metadata['gitDirty'] = $gitDirty.ToString().ToLowerInvariant()
-    $result.Metadata['gitWorktreeClean'] = (-not $gitDirty).ToString().ToLowerInvariant()
-    foreach ($sample in $result.Samples) {
-        $sample.RunMode = $RunMode
-    }
-    foreach ($row in $result.Summary) {
-        $row.RunMode = $RunMode
     }
 
     $evidenceLocation = Get-BenchmarkEvidenceLocation `
