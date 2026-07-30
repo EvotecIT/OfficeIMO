@@ -721,6 +721,37 @@ public partial class Excel {
     }
 
     [Fact]
+    public void CreateDataReader_ObservesCancellationDuringDeferredDataSetMaterialization() {
+        var dataSet = new System.Data.DataSet("Export");
+        var table = new System.Data.DataTable("Data");
+        for (int columnIndex = 0; columnIndex < 8; columnIndex++) {
+            table.Columns.Add("Column" + columnIndex.ToString(CultureInfo.InvariantCulture), typeof(int));
+        }
+
+        var values = new object[8];
+        for (int rowIndex = 0; rowIndex < 50_000; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < values.Length; columnIndex++) {
+                values[columnIndex] = rowIndex + columnIndex;
+            }
+
+            table.Rows.Add(values);
+        }
+
+        dataSet.Tables.Add(table);
+        using var document = ExcelDocument.Create(new MemoryStream());
+        document.InsertDataSet(dataSet, createTables: false);
+        Assert.True(document.HasDeferredDirectDataSetImport);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(25));
+
+        Assert.Throws<OperationCanceledException>(() =>
+            document.CreateDataReader(
+                new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        Assert.False(document.HasDeferredDirectDataSetImport);
+    }
+
+    [Fact]
     public void OpenDataReader_PreCancelledLargeSeekableStreamStopsBeforeSizingItsSnapshot() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

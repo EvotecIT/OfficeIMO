@@ -101,6 +101,34 @@ foreach ($entry in @($comparisonCatalog.entries)) {
             [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Library comparison result '$($entry.resultPath)' does not match its catalog SHA-256."
     }
+
+    $sourceCommit = [string] $entry.compatibility.'benchmark.workload.sourceCommit'
+    $gitSha = [string] $entry.compatibility.gitSha
+    if ([string]::IsNullOrWhiteSpace($sourceCommit) -or
+        [string]::IsNullOrWhiteSpace($gitSha) -or
+        -not [string]::Equals($sourceCommit, $gitSha, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Library comparison result '$($entry.resultPath)' does not bind sourceCommit and gitSha to the same measured commit."
+    }
+}
+
+$comparisonIds = @(
+    'markpflug-65k-csv-decoded-net10.0',
+    'markpflug-65k-xlsx-typed-net10.0',
+    'markpflug-65k-xlsb-typed-net10.0'
+)
+foreach ($comparisonId in $comparisonIds) {
+    $windowsModes = @(
+        $comparisonCatalog.entries |
+            Where-Object {
+                $_.comparisonId -eq $comparisonId -and
+                $_.platform -eq 'windows'
+            } |
+            ForEach-Object runMode |
+            Sort-Object -Unique
+    )
+    if ('full' -notin $windowsModes -or 'quick' -notin $windowsModes) {
+        throw "Library comparison '$comparisonId' does not publish both full and quick Windows evidence."
+    }
 }
 
 $pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8

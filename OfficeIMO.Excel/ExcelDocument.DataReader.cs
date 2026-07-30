@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
         public DbDataReader CreateDataReader(ExcelReadOptions? options = null) {
             ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
-            MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImport(effectiveOptions.CancellationToken);
             return ExcelWorkbookDataReader.WrapOpenXml(
                 ExcelDocumentReader.Wrap(_spreadSheetDocument, effectiveOptions),
                 effectiveOptions);

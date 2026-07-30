@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -317,7 +318,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void MaterializePendingDirectCellValues() {
+        internal void MaterializePendingDirectCellValues(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var buffer = _pendingCellValueDirectSaveBuffer;
             if (buffer == null) {
                 return;
@@ -329,6 +331,7 @@ namespace OfficeIMO.Excel {
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 foreach (var cell in buffer.EnumerateWrittenCells()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
                 }
             } finally {
