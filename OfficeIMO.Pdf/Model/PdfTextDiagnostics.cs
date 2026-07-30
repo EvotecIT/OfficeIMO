@@ -109,7 +109,7 @@ internal static class PdfTextDiagnostics {
                     location,
                     runIndex,
                     shapingMode,
-                    (string value, int index, out int length) => TryGetCoveredTextLength(value, index, fontProgram, shapingMode, out length));
+                    (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, fontProgram, shapingMode, out length));
             }
 
             return AnalyzeEmbeddedFontText(text, fontProgram, source, location, runIndex, shapingMode);
@@ -125,7 +125,7 @@ internal static class PdfTextDiagnostics {
                     location,
                     runIndex,
                     shapingMode,
-                    (string value, int index, out int length) => TryGetCoveredTextLength(value, index, cffFontProgram, shapingMode, out length));
+                    (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, cffFontProgram, shapingMode, out length));
             }
 
             return AnalyzeEmbeddedFontText(text, cffFontProgram, source, location, runIndex, shapingMode);
@@ -139,7 +139,7 @@ internal static class PdfTextDiagnostics {
                 location,
                 runIndex,
                 shapingMode,
-                TryGetWinAnsiCoveredTextLength);
+                TryGetWinAnsiCoveredTextElementLength);
         }
 
         return AnalyzeWinAnsiTextCore(text, source, location, runIndex);
@@ -202,7 +202,7 @@ internal static class PdfTextDiagnostics {
                             runLocation,
                             runIndex,
                             shapingMode,
-                            (string value, int index, out int length) => TryGetCoveredTextLength(value, index, namedFontProgram, shapingMode, out length))
+                            (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, namedFontProgram, shapingMode, out length))
                         : AnalyzeEmbeddedFontText(
                             run.Text,
                             namedFontProgram,
@@ -224,7 +224,7 @@ internal static class PdfTextDiagnostics {
                             runLocation,
                             runIndex,
                             shapingMode,
-                            (string value, int index, out int length) => TryGetCoveredTextLength(value, index, namedCffFontProgram, shapingMode, out length))
+                            (string value, int index, out int length) => TryGetCoveredTextElementLength(value, index, namedCffFontProgram, shapingMode, out length))
                         : AnalyzeEmbeddedFontText(
                             run.Text,
                             namedCffFontProgram,
@@ -725,11 +725,10 @@ internal static class PdfTextDiagnostics {
         return diagnostics;
     }
 
-    private static bool TryGetWinAnsiCoveredTextLength(string text, int index, out int length) {
-        int endIndex = index;
-        _ = ReadScalar(text, ref endIndex);
-        length = endIndex - index;
-        return PdfWinAnsiEncoding.CanEncode(text.Substring(index, length), out _);
+    private static bool TryGetWinAnsiCoveredTextElementLength(string text, int index, out int length) {
+        string textElement = StringInfo.GetNextTextElement(text, index);
+        length = textElement.Length;
+        return PdfWinAnsiEncoding.CanEncode(textElement, out _);
     }
 
     private static bool TryGetCoveredTextLength(string text, int index, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode, out int length) {

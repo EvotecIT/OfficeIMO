@@ -903,14 +903,35 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.Single(diagnostics);
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+        PdfTextEncodingPreflightException exception = Assert.Throws<PdfTextEncodingPreflightException>(() =>
             PdfDocument.Create(options)
                 .Paragraph(paragraph => paragraph
                     .FontFamily("Caller")
                     .Text("a\u0301"))
                 .ToBytes());
 
-        Assert.Contains("U+0301", exception.Message, StringComparison.OrdinalIgnoreCase);
+        PdfTextEncodingDiagnostic writerDiagnostic = Assert.Single(exception.TextEncodingDiagnostics);
+        Assert.Equal(0, writerDiagnostic.Index);
+    }
+
+    [Fact]
+    public void WinAnsiAndRegisteredFallbackDoNotSplitCombiningGraphemeAcrossFonts() {
+        var options = new PdfOptions()
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Marks",
+                    ManagedTextShapingTestAssets.CreateFont('\u0301'))
+            }));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
+            PdfTextDiagnostics.AnalyzeGeneratedText(
+                "a\u0301",
+                options,
+                PdfStandardFont.Helvetica,
+                "ordinary fallback grapheme preflight");
+
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(0, diagnostic.Index);
     }
 
     [Fact]
