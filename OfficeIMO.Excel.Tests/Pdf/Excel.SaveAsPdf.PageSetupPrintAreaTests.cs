@@ -267,6 +267,33 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_HonorsExplicitProfileBaselinePageSize() {
+        string workbookPath = Path.Combine(
+            _directoryWithFiles,
+            "ExcelPdfExplicitProfileBaselinePageSize.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(2, 1, "ExplicitLetter");
+            sheet.SetPageSetup(paperSize: ExcelPaperSize.A3);
+            document.Save();
+
+            var options = new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false
+            }.UseRenderingProfile(OfficeRenderingProfile.Managed);
+            options.PdfOptions!.PageSize = new PdfCore.PageSize(612, 792);
+
+            bytes = document.ToPdf(options);
+        }
+
+        PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(bytes).Pages);
+        Assert.Equal(612D, page.Width, 1D);
+        Assert.Equal(792D, page.Height, 1D);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Uses_Default_Pdf_PageSize_When_Worksheet_PageSetup_Disabled() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDisableWorksheetPageSetup.xlsx");
 

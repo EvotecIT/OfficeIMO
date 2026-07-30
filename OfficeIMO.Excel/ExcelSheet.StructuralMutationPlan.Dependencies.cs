@@ -42,7 +42,9 @@ namespace OfficeIMO.Excel {
             uint previous = 0U;
             foreach (Row row in worksheetElements.OfType<Row>()) {
                 uint effective = GetEffectiveRowIndex(row, previous);
-                if (effective >= (uint)firstRow) {
+                if (effective >= (uint)firstRow
+                    || row.RowIndex?.Value is not uint explicitIndex
+                    || explicitIndex == 0U) {
                     count++;
                 }
                 previous = effective;

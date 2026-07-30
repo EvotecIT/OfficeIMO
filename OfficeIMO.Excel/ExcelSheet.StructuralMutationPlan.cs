@@ -129,9 +129,12 @@ namespace OfficeIMO.Excel {
                         sheetElement,
                         registerSheetWrapper: false);
                 IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
-                    inspectedSheet.BuildEffectiveCellCoordinates();
+                    inspectedSheet.BuildEffectiveCellCoordinates(
+                        worksheetElements.OfType<Row>());
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
-                    inspectedSheet.BuildSharedFormulaDefinitions(effectiveCoordinates);
+                    inspectedSheet.BuildSharedFormulaDefinitions(
+                        effectiveCoordinates,
+                        worksheetElements.OfType<Cell>());
                 bool isPendingOwner = pendingOwner != null
                     && ReferenceEquals(worksheetPart, pendingOwner._worksheetPart);
                 if (rewriteUnqualified) {

@@ -94,6 +94,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesImplicitRowsNormalizedAboveBoundary() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            Row row = Assert.Single(
+                sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
+            row.RowIndex = null;
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(100);
+
+            ExcelMutationImpact rows = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "worksheet-rows");
+            Assert.Equal(1, rows.ItemCount);
+            plan.Apply();
+            Assert.Equal(1U, row.RowIndex?.Value);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIncludesIndependentCommentVmlAnchorMove() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");

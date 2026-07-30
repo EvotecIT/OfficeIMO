@@ -19,10 +19,12 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyDictionary<uint, SharedFormulaDefinition> BuildSharedFormulaDefinitions(
-            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null) {
+            IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
+            IEnumerable<Cell>? cells = null) {
             effectiveCoordinates ??= BuildEffectiveCellCoordinates();
+            cells ??= WorksheetRoot.Descendants<Cell>();
             var definitions = new Dictionary<uint, SharedFormulaDefinition>();
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
+            foreach (Cell cell in cells) {
                 CellFormula? cellFormula = cell.CellFormula;
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
                     || cellFormula.SharedIndex?.Value is not uint sharedIndex
@@ -217,11 +219,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private IReadOnlyDictionary<Cell, (int Row, int Column)> BuildEffectiveCellCoordinates() {
+        private IReadOnlyDictionary<Cell, (int Row, int Column)> BuildEffectiveCellCoordinates(
+            IEnumerable<Row>? rows = null) {
             var coordinates = new Dictionary<Cell, (int Row, int Column)>();
             uint previousRow = 0U;
-            foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
-                ?? Enumerable.Empty<Row>()) {
+            rows ??= WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
+                ?? Enumerable.Empty<Row>();
+            foreach (Row row in rows) {
                 uint effectiveRow = GetEffectiveRowIndex(row, previousRow);
                 int previousColumn = 0;
                 foreach (Cell cell in row.Elements<Cell>()) {
