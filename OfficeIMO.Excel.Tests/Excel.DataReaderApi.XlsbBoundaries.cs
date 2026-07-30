@@ -199,6 +199,40 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void OpenDataReader_XlsbNextResultRejectsTruncatedCellPayloadDuringDiscovery() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.TruncatedSkippedSheetCell.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Ready");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellValue(2, 1, "Never delivered");
+                File.WriteAllBytes(path, document.ToBytes(ExcelFileFormat.Xlsb));
+            }
+            TruncateFirstXlsbCellRecordPayload(
+                path,
+                "xl/worksheets/sheet2.bin");
+
+            using DbDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.True(reader.Read());
+            Assert.Equal("Ready", reader.GetString(0));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(
+                () => reader.NextResult());
+
+            Assert.Contains("cell record", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.True(reader.IsClosed);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void RemoveFinalXlsbRecord(
         string path,
         string entryName,
@@ -424,6 +458,27 @@ public partial class Excel {
         }
 
         Assert.True(duplicated);
+        ReplaceZipEntry(path, entryName, output.ToArray());
+    }
+
+    private static void TruncateFirstXlsbCellRecordPayload(
+        string path,
+        string entryName) {
+        byte[] bytes = ReadZipEntry(path, entryName);
+        using var input = new MemoryStream(bytes, writable: false);
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+        using var output = new MemoryStream();
+        bool truncated = false;
+        foreach (XlsbRecord record in records) {
+            bool isCell = record.Type is >= 1 and <= 11 or 62;
+            byte[] data = !truncated && isCell
+                ? record.Data.Take(sizeof(int)).ToArray()
+                : record.Data;
+            XlsbRecordWriter.Write(output, record.Type, data);
+            truncated |= isCell;
+        }
+
+        Assert.True(truncated);
         ReplaceZipEntry(path, entryName, output.ToArray());
     }
 

@@ -816,15 +816,14 @@ public partial class Excel {
         try {
             TruncateFirstXlsbNumericFormulaTail(path);
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
-                path,
-                new ExcelReadOptions {
-                    CellValueConverter = useConverter
-                        ? static _ => ExcelCellValue.NotHandled
-                        : null
-                });
-            Assert.True(reader.Read());
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.Read());
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(
+                    path,
+                    new ExcelReadOptions {
+                        CellValueConverter = useConverter
+                            ? static _ => ExcelCellValue.NotHandled
+                            : null
+                    }));
             Assert.Contains("formula record", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("token-byte count", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {

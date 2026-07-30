@@ -100,7 +100,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         firstDataRow = currentRow;
                     }
                     lastDataRow = currentRow;
-                    int column = record.CreateCursor().ReadInt32();
+                    int column = ValidateCellPayloadStructure(
+                        record,
+                        limits.MaxStringCharacters);
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {record.RecordOffset} contains invalid column index {column}.");
@@ -144,6 +146,60 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
             } finally {
                 worksheetPart.Position = startPosition;
+            }
+        }
+
+        private static int ValidateCellPayloadStructure(
+            XlsbRecordSlice record,
+            int maxStringCharacters) {
+            try {
+                var cursor = record.CreateCursor();
+                int column = cursor.ReadInt32();
+                cursor.ReadUInt32(); // style index
+                switch (record.Type) {
+                    case BrtCellBlank:
+                        break;
+                    case BrtCellRk:
+                    case BrtCellIsst:
+                        cursor.ReadUInt32();
+                        break;
+                    case BrtCellError:
+                    case BrtCellBool:
+                        cursor.ReadByte();
+                        break;
+                    case BrtCellReal:
+                        cursor.ReadDouble();
+                        break;
+                    case BrtCellSt:
+                        cursor.ReadWideString(maxStringCharacters);
+                        break;
+                    case BrtCellRString:
+                        cursor.ReadByte();
+                        cursor.ReadWideString(maxStringCharacters);
+                        break;
+                    case BrtFmlaString:
+                        cursor.ReadWideString(maxStringCharacters);
+                        ValidateFormulaPayloadTail(record, ref cursor);
+                        break;
+                    case BrtFmlaNum:
+                        cursor.ReadDouble();
+                        ValidateFormulaPayloadTail(record, ref cursor);
+                        break;
+                    case BrtFmlaBool:
+                    case BrtFmlaError:
+                        cursor.ReadByte();
+                        ValidateFormulaPayloadTail(record, ref cursor);
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            $"Unsupported XLSB cell record type {record.Type}.");
+                }
+
+                return column;
+            } catch (EndOfStreamException exception) {
+                throw new InvalidDataException(
+                    $"The XLSB cell record at offset {record.RecordOffset} is truncated.",
+                    exception);
             }
         }
     }
