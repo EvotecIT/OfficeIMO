@@ -440,11 +440,22 @@ namespace OfficeIMO.Excel {
             }
             foreach (PivotTableCacheDefinitionPart cachePart in GetWorkbookPivotCacheDefinitionParts()) {
                 budget.Consume();
+                var rangeSets = new List<RangeSet>();
                 foreach (OpenXmlElement _ in cachePart.PivotCacheDefinition?.Descendants()
                     ?? Enumerable.Empty<OpenXmlElement>()) {
                     budget.Consume();
+                    if (_ is RangeSet rangeSet) {
+                        rangeSets.Add(rangeSet);
+                    }
                 }
-                if (PivotSourceChangesForPlan(cachePart, firstRow, lastRow, count, kind)) {
+                if (PivotSourceChangesForPlan(
+                        cachePart,
+                        rangeSets,
+                        firstRow,
+                        lastRow,
+                        count,
+                        kind,
+                        budget)) {
                     pivots++;
                 }
             }
@@ -752,10 +763,12 @@ namespace OfficeIMO.Excel {
 
         private bool PivotSourceChangesForPlan(
             PivotTableCacheDefinitionPart cachePart,
+            IReadOnlyList<RangeSet> rangeSets,
             int firstRow,
             int lastRow,
             int count,
-            ExcelRowMutationKind kind) {
+            ExcelRowMutationKind kind,
+            MutationPlanScanBudget budget) {
             WorksheetSource? source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
             if (source != null
                 && string.IsNullOrWhiteSpace(source.Id?.Value)
@@ -772,14 +785,20 @@ namespace OfficeIMO.Excel {
             }
 
             if (string.IsNullOrWhiteSpace(source?.Id?.Value)
-                && source?.Name?.Value is string sourceName
-                && IsNamedPivotSourceAffected(sourceName, firstRow)) {
-                return true;
+                && source?.Name?.Value is string sourceName) {
+                foreach (TableDefinitionPart _ in _worksheetPart.TableDefinitionParts) {
+                    budget.Consume();
+                }
+                foreach (DefinedName _ in WorkbookRoot.DefinedNames?.Elements<DefinedName>()
+                    ?? Enumerable.Empty<DefinedName>()) {
+                    budget.Consume();
+                }
+                if (IsNamedPivotSourceAffected(sourceName, firstRow)) {
+                    return true;
+                }
             }
 
-            return cachePart.PivotCacheDefinition?.CacheSource?.Consolidation?.RangeSets?
-                .Elements<RangeSet>()
-                .Any(rangeSet =>
+            return rangeSets.Any(rangeSet =>
                     string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
                     && string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                     && FormulaChangesForPlan(
@@ -788,7 +807,7 @@ namespace OfficeIMO.Excel {
                         firstRow,
                         lastRow,
                         count,
-                        rewriteUnqualifiedReferences: true)) == true;
+                        rewriteUnqualifiedReferences: true));
         }
 
         private void CountDrawingPlanImpacts(

@@ -52,6 +52,47 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void ApplyStructuralRowMutationPlan(
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int count) {
+            ValidateStructuralRowArguments(firstRow, count);
+            void ApplyCore() {
+                WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
+                if (!workbookPart.Parts.Any(pair =>
+                        ReferenceEquals(pair.OpenXmlPart, _worksheetPart))) {
+                    throw new InvalidOperationException(
+                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
+                }
+                string relationshipId = workbookPart.GetIdOfPart(_worksheetPart);
+                bool relationshipIsActive = WorkbookRoot.Sheets?
+                    .Elements<Sheet>()
+                    .Any(sheet => string.Equals(
+                        sheet.Id?.Value,
+                        relationshipId,
+                        StringComparison.Ordinal)) == true;
+                if (!relationshipIsActive) {
+                    throw new InvalidOperationException(
+                        "The worksheet captured by this Excel mutation plan is no longer part of the workbook.");
+                }
+
+                MaterializeDeferredDataSetImportIfNeeded();
+                if (kind == ExcelRowMutationKind.Insert) {
+                    ShiftRowsDown(firstRow, count);
+                } else {
+                    RemoveRowsAndShiftUp(firstRow, count);
+                }
+                WorksheetRoot.Save();
+                MarkRequiresSavePreparation();
+            }
+
+            if (_isBatchOperation || Locking.IsNoLock) {
+                ApplyCore();
+            } else {
+                Locking.ExecuteWrite(_excelDocument.EnsureLock(), ApplyCore);
+            }
+        }
+
         private static void ValidateStructuralRowArguments(int firstRow, int count) {
             if (firstRow < 1 || firstRow > A1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(firstRow), $"Row must be between 1 and {A1.MaxRows}.");
@@ -975,6 +1016,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            bool changed = false;
             uint count = 0;
             foreach (MergeCell merge in merges.Elements<MergeCell>().ToList()) {
                 if (merge.Reference?.Value is not string reference
@@ -990,17 +1032,28 @@ namespace OfficeIMO.Excel {
 
                 if (remappedBounds == null) {
                     merge.Remove();
+                    changed = true;
                     continue;
                 }
 
-                merge.Reference = ToReference(
+                string remappedReference = ToReference(
                     remappedBounds.Value.r1,
                     remappedBounds.Value.c1,
                     remappedBounds.Value.r2,
                     remappedBounds.Value.c2);
+                if (!string.Equals(
+                        reference,
+                        remappedReference,
+                        StringComparison.Ordinal)) {
+                    merge.Reference = remappedReference;
+                    changed = true;
+                }
                 count++;
             }
 
+            if (!changed) {
+                return;
+            }
             if (count == 0U) {
                 merges.Remove();
             } else {

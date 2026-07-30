@@ -121,11 +121,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                if (Kind == ExcelRowMutationKind.Insert) {
-                    _owner.InsertRows(FirstRow, Count);
-                } else {
-                    _owner.DeleteRows(FirstRow, Count);
-                }
+                _owner.ApplyStructuralRowMutationPlan(Kind, FirstRow, Count);
                 Volatile.Write(ref _applyState, 2);
             } catch {
                 Volatile.Write(ref _applyState, 3);
