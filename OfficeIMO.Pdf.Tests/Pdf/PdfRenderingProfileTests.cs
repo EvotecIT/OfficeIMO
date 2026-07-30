@@ -1984,16 +1984,26 @@ public sealed class PdfRenderingProfileTests {
                 OfficeFontStyle.Regular,
                 onlyA);
         byte[] pdf;
+        var saveOptions = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
+            PdfOptions = new PdfOptions()
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                    "SubstitutionTarget",
+                    ManagedTextShapingTestAssets.CreateFont('B')))
+                .RegisterFontFamilySubstitution(
+                    "ScopedWord",
+                    "SubstitutionTarget",
+                    PdfFontFamilySubstitutionImpact.Compatible)
+        };
+        saveOptions.UseRenderingProfile(
+            new OfficeRenderingProfile("word-scoped", fonts),
+            OfficeRenderingProfileApplyMode.Overlay);
         using (var stream = new MemoryStream())
         using (OfficeIMO.Word.WordDocument document =
             OfficeIMO.Word.WordDocument.Create(stream)) {
             document.AddParagraph("A").SetFontFamily("ScopedWord");
             pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
                 document,
-                new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
-                    .UseRenderingProfile(new OfficeRenderingProfile(
-                        "word-scoped",
-                        fonts)));
+                saveOptions);
         }
 
         using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);

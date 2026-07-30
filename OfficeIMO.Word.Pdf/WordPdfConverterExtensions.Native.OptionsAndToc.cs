@@ -400,6 +400,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
+                nativeFontMap.RegisterNamed(trimmedFamilyName, trimmedFamilyName);
+                return;
+            }
+
             if (pdfOptions.TryResolveFontFamilySubstitution(
                     trimmedFamilyName,
                     out PdfCore.PdfFontFamilySubstitution? substitution) &&
@@ -418,11 +423,6 @@ namespace OfficeIMO.Word.Pdf {
                     out string? registeredNamedFamily) &&
                 registeredNamedFamily != null) {
                 nativeFontMap.RegisterNamed(trimmedFamilyName, registeredNamedFamily);
-                return;
-            }
-
-            if (pdfOptions.HasRenderingProfileFamilyPlanner(trimmedFamilyName)) {
-                nativeFontMap.RegisterNamed(trimmedFamilyName, trimmedFamilyName);
                 return;
             }
 
