@@ -44,11 +44,13 @@ public sealed partial class PdfOptions {
                 ?? Enumerable.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
         ReadOnlyCollection<PdfEmbeddedFontFamily> families = CreateProfileFontFamilies(profileFonts);
-        existingFallbacks = PromoteCompatibilitySlotFallbacks(
-            existingFallbacks,
-            families,
-            preservedNamedFamilyNames,
-            mode);
+        if (families.Count > 0) {
+            existingFallbacks = PromoteCompatibilitySlotFallbacks(
+                existingFallbacks,
+                families,
+                preservedNamedFamilyNames,
+                mode);
+        }
         var preservedFallbackNames = new HashSet<string>(
             existingFallbacks?.Candidates
                 .Select(candidate => candidate.FontName)
@@ -128,7 +130,7 @@ public sealed partial class PdfOptions {
                 existingFallbacks,
                 regularProfileCandidates,
                 profileOwnedFallbackNames);
-        if (combinedCandidates.Length > 0) {
+        if (families.Count > 0 && combinedCandidates.Length > 0) {
             EnsureNamedFallbackCandidatesRegistered(combinedCandidates);
 
             // The named families above may include complete styled profile families.
@@ -274,12 +276,7 @@ public sealed partial class PdfOptions {
             .GroupBy(face => face.FamilyName, StringComparer.OrdinalIgnoreCase)) {
             PdfEmbeddedFontFallbackCandidate[] candidates = family
                 .Where(face => !excludedResourceFamilyNames.Contains(face.ResourceFamilyName))
-                .Where(face => !face.UnicodeRanges.IsAll)
                 .Reverse()
-                .Concat(family
-                    .Where(face => !excludedResourceFamilyNames.Contains(face.ResourceFamilyName))
-                    .Where(face => face.UnicodeRanges.IsAll)
-                    .Reverse())
                 .GroupBy(
                     face => face.ResourceFamilyName
                         + "\u001f"
@@ -492,7 +489,7 @@ public sealed partial class PdfOptions {
         foreach (PdfEmbeddedFontFamily family in profileFamilies) {
             familyKeys.Add(NormalizeNamedFontFamilyKey(family.FamilyName));
         }
-        if (promotedFallbacks != null) {
+        if (promotedFallbacks?.UsesNamedFontFamilies == true) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in promotedFallbacks.Candidates) {
                 familyKeys.Add(NormalizeNamedFontFamilyKey(candidate.FontName));
             }
