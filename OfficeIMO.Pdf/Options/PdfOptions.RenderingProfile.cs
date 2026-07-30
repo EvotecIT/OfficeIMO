@@ -452,20 +452,8 @@ public sealed partial class PdfOptions {
     }
 
     private void ReleaseRenderingProfileFontOwnership(string familyName) {
-        var releasedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-            familyName
-        };
-        if (_renderingProfileDeclaredFallbackCandidates != null) {
-            foreach (PdfEmbeddedFontFallbackCandidate candidate in
-                _renderingProfileDeclaredFallbackCandidates) {
-                if (string.Equals(
-                        CandidateFamilyKey(candidate),
-                        familyName,
-                        StringComparison.OrdinalIgnoreCase)) {
-                    releasedNames.Add(candidate.FontName);
-                }
-            }
-        }
+        HashSet<string> releasedNames =
+            GetRenderingProfileReleasedFamilyNames(familyName);
         bool releasedProfileOwnedFamily = false;
         foreach (string releasedName in releasedNames) {
             releasedProfileOwnedFamily =
@@ -541,14 +529,43 @@ public sealed partial class PdfOptions {
         }
     }
 
+    private HashSet<string> GetRenderingProfileReleasedFamilyNames(
+        string familyName) {
+        var releasedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            familyName
+        };
+        if (_renderingProfileDeclaredFallbackCandidates == null) {
+            return releasedNames;
+        }
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in
+            _renderingProfileDeclaredFallbackCandidates) {
+            if (string.Equals(
+                    CandidateFamilyKey(candidate),
+                    familyName,
+                    StringComparison.OrdinalIgnoreCase)) {
+                releasedNames.Add(candidate.FontName);
+            }
+        }
+        return releasedNames;
+    }
+
     private void ValidateRenderingProfileFamilyCapacity(
         IEnumerable<PdfEmbeddedFontFamily> profileFamilies,
         PdfEmbeddedFontFallbackSet? promotedFallbacks,
-        OfficeRenderingProfileApplyMode mode) {
+        OfficeRenderingProfileApplyMode mode,
+        IEnumerable<string>? releasedCallerFamilyNames = null) {
         var familyKeys = new HashSet<string>(StringComparer.Ordinal);
         if (mode == OfficeRenderingProfileApplyMode.Overlay
             && _namedFontFamilies != null) {
             familyKeys.UnionWith(_namedFontFamilies.Keys);
+        }
+        if (releasedCallerFamilyNames != null) {
+            foreach (string familyName in releasedCallerFamilyNames) {
+                foreach (string releasedName in
+                    GetRenderingProfileReleasedFamilyNames(familyName)) {
+                    familyKeys.Remove(NormalizeNamedFontFamilyKey(releasedName));
+                }
+            }
         }
         foreach (PdfEmbeddedFontFamily family in profileFamilies) {
             familyKeys.Add(NormalizeNamedFontFamilyKey(family.FamilyName));

@@ -2466,6 +2466,75 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
+    [Fact]
+    public void CallerFallbackCanReplaceFullProfileOwnedScopedFamily() {
+        byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] callerData = ManagedTextShapingTestAssets.CreateFont('B');
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                "Scoped",
+                profileData,
+                OfficeFontStyle.Regular,
+                new OfficeFontUnicodeRangeSet(new[] {
+                    new OfficeFontUnicodeRange(index + 1, index + 1)
+                }));
+        }
+        fonts.AddFallbackFamily("Scoped");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "full-scoped-profile",
+                fonts));
+
+        options.RegisterEmbeddedFontFallbacks(
+            new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Scoped", callerData)
+            }));
+
+        PdfEmbeddedFontFallbackCandidate active = Assert.Single(
+            options.EmbeddedFontFallbacks!.Candidates);
+        Assert.Equal("Scoped", active.FontName);
+        PdfEmbeddedFontFamily family = Assert.Single(options.NamedFontFamilies).Value;
+        Assert.Equal("Scoped", family.FamilyName);
+        Assert.Equal(callerData, family.Regular);
+    }
+
+    [Fact]
+    public void WordFontProfilePreservesDocumentDefaultFontSize() {
+        using var stream = new MemoryStream();
+        using OfficeIMO.Word.WordDocument document =
+            OfficeIMO.Word.WordDocument.Create(stream);
+        document.Settings.FontSize = 18;
+        document.AddParagraph("A");
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "word-font-profile",
+                new OfficeFontFaceCollection()
+                    .Add(
+                        "Profile",
+                        ManagedTextShapingTestAssets.CreateFont('A'))));
+
+        byte[] pdf = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(
+            document,
+            options);
+
+        Assert.False(options.HasExplicitPdfDefaultFontSizeConfiguration);
+        Assert.False(
+            options.CloneForConversion()
+                .HasExplicitPdfDefaultFontSizeConfiguration);
+        using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        double pointSize = Assert.Single(
+            parsed.GetPage(1).Letters,
+            letter => letter.Value == "A").PointSize;
+        Assert.InRange(pointSize, 17.9D, 18.1D);
+
+        options.PdfOptions!.DefaultFontSize = 13D;
+        Assert.True(options.HasExplicitPdfDefaultFontSizeConfiguration);
+        Assert.True(
+            options.CloneForConversion()
+                .HasExplicitPdfDefaultFontSizeConfiguration);
+    }
+
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
         public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) => null;
     }

@@ -161,6 +161,8 @@ public sealed partial class PdfOptions {
         clone._hasExplicitFooterFont = _hasExplicitFooterFont;
         clone._fontConfigurationAssignmentVersion =
             _fontConfigurationAssignmentVersion;
+        clone._defaultFontSizeAssignmentVersion =
+            _defaultFontSizeAssignmentVersion;
         clone._pageSizeConfigurationVersion = _pageSizeConfigurationVersion;
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;

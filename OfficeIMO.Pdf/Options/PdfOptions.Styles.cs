@@ -19,6 +19,7 @@ public sealed partial class PdfOptions {
         set {
             _defaultFontSize = value;
             MarkFontConfigurationAssigned();
+            MarkDefaultFontSizeAssigned();
         }
     }
     /// <summary>Default text color for blocks when none is specified.</summary>

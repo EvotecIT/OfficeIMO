@@ -21,7 +21,9 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
             bool hasConfiguredPdfOptions =
                 options?.HasExplicitPdfFontConfiguration == true;
-            if (!hasConfiguredPdfOptions) {
+            bool hasConfiguredDefaultFontSize =
+                options?.HasExplicitPdfDefaultFontSizeConfiguration == true;
+            if (!hasConfiguredDefaultFontSize) {
                 pdfOptions.DefaultFontSize = defaults.FontSize;
             }
             if ((string.IsNullOrWhiteSpace(pdfOptions.Language) ||
