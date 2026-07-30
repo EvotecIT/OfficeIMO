@@ -48,6 +48,39 @@ public partial class Excel {
     }
 
     [Fact]
+    public void XlsbTabularReader_SkipsFormattingOnlyRowsBeforeHeaderData() {
+        using var worksheetPart = new MemoryStream();
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            148,
+            CreateWorksheetDimensionPayload(0, 1, 0, 0));
+        XlsbRecordWriter.Write(worksheetPart, 145);
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(0));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            0,
+            CreateTabularRowHeaderPayload(1));
+        XlsbRecordWriter.Write(
+            worksheetPart,
+            7,
+            CreateSharedStringCellPayload(0, 0U));
+        XlsbRecordWriter.Write(worksheetPart, 146);
+        worksheetPart.Position = 0;
+
+        using var reader = CreateTabularReader(
+            worksheetPart,
+            new[] { "Actual Header" },
+            hasHeaderRow: true,
+            new XlsbCellReadBudget(10));
+
+        Assert.Equal("Actual Header", reader.GetName(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void XlsbTabularReader_SharesCellBudgetAcrossWorksheetReaders() {
         var cellBudget = new XlsbCellReadBudget(1);
         using (var firstWorksheet = CreateTabularWorksheet((0, 0U)))

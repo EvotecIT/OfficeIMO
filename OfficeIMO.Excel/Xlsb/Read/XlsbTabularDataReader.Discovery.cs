@@ -9,7 +9,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbRecordReadBudget recordBudget,
             CancellationToken cancellationToken,
             out int firstColumn,
-            out int lastColumn) {
+            out int lastColumn,
+            out int firstDataRow) {
             if (!worksheetPart.CanSeek) {
                 throw new InvalidOperationException(
                     "XLSB reads require a seekable worksheet part for schema discovery.");
@@ -17,6 +18,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             firstColumn = int.MaxValue;
             lastColumn = -1;
+            firstDataRow = -1;
+            int currentRow = -1;
             long startPosition = worksheetPart.Position;
             try {
                 using var scanner = new XlsbStreamRecordSliceReader(
@@ -43,10 +46,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     if (record.Type == BrtEndSheetData) {
                         break;
                     }
+                    if (record.Type == BrtRowHdr) {
+                        currentRow = ValidateRowHeader(record);
+                        continue;
+                    }
                     if (!IsCellRecord(record.Type)) {
                         continue;
                     }
 
+                    if (firstDataRow < 0 && currentRow >= 0) {
+                        firstDataRow = currentRow;
+                    }
                     int column = record.CreateCursor().ReadInt32();
                     if (column < 0 || column >= A1.MaxColumns) {
                         throw new InvalidDataException(

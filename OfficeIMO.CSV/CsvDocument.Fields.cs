@@ -25,9 +25,10 @@ public sealed partial class CsvDocument
         var resolvedOptions = ResolveLoadOptions(readerFactory, options);
         if (CanUseMemoryBackedFileText(path, resolvedOptions))
         {
-            resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
             using var boundedReader = CsvFile.OpenTextReader(path, resolvedOptions, FileBufferSize);
-            var text = boundedReader.ReadToEnd();
+            var text = ReadAllTextWithCancellation(
+                boundedReader,
+                resolvedOptions.CancellationToken);
             ReadRowFieldSpans(text.AsSpan(), ref rowVisitor, resolvedOptions);
             return;
         }
@@ -54,7 +55,9 @@ public sealed partial class CsvDocument
         options ??= new CsvLoadOptions();
         if (options.DetectDelimiter)
         {
-            var text = reader.ReadToEnd();
+            var text = ReadAllTextWithCancellation(
+                reader,
+                options.CancellationToken);
             var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
             using var bufferedReader = new StringReader(text);
             ReadRowFieldSpans(bufferedReader, ref rowVisitor, resolvedOptions);

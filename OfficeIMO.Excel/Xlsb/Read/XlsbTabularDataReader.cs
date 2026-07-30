@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int actualFirstColumn = int.MaxValue;
             int actualLastColumn = -1;
+            int actualFirstDataRow = -1;
             try {
                 DiscoverDataColumns(
                     worksheetPart,
@@ -85,7 +86,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     recordBudget,
                     cancellationToken,
                     out actualFirstColumn,
-                    out actualLastColumn);
+                    out actualLastColumn,
+                    out actualFirstDataRow);
             } catch {
                 worksheetPart.Dispose();
                 throw;
@@ -97,7 +99,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)));
             _records = records;
             try {
-                FindSheetData(out int dimensionFirstColumn, out int dimensionLastColumn);
+                FindSheetData(
+                    actualFirstDataRow,
+                    out int dimensionFirstColumn,
+                    out int dimensionLastColumn);
                 Dictionary<int, string?>? headerValues = null;
                 if (hasHeaderRow && _hasPendingRow) {
                     int headerRowIndex = _pendingRowIndex;
@@ -275,7 +280,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             base.Dispose(disposing);
         }
 
-        private void FindSheetData(out int firstColumn, out int lastColumn) {
+        private void FindSheetData(
+            int firstDataRow,
+            out int firstColumn,
+            out int lastColumn) {
             firstColumn = 0;
             lastColumn = -1;
             bool inSheetData = false;
@@ -290,8 +298,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 } else if (record.Type == BrtBeginSheetData) {
                     inSheetData = true;
                 } else if (inSheetData && record.Type == BrtRowHdr) {
-                    SetPendingRow(record);
-                    return;
+                    int rowIndex = ValidateRowHeader(record);
+                    if (rowIndex == firstDataRow) {
+                        _pendingRowIndex = rowIndex;
+                        _hasPendingRow = true;
+                        return;
+                    }
                 } else if (inSheetData && record.Type == BrtEndSheetData) {
                     return;
                 }

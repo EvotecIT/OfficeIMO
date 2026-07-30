@@ -154,6 +154,21 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
+    public void MemoryBackedReaderObservesCancellationBetweenReadChunks() {
+        using var cancellation = new CancellationTokenSource();
+        using var reader = new CancelingTextReader(
+            "Id,Name\n1,Ada\n",
+            cancellation,
+            maximumReadSize: 4);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.ReadAllTextWithCancellation(
+                reader,
+                cancellation.Token));
+        Assert.Equal(1, reader.ReadCount);
+    }
+
+    [Fact]
     public void OpenDataReader_PathRejectsInputBeyondConfiguredLimit() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Limit.{Guid.NewGuid():N}.csv");
         try {
@@ -290,5 +305,37 @@ public sealed class CsvDataReaderApiTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class CancelingTextReader : TextReader {
+        private readonly string _text;
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _maximumReadSize;
+        private int _position;
+
+        internal CancelingTextReader(
+            string text,
+            CancellationTokenSource cancellation,
+            int maximumReadSize) {
+            _text = text;
+            _cancellation = cancellation;
+            _maximumReadSize = maximumReadSize;
+        }
+
+        internal int ReadCount { get; private set; }
+
+        public override int Read(char[] buffer, int index, int count) {
+            ReadCount++;
+            int copied = Math.Min(
+                Math.Min(count, _maximumReadSize),
+                _text.Length - _position);
+            if (copied > 0) {
+                _text.CopyTo(_position, buffer, index, copied);
+                _position += copied;
+                _cancellation.Cancel();
+            }
+
+            return copied;
+        }
     }
 }

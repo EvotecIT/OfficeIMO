@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Data.Common;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -44,9 +45,10 @@ public sealed partial class CsvDocument
 
         if (CanUseMemoryBackedFileDataReader(path, options, readerOptions))
         {
-            options.CancellationToken.ThrowIfCancellationRequested();
             using var boundedReader = CsvFile.OpenTextReader(path, options, FileBufferSize);
-            var text = boundedReader.ReadToEnd();
+            var text = ReadAllTextWithCancellation(
+                boundedReader,
+                options.CancellationToken);
             return Parse(text, options).CreateDataReader(readerOptions);
         }
 #endif
@@ -402,6 +404,33 @@ public sealed partial class CsvDocument
             (options.MaxDecompressedBytes is null || fileLength <= options.MaxDecompressedBytes.Value);
     }
 #endif
+
+    internal static string ReadAllTextWithCancellation(
+        TextReader reader,
+        CancellationToken cancellationToken)
+    {
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        var text = new StringBuilder();
+        var buffer = new char[FileBufferSize];
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = reader.Read(buffer, 0, buffer.Length);
+            if (count == 0)
+            {
+                break;
+            }
+
+            text.Append(buffer, 0, count);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return text.ToString();
+    }
 
     private static bool ShouldUseGeneralDataReaderForFirstHeaderRecord(IReadOnlyList<string> record, CsvLoadOptions options)
     {
