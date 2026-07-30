@@ -246,6 +246,10 @@ public sealed partial class PdfOptions {
         }
 
         foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName!)) {
+            if (_renderingProfileOwnedNamedFamilyNames?.Contains(candidate) == true
+                && TryGetNamedFontFamilyDirect(candidate, out family)) {
+                return true;
+            }
             if (TryGetFontFamilySubstitution(candidate, out PdfFontFamilySubstitution? substitution) &&
                 substitution != null &&
                 TryGetNamedFontFamilyDirect(substitution.TargetFontFamily, out family)) {
