@@ -1614,14 +1614,22 @@ namespace OfficeIMO.Tests {
             var onlyA = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
                 new OfficeIMO.Drawing.OfficeFontUnicodeRange('A', 'A')
             });
+            var onlyB = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
+                new OfficeIMO.Drawing.OfficeFontUnicodeRange('B', 'B')
+            });
             var profile = new OfficeIMO.Drawing.OfficeRenderingProfile(
                 "scoped-metric",
                 new OfficeIMO.Drawing.OfficeFontFaceCollection()
                     .Add(
                         "Scoped Metric",
-                        ManagedTextShapingTestAssets.CreateFont('A'),
+                        CreateFontWithLineMetrics(800, -200, 'A'),
                         OfficeIMO.Drawing.OfficeFontStyle.Regular,
-                        onlyA));
+                        onlyA)
+                    .Add(
+                        "Scoped Metric",
+                        CreateFontWithLineMetrics(1200, -400, 'B'),
+                        OfficeIMO.Drawing.OfficeFontStyle.Regular,
+                        onlyB));
             var saveOptions = new WordPdfSaveOptions()
                 .UseRenderingProfile(profile);
 
@@ -1655,7 +1663,7 @@ namespace OfficeIMO.Tests {
                         new[] { "Scoped Metric" }
                     }));
 
-            Assert.Equal(1D, resolvedRatio, 6);
+            Assert.Equal(1.6D, resolvedRatio, 6);
         }
 
         [Fact]
@@ -2116,6 +2124,38 @@ namespace OfficeIMO.Tests {
             double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
             double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
             return firstY - secondY;
+        }
+
+        private static byte[] CreateFontWithLineMetrics(
+            short ascender,
+            short descender,
+            params int[] scalars) {
+            byte[] data = ManagedTextShapingTestAssets.CreateFont(scalars);
+            int tableCount = (data[4] << 8) | data[5];
+            for (int index = 0; index < tableCount; index++) {
+                int recordOffset = 12 + (index * 16);
+                if (data[recordOffset] != (byte)'h'
+                    || data[recordOffset + 1] != (byte)'h'
+                    || data[recordOffset + 2] != (byte)'e'
+                    || data[recordOffset + 3] != (byte)'a') {
+                    continue;
+                }
+
+                int tableOffset =
+                    (data[recordOffset + 8] << 24)
+                    | (data[recordOffset + 9] << 16)
+                    | (data[recordOffset + 10] << 8)
+                    | data[recordOffset + 11];
+                ushort encodedAscender = unchecked((ushort)ascender);
+                ushort encodedDescender = unchecked((ushort)descender);
+                data[tableOffset + 4] = (byte)(encodedAscender >> 8);
+                data[tableOffset + 5] = (byte)encodedAscender;
+                data[tableOffset + 6] = (byte)(encodedDescender >> 8);
+                data[tableOffset + 7] = (byte)encodedDescender;
+                return data;
+            }
+
+            throw new InvalidOperationException("The generated font does not contain an hhea table.");
         }
 
     }
