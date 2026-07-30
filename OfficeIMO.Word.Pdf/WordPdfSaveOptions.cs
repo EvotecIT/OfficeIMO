@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.Pdf {
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
         private long? _renderingProfileFontConfigurationState;
+        private long? _renderingProfileFontAssignmentVersion;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
@@ -20,6 +21,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pdfOptions = value;
                 _pdfOptionsCreatedByRenderingProfile = false;
                 _renderingProfileFontConfigurationState = null;
+                _renderingProfileFontAssignmentVersion = null;
             }
         }
 
@@ -27,7 +29,10 @@ namespace OfficeIMO.Word.Pdf {
             _pdfOptions != null
             && (!_renderingProfileFontConfigurationState.HasValue
                 || _pdfOptions.FontConfigurationState
-                    != _renderingProfileFontConfigurationState.Value);
+                    != _renderingProfileFontConfigurationState.Value
+                || !_renderingProfileFontAssignmentVersion.HasValue
+                || _pdfOptions.FontConfigurationAssignmentVersion
+                    != _renderingProfileFontAssignmentVersion.Value);
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
@@ -131,7 +136,10 @@ namespace OfficeIMO.Word.Pdf {
                 _pdfOptions != null
                 && _renderingProfileFontConfigurationState.HasValue
                 && _pdfOptions.FontConfigurationState
-                    == _renderingProfileFontConfigurationState.Value;
+                    == _renderingProfileFontConfigurationState.Value
+                && _renderingProfileFontAssignmentVersion.HasValue
+                && _pdfOptions.FontConfigurationAssignmentVersion
+                    == _renderingProfileFontAssignmentVersion.Value;
             PdfCore.PdfOptions target = _pdfOptions ?? new PdfCore.PdfOptions();
             target.UseRenderingProfile(profile, mode);
             if (createdPdfOptions) {
@@ -141,10 +149,15 @@ namespace OfficeIMO.Word.Pdf {
             _renderingProfileFontConfigurationState =
                 profile.Fonts.Faces.Count == 0
                 && _pdfOptionsCreatedByRenderingProfile
-                && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                && (createdPdfOptions
+                    || mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
                     || profileOwnsCurrentFontConfiguration)
                         ? target.FontConfigurationState
                         : null;
+            _renderingProfileFontAssignmentVersion =
+                _renderingProfileFontConfigurationState.HasValue
+                    ? target.FontConfigurationAssignmentVersion
+                    : null;
             return this;
         }
 
@@ -199,6 +212,8 @@ namespace OfficeIMO.Word.Pdf {
                 _pdfOptionsCreatedByRenderingProfile;
             clone._renderingProfileFontConfigurationState =
                 _renderingProfileFontConfigurationState;
+            clone._renderingProfileFontAssignmentVersion =
+                _renderingProfileFontAssignmentVersion;
             return clone;
         }
     }

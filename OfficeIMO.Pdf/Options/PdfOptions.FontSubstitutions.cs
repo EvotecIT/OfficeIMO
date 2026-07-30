@@ -41,7 +41,6 @@ public sealed partial class PdfOptions {
         string key = NormalizeOfficeFontFamilyKey(substitution.SourceFontFamily);
         (_fontFamilySubstitutions ??=
             new Dictionary<string, PdfFontFamilySubstitution>(StringComparer.OrdinalIgnoreCase))[key] = substitution;
-        MarkFontConfigurationChanged();
         return this;
     }
 

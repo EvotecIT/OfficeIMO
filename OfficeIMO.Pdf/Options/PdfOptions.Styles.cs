@@ -8,7 +8,7 @@ public sealed partial class PdfOptions {
             Guard.StandardFont(value, nameof(DefaultFont), "PDF default font must be one of the supported standard PDF fonts.");
             _defaultFont = value;
             _hasExplicitDefaultFont = true;
-            MarkFontConfigurationChanged();
+            MarkFontConfigurationAssigned();
         }
     }
     /// <summary>Gets whether the default paragraph font slot was explicitly supplied by the caller or a theme.</summary>
@@ -18,7 +18,7 @@ public sealed partial class PdfOptions {
         get => _defaultFontSize;
         set {
             _defaultFontSize = value;
-            MarkFontConfigurationChanged();
+            MarkFontConfigurationAssigned();
         }
     }
     /// <summary>Default text color for blocks when none is specified.</summary>

@@ -129,9 +129,12 @@ namespace OfficeIMO.Excel {
                         sheetElement,
                         registerSheetWrapper: false);
                 IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
-                    inspectedSheet.BuildEffectiveCellCoordinates();
+                    inspectedSheet.BuildEffectiveCellCoordinates(
+                        worksheetElements.OfType<Row>());
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
-                    inspectedSheet.BuildSharedFormulaDefinitions(effectiveCoordinates);
+                    inspectedSheet.BuildSharedFormulaDefinitions(
+                        effectiveCoordinates,
+                        worksheetElements.OfType<Cell>());
                 bool isPendingOwner = pendingOwner != null
                     && ReferenceEquals(worksheetPart, pendingOwner._worksheetPart);
                 if (rewriteUnqualified) {
@@ -154,16 +157,21 @@ namespace OfficeIMO.Excel {
 
                         if (!pendingValueIsAuthoritative
                             && cell.CellFormula is CellFormula cellFormula) {
-                            bool formulaImpactRecorded = FormulaChangesForPlan(
-                                    inspectedSheet.ResolveCellFormulaText(
-                                        cell,
-                                        sharedFormulaDefinitions,
-                                        effectiveCoordinates),
-                                    kind,
-                                    firstRow,
-                                    lastRow,
-                                    count,
-                                    rewriteUnqualified);
+                            bool formulaImpactRecorded =
+                                rewriteUnqualified
+                                && kind == ExcelRowMutationKind.Delete
+                                && effectiveCoordinate.Row >= firstRow
+                                && effectiveCoordinate.Row <= lastRow;
+                            formulaImpactRecorded |= FormulaChangesForPlan(
+                                inspectedSheet.ResolveCellFormulaText(
+                                    cell,
+                                    sharedFormulaDefinitions,
+                                    effectiveCoordinates),
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count,
+                                rewriteUnqualified);
                             if (rewriteUnqualified
                                 && cellFormula.FormulaType?.Value != CellFormulaValues.Shared
                                 && ReferenceListChangesForPlan(
@@ -351,11 +359,13 @@ namespace OfficeIMO.Excel {
                         firstRow,
                         lastRow,
                         count,
-                        budget);
+                        budget,
+                        out IReadOnlyList<OpenXmlElement> tableElements);
                     formulas += tableFormulaImpacts;
                     if ((rewriteUnqualified
                             && TableMetadataChangesForPlan(
                                 tablePart.Table,
+                                tableElements,
                                 kind,
                                 firstRow,
                                 lastRow,
@@ -434,12 +444,16 @@ namespace OfficeIMO.Excel {
             var queryConnectionIds = new HashSet<uint>();
             foreach (QueryTablePart queryPart in _worksheetPart.QueryTableParts) {
                 budget.Consume();
-                foreach (OpenXmlElement _ in queryPart.QueryTable?.Descendants()
+                var querySortStates = new List<SortState>();
+                foreach (OpenXmlElement element in queryPart.QueryTable?.Descendants()
                     ?? Enumerable.Empty<OpenXmlElement>()) {
                     budget.Consume();
+                    if (element is SortState sortState) {
+                        querySortStates.Add(sortState);
+                    }
                 }
                 queryTableSorts += CountQueryTableSortPlanImpacts(
-                    queryPart.QueryTable,
+                    querySortStates,
                     kind,
                     firstRow,
                     lastRow,

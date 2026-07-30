@@ -329,18 +329,12 @@ public sealed partial class PdfOptions {
         if (fallbackSet == null) {
             _embeddedFontFallbacks = null;
             _renderingProfileDeclaredFallbackCandidates = null;
-            MarkFontConfigurationChanged();
             return;
         }
 
         PdfEmbeddedFontFallbackSet prepared = fallbackSet.Clone();
-        if (prepared.UsesNamedFontFamilies) {
-            foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
-                // Release stale profile ownership before the caller's active set is installed.
-                // Otherwise the ownership cleanup can filter the newly assigned candidate itself.
-                ReleaseRenderingProfileFontOwnership(candidate.FontName);
-            }
-        } else if (_renderingProfileOwnedNamedFamilyNames?.Count > 0) {
+        if (!prepared.UsesNamedFontFamilies
+            && _renderingProfileOwnedNamedFamilyNames?.Count > 0) {
             prepared = PromoteCompatibilitySlotFallbacks(
                     prepared,
                     Array.Empty<PdfEmbeddedFontFamily>(),
@@ -352,11 +346,17 @@ public sealed partial class PdfOptions {
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay);
         }
+        if (prepared.UsesNamedFontFamilies) {
+            foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
+                // Release stale profile ownership before the caller's active set is installed.
+                // Otherwise registration can filter the newly assigned candidate itself.
+                ReleaseRenderingProfileFontOwnership(candidate.FontName);
+            }
+        }
 
         _renderingProfileDeclaredFallbackCandidates = null;
         _embeddedFontFallbacks = prepared;
         _embeddedFontFallbacks.RegisterFonts(this);
-        MarkFontConfigurationChanged();
     }
 
     private static bool TryLoadOfficeFontFamily(string familyName, out PdfEmbeddedFontFamily? embeddedFamily) {
