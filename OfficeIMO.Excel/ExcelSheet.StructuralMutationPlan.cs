@@ -177,6 +177,7 @@ namespace OfficeIMO.Excel {
                                     lastRow,
                                     count)) {
                                 formulas++;
+                                formulaImpactRecorded = true;
                             }
                             if (rewriteUnqualified
                                 && cellFormula.FormulaType?.Value == CellFormulaValues.DataTable) {
@@ -187,6 +188,7 @@ namespace OfficeIMO.Excel {
                                         lastRow,
                                         count)) {
                                     formulas++;
+                                    formulaImpactRecorded = true;
                                 }
                                 if (ReferenceListChangesForPlan(
                                         cellFormula.R2?.Value,
@@ -195,10 +197,16 @@ namespace OfficeIMO.Excel {
                                         lastRow,
                                         count)) {
                                     formulas++;
+                                    formulaImpactRecorded = true;
                                 }
                             }
                             if (cellFormula.FormulaType?.Value == CellFormulaValues.Shared
                                 && !formulaImpactRecorded) {
+                                formulas++;
+                                formulaImpactRecorded = true;
+                            }
+                            if (!formulaImpactRecorded
+                                && cellFormula.CalculateCell?.Value != true) {
                                 formulas++;
                             }
                         }
@@ -223,6 +231,13 @@ namespace OfficeIMO.Excel {
                         }
                     }
                     if (element is Hyperlink hyperlink) {
+                        bool anchorChanges = rewriteUnqualified
+                            && ReferenceListChangesForPlan(
+                                hyperlink.Reference?.Value,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count);
                         bool internalLocationChanges = string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
                             && FormulaChangesForPlan(
                                 hyperlink.Location?.Value,
@@ -231,7 +246,7 @@ namespace OfficeIMO.Excel {
                                 lastRow,
                                 count,
                                 rewriteUnqualified);
-                        if (rewriteUnqualified || internalLocationChanges) {
+                        if (anchorChanges || internalLocationChanges) {
                             hyperlinks++;
                         }
                         if (internalLocationChanges) {
@@ -347,7 +362,14 @@ namespace OfficeIMO.Excel {
                         count,
                         budget);
                     formulas += tableFormulaImpacts;
-                    if (rewriteUnqualified || tableFormulaImpacts > 0) {
+                    if ((rewriteUnqualified
+                            && TableMetadataChangesForPlan(
+                                tablePart.Table,
+                                kind,
+                                firstRow,
+                                lastRow,
+                                count))
+                        || tableFormulaImpacts > 0) {
                         tables++;
                     }
                 }
@@ -403,7 +425,17 @@ namespace OfficeIMO.Excel {
                     ref formulas);
             }
 
-            pivots += CountBounded(_worksheetPart.PivotTableParts, budget);
+            foreach (PivotTablePart pivotPart in _worksheetPart.PivotTableParts) {
+                budget.Consume();
+                if (ReferenceListChangesForPlan(
+                        pivotPart.PivotTableDefinition?.Location?.Reference?.Value,
+                        kind,
+                        firstRow,
+                        lastRow,
+                        count)) {
+                    pivots++;
+                }
+            }
             foreach (PivotTableCacheDefinitionPart cachePart in GetWorkbookPivotCacheDefinitionParts()) {
                 budget.Consume();
                 foreach (OpenXmlElement _ in cachePart.PivotCacheDefinition?.Descendants()

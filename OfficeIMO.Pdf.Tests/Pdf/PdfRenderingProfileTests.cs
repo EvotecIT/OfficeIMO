@@ -812,6 +812,26 @@ public sealed class PdfRenderingProfileTests {
         Assert.False(options.TryGetRenderingProfileFamilyFallbacks(
             "Scoped",
             out _));
+        Assert.Null(options.EmbeddedFontFallbacks);
+    }
+
+    [Fact]
+    public void ClearingNamedFamiliesPreservesCallerOwnedSlotFallbackPlanner() {
+        var slotFallbacks = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate(
+                    "Caller slot",
+                    ManagedTextShapingTestAssets.CreateFont('A'))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var options = new PdfOptions()
+            .RegisterEmbeddedFontFallbacks(slotFallbacks);
+
+        options.ClearNamedFontFamilies();
+
+        Assert.Equal(
+            new[] { PdfStandardFont.Helvetica },
+            options.EmbeddedFontFallbacks?.FontSlots);
     }
 
     [Fact]
