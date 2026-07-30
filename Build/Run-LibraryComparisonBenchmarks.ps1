@@ -88,7 +88,7 @@ if ($Publish -and $gitDirty) {
     throw 'Publishable benchmark evidence requires a clean Git worktree so the recorded source commit identifies the measured code exactly.'
 }
 
-$outputs = foreach ($name in $selected) {
+$measurements = foreach ($name in $selected) {
     $definition = $definitions[$name]
     $artifactsPath = Join-Path $OutputRoot "$platform-$name-$RunMode-$stamp"
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
@@ -163,32 +163,51 @@ $outputs = foreach ($name in $selected) {
         -Platform $platform `
         -RunMode $RunMode `
         -StaticRoot $staticRoot
-    $normalizedPath = if ($catalogEligible) {
-        $evidenceLocation.Path
-    } else {
-        Join-Path $artifactsPath 'normalized-result.json'
-    }
+    $normalizedPath = Join-Path $artifactsPath 'normalized-result.json'
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
-    if ($catalogEligible) {
+    [pscustomobject]@{
+        Workload = $name
+        Definition = $definition
+        Result = $result
+        EvidenceLocation = $evidenceLocation
+        ArtifactsPath = $artifactsPath
+        NormalizedResult = $normalizedPath
+    }
+}
+
+if ($catalogEligible) {
+    foreach ($measurement in $measurements) {
+        if (-not $Publish) {
+            Write-BenchmarkEvidenceResult `
+                -Path $measurement.EvidenceLocation.Path `
+                -InputObject $measurement.Result
+        }
         Update-BenchmarkEvidenceCatalog `
-            -InputObject $result `
+            -InputObject $measurement.Result `
             -Path $catalogPath `
-            -ComparisonId $definition.ComparisonId `
-            -ResultPath $evidenceLocation.ResultPath `
+            -ComparisonId $measurement.Definition.ComparisonId `
+            -ResultPath $measurement.EvidenceLocation.ResultPath `
+            -ResultArtifactPath $measurement.EvidenceLocation.Path `
             -RunMode $RunMode `
             -ExpectedPlatform windows, linux, macos `
             -Publish:$Publish | Out-Null
     }
+}
 
+$outputs = foreach ($measurement in $measurements) {
     [pscustomobject]@{
-        Workload = $name
+        Workload = $measurement.Workload
         Platform = $platform
         RunMode = $RunMode
         Publish = [bool] $Publish
         SourceCommit = $gitSha
-        ArtifactsPath = $artifactsPath
-        NormalizedResult = $normalizedPath
+        ArtifactsPath = $measurement.ArtifactsPath
+        NormalizedResult = if ($catalogEligible) {
+            $measurement.EvidenceLocation.Path
+        } else {
+            $measurement.NormalizedResult
+        }
         EvidenceCatalog = if ($catalogEligible) { $catalogPath } else { $null }
     }
 }
