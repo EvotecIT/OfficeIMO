@@ -707,6 +707,51 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void ClearingPdfFontsRestoresOfficeAdapterFontDiscovery() {
+        static bool HasExplicitFontConfiguration(object options) =>
+            (bool)(options.GetType().GetProperty(
+                    "HasExplicitPdfFontConfiguration",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.GetValue(options)
+                ?? throw new InvalidOperationException(
+                    "The PDF adapter font-configuration state was not found."));
+
+        var fontless = new OfficeRenderingProfile("fontless");
+        var adapters = new object[] {
+            new OfficeIMO.Word.Pdf.WordPdfSaveOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions().UseRenderingProfile(fontless),
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions().UseRenderingProfile(fontless)
+        };
+
+        foreach (object adapter in adapters) {
+            PdfOptions pdfOptions = adapter switch {
+                OfficeIMO.Word.Pdf.WordPdfSaveOptions word => word.PdfOptions!,
+                OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions excel => excel.PdfOptions!,
+                OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions powerPoint =>
+                    powerPoint.PdfOptions!,
+                _ => throw new InvalidOperationException("Unknown PDF adapter.")
+            };
+
+            pdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                "Temporary Named",
+                ManagedTextShapingTestAssets.CreateFont('A')));
+            Assert.True(HasExplicitFontConfiguration(adapter));
+            pdfOptions.ClearNamedFontFamilies();
+            Assert.False(HasExplicitFontConfiguration(adapter));
+
+            pdfOptions.RegisterFontFamily(
+                PdfStandardFont.Helvetica,
+                new PdfEmbeddedFontFamily(
+                    "Temporary Standard",
+                    ManagedTextShapingTestAssets.CreateFont('B')));
+            Assert.True(HasExplicitFontConfiguration(adapter));
+            pdfOptions.ClearEmbeddedStandardFonts();
+            Assert.False(HasExplicitFontConfiguration(adapter));
+        }
+    }
+
+    [Fact]
     public void SharedRenderingProfileSurvivesOfficeAdapterCloningAndPdfGeneration() {
         OfficeRenderingProfile profile = OfficeRenderingProfile.Managed;
         byte[] wordPdf;

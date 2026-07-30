@@ -408,7 +408,12 @@ namespace OfficeIMO.Excel {
                     relativeFormulaAnchorRow: null));
         }
 
-        private int CountCommentPlanImpacts(MutationPlanScanBudget budget) {
+        private int CountCommentPlanImpacts(
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count,
+            MutationPlanScanBudget budget) {
             int comments = 0;
             WorksheetCommentsPart? legacyPart = _worksheetPart.WorksheetCommentsPart;
             if (legacyPart?.Comments != null) {
@@ -416,7 +421,13 @@ namespace OfficeIMO.Excel {
                 budget.Consume();
                 foreach (OpenXmlElement element in legacyPart.Comments.Descendants()) {
                     budget.Consume();
-                    if (element is Comment) {
+                    if (element is Comment comment
+                        && ReferenceListChangesForPlan(
+                            comment.Reference?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
                         comments++;
                     }
                 }
@@ -431,9 +442,47 @@ namespace OfficeIMO.Excel {
                 }
 
                 budget.Consume();
-                foreach (OpenXmlElement element in root.Descendants()) {
+                List<Threaded.ThreadedComment> allComments = root
+                    .Elements<Threaded.ThreadedComment>()
+                    .ToList();
+                var removedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (Threaded.ThreadedComment comment in allComments) {
                     budget.Consume();
-                    if (element is Threaded.ThreadedComment) {
+                    if (comment.Ref?.Value is string reference
+                        && kind == ExcelRowMutationKind.Delete
+                        && TryParseReference(reference, out var bounds)
+                        && TryRemapShiftedReferenceRows(
+                            bounds,
+                            firstRow,
+                            -count,
+                            lastRow,
+                            out var remapped)
+                        && remapped == null
+                        && comment.Id?.Value is string id) {
+                        removedIds.Add(id);
+                    }
+                }
+                bool added;
+                do {
+                    added = false;
+                    foreach (Threaded.ThreadedComment comment in allComments) {
+                        if (comment.Id?.Value is string id
+                            && comment.ParentId?.Value is string parentId
+                            && removedIds.Contains(parentId)
+                            && removedIds.Add(id)) {
+                            added = true;
+                        }
+                    }
+                } while (added);
+
+                foreach (Threaded.ThreadedComment comment in allComments) {
+                    if ((comment.Id?.Value is string id && removedIds.Contains(id))
+                        || ReferenceListChangesForPlan(
+                            comment.Ref?.Value,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
                         comments++;
                     }
                 }

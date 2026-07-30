@@ -241,6 +241,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesRepliesRemovedWithDeletedParent() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelThreadedCommentResult parent =
+                sheet.AddThreadedComment("A3", "Parent");
+            sheet.ReplyToThreadedComment(parent.Id, "Reply");
+
+            ExcelRowMutationPlan plan = sheet.PlanDeleteRows(3);
+
+            ExcelMutationImpact comments = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "comments");
+            Assert.Equal(2, comments.ItemCount);
+        }
+
+        [Fact]
         public void Test_StructuralRows_MutationPlanIncludesChartsHostedOnOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddWorksheet("Data");

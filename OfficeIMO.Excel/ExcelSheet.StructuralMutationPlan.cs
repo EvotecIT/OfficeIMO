@@ -295,9 +295,23 @@ namespace OfficeIMO.Excel {
                         } else if (metadataRangeChanges || metadataFormulaImpacts > 0) {
                             conditionalFormatting++;
                         }
-                    } else if (element is MergeCell) {
+                    } else if (element is MergeCell merge
+                        && merge.Reference?.Value is string mergeReference
+                        && TryParseReference(mergeReference, out var mergeBounds)
+                        && TryRemapShiftedReferenceRows(
+                            mergeBounds,
+                            firstRow,
+                            kind == ExcelRowMutationKind.Insert ? count : -count,
+                            kind == ExcelRowMutationKind.Delete ? lastRow : (int?)null,
+                            out _)) {
                         mergedCells++;
-                    } else if (element is DocumentFormat.OpenXml.Office2010.Excel.Sparkline) {
+                    } else if (element is DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline
+                        && SparklineChangesForPlan(
+                            sparkline,
+                            kind,
+                            firstRow,
+                            lastRow,
+                            count)) {
                         sparklines++;
                     } else if (element is ProtectedRange protectedRange
                         && ReferenceListChangesForPlan(
@@ -441,7 +455,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            comments += CountCommentPlanImpacts(budget);
+            comments += CountCommentPlanImpacts(
+                kind,
+                firstRow,
+                lastRow,
+                count,
+                budget);
 
             namedSheetViews += CountNamedSheetViewPlanImpacts(
                 kind,
@@ -892,6 +911,26 @@ namespace OfficeIMO.Excel {
             }
             return remapped.Value.r1 - 1 != zeroBasedRow;
         }
+
+        private bool SparklineChangesForPlan(
+            X14.Sparkline sparkline,
+            ExcelRowMutationKind kind,
+            int firstRow,
+            int lastRow,
+            int count) =>
+            ReferenceListChangesForPlan(
+                sparkline.ReferenceSequence?.Text,
+                kind,
+                firstRow,
+                lastRow,
+                count)
+            || FormulaChangesForPlan(
+                sparkline.Formula?.Text,
+                kind,
+                firstRow,
+                lastRow,
+                count,
+                rewriteUnqualifiedReferences: true);
 
         private static bool TwoCellDrawingAnchorChangesForPlan(
             DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor anchor,
