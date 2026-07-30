@@ -223,6 +223,28 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void OverlayPreservesProfileOwnedFacesOmittedByLaterProfile() {
+        byte[] firstRegular = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] firstBold = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] secondRegular = ManagedTextShapingTestAssets.CreateFont('C');
+        var firstFonts = new OfficeFontFaceCollection()
+            .Add("Shared", firstRegular)
+            .Add("Shared", firstBold, OfficeFontStyle.Bold);
+        var secondFonts = new OfficeFontFaceCollection()
+            .Add("Shared", secondRegular);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("first", firstFonts));
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("second", secondFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        PdfEmbeddedFontFamily family = options.NamedFontFamilies["Shared"];
+        Assert.Equal(secondRegular, family.Regular);
+        Assert.Equal(firstBold, family.Bold);
+    }
+
+    [Fact]
     public void OverlayRefreshesInheritedFallbackWithoutRedeclaration() {
         byte[] firstData = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] secondData = ManagedTextShapingTestAssets.CreateFont('B');
@@ -1363,6 +1385,26 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void InvalidRenderingProfileLanguageIsRejectedBeforeOptionsAreMutated() {
+        var originalProvider = new DecliningTextShapingProvider();
+        var replacementProvider = OfficeManagedTextShapingProvider.Instance;
+        var options = new PdfOptions {
+            TextShapingProvider = originalProvider,
+            Language = "en"
+        };
+        var profile = new OfficeRenderingProfile(
+            "invalid-language",
+            textShapingProvider: replacementProvider,
+            textShapingLanguage: "pl\u0001");
+
+        Assert.Throws<ArgumentException>(() =>
+            options.UseRenderingProfile(profile));
+
+        Assert.Same(originalProvider, options.TextShapingProvider);
+        Assert.Equal("en", options.Language);
+    }
+
+    [Fact]
     public void RenderingProfileCapacityIncludesPromotedCompatibilityFallbacks() {
         var originalProvider = new DecliningTextShapingProvider();
         var options = new PdfOptions {
@@ -1416,6 +1458,42 @@ public sealed class PdfRenderingProfileTests {
             options.EmbeddedFontFallbacks);
         Assert.True(fallback.UsesNamedFontFamilies);
         Assert.True(fallback.PlanText("A").IsFullyCovered);
+    }
+
+    [Fact]
+    public void ReplacingPromotedCompatibilityFallbackReusesItsNamedAlias() {
+        byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] firstFallbackData = ManagedTextShapingTestAssets.CreateFont('B');
+        byte[] secondFallbackData = ManagedTextShapingTestAssets.CreateFont('C');
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileData);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile(
+                "shared-profile",
+                profileFonts));
+        string? promotedFamilyName = null;
+
+        for (int index = 0;
+             index < PdfOptions.MaximumNamedFontFamilies + 2;
+             index++) {
+            byte[] data = index % 2 == 0
+                ? firstFallbackData
+                : secondFallbackData;
+            options.RegisterEmbeddedFontFallbacks(
+                new PdfEmbeddedFontFallbackSet(
+                    new[] {
+                        new PdfEmbeddedFontFallbackCandidate("Shared", data)
+                    },
+                    new[] { PdfStandardFont.Helvetica }));
+
+            PdfEmbeddedFontFallbackCandidate active = Assert.Single(
+                options.EmbeddedFontFallbacks!.Candidates);
+            promotedFamilyName ??= active.FontName;
+            Assert.Equal(promotedFamilyName, active.FontName);
+            Assert.Equal(data, options.NamedFontFamilies[active.FontName].Regular);
+        }
+
+        Assert.Equal(2, options.NamedFontFamilies.Count);
     }
 
     [Fact]
