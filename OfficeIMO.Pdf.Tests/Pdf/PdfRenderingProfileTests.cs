@@ -1838,7 +1838,7 @@ public sealed class PdfRenderingProfileTests {
             PdfOptions = new PdfOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                     "SubstitutionTarget",
-                    ManagedTextShapingTestAssets.CreateFont('B')))
+                    ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B')))
                 .RegisterFontFamilySubstitution(
                     "ScopedWord",
                     "SubstitutionTarget",
