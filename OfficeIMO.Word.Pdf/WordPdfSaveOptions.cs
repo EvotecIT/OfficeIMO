@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.Pdf {
     public class WordPdfSaveOptions {
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
+        private bool _pdfOptionsCreatedByRenderingProfile;
         private long? _renderingProfileFontConfigurationState;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
@@ -17,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
             get => _pdfOptions;
             set {
                 _pdfOptions = value;
+                _pdfOptionsCreatedByRenderingProfile = false;
                 _renderingProfileFontConfigurationState = null;
             }
         }
@@ -116,17 +118,26 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            bool profileOwnsCurrentFontConfiguration =
-                _pdfOptions == null
-                || (_renderingProfileFontConfigurationState.HasValue
-                    && _pdfOptions.FontConfigurationState
-                        == _renderingProfileFontConfigurationState.Value);
-            _pdfOptions ??= new PdfCore.PdfOptions();
+            if (profile == null) {
+                throw new ArgumentNullException(nameof(profile));
+            }
+            if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
+                throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+
+            if (_pdfOptions == null) {
+                _pdfOptions = new PdfCore.PdfOptions();
+                _pdfOptionsCreatedByRenderingProfile = true;
+            }
             _pdfOptions.UseRenderingProfile(profile, mode);
             _renderingProfileFontConfigurationState =
-                profileOwnsCurrentFontConfiguration
-                    ? _pdfOptions.FontConfigurationState
-                    : null;
+                profile.Fonts.Faces.Count == 0
+                && _pdfOptionsCreatedByRenderingProfile
+                && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
+                    || _renderingProfileFontConfigurationState.HasValue)
+                        ? _pdfOptions.FontConfigurationState
+                        : null;
             return this;
         }
 
@@ -177,6 +188,8 @@ namespace OfficeIMO.Word.Pdf {
                 PageNumberFormat = PageNumberFormat,
                 DefaultTableBorders = DefaultTableBorders
             };
+            clone._pdfOptionsCreatedByRenderingProfile =
+                _pdfOptionsCreatedByRenderingProfile;
             clone._renderingProfileFontConfigurationState =
                 _renderingProfileFontConfigurationState;
             return clone;

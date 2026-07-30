@@ -19,6 +19,7 @@ public enum PowerPointPdfPageLayout {
 public sealed class PowerPointPdfSaveOptions {
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;
+    private bool _pdfOptionsCreatedByRenderingProfile;
     private long? _renderingProfileFontConfigurationState;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
@@ -26,6 +27,7 @@ public sealed class PowerPointPdfSaveOptions {
         get => _pdfOptions;
         set {
             _pdfOptions = value;
+            _pdfOptionsCreatedByRenderingProfile = false;
             _renderingProfileFontConfigurationState = null;
         }
     }
@@ -134,10 +136,14 @@ public sealed class PowerPointPdfSaveOptions {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }
 
-        _pdfOptions ??= new PdfCore.PdfOptions();
+        if (_pdfOptions == null) {
+            _pdfOptions = new PdfCore.PdfOptions();
+            _pdfOptionsCreatedByRenderingProfile = true;
+        }
         _pdfOptions.UseRenderingProfile(profile, mode);
         _renderingProfileFontConfigurationState =
             profile.Fonts.Faces.Count == 0
+            && _pdfOptionsCreatedByRenderingProfile
             && (mode == DrawingCore.OfficeRenderingProfileApplyMode.Replace
                 || _renderingProfileFontConfigurationState.HasValue)
                 ? _pdfOptions.FontConfigurationState

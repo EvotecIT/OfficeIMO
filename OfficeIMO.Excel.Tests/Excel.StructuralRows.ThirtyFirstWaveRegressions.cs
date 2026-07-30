@@ -91,5 +91,32 @@ namespace OfficeIMO.Tests {
                 plan.Impacts,
                 impact => impact.Category == "pivots");
         }
+
+        [Fact]
+        public void Test_StructuralRows_MutationPlanIncludesIndependentCommentVmlAnchorMove() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.SetComment("A1", "Anchored note");
+            var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
+            string before;
+            using (var reader = new StreamReader(vmlPart.GetStream())) {
+                before = reader.ReadToEnd();
+            }
+
+            ExcelRowMutationPlan plan = sheet.PlanInsertRows(3);
+
+            ExcelMutationImpact comments = Assert.Single(
+                plan.Impacts,
+                impact => impact.Category == "comments");
+            Assert.Equal(1, comments.ItemCount);
+            plan.Apply();
+
+            string after;
+            using (var reader = new StreamReader(vmlPart.GetStream())) {
+                after = reader.ReadToEnd();
+            }
+            Assert.NotEqual(before, after);
+            Assert.True(sheet.HasComment(1, 1));
+        }
     }
 }

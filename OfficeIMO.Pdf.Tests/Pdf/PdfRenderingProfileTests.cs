@@ -1240,6 +1240,18 @@ public sealed class PdfRenderingProfileTests {
             .CloneForConversion()
             .HasExplicitPdfFontConfiguration);
 
+        var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions {
+            PdfOptions = new PdfOptions()
+        }.UseRenderingProfile(profile);
+        Assert.True(ReadExplicitPdfFontConfiguration(explicitlyConfiguredExcel));
+
+        var explicitlyConfiguredPowerPoint =
+            new OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions {
+                PdfOptions = new PdfOptions()
+            }.UseRenderingProfile(profile);
+        Assert.True(
+            explicitlyConfiguredPowerPoint.HasExplicitPdfFontConfiguration);
+
         word.PdfOptions!.DefaultFontSize = 17D;
         Assert.True(word.HasExplicitPdfFontConfiguration);
         excel.PdfOptions!.PageSize = new PageSize(300, 400);
@@ -1413,6 +1425,28 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
     }
+
+    [Fact]
+    public void WordFontProfileRemainsExplicitFontConfiguration() {
+        var profile = new OfficeRenderingProfile(
+            "word-font-profile",
+            new OfficeFontFaceCollection()
+                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(profile);
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    private static bool ReadExplicitPdfFontConfiguration(object options) =>
+        (bool)(options.GetType().GetProperty(
+                "HasExplicitPdfFontConfiguration",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)
+            ?.GetValue(options)
+            ?? throw new InvalidOperationException(
+                "The PDF adapter font-configuration state was not found."));
 
     private sealed class DecliningTextShapingProvider : IOfficeTextShapingProvider {
         public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) => null;
