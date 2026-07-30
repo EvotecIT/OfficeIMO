@@ -156,6 +156,35 @@ if ($pageHtml -match 'Loading benchmark data') {
     throw "Benchmark page still depends on client-side data loading."
 }
 
+$highlightCards = [regex]::Matches(
+    $pageHtml,
+    '<article class="imo-benchmark-highlight">.*?<tbody>(?<rows>.*?)</tbody>.*?</article>',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline)
+foreach ($card in $highlightCards) {
+    $timings = @(
+        [regex]::Matches(
+            $card.Groups['rows'].Value,
+            '<th scope="row">(?<library>.*?)</th><td>(?<value>[0-9]+(?:\.[0-9]+)?) (?<unit>ms|s)</td>') |
+            ForEach-Object {
+                $milliseconds = [double]::Parse(
+                    $_.Groups['value'].Value,
+                    [System.Globalization.CultureInfo]::InvariantCulture)
+                if ($_.Groups['unit'].Value -eq 's') {
+                    $milliseconds *= 1000
+                }
+                [pscustomobject]@{
+                    Library = [System.Net.WebUtility]::HtmlDecode($_.Groups['library'].Value)
+                    Milliseconds = $milliseconds
+                }
+            }
+    )
+    for ($index = 1; $index -lt $timings.Count; $index++) {
+        if ($timings[$index].Milliseconds -lt $timings[$index - 1].Milliseconds) {
+            throw "Benchmark highlight rows are not fastest-first: '$($timings[$index].Library)' ($($timings[$index].Milliseconds) ms) follows '$($timings[$index - 1].Library)' ($($timings[$index - 1].Milliseconds) ms)."
+        }
+    }
+}
+
 $renderedMatrixRows = ([regex]::Matches($pageHtml, '<tr[^>]*data-benchmark-row[^>]*>\s*<td class="imo-benchmark-scenario"[^>]*data-label="Scenario"')).Count
 if ($renderedMatrixRows -lt $matrixRowCount) {
     throw "Benchmark page rendered $renderedMatrixRows matrix rows, expected at least $matrixRowCount."

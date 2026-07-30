@@ -26,9 +26,9 @@
 <div class="imo-benchmark-highlight__heading"><div><p>Read</p><h3>Typed objects streamed from XLSX</h3></div><span>Read</span></div>
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Median</th><th scope="col">Relative</th></tr></thead><tbody>
 <tr class="is-officeimo"><th scope="row">OfficeIMO.Excel</th><td>25.00 ms</td><td>OfficeIMO baseline</td></tr>
-<tr><th scope="row">ClosedXML</th><td>278.14 ms</td><td>11.13x OfficeIMO</td></tr>
-<tr><th scope="row">EPPlus</th><td>251.93 ms</td><td>10.08x OfficeIMO</td></tr>
 <tr><th scope="row">Sylvan.Data.Excel</th><td>38.98 ms</td><td>1.56x OfficeIMO</td></tr>
+<tr><th scope="row">EPPlus</th><td>251.93 ms</td><td>10.08x OfficeIMO</td></tr>
+<tr><th scope="row">ClosedXML</th><td>278.14 ms</td><td>11.13x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>
 <article class="imo-benchmark-highlight">
@@ -60,27 +60,27 @@
 <article class="imo-benchmark-highlight">
 <div class="imo-benchmark-highlight__heading"><div><p>Format and write rows</p><h3>Wide projected-array CSV write</h3></div><span>projected object arrays</span></div>
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Mean</th><th scope="col">Relative</th></tr></thead><tbody>
-<tr><th scope="row">CsvHelper</th><td>82.38 ms</td><td>2.65x OfficeIMO</td></tr>
-<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>44.51 ms</td><td>1.43x OfficeIMO</td></tr>
 <tr class="is-officeimo"><th scope="row">OfficeIMO.CSV</th><td>31.09 ms</td><td>OfficeIMO baseline</td></tr>
+<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>44.51 ms</td><td>1.43x OfficeIMO</td></tr>
+<tr><th scope="row">CsvHelper</th><td>82.38 ms</td><td>2.65x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>
 <article class="imo-benchmark-highlight">
 <div class="imo-benchmark-highlight__heading"><div><p>Format and write rows</p><h3>Wide DataReader CSV write</h3></div><span>IDataReader</span></div>
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Mean</th><th scope="col">Relative</th></tr></thead><tbody>
-<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>46.59 ms</td><td>1.74x OfficeIMO</td></tr>
-<tr class="is-officeimo"><th scope="row">OfficeIMO.CSV</th><td>26.72 ms</td><td>OfficeIMO baseline</td></tr>
 <tr><th scope="row">Sylvan.Data.Csv</th><td>26.43 ms</td><td>0.99x OfficeIMO</td></tr>
+<tr class="is-officeimo"><th scope="row">OfficeIMO.CSV</th><td>26.72 ms</td><td>OfficeIMO baseline</td></tr>
+<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>46.59 ms</td><td>1.74x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>
 <article class="imo-benchmark-highlight">
 <div class="imo-benchmark-highlight__heading"><div><p>Validate and write rows</p><h3>Wide validated text-row CSV write</h3></div><span>preformatted text with escaping</span></div>
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Mean</th><th scope="col">Relative</th></tr></thead><tbody>
-<tr><th scope="row">CsvHelper</th><td>22.70 ms</td><td>1.33x OfficeIMO</td></tr>
-<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>21.46 ms</td><td>1.25x OfficeIMO</td></tr>
+<tr><th scope="row">Sylvan.Data.Csv</th><td>16.90 ms</td><td>0.99x OfficeIMO</td></tr>
 <tr class="is-officeimo"><th scope="row">OfficeIMO.CSV</th><td>17.12 ms</td><td>OfficeIMO baseline</td></tr>
 <tr><th scope="row">Sep</th><td>20.47 ms</td><td>1.20x OfficeIMO</td></tr>
-<tr><th scope="row">Sylvan.Data.Csv</th><td>16.90 ms</td><td>0.99x OfficeIMO</td></tr>
+<tr><th scope="row">Dataplat.Dbatools.Csv</th><td>21.46 ms</td><td>1.25x OfficeIMO</td></tr>
+<tr><th scope="row">CsvHelper</th><td>22.70 ms</td><td>1.33x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>
 </div>
