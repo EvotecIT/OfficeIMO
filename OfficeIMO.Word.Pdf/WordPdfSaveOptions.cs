@@ -8,10 +8,20 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     public class WordPdfSaveOptions {
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+        private PdfCore.PdfOptions? _pdfOptions;
+        private bool _hasExplicitPdfOptions;
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
-        public PdfCore.PdfOptions? PdfOptions { get; set; }
+        public PdfCore.PdfOptions? PdfOptions {
+            get => _pdfOptions;
+            set {
+                _pdfOptions = value;
+                _hasExplicitPdfOptions = value != null;
+            }
+        }
+
+        internal bool HasExplicitPdfOptions => _hasExplicitPdfOptions;
 
         /// <summary>
         /// Optional Word-style font family used as the first-party PDF default font. When the resource policy allows system fonts, an installed family is embedded; otherwise it maps to the nearest PDF standard font.
@@ -102,8 +112,8 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfSaveOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            PdfOptions ??= new PdfCore.PdfOptions();
-            PdfOptions.UseRenderingProfile(profile, mode);
+            _pdfOptions ??= new PdfCore.PdfOptions();
+            _pdfOptions.UseRenderingProfile(profile, mode);
             return this;
         }
 
@@ -135,23 +145,27 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
-        internal WordPdfSaveOptions CloneForConversion() => new() {
-            PdfOptions = PdfOptions,
-            FontFamily = FontFamily,
-            ResourcePolicy = ResourcePolicy.Clone(),
-            TextFallbacks = TextFallbacks,
-            PageSize = PageSize,
-            Margins = Margins,
-            Orientation = Orientation,
-            DefaultPageSize = DefaultPageSize,
-            DefaultOrientation = DefaultOrientation,
-            Title = Title,
-            Author = Author,
-            Subject = Subject,
-            Keywords = Keywords,
-            IncludePageNumbers = IncludePageNumbers,
-            PageNumberFormat = PageNumberFormat,
-            DefaultTableBorders = DefaultTableBorders
-        };
+        internal WordPdfSaveOptions CloneForConversion() {
+            var clone = new WordPdfSaveOptions {
+                PdfOptions = PdfOptions,
+                FontFamily = FontFamily,
+                ResourcePolicy = ResourcePolicy.Clone(),
+                TextFallbacks = TextFallbacks,
+                PageSize = PageSize,
+                Margins = Margins,
+                Orientation = Orientation,
+                DefaultPageSize = DefaultPageSize,
+                DefaultOrientation = DefaultOrientation,
+                Title = Title,
+                Author = Author,
+                Subject = Subject,
+                Keywords = Keywords,
+                IncludePageNumbers = IncludePageNumbers,
+                PageNumberFormat = PageNumberFormat,
+                DefaultTableBorders = DefaultTableBorders
+            };
+            clone._hasExplicitPdfOptions = _hasExplicitPdfOptions;
+            return clone;
+        }
     }
 }

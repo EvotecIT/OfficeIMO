@@ -20,6 +20,7 @@ public sealed partial class PdfOptions {
         get => _embeddedFontFallbacks?.Clone();
         set {
             _embeddedFontFallbacks = value?.Clone();
+            _renderingProfileDeclaredFallbackCandidates = null;
             _embeddedFontFallbacks?.RegisterFonts(this);
         }
     }

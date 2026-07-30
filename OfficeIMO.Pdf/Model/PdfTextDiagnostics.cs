@@ -601,15 +601,18 @@ internal static class PdfTextDiagnostics {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
             if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+                previousFallbackFontIndex = -1;
                 continue;
             }
 
             if (tryGetSelectedTextLength(text, scalarStart, out int selectedLength)) {
+                previousFallbackFontIndex = -1;
                 index = scalarStart + selectedLength;
                 continue;
             }
 
             if (scalar < ' ' || scalar == '\u007F') {
+                previousFallbackFontIndex = -1;
                 diagnostics.Add(CreateDiagnostic(text, scalarStart, source, location, runIndex));
                 continue;
             }
@@ -622,6 +625,7 @@ internal static class PdfTextDiagnostics {
                 out int fallbackCoveredLength,
                 previousFallbackFontIndex);
             if (fallbackFontIndex < 0) {
+                previousFallbackFontIndex = -1;
                 diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fallbackFonts, location, runIndex));
                 index = scalarStart + Math.Max(fallbackCoveredLength, index - scalarStart);
             } else {

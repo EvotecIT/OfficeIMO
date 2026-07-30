@@ -150,6 +150,30 @@ public sealed class PdfRenderingProfileTests {
             OfficeRenderingProfileApplyMode.Overlay);
 
         Assert.Equal(callerData, options.NamedFontFamilies["Shared"].Regular);
+        Assert.False(options.TryGetRenderingProfileFamilyFallbacks(
+            "Shared",
+            out _));
+        Assert.Null(options.EmbeddedFontFallbacks);
+    }
+
+    [Fact]
+    public void ReplacingProfileOwnedNamedFamilyRemovesOldActiveFallbackBytes() {
+        byte[] profileData = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] callerData = ManagedTextShapingTestAssets.CreateFont('B');
+        var profileFonts = new OfficeFontFaceCollection()
+            .Add("Shared", profileData)
+            .AddFallbackFamily("Shared");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("profile", profileFonts));
+
+        options.RegisterNamedFontFamily(
+            new PdfEmbeddedFontFamily("Shared", callerData));
+
+        Assert.Equal(callerData, options.NamedFontFamilies["Shared"].Regular);
+        Assert.Null(options.EmbeddedFontFallbacks);
+        Assert.Null(options.GetEffectiveRenderingProfileDeclaredFallbacks(
+            bold: false,
+            italic: false));
     }
 
     [Fact]
@@ -499,6 +523,30 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(plan.IsFullyCovered);
         Assert.Single(plan.Segments);
         Assert.Equal("A A", plan.Segments[0].Text);
+    }
+
+    [Fact]
+    public void EncodingPreflightResetsRangeScopedWhitespaceContextAtTextBoundaries() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A', 0x2003),
+                OfficeFontStyle.Regular,
+                onlyA);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("scoped-boundary", fonts));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] { TextRun.Normal("A\n\u2003", fontFamily: "Scoped") },
+                options,
+                PdfStandardFont.Helvetica,
+                "profile boundary preflight");
+
+        Assert.Single(diagnostics);
     }
 
     [Fact]
@@ -919,6 +967,52 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void RenderingProfileFamilyCapacityIsValidatedBeforeOptionsAreMutated() {
+        var originalProvider = new DecliningTextShapingProvider();
+        var replacementProvider = OfficeManagedTextShapingProvider.Instance;
+        var options = new PdfOptions {
+            TextShapingProvider = originalProvider,
+            Language = "en"
+        }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+            "Existing",
+            ManagedTextShapingTestAssets.CreateFont('A')));
+        var fonts = new OfficeFontFaceCollection();
+        for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
+            fonts.Add(
+                $"Family {index}",
+                ManagedTextShapingTestAssets.CreateFont('A'));
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            options.UseRenderingProfile(new OfficeRenderingProfile(
+                "too-many-families",
+                fonts,
+                replacementProvider,
+                "pl")));
+
+        Assert.Same(originalProvider, options.TextShapingProvider);
+        Assert.Equal("en", options.Language);
+        Assert.True(options.HasNamedFontFamily("Existing"));
+        Assert.Single(options.NamedFontFamilies);
+    }
+
+    [Fact]
+    public void AssigningEmbeddedFallbacksReleasesProfileDeclaredFallbacks() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Profile Fallback", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddFallbackFamily("Profile Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("profile", fonts));
+
+        options.EmbeddedFontFallbacks = null;
+
+        Assert.Null(options.EmbeddedFontFallbacks);
+        Assert.Null(options.GetEffectiveRenderingProfileDeclaredFallbacks(
+            bold: false,
+            italic: false));
+    }
+
+    [Fact]
     public void SharedRenderingProfileFlowsThroughFirstPartyOfficePdfAdapters() {
         var profile = new OfficeRenderingProfile(
             "managed-polish",
@@ -936,6 +1030,14 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal("pl", word.PdfOptions?.Language);
         Assert.Equal("pl", excel.PdfOptions?.Language);
         Assert.Equal("pl", powerPoint.PdfOptions?.Language);
+        Assert.False(word.HasExplicitPdfOptions);
+        Assert.False(word.CloneForConversion().HasExplicitPdfOptions);
+
+        var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordPdfSaveOptions {
+            PdfOptions = new PdfOptions()
+        }.UseRenderingProfile(profile);
+        Assert.True(explicitlyConfiguredWord.HasExplicitPdfOptions);
+        Assert.True(explicitlyConfiguredWord.CloneForConversion().HasExplicitPdfOptions);
     }
 
     [Fact]
