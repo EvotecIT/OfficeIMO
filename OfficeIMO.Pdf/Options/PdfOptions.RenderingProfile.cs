@@ -315,19 +315,20 @@ public sealed partial class PdfOptions {
         IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidates,
         bool bold,
         bool italic) {
-        OfficeFontStyle[] precedence = RenderingProfileStylePrecedence(bold, italic);
+        OfficeFontStyle requested =
+            (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
         foreach (IGrouping<string, PdfEmbeddedFontFallbackCandidate> family in candidates
             .GroupBy(
                 CandidateSelectionGroupKey,
                 StringComparer.OrdinalIgnoreCase)) {
-            foreach (OfficeFontStyle style in precedence) {
-                PdfEmbeddedFontFallbackCandidate? candidate =
-                    family.FirstOrDefault(item => item.Style == style);
-                if (candidate != null) {
-                    selected.Add(candidate);
-                    break;
-                }
+            PdfEmbeddedFontFallbackCandidate? candidate =
+                family.FirstOrDefault(item => item.Style == requested)
+                ?? family.FirstOrDefault(item => item.Style == OfficeFontStyle.Regular)
+                ?? family.FirstOrDefault();
+            if (candidate != null) {
+                selected.Add(candidate);
             }
         }
         return selected.ToArray();
@@ -346,40 +347,6 @@ public sealed partial class PdfOptions {
                     + range.End.ToString(
                         System.Globalization.CultureInfo.InvariantCulture)));
         return candidate.SelectionFamilyName + "\u001f" + ranges;
-    }
-
-    private static OfficeFontStyle[] RenderingProfileStylePrecedence(
-        bool bold,
-        bool italic) {
-        OfficeFontStyle requested =
-            (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
-            | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        return requested switch {
-            OfficeFontStyle.Bold | OfficeFontStyle.Italic => new[] {
-                OfficeFontStyle.Bold | OfficeFontStyle.Italic,
-                OfficeFontStyle.Regular,
-                OfficeFontStyle.Bold,
-                OfficeFontStyle.Italic
-            },
-            OfficeFontStyle.Bold => new[] {
-                OfficeFontStyle.Bold,
-                OfficeFontStyle.Regular,
-                OfficeFontStyle.Bold | OfficeFontStyle.Italic,
-                OfficeFontStyle.Italic
-            },
-            OfficeFontStyle.Italic => new[] {
-                OfficeFontStyle.Italic,
-                OfficeFontStyle.Regular,
-                OfficeFontStyle.Bold | OfficeFontStyle.Italic,
-                OfficeFontStyle.Bold
-            },
-            _ => new[] {
-                OfficeFontStyle.Regular,
-                OfficeFontStyle.Bold,
-                OfficeFontStyle.Italic,
-                OfficeFontStyle.Bold | OfficeFontStyle.Italic
-            }
-        };
     }
 
     private void EnsureNamedFallbackCandidatesRegistered(
@@ -849,7 +816,12 @@ public sealed partial class PdfOptions {
                     face.Data,
                     face.UnicodeRanges,
                     face.Style,
-                    face.FamilyName));
+                    string.Equals(
+                        face.ResourceFamilyName,
+                        fallbackFamily,
+                        StringComparison.OrdinalIgnoreCase)
+                        ? face.ResourceFamilyName
+                        : face.FamilyName));
             }
         }
 

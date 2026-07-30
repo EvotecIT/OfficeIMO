@@ -1062,6 +1062,99 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FallbackWithoutExactOrRegularFaceUsesReverseRegistrationOrder() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Bold)
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('B'),
+                OfficeFontStyle.Italic)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("registration-order", fonts));
+
+        PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: false,
+                italic: false));
+
+        Assert.True(planner.PlanText("B").IsFullyCovered);
+        Assert.False(planner.PlanText("A").IsFullyCovered);
+    }
+
+    [Fact]
+    public void DiagnosticsUseStyledGlobalFallbackWhenFamilyPlannerIsUnavailable() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Fallback", ManagedTextShapingTestAssets.CreateFont('\u0416'))
+            .Add(
+                "Fallback",
+                ManagedTextShapingTestAssets.CreateFont('\u0419'),
+                OfficeFontStyle.Bold)
+            .AddFallbackFamily("Fallback");
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("diagnostic-style", fonts));
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> covered =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] {
+                    TextRun.Bolded("\u0419", fontFamily: "Missing")
+                },
+                options,
+                PdfStandardFont.Helvetica,
+                "styled global fallback");
+        IReadOnlyList<PdfTextEncodingDiagnostic> uncovered =
+            PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] {
+                    TextRun.Bolded("\u0416", fontFamily: "Missing")
+                },
+                options,
+                PdfStandardFont.Helvetica,
+                "styled global fallback");
+
+        Assert.Empty(covered);
+        Assert.NotEmpty(uncovered);
+    }
+
+    [Fact]
+    public void ResourceScopedFallbackStaysScopedAcrossOverlay() {
+        var onlyA = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('A', 'A')
+        });
+        var initialFonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('A'),
+                OfficeFontStyle.Regular,
+                onlyA);
+        initialFonts.AddFallbackFamily(initialFonts.Faces[0].ResourceFamilyName);
+        var options = new PdfOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("resource-scoped", initialFonts));
+        var onlyC = new OfficeFontUnicodeRangeSet(new[] {
+            new OfficeFontUnicodeRange('C', 'C')
+        });
+        var overlayFonts = new OfficeFontFaceCollection()
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFont('C'),
+                OfficeFontStyle.Regular,
+                onlyC);
+
+        options.UseRenderingProfile(
+            new OfficeRenderingProfile("resource-overlay", overlayFonts),
+            OfficeRenderingProfileApplyMode.Overlay);
+
+        PdfEmbeddedFontFallbackSet planner = Assert.IsType<PdfEmbeddedFontFallbackSet>(
+            options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                bold: false,
+                italic: false));
+        Assert.True(planner.PlanText("A").IsFullyCovered);
+        Assert.False(planner.PlanText("C").IsFullyCovered);
+    }
+
+    [Fact]
     public void OverlaySlotFallbackCollisionStillRegistersProfileNamedFamily() {
         byte[] slotData = ManagedTextShapingTestAssets.CreateFont('A');
         var options = new PdfOptions()
@@ -1438,6 +1531,19 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
+        var options = new OfficeIMO.Word.Pdf.WordPdfSaveOptions()
+            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+
+        Assert.False(options.HasExplicitPdfFontConfiguration);
+
+        options.PdfOptions!.DefaultFontSize = 11D;
+
+        Assert.True(options.HasExplicitPdfFontConfiguration);
+        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
+    }
+
+    [Fact]
     public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
@@ -1463,6 +1569,26 @@ public sealed class PdfRenderingProfileTests {
         UglyToad.PdfPig.Content.Page explicitPage = explicitPdf.GetPage(1);
         Assert.InRange((double)explicitPage.Width, 299.9D, 300.1D);
         Assert.InRange((double)explicitPage.Height, 399.9D, 400.1D);
+    }
+
+    [Fact]
+    public void ExcelRenderingProfileHonorsEqualValueLetterPageSizeAssignment() {
+        using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
+        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
+        sheet.CellValue(1, 1, "Explicit Letter page size");
+        sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
+        var options = new OfficeIMO.Excel.Pdf.ExcelPdfSaveOptions()
+            .UseRenderingProfile(OfficeRenderingProfile.Managed);
+
+        options.PdfOptions!.PageSize = new PageSize(612, 792);
+        byte[] explicitlySized = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
+            workbook,
+            options);
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(explicitlySized);
+        UglyToad.PdfPig.Content.Page page = pdf.GetPage(1);
+        Assert.InRange((double)page.Width, 611.9D, 612.1D);
+        Assert.InRange((double)page.Height, 791.9D, 792.1D);
     }
 
     [Fact]

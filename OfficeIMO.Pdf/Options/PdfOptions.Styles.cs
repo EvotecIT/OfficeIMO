@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    private double _defaultFontSize = 11;
+    private long _defaultFontSizeAssignmentVersion;
+
     /// <summary>Default standard font used for paragraphs.</summary>
     public PdfStandardFont DefaultFont {
         get => _defaultFont;
@@ -13,7 +16,15 @@ public sealed partial class PdfOptions {
     /// <summary>Gets whether the default paragraph font slot was explicitly supplied by the caller or a theme.</summary>
     public bool HasExplicitDefaultFont => _hasExplicitDefaultFont;
     /// <summary>Default paragraph font size in points. Default 11.</summary>
-    public double DefaultFontSize { get; set; } = 11;
+    public double DefaultFontSize {
+        get => _defaultFontSize;
+        set {
+            _defaultFontSize = value;
+            unchecked {
+                _defaultFontSizeAssignmentVersion++;
+            }
+        }
+    }
     /// <summary>Default text color for blocks when none is specified.</summary>
     public PdfColor? DefaultTextColor { get; set; }
     /// <summary>Default paragraph style applied when a paragraph does not specify its own style.</summary>
