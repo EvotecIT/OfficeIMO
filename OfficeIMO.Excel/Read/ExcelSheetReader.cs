@@ -60,6 +60,29 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name => _sheetName;
 
+        internal void ValidateFormulaTextDataReaderProjection(CancellationToken ct) {
+            if (_opt.UseCachedFormulaResult) {
+                return;
+            }
+
+            Worksheet worksheet = _wsPart.Worksheet
+                ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
+            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+                ct.ThrowIfCancellationRequested();
+                CellFormula? formula = cell.CellFormula;
+                if (formula?.FormulaType?.Value != CellFormulaValues.Shared
+                    || !string.IsNullOrWhiteSpace(formula?.Text)) {
+                    continue;
+                }
+
+                string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                throw new NotSupportedException(
+                    $"Formula-text data-reader projection cannot safely expand the shared-formula follower " +
+                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    "shared-formula text is required.");
+            }
+        }
+
         /// <summary>
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
